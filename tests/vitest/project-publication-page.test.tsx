@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement, type ImgHTMLAttributes } from "react";
@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   resolveSharedLinkRecipientIdentity: vi.fn(),
   unsubscribeSharedLinkRecipientByToken: vi.fn(),
   verifySharedLinkRecipientToken: vi.fn(),
+  checkSharedLinkSessionStartRateLimit: vi.fn(),
+  checkProjectPublicationEventRateLimit: vi.fn(),
   recordProjectPublicationEvent: vi.fn(),
   recordProjectPublicationAnalyticsEvent: vi.fn(),
   cookieGet: vi.fn(),
@@ -24,6 +26,8 @@ vi.mock("@/lib/publication/public-repository", () => ({
   resolveSharedLinkRecipientIdentity: mocks.resolveSharedLinkRecipientIdentity,
   unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
   verifySharedLinkRecipientToken: mocks.verifySharedLinkRecipientToken,
+  checkSharedLinkSessionStartRateLimit: mocks.checkSharedLinkSessionStartRateLimit,
+  checkProjectPublicationEventRateLimit: mocks.checkProjectPublicationEventRateLimit,
   recordProjectPublicationEvent: mocks.recordProjectPublicationEvent,
   recordProjectPublicationAnalyticsEvent: mocks.recordProjectPublicationAnalyticsEvent,
 }));
@@ -74,11 +78,19 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })) as unknown as typeof fetch);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ activities: [], comments: [], hasMore: false, recipientSession: false }),
+      })) as unknown as typeof fetch,
+    );
     mocks.cookieGet.mockReturnValue(undefined);
     mocks.resolveSharedLinkRecipientIdentity.mockResolvedValue(null);
     mocks.recordProjectPublicationAnalyticsEvent.mockResolvedValue({ recorded: true });
     mocks.verifySharedLinkRecipientToken.mockResolvedValue(null);
+    mocks.checkSharedLinkSessionStartRateLimit.mockResolvedValue({ allowed: true });
+    mocks.checkProjectPublicationEventRateLimit.mockResolvedValue({ allowed: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "publication-1",
       status: "published",
@@ -148,29 +160,71 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     // P2: estimate content now lives inside SharePageTabs tabpanel (no more role=region wrapper)
     // The h2 + table cells remain for content verification (backwards visual parity)
     expect(screen.getByRole("heading", { name: "Main Estimate", level: 2 })).toBeInTheDocument();
-    expect(screen.getByText("Concrete works")).toBeInTheDocument();
+    expect(screen.getAllByText("Concrete works").length).toBeGreaterThan(0);
     expect(screen.getAllByText("PHP 2,300.00").length).toBeGreaterThan(0);
     expect(document.body.textContent).not.toContain("Workshop");
     expect(document.body.textContent).not.toContain("Teamspaces");
-    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-      token: "client-token",
-      eventType: "open",
-      request: expect.any(Request),
-      metadata: {},
+    await waitFor(() => {
+      expect(mocks.checkProjectPublicationEventRateLimit).toHaveBeenCalledWith({
+        token: "client-token",
+        request: expect.any(Request),
+      });
+      expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+        token: "client-token",
+        eventType: "open",
+        request: expect.any(Request),
+        metadata: {},
+      });
+      expect(mocks.recordProjectPublicationAnalyticsEvent).toHaveBeenCalledWith({
+        token: "client-token",
+        eventType: "open",
+        accessStage: "page_visit",
+        recipientKnown: false,
+        request: expect.any(Request),
+      });
     });
-    expect(mocks.recordProjectPublicationAnalyticsEvent).toHaveBeenCalledWith({
-      token: "client-token",
-      eventType: "open",
-      accessStage: "page_visit",
-      recipientKnown: false,
-      request: expect.any(Request),
+  });
+
+  it("mounts the public-safe receiver activity feed", async () => {
+    render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+
+    const feed = await screen.findByTestId("activity-feed");
+    expect(within(feed).getByText("No activity yet.")).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/share/client-token/activity",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: { "Cache-Control": "no-store" },
+      }),
+    );
+  });
+
+  it("renders the page while skipping deferred open telemetry when the public event limiter denies it", async () => {
+    mocks.checkProjectPublicationEventRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
     });
+
+    render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+
+    expect(screen.getByRole("main", { name: "Proposal review" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mocks.checkProjectPublicationEventRateLimit).toHaveBeenCalledWith({
+        token: "client-token",
+        request: expect.any(Request),
+      });
+    });
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationAnalyticsEvent).not.toHaveBeenCalled();
   });
 
   it("loads print styles and marks receiver-only chrome as non-printing", async () => {
     expect(sharePageSource).toContain("../print.css");
     expect(sharePrintSource).toContain("@media print");
     expect(sharePrintSource).toContain(".share-print-hidden");
+    expect(sharePrintSource).toContain(".share-print-screen-only");
+    expect(sharePrintSource).toContain(".share-print-only");
     expect(sharePrintSource).toContain(".share-print-estimate");
 
     const { container } = render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
@@ -191,12 +245,14 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(sharePageSource).toContain("recipientToken={recipientToken}");
     expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
     expect(mocks.cookieSet).not.toHaveBeenCalled();
-    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-      token: "client-token",
-      eventType: "open",
-      request: expect.any(Request),
-      metadata: {},
-      recipientId: undefined,
+    await waitFor(() => {
+      expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+        token: "client-token",
+        eventType: "open",
+        request: expect.any(Request),
+        metadata: {},
+        recipientId: undefined,
+      });
     });
   });
 
@@ -215,12 +271,14 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect.any(String),
       expect.any(Object),
     );
-    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-      token: "client-token",
-      eventType: "open",
-      request: expect.any(Request),
-      metadata: {},
-      recipientId: undefined,
+    await waitFor(() => {
+      expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+        token: "client-token",
+        eventType: "open",
+        request: expect.any(Request),
+        metadata: {},
+        recipientId: undefined,
+      });
     });
   });
 
@@ -253,6 +311,13 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(shareSessionRouteSource).toContain("_ok");
   });
 
+  it("keeps receiver session-banner actions touch-sized with readable contrast", () => {
+    expect(shareSessionBannerSource).toContain("min-h-11");
+    expect(shareSessionBannerSource).toContain("min-w-11");
+    expect(shareSessionBannerSource).toContain("text-secondary");
+    expect(shareSessionBannerSource).not.toContain("text-tertiary");
+  });
+
   it("creates recipient session cookies through the route handler without rendering raw tokens", async () => {
     mocks.verifySharedLinkRecipientToken.mockResolvedValueOnce({
       publicationId: "publication-1",
@@ -267,7 +332,12 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     const response = await POST(
       new Request("https://archestimator.test/api/share/client-token/session", {
         method: "POST",
-        headers: { "content-type": "application/json", origin: "https://archestimator.test" },
+        headers: {
+          "content-type": "application/json",
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
         body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
       }),
       { params: Promise.resolve({ token: "client-token" }) },
@@ -276,12 +346,101 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mocks.checkSharedLinkSessionStartRateLimit).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
     expect(mocks.verifySharedLinkRecipientToken).toHaveBeenCalledWith("client-token", "raw-recipient-token");
     expect(setCookieHeader).toContain("shared_link_session_");
     expect(setCookieHeader).toContain("_ok=");
     expect(setCookieHeader).toContain("HttpOnly");
     expect(setCookieHeader).not.toContain("client-token");
     expect(setCookieHeader).not.toContain("raw-recipient-token");
+    expect(shareSessionRouteSource).toContain("after(async () =>");
+  });
+
+  it("keeps recipient session creation successful when analytics recording fails", async () => {
+    mocks.verifySharedLinkRecipientToken.mockResolvedValueOnce({
+      publicationId: "publication-1",
+      snapshotVersion: 7,
+      credentialVersion: "open",
+      recipientId: "recipient-1",
+      recipientEmail: "recipient@example.com",
+      recipientDisplayName: "Client Receiver",
+    });
+    mocks.recordProjectPublicationAnalyticsEvent.mockRejectedValueOnce(new Error("analytics failed"));
+    const { POST } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    await waitFor(() => {
+      expect(mocks.recordProjectPublicationAnalyticsEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: "client-token",
+          accessStage: "recipient_session_started",
+          recipientKnown: true,
+          recipientId: "recipient-1",
+        }),
+      );
+    });
+  });
+
+  it("requires public CSRF and rate-limits recipient session creation before token verification", async () => {
+    const { POST } = await import("@/app/api/share/[token]/session/route");
+    const routeParams = { params: Promise.resolve({ token: "client-token" }) };
+
+    const csrfResponse = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "https://archestimator.test" },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      routeParams,
+    );
+
+    expect(csrfResponse.status).toBe(403);
+    expect(await csrfResponse.json()).toEqual({ error: "Publication request verification failed." });
+    expect(mocks.checkSharedLinkSessionStartRateLimit).not.toHaveBeenCalled();
+    expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
+
+    mocks.checkSharedLinkSessionStartRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const limitedResponse = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      routeParams,
+    );
+
+    expect(limitedResponse.status).toBe(429);
+    expect(limitedResponse.headers.get("retry-after")).toBe("60");
+    expect(await limitedResponse.json()).toEqual({ error: "Too many attempts. Please wait 60 seconds." });
+    expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
   });
 
   it("expires recipient session cookies without exposing the raw share token", async () => {
@@ -388,6 +547,29 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(button.disabled).toBe(true);
   });
 
+  it("links password validation errors to the input with invalid-state ARIA", async () => {
+    const { ProjectPublicationPasswordForm } = await import("@/components/share/ProjectPublicationPasswordForm");
+    const user = userEvent.setup();
+    global.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ error: "Password is invalid." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ) as typeof fetch;
+
+    render(<ProjectPublicationPasswordForm token="invalid-password-token" />);
+
+    const input = screen.getByLabelText(/password/i);
+    await user.type(input, "wrong-password");
+    await user.click(screen.getByRole("button", { name: /unlock/i }));
+
+    const error = await screen.findByText("Password is invalid.");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute("aria-describedby", error.id);
+    expect(error.id).toBeTruthy();
+    expect(error).toHaveAttribute("role", "alert");
+  });
+
   it("sets the public CSRF cookie on a path sent to the API password route", () => {
     expect(passwordFormSource).toContain("ae_publication_csrf=");
     expect(passwordFormSource).toContain("Path=/; SameSite=Lax; Max-Age=3600");
@@ -492,17 +674,41 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
       // initially first
       expect(screen.getByRole("heading", { name: "Main Estimate" })).toBeInTheDocument();
-      expect(screen.getByText("Concrete works")).toBeInTheDocument();
-      expect(screen.queryByText("Electrical")).not.toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).getByText("Concrete works")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).queryByText("Electrical")).not.toBeInTheDocument();
 
       // click second tab
       const altTab = screen.getByRole("tab", { name: /Alternative Layout/i });
       await user.click(altTab);
 
       expect(screen.getByRole("heading", { name: "Alternative Layout" })).toBeInTheDocument();
-      expect(screen.getByText("Electrical")).toBeInTheDocument();
-      expect(screen.queryByText("Concrete works")).not.toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).getByText("Electrical")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).queryByText("Concrete works")).not.toBeInTheDocument();
       expect(screen.getByRole("tabpanel")).toBeInTheDocument();
+    });
+
+    it("defers the print-only package until print intent, then includes every shared estimate", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      render(<SharePageTabs estimates={multiEstimates} currencyCode="PHP" token="client-token-print-all" />);
+
+      const screenOnly = document.querySelector(".share-print-screen-only");
+
+      expect(screenOnly).toBeInTheDocument();
+      expect(document.querySelector("[data-share-print-package]")).not.toBeInTheDocument();
+
+      fireEvent(window, new Event("beforeprint"));
+
+      const printPackage = document.querySelector("[data-share-print-package]") as HTMLElement | null;
+      expect(printPackage).toBeInTheDocument();
+      expect(printPackage).toHaveClass("share-print-only");
+      expect(printPackage?.querySelectorAll(".share-print-estimate")).toHaveLength(2);
+      expect(printPackage?.textContent).toContain("Main Estimate");
+      expect(printPackage?.textContent).toContain("Alternative Layout");
+      expect(printPackage?.textContent).toContain("Concrete works");
+      expect(printPackage?.textContent).toContain("Electrical");
+
+      fireEvent(window, new Event("afterprint"));
+      expect(document.querySelector("[data-share-print-package]")).not.toBeInTheDocument();
     });
 
     it("filters grid preview rows by text and shows an empty state", async () => {
@@ -527,15 +733,39 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       render(<SharePageTabs estimates={[filterEstimate]} currencyCode="PHP" token="client-token-filter" />);
 
       await user.click(screen.getByRole("tab", { name: "Grid Preview" }));
+      expect(screen.getAllByText("Qty 2 · cu.m").length).toBeGreaterThan(0);
       const search = screen.getByRole("searchbox", { name: "Filter estimate rows" });
       await user.type(search, "oak");
 
-      expect(screen.getByText("Oak cabinetry")).toBeInTheDocument();
-      expect(screen.queryByText("Concrete works")).not.toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).getByText("Oak cabinetry")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).getByText("Qty 2 · cu.m")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).queryByText("Concrete works")).not.toBeInTheDocument();
 
       await user.clear(search);
       await user.type(search, "zzz");
       expect(screen.getByText('No rows match "zzz"')).toBeInTheDocument();
+    });
+
+    it("caps grid preview rows for large snapshots and asks the recipient to refine the filter", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const user = userEvent.setup();
+      const largeEstimate: PublicationSnapshotEstimate = {
+        ...baseEstimate,
+        rows: Array.from({ length: 260 }, (_, index) => ({
+          ...baseEstimate.rows[0],
+          id: `row-large-${index + 1}`,
+          description: `Large item ${index + 1}`,
+          rowTotal: 100 + index,
+        })),
+      };
+
+      render(<SharePageTabs estimates={[largeEstimate]} currencyCode="PHP" token="client-token-large-grid" />);
+
+      await user.click(screen.getByRole("tab", { name: "Grid Preview" }));
+
+      expect(within(screen.getByRole("tabpanel")).getByText("Large item 250")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).queryByText("Large item 251")).not.toBeInTheDocument();
+      expect(screen.getByText("Showing first 250 of 260 matching rows. Refine the filter to narrow the list.")).toBeInTheDocument();
     });
 
     it("renders v1.2 estimate tabs inside the selected estimate and preserves legacy snapshots without nested tabs", async () => {
@@ -583,7 +813,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const nestedTablist = screen.getByRole("tablist", { name: /main estimate tabs/i });
       expect(within(nestedTablist).getByRole("tab", { name: "Base" })).toHaveAttribute("aria-selected", "true");
       expect(screen.getAllByText("Base Area").length).toBeGreaterThan(0);
-      expect(screen.queryByText("Renovation millwork")).not.toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).queryByText("Renovation millwork")).not.toBeInTheDocument();
 
       await user.click(within(nestedTablist).getByRole("tab", { name: "Renovation" }));
 
@@ -595,7 +825,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       rerender(<SharePageTabs estimates={[baseEstimate]} currencyCode="PHP" token="client-token-legacy-tabs" />);
 
       expect(screen.queryByRole("tablist", { name: /main estimate tabs/i })).not.toBeInTheDocument();
-      expect(screen.getByText("Concrete works")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).getByText("Concrete works")).toBeInTheDocument();
     });
 
     it("navigates to tree nodes with CSS selector metacharacters in their snapshot ids without throwing", async () => {
@@ -747,7 +977,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const tabs = within(tablist).getAllByRole("tab");
       expect(tabs).toHaveLength(1);
       expect(screen.getByRole("heading", { name: "Main Estimate" })).toBeInTheDocument();
-      expect(screen.getByText("Concrete works")).toBeInTheDocument();
+      expect(within(screen.getByRole("tabpanel")).getByText("Concrete works")).toBeInTheDocument();
     });
   });
 

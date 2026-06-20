@@ -30,4 +30,23 @@ describe("share/publication no-store invariants", () => {
     expect(source).not.toMatch(/revalidate\s*=\s*\d+/);
     expect(source).not.toContain("unstable_cache");
   });
+
+  it("keeps the tokenized share route from blanking during dynamic resolution", () => {
+    const source = readFileSync("src/app/share/[token]/loading.tsx", "utf8");
+
+    expect(source).toContain('aria-label="Loading proposal review"');
+    expect(source).toContain('role="status"');
+    expect(source).toContain("ShareContainer");
+  });
+
+  it("keeps unavailable share links branded without exposing project details", () => {
+    const source = readFileSync("src/app/share/[token]/not-found.tsx", "utf8");
+
+    expect(source).toContain('aria-label="Shared proposal unavailable"');
+    expect(source).toContain("This link is unavailable.");
+    expect(source).toContain("fresh link");
+    expect(source).not.toContain("projectCode");
+    expect(source).not.toContain("clientName");
+    expect(source).not.toContain("snapshot");
+  });
 });

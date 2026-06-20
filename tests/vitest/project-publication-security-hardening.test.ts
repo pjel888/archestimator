@@ -144,8 +144,22 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: { id: publicationId }, error: null }),
     };
+    const commentQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "row-id",
+          created_at: "2026-06-03T01:10:00.000Z",
+          body: "valid post under the right publication",
+          author_name: null,
+          recipient_id: "recipient-bound-to-A",
+        },
+        error: null,
+      }),
+    };
     const rpc = vi.fn().mockResolvedValue({ data: "row-id", error: null });
-    return { recipientEq, recipientQuery, publicationQuery, rpc };
+    return { recipientEq, recipientQuery, publicationQuery, commentQuery, rpc };
   }
 
   async function setupRepository(mock: ReturnType<typeof buildSupabaseMock>) {
@@ -159,6 +173,7 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
         from: vi.fn((table: string) => {
           if (table === "project_publications") return mock.publicationQuery;
           if (table === "shared_link_recipients") return mock.recipientQuery;
+          if (table === "shared_link_comments") return mock.commentQuery;
           throw new Error(`Unexpected table: ${table}`);
         }),
         rpc: mock.rpc,
@@ -218,7 +233,16 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
         expectedSnapshotVersion: 1,
         body: "valid post under the right publication",
       }),
-    ).resolves.toEqual({ id: "row-id" });
+    ).resolves.toEqual({
+      id: "row-id",
+      comment: {
+        id: "row-id",
+        content: "valid post under the right publication",
+        createdAt: "2026-06-03T01:10:00.000Z",
+        authorName: "Client",
+        authorType: "recipient",
+      },
+    });
 
     expect(mock.recipientEq).toHaveBeenCalledWith("publication_id", "publication-A");
     expect(mock.rpc).toHaveBeenCalledWith("insert_client_comment", expect.objectContaining({ p_recipient_token_hash: "recipient-hash" }));

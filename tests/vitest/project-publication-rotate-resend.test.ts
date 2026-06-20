@@ -234,6 +234,10 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
         expected_encrypted_token: "encrypted-old",
         p_password_hash: "existing-password-hash",
         p_selected_estimate_ids: ["est-1"],
+        p_activity_target_labels_json: {
+          estimateLabels: { "est-1": "Proposal" },
+          rowLabels: {},
+        },
         p_token_hash: expect.any(String),
         p_encrypted_token: expect.any(String),
       }),
@@ -829,7 +833,13 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
 describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral duplicate status", () => {
   const NEW_RECIPIENT_ID = "55555555-5555-4555-8555-555555555555";
 
-  async function setupAdd({ duplicate }: { duplicate: boolean }) {
+  async function setupAdd({
+    duplicate,
+    sendEmail: customSendEmail,
+  }: {
+    duplicate: boolean;
+    sendEmail?: ReturnType<typeof vi.fn>;
+  }) {
     const recorded: RecordedQuery[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
@@ -845,7 +855,7 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
       headers: vi.fn().mockResolvedValue({ get: () => "203.0.113.1" }),
     }));
 
-    const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "invite-message-1" });
+    const sendEmail = customSendEmail ?? vi.fn().mockResolvedValue({ ok: true, messageId: "invite-message-1" });
     vi.doMock("@/lib/email/resend-client", () => ({
       sendEmail,
       readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
@@ -897,7 +907,11 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
               if (duplicate) {
                 return { data: null, error: { code: "23505", message: "duplicate key value" } };
               }
-              return { data: { id: NEW_RECIPIENT_ID }, error: null };
+              const payload = query.payload as { email?: string } | undefined;
+              return {
+                data: { id: payload?.email === "second@example.com" ? "66666666-6666-4666-8666-666666666666" : NEW_RECIPIENT_ID },
+                error: null,
+              };
             }
             return { data: null, error: null };
           },
@@ -950,6 +964,38 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     expect(entry?.error).toBeUndefined();
     // Headline still reflects "no new recipients" for a pure-duplicate batch.
     expect(result.message).toMatch(/No new recipients added/i);
+  });
+
+  it("sends multiple new recipient invitations with bounded overlap instead of strict serial waits", async () => {
+    const startedSends: string[] = [];
+    let releaseFirstSend!: () => void;
+    const firstSendGate = new Promise<void>((resolve) => {
+      releaseFirstSend = resolve;
+    });
+    const sendEmail = vi.fn(async ({ to }: { to: string }) => {
+      startedSends.push(to);
+      if (to === "first@example.com") await firstSendGate;
+      return { ok: true, messageId: `invite-${to}` };
+    });
+    const { addSharedLinkRecipients } = await setupAdd({ duplicate: false, sendEmail });
+
+    const resultPromise = addSharedLinkRecipients({
+      publicationId: PUBLICATION_ID,
+      recipients: [{ email: "first@example.com" }, { email: "second@example.com" }],
+      baseClientLink: "/share/client-token",
+    });
+
+    for (let attempts = 0; attempts < 10 && startedSends.length < 2; attempts += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    expect(startedSends).toEqual(["first@example.com", "second@example.com"]);
+
+    releaseFirstSend();
+    const result = await resultPromise;
+
+    expect(result.added).toBe(2);
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+    expect(result.emailResults.filter((entry) => entry.status === "sent")).toHaveLength(2);
   });
 });
 

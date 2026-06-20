@@ -25,6 +25,35 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("revalidatePublicationRoutes");
   });
 
+  it("keeps every shared-link mutation behind the central manager assertion before writes", () => {
+    const mutationNames = [
+      "createProjectPublication",
+      "republishProjectPublication",
+      "rotateProjectPublicationLink",
+      "revokeProjectPublication",
+      "addSharedLinkRecipients",
+      "resendSharedLinkRecipientEmail",
+      "removeSharedLinkRecipient",
+    ];
+
+    for (const name of mutationNames) {
+      const start = actions.indexOf(`export async function ${name}`);
+      expect(start, `${name} export missing`).toBeGreaterThanOrEqual(0);
+
+      const next = actions.indexOf("\nexport async function ", start + 1);
+      const source = actions.slice(start, next === -1 ? actions.length : next);
+      const assertionIndex = source.indexOf("assertProjectPublicationManager");
+      const firstWriteIndex = [".insert(", ".update(", ".delete(", "callPublicationRpc"]
+        .map((needle) => source.indexOf(needle))
+        .filter((index) => index >= 0)
+        .sort((a, b) => a - b)[0];
+
+      expect(assertionIndex, `${name} must call assertProjectPublicationManager`).toBeGreaterThanOrEqual(0);
+      expect(firstWriteIndex, `${name} must have a mutation/write to guard`).toBeGreaterThanOrEqual(0);
+      expect(assertionIndex, `${name} must assert manager access before writing`).toBeLessThan(firstWriteIndex);
+    }
+  });
+
   it("wires the publication modal controls to server actions", () => {
     expect(header).toContain("createProjectPublication");
     expect(header).toContain("republishProjectPublication");
@@ -46,6 +75,26 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("buildSnapshotForProject(context, estimateIds)");
     // Explicit filter path present (red until P1 threads from SheetPickerList)
     expect(actions).toMatch(/if \(selectedEstimateIds\.length\)|\.in\("id", selectedEstimateIds\)/);
+  });
+
+  it("persists compact activity target labels anywhere a publication snapshot is written", () => {
+    expect(actions).toContain("createSharedLinkTargetLabelsJson");
+    expect(actions).toContain("activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot)");
+    expect(actions).toContain("p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot)");
+    expect(actions).toContain('select("id, project_id, status, revoked_at, expires_at, activity_target_labels_json")');
+    expect(actions).not.toContain('select("id, project_id, status, revoked_at, expires_at, snapshot_json")');
+  });
+
+  it("builds publication snapshots without selecting full source_snapshot JSON for row thumbnails", () => {
+    expect(actions).toContain("imageUrl:source_snapshot->>imageUrl");
+    expect(actions).not.toContain("contingency_percentage, source_snapshot");
+    expect(actions).toContain("imageUrl: typeof row.imageUrl === \"string\"");
+  });
+
+  it("processes recipient invitation sends with bounded concurrency", () => {
+    expect(actions).toContain("SHARED_LINK_RECIPIENT_ADD_CONCURRENCY");
+    expect(actions).toContain("mapWithBoundedConcurrency(allowedRecipients");
+    expect(actions).toContain("sendSharedLinkRecipientInvitationEmail");
   });
 
   it("builds publication snapshots from estimate tabs as well as nodes and rows", () => {

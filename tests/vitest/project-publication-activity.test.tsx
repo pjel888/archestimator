@@ -105,6 +105,7 @@ type QueryResultMock = {
   in: ReturnType<typeof vi.fn>;
   or: ReturnType<typeof vi.fn>;
 };
+type QueryRecord = { table: string; query: QueryResultMock };
 
 function createQueryResult(data: unknown, error: Error | null = null) {
   const query = {} as QueryResultMock;
@@ -118,31 +119,30 @@ function createQueryResult(data: unknown, error: Error | null = null) {
   return query;
 }
 
-function createActivityRouteSupabaseMock() {
+const compactTargetLabels = {
+  estimateLabels: { "est-1": "Main Estimate" },
+  rowLabels: { "row-1": "Living Area" },
+};
+
+function createActivityRouteSupabaseMock(queryRecords: QueryRecord[] = []) {
   return {
     from: vi.fn((table: string) => {
+      let query: QueryResultMock;
       if (table === "project_publications") {
-        return createQueryResult({
+        query = createQueryResult({
           id: "pub1",
           status: "published",
           revoked_at: null,
           expires_at: null,
           password_hash: null,
           snapshot_version: 7,
-          snapshot_json: {
-            estimates: [
-              {
-                id: "est-1",
-                name: "Main Estimate",
-                rows: [{ id: "row-1", material: "Hardwood Oak Flooring", nodeId: "node-1" }],
-                nodes: [{ id: "node-1", name: "Living Area" }],
-              },
-            ],
-          },
+          activity_target_labels_json: compactTargetLabels,
         });
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_comments") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "11111111-1111-4111-8111-111111111111",
             created_at: "2026-05-28T10:00:00Z",
@@ -164,9 +164,11 @@ function createActivityRouteSupabaseMock() {
             row_id: "row-1",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_responses") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "22222222-2222-4222-8222-222222222222",
             created_at: "2026-05-28T11:00:00Z",
@@ -175,9 +177,11 @@ function createActivityRouteSupabaseMock() {
             recipient_id: "recipient-1",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_events") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "33333333-3333-4333-8333-333333333333",
             created_at: "2026-05-28T12:00:00Z",
@@ -186,12 +190,16 @@ function createActivityRouteSupabaseMock() {
             recipient_id: "recipient-1",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_recipients") {
-        return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+        query = createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "project_publication_events") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "access-2",
             created_at: "2026-05-28T12:30:00Z",
@@ -217,19 +225,24 @@ function createActivityRouteSupabaseMock() {
             user_agent_hash: "bot-ua-secret",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
-      return createQueryResult([]);
+      query = createQueryResult([]);
+      queryRecords.push({ table, query });
+      return query;
     }),
   };
 }
 
-function createPublicationActionsSupabaseMock() {
+function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) {
   return {
     channel: mocks.channel,
     removeChannel: vi.fn(),
     from: vi.fn((table: string) => {
+      let query: QueryResultMock;
       if (table === "project_publications") {
-        return createQueryResult({
+        query = createQueryResult({
           id: "pub1",
           project_id: "11111111-1111-4111-8111-111111111111",
           published_by: "user-1",
@@ -238,20 +251,13 @@ function createPublicationActionsSupabaseMock() {
           expires_at: null,
           password_hash: null,
           snapshot_version: 7,
-          snapshot_json: {
-            estimates: [
-              {
-                id: "est-1",
-                name: "Main Estimate",
-                rows: [{ id: "row-1", material: "Hardwood Oak Flooring", nodeId: "node-1" }],
-                nodes: [{ id: "node-1", name: "Living Area" }],
-              },
-            ],
-          },
+          activity_target_labels_json: compactTargetLabels,
         });
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "projects") {
-        return createQueryResult({
+        query = createQueryResult({
           id: "11111111-1111-4111-8111-111111111111",
           workspace_id: "22222222-2222-4222-8222-222222222222",
           name: "Project",
@@ -261,16 +267,20 @@ function createPublicationActionsSupabaseMock() {
           currency_code: "PHP",
           metadata: {},
         });
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "profiles") {
-        return createQueryResult({
+        query = createQueryResult({
           id: "user-1",
           display_name: "Philip Lewis",
           email: "owner@example.com",
         });
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_comments") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "c1",
             created_at: "2026-05-28T10:00:00Z",
@@ -305,9 +315,11 @@ function createPublicationActionsSupabaseMock() {
             row_id: "row-1",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_responses") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "d1",
             created_at: "2026-05-28T11:00:00Z",
@@ -316,9 +328,11 @@ function createPublicationActionsSupabaseMock() {
             recipient_id: "recipient-1",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_events") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "e1",
             created_at: "2026-05-28T12:00:00Z",
@@ -327,12 +341,16 @@ function createPublicationActionsSupabaseMock() {
             recipient_id: "recipient-1",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "shared_link_recipients") {
-        return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+        query = createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+        queryRecords.push({ table, query });
+        return query;
       }
       if (table === "project_publication_events") {
-        return createQueryResult([
+        query = createQueryResult([
           {
             id: "access-2",
             created_at: "2026-05-28T12:30:00Z",
@@ -358,8 +376,12 @@ function createPublicationActionsSupabaseMock() {
             user_agent_hash: "bot-ua-secret",
           },
         ]);
+        queryRecords.push({ table, query });
+        return query;
       }
-      return createQueryResult([]);
+      query = createQueryResult([]);
+      queryRecords.push({ table, query });
+      return query;
     }),
   };
 }
@@ -431,6 +453,20 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(json.recipientSession).toBe(false);
     });
 
+    it("loads compact target labels without selecting the full snapshot", async () => {
+      const queryRecords: QueryRecord[] = [];
+      mocks.createPublicationServiceClient.mockReturnValueOnce(createActivityRouteSupabaseMock(queryRecords));
+
+      const res = await GET(makeRequest({ origin: "http://localhost" }), params());
+
+      expect(res.status).toBe(200);
+      const publicationSelect = queryRecords.find((record) => record.table === "project_publications")?.query.select.mock.calls[0]?.[0];
+      expect(publicationSelect).toContain("activity_target_labels_json");
+      expect(publicationSelect).not.toContain("snapshot_json");
+      const json = (await res.json()) as { activities?: Array<{ title?: string }> };
+      expect(json.activities?.some((activity) => activity.title === "Maria commented on Living Area.")).toBe(true);
+    });
+
     it("rejects cross-origin GET requests", async () => {
       mocks.assertSameOrigin.mockReturnValue({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
 
@@ -471,7 +507,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
               expires_at: null,
               password_hash: "hashed-password",
               snapshot_version: 7,
-              snapshot_json: {},
+              activity_target_labels_json: compactTargetLabels,
             });
           }
           return createQueryResult([]);
@@ -497,6 +533,16 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       const json = (await res.json()) as { activities?: Array<{ title?: string }> };
       expect(JSON.stringify(json)).not.toContain("approved the proposal");
       expect(json.activities?.some((activity) => activity.title === "Maria commented on Living Area.")).toBe(true);
+    });
+
+    it("does not expose comment bodies in public activity without a verified recipient session", async () => {
+      const res = await GET(makeRequest({ cookie: "" }), params());
+
+      expect(res.status).toBe(200);
+      const serialized = JSON.stringify(await res.json());
+      expect(serialized).toContain("Maria commented on Living Area.");
+      expect(serialized).not.toContain("Looks good");
+      expect(serialized).not.toContain("Duplicate timestamp comment");
     });
 
     it("uses durable rate limiting before loading public activity", async () => {
@@ -551,6 +597,8 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria approved the proposal.")).toBe(false);
       expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria commented on Living Area.")).toBe(true);
       expect(serialized).not.toContain("recipient@example.com");
+      expect(serialized).not.toContain("Looks good");
+      expect(serialized).not.toContain("Duplicate timestamp comment");
       expect(json.activities.every((activity: { title?: string }) => activity.title && !activity.title.includes("EVENT"))).toBe(true);
     });
 
@@ -621,6 +669,18 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(titles).toContain("Philip Lewis added an internal note.");
       expect(result.activities.some((activity) => activity.badges?.includes("Internal"))).toBe(true);
       expect(JSON.stringify(result.activities)).not.toContain("recipient@example.com");
+    });
+
+    it("loads owner activity target labels without selecting the full snapshot", async () => {
+      const queryRecords: QueryRecord[] = [];
+      mocks.createClient.mockReturnValueOnce(createPublicationActionsSupabaseMock(queryRecords));
+
+      const result = await loadSharedLinkActivity("client-pub-token-123");
+
+      const publicationSelect = queryRecords.find((record) => record.table === "project_publications")?.query.select.mock.calls[0]?.[0];
+      expect(publicationSelect).toContain("activity_target_labels_json");
+      expect(publicationSelect).not.toContain("snapshot_json");
+      expect(result.activities.some((activity) => activity.title === "Maria commented on Living Area.")).toBe(true);
     });
 
     it("supports pagination cursor and filters for manager modal", async () => {

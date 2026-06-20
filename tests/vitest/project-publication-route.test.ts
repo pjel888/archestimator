@@ -15,6 +15,24 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/publication/public-repository", () => mocks);
 
+const nextServerMocks = vi.hoisted(() => {
+  const afterCallbacks: Array<() => unknown> = [];
+  return {
+    afterCallbacks,
+    after: vi.fn((callback: () => unknown) => {
+      afterCallbacks.push(callback);
+    }),
+  };
+});
+
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return {
+    ...actual,
+    after: nextServerMocks.after,
+  };
+});
+
 import { GET } from "@/app/api/share/[token]/route";
 import { POST } from "@/app/api/share/[token]/events/route";
 import { POST as POST_PASSWORD } from "@/app/api/share/[token]/password/route";
@@ -93,6 +111,7 @@ function params(token = "client-token") {
 describe("shared link publication route handlers (Shared Link V2 audit)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    nextServerMocks.afterCallbacks.length = 0;
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "publication-1",
       status: "published",
@@ -131,12 +150,65 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       passwordRequired: false,
       snapshot: publicSnapshot,
     });
+    expect(nextServerMocks.after).toHaveBeenCalledTimes(1);
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+
+    await nextServerMocks.afterCallbacks[0]?.();
+
+    expect(mocks.checkProjectPublicationEventRateLimit).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
     expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
       token: "client-token",
       eventType: "open",
       request: expect.any(Request),
       metadata: {},
     });
+  });
+
+  it("does not block or fail snapshot JSON when deferred open telemetry rejects", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.recordProjectPublicationEvent.mockRejectedValueOnce(new Error("event insert timed out"));
+
+    const response = await GET(new Request("https://archestimator.test/api/share/client-token"), params());
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).snapshot).toEqual(publicSnapshot);
+    expect(nextServerMocks.after).toHaveBeenCalledTimes(1);
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+
+    await expect(Promise.resolve(nextServerMocks.afterCallbacks[0]?.())).resolves.toBeUndefined();
+    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[publication] Failed to record public snapshot open event",
+      expect.any(Error),
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it("does not block snapshot JSON when deferred open telemetry is event-rate-limited", async () => {
+    mocks.checkProjectPublicationEventRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const response = await GET(new Request("https://archestimator.test/api/share/client-token"), params());
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).snapshot).toEqual(publicSnapshot);
+    expect(nextServerMocks.after).toHaveBeenCalledTimes(1);
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+
+    await nextServerMocks.afterCallbacks[0]?.();
+
+    expect(mocks.checkProjectPublicationEventRateLimit).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
   });
 
   it("rate limits snapshot reads before resolving publication state", async () => {

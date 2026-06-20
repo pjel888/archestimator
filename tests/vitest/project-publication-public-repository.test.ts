@@ -77,6 +77,86 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     expect(select).toHaveBeenCalledTimes(1);
   });
 
+  it("does not delete expired rate-limit events on every recorded attempt", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
+    vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
+    vi.spyOn(Date, "now").mockReturnValue(1_717_000_000_000);
+
+    const deleteEvents = vi.fn().mockReturnThis();
+    const lt = vi.fn().mockResolvedValue({ error: null });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const select = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const gte = vi.fn().mockResolvedValue({ count: 1, error: null });
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table !== "security_rate_limit_events") throw new Error(`Unexpected table: ${table}`);
+          return { delete: deleteEvents, lt, insert, select, eq, gte };
+        }),
+      })),
+    }));
+
+    const { checkProjectPublicationEventRateLimit } = await import("@/lib/publication/public-repository");
+    const request = new Request("https://archestimator.test/share/client-token", {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+
+    await expect(checkProjectPublicationEventRateLimit({ token: "client-token", request })).resolves.toEqual({ allowed: true });
+    await expect(checkProjectPublicationEventRateLimit({ token: "client-token", request })).resolves.toEqual({ allowed: true });
+
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(select).toHaveBeenCalledTimes(2);
+    expect(deleteEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs expired rate-limit cleanup as a single in-process flight under concurrent checks", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
+    vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
+    vi.spyOn(Date, "now").mockReturnValue(1_717_000_000_000);
+
+    let resolveCleanup: ((value: { error: null }) => void) | null = null;
+    const cleanupFinished = new Promise<{ error: null }>((resolve) => {
+      resolveCleanup = resolve;
+    });
+    const deleteEvents = vi.fn().mockReturnThis();
+    const lt = vi.fn(() => cleanupFinished);
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const select = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const gte = vi.fn().mockResolvedValue({ count: 1, error: null });
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table !== "security_rate_limit_events") throw new Error(`Unexpected table: ${table}`);
+          return { delete: deleteEvents, lt, insert, select, eq, gte };
+        }),
+      })),
+    }));
+
+    const { checkProjectPublicationEventRateLimit } = await import("@/lib/publication/public-repository");
+    const request = new Request("https://archestimator.test/share/client-token", {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+
+    const first = checkProjectPublicationEventRateLimit({ token: "client-token", request });
+    const second = checkProjectPublicationEventRateLimit({ token: "client-token", request });
+    expect(deleteEvents).toHaveBeenCalledTimes(1);
+
+    resolveCleanup?.({ error: null });
+
+    await expect(Promise.all([first, second])).resolves.toEqual([{ allowed: true }, { allowed: true }]);
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(select).toHaveBeenCalledTimes(2);
+    expect(deleteEvents).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves duplicate decision conflicts when the submit_client_response RPC returns no id", async () => {
     vi.resetModules();
 
@@ -147,6 +227,20 @@ describe("project publication public repository (Shared Link V2 context)", () =>
         error: null,
       }),
     };
+    const commentQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "comment-id",
+          created_at: "2026-06-03T01:10:00.000Z",
+          body: "Can we confirm this line item?",
+          author_name: null,
+          recipient_id: "recipient-id",
+        },
+        error: null,
+      }),
+    };
     const rpc = vi.fn().mockResolvedValue({ data: "comment-id", error: null });
 
     vi.doMock("@supabase/supabase-js", () => ({
@@ -154,6 +248,7 @@ describe("project publication public repository (Shared Link V2 context)", () =>
         from: vi.fn((table: string) => {
           if (table === "project_publications") return publicationQuery;
           if (table === "shared_link_recipients") return recipientQuery;
+          if (table === "shared_link_comments") return commentQuery;
           throw new Error(`Unexpected table: ${table}`);
         }),
         rpc,
@@ -169,12 +264,25 @@ describe("project publication public repository (Shared Link V2 context)", () =>
         expectedSnapshotVersion: 4,
         body: "Can we confirm this line item?",
       }),
-    ).resolves.toEqual({ id: "comment-id" });
+    ).resolves.toEqual({
+      id: "comment-id",
+      comment: {
+        id: "comment-id",
+        content: "Can we confirm this line item?",
+        createdAt: "2026-06-03T01:10:00.000Z",
+        authorName: "Client",
+        authorType: "recipient",
+      },
+    });
 
     expect(rpc).toHaveBeenCalledWith(
       "insert_client_comment",
       expect.objectContaining({ p_body: "Can we confirm this line item?", p_expected_snapshot_version: 4 }),
     );
+    expect(commentQuery.select).toHaveBeenCalledWith("id, created_at, body, author_name, recipient_id");
+    expect(commentQuery.eq).toHaveBeenCalledWith("publication_id", "publication-1");
+    expect(commentQuery.eq).toHaveBeenCalledWith("id", "comment-id");
+    expect(commentQuery.eq).toHaveBeenCalledWith("is_internal", false);
   });
 
   it("wraps submit_client_response RPC error objects so duplicate decisions stay mappable to 409", async () => {

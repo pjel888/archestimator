@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   readPublicationViewSnapshotVersion: vi.fn(),
+  readPublicationTokenHashSecret: vi.fn(() => "test-publication-hash-secret"),
   useSharedLinkSession: vi.fn(),
   // P7 repo extension (additive)
   resolveProjectPublicationAccessByToken: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("@/lib/publication/security", () => ({
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
+  readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
 }));
 
 vi.mock("@/hooks/use-shared-link-session", () => ({
@@ -87,6 +89,25 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(res.status).toBe(403);
       const json = await res.json();
       expect(json.error).toMatch(/verification failed|cross-origin/i);
+    });
+
+    it("rejects invalid decision values before session, rate limit, or RPC work", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+
+      const res = await POST(
+        makeRequest({ decision: "maybe", note: "Try this" }, { "x-archestimator-csrf": "csrf-token-xyz" }),
+        params(),
+      );
+
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toEqual({
+        error: "Invalid decision. Must be accepted, declined, or revision_requested.",
+      });
+      expect(mocks.createSharedLinkSessionCookieName).not.toHaveBeenCalled();
+      expect(mocks.resolveProjectPublicationAccessByToken).not.toHaveBeenCalled();
+      expect(mocks.verifySharedLinkSessionCookieValue).not.toHaveBeenCalled();
+      expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
     });
 
     it("rejects invalid or missing recipient session cookie (P5 guard, additive to password flows)", async () => {
@@ -181,7 +202,34 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       );
     });
 
-    it("uses the signed rendered-view snapshot for content-only republishes", async () => {
+    it("sanitizes and truncates direct API decision notes before RPC", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const maliciousNote =
+        '<script>alert(1)</script><img src=x onerror=alert(2)>&lt;script&gt;alert(3)&lt;/script&gt;<b>Keep this</b>&lt;img src=x onerror=alert(4)&gt; ' +
+        "x".repeat(2500);
+      const req = makeRequest(
+        { decision: "revision_requested", note: maliciousNote },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+      );
+
+      const res = await POST(req, params());
+      const submitted = mocks.submitSharedLinkDecision.mock.calls[0]?.[0];
+
+      expect(res.status).toBe(201);
+      expect(submitted.note).not.toContain("<script");
+      expect(submitted.note).not.toContain("alert(1)");
+      expect(submitted.note).not.toContain("alert(3)");
+      expect(submitted.note).not.toContain("alert(4)");
+      expect(submitted.note).not.toContain("onerror");
+      expect(submitted.note).not.toContain("<img");
+      expect(submitted.note).not.toContain("<b>");
+      expect(submitted.note).toContain("Keep this");
+      expect(submitted.note).toHaveLength(2000);
+    });
+
+    it("rejects a stale signed rendered-view snapshot after content-only republish", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
@@ -201,14 +249,42 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
 
       const res = await POST(req, params());
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(409);
+      await expect(res.json()).resolves.toEqual({
+        error: "Publication snapshot changed. Please reload before submitting a decision.",
+      });
       expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("signed-view-token-v1", {
         token: "client-pub-token-123",
         publicationId: "pub1",
       });
+      expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
+    });
+
+    it("accepts the current signed rendered-view snapshot", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        snapshotVersion: 2,
+        passwordRequired: false,
+        status: "published",
+        expiresAt: null,
+        credentialVersion: "open",
+      });
+      mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(2);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted", note: "Looks good", viewToken: "signed-view-token-v2" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(201);
       expect(mocks.submitSharedLinkDecision).toHaveBeenCalledWith(
         expect.objectContaining({
-          expectedSnapshotVersion: 1,
+          expectedSnapshotVersion: 2,
         }),
       );
     });
@@ -436,6 +512,24 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       await waitFor(() => {
         expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
+      });
+    });
+
+    it("announces decision submission failures as alerts", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      // @ts-expect-error fetch mock
+      global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: "Please retry later." }) });
+      const user = userEvent.setup();
+
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
+      await user.click(screen.getByRole("button", { name: /accept/i }));
+      await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: /^Confirm$/i }));
+
+      await waitFor(() => {
+        const alerts = screen.getAllByRole("alert");
+        expect(alerts.length).toBeGreaterThan(0);
+        expect(alerts.some((alert) => alert.textContent === "Please retry later.")).toBe(true);
       });
     });
 

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   readPublicationViewSnapshotVersion: vi.fn(),
+  readPublicationTokenHashSecret: vi.fn(() => "test-publication-hash-secret"),
   // For component
   useSharedLinkSession: vi.fn(),
   // P6 repo
@@ -22,6 +23,7 @@ vi.mock("@/lib/publication/security", () => ({
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
+  readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
 }));
 
 vi.mock("@/hooks/use-shared-link-session", () => ({
@@ -67,7 +69,16 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.readPublicationViewSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
-    mocks.insertSharedLinkComment.mockResolvedValue({ id: "comment-123" });
+    mocks.insertSharedLinkComment.mockResolvedValue({
+      id: "comment-123",
+      comment: {
+        id: "comment-123",
+        content: "test comment",
+        authorName: "Client",
+        authorType: "recipient",
+        createdAt: "2026-06-03T01:00:00.000Z",
+      },
+    });
     mocks.checkSharedLinkCommentRateLimit.mockResolvedValue({ allowed: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "pub1",
@@ -249,13 +260,22 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     it("sanitizes input (strips HTML/scripts, truncates >1000) before RPC", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
-      const malicious = "<script>alert(1)</script><b>bold</b> " + "x".repeat(1100);
+      const malicious =
+        "<script>alert(1)</script>&lt;script&gt;alert(3)&lt;/script&gt;<b>bold</b>&lt;img src=x onerror=alert(2)&gt; " +
+        "x".repeat(1100);
       const req = makeRequest({ body: malicious }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" });
-      // Expect 200 or 201, and body sent to RPC is cleaned + <=1000
-      // (red until sanitize + truncate + RPC call implemented)
       const res = await POST(req, params());
-      // After impl, assert no script in what would be inserted; for red we at least don't 500 on bad input
-      expect([200, 201, 204, 400, 503]).toContain(res.status);
+      const inserted = mocks.insertSharedLinkComment.mock.calls[0]?.[0];
+
+      expect(res.status).toBe(201);
+      expect(inserted.body).not.toContain("<script");
+      expect(inserted.body).not.toContain("alert(1)");
+      expect(inserted.body).not.toContain("alert(3)");
+      expect(inserted.body).not.toContain("onerror");
+      expect(inserted.body).not.toContain("<img");
+      expect(inserted.body).not.toContain("<b>");
+      expect(inserted.body).toContain("bold");
+      expect(inserted.body).toHaveLength(1000);
     });
 
     it("calls insert_client_comment RPC (P3) with hashed token + recipient context on valid input", async () => {
@@ -267,7 +287,40 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect([201, 400, 503]).toContain(res.status);
     });
 
-    it("uses the signed rendered-view snapshot for content-only republishes", async () => {
+    it("returns the canonical inserted comment so the client does not need to reload after POST", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.insertSharedLinkComment.mockResolvedValueOnce({
+        id: "comment-canonical",
+        comment: {
+          id: "comment-canonical",
+          content: "Canonical comment body",
+          authorName: "Client",
+          authorType: "recipient",
+          createdAt: "2026-06-03T01:10:00.000Z",
+        },
+      });
+
+      const response = await POST(
+        makeRequest({ body: "Canonical comment body" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" }),
+        params(),
+      );
+
+      expect(response.status).toBe(201);
+      await expect(response.json()).resolves.toEqual({
+        id: "comment-canonical",
+        created: true,
+        comment: {
+          id: "comment-canonical",
+          content: "Canonical comment body",
+          authorName: "Client",
+          authorType: "recipient",
+          createdAt: "2026-06-03T01:10:00.000Z",
+        },
+      });
+    });
+
+    it("rejects a stale signed rendered-view snapshot after content-only republish", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
@@ -285,14 +338,40 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       );
       const res = await POST(req, params());
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(409);
+      await expect(res.json()).resolves.toEqual({
+        error: "Publication snapshot changed. Please reload before posting a comment.",
+      });
       expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("signed-view-token-v1", {
         token: "client-pub-token-123",
         publicationId: "pub1",
       });
+      expect(mocks.checkSharedLinkCommentRateLimit).not.toHaveBeenCalled();
+      expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
+    });
+
+    it("accepts the current signed rendered-view snapshot", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        status: "published",
+        passwordRequired: false,
+        snapshotVersion: 2,
+        credentialVersion: "open",
+      });
+      mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(2);
+
+      const req = makeRequest(
+        { body: "Comment on the current rendered view", viewToken: "signed-view-token-v2" },
+        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+      );
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(201);
       expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
         expect.objectContaining({
-          expectedSnapshotVersion: 1,
+          expectedSnapshotVersion: 2,
         }),
       );
     });
@@ -421,27 +500,18 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
             ],
           }),
         })
-        .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: "comment-new" }) })
         .mockResolvedValueOnce({
           ok: true,
-          status: 200,
+          status: 201,
           json: async () => ({
-            comments: [
-              {
-                id: "comment-existing",
-                content: "Can we confirm the tile allowance?",
-                authorName: "Client",
-                authorType: "recipient",
-                createdAt: "2026-06-03T01:00:00.000Z",
-              },
-              {
-                id: "comment-new",
-                content: "Please include this in the final proposal.",
-                authorName: "You",
-                authorType: "recipient",
-                createdAt: "2026-06-03T01:05:00.000Z",
-              },
-            ],
+            id: "comment-new",
+            comment: {
+              id: "comment-new",
+              content: "Please include this in the final proposal.",
+              authorName: "You",
+              authorType: "recipient",
+              createdAt: "2026-06-03T01:05:00.000Z",
+            },
           }),
         });
 
@@ -462,6 +532,9 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(
         vi.mocked(global.fetch).mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
       ).toBe(true);
+      expect(
+        vi.mocked(global.fetch).mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "GET"),
+      ).toHaveLength(1);
     });
 
 
@@ -501,6 +574,42 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(ta).toHaveValue("x".repeat(1000)); // or test shows warning
       // rate error simulation via prop or after submit mock 429
       // offline via mock navigator etc — covered by error boundary states
+    });
+
+    it("keeps plain Enter in the comment textarea as a newline without posting", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      // @ts-expect-error fetch mock
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ comments: [] }) });
+
+      render(<SharePageComments token="t1" viewToken="view-token" />);
+      const textarea = screen.getByPlaceholderText(/add a comment/i);
+      await user.type(textarea, "First line{Enter}");
+
+      expect(textarea).toHaveValue("First line\n");
+      expect(
+        vi.mocked(global.fetch).mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
+      ).toBe(false);
+    });
+
+    it("submits a comment from the textarea with Ctrl+Enter", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      // @ts-expect-error fetch mock
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ comments: [] }) })
+        .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: "comment-keyboard" }) });
+
+      render(<SharePageComments token="t1" viewToken="view-token" />);
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "Keyboard submit");
+      await user.keyboard("{Control>}{Enter}{/Control}");
+
+      await waitFor(() => {
+        expect(
+          vi.mocked(global.fetch).mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
+        ).toBe(true);
+      });
     });
 
     it("aria-live polite updates on new comments / errors for screen readers", async () => {
