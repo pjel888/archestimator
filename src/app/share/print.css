@@ -1,3 +1,9 @@
+@media screen {
+  .share-print-only {
+    display: none !important;
+  }
+}
+
 @media print {
   @page {
     margin: 14mm;
@@ -11,6 +17,14 @@
 
   .share-print-hidden {
     display: none !important;
+  }
+
+  .share-print-screen-only {
+    display: none !important;
+  }
+
+  .share-print-only {
+    display: block !important;
   }
 
   .share-print-content {

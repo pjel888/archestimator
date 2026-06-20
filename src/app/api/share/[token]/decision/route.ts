@@ -11,8 +11,9 @@ import {
   loadSharedLinkRecipientDecision,
   resolveProjectPublicationAccessByToken,
   submitSharedLinkDecision,
+  hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
-import { createHash } from "crypto";
+import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ function getIpHash(request: Request): string {
     || request.headers.get("cf-connecting-ip")
     || request.headers.get("x-real-ip")
     || "unknown";
-  return createHash("sha256").update(ip).digest("hex").slice(0, 12);
+  return hashPublicTelemetryValue(ip) ?? "unknown";
 }
 
 function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
@@ -141,7 +142,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Invalid decision. Must be accepted, declined, or revision_requested." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  const note = typeof body.note === "string" ? body.note : null;
+  const note = typeof body.note === "string" ? sanitizeSharedLinkRecipientText(body.note, 2000) || null : null;
 
   const cookieHeader = request.headers.get("cookie") || "";
   const sessionName = createSharedLinkSessionCookieName(token);
@@ -180,6 +181,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (requestViewToken && !viewedSnapshotVersion) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/decision", "VIEW_SNAPSHOT_INVALID", ipHash);
+    return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+  }
+  if (typeof viewedSnapshotVersion === "number" && viewedSnapshotVersion !== access.snapshotVersion) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "VIEW_SNAPSHOT_STALE", ipHash, {
+      viewedSnapshotVersion,
+      currentSnapshotVersion: access.snapshotVersion,
+    });
     return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
   }
   const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion;

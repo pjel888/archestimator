@@ -11,8 +11,9 @@ import {
   insertSharedLinkComment,
   loadSharedLinkPublicComments,
   resolveProjectPublicationAccessByToken,
+  hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
-import { createHash } from "crypto";
+import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 
 export const dynamic = "force-dynamic";
 
@@ -63,31 +64,12 @@ function getIpHash(request: Request): string {
     || request.headers.get("cf-connecting-ip")
     || request.headers.get("x-real-ip")
     || "unknown";
-  return createHash("sha256").update(ip).digest("hex").slice(0, 12);
+  return hashPublicTelemetryValue(ip) ?? "unknown";
 }
 
 function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
   // Additive structured logging (no PII/secrets, per P12 + existing console patterns in resend)
   console.error({ level, route, errorCode, ipHash, ts: new Date().toISOString(), ...extra });
-}
-
-function sanitizeAndTruncate(input: string): string {
-  if (typeof input !== "string") return "";
-  // Strip script/style tags completely + all other HTML tags. Decode basic entities.
-  let s = input
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (s.length > 1000) s = s.slice(0, 1000);
-  return s;
 }
 
 function parseCookieValue(cookieHeader: string, name: string): string | undefined {
@@ -243,6 +225,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     logStructured("warn", "/api/share/[token]/comment", "VIEW_SNAPSHOT_INVALID", ipHash);
     return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
   }
+  if (typeof viewedSnapshotVersion === "number" && viewedSnapshotVersion !== access.snapshotVersion) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/comment", "VIEW_SNAPSHOT_STALE", ipHash, {
+      viewedSnapshotVersion,
+      currentSnapshotVersion: access.snapshotVersion,
+    });
+    return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+  }
   const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion;
 
   const recipientId = recipientIdFromCookie;
@@ -287,7 +277,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   // Sanitize
-  const sanitized = sanitizeAndTruncate(rawBody);
+  const sanitized = sanitizeSharedLinkRecipientText(rawBody, 1000);
   if (!sanitized) {
     const ipHash = getIpHash(request);
     logStructured("error", "/api/share/[token]/comment", "SANITIZE_FAILED", ipHash);
@@ -295,7 +285,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   try {
-    const { id } = await insertSharedLinkComment({
+    const { id, comment } = await insertSharedLinkComment({
       publicationToken: token,
       recipientId,
       expectedSnapshotVersion,
@@ -310,7 +300,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       maybeTriggerSharedLinkActivityDigest(access.publicationId, token, "comment");
     } catch {}
 
-    return Response.json({ id, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
+    return Response.json({ id, comment, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     const msg = readErrorMessage(error, "Failed to post comment.");
     if (/snapshot|stale|changed/i.test(msg)) {

@@ -57,7 +57,7 @@ export function SharePageSummaryCard({ snapshot }: SharePageSummaryCardProps) {
       aria-label="Proposal summary"
       className="rounded-xs border border-hairline bg-white p-4 text-ink"
     >
-      <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">
+      <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
         Proposal total
       </p>
       <p className="mt-1.5 text-[24px] font-medium leading-[30px] tracking-normal tabular-nums text-ink">
@@ -67,7 +67,7 @@ export function SharePageSummaryCard({ snapshot }: SharePageSummaryCardProps) {
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-hairline pt-4 sm:grid-cols-3">
         {stats.map((stat) => (
           <div key={stat.label} className="min-w-0">
-            <dt className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">
+            <dt className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
               {stat.label}
             </dt>
             <dd className="mt-0.5 truncate text-[13px] leading-[18px] tracking-normal text-ink" title={stat.value}>

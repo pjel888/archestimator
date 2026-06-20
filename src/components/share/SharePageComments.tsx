@@ -23,6 +23,11 @@ type LoadedComment = {
   authorType: "owner" | "recipient";
 };
 
+type CommentPostResponse = {
+  id?: string;
+  comment?: LoadedComment;
+};
+
 interface SharePageCommentsProps {
   token: string;
   viewToken: string;
@@ -33,6 +38,16 @@ type QueuedComment = { body: string; ts: number };
 
 function readErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "";
+}
+
+function mapLoadedComment(comment: LoadedComment): Comment {
+  return {
+    id: comment.id,
+    body: comment.content,
+    authorName: comment.authorName,
+    authorType: comment.authorType,
+    created_at: comment.createdAt,
+  };
 }
 
 export default function SharePageComments({ token, viewToken }: SharePageCommentsProps) {
@@ -101,15 +116,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
 
       const json = (await res.json().catch(() => ({}))) as { comments?: LoadedComment[] };
       const loadedComments = Array.isArray(json.comments) ? json.comments : [];
-      setComments(
-        loadedComments.map((comment) => ({
-          id: comment.id,
-          body: comment.content,
-          authorName: comment.authorName,
-          authorType: comment.authorType,
-          created_at: comment.createdAt,
-        })),
-      );
+      setComments(loadedComments.map(mapLoadedComment));
     } catch (error: unknown) {
       if (!signal?.aborted) {
         setLoadError(readErrorMessage(error) || "Could not load discussion.");
@@ -247,15 +254,14 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
         throw new Error(msg);
       }
 
-      // Success — replace temp with real (server returns id; we keep local body)
-      const { id } = (await res.json().catch(() => ({ id: tempId }))) as { id?: string };
+      const postPayload = (await res.json().catch(() => ({ id: tempId }))) as CommentPostResponse;
+      const confirmedComment = postPayload.comment ? mapLoadedComment(postPayload.comment) : null;
       setComments((prev) =>
         prev.map((c) =>
-          c.id === tempId ? { ...c, id: id || tempId, isOptimistic: false } : c
+          c.id === tempId ? confirmedComment ?? { ...c, id: postPayload.id || tempId, isOptimistic: false } : c
         )
       );
       announce("Comment added successfully.");
-      void loadComments();
       // best-effort: if any pending, try flush (reconnect or post-success window)
       if (navigator.onLine) flushQueue();
     } catch (error: unknown) {
@@ -281,13 +287,13 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
       setIsPosting(false);
       setRetryStatus(null);
     }
-  }, [draft, isValid, isPosting, announce, postWithRetry, loadComments, loadQueue, saveQueue, flushQueue]);
+  }, [draft, isValid, isPosting, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      submitComment();
-    }
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    submitComment();
   };
 
   if (!isValid) {
@@ -308,7 +314,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
       <div className="flex items-start justify-between gap-3 border-b border-hairline px-3 py-2">
         <div>
           <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
-          <p className="text-[12px] leading-[16px] tracking-normal text-tertiary">
+          <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
             {comments.length} comment{comments.length === 1 ? "" : "s"} • visible to the project team
           </p>
         </div>
@@ -345,12 +351,12 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
             </Button>
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-[12px] leading-[16px] tracking-normal text-tertiary">No comments yet. Add a note or question below.</p>
+          <p className="text-[12px] leading-[16px] tracking-normal text-secondary">No comments yet. Add a note or question below.</p>
         ) : (
           <ul className="max-w-[600px] space-y-3">
             {comments.map((c) => (
               <li key={c.id} className="rounded-xs border border-hairline bg-white p-2">
-                <div className="text-[12px] leading-[16px] tracking-normal text-tertiary">
+                <div className="text-[12px] leading-[16px] tracking-normal text-secondary">
                   {c.authorName || c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {c.isOptimistic ? " (sending...)" : ""}
                 </div>
@@ -376,7 +382,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
 
         {/* P12 additive status (retry/queued) — strictly design compliant (rounded-xs, existing tokens, no new primitives) */}
         {(retryStatus || pendingCount > 0) && (
-          <div className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[12px] tracking-normal text-tertiary" role="status" aria-live="polite">
+          <div className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[12px] tracking-normal text-secondary" role="status" aria-live="polite">
             {retryStatus ? retryStatus : `${pendingCount} comment${pendingCount > 1 ? "s" : ""} queued — will retry on reconnect`}
           </div>
         )}
@@ -397,7 +403,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
           aria-label="Comment body"
         />
 
-        <div className="mt-1 flex items-center justify-between text-[12px] tracking-normal text-tertiary">
+        <div className="mt-1 flex items-center justify-between text-[12px] tracking-normal text-secondary">
           <span>
             {remaining} / {MAX}
           </span>
@@ -405,7 +411,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
             {isPosting ? "Sending..." : "Send"}
           </Button>
         </div>
-        <p className="mt-1 text-[11px] leading-[15px] tracking-normal text-tertiary">Comments are sent to the project team. Max 1000 characters.</p>
+        <p className="mt-1 text-[11px] leading-[15px] tracking-normal text-secondary">Comments are sent to the project team. Max 1000 characters.</p>
       </div>
     </section>
   );

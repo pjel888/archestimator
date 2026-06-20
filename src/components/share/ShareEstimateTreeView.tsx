@@ -16,6 +16,9 @@ import {
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 import type { ShareTreeNode } from "@/lib/share/reconstruct-share-tree";
 
+const DESKTOP_INLINE_ROW_LIMIT = 250;
+const MOBILE_INLINE_ROW_LIMIT = 100;
+
 /**
  * P3 + P5 polish: Read-only Tree View for the /share/[token] receiver.
  *
@@ -84,13 +87,17 @@ function TreeNodeRenderer({
     ? Math.min((depth + 1) * 12, 80) + 4
     : Math.min((depth + 1) * indentStep, maxIndent) + indentStep;
 
-  const rowItems = node.rows && node.rows.length > 0 ? (
+  const inlineRowLimit = isMobile ? MOBILE_INLINE_ROW_LIMIT : DESKTOP_INLINE_ROW_LIMIT;
+  const visibleRows = node.rows?.slice(0, inlineRowLimit) ?? [];
+  const hiddenRowCount = Math.max((node.rows?.length ?? 0) - visibleRows.length, 0);
+
+  const rowItems = visibleRows.length > 0 ? (
     <div
       style={{
         paddingLeft: `${rowIndent}px`,
       }}
     >
-      {node.rows.map((row) => {
+      {visibleRows.map((row) => {
         const imageUrl = normalizePublicationImageUrl(row.imageUrl);
 
         // P5 mobile simplification (spec §7.2): Description + Total only (thumb retained for recognition).
@@ -99,7 +106,7 @@ function TreeNodeRenderer({
           return (
             <div
               key={row.id}
-              className="group flex min-h-[28px] items-center gap-2 py-0.5 pr-2 text-[13px] tracking-normal text-secondary hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
+              className="group flex min-h-11 items-center gap-2 py-1 pr-2 text-[13px] tracking-normal text-secondary hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
             >
               {imageUrl ? (
                 <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs bg-surfaceMuted">
@@ -115,8 +122,11 @@ function TreeNodeRenderer({
               ) : (
                 <div className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               )}
-              <span className="min-w-0 flex-1 truncate" title={row.description}>
-                {row.description}
+              <span className="min-w-0 flex-1" title={row.description}>
+                <span className="block truncate">{row.description}</span>
+                <span className="mt-0.5 block truncate text-[12px] leading-[16px] text-secondary">
+                  Qty {row.quantity} · {row.unit}
+                </span>
               </span>
               <span className="flex-shrink-0 tabular-nums text-right font-medium text-ink text-[13px]">
                 {formatMoney(row.rowTotal, currencyCode)}
@@ -167,6 +177,11 @@ function TreeNodeRenderer({
           </div>
         );
       })}
+      {hiddenRowCount > 0 ? (
+        <div className="py-1 pr-2 text-[12px] leading-[16px] text-secondary" role="status">
+          {visibleRows.length} of {node.rows?.length ?? visibleRows.length} rows shown in tree view.
+        </div>
+      ) : null}
     </div>
   ) : null;
 

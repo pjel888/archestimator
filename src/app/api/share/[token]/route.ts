@@ -1,4 +1,5 @@
 import {
+  checkProjectPublicationEventRateLimit,
   checkProjectPublicationSnapshotRateLimit,
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
@@ -6,6 +7,7 @@ import {
 } from "@/lib/publication/public-repository";
 import { hasPublicationAccessCookie } from "@/lib/publication/security";
 import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
+import { after } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -54,11 +56,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
   }
 
-  await recordProjectPublicationEvent({
-    token,
-    eventType: "open",
-    request,
-    metadata: {},
+  after(async () => {
+    try {
+      const eventRateLimit = await checkProjectPublicationEventRateLimit({ token, request });
+      if (!eventRateLimit.allowed) return;
+      await recordProjectPublicationEvent({
+        token,
+        eventType: "open",
+        request,
+        metadata: {},
+      });
+    } catch (error) {
+      console.error("[publication] Failed to record public snapshot open event", error);
+    }
   });
 
   return Response.json(

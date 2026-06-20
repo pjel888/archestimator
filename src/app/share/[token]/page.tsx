@@ -8,6 +8,7 @@ import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
 import SharePageHero from "@/components/share/SharePageHero";
+import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
 import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
 import { SharePageRecipientSessionInitializer } from "@/components/share/SharePageRecipientSessionInitializer";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
@@ -24,6 +25,7 @@ import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
  * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
  */
 import {
+  checkProjectPublicationEventRateLimit,
   recordProjectPublicationAnalyticsEvent,
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
@@ -91,6 +93,9 @@ function ProjectPublicationView({
           token={token}
         />
         <SharePageComments token={token} viewToken={viewToken} />
+        <section className="share-print-hidden border-t border-hairline pt-3">
+          <SharedLinkActivityFeed publicationToken={token} isOwner={false} />
+        </section>
         <footer className="share-print-hidden border-t border-hairline pt-3 text-[11px] leading-[15px] text-tertiary">
           Shared via Archestimator • Activity logged for security
         </footer>
@@ -224,6 +229,14 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   const publicationEventRequest = createPublicationEventRequest(token, requestHeaders);
   after(async () => {
     try {
+      const eventRateLimit = await checkProjectPublicationEventRateLimit({ token, request: publicationEventRequest });
+      if (!eventRateLimit.allowed) return;
+    } catch (error) {
+      console.error("[share] deferred open-event rate-limit check failed", error);
+      return;
+    }
+
+    try {
       await recordProjectPublicationAnalyticsEvent({
         token,
         eventType: "open",
@@ -235,8 +248,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
     } catch (error) {
       console.error("[share] deferred page-visit analytics write failed", error);
     }
-  });
-  after(async () => {
+
     try {
       await recordProjectPublicationEvent({
         token,

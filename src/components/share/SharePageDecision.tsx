@@ -137,7 +137,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
         aria-label="How to respond to this proposal"
         className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-ink"
       >
-        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Your response</div>
+        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
         <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">
           You are viewing this proposal in read-only mode. To accept, decline, or request a revision — and to join
           the discussion — open the personalized review link sent to your email. Each recipient receives their own
@@ -243,11 +243,11 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
         role="status"
         aria-live="polite"
       >
-        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Your response</div>
+        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
         <div className="mt-1 text-[15px] font-medium leading-[20px] tracking-normal text-ink">{decisionLabel(decided.decision)}</div>
         {decided.note && <div className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">Note: {decided.note}</div>}
-        <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-tertiary">Decision recorded. You can still add comments below.</div>
-        {error && <div className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error}</div>}
+        <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-secondary">Decision recorded. You can still add comments below.</div>
+        {error && <div role="alert" className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error}</div>}
         <div aria-live="polite" className="sr-only">{lastAnnouncement}</div>
       </section>
     );
@@ -262,7 +262,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Your response</div>
+          <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
           <p className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">
             {isLoadingDecision ? "Checking for an existing response..." : "Choose a response when you are ready."}
           </p>
@@ -301,7 +301,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
         </div>
       </div>
 
-      {error && <p className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
 
       {pendingDecision && (
         <div
@@ -324,7 +324,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
             <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">{confirmBody(pendingDecision)}</p>
 
             <div className="mt-3">
-              <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-tertiary" htmlFor="decision-note">
+              <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-secondary" htmlFor="decision-note">
                 Note (optional)
               </label>
               <textarea
@@ -337,10 +337,10 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
                 onChange={(event) => setNoteDraft(event.target.value)}
                 disabled={isSubmitting}
               />
-              <div className="mt-0.5 text-right text-[11px] leading-[15px] tracking-normal text-tertiary">{noteDraft.length}/2000</div>
+              <div className="mt-0.5 text-right text-[11px] leading-[15px] tracking-normal text-secondary">{noteDraft.length}/2000</div>
             </div>
 
-            {error && <p className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
+            {error && <p role="alert" className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
 
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={closeConfirm} disabled={isSubmitting}>

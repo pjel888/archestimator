@@ -46,6 +46,15 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
 
   const isLocked = status === "locked";
   const isSubmitting = status === "submitting";
+  const feedbackId = "project-publication-password-feedback";
+  const feedback =
+    status === "invalid"
+      ? "Password is invalid."
+      : status === "error"
+        ? "Unable to unlock publication."
+        : isLocked
+          ? "Too many attempts. Please try again later."
+          : null;
 
   return (
     <form className="mt-4 grid gap-2" onSubmit={submitPassword}>
@@ -58,12 +67,14 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
           onChange={(event) => setPassword(event.currentTarget.value)}
           autoComplete="current-password"
           disabled={isSubmitting || isLocked}
+          aria-invalid={feedback ? "true" : undefined}
+          aria-describedby={feedback ? feedbackId : undefined}
         />
       </label>
-      {status === "invalid" ? <p className="text-[13px] leading-[18px] tracking-normal text-danger">Password is invalid.</p> : null}
-      {status === "error" ? <p className="text-[13px] leading-[18px] tracking-normal text-danger">Unable to unlock publication.</p> : null}
-      {isLocked ? (
-        <p className="text-[13px] leading-[18px] tracking-normal text-danger">Too many attempts. Please try again later.</p>
+      {feedback ? (
+        <p id={feedbackId} role="alert" className="text-[13px] leading-[18px] tracking-normal text-danger">
+          {feedback}
+        </p>
       ) : null}
       <button
         className="h-9 bg-ink px-3 text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"

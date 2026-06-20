@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import type { PublicationSnapshotEstimate, PublicationSnapshotEstimateTab } from "@/lib/publication/types";
@@ -24,6 +25,8 @@ import { CostDonutChart } from "@/components/charts/CostDonutChart";
 import { getBestShareTree, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
 import { ShareEstimateTreePanel } from "@/components/share/ShareEstimateTreePanel";
 import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
+
+const GRID_PREVIEW_ROW_LIMIT = 250;
 
 interface SharePageTabsProps {
   estimates: PublicationSnapshotEstimate[];
@@ -62,6 +65,92 @@ function getDefaultEstimateTabId(tabs: PublicationSnapshotEstimateTab[]): string
   return tabs.find((tab) => tab.isDefault)?.id ?? tabs[0]?.id ?? null;
 }
 
+function getPrintableEstimateSections(estimate: PublicationSnapshotEstimate) {
+  const tabs = getOrderedEstimateTabs(estimate);
+
+  if (tabs.length === 0) {
+    return [
+      {
+        id: estimate.id,
+        name: estimate.name,
+        meta: [estimate.sheetCode].filter(Boolean).join(" · "),
+        rows: estimate.rows,
+        totalCost: estimate.totalCost,
+      },
+    ];
+  }
+
+  return tabs.map((tab) => ({
+    id: `${estimate.id}:${tab.id}`,
+    name: tabs.length === 1 ? estimate.name : `${estimate.name} - ${tab.name}`,
+    meta: [estimate.sheetCode, `Tab ${tab.name}`].filter(Boolean).join(" · "),
+    rows: tab.rows,
+    totalCost: tab.totalCost,
+  }));
+}
+
+function SharePrintEstimatePackage({
+  currencyCode,
+  estimates,
+}: {
+  currencyCode: string;
+  estimates: PublicationSnapshotEstimate[];
+}) {
+  return (
+    <div className="share-print-only space-y-4" data-share-print-package aria-hidden="true">
+      {estimates.flatMap((estimate) =>
+        getPrintableEstimateSections(estimate).map((section) => (
+          <section key={section.id} className="share-print-estimate border border-hairline bg-white p-3">
+            <div className="mb-3 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{section.name}</h2>
+                {section.meta ? (
+                  <p className="text-[12px] leading-[16px] tracking-normal text-secondary">{section.meta}</p>
+                ) : null}
+              </div>
+              <p className="text-right text-[14px] font-medium leading-[18px] tracking-normal text-ink">
+                {formatMoney(section.totalCost, currencyCode)}
+              </p>
+            </div>
+            <table className="min-w-full border-collapse text-left text-[12px] leading-[16px] tracking-normal">
+              <thead className="bg-surfaceMuted text-[11px] uppercase tracking-normal text-secondary">
+                <tr>
+                  <th className="border border-hairline px-2 py-1 font-medium">Description</th>
+                  <th className="border border-hairline px-2 py-1 font-medium">Discipline</th>
+                  <th className="border border-hairline px-2 py-1 text-right font-medium">Qty</th>
+                  <th className="border border-hairline px-2 py-1 font-medium">Unit</th>
+                  <th className="border border-hairline px-2 py-1 text-right font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.rows.length > 0 ? (
+                  section.rows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="border border-hairline px-2 py-1 text-secondary">{row.description}</td>
+                      <td className="border border-hairline px-2 py-1 text-secondary">{row.discipline}</td>
+                      <td className="border border-hairline px-2 py-1 text-right text-secondary">{row.quantity}</td>
+                      <td className="border border-hairline px-2 py-1 text-secondary">{row.unit}</td>
+                      <td className="border border-hairline px-2 py-1 text-right font-medium text-ink">
+                        {formatMoney(row.rowTotal, currencyCode)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="border border-hairline px-2 py-2 text-center text-secondary">
+                      No rows included.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+        )),
+      )}
+    </div>
+  );
+}
+
 export default function SharePageTabs({
   estimates,
   currencyCode,
@@ -83,6 +172,7 @@ export default function SharePageTabs({
   const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
   const [gridSearchByEstimateId, setGridSearchByEstimateId] = useState<Record<string, string>>({});
   const [estimateTabOverrides, setEstimateTabOverrides] = useState<Record<string, string>>({});
+  const [renderPrintPackage, setRenderPrintPackage] = useState(false);
 
   const fallbackActiveId = estimates[0]?.id ?? "";
   const storedActiveId = hydrated ? readStoredActiveEstimateId(storageKey, estimates) : null;
@@ -289,13 +379,31 @@ export default function SharePageTabs({
         .some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
   }, [activeContentRows, activeGridSearch]);
+  const visibleGridRows = filteredRows.slice(0, GRID_PREVIEW_ROW_LIMIT);
+  const hiddenGridRowCount = Math.max(filteredRows.length - visibleGridRows.length, 0);
+
+  useEffect(() => {
+    const showPrintPackage = () => {
+      flushSync(() => setRenderPrintPackage(true));
+    };
+    const hidePrintPackage = () => {
+      setRenderPrintPackage(false);
+    };
+
+    window.addEventListener("beforeprint", showPrintPackage);
+    window.addEventListener("afterprint", hidePrintPackage);
+    return () => {
+      window.removeEventListener("beforeprint", showPrintPackage);
+      window.removeEventListener("afterprint", hidePrintPackage);
+    };
+  }, []);
 
   if (estimates.length === 0) {
     // AC-UX-08: never a silent null — show a visible, calm empty state.
     return (
       <div
         role="status"
-        className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[13px] leading-[18px] tracking-normal text-tertiary"
+        className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary"
       >
         No estimates are included in this shared proposal yet.
       </div>
@@ -309,13 +417,14 @@ export default function SharePageTabs({
 
   return (
     <div className="space-y-3">
+      <div className="share-print-screen-only space-y-3">
       {/* Active estimate summary — sheet name + total, with the view-mode toggle consolidated
           onto this row (UX-15: no separate full-width Tree/Grid strip). */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{activeEstimate.name}</h2>
           {activeEstimateMetaText ? (
-            <p className="text-[13px] leading-[18px] tracking-normal text-tertiary">{activeEstimateMetaText}</p>
+            <p className="text-[13px] leading-[18px] tracking-normal text-secondary">{activeEstimateMetaText}</p>
           ) : null}
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
@@ -340,7 +449,7 @@ export default function SharePageTabs({
                   aria-controls={`share-estimate-panel-${activeEstimate.id}`}
                   tabIndex={isActive ? 0 : -1}
                   className={`rounded-xs px-2.5 py-1 text-[12px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
-                    isActive ? "bg-surfaceMuted text-ink" : "text-tertiary hover:text-ink"
+                    isActive ? "bg-surfaceMuted text-ink" : "text-secondary hover:text-ink"
                   }`}
                   onClick={() => setViewForCurrentSheet(mode)}
                 >
@@ -393,14 +502,14 @@ export default function SharePageTabs({
                 className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[13px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "z-10 bg-white text-ink border-hairline -mb-px"
-                    : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline"
+                    : "bg-surfaceMuted text-secondary border-transparent hover:text-ink hover:border-hairline"
                 }`}
                 onClick={() => updateActive(estimate.id)}
                 onKeyDown={(e) => handleTabKeyDown(e, index)}
               >
                 <span className="truncate">{estimate.name}</span>
                 {estimate.sheetCode ? (
-                  <span className="ml-1 text-[12px] text-tertiary">({estimate.sheetCode})</span>
+                  <span className="ml-1 text-[12px] text-secondary">({estimate.sheetCode})</span>
                 ) : null}
               </button>
             );
@@ -441,7 +550,7 @@ export default function SharePageTabs({
                 className={`h-full flex-shrink-0 rounded-xs border px-3 text-[13px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "bg-surfaceMuted text-ink border-hairline"
-                    : "text-tertiary hover:text-ink border-transparent hover:border-hairline"
+                    : "text-secondary hover:text-ink border-transparent hover:border-hairline"
                 }`}
                 onClick={() => updateActiveEstimateTab(tab.id)}
                 onKeyDown={(event) => handleEstimateTabKeyDown(event, index)}
@@ -477,7 +586,7 @@ export default function SharePageTabs({
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-left text-[13px] leading-[18px] tracking-normal">
-                <thead className="bg-surfaceMuted text-[12px] uppercase tracking-normal text-tertiary">
+                <thead className="bg-surfaceMuted text-[12px] uppercase tracking-normal text-secondary">
                   <tr>
                     <th className="px-3 py-2 font-medium">Description</th>
                     <th className="hidden px-3 py-2 font-medium sm:table-cell">Discipline</th>
@@ -487,7 +596,7 @@ export default function SharePageTabs({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRows.length > 0 ? filteredRows.map((row) => {
+                  {filteredRows.length > 0 ? visibleGridRows.map((row) => {
                     const imageUrl = normalizePublicationImageUrl(row.imageUrl);
 
                     return (
@@ -507,7 +616,12 @@ export default function SharePageTabs({
                                 />
                               </div>
                             ) : null}
-                            <span>{row.description}</span>
+                            <span className="min-w-0">
+                              <span className="block">{row.description}</span>
+                              <span className="mt-0.5 block text-[12px] leading-[16px] text-secondary sm:hidden">
+                                Qty {row.quantity} · {row.unit}
+                              </span>
+                            </span>
                           </div>
                         </td>
                         <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.discipline}</td>
@@ -520,11 +634,18 @@ export default function SharePageTabs({
                     );
                   }) : (
                     <tr className="border-t border-hairline">
-                      <td colSpan={5} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-tertiary">
+                      <td colSpan={5} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary">
                         {`No rows match "${activeGridSearch.trim()}"`}
                       </td>
                     </tr>
                   )}
+                  {hiddenGridRowCount > 0 ? (
+                    <tr className="border-t border-hairline">
+                      <td colSpan={5} className="px-3 py-3 text-center text-[12px] leading-[16px] tracking-normal text-secondary">
+                        {`Showing first ${GRID_PREVIEW_ROW_LIMIT} of ${filteredRows.length} matching rows. Refine the filter to narrow the list.`}
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -549,6 +670,8 @@ export default function SharePageTabs({
           </div>
         )}
       </div>
+      </div>
+      {renderPrintPackage ? <SharePrintEstimatePackage estimates={estimates} currencyCode={currencyCode} /> : null}
     </div>
   );
 }

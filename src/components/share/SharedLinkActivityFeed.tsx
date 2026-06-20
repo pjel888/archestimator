@@ -96,7 +96,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
 
   if (loading) {
     return (
-      <div data-testid="activity-loading" className="space-y-2 rounded-xs p-2 text-[10px] text-tertiary" aria-busy="true" aria-label="Loading shared link activity">
+      <div data-testid="activity-loading" className="space-y-2 rounded-xs p-2 text-[10px] text-secondary" aria-busy="true" aria-label="Loading shared link activity">
         <p>Loading activity…</p>
         {Array.from({ length: 3 }).map((_, index) => (
           <div key={index} className="h-10 rounded-xs border border-hairline bg-surfaceMuted/60" aria-hidden="true" />
@@ -115,7 +115,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
 
   return (
     <section data-testid="activity-feed" className="rounded-xs text-[10px] text-ink" aria-label="Shared link activity">
-      <div className="mb-2 flex items-center justify-between text-[9px] text-tertiary">
+      <div className="mb-2 flex items-center justify-between text-[9px] text-secondary">
         <span>Activity</span>
         <Button type="button" variant="ghost" size="sm" onClick={() => { setNewActivityNotice(false); load(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
       </div>
@@ -124,12 +124,12 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
         {loadingMore ? "Loading older shared link activity." : ""}
       </div>
       {newActivityNotice ? (
-        <div className="mb-2 rounded-xs border border-accent/30 bg-orange-50 px-2 py-1 text-[9px] font-medium text-orange-800">
+        <div className="mb-2 rounded-xs border border-accent/25 bg-accent-soft px-2 py-1 text-[9px] font-medium text-accent-dark">
           New activity loaded.
         </div>
       ) : null}
       {activities.length === 0 ? (
-        <p role="status" className="rounded-xs border border-dashed border-hairline bg-white p-2 text-tertiary">No activity yet.</p>
+        <p role="status" className="rounded-xs border border-dashed border-hairline bg-white p-2 text-secondary">No activity yet.</p>
       ) : (
         <div role="feed" aria-label="Shared link activity feed" className="space-y-2">
           {activities.map((a, index) => (
@@ -143,20 +143,20 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
               className="rounded-xs border border-hairline bg-surface p-2 text-[10px] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
             >
               <div className="font-medium text-secondary">{a.title}</div>
-              <div className="text-[9px] text-tertiary">{new Date(a.occurredAt).toLocaleString()}</div>
-              {a.summary && <div className="mt-0.5 text-tertiary">{a.summary}</div>}
+              <div className="text-[9px] text-secondary">{new Date(a.occurredAt).toLocaleString()}</div>
+              {a.summary && <div className="mt-0.5 text-secondary">{a.summary}</div>}
               {a.body && <div className="mt-0.5 whitespace-pre-wrap text-ink">{a.body}</div>}
               {a.badges?.map((badge) => (
                 <span key={badge} className="mt-1 inline-flex rounded-xs border border-hairline px-1 text-[8px] text-warning">{badge}</span>
               ))}
               {a.visibility === "internal" && isOwner && !a.badges?.includes("Internal") && <span className="text-[8px] text-warning">Internal</span>}
               {a.facts?.length ? (
-                <details className="mt-2 rounded-xs border border-hairline bg-white px-2 py-1 text-[9px] text-tertiary">
+                <details className="mt-2 rounded-xs border border-hairline bg-white px-2 py-1 text-[9px] text-secondary">
                   <summary className="cursor-pointer font-medium text-secondary">Activity details</summary>
                   <dl className="mt-2 grid gap-1">
                     {a.facts.map((fact) => (
                       <div key={fact.label} className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
-                        <dt className="font-medium text-tertiary">{fact.label}</dt>
+                        <dt className="font-medium text-secondary">{fact.label}</dt>
                         <dd className="min-w-0 break-words text-ink">{fact.value ?? fact.current ?? fact.previous ?? "Available"}</dd>
                       </div>
                     ))}
@@ -172,7 +172,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
           {loadingMore ? "Loading…" : "Load older activity"}
         </Button>
       ) : null}
-      <p className="mt-2 text-[8px] text-tertiary">Activity refreshes when you reopen this tab. Use Refresh for the latest.</p>
+      <p className="mt-2 text-[8px] text-secondary">Activity refreshes when you reopen this tab. Use Refresh for the latest.</p>
     </section>
   );
 }

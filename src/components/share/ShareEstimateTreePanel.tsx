@@ -19,6 +19,9 @@ import {
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 import type { ShareTreeNode } from "@/lib/share/reconstruct-share-tree";
 
+const DESKTOP_INLINE_ROW_LIMIT = 250;
+const MOBILE_INLINE_ROW_LIMIT = 100;
+
 /**
  * Read-only tree panel for the /share/[token] receiver.
  *
@@ -123,6 +126,8 @@ function TreeNodeRenderer({
 }: TreeNodeRendererProps) {
   const isGroup = node.kind === "group";
   const Icon = isGroup ? FolderSimple : Cube;
+  const canNavigate = Boolean(onNavigate);
+  const isKeyboardInteractive = hasChildren || canNavigate;
 
   const indentStep = isMobile ? 12 : WORKSHOP_TREE_INDENT_STEP;
   const maxIndent = isMobile ? 80 : WORKSHOP_TREE_MAX_INDENT;
@@ -135,31 +140,38 @@ function TreeNodeRenderer({
   };
 
   const handleHeaderKeyDown = (e: React.KeyboardEvent) => {
-    if (hasChildren && onToggle && (e.key === "Enter" || e.key === " ")) {
-      e.preventDefault();
+    if (e.key !== "Enter" && e.key !== " ") return;
+
+    e.preventDefault();
+
+    if (hasChildren && onToggle) {
       onToggle(node.id);
     }
-    if (onNavigate && (e.key === "Enter" || e.key === " ")) {
+    if (onNavigate) {
       onNavigate(node.id);
     }
   };
 
+  const inlineRowLimit = isMobile ? MOBILE_INLINE_ROW_LIMIT : DESKTOP_INLINE_ROW_LIMIT;
+  const visibleRows = node.rows?.slice(0, inlineRowLimit) ?? [];
+  const hiddenRowCount = Math.max((node.rows?.length ?? 0) - visibleRows.length, 0);
+
   const rowItems =
-    showInlineRows && node.rows && node.rows.length > 0 ? (
+    showInlineRows && visibleRows.length > 0 ? (
       <div
         className="border-l border-hairline/60"
         style={{
           paddingLeft: `${Math.min((depth + 1) * indentStep, maxIndent) + 4}px`,
         }}
       >
-        {node.rows.map((row) => {
+        {visibleRows.map((row) => {
           const imageUrl = normalizePublicationImageUrl(row.imageUrl);
 
           if (isMobile) {
             return (
               <div
                 key={row.id}
-                className="group flex min-h-[28px] items-center gap-2 border-b border-hairline/40 py-0.5 pr-2 text-[13px] tracking-normal text-secondary last:border-b-0 hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
+                className="group flex min-h-11 items-center gap-2 border-b border-hairline/40 py-1 pr-2 text-[13px] tracking-normal text-secondary last:border-b-0 hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
               >
                 {imageUrl ? (
                   <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
@@ -175,11 +187,11 @@ function TreeNodeRenderer({
                 ) : (
                   <div className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 )}
-                <span
-                  className="min-w-0 flex-1 truncate"
-                  title={row.description}
-                >
-                  {row.description}
+                <span className="min-w-0 flex-1" title={row.description}>
+                  <span className="block truncate">{row.description}</span>
+                  <span className="mt-0.5 block truncate text-[12px] leading-[16px] text-secondary">
+                    Qty {row.quantity} · {row.unit}
+                  </span>
                 </span>
                 <span className="flex-shrink-0 tabular-nums text-right font-medium text-ink text-[13px]">
                   {formatMoney(row.rowTotal, currencyCode)}
@@ -224,6 +236,11 @@ function TreeNodeRenderer({
             </div>
           );
         })}
+        {hiddenRowCount > 0 ? (
+          <div className="border-b border-hairline/40 py-1 pr-2 text-[12px] leading-[16px] text-secondary" role="status">
+            {visibleRows.length} of {node.rows?.length ?? visibleRows.length} rows shown in tree view.
+          </div>
+        ) : null}
       </div>
     ) : null;
 
@@ -235,7 +252,7 @@ function TreeNodeRenderer({
         depth={depth}
         role="treeitem"
         aria-expanded={hasChildren ? expanded : undefined}
-        tabIndex={hasChildren ? 0 : -1}
+        tabIndex={isKeyboardInteractive ? 0 : -1}
         className={`border-l border-hairline/70 cursor-pointer ${depth === 0 && hasChildren ? "bg-[#FFFDF8]" : ""}`}
         data-share-tree-node={node.kind}
         data-share-tree-expanded={expanded ? "true" : "false"}

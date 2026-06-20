@@ -1,11 +1,13 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import {
+  checkSharedLinkSessionStartRateLimit,
   recordProjectPublicationAnalyticsEvent,
   resolveProjectPublicationAccessByToken,
   verifySharedLinkRecipientToken,
 } from "@/lib/publication/public-repository";
 import {
+  assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
   getSharedLinkSessionCookieParts,
   hasPublicationAccessCookie,
@@ -23,20 +25,8 @@ function createExpiredCookie(name: string, { httpOnly }: { httpOnly: boolean }) 
   return `${name}=; Path=/; SameSite=Lax; Max-Age=0${httpOnlyCookie}${secureCookie}`;
 }
 
-function assertSameOrigin(request: Request): { ok: true } | { ok: false; status: number; message: string } {
-  const origin = request.headers.get("origin");
-  if (!origin) return { ok: true };
-
-  const requestOrigin = new URL(request.url).origin;
-  if (origin !== requestOrigin) {
-    return { ok: false, status: 403, message: "Cross-origin shared-link session requests are blocked." };
-  }
-
-  return { ok: true };
-}
-
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const sameOrigin = assertSameOrigin(request);
+  const sameOrigin = assertSameOriginPublicPost(request);
   if (!sameOrigin.ok) {
     return NextResponse.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
   }
@@ -46,6 +36,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const recipientToken = typeof body.recipientToken === "string" ? body.recipientToken.trim() : "";
   if (!recipientToken) {
     return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });
+  }
+
+  const rateLimit = await checkSharedLinkSessionStartRateLimit({ token, request });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.message },
+      {
+        status: 429,
+        headers: { ...noStoreHeaders, "Retry-After": String(rateLimit.retryAfter) },
+      },
+    );
   }
 
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
@@ -89,13 +90,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     secure: process.env.NODE_ENV === "production",
   });
 
-  await recordProjectPublicationAnalyticsEvent({
-    token,
-    eventType: "open",
-    accessStage: "recipient_session_started",
-    recipientKnown: true,
-    recipientId: verified.recipientId,
-    request,
+  after(async () => {
+    try {
+      await recordProjectPublicationAnalyticsEvent({
+        token,
+        eventType: "open",
+        accessStage: "recipient_session_started",
+        recipientKnown: true,
+        recipientId: verified.recipientId,
+        request,
+      });
+    } catch {}
   });
 
   return response;

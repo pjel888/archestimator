@@ -31,14 +31,14 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
             You are reviewing as {recipientEmail}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
-            <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">
+            <span className="rounded-xs bg-surfaceMuted px-2 py-1 text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
               Reviewer
             </span>
             <button
               type="button"
               onClick={clearRecipientSession}
               disabled={isClearingRecipientSession}
-              className="rounded-xs px-1.5 py-0.5 text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
+              className="min-h-11 rounded-xs px-2.5 py-1 text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
             >
               Not you?
             </button>
@@ -53,13 +53,13 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
   return (
     <div className="border-b border-hairline bg-surfaceMuted">
       <div className={`${SHARE_CONTAINER_WIDTH} flex items-start justify-between gap-3 py-2.5`}>
-        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">
+        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
           Sign in as a recipient to comment and respond to this proposal.
         </p>
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-xs p-0.5 text-[14px] leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink"
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xs text-[16px] leading-none text-secondary transition hover:bg-surfaceMuted hover:text-ink"
           aria-label="Dismiss"
         >
           ×

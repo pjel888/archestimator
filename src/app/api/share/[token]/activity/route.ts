@@ -12,7 +12,7 @@ import {
 } from "@/lib/publication/security";
 import {
   compareSharedLinkActivityDesc,
-  createSharedLinkTargetLabelMap,
+  createSharedLinkTargetLabelMapFromLabelsJson,
   encodeSharedLinkActivityCursor,
   isBeforeSharedLinkActivityCursor,
   parseSharedLinkActivityCursor,
@@ -36,7 +36,7 @@ function parseCookieValue(cookieHeader: string, name: string): string | undefine
 
 type PublicActivityViewModel = Pick<
   ActivityViewModel,
-  "id" | "source" | "action" | "visibility" | "occurredAt" | "title" | "summary" | "body" | "badges" | "target" | "meta"
+  "id" | "source" | "action" | "visibility" | "occurredAt" | "title" | "summary" | "badges" | "target" | "meta"
 >;
 
 function readRecipientIdFromSession(value: string | undefined) {
@@ -66,7 +66,6 @@ function toPublicActivityViewModel(activity: ActivityViewModel): PublicActivityV
     occurredAt: activity.occurredAt,
     title: activity.title,
     summary: activity.summary,
-    body: activity.body,
     badges: activity.badges,
     target: {
       kind: activity.target.kind,
@@ -110,7 +109,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: pub, error: pubErr } = await supabase
     .from("project_publications")
-    .select("id, status, revoked_at, expires_at, password_hash, snapshot_json, snapshot_version")
+    .select("id, status, revoked_at, expires_at, password_hash, activity_target_labels_json, snapshot_version")
     .eq("token_hash", pubHash)
     .maybeSingle();
 
@@ -155,7 +154,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   let commentsQuery = supabase
     .from("shared_link_comments")
-    .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
+    .select("id, created_at, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
     .eq("publication_id", pubId)
     .eq("is_internal", false);
   let responsesQuery = verifiedRecipientId
@@ -208,15 +207,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
-  const targetLabels = createSharedLinkTargetLabelMap(pub.snapshot_json);
+  const targetLabels = createSharedLinkTargetLabelMapFromLabelsJson(pub.activity_target_labels_json);
   const rawActivities: SharedLinkActivityInput[] = [];
-  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "author_name" | "body" | "created_at" | "estimate_id" | "id" | "recipient_id" | "row_id">) => {
+  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "author_name" | "created_at" | "estimate_id" | "id" | "recipient_id" | "row_id">) => {
     rawActivities.push({
       id: c.id,
       type: "comment",
       created_at: c.created_at,
       author: recipientDisplayNames.get(c.recipient_id ?? "") ?? "Client",
-      body: c.body,
       is_internal: false,
       recipientDisplayName: recipientDisplayNames.get(c.recipient_id ?? ""),
       metadata: { targetLabel: resolveSharedLinkTargetLabel(targetLabels, c.row_id, c.estimate_id) ?? "the proposal" },
