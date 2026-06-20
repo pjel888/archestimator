@@ -10,6 +10,7 @@ type WorkshopSettingsModalProps = {
   children: ReactNode;
   closeHref?: string;
   initialOpen?: boolean;
+  location?: ReactNode;
   trigger?: "button" | "none";
 };
 
@@ -17,6 +18,7 @@ export function WorkshopSettingsModal({
   children,
   closeHref,
   initialOpen = false,
+  location,
   trigger = "button",
 }: WorkshopSettingsModalProps) {
   const [open, setOpen] = useState(initialOpen);
@@ -48,7 +50,9 @@ export function WorkshopSettingsModal({
         description="Manage account, workspace, and beta operations."
         closeLabel="Close settings"
         className="max-w-[920px]"
-        bodyClassName="bg-surface p-0"
+        bodyClassName="bg-white p-0"
+        initialFocus="content"
+        location={location}
         onOpenChange={handleOpenChange}
       >
         {children}

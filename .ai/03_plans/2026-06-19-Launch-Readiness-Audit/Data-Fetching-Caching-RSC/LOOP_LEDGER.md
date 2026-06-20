@@ -13,7 +13,7 @@
   file at the cited line.
 - Reconciled against prior packs on disk: `09_archive/2026-06-19-Workshop-Dashboard-Query-Batching`,
   `03_plans/2026-06-16-Sidebar-Favorite-Projects-And-Estimates`,
-  `03_plans/2026-06-19-Projects-Page-Performance`, `03_plans/2026-06-17-Performance-Refactor`,
+  `09_archive/2026-06-19-Projects-Page-Performance`, `03_plans/2026-06-17-Performance-Refactor`,
   and the sibling `2026-06-19-Launch-Readiness-Audit/Auth-And-Session-Security` (AUTH-05).
 
 ## PLAN

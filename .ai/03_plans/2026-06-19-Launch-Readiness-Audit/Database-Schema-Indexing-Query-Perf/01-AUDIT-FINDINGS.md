@@ -41,7 +41,7 @@ the small read-hot FK-index batch and let the rest ride.
 |---|---|---|
 | `database-indexing-and-query-performance` (DBIDX-001..005) | Full audit method, query SQL, FK-bucket policy, candidate index list, EXPLAIN protocol — **planning only, never executed; shared-link drift was an open question** | Executes the live read-only inventory the pack asked for; **resolves the shared-link drift (NOT drift — tables exist live)**; confirms candidates still unapplied. |
 | `2026-06-17-Performance-Refactor/14_PHASE_8_SUPABASE_DB_PLAN.md` | Read-hot FK-index ADD subset (§2.1), unused-index DROP gate Q-J (§2.3), unbounded component-library read (§1#1), RPC hardening | Confirms all still unapplied with fresh advisor numbers (87→84 FK lints, 13→18 unused); re-affirms the GAP-7 "don't drop the composite that backs §2.1 adds" caveat. |
-| `2026-06-19-Projects-Page-Performance` | App-side projects-page fetch perf | Adjacent; DB-side index support noted, no overlap on schema. |
+| archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/` | App-side projects-page fetch perf | Adjacent; DB-side index support noted, no overlap on schema. |
 | `.ai/09_archive/2026-06-19-Workshop-Dashboard-Query-Batching` | `workspace_homebase_summary` RPC + serial-tail batching | Cross-ref only; that RPC's batching is Domain 8. |
 | memory: `supabase-types-not-pure-generated` | `types.ts` hand-edited; raw `gen:types` overwrite breaks build | **Confirmed parity today** (DBPERF-07): 55 live tables == 55 types.ts tables, zero drift. Risk is the *regeneration process*, not current state. |
 

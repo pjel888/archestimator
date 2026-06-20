@@ -1,5 +1,10 @@
 # Launch-Readiness — Auth & Session Security (Plan Pack Header)
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Date:** 2026-06-19 · **Owner:** Philip · **Author:** Auth & Session auditor (READ-ONLY on source)
 **Part of:** the 2026-06-19 Launch-Readiness Audit (`.ai/03_plans/2026-06-19-Launch-Readiness-Audit/00-ORCHESTRATION-LEDGER.md`). Deletable per repo plan-pack rules.
 
@@ -11,7 +16,7 @@ Decide whether Archestimator's authentication, session handling, and route prote
 
 ## Non-goals
 - Supabase Auth dashboard config (MFA, password/OTP policy, provider settings) — owned by the Supabase project, not the repo.
-- RLS/RPC internals and DB-level authorization (domain 2). CSP/headers/nonce pipeline (domain 7). API-route-specific concerns and the `proxy.ts` `/api/*` short-circuit's API impact (domain 4). Account-deletion / DSAR / data-export *legal* obligations (domain 11). These are recorded in `cross_domain_notes`, not fixed here.
+- RLS/RPC internals and DB-level authorization (RLS-RPC pack). CSP/headers/nonce pipeline (NextJS/Vercel pack). API-route-specific concerns and the `proxy.ts` `/api/*` short-circuit's API impact (API pack). Account-deletion / DSAR / data-export *legal* obligations (`DSAR-Account-Deletion-Data-Export`). These are recorded in `cross_domain_notes`, not fixed here.
 - Design/contrast (DESIGN.md is an alpha guide; advise only).
 
 ## Files expected to change during remediation (if owner accepts findings)

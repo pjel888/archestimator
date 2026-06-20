@@ -1,5 +1,10 @@
 # Launch-Readiness Plan Pack — API Routes & Server Actions (Domain 4)
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 Part of the **2026-06-19 Launch-Readiness Audit** (see `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/00-ORCHESTRATION-LEDGER.md`).
 This pack is **deletable**: it is an audit-output container, not a landed change. If Philip
 rejects the findings, delete this entire folder; nothing in the app depends on it.

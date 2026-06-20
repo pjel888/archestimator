@@ -1,9 +1,14 @@
 # Launch-Readiness — DSAR, Account Deletion & Data Export (Legal Readiness)
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 > **Phase-2 gap pack** of the 2026-06-19 Launch-Readiness Audit. The 13-domain
 > pass did not own this surface; its COVERAGE CRITIC flagged it as un-audited.
-> This pack closes that gap. The Auth pack explicitly deferred DSAR to "Domain 11
-> / the Accessibility-SEO-Legal-Content pack" — which in practice only audited metadata/SEO
+> This pack closes that gap. The Auth pack historically deferred DSAR to the wrong
+> legal/content target — which in practice only audited metadata/SEO
 > and never touched deletion/export capability. So this surface had ZERO
 > launch-readiness review before this pack.
 

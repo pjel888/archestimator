@@ -19,6 +19,7 @@ type ProjectLocationMapProps = {
   readonly pin: ProjectLocationPin | null;
   readonly addressLabel: string;
   readonly overlaySummary?: ReactNode;
+  readonly rightRail?: ReactNode;
   readonly lowerLeftSummary?: ReactNode;
   readonly lowerLeftDetail?: ReactNode;
 };
@@ -99,7 +100,15 @@ function formatCoordinate(value: number) {
   return value.toFixed(6);
 }
 
-export function ProjectLocationMap({ apiKey, pin, addressLabel, overlaySummary, lowerLeftSummary, lowerLeftDetail }: ProjectLocationMapProps) {
+export function ProjectLocationMap({
+  apiKey,
+  pin,
+  addressLabel,
+  overlaySummary,
+  rightRail,
+  lowerLeftSummary,
+  lowerLeftDetail,
+}: ProjectLocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const [status, setStatus] = useState<MapStatus>("idle");
@@ -197,9 +206,11 @@ export function ProjectLocationMap({ apiKey, pin, addressLabel, overlaySummary, 
         </div>
         <div
           data-testid="project-location-frosted-panel"
-          aria-hidden="true"
-          className={`col-span-4 col-start-13 row-span-8 row-start-1 ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
-        />
+          aria-hidden={rightRail ? undefined : "true"}
+          className={`col-span-4 col-start-13 row-span-8 row-start-1 overflow-hidden p-2 ${rightRail ? "pointer-events-auto" : ""} ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
+        >
+          {rightRail}
+        </div>
         <div
           data-testid="project-location-frosted-lower-left-panel"
           aria-hidden={lowerLeftSummary ? undefined : "true"}

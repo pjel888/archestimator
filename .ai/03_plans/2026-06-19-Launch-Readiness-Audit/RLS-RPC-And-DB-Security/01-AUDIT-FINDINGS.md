@@ -5,6 +5,10 @@ Verdict: **No confirmed exploitable tenant-isolation defect found. The RLS/RPC s
 and well-hardened.** One launch-relevant issue is migration-ledger / tree drift (reproducibility),
 not a runtime authz hole.
 
+> Canonical status note: this domain's "not a runtime authz blocker" verdict remains true.
+> The root gate register escalates RLS-01 to B6, a hard wider/external-beta DR/reproducibility
+> gate, because a reset/restore could lose live RLS/uniqueness protections.
+
 ## Scope & coverage
 
 **Read in full or grepped exhaustively:**

@@ -29,6 +29,18 @@ file and then update the pack.
 | V2 CONSENT-01 | Verify-gate | `Analytics-Consent-Privacy` | Consent-gate Vercel Analytics or document legitimate interest and fix copy. | Network capture or owner/legal decision + copy/build proof. | No-go until decided/proven. |
 | C1 OPS-02/API-01 | Conditional hard blocker | `Observability-Reliability-Ops` + `API-Routes-And-Server-Actions` | Add package-builder quota before AI routes are enabled. | Targeted tests + env proof that AI is enabled only after quota lands. | Not blocking while AI routes remain off. |
 
+## Cohort hardening gates
+
+These do not replace B/V/C gates. They prevent a plan from entering a broader cohort while a
+known abuse or UX surface remains unowned.
+
+| Gate | Required before | Owner | Required close path |
+|---|---|---|---|
+| H1 public-route security headers | Collaborator/client-recipient beta | NextJS/Vercel + Auth | Verify/fix headers for `/login`, `/invite/*`, `/share/*`, `/privacy`, and `/terms`. |
+| H2 email recipient cap/rate | Broad share/email sends | Email + Share | Cap recipient additions/sends and prove bounced/rate-limited UX copy. |
+| H3 storage quota/spend monitor | External uploads beyond owner-supervised workspaces | Storage + Ops | Add quota or owner-approved spend/storage alert and cleanup path. |
+| H4 readiness endpoint abuse control | DB-touching readiness monitor | Ops | TTL/cache, timeout, low-rate monitor, generic errors, no leaked provider details. |
+
 ## Owner/provider decisions required
 
 | Decision | Scope | Owner | Minimum record |
@@ -42,9 +54,11 @@ file and then update the pack.
 
 ## Dependency order
 
+0. Execute through `22-IMPLEMENTATION-EXECUTION-CONTROL-PLAN.md` and coordinate
+   active lanes in `23-IMPLEMENTATION-COORDINATION-LEDGER.md`; do not implement
+   from this register alone.
 1. B2 before B1 required-check enforcement, so CI can turn green.
 2. B3 can land before B4, but B4 is required before B7 alerts are meaningful.
 3. B6 and B8 must each run their own high-blast DB plan loop and review gate.
 4. V1 and V2 are provider/live-proof gates; do not claim closure from repo reads alone.
 5. C1 must be checked again before any deploy that enables AI routes.
-

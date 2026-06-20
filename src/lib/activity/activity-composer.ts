@@ -15,12 +15,51 @@ function readString(...values: unknown[]) {
   return "Item";
 }
 
+function readOptionalString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return stripUnsafeText(value, "");
+  }
+  return "";
+}
+
 function snapshot(value: unknown): Record<string, unknown> {
   if (isRecord(value)) {
     if (isRecord(value.changed)) return value.changed;
     return value;
   }
   return {};
+}
+
+function readNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
+function readArrayLength(value: unknown) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function isVisibleEstimateChangeField(field: string) {
+  return !["row", "rows", "tree", "tabs", "metadata", "sourceLibraryItemId", "sourceSnapshot"].includes(field);
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(count)} ${count === 1 ? singular : plural}`;
+}
+
+function formatSignedTotalDelta(totalDelta: number) {
+  if (Math.abs(totalDelta) < 0.005) return "No total cost change";
+  const direction = totalDelta > 0 ? "increased" : "decreased";
+  return `Total ${direction} by ${formatActivityValue("totalDelta", Math.abs(totalDelta))}`;
+}
+
+function sentenceFromParts(parts: readonly string[]) {
+  return parts.filter(Boolean).join("; ");
 }
 
 // Single source of truth for blank-row labels: the estimate-sheet UI and the
@@ -54,21 +93,169 @@ function targetForEstimate(event: EstimateActivityInput): ActivityTarget {
 function changesForEstimate(event: EstimateActivityInput): ActivityChange[] {
   const oldData = snapshot(event.oldSnapshot);
   const newData = snapshot(event.newSnapshot);
-  return (event.changedFields ?? []).slice(0, 8).map((field) => ({
-    field,
-    label: formatActivityFieldLabel(field),
-    previous: formatActivityValue(field, oldData[field]),
-    current: formatActivityValue(field, newData[field]),
-    rawPrevious: oldData[field],
-    rawCurrent: newData[field],
-  }));
+  return (event.changedFields ?? [])
+    .filter(isVisibleEstimateChangeField)
+    .slice(0, 8)
+    .map((field) => ({
+      field,
+      label: formatActivityFieldLabel(field),
+      previous: formatActivityValue(field, oldData[field]),
+      current: formatActivityValue(field, newData[field]),
+      rawPrevious: oldData[field],
+      rawCurrent: newData[field],
+    }));
+}
+
+function changedFieldLabelsForTitle(event: EstimateActivityInput) {
+  return (event.changedFields ?? [])
+    .filter(isVisibleEstimateChangeField)
+    .map((field) => formatActivityFieldLabel(field).toLowerCase());
 }
 
 function factsForEstimate(event: EstimateActivityInput): ActivityFact[] {
   const facts: ActivityFact[] = [];
   if (event.totalDelta !== null && event.totalDelta !== undefined) facts.push({ label: "Total change", value: formatActivityValue("totalDelta", event.totalDelta) });
-  if (event.changedFields?.length) facts.push({ label: "Affected fields", value: event.changedFields.map(formatActivityFieldLabel).join(", ") });
+  const visibleFields = (event.changedFields ?? []).filter(isVisibleEstimateChangeField);
+  if (visibleFields.length) facts.push({ label: "Affected fields", value: visibleFields.map(formatActivityFieldLabel).join(", ") });
   return facts;
+}
+
+function readableChangeDetails(changes: readonly ActivityChange[]) {
+  return changes
+    .filter((change) => change.previous !== change.current)
+    .slice(0, 3)
+    .map((change) => `${change.label} from ${change.previous ?? "not set"} to ${change.current ?? "not set"}`);
+}
+
+function rowLocationLabel(event: EstimateActivityInput) {
+  return readOptionalString(event.rowContext?.nodePath, event.rowContext?.areaName, event.rowContext?.nodeName);
+}
+
+function rowSummary(event: EstimateActivityInput, changes: readonly ActivityChange[]) {
+  const location = rowLocationLabel(event);
+  const delta = typeof event.totalDelta === "number" ? formatSignedTotalDelta(event.totalDelta) : "";
+
+  if (event.eventType === "row_updated") {
+    return sentenceFromParts([
+      ...readableChangeDetails(changes),
+      delta,
+      location ? `Located in ${location}` : "",
+    ]) || "Row details changed.";
+  }
+
+  const material = rowMaterial(event);
+  if (event.eventType === "row_added" || event.eventType === "row_blank_added") {
+    return sentenceFromParts([
+      material && material !== "row" ? `Added ${material}` : "Added a row",
+      location ? `to ${location}` : "",
+      delta,
+    ]);
+  }
+
+  if (event.eventType === "row_deleted") {
+    return sentenceFromParts([
+      material && material !== "row" ? `Removed ${material}` : "Removed a row",
+      location ? `from ${location}` : "",
+      delta,
+    ]);
+  }
+
+  if (event.eventType === "row_unlinked") {
+    return sentenceFromParts([
+      ...readableChangeDetails(changes),
+      location ? `Located in ${location}` : "",
+    ]) || "Detached row from the cost library.";
+  }
+
+  if (event.eventType === "row_replaced") {
+    const oldData = snapshot(event.oldSnapshot);
+    const newData = snapshot(event.newSnapshot);
+    return sentenceFromParts([
+      `Replaced ${readString(oldData.material, oldData.name, "previous item")} with ${readString(newData.material, newData.name, material)}`,
+      location ? `in ${location}` : "",
+      delta,
+    ]);
+  }
+
+  return "";
+}
+
+function treeSummary(event: EstimateActivityInput) {
+  const payload = event.payload ?? {};
+  const updatedCount = readNumber(payload.updatedCount);
+  const affectedCount = updatedCount ?? (readArrayLength(payload.moves) || readArrayLength(payload.moveUpdates));
+  const countSummary = affectedCount ? `Reordered ${pluralize(affectedCount, "tree item")}` : "Reordered the estimate tree";
+  return countSummary;
+}
+
+function templateSummary(event: EstimateActivityInput) {
+  const payload = event.payload ?? {};
+  const nodeCount = readNumber(payload.insertedNodeCount ?? payload.inserted_node_count ?? payload.nodeCount);
+  const rowCount = readNumber(payload.insertedRowItemCount ?? payload.inserted_row_item_count ?? payload.rowCount ?? payload.insertedCount);
+  const rootIds = readStringArray(payload.inserted_root_node_ids ?? payload.insertedRootNodeIds);
+  return sentenceFromParts([
+    rootIds.length ? `Created ${pluralize(rootIds.length, "root area")}` : "",
+    nodeCount !== null ? `Copied ${pluralize(nodeCount, "tree item")}` : "",
+    rowCount !== null ? `Added ${pluralize(rowCount, "estimate row")}` : "",
+  ]) || "Inserted template content into the estimate.";
+}
+
+function nodeSummary(event: EstimateActivityInput) {
+  const payload = event.payload ?? {};
+  const kind = readString(payload.kind, "");
+  const reorderedCount = readNumber(payload.reorderedSiblingCount);
+  const deletedNodeCount = readNumber(payload.deletedNodeCount);
+  const deletedRowCount = readNumber(payload.deletedRowCount);
+  const delta = typeof event.totalDelta === "number" ? formatSignedTotalDelta(event.totalDelta) : "";
+
+  if (event.eventType === "node_created") {
+    return sentenceFromParts([
+      kind ? `Created as ${kind === "group" ? "a group" : "an area"}` : "",
+      reorderedCount !== null && reorderedCount > 1 ? `Refreshed ${pluralize(reorderedCount, "sibling position")}` : "",
+    ]) || "Created a new estimate tree item.";
+  }
+
+  if (event.eventType === "node_deleted_with_children") {
+    return sentenceFromParts([
+      deletedNodeCount !== null ? `Removed ${pluralize(deletedNodeCount, "tree item")}` : "",
+      deletedRowCount !== null ? `Deleted ${pluralize(deletedRowCount, "estimate row")}` : "",
+      delta,
+    ]) || "Deleted an estimate tree item and its rows.";
+  }
+
+  return "";
+}
+
+function tabSummary(event: EstimateActivityInput, changes: readonly ActivityChange[]) {
+  const payload = event.payload ?? {};
+  const updatedCount = readNumber(payload.updatedCount);
+  const insertedNodeCount = readNumber(payload.insertedNodeCount);
+  const insertedRowCount = readNumber(payload.insertedRowItemCount);
+
+  if (event.eventType === "tabs_reordered" || event.eventType === "tab_reordered") {
+    return updatedCount ? `Reordered ${pluralize(updatedCount, "tab")}.` : "Reordered estimate tabs.";
+  }
+
+  if (event.eventType === "tab_duplicated") {
+    return sentenceFromParts([
+      insertedNodeCount !== null ? `Copied ${pluralize(insertedNodeCount, "tree item")}` : "",
+      insertedRowCount !== null ? `Copied ${pluralize(insertedRowCount, "estimate row")}` : "",
+    ]) || "Copied tab contents.";
+  }
+
+  return readableChangeDetails(changes).join("; ");
+}
+
+function estimateSummary(event: EstimateActivityInput, changes: readonly ActivityChange[]) {
+  if (event.eventType.startsWith("row_")) return rowSummary(event, changes);
+  if (event.eventType === "tree_reordered" || event.eventType === "nodes_reordered") return treeSummary(event);
+  if (event.eventType === "template_inserted" || event.eventType === "project_source_inserted") return templateSummary(event);
+  if (event.eventType.startsWith("node_")) return nodeSummary(event);
+  if (event.eventType.startsWith("tab_") || event.eventType === "tabs_reordered") return tabSummary(event, changes);
+  if (event.eventType === "sheet_metadata_updated") return readableChangeDetails(changes).join("; ") || "Estimate metadata changed.";
+  if (event.eventType === "sheet_code_updated") return readableChangeDetails(changes).join("; ") || "Estimate code changed.";
+  if (changes.length) return readableChangeDetails(changes).join("; ");
+  return undefined;
 }
 
 function estimateTitle(event: EstimateActivityInput, actor: string, target: ActivityTarget) {
@@ -77,7 +264,7 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
   const material = rowMaterial(event);
   switch (event.eventType) {
     case "row_updated":
-      return `${actor} changed ${event.changedFields?.map((field) => formatActivityFieldLabel(field).toLowerCase()).join(", ") || "details"} for ${material}.`;
+      return `${actor} changed ${changedFieldLabelsForTitle(event).join(", ") || "details"} for ${material}.`;
     case "row_added":
       return `${actor} added ${material} to the estimate.`;
     case "row_blank_added":
@@ -86,8 +273,12 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
       return `${actor} removed ${material} from the estimate.`;
     case "row_replaced":
       return `${actor} replaced ${readString(oldData.material, oldData.name, "the previous item")} with ${readString(newData.material, newData.name, material)}.`;
+    case "row_unlinked":
+      return `${actor} detached ${material} from the cost library.`;
     case "template_inserted":
       return `${actor} inserted ${readString(event.payload?.templateName, event.payload?.name, newData.name, "template rows")}.`;
+    case "project_source_inserted":
+      return `${actor} inserted project source content.`;
     case "sheet_code_updated":
       return `${actor} changed estimate code from ${formatActivityValue("sheetCode", oldData.sheetCode)} to ${formatActivityValue("sheetCode", newData.sheetCode)}.`;
     case "sheet_metadata_updated":
@@ -102,6 +293,7 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
       return `${actor} renamed ${readString(oldData.name, "the area")} to ${readString(newData.name, target.label)}.`;
     case "node_deleted_with_children":
       return `${actor} deleted ${target.label} and its contents.`;
+    case "nodes_reordered":
     case "tree_reordered":
       return `${actor} reorganized the estimate tree.`;
     case "tab_created":
@@ -150,6 +342,7 @@ export function composeEstimateActivity(event: EstimateActivityInput, opts: Comp
     const actor = formatActivityActor(event.actorUserId, event.actorLabel, audience);
     const target = targetForEstimate(event);
     const changes = changesForEstimate(event);
+    const summary = estimateSummary(event, changes);
     const base: ActivityViewModel = sanitizeViewModel({
       id: event.id,
       source: "estimate",
@@ -160,7 +353,7 @@ export function composeEstimateActivity(event: EstimateActivityInput, opts: Comp
       actor,
       target,
       title: estimateTitle(event, actor.displayName, target),
-      summary: changes.length ? `Updated ${changes.map((change) => change.label.toLowerCase()).join(", ")}.` : undefined,
+      summary,
       changes,
       facts: factsForEstimate(event),
       delta: event.totalDelta !== null && event.totalDelta !== undefined ? deltaForEstimate(event.totalDelta) : undefined,

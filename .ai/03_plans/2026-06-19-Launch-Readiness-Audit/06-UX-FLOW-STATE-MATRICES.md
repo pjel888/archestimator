@@ -44,6 +44,18 @@ Date: 2026-06-19. These matrices are handoff scaffolds for implementation agents
 | Privacy page | Names actual trackers/providers if enabled; DSAR SLA matches runbook. |
 | Terms page | Deletion/export promise matches capability; body text is readable. |
 
+## Login, beta access, invite, and email states
+
+| State | Required behavior | Gate/link |
+|---|---|---|
+| Login allowed | Magic-link form is clear, labelled, and does not imply public signup. | B5 + `11-UX-COPY-MATRIX.md`. |
+| Login denied | Invite-only state gives a support path without revealing whether another account exists. | B5. |
+| Magic link expired/rate-limited | Retry timing or resend path is clear; focus moves to the message/action. | B5/H2. |
+| Invite expired/invalid | Branded no-access state, no raw token, no stack trace. | B3/H1. |
+| Invite accepted | One clear next action; no duplicate submit. | B3. |
+| Email bounced/unsubscribed | Sender/owner sees actionable status; recipient data is not overexposed. | H2. |
+| Support incident | Copy matches whether B4/B7 monitoring is real; no false "we logged it" claim. | B4/B7. |
+
 ## Projects page perceived performance
 
 | State | Required behavior |

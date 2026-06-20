@@ -1,5 +1,10 @@
 # Launch-Readiness Audit — Bundle & Asset Optimization
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Part of the consolidated 2026-06-19 Launch-Readiness Audit** (sibling pack to the
 other domain audits under `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`).
 This is a **deletable plan-pack header** per repo rules.

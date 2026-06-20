@@ -6,6 +6,7 @@ export const estimateEventTypes = [
   "row_blank_added",
   "row_deleted",
   "row_replaced",
+  "row_unlinked",
   "template_inserted",
   "sheet_code_updated",
   "sheet_metadata_updated",
@@ -14,6 +15,7 @@ export const estimateEventTypes = [
   "node_created",
   "node_renamed",
   "node_deleted_with_children",
+  "nodes_reordered",
   "tree_reordered",
   "tab_created",
   "tab_renamed",
@@ -22,6 +24,7 @@ export const estimateEventTypes = [
   "tab_duplicated",
   "tab_archived",
   "tab_deleted",
+  "project_source_inserted",
 ] as const;
 
 export function makeEstimateEvent(eventType: string, overrides: Partial<EstimateActivityInput> = {}): EstimateActivityInput {
@@ -58,9 +61,9 @@ export const sharedLinkFixtures: SharedLinkActivityInput[] = [
 ];
 
 export const bannedPublicTerms = [
-  "row_updated", "row_replaced", "row_deleted", "row_added", "row_blank_added",
+  "row_updated", "row_replaced", "row_deleted", "row_added", "row_blank_added", "row_unlinked",
   "sheet_code_updated", "sheet_metadata_updated", "node_created", "node_renamed", "node_deleted_with_children",
-  "tree_reordered", "tab_created", "tab_renamed", "tab_reordered", "tabs_reordered", "tab_duplicated", "tab_archived", "tab_deleted", "template_inserted", "revision_requested", "accepted", "server_action",
+  "nodes_reordered", "tree_reordered", "tab_created", "tab_renamed", "tab_reordered", "tabs_reordered", "tab_duplicated", "tab_archived", "tab_deleted", "template_inserted", "project_source_inserted", "revision_requested", "accepted", "server_action",
   "metadata_json", "sourceSnapshot", "oldSnapshot", "newSnapshot", "changedFields", "correlation_id", "target_row_id", "estimate_node_id",
-  "linked-clean", "linked-overridden", "source-changed", "detached", "COMMENT", "DECISION", "EVENT",
+  "linked-clean", "linked-overridden", "source-changed", "COMMENT", "DECISION", "EVENT",
 ];

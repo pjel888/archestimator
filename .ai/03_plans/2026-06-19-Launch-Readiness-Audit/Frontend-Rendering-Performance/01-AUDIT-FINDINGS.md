@@ -36,8 +36,8 @@ Deferred (other domains): bundle/dynamic-import sizing, RSC/data-fetch, DB.
 |---|---|---|
 | Estimate-sheet god component / `editableRows` fan-out / incremental totals / virtualization thresholds | `2026-06-17-Performance-Refactor` (A-04/A-07/A-09/A-20, Phase 3) | **covered** — planned, not executed; perf guards already green |
 | React Compiler bailout in hot components (incl. TanStack table) | `2026-06-17-Performance-Refactor` RISK-24 + doc 26 | **covered** — bailout is expected, gated pilot |
-| Projects card list: no virtualization, group-mode memo gap, un-deferred search | `2026-06-19-Projects-Page-Performance` (§2/§3, §04 RENDER) | **covered** — deferred-with-rationale; `content-visibility:auto` + `useDeferredValue` + `memo` already shipped |
-| Card image bytes (full→thumbnail), auth-carrying `<img>` | `2026-06-19-Projects-Page-Performance` §04 | **covered** — shipped (`LiveProjectCard.tsx:88,461-467`) |
+| Projects card list: no virtualization, group-mode memo gap, un-deferred search | archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/` (§2/§3, §04 RENDER) | **covered** — deferred-with-rationale; `content-visibility:auto` + `useDeferredValue` + `memo` already shipped |
+| Card image bytes (full→thumbnail), auth-carrying `<img>` | archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/` §04 | **covered** — shipped (`LiveProjectCard.tsx:88,461-467`) |
 | Liquid-glass blur arms after first paint+idle | `2026-06-19-deferred-liquid-glass` COORD.md | **covered** — implemented (`system/LiquidGlassReady.tsx`) |
 | Sidebar refraction gate / reduced-motion | `liquid-glass-sidebar-direction` memory + Performance-Refactor | **partial** — gate works; dead `useGlassElasticity` is new (below) |
 | Render-state / client-perf audit | `2026-06-14-Overall-Site-Performance` doc 04 | **covered** (older baseline) |
@@ -196,7 +196,7 @@ hook and the precise lint-blocker attribution.
   binds via `projects-page-render-baseline.test.tsx`.
 - **Recommendation:** No launch action. The group-mode O(N) memo gap and full
   virtualization are explicitly deferred-with-rationale in the projects pack.
-- **Effort:** M (if pursued) · **Confidence:** high · **existing_plan_overlap:** covered-by:2026-06-19-Projects-Page-Performance (§2/§3, §04 RENDER)
+- **Effort:** M (if pursued) · **Confidence:** high · **existing_plan_overlap:** covered-by archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/` (§2/§3, §04 RENDER)
 
 ---
 

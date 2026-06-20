@@ -1,5 +1,6 @@
 "use client";
 
+import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 
@@ -11,6 +12,7 @@ import { updateProjectDetails } from "@/lib/projects/actions";
 import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
 import { saveProjectLocation } from "@/lib/projects/location-actions";
 import { formatChartMoney } from "@/lib/project-charts/format";
+import type { ProjectActivityItem, ProjectActivityPage } from "@/lib/repositories/project-activity-repository";
 import type { ProjectRecentEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type { ProjectLocationSummary } from "@/lib/repositories/project-location-repository";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -33,6 +35,7 @@ type ProjectDashboardClientProps = {
   readonly recentEstimateSheets: readonly ProjectRecentEstimateSheetSummary[];
   readonly canEditProject: boolean;
   readonly projectLocation: ProjectLocationSummary | null;
+  readonly projectActivityPage: ProjectActivityPage;
   readonly googleMapsApiKey: string;
   readonly googleMapsMapId?: string | null;
 };
@@ -57,6 +60,18 @@ function formatCompactDate(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "No edits yet";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(date);
+}
+
+function formatActivityDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Undated";
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
+}
+
+function formatActivityTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function createProjectEstimateHref(sheet: Pick<ProjectRecentEstimateSheetSummary, "projectId" | "firstNodeId">) {
@@ -269,6 +284,35 @@ type ProjectEstimateBudgetHealthCell = {
   readonly meterLabel: string;
 };
 
+type ProjectActivityGroup = {
+  readonly label: string;
+  readonly items: ProjectActivityItem[];
+};
+
+function formatProjectActivitySheetLabel(item: ProjectActivityItem) {
+  return item.sheetCode ? `${item.estimateName} - ${item.sheetCode}` : item.estimateName;
+}
+
+function summarizeProjectActivityItem(item: ProjectActivityItem) {
+  return item.summary ?? item.targetLabel;
+}
+
+function groupProjectActivityItems(items: readonly ProjectActivityItem[]): ProjectActivityGroup[] {
+  const groups: ProjectActivityGroup[] = [];
+
+  for (const item of items) {
+    const label = formatActivityDay(item.createdAt);
+    const existingGroup = groups.find((group) => group.label === label);
+    if (existingGroup) {
+      existingGroup.items.push(item);
+      continue;
+    }
+    groups.push({ label, items: [item] });
+  }
+
+  return groups;
+}
+
 function createProjectEstimateBudgetHealthCell(
   sheet: ProjectRecentEstimateSheetSummary | null,
   index: number,
@@ -445,6 +489,115 @@ function ProjectEstimateBudgetHealthPanel({
   );
 }
 
+function ProjectActivityFeedPanel({ page }: { readonly page: ProjectActivityPage }) {
+  const groups = groupProjectActivityItems(page.items);
+  const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(() => new Set());
+
+  const toggleProjectActivityGroup = useCallback((label: string) => {
+    setCollapsedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <section aria-label="Project activity feed" className="flex h-full min-h-0 flex-col">
+      <header className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-[color:var(--glass-border)] pb-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium leading-3 text-ink">Activity</p>
+          <p className="truncate text-[8px] leading-3 text-tertiary">All estimate sheets</p>
+        </div>
+      </header>
+
+      {groups.length === 0 ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center px-2 text-center">
+          <div className="max-w-[160px]">
+            <p className="text-[10px] font-medium leading-4 text-secondary">No sheet changes yet</p>
+            <p className="mt-1 text-[9px] leading-4 text-tertiary">Estimate edits across this project will appear here.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto pr-1" role="list" aria-label="Latest project activity">
+          {groups.map((group) => {
+            const collapsed = collapsedGroups.has(group.label);
+            const groupId = `project-activity-group-${group.label.replace(/\W+/g, "-").toLowerCase()}`;
+
+            return (
+              <div key={group.label} className="min-w-0">
+                <button
+                  type="button"
+                  aria-expanded={!collapsed}
+                  aria-controls={groupId}
+                  data-testid="project-activity-date-toggle"
+                  className="sticky top-0 z-10 flex h-[60px] w-full items-center gap-2 border-b border-[color:var(--glass-border)] bg-transparent text-left text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  onClick={() => toggleProjectActivityGroup(group.label)}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center text-secondary" aria-hidden="true">
+                    <CaretDown size={11} weight="regular" className={collapsed ? "-rotate-90" : ""} />
+                  </span>
+                  <span className="min-w-0 truncate">{group.label}</span>
+                </button>
+                <ol
+                  id={groupId}
+                  hidden={collapsed}
+                  className="ml-3 border-l border-[color:var(--glass-border)] pl-3"
+                >
+                  {group.items.map((item) => {
+                    const sheetLabel = formatProjectActivitySheetLabel(item);
+                    return (
+                      <li key={item.id} role="listitem" className="border-b border-[color:var(--glass-border)] last:border-b-0">
+                        <Link
+                          href={item.href}
+                          aria-label={`${item.title} in ${sheetLabel}`}
+                          className="group block min-w-0 px-1.5 py-2 transition hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        >
+                          <div className="flex min-w-0 items-start justify-between gap-2">
+                            <span className="min-w-0 truncate text-[10px] font-medium leading-4 text-ink">
+                              {item.title}
+                            </span>
+                            <time
+                              dateTime={item.createdAt}
+                              className="shrink-0 whitespace-nowrap font-numeric text-[8px] leading-4 text-tertiary"
+                            >
+                              {formatActivityTime(item.createdAt)}
+                            </time>
+                          </div>
+                          <p className="mt-0.5 max-h-8 overflow-hidden text-[9px] leading-4 text-secondary">
+                            {summarizeProjectActivityItem(item)}
+                          </p>
+                          <div className="mt-1 flex min-w-0 items-center justify-between gap-2 text-[8px] leading-3 text-tertiary">
+                            <span className="min-w-0 truncate" title={sheetLabel}>
+                              {sheetLabel}
+                            </span>
+                            <span className="shrink-0 max-w-[72px] truncate text-right" title={item.actorLabel}>
+                              {item.actorLabel}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {page.nextCursor ? (
+        <p className="shrink-0 border-t border-[color:var(--glass-border)] pt-2 text-[8px] leading-3 text-tertiary">
+          Showing latest changes
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function ProjectIdentityFields({
   name,
   client,
@@ -580,6 +733,7 @@ export function ProjectDashboardClient({
   recentEstimateSheets,
   canEditProject,
   projectLocation,
+  projectActivityPage,
   googleMapsApiKey,
   googleMapsMapId,
 }: ProjectDashboardClientProps) {
@@ -678,6 +832,7 @@ export function ProjectDashboardClient({
                 recentEstimateSheets={recentEstimateSheets}
               />
             )}
+            rightRail={<ProjectActivityFeedPanel page={projectActivityPage} />}
             lowerLeftSummary={(
               <ProjectEstimateCostStrip
                 sheets={recentEstimateSheets}

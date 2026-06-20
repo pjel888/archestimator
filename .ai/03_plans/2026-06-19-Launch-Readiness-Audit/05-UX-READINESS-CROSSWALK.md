@@ -11,7 +11,10 @@ acceptance checks. It is a planning artifact, not browser proof.
 | V2 consent | Landing/public pages, `/privacy`, `/terms`, banner/settings | Essential-only, accept analytics, withdraw consent, no-cookie/new visitor, copy matches runtime tracking. | Network capture or decision/copy proof. |
 | Share route hardening | `/share/[token]`, password/expired/not-found branches | Valid proposal, password required, expired/revoked, invalid token, unauthenticated recipient, unfurl metadata without client totals. | Source proof + targeted manual/browser proof when implemented. |
 | B1/B2 quality gate | User-facing flows touched by fixes | No regression in workshop navigation, projects list, root pages, and changed components. | CI/validate + targeted tests. |
-| Projects performance pack | `/workshop/projects` | Skeleton parity, image loading/failure, empty/error states, search responsiveness, large-list scroll behavior. | `05_STATUS.md`, `06_PERCEIVED_PERFORMANCE_ACCEPTANCE.md`, metrics/tests. |
+| Projects performance pack | `/workshop/projects` | Skeleton parity, image loading/failure, empty/error states, search responsiveness, large-list scroll behavior. | Archived context at `.ai/09_archive/2026-06-19-Projects-Page-Performance/`; do not treat it as an active launch gate without a fresh plan. |
+| B5 closed-beta access | `/login`, `/beta/access-required`, magic-link states | Allowed, denied, expired/resend, rate-limited, and wrong-email states. | Source/build proof plus hosted env proof for fail-loud gate. |
+| H2 email recipient states | Share invite/email flows | Added, duplicate, bounced, unsubscribed, rate-limited, and resend-failed states. | Targeted tests/source proof plus provider evidence when sends are live. |
+| B4/B7 incidents | Public/share/workshop errors | User copy never leaks internals and truthfully says whether the issue is logged/support-owned. | Ops runbook + sink proof. |
 
 ## UX minimums for implementation agents
 
@@ -23,4 +26,6 @@ acceptance checks. It is a planning artifact, not browser proof.
   banners, forms, error boundaries, or destructive actions.
 - Mobile checks are required for public/legal/share/account states because these
   surfaces are likely to be opened from email or messaging links.
-
+- Use `11-UX-COPY-MATRIX.md`, `12-ACCESSIBILITY-ACCEPTANCE-CRITERIA.md`, and
+  `13-RESPONSIVE-VISUAL-QA-SCOPE.md` as the executable UX checklist before closing
+  any gate with user-visible states.

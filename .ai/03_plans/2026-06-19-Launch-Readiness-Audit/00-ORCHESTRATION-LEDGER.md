@@ -24,7 +24,8 @@ files (this ledger, the README index).
 Next.js 16.2.6 · React 19.2.6 · Bun · TS 6 · Tailwind v4 · Supabase/Postgres
 (`ebxxqidacheyapmmzavr`) · TanStack Query · Zustand · D3/Three.js/roughjs ·
 ExcelJS · Resend · Vercel. ~216K LOC ts/tsx across ~1,090 source files + ~57
-migrations. Pre-launch closed-beta MVP; standing DB-autonomy mandate in-project.
+migrations. Live owner-only closed-beta MVP; this audit gates wider/external beta.
+Standing DB-autonomy mandate applies only inside the Archestimator project boundary.
 
 ## Reframing — this is a WIDER-launch hardening audit, not pre-first-deploy
 
@@ -96,7 +97,7 @@ SECURITY DEFINER `search_path=public` pinned.
   10 agents, ~0.9M tok): Realtime, Consent/Privacy, DSAR, Storage, Share-Proxy. Added B8/B9 + V1/V2;
   closed the proxy `/api` seam (all 16 routes self-gate, verified) + the staleTimes/collab handoff.
 - [DONE] Phase 4 — master index finalized; `.ai/03_plans/README.md` + `current-state.md` updated;
-  completeness verified (18 packs × 5 docs).
+  completeness verified for the original pack skeleton.
 - [DONE] Phase 5 — consolidation: all 18 domain packs moved to live as subfolders of THIS single
   folder (`.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`), alongside this ledger and
   `01-MASTER-INDEX.md`. No separate sibling launch-readiness folders remain. Docs only —
@@ -104,6 +105,26 @@ SECURITY DEFINER `search_path=public` pinned.
 - [DONE] Phase 6 — implementation-readiness pass: added the scorecard, launch-gate register,
   proof/authority taxonomy, UX crosswalk, and UX flow matrices; reconciled RLS/OPS/Realtime/Consent
   gate taxonomy and corrected stale handoff references.
+- [DONE] Phase 7 — 2026-06-20 parallel plan-review closeout: six independent review lanes
+  (UX/design, product, security, adversarial documents, feasibility/blast radius, coherence)
+  re-rated the pack, then root controls were expanded to docs `07`-`17`. That first closeout left
+  109 markdown documents: 18 root controls, 18 standard five-doc domain/gap packs, and one
+  extra DSAR runbook. Docs only; no source, DB, or provider state was mutated.
+- [DONE] Phase 8 — 2026-06-20 certainty-hardening pass: added official-source criteria mapping,
+  blast-radius/rollback scoring, gate traceability, and residual uncertainty registers in docs
+  `18`-`21`. The folder now has 113 markdown documents: 22 root controls, 18 standard five-doc
+  domain/gap packs, and one extra DSAR runbook. Docs only; no source, DB, or provider state was
+  mutated.
+- [DONE] Phase 9 — 2026-06-20 implementation execution-control pass: added docs `22` and `23`
+  for least-risk-first sequencing, per-gate loop enforcement, concurrent-agent coordination,
+  conflict logging, lead-owned integration, and archive-on-resolution under `.ai/09_archive`.
+  The folder now has 115 markdown documents: 24 root controls, 18 standard five-doc domain/gap
+  packs, and one extra DSAR runbook. Docs only; no source, DB, or provider state was mutated.
+- [DONE] Phase 10 — 2026-06-20 overnight autonomy pass: added doc `24` for sleeping-owner
+  execution, unanswered-question classes, preauthorized defaults, parked-lane handling,
+  hard stops, and morning handoff format. The folder now has 116 markdown documents: 25 root
+  controls, 18 standard five-doc domain/gap packs, and one extra DSAR runbook. Docs only;
+  no source, DB, provider, CI, or production state was mutated.
 
 **Outcome:** NOT yet wider/external launch-ready — ~9 hard blockers + 2 verify-gates + 1 conditional,
 mostly S/M effort, clustered in CI/quality-gate, observability, and legal/DSAR; security core verified

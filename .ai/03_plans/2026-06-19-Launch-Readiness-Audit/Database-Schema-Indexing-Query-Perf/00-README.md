@@ -1,5 +1,10 @@
 # Launch-Readiness Audit — DB Schema, Indexing & Query Performance
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 > **Deletable plan-pack header.** Part of the **2026-06-19 Launch-Readiness Audit**
 > (sibling packs under `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`). This pack is an
 > **audit + remediation proposal**, not applied work. If Philip rejects it, delete the

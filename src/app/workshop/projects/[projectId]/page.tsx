@@ -4,6 +4,10 @@ import { ProjectDashboardClient } from "@/components/workshop/ProjectDashboardCl
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { isUuid } from "@/lib/ids";
 import {
+  createEmptyProjectActivityPage,
+  listProjectActivityPage,
+} from "@/lib/repositories/project-activity-repository";
+import {
   listProjectEstimateSheetsForProject,
   listRecentProjectEstimateSheets,
 } from "@/lib/repositories/project-estimate-sheets-repository";
@@ -41,13 +45,14 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     currencyCode: "PHP",
   };
 
-  const [canEdit, projectEstimateSheets, recentEstimateSheets] = project
+  const [canEdit, projectEstimateSheets, recentEstimateSheets, projectActivityPage] = project
     ? await Promise.all([
         canEditProject(project.id),
         listProjectEstimateSheetsForProject(project.id),
         listRecentProjectEstimateSheets(project.id),
+        listProjectActivityPage({ projectId: project.id, limit: 16 }),
       ])
-    : ([false, [], []] as const);
+    : ([false, [], [], createEmptyProjectActivityPage()] as const);
   const projectLocation = project && canEdit ? await getProjectLocation(project.id) : null;
   const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const googleMapsMapId = process.env.GOOGLE_MAPS_MAP_ID ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? null;
@@ -60,6 +65,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
       recentEstimateSheets={recentEstimateSheets}
       canEditProject={canEdit}
       projectLocation={projectLocation}
+      projectActivityPage={projectActivityPage}
       googleMapsApiKey={googleMapsApiKey}
       googleMapsMapId={googleMapsMapId}
     />

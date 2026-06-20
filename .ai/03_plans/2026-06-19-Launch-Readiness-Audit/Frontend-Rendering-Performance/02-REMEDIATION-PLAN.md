@@ -21,10 +21,11 @@
 
 ## Priority 0 — Green-gate unblockers (do first; not perf blockers)
 
-These three lint errors are the only source-domain `bun run lint` errors
-(the other 3 are `require()` imports in `.gitnexus/run.cjs`, tooling — out of
-scope, leave them). Clearing FE-PERF-01 + FE-PERF-02 takes source-domain errors
-to 0.
+These three lint errors are the source-domain `bun run lint` errors. The other
+3 are `require()` imports in git-ignored `.gitnexus/run.cjs`; `14-B2-CANONICAL-CI-GATE.md`
+assigns that local-tooling ignore to Testing-CI, not Frontend. Clearing FE-PERF-01
+FE-PERF-02 takes source-domain errors to 0, but B2 remains open until the whole
+canonical gate is green or intentionally re-scoped.
 
 ### R1 — Delete dead `useGlassElasticity` (FE-PERF-01)
 - **File:** `src/components/sidebar/useLiquidGlassRefraction.ts`
@@ -133,7 +134,7 @@ to 0.
   memo; unwindowed rows): **covered-by** Performance-Refactor RISK-24 / doc 26.
   It is a **warning**, not an error; estimates-per-project are bounded. No action.
 - **FE-PERF-07** (projects card list not virtualized; group-mode O(N) memo gap):
-  **covered-by** `2026-06-19-Projects-Page-Performance` (§2/§3, §04). Mitigated
+  **covered-by** archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/` (§2/§3, §04). Mitigated
   by content-visibility + `useDeferredValue`; deferred-with-rationale. No action.
 
 ---

@@ -108,6 +108,17 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain('aria-label="Project command surface"');
     expect(projectDashboardClient).toContain("ProjectLocationMap");
     expect(projectDashboardClient).toContain("ProjectEstimateSummaryPanel");
+    expect(projectDashboardClient).toContain("ProjectActivityFeedPanel");
+    expect(projectDashboardClient).toContain('aria-label="Project activity feed"');
+    expect(projectDashboardClient).toContain("All estimate sheets");
+    expect(projectDashboardClient).toContain("rightRail={<ProjectActivityFeedPanel page={projectActivityPage} />}");
+    expect(projectDashboardClient).toContain('data-testid="project-activity-date-toggle"');
+    expect(projectDashboardClient).toContain("aria-expanded={!collapsed}");
+    expect(projectDashboardClient).toContain("flex h-[60px] w-full");
+    expect(projectDashboardClient).toContain("bg-transparent");
+    expect(projectDashboardClient).toContain('className="ml-3 border-l border-[color:var(--glass-border)] pl-3"');
+    expect(projectDashboardClient).not.toContain("{page.items.length}");
+    expect(projectDashboardClient).not.toContain("bg-white/45 py-1");
     expect(projectDashboardClient).toContain("Estimate Count");
     expect(projectDashboardClient).toContain("Recent Estimate Sheets");
     expect(projectDashboardClient).toContain("dashboard-project-card-panel");

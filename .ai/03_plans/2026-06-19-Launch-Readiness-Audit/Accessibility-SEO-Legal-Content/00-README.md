@@ -1,5 +1,10 @@
 # Launch-Readiness Audit — Accessibility, SEO & Legal/Content Readiness
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 Part of the **2026-06-19 Launch-Readiness Audit** (umbrella: `.ai/03_plans/2026-06-19-Launch-Readiness-Audit`).
 This pack is **deletable**: it is an audit + remediation proposal, not landed work. If Philip
 rejects the direction, delete the whole folder — nothing else references it.

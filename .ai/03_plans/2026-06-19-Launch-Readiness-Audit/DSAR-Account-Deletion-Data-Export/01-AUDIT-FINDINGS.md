@@ -76,7 +76,7 @@ with NULL author). And recipient/third-party PII is never touched at all.
 | Prior artifact | What it said | Status for this domain |
 |---|---|---|
 | `2026-06-01-security-owasp.../08-data-protection-and-privacy.md` F-DATA-04 (R-21) | "No deletion API or scheduled job … add a deletion path / retention policy" — high level | **stale** — predates current schema; correct in spirit but no PII inventory, no cascade analysis, no posture; superseded here |
-| `2026-06-19-Launch-Readiness-Audit/Auth-And-Session-Security` (findings L16 + remediation L106) | Explicitly DEFERRED "absence of self-serve account deletion/data export (DSAR)" to "domain 11 / Accessibility-SEO-Legal-Content pack" | **partial** — recorded the gap but did NO analysis; the deferral target never picked it up |
+| `2026-06-19-Launch-Readiness-Audit/Auth-And-Session-Security` (findings L16 + remediation L106) | Historically deferred "absence of self-serve account deletion/data export (DSAR)" to the wrong legal/content target | **superseded** — the correct implementation owner is now this DSAR pack plus root docs `08`, `11`, and `16` |
 | `2026-06-19-Launch-Readiness-Audit/Accessibility-SEO-Legal-Content` | Audited page metadata / SEO / legal-page presence only; never audited delete/export capability | **none** (this is the coverage hole) |
 | roadmap `08-legal-privacy-compliance-readiness.md` | DSAR/export/delete = LEFT TO DO; manual-only; support email published | **partial** — names the gap, no design/inventory/posture |
 | roadmap `_SYNC_REPORT.md` #6 / status #8 (UX-001) | "Self-serve DSAR / data export + delete — none; privacy page says email support" | **partial** — confirms not built |

@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-06-20T01:31:25.195Z",
+  "captures": [
+    {
+      "name": "desktop",
+      "outPath": "public/storybook-audits/settings-modal-audit-desktop.png",
+      "metrics": {
+        "dialog": {
+          "width": 920,
+          "height": 764,
+          "top": 68,
+          "left": 180
+        },
+        "closeLabel": "Close settings",
+        "title": "Settings",
+        "description": "Manage account, workspace, and beta operations.",
+        "navLabel": "Settings sections",
+        "footerText": "Workshop / Modal patterns / Settings",
+        "focusedTag": "BUTTON",
+        "focusedLabel": "Close settings",
+        "rowCount": 7
+      },
+      "messages": [],
+      "pageErrors": []
+    },
+    {
+      "name": "mobile",
+      "outPath": "public/storybook-audits/settings-modal-audit-mobile.png",
+      "metrics": {
+        "dialog": {
+          "width": 358,
+          "height": 764,
+          "top": 40,
+          "left": 16
+        },
+        "closeLabel": "Close settings",
+        "title": "Settings",
+        "description": "Manage account, workspace, and beta operations.",
+        "navLabel": "Settings sections",
+        "footerText": "Workshop / Modal patterns / Settings",
+        "focusedTag": "BUTTON",
+        "focusedLabel": "Close settings",
+        "rowCount": 7
+      },
+      "messages": [],
+      "pageErrors": []
+    }
+  ]
+}

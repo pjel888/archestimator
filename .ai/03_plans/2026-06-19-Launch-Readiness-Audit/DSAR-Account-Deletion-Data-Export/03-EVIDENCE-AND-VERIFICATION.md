@@ -74,10 +74,9 @@ Goal was to REFUTE each finding. Result: 5 confirmed as written, 1 severity-adju
 - `…Analytics-Consent-Privacy` pack: `rg` for dsar/erasure/export/portability →
   **no hits**. It does NOT cover this surface; the coverage hole is real.
 - `…Auth-And-Session-Security` pack: `01-AUDIT-FINDINGS.md:16` and
-  `02-REMEDIATION-PLAN.md:106` explicitly DEFER "absence of self-serve account deletion/
-  data export (DSAR)" to "domain 11 / Accessibility-SEO-Legal-Content pack" — which only audited
-  metadata/SEO. Confirms the deferral target never picked it up (the audit's
-  reconciliation table is correct).
+  `02-REMEDIATION-PLAN.md:106` historically deferred "absence of self-serve account deletion/
+  data export (DSAR)" to the wrong legal/content target, which only audited metadata/SEO.
+  The canonical owner is now this DSAR pack plus root docs `08`, `11`, and `16`.
 - `decisions.md` / `current-state.md`: `rg` for dsar/erasure/data-subject/portability →
   no posture decision recorded. Gap is open.
 - KNOWN-DECIDED items (CI/CD deferral, PITR off, two Codex history-exposure findings) are

@@ -12,7 +12,8 @@ spun out of this pack runs as its own dated pack with a Codex review gate.
 - Reconciled against prior packs on disk: `2026-06-17-Performance-Refactor/14_PHASE_8_SUPABASE_DB_PLAN.md`
   (§2.1 FK adds, §2.3/Q-J unused drops, GAP-7 caveat, §1#7 first-node oracle, §1#1/Q-E library),
   `database-indexing-and-query-performance/` (planning-only audit, never executed),
-  `2026-06-19-Projects-Page-Performance` (adjacent, app-side), `.ai/09_archive/…Query-Batching`.
+  archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/` (adjacent, app-side),
+  `.ai/09_archive/…Query-Batching`.
 - Live target `ebxxqidacheyapmmzavr` read-only via SQL: advisor numbers, `pg_index`,
   `pg_policies`, `pg_stat_user_tables/indexes`, table volumes.
 

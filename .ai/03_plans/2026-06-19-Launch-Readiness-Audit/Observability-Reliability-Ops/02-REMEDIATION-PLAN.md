@@ -20,6 +20,9 @@ After adversarial verification, the launch-blocker count dropped from the prior 
 | OPS-07 | rate-limit table has no scheduled GC | low | NO | backlog | confirmed |
 | OPS-08 | email/error PII in ephemeral console logs | low | NO | hardening with B4 | confirmed |
 
+Canonical C1 split: API owns the package-builder quota implementation; this Ops pack owns the
+pre-AI-enable release gate, monitoring, and env-proof checklist.
+
 ---
 
 ## Phase 0 — Launch blockers (do before exposing wider/external beta users)

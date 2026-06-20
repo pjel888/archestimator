@@ -100,12 +100,16 @@ export async function WorkshopPageShell({
   const canManagePlatformSettings = currentUser?.role === "ceo" || currentUser?.role === "admin";
   const showAskFlip = isAskFlipUiEnabled();
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
+  const settingsModalLocation = [
+    ...resolvedBreadcrumbs.map((breadcrumb) => (typeof breadcrumb === "string" ? breadcrumb : breadcrumb.label)),
+    "Settings",
+  ].join(" / ");
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:px-2" : "p-2";
   const headerActions = (
     <div className="flex h-10 min-w-0 items-center justify-end gap-1">
       {actions}
       <WorkshopNotificationEntry />
-      <WorkshopSettingsModal>
+      <WorkshopSettingsModal location={settingsModalLocation}>
         <WorkshopSettingsModalContent canManagePlatform={canManagePlatformSettings} />
       </WorkshopSettingsModal>
     </div>

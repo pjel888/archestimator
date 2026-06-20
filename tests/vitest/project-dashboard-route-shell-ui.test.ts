@@ -70,7 +70,8 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardPage).toContain("listProjectEstimateSheetsForProject");
     expect(projectDashboardPage).toContain("listRecentProjectEstimateSheets");
     expect(projectDashboardPage).not.toContain("createPublicationDashboardStatus");
-    expect(projectDashboardPage).not.toContain("listProjectActivityPage");
+    expect(projectDashboardPage).toContain("listProjectActivityPage");
+    expect(projectDashboardPage).toContain("projectActivityPage={projectActivityPage}");
     expect(projectDashboardPage).toContain("getProjectLocation");
     expect(projectDashboardPage).toContain("project && canEdit ? await getProjectLocation(project.id) : null");
     expect(projectDashboardPage).toContain("GOOGLE_MAPS_API_KEY");
@@ -83,6 +84,12 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardClient).toContain("ProjectLocationMap");
     expect(projectDashboardClient).toContain("ProjectAddressAutocomplete");
     expect(projectDashboardClient).toContain("ProjectEstimateSummaryPanel");
+    expect(projectDashboardClient).toContain("ProjectActivityFeedPanel");
+    expect(projectDashboardClient).toContain("All estimate sheets");
+    expect(projectDashboardClient).toContain("rightRail={<ProjectActivityFeedPanel page={projectActivityPage} />}");
+    expect(projectDashboardClient).toContain('data-testid="project-activity-date-toggle"');
+    expect(projectDashboardClient).toContain("aria-expanded={!collapsed}");
+    expect(projectDashboardClient).not.toContain("{page.items.length}");
     expect(projectDashboardClient).toContain("Estimate Count");
     expect(projectDashboardClient).toContain("Recent Estimate Sheets");
     expect(projectDashboardClient).toContain("dashboard-project-card-panel");

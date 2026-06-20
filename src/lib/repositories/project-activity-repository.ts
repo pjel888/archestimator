@@ -85,7 +85,7 @@ const PROJECT_ACTIVITY_SELECT = [
   "total_delta",
   "payload",
   "correlation_id",
-  "estimates(id, name, sheet_code)",
+  "estimates!estimate_sheet_events_estimate_project_fkey(id, name, sheet_code)",
 ].join(", ");
 
 function readPostgresErrorCode(error: unknown) {

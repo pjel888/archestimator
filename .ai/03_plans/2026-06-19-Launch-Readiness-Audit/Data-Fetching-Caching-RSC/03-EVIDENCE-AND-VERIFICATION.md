@@ -101,7 +101,7 @@ preferred full-reload-on-signout.
 | 01 | none | **WRONG → covered-by AUTH-05** | `2026-06-19-Launch-Readiness-Audit/Auth-And-Session-Security` AUTH-05 plans the identical fix at low severity. |
 | 02 | covered-by Workshop-Dashboard-Query-Batching | **correct** | pack present in `.ai/09_archive/2026-06-19-Workshop-Dashboard-Query-Batching`. |
 | 03 | partial:2026-06-16-Sidebar-Favorite-Projects-And-Estimates | **correct** | pack present in `.ai/03_plans/`. D11/D14 design = accepted limitation. |
-| 04 | covered-by:2026-06-19-Projects-Page-Performance | **correct** | pack present in `.ai/03_plans/`. |
+| 04 | covered-by:2026-06-19-Projects-Page-Performance | **correct** | pack present in `.ai/09_archive/`; archived context, not an active launch gate. |
 | 05 | covered-by memory workshop-dashboard-rsc | **correct** | matches MEMORY.md entry. |
 | 06 | covered-by:2026-06-17-Performance-Refactor | **correct** | pack present. |
 | 07 | none | **correct** | no prior pack owns the global TanStack defaults explicitly. |

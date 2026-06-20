@@ -1,5 +1,10 @@
 # Launch-Readiness · Analytics, A/B-Testing & Consent/Privacy (Phase-2 Gap Pack)
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Status:** Deletable plan-pack header. Phase-2 gap pack of the 2026-06-19 Launch-Readiness Audit.
 **Created:** 2026-06-19
 **Pack type:** Gap-closure (coverage-critic finding). The 13-domain launch-readiness audit

@@ -27,7 +27,7 @@ collaboration paths (L802–2010 sampled deeply); `project-charts-repository.ts`
 |---|---|
 | `09_archive/2026-06-19-Workshop-Dashboard-Query-Batching` | **Implemented & archived.** Owns the homebase serial-tail + `workspace_homebase_summary` RPC contract. RPC is env-gated (`WORKSHOP_HOMEBASE_SUMMARY_RPC_ENABLED`), default OFF; app path is the live path. Confirmed not regressed. |
 | `03_plans/2026-06-17-Performance-Refactor` (A-23, Phase 4 data/cache) | Broad strategy. A-23 homebase work is now operationalized by the batching pack above. Its A-23 anchors (`workspace-repository.ts:1126-1222`) are stale per that pack's reconciliation; current homebase shape is L1393+. |
-| `03_plans/2026-06-19-Projects-Page-Performance` | Projects list fetch + RSC streaming (Suspense + `loading.tsx`) confirmed implemented in `workshop/projects/page.tsx`. |
+| `.ai/09_archive/2026-06-19-Projects-Page-Performance/` | Projects list fetch + RSC streaming (Suspense + `loading.tsx`) confirmed implemented in `workshop/projects/page.tsx`; archived context, not an active launch gate. |
 | memory `workshop-dashboard-rsc` | Confirmed: `WorkshopDashboard` has NO `"use client"`; only 5 leaves hydrate. Boundary intact. |
 | memory `sidebar-favorites-reactivity` | Confirmed: scoped TanStack key + optimistic patch + rollback + gcTime eviction all present and correct. |
 
@@ -109,7 +109,7 @@ collaboration paths (L802–2010 sampled deeply); `project-charts-repository.ts`
 - **Impact:** None. Recorded so a future reader does not "fix" a non-bug by re-parallelizing.
 - **Recommendation:** No action.
 - **Effort:** S
-- **existing_plan_overlap:** covered-by:2026-06-19-Projects-Page-Performance
+- **existing_plan_overlap:** covered-by archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/`
 
 ### DATA-FETCH-05 — RSC/client boundary is clean; no accidental `"use client"` on heavy server trees — INFO
 - **Severity:** info · **launch_blocker:** false · **confidence:** high

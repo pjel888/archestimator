@@ -56,12 +56,14 @@ describe("project dashboard activity and location schema", () => {
 
   it("keeps exact coordinates behind dedicated repository and action boundaries", () => {
     expect(projectDashboardPage).toContain("getProjectLocation");
-    expect(projectDashboardPage).not.toContain("listProjectActivityPage");
+    expect(projectDashboardPage).toContain("listProjectActivityPage");
+    expect(projectDashboardPage).toContain("projectActivityPage={projectActivityPage}");
     expect(projectDashboardPage).toContain('supabase.rpc("can_edit_project"');
     expect(projectDashboardPage).toContain("project && canEdit ? await getProjectLocation(project.id) : null");
     expect(projectDashboardPage).toContain("GOOGLE_MAPS_API_KEY");
     expect(projectActivityRepository).toContain('.from("estimate_sheet_events")');
     expect(projectActivityRepository).toContain('.eq("project_id", project.id)');
+    expect(projectActivityRepository).toContain("estimates!estimate_sheet_events_estimate_project_fkey(id, name, sheet_code)");
     expect(projectActivityRepository).toContain("composeEstimateActivity");
     expect(projectActivityRepository).not.toContain("readonly oldSnapshot");
     expect(projectActivityRepository).not.toContain("readonly payload");

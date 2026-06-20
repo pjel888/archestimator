@@ -29,6 +29,40 @@ Push from a local staging dir via `DesignSync` `finalize_plan` → `write_files`
 Keep writes **scoped** to the files being reconciled — this is a live, hand-curated
 project; do not wholesale-replace.
 
+## Overlays component group (added 2026-06-20)
+
+New `components/overlays/` group — the modal family — reconciled FROM
+`src/components/ui/overlays/*` and the live settings modal:
+
+| DS component | Live source |
+|---|---|
+| `Modal` | `AppModal` + the `Dialog` primitive (`src/components/ui/overlays/modal.tsx`, `dialog.tsx`) |
+| `ConfirmDialog` | `src/components/ui/overlays/confirm-dialog.tsx` (destructive/danger tones) |
+| `Sheet` | `src/components/ui/overlays/sheet-drawer.tsx` (right/left/bottom drawer) |
+| `SettingsModal` | `WorkshopSettingsModal` + `WorkshopSettingsModalContent.tsx` — composed pattern, the headline of this sync |
+
+Cards: `components/overlays/overlays.card.html` (primitives gallery) +
+`components/overlays/settings.card.html` (the settings modal at 920px). The DS
+components are **presentational** (render OPEN inline, `inline` scrims the
+nearest positioned stage) — they drop the live portal/focus-trap/scroll-lock
+machinery, which is harness behaviour, not visual design. Signature kept: the
+soft-red close chip (`#B84646`/`#8B2E2E` on `#FBE8E8`/`#F2CCCC`), 11px medium
+title, 10px tertiary description, hairline header/footer rules.
+
+**How the bundle was extended (off-script, repeatable):** the four `.jsx` were
+Babel-compiled (`@babel/standalone`, classic runtime) and spliced into a copy of
+the real `_ds_bundle.js` (format 3) — new `try{(()=>{…Object.assign(__ds_scope,
+{Name})})()}catch` blocks before the ui_kit blocks, matching `__ds_ns.Name =
+__ds_scope.Name` exposure lines, and the `@ds-bundle` header JSON
+(`components` + `sourceHashes`) updated. ConfirmDialog/SettingsModal read
+`Modal`/`Button` off `window.ArchestimatorDesignSystem_3fbb6f` at render time
+(populated by eval end). Build/verify scripts live in
+`.design-sync/staging-overlays/` (`build/build-bundle.mjs`, `verify.mjs`); the
+local `styles.css` there is a **verify-only token stub — NOT uploaded** (the real
+project `styles.css` is untouched). Pushed with `_ds_needs_recompile` so the app
+recompiles `_ds_manifest.json` from the `@dsCard` markers + bundle header — do
+**not** hand-edit the manifest.
+
 ## Brand-orange rule (owner decision 2026-06-19)
 
 Product brand orange = **clay `#AA412A`** (dark `#8C3623`, amber/peach bloom stops).

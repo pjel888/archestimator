@@ -27,12 +27,14 @@ export type AppModalProps = {
   children: ReactNode;
   description?: ReactNode;
   footer?: ReactNode;
+  location?: ReactNode;
   size?: ModalSize;
   tone?: ModalTone;
   closeLabel?: string;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
   blurBackdrop?: boolean;
+  initialFocus?: "content" | "first";
   bodyClassName?: string;
   contentClassName?: string;
   className?: string;
@@ -70,12 +72,14 @@ export function AppModal({
   children,
   description,
   footer,
+  location,
   size = "md",
   tone = "default",
   closeLabel = "Close modal",
   closeOnOverlayClick = true,
   closeOnEscape = true,
   blurBackdrop = true,
+  initialFocus = "first",
   bodyClassName,
   contentClassName,
   className,
@@ -98,6 +102,7 @@ export function AppModal({
           <DialogContent
             role={tone === "destructive" || tone === "danger" ? "alertdialog" : "dialog"}
             described={Boolean(description)}
+            initialFocus={initialFocus}
             className={cn(
               "max-h-[calc(100dvh-32px)] w-full",
               sizeClasses[size],
@@ -106,21 +111,39 @@ export function AppModal({
               className,
             )}
           >
-            <DialogHeader>
+            <div
+              data-archestimator-modal-close-header
+              className="flex min-h-8 items-center justify-end border-b border-hairline bg-white p-1"
+            >
+              <DialogCloseButton />
+            </div>
+            <DialogHeader
+              data-archestimator-modal-title-header
+              className="min-h-14 justify-start"
+            >
               <div className="min-w-0">
                 <DialogTitle className={titleToneClasses[tone]}>{title}</DialogTitle>
                 {description ? <DialogDescription>{description}</DialogDescription> : null}
               </div>
-              <DialogCloseButton />
             </DialogHeader>
             <DialogBody className={bodyClassName}>{children}</DialogBody>
-            <DialogFooter>
-              {footer ? (
+            {footer ? (
+              <DialogFooter>
                 <DialogActions right={footer} />
+              </DialogFooter>
+            ) : null}
+            <div
+              data-archestimator-modal-location-footer
+              className="flex min-h-[33px] items-center justify-start border-t border-hairline bg-white px-2 py-1"
+            >
+              {location ? (
+                <div className="min-w-0 truncate text-[10px] font-medium leading-4 tracking-normal text-tertiary">
+                  {location}
+                </div>
               ) : (
-                <div className="min-h-8" aria-hidden="true" />
+                <div className="min-h-4" aria-hidden="true" />
               )}
-            </DialogFooter>
+            </div>
           </DialogContent>
         </div>
       </DialogPortal>

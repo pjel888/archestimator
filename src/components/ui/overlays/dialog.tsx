@@ -181,11 +181,20 @@ export function DialogOverlay({ className, blur = false, transparent = false, on
 }
 
 type DialogContentProps = HTMLAttributes<HTMLDivElement> & {
+  initialFocus?: "content" | "first";
   role?: "dialog" | "alertdialog";
   described?: boolean;
 };
 
-export function DialogContent({ className, role = "dialog", described = true, children, onKeyDown, ...props }: DialogContentProps) {
+export function DialogContent({
+  className,
+  role = "dialog",
+  described = true,
+  initialFocus = "first",
+  children,
+  onKeyDown,
+  ...props
+}: DialogContentProps) {
   const { titleId, descriptionId, modal } = useDialogContext("DialogContent");
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -194,10 +203,16 @@ export function DialogContent({ className, role = "dialog", described = true, ch
     if (!content) return;
 
     window.requestAnimationFrame(() => {
+      if (initialFocus === "content") {
+        content.focus({ preventScroll: true });
+        return;
+      }
+
+      const preferredFocusable = content.querySelector<HTMLElement>("[data-dialog-initial-focus]");
       const firstFocusable = getFocusableElements(content)[0];
-      (firstFocusable ?? content).focus({ preventScroll: true });
+      (preferredFocusable ?? firstFocusable ?? content).focus({ preventScroll: true });
     });
-  }, []);
+  }, [initialFocus]);
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     onKeyDown?.(event);
@@ -251,7 +266,7 @@ export function DialogContent({ className, role = "dialog", described = true, ch
 
 export function DialogHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex min-h-10 items-start justify-between gap-3 border-b border-hairline px-3 py-2", className)} {...props}>
+    <div className={cn("flex min-h-10 items-center justify-between gap-2 border-b border-hairline p-2", className)} {...props}>
       {children}
     </div>
   );
@@ -323,8 +338,8 @@ export function DialogCloseButton({ className }: DialogCloseButtonProps) {
       size="icon-sm"
       className={cn(
         "size-6 shrink-0 rounded-xs p-0",
-        "text-[#B84646] hover:text-[#8B2E2E]",
-        "bg-[#FBE8E8] hover:bg-[#F2CCCC]",
+        "bg-transparent text-tertiary",
+        "hover:!bg-[#FBE8E8] hover:!text-[#B84646]",
         className
       )}
       aria-label={closeLabel}

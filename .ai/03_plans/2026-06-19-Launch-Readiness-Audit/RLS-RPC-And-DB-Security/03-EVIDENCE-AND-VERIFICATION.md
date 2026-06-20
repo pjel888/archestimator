@@ -4,6 +4,10 @@ Date: 2026-06-19 · Verifier: Claude (Opus 4.8 1M) · Project: `ebxxqidacheyapmm
 Method: adversarial re-verification of `01-AUDIT-FINDINGS.md` — opened cited files, re-ran live
 probes via Supabase MCP, tried to refute each claim. Default to skepticism.
 
+> Canonical status note: "not a launch-blocker" below means no runtime authz hole for the
+> owner-only beta. The master register classifies the same RLS-01 evidence as B6, a hard
+> wider/external-beta DR/reproducibility gate.
+
 ---
 
 ## §A — Live probes re-run 2026-06-19 (authoritative ground truth)

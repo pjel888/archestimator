@@ -47,7 +47,7 @@ correction is the FE-PERF-02 line drift.
 - FE-PERF-04 `covered-by:2026-06-17-Performance-Refactor` (Phase 3): pack exists,
   files reference virtualization/content-visibility. Confirmed.
 - FE-PERF-06 `covered-by` RISK-24/doc 26: `16_RISK_REGISTER.md` present. Confirmed.
-- FE-PERF-07 `covered-by:2026-06-19-Projects-Page-Performance`: pack present with
+- FE-PERF-07 `covered-by:2026-06-19-Projects-Page-Performance`: archived pack present with
   `01_DIAGNOSIS.md` / `04_FURTHER_OPTIMIZATIONS.md` covering the cited sections.
   Confirmed.
 - FE-PERF-01 / FE-PERF-02 `none`: no prior pack mentions the elasticity hook or

@@ -1,5 +1,10 @@
 # Launch-Readiness Audit — Testing, CI & Quality Gates
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 > Part of the **2026-06-19 Launch-Readiness Audit** (sibling packs under
 > `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`). This pack is **deletable**: it is a
 > findings/plan surface, not durable product state. If Philip rejects it, delete the

@@ -74,6 +74,7 @@ describe("project activity repository", () => {
     const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
     const result = await listProjectActivityPage({ projectId: "project-1" });
 
+    expect(eventsQuery.select).toHaveBeenCalledWith(expect.stringContaining("estimates!estimate_sheet_events_estimate_project_fkey(id, name, sheet_code)"));
     expect(eventsQuery.eq).toHaveBeenCalledWith("project_id", "project-1");
     expect(eventsQuery.not).toHaveBeenCalledWith("event_type", "in", "(sheet_version_created,sheet_restored_as_copy)");
     expect(eventsQuery.order).toHaveBeenNthCalledWith(1, "created_at", { ascending: false });

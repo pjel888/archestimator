@@ -4,6 +4,10 @@
 **Method:** `rg` + full-file Read of every scope file; `path:line` evidence. DB not queried (no analytics
 tables exist — A/B results are tracker-side only, see CONSENT-08).
 
+> Canonical status note: raw `launch_blocker:true` values below are historical audit evidence.
+> The root register uses V2 for CONSENT-01. CONSENT-02 remains required legal/copy work but is
+> already covered by the existing reviewed-legal-copy launch gate, not a separate new blocker.
+
 ## Scope & coverage
 
 Audited the full client + server analytics/A-B/consent path: GA4 (`@next/third-parties`), Microsoft

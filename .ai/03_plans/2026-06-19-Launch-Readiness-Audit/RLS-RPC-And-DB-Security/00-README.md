@@ -1,5 +1,10 @@
 # 2026-06-19 Launch-Readiness Audit — RLS, RPC & DB Security (Domain 2)
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 > Deletable plan-pack header per repo rules. Part of the **2026-06-19 Launch-Readiness Audit**
 > (sibling pack: `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/`). This pack is a findings
 > deliverable, not an approved remediation plan. If Philip rejects it, delete the whole folder.

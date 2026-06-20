@@ -1,0 +1,38 @@
+/* VERIFY-ONLY token stub — NOT uploaded. Mirrors the real DS token values
+   (tokens/colors.css + spacing/fonts) so the overlays cards render with the
+   right palette, type, radius, and borders during local visual verification.
+   The real project styles.css (full @import token closure) is untouched. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+:root {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f5f5f5;
+  --canvas: #f5f5f5;
+  --foreground: #3d3d3d;
+  --ink: #3d3d3d;
+  --primary: #3d3d3d;
+  --secondary: #5d5d5d;
+  --tertiary: #7f7f7f;
+  --muted: #7f7f7f;
+  --hairline: #f2f2f2;
+  --divider: #f2f2f2;
+  --divider-sibling: #d9d9d9;
+  --accent: #3d3d3d;
+  --accent-dark: #2a2a2a;
+  --accent-soft: #f5f5f5;
+  --focus: #3d3d3d;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --add-affordance-bg: #ffedd5;
+  --add-affordance-fg: #c2410c;
+  --add-affordance-bg-hover: #fed7aa;
+  --add-affordance-fg-hover: #9a3412;
+  --radius-xs: 3px;
+  --shadow-card-hover: 0 16px 38px -34px rgba(17, 17, 17, 0.45);
+  --font-sf-pro: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Inter", sans-serif;
+}
+* { box-sizing: border-box; }

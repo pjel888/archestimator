@@ -10,8 +10,8 @@ Launch-blocker count (post-verification): **2** (DSAR-01, DSAR-03).
 
 ## DISCOVER
 - Phase-2 gap pass: the 13-domain launch audit's COVERAGE CRITIC found DSAR/deletion/
-  export was owned by no domain. The Auth pack deferred it to the
-  Accessibility-SEO-Legal-Content pack, which only audited metadata/SEO. Zero prior review.
+  export was owned by no domain. The Auth pack deferred it to the wrong legal/content
+  target, which only audited metadata/SEO. Zero prior review.
 - A prior gap auditor produced `00-README.md` + `01-AUDIT-FINDINGS.md` (6 findings,
   DSAR-01..06). This pass adversarially verifies them and plans remediation.
 

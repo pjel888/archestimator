@@ -16,7 +16,15 @@ adversarial verify. **Totals:** 37 agents, ~3.27M tokens, 18 plan packs.
 `03-LAUNCH-GATE-DECISION-REGISTER.md` is the canonical B/V/C go/no-go register;
 `04-PROOF-TAXONOMY-AND-AUTHORITY.md` defines what each proof type can claim and
 what this audit does not authorize; `05-UX-READINESS-CROSSWALK.md` and
-`06-UX-FLOW-STATE-MATRICES.md` map launch gates to user-facing states.
+`06-UX-FLOW-STATE-MATRICES.md` map launch gates to user-facing states; `07`-`17`
+add cohort strategy, implementation handoff, provider evidence, security threat model,
+UX copy/a11y/responsive proof, B2 CI policy, ops runbook, high-blast DB/DSAR plans,
+and the document rating matrix; `18`-`21` add official-source criteria, blast-radius
+and rollback scoring, gate traceability, and the residual uncertainty register; `22`
+and `23` are the mandatory implementation execution-control plan and live coordination
+ledger for risk-ordered multi-agent closure plus archive-on-resolution; `24` defines
+overnight autonomy, unanswered-question classes, safe defaults, parking, and morning
+handoff requirements.
 
 ---
 
@@ -56,7 +64,7 @@ unfurl-metadata hardening. See §4.
 | # | ID(s) | Issue | Owner pack | Sev | Effort |
 |---|-------|-------|-----------|-----|--------|
 | B1 | TESTING-01 | CI is `disabled_manually`; **0 runs on main in ~1 month** (2731 commits since) — the one automated gate is dark | Testing-CI | **critical** | M |
-| B2 | TESTING-02 + FE-PERF-01/02 | `bun run validate` is **red-by-construction**: 3 react-hooks errors (`useLiquidGlassRefraction.ts:118,122` dead per-frame setState; `projects-page-client.tsx:691`) + design-lint `MainSidebar.tsx:370` | Testing-CI / Frontend | high | S |
+| B2 | TESTING-02 + FE-PERF-01/02 | `bun run validate` is **red-by-construction**: react-hooks errors, local `.gitnexus` lint noise, design-system/design strict failures, and DOM hang risk. See `14-B2-CANONICAL-CI-GATE.md`; partial lint cleanup does not close B2. | Testing-CI / Frontend | high | S/M |
 | B3 | OPS-01 (+A11Y-03) | **No root `global-error/error/not-found`** — RSC/layout errors on `/`,`/login`,`/invite/*`,`/share/*` show Next's raw crash screen, no recovery/capture | Observability-Ops | high | S |
 | B4 | OPS-03 | **No durable error-tracking/log sink** — logs go to ephemeral Vercel `console.*`; prod errors unobservable/unalertable | Observability-Ops | high | M |
 | B5 | AUTH-01 | Closed-beta gate **fail-OPENs** if `CLOSED_BETA_ACCESS_ENABLED` unset/typo'd; "on" lives only in Vercel prod env | Auth-Session | high | S (verify + assert) |
@@ -160,8 +168,13 @@ Phase-1 detail table (with quality grades and refutations) is preserved in `00-O
 
 ## 7. Recommended sequence
 
+**Execution controller:** implement from `22-IMPLEMENTATION-EXECUTION-CONTROL-PLAN.md`,
+not this summary alone. It orders low-risk lanes first, forces each lane through the
+repo loop until criteria pass, and routes concurrent agents through
+`23-IMPLEMENTATION-COORDINATION-LEDGER.md`.
+
 **Same-day (S-effort, unblocks the gate):**
-1. **B2** — make `validate` exit 0 (delete dead `useGlassElasticity`; derive the bulk-delete latch; ignore `.gitnexus/**` in eslint; treat design-lint as advisory).
+1. **B2** — make `validate` exit 0, or intentionally split advisory checks with an owner-approved hard-gate policy (`14-B2-CANONICAL-CI-GATE.md`).
 2. **B3** — add the 3 root boundaries (reuse `WorkshopRouteErrorState`; log `error.digest`; `global-error` renders own `<html>/<body>`).
 3. **B5** — screenshot-verify `CLOSED_BETA_ACCESS_ENABLED=true` in Vercel + add a fail-loud boot assert.
 4. **B9** — replace deletion/export promises with honest copy + a real SLA/runbook line.
@@ -177,7 +190,7 @@ Phase-1 detail table (with quality grades and refutations) is preserved in `00-O
 10. **B6** — reconcile migration tree + ledger; prove zero-diff `db reset` on a scratch branch.
 11. **B8** — build + test the service-role account-erasure RPC/runbook (solely-owned delete + shared-workspace anonymize + recipient PII).
 
-**Conditional:** **C1** — package-builder rate limit *before* flipping AI on.
+**Conditional:** **C1** — API implements package-builder rate limit and Ops gates the env flip *before* AI is enabled.
 
 ---
 

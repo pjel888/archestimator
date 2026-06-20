@@ -2,6 +2,8 @@
 
 > Adversarially verified 2026-06-19. Read-only on source/config; this file is plan scratch.
 > Verdicts and proof gates are in `03-EVIDENCE-AND-VERIFICATION.md`. Ledger in `LOOP_LEDGER.md`.
+> Canonical B2 policy now lives in `../14-B2-CANONICAL-CI-GATE.md`; use it when this
+> pack-local plan and the master register differ on hard-vs-advisory gate semantics.
 
 ## What the verifier changed vs the prior audit
 

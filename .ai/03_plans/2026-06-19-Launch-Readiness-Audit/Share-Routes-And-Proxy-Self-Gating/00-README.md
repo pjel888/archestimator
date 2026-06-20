@@ -1,5 +1,10 @@
 # Launch-Readiness (Phase-2 Gap Pack): Share Routes Deep-Dive & Proxy /api Self-Gating
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 > **Deletable plan-pack header.** Phase-2 gap pack of the 2026-06-19 Launch-Readiness Audit
 > (packs under `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`). The 13-domain audit's COVERAGE
 > CRITIC found this surface was not owned by any of the 13 domains. This pack closes that gap.

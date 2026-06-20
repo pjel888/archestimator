@@ -42,6 +42,72 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Dashboard right map rail shows combined estimate activity (2026-06-20):**
+The full-height right frosted panel in the Project Dashboard map grid now renders
+a compact project activity feed from the existing `estimate_sheet_events`
+repository. The server page fetches a bounded `ProjectActivityPage` alongside
+recent estimate sheets, and the client renders day-grouped rows for all estimate
+sheets with event title, summary/target, sheet label, actor, time, and links back
+to the project estimates surface. `ProjectLocationMap` now accepts a `rightRail`
+node and keeps that panel inert when no content is passed. The activity
+repository select was pinned to
+`estimates!estimate_sheet_events_estimate_project_fkey(...)` to avoid PostgREST
+ambiguity now that both estimate and project-scoped estimate relationships
+exist. Verification on 2026-06-20: focused activity/dashboard/map Vitest suites,
+`bun run type-check`, and `git diff --check` passed; live browser proof on
+`/workshop/projects/22222222-2222-4222-8222-222222222222` showed no error
+overlay, the map grid present, and 16 latest activity rows in the right rail.
+The rail header count was then removed, date group headers were changed into
+taller transparent expand/collapse rows, and each date's activity items are now
+indented under a left guide line so date ownership is easier to scan.
+Verification on 2026-06-20: focused dashboard Vitest suites, `bun run
+type-check`, `git diff --check`, and live browser proof passed; the browser
+showed no `16` header count, a 60px transparent date toggle, indented rows, and
+working collapse/expand state.
+
+**Estimate activity copy is more descriptive in dashboard/history feeds (2026-06-20):**
+The shared estimate activity composer now replaces generic `Updated row` /
+`Updated tree`-style summaries with event-specific descriptions for row edits,
+row adds/deletes/replaces, library unlinking, tree reorders including
+`nodes_reordered`, node deletions, tab duplication/reorders, and template/project
+source insertion. Internal audit fields such as raw tree/row payloads,
+`sourceLibraryItemId`, `sourceSnapshot`, and `metadata` stay out of visible
+change text while useful fields such as quantity, unit cost, link status, item
+counts, row location, and total delta remain visible. Verification on
+2026-06-20: focused activity copy/security Vitest suites, project-dashboard
+activity rail Vitest suites, `bun run type-check`, `git diff --check`, and live
+browser proof on
+`/workshop/projects/22222222-2222-4222-8222-222222222222` passed with no
+`Activity recorded`, `Updated row`, `Updated tree`, or placeholder `from/to Item`
+copy in the activity rail.
+
+**Launch-readiness plan pack improved to 100% planning handoff (2026-06-20):**
+The consolidated `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/` folder was
+re-audited as a docs-only planning task with six parallel review lanes
+(UX/design, product strategy, security, adversarial document review,
+feasibility/blast radius, and coherence). The pack remains **not** wider/external
+launch-ready in product reality; B1-B9, V1-V2, and C1-if-triggered still need
+implementation/provider/owner closure. The planning artifacts themselves were
+expanded in a first closeout by adding root docs `07`-`17`: beta cohort
+strategy, implementation handoff, provider evidence checklist, threat model, UX
+copy matrix, accessibility criteria, responsive visual QA scope, B2 CI gate
+policy, ops runbook, high-blast B6/B8 plans, and completion rating matrix.
+The first closeout left the folder at 109 markdown docs. A second
+certainty-hardening pass added docs `18`-`21`: official-source readiness criteria,
+blast-radius and rollback scoring, gate criteria traceability, and a residual
+uncertainty/confidence register. The folder now contains 113 markdown docs: 22
+root controls, 18 standard five-doc domain/gap packs, and one extra DSAR runbook.
+A third execution-control pass added docs `22`-`23`: least-risk-first
+implementation sequencing, per-gate loop enforcement, multi-agent coordination,
+conflict logging, lead-owned integration, and archive-on-resolution under
+`.ai/09_archive`. The folder now contains 115 markdown docs: 24 root controls, 18
+standard five-doc domain/gap packs, and one extra DSAR runbook. A fourth overnight
+autonomy pass added doc `24`: sleeping-owner authorization boundaries, unanswered
+question classes, safe defaults, parked-lane handling, hard stops, and morning
+handoff format. The folder now contains 116 markdown docs: 25 root controls, 18
+standard five-doc domain/gap packs, and one extra DSAR runbook. Docs only; no
+source, DB, provider, CI, or production state was mutated.
+
 **Project Dashboard lower-left map strip shows estimate running costs (2026-06-20):**
 The lower-left 5-column by 1-row frosted map panel now renders a 3-column
 recent-estimate cost strip instead of empty glass. It uses the three freshest

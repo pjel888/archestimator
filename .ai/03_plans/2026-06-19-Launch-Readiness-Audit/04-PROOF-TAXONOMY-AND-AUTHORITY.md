@@ -36,6 +36,13 @@ providers.
 - In a dirty worktree, treat unrelated source changes as user/other-agent work.
   Planning-doc edits must not revert or normalize unrelated code diffs.
 
+## Minimum proof artifact schema
+
+Every closure artifact must include: gate id, timestamp/timezone, actor, authority class,
+provider project/account, branch/commit, command/query/provider read, before/after result,
+rollback or recovery path, evidence path, and residual risk. If any field is not applicable,
+write `not applicable` and why.
+
 ## Evidence wording standards
 
 Use these phrases precisely:
@@ -49,4 +56,3 @@ Use these phrases precisely:
 | "hosted provider verified" | Provider dashboard/API read, timestamp, project/account identifier. |
 | "owner accepted" | Decision record or direct owner instruction. |
 | "implemented" | Source/provider/db mutation plus verification evidence. |
-

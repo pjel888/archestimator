@@ -1,5 +1,10 @@
 # Launch-Readiness — Next.js / Vercel, Headers & Deploy Readiness
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 > Part of the **2026-06-19 Launch-Readiness Audit** (orchestration ledger:
 > `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/00-ORCHESTRATION-LEDGER.md`).
 > Domain 7 of 13. This is a **deletable plan-pack header** per repo rules: if Philip

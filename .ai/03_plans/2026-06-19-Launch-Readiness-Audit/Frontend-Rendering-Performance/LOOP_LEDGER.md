@@ -16,7 +16,8 @@ Other agents: READ-ONLY on source; write only inside this folder.
   3 tooling), `bun run test:dom tests/vitest/perf` (24/24 green),
   `rg useGlassElasticity src` (0 callers), `rg useEffect` over chart dirs (none).
 - Reconciled against prior packs: `2026-06-17-Performance-Refactor`,
-  `2026-06-19-Projects-Page-Performance`, `2026-06-14-Overall-Site-Performance`.
+  archived `.ai/09_archive/2026-06-19-Projects-Page-Performance/`,
+  `2026-06-14-Overall-Site-Performance`.
 
 ## PLAN
 - Verdicts assigned to all 7 findings (see `03-EVIDENCE-AND-VERIFICATION.md`).

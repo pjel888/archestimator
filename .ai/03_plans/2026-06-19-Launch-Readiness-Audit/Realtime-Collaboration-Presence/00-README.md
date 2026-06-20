@@ -1,5 +1,10 @@
 # Launch-Readiness — Realtime Collaboration, Presence & Activity Visibility
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Phase-2 gap pack** of the 2026-06-19 Launch-Readiness Audit. The 13-domain
 launch audit's COVERAGE CRITIC found the Supabase Realtime collaboration surface
 (channel-join authorization, presence/cursor payload trust, visibility leaks,

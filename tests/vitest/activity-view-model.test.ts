@@ -53,6 +53,82 @@ describe("activity view model", () => {
     expect(formatActivityValue("linkState", "linked-overridden")).toBe("Customized from library");
   });
 
+  it("summarizes row edits with changed values, total delta, and row location", () => {
+    const activity = composeEstimateActivity(makeEstimateEvent("row_updated", {
+      rowContext: { material: "Porcelain tile", nodePath: "Ground Floor / Bath" },
+      oldSnapshot: { material: "Porcelain tile", quantity: 1, unitCost: 1000 },
+      newSnapshot: { material: "Porcelain tile", quantity: 2, unitCost: 1500 },
+      changedFields: ["quantity", "unitCost", "row"],
+      totalDelta: 2000,
+    }));
+
+    expect(activity.title).toBe("Philip Lewis changed quantity, unit cost for Porcelain tile.");
+    expect(activity.summary).toContain("Quantity from 1 to 2");
+    expect(activity.summary).toContain("Unit cost from ₱1,000.00 to ₱1,500.00");
+    expect(activity.summary).toContain("Total increased by ₱2,000.00");
+    expect(activity.summary).toContain("Located in Ground Floor / Bath");
+    expect(activity.summary).not.toContain("Updated row");
+  });
+
+  it("summarizes newer tree reorder events with affected item counts", () => {
+    const activity = composeEstimateActivity(makeEstimateEvent("nodes_reordered", {
+      estimateNodeId: null,
+      changedFields: ["tree"],
+      payload: { updatedCount: 3 },
+    }));
+
+    expect(activity.title).toBe("Philip Lewis reorganized the estimate tree.");
+    expect(activity.summary).toBe("Reordered 3 tree items");
+    expect(activity.summary).not.toContain("Updated tree");
+  });
+
+  it("summarizes library unlink events without internal ids", () => {
+    const activity = composeEstimateActivity(makeEstimateEvent("row_unlinked", {
+      rowContext: { material: "Sleeper sofa", nodePath: "Living Room" },
+      oldSnapshot: {
+        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+        linkState: "linked-clean",
+        metadata: {},
+      },
+      newSnapshot: {
+        sourceLibraryItemId: null,
+        linkState: "detached",
+        metadata: { detachedReason: "custom dimensions" },
+      },
+      changedFields: ["sourceLibraryItemId", "linkState", "metadata"],
+      totalDelta: 0,
+    }));
+
+    expect(activity.title).toBe("Philip Lewis detached Sleeper sofa from the cost library.");
+    expect(activity.summary).toBe("Library status from Using library values to Detached from library; Located in Living Room");
+    expect(activity.facts).toContainEqual({ label: "Affected fields", value: "Library status" });
+    expect(activity.summary).not.toContain("Source library item");
+    expect(activity.summary).not.toContain("metadata");
+  });
+
+  it("does not invent an Item location when row context has no area", () => {
+    const activity = composeEstimateActivity(makeEstimateEvent("row_added", {
+      rowContext: { material: "Sleeper sofa" },
+      newSnapshot: { material: "Sleeper sofa" },
+      changedFields: ["row"],
+      totalDelta: 0,
+    }));
+
+    expect(activity.summary).toBe("Added Sleeper sofa; No total cost change");
+    expect(activity.summary).not.toContain("Item");
+  });
+
+  it("summarizes node deletions with tree, row, and total impact", () => {
+    const activity = composeEstimateActivity(makeEstimateEvent("node_deleted_with_children", {
+      payload: { deletedNodeCount: 2, deletedRowCount: 5 },
+      totalDelta: -4500,
+    }));
+
+    expect(activity.summary).toContain("Removed 2 tree items");
+    expect(activity.summary).toContain("Deleted 5 estimate rows");
+    expect(activity.summary).toContain("Total decreased by ₱4,500.00");
+  });
+
   it("does not summarize express component insertion as a blank row", () => {
     const activity = composeEstimateActivity(makeEstimateEvent("row_added", {
       rowContext: {

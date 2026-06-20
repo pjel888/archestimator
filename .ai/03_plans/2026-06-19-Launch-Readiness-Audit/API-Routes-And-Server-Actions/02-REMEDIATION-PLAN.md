@@ -18,6 +18,9 @@ if AI routes are enabled for beta (`ARCHESTIMATOR_AI_ENABLED=1` — default off,
 `feature-flags.ts:13`). For the current default-off posture, the only actionable hardening is
 API-03 (cheap) and an optional API-01 pre-stage so AI can be flipped on safely later.
 
+Canonical C1 split: API owns the package-builder quota implementation; Observability/Ops owns the
+release checklist/env proof that AI is not enabled before the quota lands.
+
 ## Sequenced remediation
 
 ### Priority 1 — API-01: add durable rate limit to `/api/ai/package-builder`

@@ -1,5 +1,10 @@
 # 2026-06-19 Launch-Readiness Audit — Dependencies, Supply-Chain & Code-Health
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Status:** AUDIT (read-only). Deletable plan-pack header. Part of the 2026-06-19
 Launch-Readiness Audit (one pack per domain; this is domain 12).
 

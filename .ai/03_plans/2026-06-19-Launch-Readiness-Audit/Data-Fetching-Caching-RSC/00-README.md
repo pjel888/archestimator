@@ -1,5 +1,10 @@
 # Launch-Readiness Audit — Data Fetching, Caching & RSC Architecture
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Date:** 2026-06-19
 **Part of:** the consolidated 2026-06-19 Launch-Readiness Audit. Sibling packs now
 live under `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`.

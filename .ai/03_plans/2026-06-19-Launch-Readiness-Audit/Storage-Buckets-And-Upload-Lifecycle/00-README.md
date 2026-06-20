@@ -1,5 +1,10 @@
 # Launch-Readiness — Storage Buckets & Upload Lifecycle (Phase-2 Gap Pack)
 
+> Canonical status override: before implementing from this pack, read
+> `../03-LAUNCH-GATE-DECISION-REGISTER.md` and `../08-IMPLEMENTATION-HANDOFF.md`.
+> Pack-local blocker counts are historical/domain-scoped; the root register is authoritative
+> for wider/external beta.
+
 **Status:** audit-only (findings recorded; no code/DB changes made by this pack).
 **Created:** 2026-06-19
 **Type:** Phase-2 gap pack of the 2026-06-19 Launch-Readiness Audit. The 13-domain
