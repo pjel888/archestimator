@@ -94,6 +94,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
         collaborationUserId={currentUser.userId}
         collaborationDisplayName={currentUser.displayName}
         proposalExportMetadata={proposalExportMetadata}
+        surfaceVariant="glass"
       />
     </>
   );
