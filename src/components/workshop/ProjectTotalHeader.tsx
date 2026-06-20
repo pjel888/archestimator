@@ -228,7 +228,7 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
 
   return (
     <div
-      className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 bg-white px-2"
+      className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 px-2"
       data-estimate-center-column="project-total-header"
       aria-label="Estimate running totals"
     >
@@ -241,6 +241,48 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
         <span className={`font-sans text-[12px] font-medium leading-4 tabular-nums ${totalValueClassName}`}>{formatPeso(total)}</span>
         <span className="text-right text-[8px] font-medium uppercase leading-3 tracking-normal text-gray-400">Ongoing project cost</span>
       </div>
+    </div>
+  );
+}
+
+// Paper/live layout: the tree/library panes abut the centre paper, so the totals
+// bar aligns at (tree width + shell padding) / (library width + shell padding) —
+// the same CSS vars the centre-column boundary uses, kept in sync via calc().
+const PROJECT_TOTAL_FOOTER_OFFSET_PAPER = {
+  left: "calc(var(--estimate-tree-panel-width) + var(--workshop-page-shell-padding))",
+  right: "calc(var(--estimate-library-panel-width) + var(--workshop-page-shell-padding))",
+} as const;
+
+// Glass (/newdesign): the workspace insets its three panes by 8px (root `gap-2 p-2`,
+// marginless panes), so the floated centre paper shifts inward ~8px on both edges.
+// Add the inset so the running-totals bar tracks the paper instead of drifting and
+// reading as "cut off".
+const PROJECT_TOTAL_FOOTER_OFFSET_GLASS = {
+  left: "calc(var(--estimate-tree-panel-width) + var(--workshop-page-shell-padding) + 8px)",
+  right: "calc(var(--estimate-library-panel-width) + var(--workshop-page-shell-padding) + 8px)",
+} as const;
+
+/**
+ * Absolutely-positioned running-totals overlay that lives in the workshop shell
+ * footer. The offsets are glass-route-aware: the glass preview route's pathname
+ * ends with `/newdesign`, in which case the 8px workspace inset is added to both
+ * sides so the bar aligns under the floated centre paper. The paper/live route
+ * keeps the non-inset offsets so it never regresses.
+ */
+export function ProjectTotalFooterOverlay({ projectId }: { projectId: string }) {
+  const pathname = usePathname();
+  const isGlassRoute = Boolean(pathname?.endsWith("/newdesign"));
+  const offset = isGlassRoute ? PROJECT_TOTAL_FOOTER_OFFSET_GLASS : PROJECT_TOTAL_FOOTER_OFFSET_PAPER;
+
+  return (
+    <div
+      className="absolute inset-y-0 flex items-center"
+      style={offset}
+      data-estimate-center-column="project-total-footer"
+      data-estimate-surface={isGlassRoute ? "glass" : "paper"}
+      aria-label="Estimate running totals"
+    >
+      <ProjectTotalHeader projectId={projectId} />
     </div>
   );
 }

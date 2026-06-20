@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { classifyEstimateRowSource, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { cn } from "@/lib/ui/cn";
+import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import {
   getComponentImageUrl as getMaterialCardImageUrl,
   isBlankEstimateRowItem,
@@ -456,6 +457,7 @@ export function EstimateMaterialCell({
   onRetryExpressDraft: () => void;
   onDeleteExpressDraft: () => void;
 }) {
+  const surfaceVariant = useEstimateSurfaceVariant();
   function handleReplacementDragOver(event: DragEvent<HTMLDivElement>) {
     if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
       event.preventDefault();
@@ -506,7 +508,8 @@ export function EstimateMaterialCell({
   return (
     <div
       className={cn(
-        "group relative flex h-full flex-col gap-2 overflow-hidden bg-white py-2 pr-2 pl-3 transition hover:bg-neutral-50",
+        "group relative flex h-full flex-col gap-2 overflow-hidden py-2 pr-2 pl-3 transition",
+        surfaceVariant === "glass" ? "hover:bg-white/40" : "bg-white hover:bg-neutral-50",
         isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent",
       )}
       onDragOver={handleReplacementDragOver}

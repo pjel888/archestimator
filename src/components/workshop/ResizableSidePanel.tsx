@@ -10,6 +10,8 @@ import {
   getSidePanelWidthConfig,
   getSidePanelWidthCookieName,
 } from "./side-panel-widths";
+import { cn } from "@/lib/ui/cn";
+import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
 
 type ResizableSidePanelProps = {
   side: "left" | "right";
@@ -61,6 +63,7 @@ export function ResizableSidePanel({
   collapsedWidth = 32,
   children,
 }: ResizableSidePanelProps) {
+  const glass = useEstimateSurfaceVariant() === "glass";
   const [collapsed, setCollapsed] = useState(false);
   const [savedWidth, setSavedWidth] = useState(() => getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth));
   const [dragWidth, setDragWidth] = useState<number | null>(null);
@@ -145,14 +148,18 @@ export function ResizableSidePanel({
   const resizer = (
     <div
       aria-hidden={collapsed}
-      className={[
+      className={cn(
         "group/resizer relative h-full shrink-0 overflow-hidden transition-[width,background-color] duration-150",
         collapsed
           ? "w-0 cursor-default"
           : isDragging
             ? "w-2 cursor-col-resize border-x border-hairline bg-brand-orange-soft"
-            : "w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-brand-orange-soft",
-      ].join(" ")}
+            // glass: a transparent grab strip (the grip dots still signal it) so
+            // it reads as the float gutter, not a white seam at the pane edge.
+            : glass
+              ? "w-2 cursor-col-resize bg-transparent hover:bg-brand-orange-soft"
+              : "w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-brand-orange-soft",
+      )}
       onMouseDown={startResize}
       title="Drag to resize"
     >
@@ -177,10 +184,13 @@ export function ResizableSidePanel({
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
       aria-expanded={!collapsed}
       style={{ width: collapsedWidth }}
-      className={[
-        "h-full rounded-xs border-hairline bg-white text-secondary transition-colors hover:bg-brand-orange-soft hover:text-brand-orange",
+      className={cn(
+        "h-full rounded-xs text-secondary transition-colors hover:bg-brand-orange-soft hover:text-brand-orange",
+        // glass: a faint frosted chip (kept discoverable) instead of a solid
+        // white slab on the pane's inner edge.
+        glass ? "border-[color:var(--glass-border)] bg-white/35" : "border-hairline bg-white",
         side === "right" ? "border-l" : "border-r",
-      ].join(" ")}
+      )}
       onClick={() => setCollapsed((value) => !value)}
     >
       <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />
@@ -191,7 +201,7 @@ export function ResizableSidePanel({
     <div className="group hidden h-full shrink-0 overflow-hidden lg:flex" style={panelStyle}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
-      <aside className="h-full min-w-0 flex-1 overflow-hidden bg-white !text-[10px]" aria-label={ariaLabel} aria-hidden={collapsed}>
+      <aside className={cn("h-full min-w-0 flex-1 overflow-hidden !text-[10px]", glass ? "bg-transparent" : "bg-white")} aria-label={ariaLabel} aria-hidden={collapsed}>
         {!collapsed ? children : null}
       </aside>
       {side === "left" ? resizer : null}

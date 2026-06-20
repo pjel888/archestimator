@@ -16,7 +16,8 @@ import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
-import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeShellClasses, nodeTotalClasses } from "./node-visuals";
+import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
+import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable, type EstimateTableColumnResizeConfig } from "./row-table";
 import type { ExpressInsertDraftState } from "./cells";
@@ -161,6 +162,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
   // resolves the scroll container from its own DOM node.
   const sectionRef = useRef<HTMLElement | null>(null);
+  const surfaceVariant = useEstimateSurfaceVariant();
   useDragEdgeAutoScroll(sectionRef, depth === 0);
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -266,20 +268,20 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
       <div
         aria-hidden="true"
         data-estimate-sibling-divider=""
-        className="bg-white py-5"
+        className={cn(estimateSurfaceClass(surfaceVariant, "gridSiblingDivider"), surfaceVariant === "glass" ? "py-2" : "py-5")}
         style={{ marginLeft: `${leftIndent + 8}px` }}
       />
     ) : null}
     <section
       ref={sectionRef}
       className={cn(
-        groupGap(depth),
+        groupGap(depth, surfaceVariant),
         // Node>row>component hierarchy reads via ONE frame, not concentric
         // borders (UX-4 / OD-7): only the root carries the bordered card; nested
         // nodes share the same surface tone and step in with indent + groupGap.
         // The row table keeps its own border, so each node's data grid stays
         // framed at every depth.
-        nodeShellClasses(depth),
+        estimateSurfaceClass(surfaceVariant, "gridNodeSurface"),
         templateDragActive && templateDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
@@ -288,7 +290,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
       onDragLeave={handleTemplateDragLeave}
       onDrop={handleTemplateDrop}
     >
-      <div className={cn("bg-white", isStickyHeader && "sticky top-0 z-[20]")}>
+      <div className={cn(estimateSurfaceClass(surfaceVariant, "gridStickyHeader"), isStickyHeader && "sticky top-0 z-[20]")}>
         <div
           className={cn(
             "flex min-h-10 items-center gap-2 border-x border-hairline bg-surfaceMuted/40 px-1 py-2",

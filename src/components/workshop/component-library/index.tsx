@@ -2147,7 +2147,7 @@ function EstimateRightSidebarBase({
         {/* Scrollable tree with a floating bulk-action dock */}
         <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className={cn("p-2", bulkSelectionCount > 0 && "pb-16")}>
+          <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
             {activeTab === "templates" ? (
               <>
                 {templatesProjectSourceSearchStatus}

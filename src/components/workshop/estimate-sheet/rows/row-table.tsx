@@ -19,6 +19,7 @@ import {
   type ResizableEstimateColumnId,
 } from "@/lib/estimate-sheet/column-model";
 import { cn } from "@/lib/ui/cn";
+import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history";
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
@@ -511,6 +512,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   virtualization = WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION,
 }: EstimateRowItemsTableProps) {
   reportEstimateRowItemsTableRender(targetNodeId);
+  const surfaceVariant = useEstimateSurfaceVariant();
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const disabledColumnResizeSurfaceRef = useRef<HTMLElement | null>(null);
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
@@ -688,13 +690,13 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   return (
     <div
       ref={scrollRootRef}
-      className="overflow-hidden border-x border-b border-hairline bg-white"
+      className={cn("overflow-hidden border-x border-b border-hairline", estimateSurfaceClass(surfaceVariant, "gridTableRoot"))}
       data-estimate-row-table-root={targetNodeId}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       <table className="w-full border-collapse text-[10px] text-ink">
-        <thead className="bg-white text-left text-[10px] font-medium text-ink">
+        <thead className={cn("text-left text-[10px] font-medium text-ink", estimateSurfaceClass(surfaceVariant, "gridTableHead"))}>
           <tr className="grid min-h-10 border-b border-hairline" style={{ gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}>
             <th className="flex items-center justify-center border-r border-hairline text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">

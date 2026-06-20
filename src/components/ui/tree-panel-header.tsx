@@ -16,6 +16,7 @@ import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components
 import { SearchInput } from "@/components/ui/search-input";
 import { TabStrip, type TabStripItem } from "@/components/ui/tab-strip";
 import { Tabs } from "@/components/ui/tabs";
+import { useEstimateSurfaceVariant } from "@/components/workshop/estimate-surface-variant";
 import { cn } from "@/lib/ui/cn";
 
 export type TreePanelHeaderProps = {
@@ -118,6 +119,8 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
   },
   ref,
 ) {
+  const surfaceVariant = useEstimateSurfaceVariant();
+  const isGlass = surfaceVariant === "glass";
   const searchEnabled = Boolean(onSearchValueChange);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = searchEnabled && (searchOpen ?? uncontrolledOpen);
@@ -194,7 +197,18 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
           (search/filter/expand) itself, so it shows directly under the icon row.
           On tab-less panels this coincides with the root border (same edge → one
           hairline); on tabbed panels it delineates the icon row above the tabs. */}
-      <div ref={searchRootRef} className={cn("relative", toolbarBottomBorderVisible && "border-b border-hairline")}>
+      <div
+        ref={searchRootRef}
+        className={cn(
+          "relative",
+          // Glass: the hard ruled hairline under the icon-toolbar row reads as
+          // "boxed" chrome and breaks the frosted feel — and visually offsets the
+          // rail toolbars from the centre sheet's soft divider. Swap it for the
+          // centre-faded `.estimate-glass-divider` so all three pane headers share
+          // one soft baseline. Paper keeps the original hard hairline unchanged.
+          toolbarBottomBorderVisible && (isGlass ? "estimate-glass-divider" : "border-b border-hairline"),
+        )}
+      >
         <HeaderIconToolbar
           ariaLabel={ariaLabel}
           labelPrefix={labelPrefix}

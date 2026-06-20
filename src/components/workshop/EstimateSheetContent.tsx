@@ -2832,7 +2832,7 @@ export function EstimateSheetContent({
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 ref={estimatePointerSurfaceRef}
-                className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
+                className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-0", bulkSelectedRowCount > 0 ? "pb-16" : "pb-1")}
                 style={estimateColumnStyle}
                 data-estimate-pointer-surface
               >
@@ -2962,9 +2962,9 @@ export function EstimateSheetContent({
 function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolean; onRetry: () => void }) {
   const surfaceVariant = useEstimateSurfaceVariant();
   return (
-    <aside className={cn("flex h-full min-h-0 min-w-[320px] flex-col p-2", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
+    <aside className={cn("flex h-full min-h-0 min-w-[320px] flex-col", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
       {isError ? (
-        <div role="alert" className="mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
+        <div role="alert" className="m-2 mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
           <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate is still editable. Retry to load components and templates.</p>
           <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
@@ -2972,7 +2972,7 @@ function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolea
           </Button>
         </div>
       ) : (
-        <div role="status" aria-label="Loading component library" className="space-y-1">
+        <div role="status" aria-label="Loading component library" className="space-y-1 p-2">
           <Skeleton className="h-7 w-full" />
           {Array.from({ length: 12 }, (_, index) => (
             <Skeleton key={index} className="h-6 w-full" />

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { CaretDoubleDown, CaretDoubleUp, FunnelSimple, ListBullets, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
+import { useEstimateSurfaceVariant } from "@/components/workshop/estimate-surface-variant";
 import { cn } from "@/lib/ui/cn";
 
 export type HeaderIconToolbarAddAction = {
@@ -61,6 +62,17 @@ export function HeaderIconToolbar({
   filterSlot,
   className,
 }: HeaderIconToolbarProps) {
+  // Glass: the hard `border-hairline` group separators read as ruled chrome and
+  // break the frosted feel; soften them to the cool translucent `--glass-border`
+  // hairline (the same token the floating panes use) so the toolbar reads as one
+  // frosted bar. Paper keeps the original hard hairline byte-for-byte.
+  const isGlass = useEstimateSurfaceVariant() === "glass";
+  const groupSeparatorRight = isGlass
+    ? "mr-1 border-r border-[color:var(--glass-border)] pr-1"
+    : "mr-1 border-r border-hairline pr-1";
+  const groupSeparatorLeft = isGlass
+    ? "ml-1 border-l border-[color:var(--glass-border)] pl-1"
+    : "ml-1 border-l border-hairline pl-1";
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
   const toolbarAddActions: HeaderIconToolbarAddAction[] = addActions ?? [
     {
@@ -76,7 +88,7 @@ export function HeaderIconToolbar({
     <div className={cn("flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0", className)} aria-label={ariaLabel}>
       {startActions.length > 0 ? (
         <div
-          className="mr-1 flex items-center gap-1 border-r border-hairline pr-1"
+          className={cn("flex items-center gap-1", groupSeparatorRight)}
           role="group"
           aria-label={startActionsLabel ?? `${labelPrefix} primary actions`}
         >
@@ -108,7 +120,7 @@ export function HeaderIconToolbar({
         <div
           className={cn(
             "flex items-center gap-1",
-            (onExpandAll || onCollapseAll) && "mr-1 border-r border-hairline pr-1",
+            (onExpandAll || onCollapseAll) && groupSeparatorRight,
           )}
           role="group"
           aria-label={`${labelPrefix} view filters`}
@@ -137,7 +149,7 @@ export function HeaderIconToolbar({
       ) : null}
       {leadingActions.length > 0 ? (
         <div
-          className="ml-1 flex items-center gap-1 border-l border-hairline pl-1"
+          className={cn("flex items-center gap-1", groupSeparatorLeft)}
           role="group"
           aria-label={leadingActionsLabel ?? `${labelPrefix} view actions`}
         >

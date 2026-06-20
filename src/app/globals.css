@@ -1556,26 +1556,37 @@ input[type="number"] {
    a touch more translucent than the paper so the rails read as recessed
    relative to the bright writing surface. */
 .estimate-glass-rail {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.42));
-  border: 1px solid color-mix(in srgb, var(--glass-border) 76%, rgba(255, 255, 255, 0.32));
-  border-top-color: rgba(255, 255, 255, 0.58);
+  /* Rails lifted toward the paper (0.62->0.52, was 0.54->0.42) so the workspace
+     reads as ONE calm material with a gentle depth step, not a bright slab
+     flanked by grey frost. A tight near-field contact shadow (0 2px 6px / 10%)
+     is added ahead of the diffuse halo so the float still reads inside the
+     narrow 8px gutter; the pane border is softened and its top edge brightened
+     to a crisp specular lip against the well. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.52));
+  border: 1px solid color-mix(in srgb, var(--glass-border) 58%, rgba(255, 255, 255, 0.42));
+  border-top-color: rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 1px 3px rgba(30, 35, 50, 0.045),
+    0 2px 6px rgba(30, 35, 50, 0.1),
     0 8px 22px rgba(30, 35, 50, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 /* The centre writing surface: a brighter, near-opaque "paper" that floats on
    the frost. High opacity keeps cost rows and inline edits legible; a small
    outer margin (set in JSX) lets the frosted shell frame it on every side. */
 .estimate-glass-paper {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.86));
-  border: 1px solid color-mix(in srgb, var(--glass-border) 80%, rgba(255, 255, 255, 0.34));
-  border-top-color: rgba(255, 255, 255, 0.62);
+  /* Centre paper eased down a touch (0.90->0.84, was 0.93->0.86) to close the
+     material gap with the rails while staying well above the legibility floor
+     for dense cost rows + inline edits. Same near-field contact shadow, brighter
+     specular top edge, and softened border as the rails so the three panes read
+     as one floating glass family. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.84));
+  border: 1px solid color-mix(in srgb, var(--glass-border) 62%, rgba(255, 255, 255, 0.36));
+  border-top-color: rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 1px 3px rgba(30, 35, 50, 0.05),
+    0 2px 6px rgba(30, 35, 50, 0.1),
     0 10px 26px rgba(30, 35, 50, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+    inset 0 1px 0 rgba(255, 255, 255, 0.64);
 }
 
 /* Sticky header / tab bars inside glass panels: a frosted wash — translucent
@@ -1586,6 +1597,16 @@ input[type="number"] {
    hairline that replaces the hard border-hairline. */
 .estimate-glass-chrome {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.62));
+}
+
+/* Sticky headers INSIDE the centre paper — node-group headers and the row-table
+   column head — that dense cost rows scroll underneath. The shell's single
+   backdrop-filter blurs the page behind the pane, not rows moving inside it, so
+   these need enough opacity to mask on their own. A cool, near-opaque frost
+   (never stark #fff) keeps the glass read while staying legible, and obeys the
+   one-backdrop-filter-per-region performance contract (no own backdrop-filter). */
+.estimate-glass-headchrome {
+  background: linear-gradient(180deg, rgba(248, 249, 251, 0.94), rgba(246, 247, 250, 0.88));
 }
 
 .estimate-glass-divider {

@@ -66,7 +66,19 @@ export type EstimateSurfaceSlot =
    * solid-white bar. */
   | "chromeToolbar"
   /** Sheet sticky header inside the centre column. */
-  | "sheetHeader";
+  | "sheetHeader"
+  /** Node-card / row-table / sibling-spacer FILL inside the centre paper. In
+   * paper these are solid white; in glass they go transparent so the single
+   * `.estimate-glass-paper` surface reads through (no stacked white boxes on the
+   * glass). The grid's own border hairlines stay and carry the structure. */
+  | "gridNodeSurface"
+  | "gridSiblingDivider"
+  | "gridTableRoot"
+  /** Sticky grid headers (node-group header wrapper + the row-table column
+   * `<thead>`) that dense cost rows scroll under: paper white, glass a cool
+   * frosted `.estimate-glass-headchrome` wash that masks without going stark. */
+  | "gridStickyHeader"
+  | "gridTableHead";
 
 export function estimateSurfaceClass(
   variant: EstimateSurfaceVariant,
@@ -86,19 +98,22 @@ export function estimateSurfaceClass(
       // Radius = rounded-xs (3px) to match the workspace shell (also 3px) and
       // DESIGN.md's "dense estimating surfaces stay 3px" — the glass read comes
       // from the frost + soft shadow, not from over-rounding.
+      // glass: the rail is a floating frosted pane. No own margin — the root
+      // section owns a uniform 8px gutter (gap-2 + p-2), so the gutter equals
+      // the inner padding everywhere and panes never double up their spacing.
       return glass
-        ? "estimate-glass-rail m-1.5 rounded-xs"
+        ? "estimate-glass-rail rounded-xs"
         : "border-r border-hairline bg-white";
     case "libraryRail":
       // glass: same floating treatment; the library container lacks
       // overflow-hidden, so add it here to clip the rounded corners.
       return glass
-        ? "estimate-glass-rail m-1.5 rounded-xs overflow-hidden"
+        ? "estimate-glass-rail rounded-xs overflow-hidden"
         : "border-l border-hairline bg-white";
     case "centerColumn":
     case "centerColumnFallback":
       // glass: floating near-opaque paper with a small frost gutter + rounding.
-      return glass ? "estimate-glass-paper m-1.5 rounded-xs" : "bg-white";
+      return glass ? "estimate-glass-paper rounded-xs" : "bg-white";
     case "railPanelHeader":
       // glass: near-opaque masking wash + soft hairline. The leading
       // `bg-transparent` lets tailwind-merge strip TreePanelHeader's baked-in
@@ -118,6 +133,18 @@ export function estimateSurfaceClass(
       return glass
         ? "estimate-glass-chrome estimate-glass-divider"
         : "border-b border-hairline bg-white/95 backdrop-blur";
+    case "gridNodeSurface":
+    case "gridSiblingDivider":
+    case "gridTableRoot":
+      // glass: transparent so the one glass paper reads through (kills the
+      // stacked-white-box look); the grid's border hairlines still structure it.
+      // paper: the original solid white — live page byte-for-byte unchanged.
+      return glass ? "" : "bg-white";
+    case "gridStickyHeader":
+    case "gridTableHead":
+      // glass: cool frosted wash that masks rows scrolling under the sticky head.
+      // paper: solid white (unchanged).
+      return glass ? "estimate-glass-headchrome" : "bg-white";
     default:
       return "";
   }

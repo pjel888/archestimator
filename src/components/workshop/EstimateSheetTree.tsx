@@ -1431,7 +1431,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
         <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className={cn("px-2 pb-2 pt-2", bulkSelectionCount > 0 && "pb-16")}>
+          <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
           {localNodes.length === 0 ? (
             <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
               This estimate is empty. Add an area to begin.

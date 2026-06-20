@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 import { MainSidebar, type MainSidebarStatus } from "@/components/sidebar/MainSidebar";
 import { WorkshopGlassBackdrop } from "@/components/workshop/WorkshopGlassBackdrop";
-import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
+import { ProjectTotalFooterOverlay } from "@/components/workshop/ProjectTotalHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkshopNotificationEntry } from "@/features/notifications/components/WorkshopNotificationEntry";
 import { WebVitalsProbe } from "@/components/workshop/WebVitalsProbe";
@@ -179,19 +179,7 @@ export async function WorkshopPageShell({
             <div className="min-w-0 flex-1">
               <WorkshopFeedbackModal />
             </div>
-            {projectId ? (
-              <div
-                className="absolute inset-y-0 flex items-center"
-                style={{
-                  left: "384px",
-                  right: "388px",
-                }}
-                data-estimate-center-column="project-total-footer"
-                aria-label="Estimate running totals"
-              >
-                <ProjectTotalHeader projectId={projectId} />
-              </div>
-            ) : null}
+            {projectId ? <ProjectTotalFooterOverlay projectId={projectId} /> : null}
             {showAskFlip ? <AskFlipFooterAssistant /> : null}
           </footer>
         </div>

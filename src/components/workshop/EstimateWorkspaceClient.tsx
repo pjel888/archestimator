@@ -116,7 +116,15 @@ export function EstimateWorkspaceClient({
   return (
     <EstimateSurfaceVariantProvider variant={surfaceVariant}>
     <section
-      className={cn("flex h-full min-h-0 overflow-hidden", estimateSurfaceClass(surfaceVariant, "root"))}
+      className={cn(
+        "flex h-full min-h-0 overflow-hidden",
+        // glass: a single uniform 8px rhythm — the section pads itself 8px and
+        // gaps its three floating panes 8px, so the gutter equals the inner
+        // padding and there is no doubled spacing between panes. paper: panes
+        // abut edge-to-edge as before (live page unchanged).
+        surfaceVariant === "glass" && "gap-2 p-2",
+        estimateSurfaceClass(surfaceVariant, "root"),
+      )}
       aria-label={`${projectName} estimates`}
     >
       <EstimateSheetTree
