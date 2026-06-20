@@ -1,11 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Lifebuoy } from "@phosphor-icons/react/dist/ssr";
 
 import { Modal } from "@/components/ui/modal";
-import { BetaFeedbackForm } from "@/components/workshop/BetaFeedbackForm";
 import { cn } from "@/lib/ui/cn";
+
+// Heavy form body kept out of the shared workshop client chunk; it only mounts
+// when the modal opens (the dialog portal renders nothing while closed), so the
+// chunk is fetched on first open. No loading fallback — the modal frame already
+// provides the visible shell for the brief fetch.
+const BetaFeedbackForm = dynamic(
+  () => import("@/components/workshop/BetaFeedbackForm").then((mod) => mod.BetaFeedbackForm),
+  { ssr: false },
+);
 
 type WorkshopFeedbackModalProps = {
   className?: string;

@@ -1,11 +1,8 @@
 "use client";
 
 import {
-  ArrowLeft,
   ArrowSquareOut,
-  Briefcase,
   Buildings,
-  CaretRight,
   EnvelopeSimple,
   FileText,
   Lifebuoy,
@@ -14,7 +11,7 @@ import {
   UsersThree,
   Wrench,
 } from "@phosphor-icons/react/dist/ssr";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/ui/cn";
 
@@ -125,152 +122,144 @@ const platformSettingsGroup: SettingsGroup = {
   title: "Beta operations",
 } as const;
 
-function SettingsIndexRow({ page, onSelect }: { page: SettingsPage; onSelect: (pageId: string) => void }) {
+function SettingsRailRow({
+  active,
+  page,
+  onSelect,
+}: {
+  active: boolean;
+  page: SettingsPage;
+  onSelect: (pageId: string) => void;
+}) {
   return (
     <li>
       <button
         type="button"
-        className="group flex min-h-[58px] w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
-        aria-label={`Open ${page.title} settings`}
+        title={`${page.title}: ${page.description}`}
+        className={cn(
+          "group flex min-h-8 w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xs px-2 py-1.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          active ? "bg-surfaceMuted text-ink" : "text-secondary hover:bg-surfaceMuted hover:text-ink",
+        )}
+        aria-current={active ? "page" : undefined}
+        aria-label={`Show ${page.title} settings`}
+        aria-controls="settings-detail-panel"
         onClick={() => onSelect(page.id)}
       >
-        <span className="grid size-5 shrink-0 place-items-center text-tertiary transition group-hover:text-ink">
+        <span
+          className={cn(
+            "grid size-5 shrink-0 place-items-center text-tertiary transition group-hover:text-ink",
+            active && "text-ink",
+          )}
+        >
           {page.icon}
         </span>
-        <span className="min-w-0 flex-1 space-y-0.5">
-          <span className="block text-[11px] font-medium leading-4 text-ink">{page.title}</span>
-          <span className="block text-[10px] leading-4 text-tertiary">{page.description}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate whitespace-nowrap text-[10px] font-medium leading-4">{page.title}</span>
         </span>
-        <CaretRight size={12} weight="regular" className="shrink-0 text-tertiary transition group-hover:text-ink" aria-hidden="true" />
       </button>
     </li>
   );
 }
 
-function SettingsIndex({
+function SettingsRail({
+  activePageId,
   groups,
   onSelect,
 }: {
+  activePageId: string | null;
   groups: readonly SettingsGroup[];
   onSelect: (pageId: string) => void;
 }) {
   return (
-    <div className="min-h-0 overflow-y-auto px-4 py-4">
-      <div className="mx-auto max-w-[680px] space-y-3">
-        <div className="rounded-xs border border-hairline bg-white">
-          {groups.map((group, groupIndex) => (
-            <section key={group.id} aria-labelledby={`settings-group-${group.id}`}>
-              <div
-                className={cn(
-                  "border-b border-hairline px-3 py-2",
-                  groupIndex > 0 && "border-t",
-                )}
-              >
-                <h4
-                  id={`settings-group-${group.id}`}
-                  className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary"
-                >
-                  {group.title}
-                </h4>
-              </div>
-              <ul className="divide-y divide-hairline">
-                {group.pages.map((page) => (
-                  <SettingsIndexRow key={page.id} page={page} onSelect={onSelect} />
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 border border-hairline px-3 py-2 text-[10px] leading-4 text-tertiary">
-          <Briefcase size={12} weight="regular" aria-hidden="true" />
-          <span className="min-w-0">Settings changes apply across the current workshop account.</span>
-        </div>
-      </div>
-    </div>
+    <aside className="min-h-0 overflow-x-hidden overflow-y-auto border-r border-hairline bg-white p-2" aria-label="Settings navigation">
+      <nav className="min-w-0 space-y-3" aria-label="Settings pages">
+        {groups.map((group, groupIndex) => (
+          <section
+            key={group.id}
+            className={cn("min-w-0", groupIndex > 0 && "border-t border-hairline pt-2")}
+            aria-labelledby={`settings-group-${group.id}`}
+          >
+            <h4
+              id={`settings-group-${group.id}`}
+              className="truncate px-2 pb-1 text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary"
+            >
+              {group.title}
+            </h4>
+            <ul className="grid min-w-0 gap-0.5">
+              {group.pages.map((page) => (
+                <SettingsRailRow
+                  key={page.id}
+                  active={page.id === activePageId}
+                  page={page}
+                  onSelect={onSelect}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </nav>
+    </aside>
   );
 }
 
-function SettingsDetailPage({
-  backButtonRef,
-  onBack,
+function SettingsDetailPanel({
   page,
   signOutControl,
 }: {
-  backButtonRef: React.RefObject<HTMLButtonElement | null>;
-  onBack: () => void;
   page: SettingsPage;
   signOutControl: ReactNode;
 }) {
   const isSignOut = page.id === "sign-out";
+  const isEmailAction = page.href?.startsWith("mailto:");
 
   return (
-    <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)]">
-      <div className="flex min-h-10 items-center gap-2 border-b border-hairline bg-white px-2 py-1">
-        <button
-          ref={backButtonRef}
-          type="button"
-          className="inline-flex min-h-8 items-center gap-1 rounded-xs px-2 text-[10px] font-medium leading-none text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          onClick={onBack}
-        >
-          <ArrowLeft size={12} weight="regular" aria-hidden="true" />
-          Settings
-        </button>
-        <span className="min-w-0 truncate text-[10px] leading-4 text-tertiary">
-          / {page.category} / <span className="text-secondary">{page.title}</span>
-        </span>
+    <section aria-labelledby={`settings-page-${page.id}-title`} className="mx-auto max-w-[620px] space-y-4 px-4 py-4 sm:px-5 sm:py-5">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 grid size-5 shrink-0 place-items-center text-tertiary">{page.icon}</span>
+        <div className="min-w-0 space-y-1">
+          <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">{page.category}</p>
+          <h3 id={`settings-page-${page.id}-title`} className="text-[12px] font-medium leading-4 text-ink">
+            {page.title}
+          </h3>
+          <p className="max-w-[62ch] text-[10px] leading-4 text-tertiary">{page.description}</p>
+        </div>
       </div>
 
-      <div className="min-h-0 overflow-y-auto px-4 py-4">
-        <section aria-labelledby={`settings-page-${page.id}-title`} className="mx-auto max-w-[620px] space-y-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 grid size-5 shrink-0 place-items-center text-tertiary">{page.icon}</span>
-            <div className="min-w-0 space-y-1">
-              <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">{page.category}</p>
-              <h3 id={`settings-page-${page.id}-title`} className="text-[12px] font-medium leading-4 text-ink">
-                {page.title}
-              </h3>
-              <p className="max-w-[62ch] text-[10px] leading-4 text-tertiary">{page.description}</p>
-            </div>
-          </div>
-
-          <div className="rounded-xs border border-hairline bg-white">
-            <div className="border-b border-hairline px-3 py-2">
-              <h4 className="text-[10px] font-medium leading-4 text-ink">This page controls</h4>
-            </div>
-            <ul className="divide-y divide-hairline">
-              {page.notes.map((note) => (
-                <li key={note} className="px-3 py-2 text-[10px] leading-4 text-secondary">
-                  {note}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="flex min-h-12 flex-col gap-2 border border-hairline px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-[10px] font-medium leading-4 text-ink">
-                {isSignOut ? "Ready to end this session?" : "Open the full settings page"}
-              </p>
-              <p className="text-[10px] leading-4 text-tertiary">
-                {isSignOut ? "This action signs out only this browser session." : page.href}
-              </p>
-            </div>
-            {isSignOut ? (
-              signOutControl
-            ) : page.href ? (
-              <a
-                href={page.href}
-                className="inline-flex min-h-8 min-w-[96px] shrink-0 items-center justify-center gap-2 rounded-xs border border-divider bg-white px-2 py-1.5 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              >
-                Open page
-                <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
-              </a>
-            ) : null}
-          </div>
-        </section>
+      <div className="rounded-xs border border-hairline bg-white">
+        <div className="border-b border-hairline px-3 py-2">
+          <h4 className="text-[10px] font-medium leading-4 text-ink">This page controls</h4>
+        </div>
+        <ul className="divide-y divide-hairline">
+          {page.notes.map((note) => (
+            <li key={note} className="px-3 py-2 text-[10px] leading-4 text-secondary">
+              {note}
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
+
+      <div className="flex min-h-12 flex-col gap-2 border border-hairline bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium leading-4 text-ink">
+            {isSignOut ? "Ready to end this session?" : isEmailAction ? "Contact support" : "Open the full settings page"}
+          </p>
+          <p className="text-[10px] leading-4 text-tertiary">
+            {isSignOut ? "This action signs out only this browser session." : page.href}
+          </p>
+        </div>
+        {isSignOut ? (
+          signOutControl
+        ) : page.href ? (
+          <a
+            href={page.href}
+            className="inline-flex min-h-8 min-w-[96px] shrink-0 items-center justify-center gap-2 rounded-xs border border-divider bg-white px-2 py-1.5 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+          >
+            {isEmailAction ? "Open email" : "Open page"}
+            <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+          </a>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -281,31 +270,23 @@ export function WorkshopSettingsModalContentView({
   canManagePlatform: boolean;
   signOutControl: ReactNode;
 }) {
-  const [activePageId, setActivePageId] = useState<string | null>(null);
-  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [activePageId, setActivePageId] = useState("profile");
   const settingsGroups: readonly SettingsGroup[] = canManagePlatform
     ? [...baseSettingsGroups, platformSettingsGroup]
     : baseSettingsGroups;
   const settingsPages = settingsGroups.flatMap((group) => group.pages);
-  const activePage = settingsPages.find((page) => page.id === activePageId);
-
-  useEffect(() => {
-    if (!activePage) return;
-    window.requestAnimationFrame(() => backButtonRef.current?.focus({ preventScroll: true }));
-  }, [activePage]);
+  const activePage = settingsPages.find((page) => page.id === activePageId) ?? accountSettings[0];
 
   return (
-    <div className="h-[min(640px,calc(100dvh-96px))] min-h-[460px] overflow-hidden bg-white">
-      {activePage ? (
-        <SettingsDetailPage
-          backButtonRef={backButtonRef}
-          onBack={() => setActivePageId(null)}
-          page={activePage}
-          signOutControl={signOutControl}
-        />
-      ) : (
-        <SettingsIndex groups={settingsGroups} onSelect={setActivePageId} />
-      )}
+    <div className="grid h-[min(640px,calc(100dvh-96px))] min-h-[460px] grid-cols-[148px_minmax(0,1fr)] overflow-hidden bg-white sm:grid-cols-[260px_minmax(0,1fr)]">
+      <SettingsRail activePageId={activePage.id} groups={settingsGroups} onSelect={setActivePageId} />
+      <main
+        id="settings-detail-panel"
+        className="min-h-0 overflow-y-auto bg-white"
+        aria-label={activePage ? `${activePage.title} settings` : "Settings detail panel"}
+      >
+        <SettingsDetailPanel page={activePage} signOutControl={signOutControl} />
+      </main>
     </div>
   );
 }

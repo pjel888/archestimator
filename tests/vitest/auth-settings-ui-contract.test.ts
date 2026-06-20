@@ -25,28 +25,35 @@ describe("auth onboarding and settings route contracts", () => {
   });
 
   it("keeps settings as a discoverable hub for beta operations", () => {
-    const source = read("src/components/workshop/WorkshopSettingsModalContent.tsx");
+    const wrapperSource = read("src/components/workshop/WorkshopSettingsModalContent.tsx");
+    const source = read("src/components/workshop/WorkshopSettingsModalContentView.tsx");
     const modalSource = read("src/components/workshop/WorkshopSettingsModal.tsx");
     const pageSource = read("src/app/workshop/settings/page.tsx");
 
-    expect(source).toContain('aria-label="Settings sections"');
-    expect(source).toContain("sm:grid-cols-[220px_minmax(0,1fr)]");
+    expect(source).toContain('aria-label="Settings navigation"');
+    expect(source).toContain('id="settings-detail-panel"');
+    expect(source).toContain('useState("profile")');
     expect(source).toContain('href: "/workshop/settings/profile"');
     expect(source).toContain('href: "/workshop/settings/workspace"');
     expect(source).toContain('href: "/workshop/feedback"');
     expect(source).toContain('href: "/terms"');
-    expect(source).toContain('href: "/workshop/terms?next=%2Fworkshop%2Fsettings"');
-    expect(source).toContain("Terms acceptance");
     expect(source).toContain("Support and legal");
     expect(source).toContain("support@archestimator.com");
     expect(source).toContain('href: "/workshop/settings/beta-users"');
     expect(source).toContain('href: "/workshop/settings/feedback"');
-    expect(source).toContain('import { signOut } from "@/lib/auth/actions"');
-    expect(source).toContain("action={signOut}");
+    expect(wrapperSource).toContain('import { signOut } from "@/lib/auth/actions"');
+    expect(wrapperSource).toContain("action={signOut}");
     expect(source).toContain("Sign out");
     expect(modalSource).toContain('className="max-w-[920px]"');
+    expect(modalSource).toContain('bodyClassName="bg-white p-0"');
+    expect(modalSource).toContain("cursor-pointer");
+    expect(modalSource).toContain("window.location.assign(closeHref)");
     expect(pageSource).toContain('context.role === "ceo" || context.role === "admin"');
     expect(pageSource).toContain('trigger="none"');
+    expect(pageSource).toContain('closeHref="/workshop/projects"');
+    expect(pageSource).toContain('location="Workshop / Settings"');
+    expect(pageSource).toContain('aria-hidden="true"');
+    expect(pageSource).not.toContain('className="h-full bg-white"');
     expect(pageSource).toContain("initialOpen");
     expect(pageSource).not.toContain("SettingsLinkCard");
     expect(pageSource).not.toContain('redirect("/workshop/settings/profile")');

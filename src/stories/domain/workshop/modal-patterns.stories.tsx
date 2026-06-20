@@ -18,42 +18,42 @@ const treeItems = ["All components", "Millwork", "Finishes", "Furniture", "Light
 
 const settingsAuditSteps = [
   {
-    health: "Improved: lighter index and clearer next action",
+    health: "Improved: persistent rail plus default Profile page",
     image: "/storybook-audits/settings-modal-audit-desktop.png",
-    name: "Desktop Settings index",
+    name: "Desktop Settings rail",
     notes:
-      "The modal now starts as a clean settings hub. Rows are simpler, icons are plain, and users choose one page instead of scanning every setting at once.",
+      "The modal now opens with Profile selected by default. The side rail stays visible and uses compact single-line labels.",
   },
   {
-    health: "Improved: focused page on narrow screens",
+    health: "Improved: selected detail without losing navigation",
     image: "/storybook-audits/settings-modal-audit-mobile.png",
-    name: "Narrow Settings detail",
+    name: "Narrow selected setting",
     notes:
-      "The drill-in state works better on small screens because one setting owns the viewport. The Back row and breadcrumbs preserve orientation.",
+      "The selected Workspace setting updates the right panel while the rail stays in place, so users can switch pages without backing out.",
   },
 ] as const;
 
 const settingsAuditFindings = [
   {
-    evidence: "The index shows only grouped entry points; each row opens a single detail page instead of keeping all sections visible.",
-    fix: "Keep this hub/detail model as the canonical navigation-modal pattern.",
+    evidence: "The modal starts with Profile selected in a persistent grouped rail instead of hiding navigation after selection.",
+    fix: "Keep this rail/detail model as the canonical navigation-modal pattern.",
     severity: "Strength",
-    title: "Settings now uses progressive disclosure",
+    title: "Settings now keeps navigation persistent",
   },
   {
-    evidence: "Rows now use a plain icon, title, helper line, and caret with no icon chip background or nested section cards.",
+    evidence: "Rows now use a plain icon and one-line title with no icon chip background, helper-text overflow, nested section card, or trailing decoration.",
     fix: "Use this row shape for future settings and lightweight navigation modals.",
     severity: "Strength",
     title: "The settings links are visually simpler",
   },
   {
     evidence: "Detail pages expose an `Open page` route link, while the modal itself also contains a preview/detail state.",
-    fix: "Decide whether production settings should be modal-only previews, full route pages, or the modal hub plus route handoff used here.",
+    fix: "Decide whether production settings should be modal-only previews, full route pages, or the rail/detail modal plus route handoff used here.",
     severity: "P2",
     title: "Route ownership should be made explicit",
   },
   {
-    evidence: "Initial modal focus can now land on the modal content instead of the close button; drill-in moves focus to the Back control.",
+    evidence: "Initial modal focus can now land on the modal content instead of the close button, and the selected row stays in the same tab order.",
     fix: "Confirm the final keyboard order in the real app shell after the production routes exist.",
     severity: "P2",
     title: "Keyboard order is improved but still needs real-route proof",
@@ -321,7 +321,7 @@ function ModalPatternLauncher({ pattern }: { pattern: ModalPattern }) {
         <h3 className="text-[12px] font-medium leading-4 text-ink">{isSettings ? "Settings modal" : "Create Component modal"}</h3>
         <p className="mt-1 max-w-[62ch] text-[10px] leading-4 text-tertiary">
           {isSettings
-            ? "Best current shell for settings navigation: lightweight index, drill-in pages, and provider-free content review."
+            ? "Best current shell for settings navigation: stable side rail, default Profile page, and provider-free content review."
             : "Best current dense editor reference: image rail, edit body, placement rail, and sticky commit bar."}
         </p>
       </div>
@@ -343,9 +343,9 @@ function ModalStandardsComparison() {
       <StoryPanel className="space-y-2">
         <h3 className="text-[12px] font-medium leading-4 text-ink">Settings standard</h3>
         <ul className="grid gap-1 text-[10px] leading-4 text-tertiary">
-          <li>Side navigation for stable categories.</li>
-          <li>Settings use a lightweight index with one drill-in page per row.</li>
-          <li>Rows use one title, one helper line, one plain icon, and one trailing affordance.</li>
+          <li>Side navigation stays visible for stable categories.</li>
+          <li>The right panel starts on Profile, then changes when a setting is selected.</li>
+          <li>Rows use one title and one plain icon, with no horizontal scrolling.</li>
           <li>Content is now provider-free for Storybook review.</li>
         </ul>
       </StoryPanel>
@@ -359,7 +359,7 @@ function ModalStandardsComparison() {
       </StoryPanel>
       <div className="lg:col-span-2">
         <Note>
-          Recommendation: use Settings as the canonical hub/detail navigation modal pattern, and use Create Component as the canonical high-density editor pattern. Avoid copying the production Create Component modal into Storybook directly because it owns uploads, server actions, and mutation state.
+          Recommendation: use Settings as the canonical rail/detail navigation modal pattern, and use Create Component as the canonical high-density editor pattern. Avoid copying the production Create Component modal into Storybook directly because it owns uploads, server actions, and mutation state.
         </Note>
       </div>
     </StoryGrid>
@@ -435,8 +435,8 @@ function SettingsModalAuditReview() {
           <ul className="grid gap-1 text-[10px] leading-4 text-tertiary">
             <li>White modal surface is simple and consistent with DESIGN.md tokens.</li>
             <li>Separate close chrome, title header, body, and location footer remain legible.</li>
-            <li>Rows use compact title/helper/action structure with less decoration.</li>
-            <li>Each setting has a focused detail state instead of competing sections.</li>
+            <li>Rows use compact title/icon structure with less decoration.</li>
+            <li>Each setting updates the right panel without removing the side rail.</li>
           </ul>
         </StoryPanel>
         <StoryPanel className="space-y-1">
@@ -444,7 +444,7 @@ function SettingsModalAuditReview() {
           <ol className="grid list-decimal gap-1 pl-4 text-[10px] leading-4 text-tertiary">
             <li>Decide whether full route pages duplicate or replace modal detail content.</li>
             <li>Add final route-level focus and screen-reader checks.</li>
-            <li>Consider syncing footer breadcrumbs to the active detail page.</li>
+            <li>Consider syncing footer breadcrumbs to the selected detail page.</li>
           </ol>
         </StoryPanel>
         <StoryPanel className="space-y-1">

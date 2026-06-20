@@ -14,8 +14,13 @@ export default async function WorkshopSettingsPage() {
       breadcrumbs={["Settings"]}
       contentClassName="p-2"
     >
-      <div className="h-full bg-white" aria-label="Settings modal canvas" />
-      <WorkshopSettingsModal initialOpen closeHref="/workshop/projects" trigger="none">
+      <div className="h-full" aria-hidden="true" />
+      <WorkshopSettingsModal
+        initialOpen
+        closeHref="/workshop/projects"
+        trigger="none"
+        location="Workshop / Settings"
+      >
         <WorkshopSettingsModalContent canManagePlatform={canManagePlatform} />
       </WorkshopSettingsModal>
     </WorkshopPageShell>

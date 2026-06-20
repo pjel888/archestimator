@@ -1,69 +1,115 @@
 {
-  "capturedAt": "2026-06-20T01:50:23.178Z",
-  "settingsUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal&fresh=1781920219633",
-  "auditUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal-audit&fresh=1781920219633",
-  "errors": [],
+  "capturedAt": "2026-06-20T02:24:33.030Z",
+  "storyUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal",
   "desktop": {
-    "dialog": {
-      "width": 920,
-      "height": 764,
-      "top": 109,
-      "left": 180
-    },
-    "activeElement": {
-      "tag": "DIV",
-      "role": "dialog",
-      "ariaLabel": null,
-      "text": "SettingsManage account, workspace, and beta operations.AccountProfileName, email"
-    },
-    "hasProfile": true,
-    "hasDataRequests": true,
-    "hasTermsPrivacy": true,
-    "hasTermsAcceptanceRow": false,
-    "hasBetaFeedback": true,
+    "selectedRowText": "Profile",
+    "railClientWidth": 259,
+    "railScrollWidth": 259,
+    "railOverflowX": "hidden",
+    "railHasHorizontalOverflow": false,
+    "documentHasHorizontalOverflow": false,
     "rowButtonCount": 8,
-    "lastRowVisibleAboveFooter": true
-  },
-  "mobile": {
-    "dialog": {
-      "width": 358,
-      "height": 764,
-      "top": 81,
-      "left": 16
-    },
-    "activeElement": {
-      "tag": "BUTTON",
-      "role": null,
-      "ariaLabel": null,
-      "text": "Settings"
-    },
-    "hasDetail": true,
-    "hasBackCrumb": true,
-    "hasOpenPage": true,
-    "escapeClosed": true
-  },
-  "audit": {
-    "hasProgressiveDisclosureFinding": true,
-    "hasSimplerLinksFinding": true,
-    "images": [
+    "rowCursors": [
+      "pointer",
+      "pointer",
+      "pointer",
+      "pointer",
+      "pointer",
+      "pointer",
+      "pointer",
+      "pointer"
+    ],
+    "sectionBorders": [
       {
-        "src": "/storybook-audits/settings-modal-audit-desktop.png",
-        "complete": true,
-        "naturalWidth": 1280,
-        "naturalHeight": 1064
+        "heading": "Account",
+        "borderTopWidth": "0px"
       },
       {
-        "src": "/storybook-audits/settings-modal-audit-mobile.png",
-        "complete": true,
-        "naturalWidth": 390,
-        "naturalHeight": 1008
+        "heading": "Support and legal",
+        "borderTopWidth": "1px"
+      },
+      {
+        "heading": "Beta operations",
+        "borderTopWidth": "1px"
       }
-    ]
+    ],
+    "hasProfileDetail": true,
+    "hasWorkspaceDetail": false,
+    "footerText": "Workshop / Modal patterns / Settings"
   },
-  "files": {
-    "desktop": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-desktop.png",
-    "mobile": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-mobile.png",
-    "capture": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-capture.json",
-    "notes": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-notes.md"
-  }
+  "mobile": {
+    "start": {
+      "selectedRowText": "Profile",
+      "railClientWidth": 147,
+      "railScrollWidth": 147,
+      "railOverflowX": "hidden",
+      "railHasHorizontalOverflow": false,
+      "documentHasHorizontalOverflow": false,
+      "rowButtonCount": 8,
+      "rowCursors": [
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer"
+      ],
+      "sectionBorders": [
+        {
+          "heading": "Account",
+          "borderTopWidth": "0px"
+        },
+        {
+          "heading": "Support and legal",
+          "borderTopWidth": "1px"
+        },
+        {
+          "heading": "Beta operations",
+          "borderTopWidth": "1px"
+        }
+      ],
+      "hasProfileDetail": true,
+      "hasWorkspaceDetail": false,
+      "footerText": "Workshop / Modal patterns / Settings"
+    },
+    "afterWorkspaceClick": {
+      "selectedRowText": "Workspace",
+      "railClientWidth": 147,
+      "railScrollWidth": 147,
+      "railOverflowX": "hidden",
+      "railHasHorizontalOverflow": false,
+      "documentHasHorizontalOverflow": false,
+      "rowButtonCount": 8,
+      "rowCursors": [
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer",
+        "pointer"
+      ],
+      "sectionBorders": [
+        {
+          "heading": "Account",
+          "borderTopWidth": "0px"
+        },
+        {
+          "heading": "Support and legal",
+          "borderTopWidth": "1px"
+        },
+        {
+          "heading": "Beta operations",
+          "borderTopWidth": "1px"
+        }
+      ],
+      "hasProfileDetail": false,
+      "hasWorkspaceDetail": true,
+      "footerText": "Workshop / Modal patterns / Settings"
+    }
+  },
+  "errors": []
 }
