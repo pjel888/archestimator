@@ -1248,6 +1248,36 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     expect(publicationActions.revokeProjectPublication).toHaveBeenCalledTimes(1);
   });
 
+  it("guards the rotate confirm against double-submit (action called once)", async () => {
+    let resolveRotate: ((value: { ok: boolean; message: string; clientLinkPath: string }) => void) | undefined;
+    publicationActions.rotateProjectPublicationLink.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRotate = resolve;
+        }),
+    );
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
+    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    const confirmButton = within(confirmDialog).getByRole("button", { name: "Create new link" });
+
+    act(() => {
+      confirmButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      confirmButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledTimes(1);
+
+    resolveRotate?.({ ok: true, message: "New shared link ready.", clientLinkPath: "/share/rotated-token" });
+    await within(dialog).findByText("New shared link ready.");
+    expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledTimes(1);
+  });
+
   it("disables the destructive confirm button while the action is pending", async () => {
     let resolveRevoke: (() => void) | undefined;
     publicationActions.revokeProjectPublication.mockImplementation(

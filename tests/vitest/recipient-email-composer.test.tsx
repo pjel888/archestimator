@@ -338,4 +338,23 @@ describe("RecipientEmailComposer — recipient-result merge (AC-MOD-17)", () => 
     expect(await screen.findByRole("button", { name: "Resend new@example.com" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove new@example.com" })).toBeInTheDocument();
   });
+
+  it("reports failed recipient sends as error-toned alerts", async () => {
+    const onMessage = vi.fn();
+    publicationActions.addSharedLinkRecipients.mockRejectedValue(new Error("Email provider unavailable."));
+    const user = userEvent.setup();
+
+    render(<RecipientEmailComposer publicationId={PUBLICATION_ID} onMessage={onMessage} />);
+    await typeAndSend(user, "new@example.com");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Email provider unavailable.");
+    expect(alert).toHaveClass("bg-dangerSoft", "text-danger");
+    await waitFor(() => {
+      expect(onMessage).toHaveBeenCalledWith({
+        text: "Email provider unavailable.",
+        tone: "error",
+      });
+    });
+  });
 });

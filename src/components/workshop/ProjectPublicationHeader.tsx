@@ -607,7 +607,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           <aside className="border-b border-hairline bg-surfaceMuted p-4 lg:border-b-0 lg:border-r lg:p-6">
             <div className="space-y-4">
               <div>
-                <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link</p>
+                <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Shared link</p>
                 <p className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
                 <p className="mt-1 text-[10px] leading-3 text-secondary">
                   {summary?.selectedEstimateCount ?? 0} estimates · version {summary?.snapshotVersion ?? 0}
@@ -620,14 +620,14 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               </div>
               <div className="border-t border-hairline pt-4 space-y-3">
                 <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Opened</p>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Opened</p>
                   <p className="mt-0.5 text-[10px] leading-3 text-secondary">
                     <span className="font-medium text-ink">{metadataSource?.openCount ?? 0}</span> times
                   </p>
                 </div>
                 {latestRecipientOpen && recipientOpenIsLatest ? (
                   <div>
-                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Last opened by</p>
+                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Last opened by</p>
                     <p className="mt-0.5 text-[10px] leading-3 text-secondary">
                       <span className="block text-ink">{latestRecipientOpen.displayName || latestRecipientOpen.email}</span>
                       <span className="block">{latestRecipientOpen.email}</span>
@@ -636,16 +636,16 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   </div>
                 ) : (
                   <div>
-                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Last opened</p>
+                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Last opened</p>
                     <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(latestAnonymousOpenedAt)}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Published</p>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Published</p>
                   <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.publishedAt ?? null)}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Expires</p>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Expires</p>
                   <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.expiresAt ?? null)}</p>
                 </div>
               </div>
@@ -682,8 +682,8 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
             >
               {activeTab === "activity" && canManagePublication && (
                 <div className="space-y-2">
-                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link activity</h3>
-                  <p className="text-[9px] text-tertiary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
+                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Shared link activity</h3>
+                  <p className="text-[9px] text-secondary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
                   {/* AC-MOD-19 (MOD-ACTIVITY-TOKEN-01): only mount the feed for a genuinely live link
                       with a non-empty token. A revoked/expired link has a null clientLinkPath → an
                       empty token → loadSharedLinkActivity("") throws "not found", which the feed shows
@@ -692,7 +692,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                     <SharedLinkActivityFeed publicationToken={activityPublicationToken} publicationId={summary?.publicationId ?? null} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
                   ) : (
                     <p
-                      className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-[10px] leading-4 text-tertiary"
+                      className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-[10px] leading-4 text-secondary"
                       role="status"
                     >
                       Activity is available while the link is live. Reactivate or create a shared link to see recipient activity.
@@ -710,7 +710,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   role="status"
                 >
                   <p className="font-medium text-ink">No shareable publication yet</p>
-                  <p className="mt-1 text-tertiary">
+                  <p className="mt-1 text-secondary">
                     This project doesn&apos;t have a shareable client page yet. Open a project with
                     published estimates to create and manage its shared link here.
                   </p>
@@ -761,7 +761,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                         </Button>
                       </div>
                     </ControlField>
-                    <span className="mt-5 shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
+                    <span className="mt-5 shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-secondary">
                       {passwordStateLabel}
                     </span>
                   </div>
@@ -771,7 +771,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               {activeTab === "sheets" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Estimates to include</h3>
+                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Estimates to include</h3>
                     {/* AC-MOD-14 (MOD-SHEET-02): the published link still shows its saved estimates
                         until the owner presses Update; this hint surfaces the pending change. */}
                     {estimateSelectionDirty && (
@@ -788,7 +788,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                     disabled={isPending}
                   />
                   {!hasSelectedEstimates && projectEstimateSheets.length > 0 && (
-                    <p className="text-[9px] text-tertiary" role="status">0 estimates selected — generate is disabled</p>
+                    <p className="text-[9px] text-secondary" role="status">0 estimates selected — generate is disabled</p>
                   )}
                 </div>
               )}
@@ -796,7 +796,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               {activeTab === "access" && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Access</h3>
+                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Access</h3>
                     {/* AC-MOD-16 (MOD-PWDRAFT-CHECK-02): same unsaved-hint styling as the Estimates tab
                         (AC-MOD-14) — surfaces a pending password change before Update is pressed. */}
                     {passwordDraftDirty && (
@@ -888,13 +888,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   baseClientLink={clientLinkPath}
                   currentUserEmail={currentUserEmail}
                   projectName={null}
-                  // Recipient-composer messages surface in the shared status box; treat them as
-                  // neutral/success (the composer renders its own danger states inline).
-                  onMessage={(m) => setActionFeedback(m ? { text: m, tone: "success" } : null)}
+                  onMessage={(m) => setActionFeedback(m)}
                 />
               )}
               {activeTab === "recipients" && (!summary?.publicationId || !canManagePublication) && (
-                <div className="text-[10px] text-tertiary">
+                <div className="text-[10px] text-secondary">
                   Create or activate a shared link first to manage recipients.
                 </div>
               )}
@@ -902,10 +900,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
             {/* Link controls — always visible below tabs so Generate can be disabled from Estimates tab state */}
             <div className="border-t border-hairline p-6">
-              <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Link controls</h3>
+              <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Link controls</h3>
               {isExpiredLink ? (
                 <>
-                  <p className="mt-2 text-[9px] leading-3 text-tertiary">
+                  <p className="mt-2 text-[9px] leading-3 text-secondary">
                     This link has expired. Reactivate it to keep the same URL and password, or create a brand-new link.
                   </p>
                   {freshTokenPasswordRequired && (
@@ -1111,7 +1109,7 @@ export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "a
 
   if (estimates.length === 0) {
     return (
-      <div className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center text-[10px] text-tertiary">
+      <div className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center text-[10px] text-secondary">
         No estimates in this project.
       </div>
     );
@@ -1136,7 +1134,7 @@ export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "a
         >
           Clear
         </button>
-        <span className="ml-auto text-tertiary tabular-nums">
+        <span className="ml-auto text-secondary tabular-nums">
           {selectedIds.length} / {estimates.length} selected
         </span>
       </div>
@@ -1165,7 +1163,7 @@ export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "a
       </div>
 
       {selectedIds.length === 0 && (
-        <p className="mt-1 text-[9px] text-tertiary" role="status">
+        <p className="mt-1 text-[9px] text-secondary" role="status">
           0 estimates selected
         </p>
       )}

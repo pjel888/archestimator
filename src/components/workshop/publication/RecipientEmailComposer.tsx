@@ -29,7 +29,12 @@ export type RecipientEmailComposerProps = {
   baseClientLink?: string | null;
   currentUserEmail?: string | null;
   projectName?: string | null;
-  onMessage?: (msg: string | null) => void;
+  onMessage?: (msg: RecipientComposerMessage | null) => void;
+};
+
+type RecipientComposerMessage = {
+  text: string;
+  tone: "success" | "error";
 };
 
 type LocalRecipient = {
@@ -66,7 +71,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   const [chips, setChips] = useState<LocalRecipient[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(false);
-  const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const [localMessage, setLocalMessage] = useState<RecipientComposerMessage | null>(null);
   const [resendingRecipientId, setResendingRecipientId] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<LocalRecipient | null>(null);
   // AC-MOD-13 (MOD-REC-06): a recipient who has already opened/responded keeps their live token;
@@ -77,6 +82,17 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   const [emailDeliveryMessage, setEmailDeliveryMessage] = useState<string | null>(null);
   const projectLabel = projectName?.trim() || "this project";
   const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail ?? "");
+
+  function setRecipientMessage(text: string, tone: RecipientComposerMessage["tone"]) {
+    const next = { text, tone };
+    setLocalMessage(next);
+    onMessage?.(next);
+  }
+
+  function clearRecipientMessage() {
+    setLocalMessage(null);
+    onMessage?.(null);
+  }
 
   // Load existing recipients for this publication (status chips)
   useEffect(() => {
@@ -124,8 +140,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p)) continue;
       const lower = normalizeEmail(p);
       if (normalizedCurrentUserEmail && lower === normalizedCurrentUserEmail) {
-        setLocalMessage(readSelfInviteBlockedMessage());
-        if (onMessage) onMessage(readSelfInviteBlockedMessage());
+        setRecipientMessage(readSelfInviteBlockedMessage(), "error");
         continue;
       }
       if (next.some((c) => c.email.toLowerCase() === lower)) continue;
@@ -135,7 +150,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
     if (added > 0) {
       setChips(next);
       setInput("");
-      setLocalMessage(null);
+      clearRecipientMessage();
     }
   }
 
@@ -146,8 +161,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   async function handleSend() {
     if (chips.length === 0 || isSending || emailDeliveryConfigured !== true) return;
     setIsSending(true);
-    setLocalMessage(null);
-    if (onMessage) onMessage(null);
+    clearRecipientMessage();
 
     try {
       const payload = chips
@@ -155,7 +169,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         .map((c) => ({ email: c.email, displayName: c.displayName || undefined }));
 
       if (payload.length === 0) {
-        setLocalMessage("All listed recipients already invited.");
+        setRecipientMessage("All listed recipients already invited.", "success");
         setIsSending(false);
         return;
       }
@@ -200,12 +214,10 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
 
       setChips(updated);
       const msg = result.message || (result.ok ? "Recipients added." : "Some recipients could not be added.");
-      setLocalMessage(msg);
-      if (onMessage) onMessage(msg);
+      setRecipientMessage(msg, result.ok ? "success" : "error");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to add recipients.";
-      setLocalMessage(msg);
-      if (onMessage) onMessage(msg);
+      setRecipientMessage(msg, "error");
     } finally {
       setIsSending(false);
     }
@@ -221,20 +233,17 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       await removeSharedLinkRecipient({ publicationId, recipientId: rec.id });
       setChips((prev) => prev.filter((c) => c.id !== rec.id));
       const msg = `Removed ${rec.email}`;
-      setLocalMessage(msg);
-      if (onMessage) onMessage(msg);
+      setRecipientMessage(msg, "success");
     } catch {
       const msg = "Remove failed.";
-      setLocalMessage(msg);
-      if (onMessage) onMessage(msg);
+      setRecipientMessage(msg, "error");
     }
   }
 
   async function handleResend(rec: LocalRecipient) {
     if (!rec.id || resendingRecipientId || emailDeliveryConfigured !== true) return;
     setResendingRecipientId(rec.id);
-    setLocalMessage(null);
-    if (onMessage) onMessage(null);
+    clearRecipientMessage();
 
     try {
       const result = await resendSharedLinkRecipientEmail({
@@ -249,12 +258,10 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
             : chip,
         ),
       );
-      setLocalMessage(result.message);
-      if (onMessage) onMessage(result.message);
+      setRecipientMessage(result.message, result.ok ? "success" : "error");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Recipient resend failed.";
-      setLocalMessage(msg);
-      if (onMessage) onMessage(msg);
+      setRecipientMessage(msg, "error");
     } finally {
       setResendingRecipientId(null);
     }
@@ -379,7 +386,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
             // (a bulk clear would just hide them until reopen and read as a silent removal).
             setChips((prev) => prev.filter((c) => c.id));
             setInput("");
-            setLocalMessage(null);
+            clearRecipientMessage();
           }}
           disabled={isSending || chips.every((c) => Boolean(c.id))}
           className="min-h-6 px-1.5 py-0 text-[9px]"
@@ -390,7 +397,16 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       </div>
 
       {localMessage && (
-        <p className="mt-1.5 rounded-xs bg-surfaceMuted px-2 py-1 text-[9px] text-secondary" role="status">{localMessage}</p>
+        <p
+          className={`mt-1.5 rounded-xs px-2 py-1 text-[9px] ${
+            localMessage.tone === "error"
+              ? "border border-dangerSoft bg-dangerSoft text-danger"
+              : "bg-surfaceMuted text-secondary"
+          }`}
+          role={localMessage.tone === "error" ? "alert" : "status"}
+        >
+          {localMessage.text}
+        </p>
       )}
 
       {chips.length === 0 && !isLoadingList && (
