@@ -176,7 +176,7 @@ function median(a) {
 
   const out = { generatedAt: new Date().toISOString(), label: LABEL, base: BASE, runs: RUNS, mode: "next-start-production-real-browser-softnav-overlay", summary, allRuns };
   const fs = await import("node:fs");
-  const dir = ".ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks";
+  const dir = ".ai/03_plans/2020-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks";
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(`${dir}/hero-browser-${LABEL}.json`, JSON.stringify(out, null, 2));
   console.log(`\nwrote ${dir}/hero-browser-${LABEL}.json`);

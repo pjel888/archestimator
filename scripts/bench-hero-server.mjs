@@ -74,7 +74,7 @@ for (const [name, path] of ROUTES) {
   );
 }
 
-const dir = ".ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks";
+const dir = ".ai/03_plans/2020-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks";
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(`${dir}/hero-server-${LABEL}.json`, JSON.stringify({ generatedAt: new Date().toISOString(), base: BASE, n: N, routes: out }, null, 2));
 console.log(`\nwrote ${dir}/hero-server-${LABEL}.json`);
