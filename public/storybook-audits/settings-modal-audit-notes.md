@@ -1,6 +1,6 @@
 # Settings Modal Audit Notes
 
-Captured: 2026-06-20T01:48:39.027Z
+Captured: 2026-06-20T01:50:23.178Z
 
 ## Scope
 
@@ -22,7 +22,8 @@ Storybook Settings modal after the hub/detail redesign. Desktop capture shows th
 
 ## Checks
 
-- Desktop index rendered: true
+- Desktop index row count: 8
+- Last desktop row above footer: true
 - Mobile Workspace detail rendered: true
 - Escape closed the modal: true
 - Audit story images loaded: true

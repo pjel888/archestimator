@@ -1,7 +1,7 @@
 {
-  "capturedAt": "2026-06-20T01:48:39.027Z",
-  "settingsUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal&fresh=1781920114748",
-  "auditUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal-audit&fresh=1781920114748",
+  "capturedAt": "2026-06-20T01:50:23.178Z",
+  "settingsUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal&fresh=1781920219633",
+  "auditUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal-audit&fresh=1781920219633",
   "errors": [],
   "desktop": {
     "dialog": {
@@ -14,13 +14,15 @@
       "tag": "DIV",
       "role": "dialog",
       "ariaLabel": null,
-      "text": "SettingsManage account, workspace, and beta operations.Settings pagesChoose one "
+      "text": "SettingsManage account, workspace, and beta operations.AccountProfileName, email"
     },
-    "hasIndex": true,
     "hasProfile": true,
     "hasDataRequests": true,
-    "hasBetaUsers": true,
-    "rowButtonCount": 9
+    "hasTermsPrivacy": true,
+    "hasTermsAcceptanceRow": false,
+    "hasBetaFeedback": true,
+    "rowButtonCount": 8,
+    "lastRowVisibleAboveFooter": true
   },
   "mobile": {
     "dialog": {
