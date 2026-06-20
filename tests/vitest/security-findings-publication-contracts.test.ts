@@ -40,10 +40,11 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
     expect(migrationText).toContain("drop function if exists public.submit_client_response(text, text, text, text)");
     expect(latestSubmitClientResponse).toContain("p_expected_snapshot_version integer");
-    expect(latestSubmitClientResponse).toContain("p_expected_snapshot_version > v_snapshot_version");
+    expect(latestSubmitClientResponse).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
     expect(latestSubmitClientResponse).toContain("p_decision, left(p_note, 2000), p_expected_snapshot_version");
     expect(decisionRoute).toContain("resolveProjectPublicationAccessByToken(token)");
     expect(decisionRoute).toContain("readPublicationViewSnapshotVersion");
+    expect(decisionRoute).toContain("viewedSnapshotVersion !== access.snapshotVersion");
     expect(decisionRoute).toContain("const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
@@ -56,12 +57,27 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
     expect(migrationText).toContain("drop function if exists public.insert_client_comment(text, text, uuid, uuid, text)");
     expect(latestInsertClientComment).toContain("p_expected_snapshot_version integer");
-    expect(latestInsertClientComment).toContain("p_expected_snapshot_version > v_snapshot_version");
+    expect(latestInsertClientComment).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
     expect(commentRoute).toContain("resolveProjectPublicationAccessByToken(token)");
     expect(commentRoute).toContain("readPublicationViewSnapshotVersion");
+    expect(commentRoute).toContain("viewedSnapshotVersion !== access.snapshotVersion");
     expect(commentRoute).toContain("const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
+  });
+
+  it("uses HMAC-peppered public telemetry hashes for structured share route logs", () => {
+    const commentRoute = read("src/app/api/share/[token]/comment/route.ts");
+    const decisionRoute = read("src/app/api/share/[token]/decision/route.ts");
+    const publicRepository = read("src/lib/publication/public-repository.ts");
+
+    expect(publicRepository).toContain("export function hashPublicTelemetryValue");
+    expect(publicRepository).toContain('createHmac("sha256", readTelemetryHashPepper())');
+    for (const routeSource of [commentRoute, decisionRoute]) {
+      expect(routeSource).toContain("hashPublicTelemetryValue(ip)");
+      expect(routeSource).not.toMatch(/createHash\(["']sha256["']\)\.update\(ip\)/);
+      expect(routeSource).not.toContain('from "crypto"');
+    }
   });
 
   it("rotates shared-link credentials under a locked current-row guard", () => {
