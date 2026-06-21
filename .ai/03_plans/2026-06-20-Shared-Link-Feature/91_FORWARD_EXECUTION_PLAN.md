@@ -6,8 +6,8 @@ executor can run after the ratified decisions and evidence gates are satisfied. 
 [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md); if this doc disagrees with 75, 75 wins.**
 
 Scope = the **Open** / **Partial** rows in [`75` §8 roll-up](75_FINDING_ID_REGISTRY.md):
-SEC-SHARE-05, SEC-SHARE-08;
-QA-G06 provider proof, QA-G10; PERF-01A, 05, 09, 12; SHF-01. RUX-12, QA-G07, and PERF-06 are fixed locally but retained below as completed checkpoints. The **Decision**-status rows
+QA-G06 provider proof, QA-G10; PERF-01A, 05, 09, 12; SHF-01. SEC-SHARE-05,
+SEC-SHARE-08, RUX-12, QA-G07, and PERF-06 are fixed locally but retained below as completed checkpoints. The **Decision**-status rows
 (SEC-SHARE-07, SHF-02/03) are now governed by ratified owner calls below. SEC-SHARE-06 and SEC-SHARE-10 are now code-fixed; D9/D3 remain broader implementation/signoff surfaces. Formerly decision-gated
 items (D1-D11) are now eligible for implementation — see
 [§4 Owner-decision block](#4-owner-decision-block) and
@@ -132,7 +132,7 @@ assigned them. This plan executes the canonical ids only:
 | QA-G07 | offline queue + tampered viewToken (40:58) | **Fixed** P1 | Tampered comment/decision 409 tests landed; offline queue flush now asserts sessionStorage persistence, reconnect flush, queue clearing, posted body/viewToken, and fresh CSRF headers. |
 | QA-G08 | comments-after-decision (40:52) | **Fixed** P1 | Real decision lock + follow-up comment behavior landed in `project-publication-decision.test.tsx`. |
 | QA-G09 | permissive status arrays (40 §1 note, current verifier re-anchor) | **Fixed** P2 | Broad status arrays were tightened to exact status/payload expectations. |
-| QA-G10 | live header smoke + visual proof (40:59-60) | **Open** P2 | Header smoke/seed helpers landed; live SHARE_URL execution + visual matrix remain deferred to [`85`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md). |
+| QA-G10 | live header smoke + visual proof (40:59-60) | **Partial** P2 | Production-mode local SHARE_URL smoke passed 2026-06-21; visual matrix remains deferred to [`85`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md), and hosted deploy smoke remains a deploy gate. |
 
 ---
 
@@ -377,17 +377,18 @@ target source · target test · verification command · blast radius.** Severiti
 
 ### WAVE 4 — Security / notification (HIGH BLAST RADIUS → 90 + Codex gate)
 
-#### SEC-SHARE-05 — Unsubscribe/session DELETE CSRF/rate hardening · BE · P3 (Open) · deps: **D5 ratified**
-- **Given** `unsubscribe/route.ts:70` uses `assertSameOrigin` (allows absent Origin), with no CSRF
-  pair and no rate limit, and `session/route.ts` DELETE lacks the public same-origin guard, **When** the
-  ratified D5 hardening lands, **Then** missing Origin is rejected where appropriate, an unsubscribe CSRF
-  token pair is required, and the unsubscribe route is rate-limited — affecting only email-suppression
-  for a known token plus session cleanup.
+#### SEC-SHARE-05 — Unsubscribe/session DELETE CSRF/rate hardening · BE · P3 · **Fixed 2026-06-21**
+- **Given** the D5 hardening has landed, **When** unsubscribe/session paths are exercised, **Then**
+  unsubscribe GET stays a read-only interstitial, unsubscribe POST requires the public form same-origin
+  guard plus CSRF nonce and durable `shared_link_unsubscribe` rate limit, and session DELETE uses the
+  public same-origin guard for session cleanup.
 - **Target source:** `src/app/api/share/[token]/unsubscribe/route.ts`, `src/app/api/share/[token]/session/route.ts`, `src/lib/publication/security.ts`.
 - **Target test:** extend `tests/vitest/share-unsubscribe-interstitial.test.ts`.
 - **Verify:** `bunx vitest run tests/vitest/share-unsubscribe-interstitial.test.ts --maxWorkers=1`
 - **Blast radius:** unsubscribe route only; public surface → Codex review gate + [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md).
-- **Gate:** PASS iff stricter origin, CSRF nonce, and rate limit controls are asserted.
+- **Gate:** PASS — canonical registry marks this fixed, covered by
+  `share-unsubscribe-interstitial.test.ts` and `project-publication-page.test.tsx`; keep as a completed
+  checkpoint for archive traceability.
 
 #### SEC-SHARE-06 — Owner digest fires from public recipient routes · BE · P3 · **Fixed; D9 signoff remains**
 - **Given** the prior implementation returned `digest-auth-required` from public recipient routes, **When** a public

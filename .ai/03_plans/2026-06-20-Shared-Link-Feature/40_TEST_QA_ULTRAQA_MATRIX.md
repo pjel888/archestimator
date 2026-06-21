@@ -13,8 +13,10 @@ canonical 23-file shared-link suite + type-check and supersedes the older 16-fil
 > already exists at `project-publication-comments.test.tsx:260-278`. The genuinely-loose *permissive
 > status* critique is re-pointed at the real offenders (comment RPC test `:287`, activity
 > current anchors `:484`, `:491`, `:657`) and re-rated **P2 (QA-G09)**. Follow-up implementation
-> then fixed QA-G03, QA-G04, QA-G07, QA-G08, and QA-G09 with targeted tests. Remaining local QA gaps are
-> QA-G06 and QA-G10. Per [`75`](75_FINDING_ID_REGISTRY.md): **QA-G01 = Stale-invalid**,
+> then fixed QA-G03, QA-G04, QA-G07, QA-G08, and QA-G09 with targeted tests. QA-G10 header-smoke
+> evidence is now partially closed by the 2026-06-21 production-mode local smoke run; QA-G10 visual
+> proof and QA-G06 real-DB race proof remain open. Per [`75`](75_FINDING_ID_REGISTRY.md):
+> **QA-G01 = Stale-invalid**,
 > **QA-G02 = already-Fixed** (regression test only, P2). **There is no open P0 in this matrix.**
 > The original date stands as the audit date.
 
@@ -23,7 +25,8 @@ commits, staging, browser automation, or long validation were run **in the origi
 2026-06-21 remediation re-verified the original line anchors against committed source at `1feb85a5`
 (decision/comment routes, comments/activity test files). The current-head verification confirmed the
 23-file / 353-test baseline and re-anchored QA-G09 broad-status assertions to the current test tree.
-The later targeted pass added/fixed QA-G03, QA-G04, QA-G07, QA-G08, QA-G09, and QA-G10 helper evidence.
+The later targeted pass added/fixed QA-G03, QA-G04, QA-G07, QA-G08, QA-G09, QA-G10 helper evidence,
+and QA-G10 production-mode local header-smoke evidence.
 Re-anchor all line numbers before implementing.
 
 ## 1. Existing Test Inventory
@@ -88,7 +91,7 @@ Re-anchor all line numbers before implementing.
 | Share tree reconstructs safely and resists hostile designation strings. | `SharePageTabs` uses `getBestShareTree` at `SharePageTabs.tsx:274-282`. | `share/reconstruct-share-tree.test.ts:43-330`. | Strong helper coverage; visual/interaction proof missing. |
 | Recipient/user content does not become executable HTML. | React text rendering in comment/decision/activity components at `SharePageComments.tsx:350-358`, `SharePageDecision.tsx:247-249`, `SharedLinkActivityFeed.tsx:145-148`. | Static no-dangerous-html guard at `share/no-dangerous-html.test.ts:5-34`; reconstruction literal string test at `share/reconstruct-share-tree.test.ts:176-188`. | Covered statically; DOM render escaping test gap remains. |
 | P12 retry/offline queue/circuit breaker resilience. | Spec at `.ai/06_specs/walkthrough-shared-link-overhaul.md:141-145`; client queue/retry at `SharePageComments.tsx:57-216`; circuit breaker at `comment/route.ts:19-59` and `269-276`. | Comments suite now asserts offline queue persistence/reconnect flush/clear and route circuit breaker behavior. | Covered locally; provider-backed race remains QA-G06. |
-| CSP/security headers and no tracking scripts on `/share`. | Spec P11 at `.ai/06_specs/walkthrough-shared-link-overhaul.md:136-139`. | `project-publication-security.test.ts` inventory lines 240-253 and `project-publication-security-headers.test.ts` inventory lines 5-6. | Static coverage; no live header smoke in this audit. |
+| CSP/security headers and no tracking scripts on `/share`. | Spec P11 at `.ai/06_specs/walkthrough-shared-link-overhaul.md:136-139`. | `project-publication-security.test.ts` inventory lines 240-253, `project-publication-security-headers.test.ts` inventory lines 5-6, and 2026-06-21 production-mode local smoke evidence in `evidence/shared-link-smoke/headers-2026-06-21.md`. | Static coverage plus local production-mode header smoke; hosted deploy smoke remains separate. |
 | Responsive/mobile visual behavior and safe-area decision bar. | Spec P9 at `.ai/06_specs/walkthrough-shared-link-overhaul.md:123-128`; decision bar safe-area class at `SharePageDecision.tsx:256-262`. | Some DOM/copy tests; no browser automation by rule. | Gap for actual layout proof. |
 
 ## 3. Missing Tests / Gaps
@@ -115,7 +118,7 @@ Re-anchor all line numbers before implementing.
 | **QA-G07** | **P1 · Fixed** | Offline queue flush + tampered-viewToken 409 route tests are now asserted. | `SharePageComments.tsx:57-216`, `261-279`; `comment/route.ts:234-245`; `decision/route.ts:173-184` | `tests/vitest/project-publication-comments.test.tsx`, `tests/vitest/project-publication-decision.test.tsx` | (a) `navigator.onLine=false`: submit after fetch failure; queue key `shared-link-pending-comments-<token>` holds body, online event flushes once and clears, body/viewToken/CSRF are asserted. (b) Direct POST with `viewToken:"tampered"` + valid session → `409` reload message, no rate/RPC call. |
 | **QA-G08** | **P1 · Fixed** | Comments-after-decision behavior is now asserted, not only implied by copy. | Spec `.ai/06_specs/walkthrough-shared-link-overhaul.md:111-115`; `SharePageDecision.tsx:249`; comments route independent at `comment/route.ts:185-333`; `tests/vitest/project-publication-decision.test.tsx` | `tests/vitest/project-publication-decision.test.tsx` | Establish valid recipient session, mock existing decision GET to locked state, then submit comment with same session/viewToken; assert comment POST still reaches `insertSharedLinkComment` and returns `201`. |
 | **QA-G09** | **P2 · Fixed** | Prior permissive status arrays were tightened to exact expected status/payload assertions. | `tests/vitest/project-publication-comments.test.tsx`; `tests/vitest/project-publication-activity.test.tsx`; route filter at `activity/route.ts:156-174`, `250-253` | Tightened in the two existing test files. | Comment RPC test asserts exact `201`; public unauthenticated activity returns exactly `200` with no internal comments, no recipient decisions/events, and no raw IDs/emails. |
-| **QA-G10** | **P2** | Live security-header smoke + mobile/print visual proof. Static tests can miss Next config/runtime header mismatches; layout/print proof is class/source-level only. | Spec P11 `.ai/06_specs/walkthrough-shared-link-overhaul.md:136-139`; Spec P9 `:123-128`; `SharePageDecision.tsx:256-262`, `SharePageTabs.tsx:310-360`; security inventory lines 240-253 | Header smoke + seed helpers landed; live `SHARE_URL` run + visual matrix deferred to [`85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md) | Local dev/preview request to a valid no-password share link: assert CSP enforced, nosniff, DENY/frame-ancestors, Referrer-Policy, no-store, and noindex. Mobile 320/390/768: no unintended horizontal overflow, decision bar visible, modal focus reachable; print hides receiver chrome. |
+| **QA-G10** | **P2 · Partial** | Live security-header smoke + mobile/print visual proof. Static tests can miss Next config/runtime header mismatches; layout/print proof is class/source-level only. | Spec P11 `.ai/06_specs/walkthrough-shared-link-overhaul.md:136-139`; Spec P9 `:123-128`; `SharePageDecision.tsx:256-262`, `SharePageTabs.tsx:310-360`; security inventory lines 240-253 | Header smoke + seed helpers landed; production-mode local `SHARE_URL` run passed in `evidence/shared-link-smoke/headers-2026-06-21.md`; visual matrix deferred to [`85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md) | Header-smoke half passed for CSP, nosniff, DENY/frame-ancestors, Referrer-Policy, no-store, and noindex. Remaining visual half: mobile 320/390/768 no unintended horizontal overflow, decision bar visible, modal focus reachable; print hides receiver chrome. Hosted deploy smoke remains a deploy gate. |
 | `(note)` | P1 | Session DELETE route has no same-origin guard. It only expires cookies, so risk is lower, but cross-origin image/form probes could log a recipient out. **Gated on decision D5** ([`71`](71_OPEN_DECISIONS_REGISTER.md)). | `session/route.ts:104-112` | `tests/vitest/project-publication-page.test.tsx` or new `share-session-route.test.ts` | Cross-origin `DELETE /api/share/[token]/session` should either be allowed by explicit product decision or blocked with 403. Document intended behavior. |
 | `(note)` | P1 | Public activity GET same-origin policy may block useful direct client fetches if `Origin` is sent by browser contexts differently; tests cover same/cross origin but not absent-origin cache/proxy probes. | `activity/route.ts:80-84`; `project-publication-activity.test.tsx:421-442` | `tests/vitest/project-publication-activity.test.tsx` | GET with no `Origin` and no cookies from a crawler/proxy should return valid public filtered activity or documented fail-closed response. |
 | `(note)` → **QA-G07(b)** | P1 | View-token stale snapshot invalid path covered for comments/decisions only through mocked `readPublicationViewSnapshotVersion`; helper tamper coverage exists indirectly in security tests but not tied to route invalid-token payloads. **Folded into QA-G07(b) above — kept here for traceability.** | `comment/route.ts:234-245`; `decision/route.ts:173-184`; `security.ts:200-269` | `project-publication-comments.test.tsx` and `project-publication-decision.test.tsx` | Direct POST with `viewToken: "tampered"` and valid session; assert 409 reload message and no rate/RPC call. |
@@ -252,8 +255,9 @@ A QA-G item is **done** only when ALL of the following hold (binary, no partial 
 
 **PASS** the QA lane iff: QA-G01 retired in `75`; QA-G02 carries a green regression test;
 QA-G03, QA-G04, QA-G05, QA-G07, QA-G08, and QA-G09 are green; remaining QA-G06 harness is implemented
-but still needs provider/local-Supabase proof or explicit beta acceptance; QA-G10 header-smoke helper recorded and live/visual matrix
-scheduled in [`85`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md). **FAIL**
+but still needs provider/local-Supabase proof or explicit beta acceptance; QA-G10 production-mode
+local header smoke is recorded, and the mobile/print visual matrix is scheduled in
+[`85`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md). **FAIL**
 otherwise. There is **no open P0** in this matrix, so the QA lane does not block on a P0.
 
 Gate verification command (run after the implementing changes land):
@@ -284,7 +288,7 @@ Binary gate: **all listed suites green AND type-check exit 0 ⇒ PASS; any red/n
 | QA-G07 | P1 · Fixed | Reliability / QA | S2 | `tests/vitest/project-publication-comments.test.tsx`, `…-decision.test.tsx` | (a) offline queue flush + clear; (b) tampered viewToken ⇒ `409`, no rate/RPC ⇒ PASS |
 | QA-G08 | P1 · Fixed | QA | S2 | `tests/vitest/project-publication-decision.test.tsx` | comment after locked decision still `201` ⇒ PASS |
 | QA-G09 | P2 · Fixed | Test-maintenance | S1 | `tests/vitest/project-publication-comments.test.tsx`, `…-activity.test.tsx` | no broad status arrays remain; exact `200`/`201` asserted ⇒ PASS |
-| QA-G10 | P2 | QA / browser | S4 (deferred to `85`) | header-smoke helper + `85` matrix | live header smoke recorded + visual matrix scheduled ⇒ PASS |
+| QA-G10 | P2 · Partial | QA / browser | S4 (visual half deferred to `85`) | header-smoke evidence + `85` matrix | production-mode local header smoke recorded; visual matrix scheduled/open ⇒ PASS only for header half |
 
 `(note)` rows in §3 are not part of the sign-off gate; they are tracked as audit notes and only
 escalate if an owner decision (e.g. D5 for the session DELETE guard) converts them into a finding in

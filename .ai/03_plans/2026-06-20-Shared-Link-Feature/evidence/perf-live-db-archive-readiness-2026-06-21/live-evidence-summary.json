@@ -1,0 +1,45 @@
+{
+  "collected_at": "2026-06-21 12:32:46.681538+00",
+  "database_name": "postgres",
+  "has_pg_stat_statements": false,
+  "table_count": 57,
+  "index_usage_count": 213,
+  "unindexed_foreign_key_count": 78,
+  "shared_link_rows": [
+    {
+      "row_count": 1169,
+      "schemaname": "public",
+      "table_name": "project_publication_events"
+    },
+    {
+      "row_count": 11,
+      "schemaname": "public",
+      "table_name": "project_publications"
+    },
+    {
+      "row_count": 6,
+      "schemaname": "public",
+      "table_name": "shared_link_events"
+    },
+    {
+      "row_count": 3,
+      "schemaname": "public",
+      "table_name": "shared_link_recipients"
+    },
+    {
+      "row_count": 1,
+      "schemaname": "public",
+      "table_name": "security_rate_limit_events"
+    },
+    {
+      "row_count": 1,
+      "schemaname": "public",
+      "table_name": "shared_link_comments"
+    },
+    {
+      "row_count": 0,
+      "schemaname": "public",
+      "table_name": "shared_link_responses"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Error: "drains" is not a valid target directory or subcommand. Did you mean "domains"?
+─────────────────────────────────────────────────────────────────────────
+
+Update available! v54.9.1 ≫ v54.14.5
+Changelog: https://github.com/vercel/vercel/releases/tag/vercel%4054.14.5
+Run `npm i -g vercel@latest` to update.
+
+The latest update may fix any errors that occurred.
+
+─────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,34 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Fetching deployment "www.archestimator.com" in philipjonlewis-projects
+> Fetched deployment "archestimator-nv4too3w0-philipjonlewis-projects.vercel.app" in philipjonlewis-projects [1s]
+
+  General
+
+    id		dpl_8ymooyEM51amXCJ7xNstAHEkTeGq
+    name	archestimator
+    target	production
+    status	● Ready
+    url		https://archestimator-nv4too3w0-philipjonlewis-projects.vercel.app
+    created	Sat Jun 20 2026 20:19:01 GMT+0800 (Philippine Standard Time) [1d ago]
+
+
+  Aliases
+
+    ╶ https://www.archestimator.com
+    ╶ https://archestimator.vercel.app
+    ╶ https://archestimator.com
+    ╶ https://archestimator-philipjonlewis-projects.vercel.app
+    ╶ https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app
+    
+
+  Builds
+
+    ┌ .        [0ms]
+    ├── λ index (17.73MB) [syd1]
+    ├── λ _not-found (17.73MB) [syd1]
+    ├── λ _not-found.rsc (17.73MB) [syd1]
+    ├── λ about (17.73MB) [syd1]
+    ├── λ about.rsc (17.73MB) [syd1]
+    └── 114 output items hidden
+    
+

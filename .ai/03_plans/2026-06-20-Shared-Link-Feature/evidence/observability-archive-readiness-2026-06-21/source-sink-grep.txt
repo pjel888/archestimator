@@ -1,0 +1,90 @@
+src/app/api/share/[token]/events/route.ts:12:  "password_success",
+src/app/api/share/[token]/events/route.ts:13:  "password_failure",
+src/lib/ai/rate-limit.ts:52:    .from("security_rate_limit_events")
+src/lib/ai/rate-limit.ts:57:  const { error: insertError } = await supabase.from("security_rate_limit_events").insert({
+src/lib/ai/rate-limit.ts:68:      .from("security_rate_limit_events")
+src/lib/publication/security.ts:548:// Always records 'password_attempt' (success/failure in metadata) — type extended at call site.
+src/app/api/share/[token]/decision/route.ts:38:function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
+src/app/api/share/[token]/decision/route.ts:74:      const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
+src/app/api/share/[token]/decision/route.ts:75:      await maybeTriggerSharedLinkActivityDigest(publicationId, token, kind);
+src/app/api/share/[token]/decision/route.ts:78:        error: readErrorMessage(error, "digest-send-failed"),
+src/app/api/share/[token]/decision/route.ts:183:    logStructured("error", "/api/share/[token]/decision", "VALIDATION_INVALID_DECISION", ipHash);
+src/app/api/share/[token]/decision/route.ts:192:    logStructured("warn", "/api/share/[token]/decision", "VALIDATION_INVALID_ESTIMATE_ID", ipHash);
+src/app/api/share/[token]/decision/route.ts:198:    logStructured("warn", "/api/share/[token]/decision", "VALIDATION_INVALID_ROW_ID", ipHash);
+src/app/api/share/[token]/decision/route.ts:213:    logStructured("warn", "/api/share/[token]/decision", "PUBLICATION_NOT_FOUND", ipHash);
+src/app/api/share/[token]/decision/route.ts:226:    logStructured("error", "/api/share/[token]/decision", "SESSION_INVALID", ipHash);
+src/app/api/share/[token]/decision/route.ts:238:    logStructured("warn", "/api/share/[token]/decision", "VIEW_SNAPSHOT_INVALID", ipHash);
+src/app/api/share/[token]/decision/route.ts:246:    logStructured("warn", "/api/share/[token]/decision", "VIEW_SNAPSHOT_STALE", ipHash, {
+src/app/api/share/[token]/decision/route.ts:260:    logStructured("error", "/api/share/[token]/decision", "RECIPIENT_MISSING", ipHash);
+src/app/api/share/[token]/decision/route.ts:266:    logStructured("error", "/api/share/[token]/decision", "VALIDATION_SIGNER_NAME_REQUIRED", ipHash);
+src/app/api/share/[token]/decision/route.ts:273:    logStructured("warn", "/api/share/[token]/decision", "RATE_LIMITED", ipHash, { status: 429 });
+src/app/api/share/[token]/decision/route.ts:301:      logStructured("warn", "/api/share/[token]/decision", "DECISION_ALREADY_SUBMITTED", ipHash);
+src/app/api/share/[token]/decision/route.ts:306:      logStructured("warn", "/api/share/[token]/decision", "SNAPSHOT_VERSION_CHANGED", ipHash);
+src/app/api/share/[token]/decision/route.ts:314:      logStructured("warn", "/api/share/[token]/decision", "INVALID_REVIEW_TARGET", ipHash);
+src/app/api/share/[token]/decision/route.ts:319:    logStructured("error", "/api/share/[token]/decision", "SUBMIT_FAILED", ipHash, { status, msg: msg.slice(0, 120) });
+src/lib/publication/public-repository.ts:19:export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";
+src/lib/publication/public-repository.ts:95:  "activity_target_labels_json" | "id" | "snapshot_json" | "snapshot_version"
+src/lib/publication/public-repository.ts:98:type PublicationSnapshotLookupRow = PublicationLookupRow & Pick<Tables<"project_publications">, "snapshot_json">;
+src/lib/publication/public-repository.ts:164:// reader additionally pulls the heavy `snapshot_json` blob and is only used by the snapshot
+src/lib/publication/public-repository.ts:168:const SNAPSHOT_LOOKUP_COLUMNS = "id, status, password_hash, snapshot_json, expires_at, revoked_at, snapshot_version";
+src/lib/publication/public-repository.ts:214:    .select("id, activity_target_labels_json, snapshot_json, snapshot_version")
+src/lib/publication/public-repository.ts:226:    .select("snapshot_json")
+src/lib/publication/public-repository.ts:230:  return (data?.snapshot_json as ProjectPublicationSnapshot | null) ?? null;
+src/lib/publication/public-repository.ts:257:// in project_publication_events / shared_link_events would be recoverable PII. Keying the
+src/lib/publication/public-repository.ts:333:    ...(typeof passwordSuccess === "boolean" ? { password_success: passwordSuccess } : {}),
+src/lib/publication/public-repository.ts:383:    .from("security_rate_limit_events")
+src/lib/publication/public-repository.ts:422:    .from("security_rate_limit_events")
+src/lib/publication/public-repository.ts:443:  const { error } = await supabase.from("security_rate_limit_events").insert({
+src/lib/publication/public-repository.ts:455:    .from("security_rate_limit_events")
+src/lib/publication/public-repository.ts:762:  // OPT-2: dedicated per-request memoised snapshot read (includes snapshot_json). Distinct
+src/lib/publication/public-repository.ts:771:    snapshot: sanitizeProjectPublicationSnapshotForPublicRead(data.snapshot_json as ProjectPublicationSnapshot),
+src/lib/publication/public-repository.ts:823:  const { error: eventError } = await supabase.from("project_publication_events").insert({
+src/lib/publication/public-repository.ts:859:  const { error: eventError } = await supabase.from("project_publication_events").insert({
+src/lib/publication/public-repository.ts:871:    // every fetch. The raw project_publication_events audit row above and the recipient
+src/lib/publication/public-repository.ts:1154:  const labels = createSharedLinkTargetLabelMapFromLabelsJson(publicationContext.activity_target_labels_json);
+src/lib/publication/public-repository.ts:1155:  const resolvedTargetIds = resolveSubmittedReviewTargetIds(publicationContext.snapshot_json as ProjectPublicationSnapshot, {
+src/lib/publication/public-repository.ts:1203:    comment: mapSharedLinkPublicComment(insertedComment, publicationContext.snapshot_json as ProjectPublicationSnapshot),
+src/lib/publication/public-repository.ts:1259:  const labels = createSharedLinkTargetLabelMapFromLabelsJson(publicationContext.activity_target_labels_json);
+src/lib/publication/public-repository.ts:1260:  const resolvedTargetIds = resolveSubmittedReviewTargetIds(publicationContext.snapshot_json as ProjectPublicationSnapshot, {
+src/app/api/share/[token]/password/route.ts:50:      eventType: "password_attempt",
+src/app/api/share/[token]/password/route.ts:61:      eventType: "password_attempt", // P10 (type extended additively in public-repository.ts per P3 migration)
+src/app/api/share/[token]/password/route.ts:71:  // P10: always record password_attempt (success/failure in meta) on every attempt (post-CSRF)
+src/app/api/share/[token]/password/route.ts:74:    eventType: "password_attempt",
+src/app/api/share/[token]/password/route.ts:80:    eventType: "password_attempt",
+src/lib/publication/actions.ts:577:    p_snapshot_json: snapshot,
+src/lib/publication/actions.ts:578:    p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+src/lib/publication/actions.ts:653:      snapshot_json: snapshot,
+src/lib/publication/actions.ts:654:      activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+src/lib/publication/actions.ts:716:    p_snapshot_json: snapshot,
+src/lib/publication/actions.ts:717:    p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+src/lib/publication/actions.ts:922:    .from("security_rate_limit_events")
+src/lib/publication/actions.ts:927:  const { error: insertError } = await admin.from("security_rate_limit_events").insert({
+src/lib/publication/actions.ts:936:    .from("security_rate_limit_events")
+src/lib/publication/actions.ts:1373:  const { data, error } = await callPublicationRpc<boolean>(admin, "reserve_security_rate_limit_slot", {
+src/lib/publication/actions.ts:1453:      errorCode: res.ok ? null : res.code ?? "digest-send-failed",
+src/lib/publication/actions.ts:1458:      await recordPublicationDigestLog({ admin, publicationId, kind, status: "failed", errorCode: "digest-send-failed" });
+src/lib/publication/actions.ts:1460:    return { ok: false, error: "digest-send-failed" };
+src/lib/publication/actions.ts:1477:    .select("id, project_id, status, revoked_at, expires_at, activity_target_labels_json")
+src/lib/publication/actions.ts:1505:    .from("project_publication_events")
+src/lib/publication/actions.ts:1543:  const targetLabels = createSharedLinkTargetLabelMapFromLabelsJson(pub.activity_target_labels_json);
+src/lib/publication/actions.ts:1617:export async function maybeTriggerSharedLinkActivityDigest(
+src/app/api/share/[token]/comment/route.ts:83:function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
+src/app/api/share/[token]/comment/route.ts:118:      const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
+src/app/api/share/[token]/comment/route.ts:119:      await maybeTriggerSharedLinkActivityDigest(publicationId, token, kind);
+src/app/api/share/[token]/comment/route.ts:122:        error: readErrorMessage(error, "digest-send-failed"),
+src/app/api/share/[token]/comment/route.ts:221:    logStructured("error", "/api/share/[token]/comment", "VALIDATION_EMPTY_BODY", ipHash);
+src/app/api/share/[token]/comment/route.ts:237:    logStructured("warn", "/api/share/[token]/comment", "PUBLICATION_NOT_FOUND", ipHash);
+src/app/api/share/[token]/comment/route.ts:250:    logStructured("error", "/api/share/[token]/comment", "SESSION_INVALID", ipHash);
+src/app/api/share/[token]/comment/route.ts:262:    logStructured("warn", "/api/share/[token]/comment", "VIEW_SNAPSHOT_INVALID", ipHash);
+src/app/api/share/[token]/comment/route.ts:270:    logStructured("warn", "/api/share/[token]/comment", "VIEW_SNAPSHOT_STALE", ipHash, {
+src/app/api/share/[token]/comment/route.ts:284:    logStructured("error", "/api/share/[token]/comment", "RECIPIENT_MISSING", ipHash);
+src/app/api/share/[token]/comment/route.ts:291:    logStructured("warn", "/api/share/[token]/comment", "VALIDATION_INVALID_ESTIMATE_ID", ipHash);
+src/app/api/share/[token]/comment/route.ts:298:    logStructured("warn", "/api/share/[token]/comment", "VALIDATION_INVALID_ROW_ID", ipHash);
+src/app/api/share/[token]/comment/route.ts:307:    logStructured("error", "/api/share/[token]/comment", "CIRCUIT_OPEN", ipHash, { status: 503 });
+src/app/api/share/[token]/comment/route.ts:315:    logStructured("warn", "/api/share/[token]/comment", "RATE_LIMITED", ipHash, { status: 429 });
+src/app/api/share/[token]/comment/route.ts:326:    logStructured("error", "/api/share/[token]/comment", "SANITIZE_FAILED", ipHash);
+src/app/api/share/[token]/comment/route.ts:350:      logStructured("warn", "/api/share/[token]/comment", "SNAPSHOT_VERSION_CHANGED", ipHash);
+src/app/api/share/[token]/comment/route.ts:358:      logStructured("warn", "/api/share/[token]/comment", "INVALID_REVIEW_TARGET", ipHash);
+src/app/api/share/[token]/comment/route.ts:366:    logStructured("error", "/api/share/[token]/comment", status === 500 ? "INSERT_FAILED" : "POST_ERROR", ipHash, { status, msg: msg.slice(0, 120) });
+src/app/api/share/[token]/activity/route.ts:113:    .select("id, status, revoked_at, expires_at, password_hash, activity_target_labels_json, snapshot_version")
+src/app/api/share/[token]/activity/route.ts:211:  const targetLabels = createSharedLinkTargetLabelMapFromLabelsJson(pub.activity_target_labels_json);
