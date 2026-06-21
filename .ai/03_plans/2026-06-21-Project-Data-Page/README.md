@@ -59,11 +59,22 @@ ux is non existent… you can even delete all of it."*
 - **Don't block on design-system lint.** DESIGN.md is alpha-stage; the owner's
   direction wins. This redesign follows the owner's donut-first mandate.
 
-## Decision: keep, not delete
+## Owner decisions (2026-06-21)
 
-The owner offered "you can even delete all of it." We **replace** the board
-component and its hero surface, but **preserve** the data layer, the
+1. **Breakdown is per-column.** Each estimate column is self-contained — its
+   own donut + its own breakdown list (swatch/label/amount/share). There is
+   **no shared comparison table** beneath the columns. Each donut's accessible
+   text alternative is its own in-column list (`aria-describedby`).
+2. **Delete the 4 orphaned sections** (`CostBreakdownSection`,
+   `CostAcrossSheetsSection`, `ProjectDataInsightHeader`, `CostLedger`) and
+   their 3 UI tests in this PR, and update the 2 governance-test files that
+   read them.
+
+## Decision: keep the right layers, replace the hero
+
+The owner offered "you can even delete all of it." We replace the board's hero
+surface and delete the dead sections, but **preserve** the data layer, the
 `buildProjectChartComparisonView` engine, the URL state contract, and the
-existing repository/route-state tests. Deletion would throw away a correct,
-pre-bucketed, CVD-safe aggregation pipeline that the new donut-first view can
-ride directly. The replacement is surgical at the component layer.
+repository/route-state tests. Deletion of *those* would throw away a correct,
+pre-bucketed, CVD-safe aggregation pipeline the new donut-first view rides
+directly.

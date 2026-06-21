@@ -42,7 +42,75 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
-**Shared-Link implementation/header-smoke advanced; archive remains NO-GO (2026-06-21):**
+**Shared-Link Feature archived (updated 2026-06-22):**
+
+- Archived completed plan pack from
+  `.ai/03_plans/2026-06-20-Shared-Link-Feature/` to
+  `.ai/09_archive/2026-06-20-Shared-Link-Feature/`.
+- Archive basis: QA-G06 provider duplicate-decision race proof, QA-G10 hosted preview header smoke + local
+  mobile/print proof, PERF-09 hosted password route p95, PERF-12 provider rotate timing at 10/100/1000 recipients,
+  PERF-01A hosted recipient-link p95 1622.11 ms vs 2500 ms, PERF-04 provider activity query p95 4.47 ms vs 1200 ms,
+  current-preview §6 smoke PASS on `dpl_8tpYp3UeoUfkiezuZYuDp5FhHYKu`, and Philip's 2026-06-22 owner signoff.
+- Scoped archive waiver: unrelated global Supabase migration drift and provider lint/advisor baseline issues are
+  accepted as provider-debt outside the shared-link hot path; they are not hidden clean-state evidence.
+- Closed-beta dispositions: PERF-05 keeps the current app/repo/RPC defense-in-depth and is deferred as
+  a GA optimization/security-review item; the observability waiver is accepted for closed beta only,
+  with live alert/drain proof still required before GA.
+- Verification captured this pass: `scripts/prove-shared-link-current-preview-smoke.ts` PASS, targeted
+  Shared-Link route/page/action/security/public-repository tests passed, `bun run type-check` passed, and
+  `git diff --check` passed.
+
+**Estimate Sheet audit/improvement plan archived (2026-06-21):**
+
+- Archived completed plan package from
+  `.ai/03_plans/2026-06-21-Estimate-Sheet-Audit-And-Improvement/` to
+  `.ai/09_archive/2026-06-21-Estimate-Sheet-Audit-And-Improvement/`.
+- Basis: the immediately following completion entry records passing `bun run build`,
+  `bun run type-check`, `git diff --check`, focused Vitest sweeps, independent
+  code-reviewer `APPROVE`, and architect `CLEAR`.
+- Residual validation gap remains provider-environment only: Supabase local lint/reset
+  could not connect/run because the local service/Docker environment was unavailable.
+
+**Estimate Sheet audit/improvement implementation completed with final gates (2026-06-21):**
+
+- Scope completed: row-scoped component move reconciliation, non-initial tab-tree retryable error
+  surface, component-library project-source retry/status UI, strict-but-compatible component thumbnail
+  URL policy, shared row-result patch mapping, Next 16 server-action export-boundary fix, and the
+  template-node subtree RPC spike note.
+- Files changed: `src/components/workshop/EstimateSheetContent.tsx`,
+  `src/components/workshop/component-library/index.tsx`,
+  `src/components/workshop/component-library/tree/LibraryTree.tsx`,
+  `src/hooks/use-estimate-query.ts`, `src/hooks/use-estimate-row-mutations.ts`,
+  `src/lib/estimates/actions.ts`, `src/lib/estimates/estimate-row-tree-patch.ts`,
+  `src/lib/estimates/row-revision-conflict.ts`, `src/lib/publication/image-url.ts`,
+  `tests/vitest/component-library-ui.test.tsx`, `tests/vitest/estimate-image-url.test.ts`,
+  `tests/vitest/estimate-sheet-library-insert.test.tsx`,
+  `tests/vitest/estimate-sheet-tree-query-error.test.tsx`,
+  `tests/vitest/estimate-sheet-version-control-actions.test.ts`, and
+  `.ai/09_archive/2026-06-21-Estimate-Sheet-Audit-And-Improvement/phase-4-template-node-subtree-rpc-spike.md`.
+- Evidence: `bun run build` passed under Next 16/Turbopack; `bun run type-check` passed;
+  `git diff --check` passed; source stale-copy guard for old taxonomy and "Try Refresh" copy returned
+  no matches; `bunx vitest run tests/vitest/component-library-ui.test.tsx
+  tests/vitest/estimate-image-url.test.ts --maxWorkers=1` passed 2 files / 75 tests;
+  `bunx vitest run tests/vitest/estimate-sheet-library-insert.test.tsx
+  tests/vitest/component-library-ui.test.tsx tests/vitest/estimate-sheet-tree-query-error.test.tsx
+  tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/security-findings-auth-contracts.test.ts
+  tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-image-url.test.ts
+  tests/vitest/project-publication-snapshot.test.ts --maxWorkers=1` passed 8 files / 175 tests;
+  `bunx vitest run tests/vitest/estimate-component-drag.test.tsx
+  tests/vitest/estimate-sheet-row-details-crud.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx
+  tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx
+  tests/vitest/estimate-sheet-large-data-budgets.test.ts tests/vitest/estimate-tree-drag-over-perf.test.ts
+  tests/vitest/estimate-sheet-library-lazy-load.test.tsx tests/vitest/ui-tree.test.tsx --maxWorkers=1`
+  passed 8 files / 88 tests.
+- Final independent gates: code-reviewer returned `Recommendation: APPROVE` with zero findings;
+  architect returned `Architectural Status: CLEAR`.
+- Residual validation gap: Supabase local checks remain environment-blocked, not green:
+  `bunx supabase db lint --local --level error --fail-on error` cannot connect to
+  `127.0.0.1:54322`, and `bunx supabase db reset --local --no-seed --yes` cannot run because Docker
+  is unavailable.
+
+**Shared-Link implementation/local visual proof advanced; archive remains NO-GO (2026-06-21):**
 
 - Phase: D1-D11 source/provider hardening plus archive-readiness audit.
 - Files changed/evidenced: shared-link plan folder under
@@ -54,13 +122,15 @@ grep, don't linear-read).
   DB inventory in
   `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/live-db-performance-2026-06-21/`, and
   production-mode local `/share` security-header smoke in
-  `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-smoke/headers-2026-06-21.md`.
-- Result: D1-D11 implementation work has materially advanced and QA-G10 header-smoke evidence is
-  partially closed.
+  `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-smoke/headers-2026-06-21.md`,
+  plus local Storybook browser/mobile/print proof in
+  `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-v2/qa-g10-visual-browser-evidence-2026-06-21.md`.
+- Result: D1-D11 implementation work has materially advanced. QA-G10 is locally fixed for header smoke
+  and Storybook visual/print proof: 320/390/768/1440 no X overflow, zero compact donut callouts,
+  readable cost list, modal focus/Escape, and print chrome hidden.
 - Blockers: do **not** archive the plan folder yet. Remaining archive gates are QA-G06 real-DB
-  duplicate-decision race proof or explicit beta acceptance, QA-G10 mobile/print/browser visual proof,
-  hosted deploy/post-deploy smoke, hosted/provider route performance evidence, and live observability
-  evidence or a documented waiver.
+  duplicate-decision race proof or explicit beta acceptance, hosted deploy/post-deploy smoke,
+  hosted/provider route performance evidence, and live observability evidence or a documented waiver.
 
 ## 2026-06-21 Estimate Sheet Implementation — Phase -1
 
@@ -84,8 +154,8 @@ defer Supabase Realtime to GA; D8 run the full deploy/migration runbook and prom
 keeping AC-MOD-T4-P2 deferred; D9 accept owner digest with durable limiter, `publication_digest_log`, and
 observability sentinel; D10 apply/ledger-reconcile manager-read RLS now; D11 ship named confirmation +
 visible audit line, with full legal e-signature deferred to GA/legal review. The plan folder must stay
-active; do not archive it yet because the ratified implementation, deploy smoke, browser/visual QA,
-QA-G06/QA-G10, hosted/provider perf evidence, and remaining backlog items are still open.
+active; do not archive it yet because deploy smoke, QA-G06 real-DB proof, hosted/provider perf evidence,
+and remaining backlog items are still open.
 
 **Estimate-sheet right-sidebar thumbnail implementation handoff added (2026-06-21):**
 The estimate-sheet audit/improvement plan pack now includes
@@ -166,7 +236,7 @@ returned no matches. Provider readback on `ebxxqidacheyapmmzavr` is now green fo
 `estimateLabels`/`rowLabels`/`rowEstimateIds` label objects; row comment/response estimate mismatches are 0/0;
 target-context columns exist on comments/responses; and the target-aware `insert_client_comment` /
 `submit_client_response` RPCs are `security definer`, service-role executable only. Feature ship remains
-**NO-GO** until ratified D1-D11 implementation, app deploy/post-deploy smoke, browser/visual QA, and remaining hosted/provider perf budget evidence pass.
+**NO-GO** until app deploy/post-deploy smoke, QA-G06 real DB proof, and remaining hosted/provider perf budget evidence pass.
 The review gate is now green: native `code-reviewer` artifact
 `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/review/codex-review-shared-link-2026-06-21.md`
 reported 0 blockers. Targeted follow-up evidence also landed: MANAGER-F-04 per-recipient failed-send chips/retry,
@@ -176,8 +246,8 @@ copy parity, MANAGER-F-05 behavioral action tests, MANAGER-F-06 dashboard quick 
 preserving legacy v1.2 reads; local snapshot bytes are PASS at 100 rows (29.7 KiB), 1k rows (263.1 KiB), and
 10k rows (2.55 MiB vs 4 MiB). Local PERF-09/PERF-12 CPU-only rows also pass, but hosted route/DB/provider timing
 evidence remains open. The plan folder must stay active;
-do not archive it as completed feature work yet because ratified decision implementation, deploy smoke, browser/visual QA,
-QA-G06/QA-G10, hosted/provider perf evidence, and remaining backlog items are still open.
+do not archive it as completed feature work yet because deploy smoke, QA-G06 real-DB proof,
+hosted/provider perf evidence, and remaining backlog items are still open.
 
 **Shared-Link plan pack reached 100% planning-handoff closure; feature remains NO-GO (2026-06-21):**
 The plan pack at `.ai/03_plans/2026-06-20-Shared-Link-Feature/` now includes
