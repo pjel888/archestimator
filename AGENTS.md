@@ -176,23 +176,3 @@ This project is indexed by GitNexus as **archestimator** (11889 symbols, 29549 r
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
-
-
-## Headroom Agent Startup
-
-Headroom is installed on this machine for local context compression. In this
-repo, use the checked-in wrappers under `scripts/headroom/` or the scoped zsh
-functions added to `~/.zshrc` so `claude` and `codex` launch through
-`headroom wrap` only while the shell is inside this project.
-
-- `HEADROOM_BYPASS=1 claude ...` or `HEADROOM_BYPASS=1 codex ...` runs the
-  original agent binary directly.
-- Headroom MCP is registered in `.mcp.json`, `.cursor/mcp.json`, and
-  `.codex/config.toml` for compression/retrieval/stats tools.
-- RTK, auto-MCP setup, persistent Headroom memory, live learning, and code-graph
-  setup are opt-in wrapper flags (`HEADROOM_WRAP_CONTEXT_TOOL=1`,
-  `HEADROOM_WRAP_AUTO_MCP=1`, `HEADROOM_WRAP_MEMORY=1`,
-  `HEADROOM_WRAP_LEARN=1`, `HEADROOM_WRAP_CODE_GRAPH=1`). They do not override
-  this file, the `.ai/` project brain, or the repo's proportional command
-  policy: prefer `rg`/targeted reads for ordinary lookup and use compression
-  tools only when they improve signal or token efficiency.
