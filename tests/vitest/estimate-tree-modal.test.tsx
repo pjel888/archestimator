@@ -93,7 +93,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(document.documentElement.style.getPropertyValue("--estimate-tree-panel-width")).toBe("300px");
   });
 
-  it("renders a single icon-only Add Area tool (no Group/Node split) without plus overlays", () => {
+  it("renders a single icon-only Add Branch tool (no Group/Node split) without plus overlays", () => {
     const { container } = renderTree();
 
     expect(screen.queryByRole("heading", { name: "Tree" })).not.toBeInTheDocument();
@@ -104,15 +104,15 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(
       Array.from(screen.getByLabelText("Tree tools").querySelectorAll("button")).map((button) => button.getAttribute("aria-label")),
     // A4/D8: handler-gated — re-wired in Phase D; D3: filterSlot injects "Filter tree"
-    ).toEqual(["Show tree search", "Filter tree", "Expand all tree", "Collapse all tree", "Add Area"]);
+    ).toEqual(["Show tree search", "Filter tree", "Expand all tree", "Collapse all tree", "Add Branch"]);
     expect(screen.getByRole("button", { name: "Expand all tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Branch" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Node" })).not.toBeInTheDocument();
     // Icon-only (no visible text), single glyph.
-    expect(screen.getByRole("button", { name: "Add Area" })).not.toHaveTextContent("Add Area");
-    expect(screen.getByRole("button", { name: "Add Area" }).querySelectorAll("svg")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Add Branch" })).not.toHaveTextContent("Add Area");
+    expect(screen.getByRole("button", { name: "Add Branch" }).querySelectorAll("svg")).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Add tree" })).not.toBeInTheDocument();
     expect(screen.queryByRole("toolbar", { name: "Bulk actions" })).not.toBeInTheDocument();
 
@@ -125,7 +125,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(screen.queryByRole("search")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search Tree")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
 
     expect(screen.queryByRole("dialog", { name: "Add estimate tree node" })).not.toBeInTheDocument();
     expect(container.querySelector("[role='dialog']")).toBeNull();
@@ -137,7 +137,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     // With a group selected, Add Area creates an `area` child (write-valid).
     const { queryClient } = renderTree(sampleEstimateTree, "main-house");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
 
     expect(getOptimisticTreeRow("area")).toBeInTheDocument();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
@@ -151,7 +151,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     actionMocks.createEstimateNode.mockRejectedValue(new Error("Create failed"));
     renderTree(sampleEstimateTree, "main-house");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
 
     expect(getOptimisticTreeRow("area")).toBeInTheDocument();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
@@ -163,7 +163,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     // Selecting a group, Add Area creates an `area` child named "New Area".
     renderTree(sampleEstimateTree, "main-house");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
     const formData = submittedCreateFormData();
     expect(actionMocks.createEstimateNode).toHaveBeenLastCalledWith("project-1", "estimate-1", expect.any(FormData));
     expect(formData.get("kind")).toBe("area");
@@ -194,7 +194,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
       },
     ], "mobilization");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
     expect(screen.queryByText("you must select a group first before adding an area node")).not.toBeInTheDocument();
     const formData = submittedCreateFormData();
     expect(formData.get("parentId")).toBe("mobilization");
@@ -206,7 +206,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
   it("Add Area creates a write-valid root node from an empty tree (no error)", () => {
     renderTree([], null);
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
     expect(screen.queryByText("you must select a group first before adding an area node")).not.toBeInTheDocument();
     const formData = submittedCreateFormData();
     expect(formData.get("parentId")).toBeNull();

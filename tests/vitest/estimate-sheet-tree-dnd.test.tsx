@@ -505,7 +505,7 @@ describe("estimate sheet tree drag/drop", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saving tree order"));
 
     // Single "Add Area"; ground-floor (a group) is selected → an area child.
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
     expect(document.querySelector('[data-tree-row^="optimistic-area-"]')).not.toBeNull();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
 
@@ -525,7 +525,7 @@ describe("estimate sheet tree drag/drop", () => {
     renderTree(fixtureTree(), "ground-floor");
 
     // ground-floor (a group) is selected → Add Area creates an `area` child.
-    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
 
     // Position is the contract: the new node appends after its siblings
     // (kitchen/living) and keeps that slot on settle — no kind re-sorting.

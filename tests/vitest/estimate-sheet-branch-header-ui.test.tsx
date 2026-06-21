@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetBranch } from "@/components/workshop/estimate-sheet/rows/branch";
 import { EstimateSheetExpansionContext } from "@/components/workshop/estimate-sheet/rows/expansion";
+import { EstimateSurfaceVariantProvider, type EstimateSurfaceVariant } from "@/components/workshop/estimate-surface-variant";
 import type { EditableRowValue } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 
 const noop = vi.fn();
 
-function renderBranch(ancestorPath: { id: string; name: string }[] = []) {
+function renderBranch(ancestorPath: { id: string; name: string }[] = [], surfaceVariant: EstimateSurfaceVariant = "paper") {
   const node: EstimateTreeNode = {
     id: "mobilization-demobilization",
     name: "Mobilization + Demobilization",
@@ -24,31 +25,33 @@ function renderBranch(ancestorPath: { id: string; name: string }[] = []) {
     const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>({});
 
     return (
-      <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
-        <EstimateSheetBranch
-          node={node}
-          nodeCode="01.01.01"
-          ancestorPath={ancestorPath}
-          editableRows={editableRows}
-          setEditableRows={setEditableRows}
-          onInsertLibraryItem={noop}
-          onInsertTemplates={noop}
-          onInsertTemplateNode={noop}
-          onAddBlankRow={noop}
-          onReplaceRowItem={noop}
-          onDeleteRowItem={noop}
-          onUpdateRowItem={noop}
-          onMarkRowDirty={noop}
-          onOpenRowDetails={noop}
-          onClearRowComponent={noop}
-          onRequestProjectSpecific={noop}
-          onPromoteRowToLibrary={noop}
-          onMoveRowComponent={noop}
-          selectedRowIds={new Set()}
-          onToggleRowSelection={noop}
-          onToggleRowsSelection={noop}
-        />
-      </EstimateSheetExpansionContext.Provider>
+      <EstimateSurfaceVariantProvider variant={surfaceVariant}>
+        <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
+          <EstimateSheetBranch
+            node={node}
+            nodeCode="01.01.01"
+            ancestorPath={ancestorPath}
+            editableRows={editableRows}
+            setEditableRows={setEditableRows}
+            onInsertLibraryItem={noop}
+            onInsertTemplates={noop}
+            onInsertTemplateNode={noop}
+            onAddBlankRow={noop}
+            onReplaceRowItem={noop}
+            onDeleteRowItem={noop}
+            onUpdateRowItem={noop}
+            onMarkRowDirty={noop}
+            onOpenRowDetails={noop}
+            onClearRowComponent={noop}
+            onRequestProjectSpecific={noop}
+            onPromoteRowToLibrary={noop}
+            onMoveRowComponent={noop}
+            selectedRowIds={new Set()}
+            onToggleRowSelection={noop}
+            onToggleRowsSelection={noop}
+          />
+        </EstimateSheetExpansionContext.Provider>
+      </EstimateSurfaceVariantProvider>
     );
   }
 
@@ -163,6 +166,23 @@ describe("estimate sheet branch header chrome", () => {
     const breadcrumbs = screen.getByLabelText("Mobilization + Demobilization breadcrumbs");
 
     expect(breadcrumbs.nextElementSibling).toHaveClass("-mt-2");
+  });
+
+  it("uses the branch title surface color for breadcrumbs in the glass estimate sheet", () => {
+    renderBranch(
+      [
+        { id: "general-requirements", name: "General Requirements" },
+        { id: "construction-supervision", name: "Construction Supervision" },
+      ],
+      "glass",
+    );
+
+    const branch = screen.getByLabelText("Mobilization + Demobilization");
+    const headerSurface = branch.querySelector(".min-h-10")?.parentElement;
+    const breadcrumbs = screen.getByLabelText("Mobilization + Demobilization breadcrumbs");
+
+    expect(headerSurface).toHaveClass("estimate-glass-headchrome");
+    expect(breadcrumbs).toHaveClass("estimate-glass-headchrome", "bg-surfaceMuted/40");
   });
 
   it("renders a single inset white spacer before non-first child branches", () => {
