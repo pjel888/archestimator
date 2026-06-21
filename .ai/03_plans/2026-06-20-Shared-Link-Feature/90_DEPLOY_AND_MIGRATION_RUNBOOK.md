@@ -50,7 +50,7 @@ The `migrations-pending-review/` AC-MOD-* set (10 files) is the **deferred DB-hy
 |---|---|---|---|---|
 | 1.1 | Shared-link tests green | `bunx vitest run <canonical 23-file list from 80 §Verification Evidence> --maxWorkers=1` | All 23 canonical files pass (gate on exit 0). Reference: the latest shared-link suite was re-run 2026-06-21 → **23 files / 353 tests passed**. | QA |
 | 1.2 | Type-check clean | `bun run type-check` | exit 0 | QA |
-| 1.3 | Decisions signed off | Read [`71`](71_OPEN_DECISIONS_REGISTER.md) | D1-D5 and D8-D9 resolved or explicitly recorded as beta deferrals; **D3/SEC-SHARE-10 and D5 cannot be omitted**; D4 single-node topology recorded if durable throttle is deferred; D10 either applied or recorded as a post-launch defense-in-depth deferral | REL |
+| 1.3 | Decisions signed off | Read [`71`](71_OPEN_DECISIONS_REGISTER.md) | D1-D11 resolved and D1-D11 source/provider evidence still green; **D3/SEC-SHARE-10 and D5 cannot be omitted**; D10 applied/read back; D4 digest durability uses provider-backed reservation while GA multi-node proof remains a scale gate | REL |
 | 1.4 | Remote ledger snapshot | `supabase migration list --linked` | Output captured to `evidence/deploy-<date>/migration-list-pre.txt`, recording the **ACTUAL** Local/Remote state of `20260620064601`, `20260620142000`, `20260621042221`, and `20260621051701`. Current 2026-06-21 readback shows all four Local+Remote. | DBA |
 | 1.5 | Live-object snapshot — indexes | `supabase db query --linked --file -` with the [pg_indexes query](#snapshot-queries) | Output captured; baseline for drift diff | DBA |
 | 1.6 | Live-object snapshot — policies | [pg_policy query](#snapshot-queries) | Output captured | DBA |
@@ -266,9 +266,8 @@ ledger-repair**, NOT re-apply. **Only AC-MOD-T4-P2 is genuinely open** (zero-sca
 > **AC-MOD-06 STEP-0 dedup** and **AC-MOD-04** are independent and may run in either order (README:46), but both must
 > precede any T4 unit that assumes the single-published invariant. Both are flagged here as STEP-0 because AC-MOD-06's
 > partial unique index will **fail to create** against pre-existing duplicate-published rows. AC-MOD-06 prevents
-> duplicate live publications after the index exists; it does **not** by itself make revoke-then-insert atomic for the
-> zero-live failure window in [SEC-SHARE-08](75_FINDING_ID_REGISTRY.md). Closing that race requires an atomic replacement
-> transaction/RPC or an explicit D8 beta waiver.
+> duplicate live publications after the index exists. The separate D8 zero-live failure window is now closed by
+> service-role RPC `replace_project_publication(...)`, applied/read back in the 2026-06-21 atomic publish migration.
 
 ### 4.2 Promotion procedure (per applied unit)
 
@@ -322,9 +321,9 @@ Rollback is **RPC-revert + app-first**; the new column is **forward-only**.
 | Item | Owner sign-off | Maintenance-window flag | Gate |
 |---|---|:--:|---|
 | §1 pre-deploy gate all PASS | QA + REL | — | PASS |
-| D1-D5 + D8-D9 beta decision set signed/waived | REL (owner) | — | [`71`](71_OPEN_DECISIONS_REGISTER.md) PASS; D3/D5 cannot be absent; D10 apply-now or post-launch deferral recorded |
-| D4 single-node topology recorded if durable throttle deferred | REL + DBA | — | topology evidence path captured |
-| SEC-SHARE-06 digest fix or beta waiver recorded | BE + REL | — | D9 PASS/waiver |
+| D1-D11 beta decision source/provider evidence green | REL (owner) | — | [`71`](71_OPEN_DECISIONS_REGISTER.md), [`75`](75_FINDING_ID_REGISTRY.md), and `evidence/provider-readback/` PASS; D3/D5/D10 cannot regress |
+| D4 durable digest reservation evidence green | REL + DBA | — | `reserve_security_rate_limit_slot(...)` provider readback captured; multi-node proof remains GA scale evidence |
+| SEC-SHARE-06/D9 digest fix recorded | BE + REL | — | D9 PASS with durable slot + `publication_digest_log` |
 | SEC-SHARE-10 OG suppression + D3 opaque-id implementation | FE + REL | — | D3 PASS |
 | §2 drift reconciliation: ledger truthful, dup-pairs reconciled | DBA | — | PASS |
 | §3 Step 1+2 schema applied/repaired before app (Gates 3.1/3.2) | DBA | — | PASS |
@@ -350,11 +349,19 @@ Rollback is **RPC-revert + app-first**; the new column is **forward-only**.
   estimate mismatches are 0/0; expected target-context columns exist on `shared_link_comments` and
   `shared_link_responses`; and target-aware `insert_client_comment` / `submit_client_response` RPCs are
   `security definer`, executable by `service_role`, and not executable by `anon` or `authenticated`.
+- **D1-D11 hardening + atomic publish/digest-slot provider snapshot (2026-06-21):** Supabase MCP applied
+  `shared_link_d1_d11_hardening` and `shared_link_atomic_publish_and_digest_slot` to `ebxxqidacheyapmmzavr`.
+  Readback confirms 0 duplicate published projects, the partial unique index
+  `project_publications_one_published_per_project_idx`, service-role-only `replace_project_publication(...)`,
+  service-role-only `reserve_security_rate_limit_slot(...)`, `publication_digest_log`, and manager-read policies
+  for `project_publication_events` and `publication_digest_log`. Evidence:
+  [`evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md`](evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md).
 - **Exact provider-applied subset state on `ebxxqidacheyapmmzavr`** — README asserts the 2026-06-19 subset; confirm
   live with the §1.4–1.7 snapshots. **Verify:** `supabase migration list --linked` + the §1 snapshot queries.
 - **Prior committed body of `insert_client_comment`/`submit_client_response`** for rollback (§5) — **Verify:**
   `git log --oneline -- supabase/migrations/ | rg -i 'comment|response|snapshot'` then read the predecessor file.
 - **Whether either duplicate-named pair is double-recorded in the remote ledger** — **Verify:** §2.2 against
   `migration list --linked`.
-- **Still not deploy-cleared:** app deploy, §6 post-deploy smoke, advisors delta, ratified decision implementation, browser/visual QA,
-  review signoff, and perf-budget evidence.
+- **Still not deploy-cleared:** app deploy, §6 post-deploy smoke, advisors delta, browser/visual QA, QA-G06 real DB race proof,
+  QA-G10 mobile/print visual proof, review signoff, and hosted/provider perf-budget evidence. QA-G10 header smoke itself
+  passed in production-mode local evidence (`evidence/shared-link-smoke/headers-2026-06-21.md`).

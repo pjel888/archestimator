@@ -200,12 +200,12 @@ sign-off line below.
 | Residual | Why acceptable for beta | Re-open trigger | Finding / Decision |
 |---|---|---|---|
 | Bearer-link forwarding (anyone with the URL reads) | Inherent to the bearer model; password option exists for sensitive proposals | A recipient demands per-viewer auth | (design) |
-| `location` / `clientName` / `totalCost` public on unlock | Intended proposal context for most users | Privacy/legal objection or per-field redaction requested | SEC-SHARE-07 → **D2/D3**, DPIA [13](13_DATA_PRIVACY_DISCLOSURE_DECISION.md) |
-| Unsubscribe absent-Origin POST (email-suppression only) | No data exposure or proposal mutation; low blast radius | Reports of malicious mass-unsubscribe | **SEC-SHARE-05** (P3) |
-| Owner digest silent-skip from public routes | Functional notification gap, not a breach | Owners miss recipient activity in practice | **SEC-SHARE-06** (P3) → **D9** |
-| Session DELETE without same-origin guard | Forced-logout nuisance only | CSRF-logout abuse observed | **D5** |
-| Process-local password lockout + in-memory throttle | Single-node beta only | Multi-node deploy | SHF-03 → **D4** |
-| Manager-read RLS symmetry on events not yet applied | Service-role route is the read path today | Direct Data-API exposure of event rows | **D10** |
+| `clientName` / `totalCost` public on unlock | Intended proposal context for most users; exact location now governed by D2 `location_visibility` | Privacy/legal objection or per-field redaction requested | **D2/D3**, DPIA [13](13_DATA_PRIVACY_DISCLOSURE_DECISION.md) |
+| Unsubscribe POST misuse | D5 hardening is landed: read-only GET interstitial, same-origin POST, CSRF nonce, durable rate limit | Reports of malicious mass-unsubscribe | **SEC-SHARE-05** (P3 fixed) |
+| Owner digest delivery | Public-route silent-skip fixed; digest slot/logging now durable for beta | Owners miss recipient activity in practice | **SEC-SHARE-06** (P3 fixed) → **D9** |
+| Session DELETE misuse | D5 same-origin guard is landed | CSRF-logout abuse observed | **D5 fixed** |
+| Digest/password throttle scale | Digest slot is provider-backed; password attempts use `security_rate_limit_events`; GA still needs multi-node proof | Multi-node deploy | SHF-03 → **D4** |
+| Manager-read RLS symmetry on events | Manager-read policy applied/read back | Direct Data-API exposure of event rows | **D10 fixed** |
 | Rotate is O(recipient count) | No security impact; scale only | Large-recipient links observed slow | **PERF-12** |
 
 **Owner sign-off (required before beta launch):**

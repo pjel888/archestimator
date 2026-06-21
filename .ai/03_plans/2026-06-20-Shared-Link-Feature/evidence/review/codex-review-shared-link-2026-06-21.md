@@ -35,4 +35,4 @@ Severity summary:
 
 ## Boundary
 
-This clears the code-review gate only. It does **not** clear feature ship-readiness: ratified decision implementation, app deploy/post-deploy smoke, visual QA, and performance gates remain open in `99_QUALITY_SCORECARD_AND_SIGNOFF.md`.
+This clears the code-review gate only. It does **not** clear feature ship-readiness: app deploy/post-deploy smoke, live QA, visual QA, and performance gates remain open in `99_QUALITY_SCORECARD_AND_SIGNOFF.md`.

@@ -1,7 +1,7 @@
 # Shared Link Feature — Plan Pack Index
 
 Date opened: 2026-06-20 · Last updated: 2026-06-21
-Status: **Implementation/review evidence advanced; D1-D11 owner decisions resolved; pack remains open for implementation, deploy, QA, and perf gates.**
+Status: **D1-D11 source/provider implementation advanced; pack remains open for deploy, visual proof, QA-G06, and hosted/provider perf gates.**
 
 This folder is the audit, redesign, and execution pack for the shared-link / publication feature (a
 manager publishes a read-only proposal link; a client reviews and decides). Read in this order: strategy
@@ -54,7 +54,13 @@ exact reconciled command + count), canonical shared-link + snapshot/perf/smoke-h
 local password/rotate perf helper rows, and `#FFFDF8` receiver-token search clean. A 2026-06-21 provider readback on `ebxxqidacheyapmmzavr` confirmed shared-link migrations
 `20260620064601`, `20260620142000`, `20260621042221`, and `20260621051701` are Local+Remote, target label maps
 are complete, row-target mismatches are 0/0, target columns exist, and target-aware RPCs are service-role only.
-Native code review is green. Browser/visual QA, live header smoke, app deploy/post-deploy smoke, ratified decision implementation, and remaining hosted/provider perf budgets remain open; PERF-06 snapshot bytes now pass locally at the 10k tier, and local PERF-09/PERF-12 CPU-only measurements pass.
+The D1-D11 hardening migrations and atomic publish/digest-slot migration are provider-applied and read back in
+[`evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md`](evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md).
+Native code review is green. QA-G10 production-mode header smoke now passes against a seeded local shared link
+(`evidence/shared-link-smoke/headers-2026-06-21.md`), but browser/mobile/print visual QA, app
+deploy/post-deploy smoke, QA-G06 real DB race proof, and remaining hosted/provider perf budgets remain open;
+PERF-06 snapshot bytes now pass locally at the 10k tier, local PERF-09/PERF-12 CPU-only measurements pass,
+and linked-provider read-only DB performance inventory exists under `evidence/live-db-performance-2026-06-21/`.
 
 ## ⚠ Release / Deployment constraints (read before shipping)
 
@@ -70,7 +76,7 @@ Native code review is green. Browser/visual QA, live header smoke, app deploy/po
 
 ## Open work / decisions
 
-- Ratified D1-D11 implementation/evidence backlog: [71](71_OPEN_DECISIONS_REGISTER.md) + [91](91_FORWARD_EXECUTION_PLAN.md).
+- Remaining D1-D11 external evidence backlog: [71](71_OPEN_DECISIONS_REGISTER.md), [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md), and [91](91_FORWARD_EXECUTION_PLAN.md).
 - Engineering backlog with acceptance criteria: [91](91_FORWARD_EXECUTION_PLAN.md).
 - UX redesign (the owner's "fix the bad UX" mandate): [25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md) + [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md), gated by [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
 
@@ -81,7 +87,7 @@ This iteration's plan-pack work is done when:
 - [x] Every doc binds to [75](75_FINDING_ID_REGISTRY.md) with no severity/ID/status contradiction after the
   explicit open gates are called out as gates, not hidden readiness.
 - [x] The focused suite + `type-check` + `git diff --check` pass — **canonical 23 files / 353 tests passed** (latest re-run 2026-06-21, [80](80_IMPLEMENTATION_AND_VERIFICATION_LOG.md)).
-- [x] Decisions D1-D11 are owner-ratified in [71](71_OPEN_DECISIONS_REGISTER.md) and `.ai/10_state/decisions.md`; implementation/evidence remains a separate beta ship gate.
+- [x] Decisions D1-D11 are owner-ratified in [71](71_OPEN_DECISIONS_REGISTER.md) and `.ai/10_state/decisions.md`; source/provider implementation is now evidenced, while external deploy/live-QA/perf evidence remains a separate beta ship gate.
 - [x] [95](95_REQUIREMENT_TO_EVIDENCE_CLOSURE_LEDGER.md) maps every explicit pasted-request requirement to evidence,
   giving 100/100 **planning-artifact** closure while preserving operational NO-GO gates.
 - [x] [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) returns a scored verdict that distinguishes plan-pack assembly from feature deploy/ship readiness.
@@ -89,4 +95,4 @@ This iteration's plan-pack work is done when:
 Feature ship-readiness (beta) is gated separately by [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) and the
 [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go.
 
-**Archive status:** do **not** archive this folder yet. The user asked to archive only when everything in the folder is implemented; current open gates include ratified decision implementation, app deploy/post-deploy smoke, browser/visual QA, QA-G06/QA-G10, hosted/provider perf evidence, and remaining backlog items in [75](75_FINDING_ID_REGISTRY.md)/[91](91_FORWARD_EXECUTION_PLAN.md).
+**Archive status:** do **not** archive this folder yet. The user asked to archive only when everything in the folder is implemented; current open gates include app deploy/post-deploy smoke, browser/mobile/print visual QA, QA-G06 real DB race proof, hosted/provider perf evidence, and remaining backlog items in [75](75_FINDING_ID_REGISTRY.md)/[91](91_FORWARD_EXECUTION_PLAN.md). QA-G10's header-smoke half is closed; its visual half remains open.

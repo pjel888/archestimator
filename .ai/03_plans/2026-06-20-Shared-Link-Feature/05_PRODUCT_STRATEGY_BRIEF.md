@@ -63,10 +63,10 @@ is the sender's control-and-feedback; performance (50) is "fast enough not to er
 - Make the receiver a **premium, trustworthy proposal document** and the manager modal a **calm linear
   Share sheet** (25/35) — the owner's explicit "the UX is bad, fix it" mandate.
 - Get the pack to **executable and decision-ready** state (90/91/71/99) for a closed beta. Deployability is
-  proved only after [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) and the ratified implementation gates pass.
+  proved only after [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) and the live QA/visual/performance gates pass.
 
 **Non-goals (this iteration)**
-- Full legal e-signature (D11), realtime owner feed (D7), durable distributed throttling (D4),
+- Full legal e-signature (D11), realtime owner feed (D7), multi-node throttle proof (D4),
   one-RPC write consolidation (PERF-05), a floating nav rail (D6 — retired).
 
 ## 5. Success metrics

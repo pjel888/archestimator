@@ -10,21 +10,23 @@ decision record is in `.ai/10_state/decisions.md`. Per Philip's documented prefe
 launch register: **no decision ships by default-in-code without an explicit call here.**
 
 Status legend: **Open** (undecided) · **Recommended** (MVP-tier default proposed, awaiting confirm) ·
-**Production-Answered** (production-grade verdict written but not yet ratified) · **Resolved** (owner-ratified; implementation/evidence may still remain open in [91](91_FORWARD_EXECUTION_PLAN.md) / [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md)).
+**Production-Answered** (production-grade verdict written but not yet ratified) · **Resolved** (owner-ratified; source/provider evidence may still be complemented by deploy/live QA/perf evidence in [91](91_FORWARD_EXECUTION_PLAN.md) / [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md)).
 
 > **How to use this register.** Each row below has a one-line production verdict. The full reasoning,
 > implementation path (concrete files + changes), verification gate (binary pass/fail), blast radius,
 > and beta-vs-GA disposition for each decision live in
 > [`71_PRODUCTION_ANSWERS.md`](71_PRODUCTION_ANSWERS.md). The
-> "Current default-in-code" column is the verified codebase state as of 2026-06-21 (three parallel
+> "Current default-in-code" column is the verified pre-implementation baseline from 2026-06-21 (three parallel
 > explore-agent audit passes against `src/app/api/share/[token]/*`, `src/lib/publication/*`,
 > `src/components/share/*`, `src/components/workshop/ProjectPublicationHeader.tsx`, and all 14
-> publication-domain migrations).
+> publication-domain migrations). Post-ratification implementation evidence now lives in
+> [75](75_FINDING_ID_REGISTRY.md), [80](80_IMPLEMENTATION_AND_VERIFICATION_LOG.md), and
+> [`evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md`](evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md).
 
 ## Beta decision set
 
-Closed beta cannot be declared ready until the following ratified decisions are implemented and evidenced
-or explicitly recorded as beta deferrals with rationale:
+Closed beta cannot be declared ready until the following ratified decisions stay implemented and evidenced,
+and the external deploy/live-QA/perf gates pass:
 
 | Gate | Decisions | Required beta disposition |
 |---|---|---|
@@ -34,9 +36,9 @@ or explicitly recorded as beta deferrals with rationale:
 | Manager notification | D9 | Ratify digest + durable limiter + `publication_digest_log` + observability wiring. |
 | Single-node beta assumption | D4 | Record topology; build durable layer now so GA is a config flag. |
 
-D6, D7, D10, and D11 may ship as recorded deferrals if [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) lists the residual risk — but all four have production-grade beta answers in [`71_PRODUCTION_ANSWERS.md`](71_PRODUCTION_ANSWERS.md) that close them at beta with no GA rebuild required (D6 ratified, D7 focus-refresh, D10 apply-now, D11 named confirmation + audit line).
+D6, D7, D10, and D11 have production-grade beta answers in [`71_PRODUCTION_ANSWERS.md`](71_PRODUCTION_ANSWERS.md) that close them at beta with no GA rebuild required (D6 ratified, D7 focus-refresh, D10 apply-now, D11 named confirmation + audit line).
 
-| ID | Decision question | Current default-in-code (verified 2026-06-21) | Production verdict (full reasoning in [71-PA](71_PRODUCTION_ANSWERS.md)) | Blast radius / blocks | Owner | Status |
+| ID | Decision question | Pre-implementation baseline (verified 2026-06-21) | Production verdict (full reasoning in [71-PA](71_PRODUCTION_ANSWERS.md)) | Blast radius / blocks | Owner | Status |
 |---|---|---|---|---|---|---|
 | **D1** | Should a **content-only republish force the recipient to reload** before commenting/deciding? | **Yes** — routes return 409 on stale `viewedSnapshotVersion` (`comment/route.ts:227-245`, `decision/route.ts:201-221`) + RPC equality lock (`20260620142000`). **No stale-snapshot banner exists in the receiver UI.** Hard reloads only for auth/session flows. | **Keep the 409 + equality lock (SEC-SHARE-01 is the trust pillar). Add a non-destructive banner that preserves scroll + drafted comment text. The 409 response must return `currentSnapshotVersion` so the client can re-fetch in one round-trip.** [71-PA §D1](71_PRODUCTION_ANSWERS.md) | `comment/route.ts`, `decision/route.ts`, `SharePageComments.tsx`, `SharePageDecision.tsx`, new `ShareStaleSnapshotBanner.tsx`, 2 test files | Philip | **Resolved** |
 | **D2** | Expose **exact `project.location`** (address/GPS) to anyone with the link? | **Yes** — rendered verbatim at `SharePageProposalHeader.tsx:11`; included in snapshot DTO (`snapshot.ts`, `types.ts:108`). **No `location_visibility`/`expose_location`/`show_address`/`location_precision` column exists** (verified across all 14 publication migrations). No GPS/lat-long in the snapshot type. | **Add a per-publication `location_visibility` enum (`exact` \| `locality` \| `hidden`) with default `locality`. Manager picks precision at publish time in the Access tab. Sanitization truncates based on the flag. Never add GPS/lat-long.** [71-PA §D2](71_PRODUCTION_ANSWERS.md) | 1 new migration, `snapshot.ts` (build + sanitize), `types.ts`, `actions.ts`, `ProjectPublicationHeader.tsx` (Access toggle), `SharePageProposalHeader.tsx`, 2 test files | Philip | **Resolved** |
@@ -55,12 +57,12 @@ D6, D7, D10, and D11 may ship as recorded deferrals if [99](99_QUALITY_SCORECARD
 ## Resolution record
 
 Philip ratified the production verdicts for D1-D11 on 2026-06-21. The durable decision record is in
-`.ai/10_state/decisions.md`; implementation and operational evidence remain tracked in
+`.ai/10_state/decisions.md`; implementation and operational evidence are tracked in
 [91](91_FORWARD_EXECUTION_PLAN.md), [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md), and
 [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 
-**Beta cannot be declared ready until D1-D5 and D8-D9 are implemented and evidenced** (they gate privacy,
-security, and deploy correctness). D6/D7/D10/D11 have production-grade beta answers that close the owner
+**Beta cannot be declared ready until the source/provider D1-D11 evidence remains green and the external
+deploy/live-QA/perf gates pass.** D6/D7/D10/D11 have production-grade beta answers that close the owner
 decision gate at beta with no GA rebuild required. See [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) for the
 launch gate.
 

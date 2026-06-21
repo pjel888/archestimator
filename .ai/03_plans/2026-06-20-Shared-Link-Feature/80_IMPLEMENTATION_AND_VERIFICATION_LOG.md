@@ -2,11 +2,13 @@
 
 Date: 2026-06-20 · **As-of remediation: 2026-06-21**
 
-Status: **Landed (code + focused tests + code review) — app deploy/ratified-implementation/visual/perf gates OUTSTANDING.** Finding IDs/severities/statuses are bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) (canonical; 75 wins on any disagreement). Deploy ordering, drift reconciliation, and rollback live in [`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). Ratified decisions are in [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_REGISTER.md). Codex review-gate status belongs in [`LOOP_LEDGER.md`](LOOP_LEDGER.md) (see §Codex Review-Gate Status below).
+Status: **Landed (code + focused tests + provider readback + code review) — app deploy/live-QA/visual/perf gates OUTSTANDING.** Finding IDs/severities/statuses are bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) (canonical; 75 wins on any disagreement). Deploy ordering, drift reconciliation, and rollback live in [`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). Ratified decisions are in [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_REGISTER.md). Codex review-gate status belongs in [`LOOP_LEDGER.md`](LOOP_LEDGER.md) (see §Codex Review-Gate Status below).
 
 ## Files Changed
 
 Source:
+- `next.config.ts`
+- `src/proxy.ts`
 - `src/app/api/share/[token]/comment/route.ts`
 - `src/app/api/share/[token]/decision/route.ts`
 - `src/app/api/share/[token]/route.ts`
@@ -45,6 +47,7 @@ Source:
 
 Tests:
 - `tests/vitest/project-publication-actions.test.ts`
+- `tests/vitest/auth-proxy.test.ts`
 - `tests/vitest/project-publication-comments.test.tsx`
 - `tests/vitest/project-publication-decision.test.tsx`
 - `tests/vitest/project-publication-header.test.tsx`
@@ -55,6 +58,9 @@ Tests:
 - `tests/vitest/recipient-email-composer.test.tsx`
 - `tests/vitest/security-findings-publication-contracts.test.ts`
 - `tests/vitest/project-publication-security-hardening.test.ts`
+- `tests/vitest/project-publication-security-headers.test.ts`
+- `tests/vitest/landing-security-headers.test.ts`
+- `tests/vitest/proxy-sensitive-cache-headers.test.ts`
 - `tests/vitest/share-no-store-invariants.test.ts`
 - `tests/vitest/share-estimate-tree-panel-a11y.test.tsx`
 - `tests/vitest/share-estimate-tree-view-performance.test.tsx`
@@ -527,6 +533,19 @@ Additional checks:
 - Snapshot byte budget evidence captured:
   `bun scripts/measure-shared-link-perf-budgets.ts --mode snapshot-bytes --rows 100,1000,10000 --samples 5 --out .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/perf-budgets.md`
   → 100 rows 29.7 KiB PASS, 1k rows 263.1 KiB PASS, 10k rows 2.55 MiB **PASS** vs 4 MiB.
+- QA-G10 live header smoke captured against a production-mode local server:
+  `PUBLICATION_TOKEN_ENCRYPTION_SECRET=... PUBLICATION_TOKEN_HASH_SECRET=... PUBLICATION_ACCESS_COOKIE_SECRET=... bun run start`,
+  then `SHARE_URL="$SHARE_URL" bun scripts/smoke-share-headers.mjs`
+  → **PASS 200 HEAD** with CSP, `private, no-cache, no-store, max-age=0, must-revalidate`,
+  frame denial, `nosniff`, `no-referrer`, and `noindex`; evidence:
+  `evidence/shared-link-smoke/headers-2026-06-21.md`. A matching `curl` GET returned `200`.
+- Header/cache regression tests passed after the QA-G10 runtime finding:
+  `bunx vitest run tests/vitest/auth-proxy.test.ts tests/vitest/proxy-sensitive-cache-headers.test.ts tests/vitest/project-publication-security-headers.test.ts tests/vitest/landing-security-headers.test.ts tests/vitest/shared-link-header-smoke-script.test.ts --maxWorkers=1`
+  → **5 files / 30 tests passed**. `bun run build` also passed.
+- Linked-provider DB performance inventory captured:
+  `bun scripts/collect-live-db-performance-evidence.ts --mode linked --run-sql --output-dir .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/live-db-performance-2026-06-21`
+  → read-only SQL ran against `ebxxqidacheyapmmzavr`; evidence report + raw JSON written under
+  `evidence/live-db-performance-2026-06-21/`. This is provider inventory evidence, not route TTI or EXPLAIN proof.
 - Native `code-reviewer` gate passed 2026-06-21; artifact:
   `evidence/review/codex-review-shared-link-2026-06-21.md`.
 
@@ -596,7 +615,7 @@ the Sev/Status columns here are copied from 75 and corrected to match if they ev
 | 28 | Performance budget helper + evidence | PERF-06 / PERF-09 / PERF-12 | P2/P3 | Helper landed; PERF-06 fixed in §29 · PERF-09/12 local CPU-only measurements pass; hosted/provider evidence remains open |
 | 29 | Compact snapshot v1.3 tab row IDs | PERF-06 | P2 | Fixed locally; hosted/provider perf evidence remains separate |
 | 30 | Receiver tab typography test-comment cleanup | RUX-12 | P3 | Fixed locally; project-publication-page test now asserts `text-[13px]` and documents the path-scoped `/share` Client Portal type-scale exemption |
-| 31 | Header-smoke helpers | QA-G10 | P2 | Helper scripts landed with unit coverage; live SHARE_URL smoke and visual matrix remain open |
+| 31 | Header-smoke helpers | QA-G10 | P2 | Helper scripts landed with unit coverage; production-mode local SHARE_URL smoke passed; visual matrix remains open |
 | 32 | Local perf measurement append support | PERF-09 / PERF-12 | P3 | `evidence/perf-budgets.md` now keeps snapshot + password-unlock + rotate-cost rows in one table |
 | 33 | Unified unavailable-link copy | MANAGER-F-03 | P2 | Fixed locally; branded not-found page and share API 404 envelopes import one copy contract |
 | 34 | Behavioral action-contract tests | MANAGER-F-05 | P3 | Fixed locally; republish, rotate, and owner activity-load success/error branches now assert observable outcomes in `project-publication-actions.test.ts` |
@@ -608,7 +627,7 @@ Notes binding to 75 (do not contradict):
 - §9 and §10 are **canonical P2** (origin-audit severity); doc 70 listed them P1. This is register-accuracy, both are Fixed — no open risk. See [75 §1](75_FINDING_ID_REGISTRY.md) and [_COORDINATION §4.9](_COORDINATION.md).
 - §11 originally closed only assertion-ordering + rotate double-click; §35 now closes the full five-actor-class × every-mutation **RBAC matrix (MANAGER-F-01)**.
 - §18/§25 land both bounded sends (PERF-08 Fixed) and the per-recipient partial-send retry UX (MANAGER-F-04 Fixed).
-- §19 removes the owner-style activity feed from the public receiver page (RUX-10 Fixed) and preserves the comment-body leak fix (**SEC-SHARE-09**, the review-discovered id — NOT the unsubscribe SEC-SHARE-05). **Owner-feed realtime (SHF-01) is Open** → **D7**.
+- §19 removes the owner-style activity feed from the public receiver page (RUX-10 Fixed) and preserves the comment-body leak fix (**SEC-SHARE-09**, the review-discovered id — NOT the unsubscribe SEC-SHARE-05). **Owner-feed realtime (SHF-01) is GA backlog** → **D7**.
 - §34 closes MANAGER-F-05; §35 closes the separate MANAGER-F-01 role-rejection matrix.
 - §36 closes QA-G07's remaining offline-queue hardening gap; QA-G06 remains the only P1-class QA test-rigor gate.
 - §37 closes MANAGER-F-06; the review-found manager-only visibility and `ok:false` result-handling gaps are now covered, and all MANAGER-F source/test gaps are fixed locally.
@@ -621,7 +640,7 @@ This implementation iteration is **DONE** only when every box is green; until th
    - Verify: `bunx vitest run <23 files> --maxWorkers=1`
 2. **Type-check green.** Gate: `bun run type-check` exits `0`.
 3. **Diff hygiene.** Gate: `git diff --check` exits `0`.
-4. **DB reconciled pre-deploy.** Shared-link migrations `20260620064601`, `20260620142000`, `20260621042221`, and `20260621051701` are applied/repaired and read back on provider BEFORE the app revision ships; app deploy smoke still pending. Gate: see [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go. Owner-lane: DB/release.
+4. **DB reconciled pre-deploy.** Shared-link migrations `20260620064601`, `20260620142000`, `20260621042221`, `20260621051701`, D1-D11 hardening, and atomic publish/digest-slot RPCs are applied/repaired and read back on provider BEFORE the app revision ships; app deploy smoke still pending. Gate: see [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go. Owner-lane: DB/release.
 5. **Codex review-gate satisfied.** HIGH-BLAST-RADIUS (DB/RPC/security) → native `code-reviewer` report recorded at
    `evidence/review/codex-review-shared-link-2026-06-21.md`, with status logged in [`LOOP_LEDGER.md`](LOOP_LEDGER.md).
    Gate: **PASS** for this code-review gate.
@@ -716,8 +735,8 @@ fixes), so the Codex review gate applies per `CLAUDE.md` / `.ai/12_agents/payloa
 - **Status: SATISFIED (PASS).** Native `code-reviewer` subagent review found 0 blocking findings and
   approved the scoped shared-link code-review gate.
 - **Artifact:** [`evidence/review/codex-review-shared-link-2026-06-21.md`](evidence/review/codex-review-shared-link-2026-06-21.md).
-- **Boundary:** this clears the code-review gate only. It does not clear ratified decision implementation, browser/visual QA,
-  app deploy/post-deploy smoke, or performance budget gates.
+- **Boundary:** this clears the code-review gate only. It does not clear browser/visual QA,
+  app deploy/post-deploy smoke, QA-G06 real DB proof, QA-G10 visual proof, or performance budget gates.
 
 ## 38. QA-G06 Duplicate-Decision Race Harness
 
@@ -735,12 +754,31 @@ fixes), so the Codex review gate applies per `CLAUDE.md` / `.ai/12_agents/payloa
 - Status: QA-G06 is **Partial**, not Fixed, until this harness passes against local Supabase or the linked
   Archestimator provider database.
 
+## 39. D1-D11 Atomic Publish + Durable Digest Slot
+
+- Added `supabase/migrations/20260621133000_shared_link_atomic_publish_and_digest_slot.sql`.
+- `createProjectPublication` now calls service-role RPC `replace_project_publication(...)` instead of
+  issuing a separate revoke update and insert from the app layer.
+- Owner digest throttling now reserves a durable slot through `reserve_security_rate_limit_slot(...)`
+  instead of count-then-insert app logic.
+- Public comment/decision routes now schedule digest work with `after(...)` so successful receiver POSTs
+  return quickly while Next can still drain the digest/log side effect. The small synchronous fallback keeps
+  route unit tests and non-request harnesses from turning a scheduling error into a receiver-facing 500.
+- Provider readback evidence:
+  [`evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md`](evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md).
+- Verification:
+  - `bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-resolved-ids.test.ts tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-schema.test.ts tests/vitest/security-findings-publication-contracts.test.ts --maxWorkers=1` passed 8 files / 157 tests.
+  - `bunx vitest run tests/vitest/project-publication-one-published-index.test.ts tests/vitest/share/duplicate-decision-race.provider.test.ts --maxWorkers=1` passed 2 files / 8 tests with 1 provider-race skip.
+  - `bun run type-check` passed.
+  - `git diff --check` passed.
+  - Supabase MCP apply/readback on `ebxxqidacheyapmmzavr` passed: 0 duplicate published projects, one partial unique published index, `replace_project_publication(...)` present/service-role-only, `reserve_security_rate_limit_slot(...)` present/service-role-only.
+
 ## Validation Not Run
 
 - Browser/Playwright/visual QA: intentionally skipped in this pass because Product Design/browser guidance requires a chosen browser/approval for Playwright-style proof, and static/component/route tests prove the source changes. The client-ship visual gate remains open in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
-- App deploy/post-deploy smoke: not run. Provider shared-link migration/readback is green, but the app revision still needs the [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go.
+- App deploy/post-deploy smoke: not run. Provider shared-link migration/readback and D1-D11 atomic hardening readback are green, but the app revision still needs the [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go.
 - Hosted/provider performance: not complete. Local activity and snapshot-byte evidence is recorded, and PERF-06 snapshot bytes now pass locally; public page p95, password unlock, rotate cost, and provider `EXPLAIN` remain open.
 - Local Supabase migration listing/provider race: local Supabase could not run because Docker was not
   available (`supabase status` could not connect to the Docker daemon). QA-G06 harness exists but real DB
-  execution remains pending.
+  execution remains pending; the latest QA-G06 run still skipped because `SUPABASE_DB_URL` was not set.
 - Full `bun run validate`: skipped because the worktree has substantial unrelated dirty changes outside the shared-link scope. Focused tests plus type-check covered the modified behavior.

@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-06-21T12:15:13.232Z",
+  "mode": "shared-link-header-smoke",
+  "redactedUrl": "http://127.0.0.1:3000/share/%3Credacted-token%3E",
+  "method": "HEAD",
+  "headAttempted": true,
+  "headStatus": 200,
+  "status": 200,
+  "ok": true,
+  "durationMs": 150.85,
+  "headers": {
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "content-security-policy": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms",
+    "x-frame-options": "DENY",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "x-robots-tag": "noindex, nofollow"
+  },
+  "checks": [
+    {
+      "key": "content-security-policy",
+      "label": "Content-Security-Policy present",
+      "passed": true
+    },
+    {
+      "key": "cache-control",
+      "label": "Cache-Control includes no-store",
+      "passed": true
+    },
+    {
+      "key": "frame-policy",
+      "label": "Frame policy denies embedding",
+      "passed": true
+    },
+    {
+      "key": "x-content-type-options",
+      "label": "X-Content-Type-Options is nosniff",
+      "passed": true
+    },
+    {
+      "key": "referrer-policy",
+      "label": "Referrer-Policy is no-referrer",
+      "passed": true
+    },
+    {
+      "key": "x-robots-tag",
+      "label": "X-Robots-Tag is noindex/nofollow",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "note": "Read-only header smoke for a valid shared proposal URL. URL path/query secrets are redacted; this proves runtime security/cache headers only, not browser visual QA."
+}

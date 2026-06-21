@@ -21,4 +21,4 @@ Reviewer: native `code-reviewer` subagent `019ee956-eda7-72a2-adfe-3f5a1e6185ef`
 
 ## Boundary
 
-This resolves the dashboard quick-action review findings. It does not clear ratified decision implementation, deploy/post-deploy smoke, browser/visual QA, QA-G06 provider execution, QA-G10 live proof, or hosted/provider performance gates.
+This resolves the dashboard quick-action review findings. It does not clear deploy/post-deploy smoke, browser/visual QA, QA-G06 provider execution, QA-G10 live proof, or hosted/provider performance gates.

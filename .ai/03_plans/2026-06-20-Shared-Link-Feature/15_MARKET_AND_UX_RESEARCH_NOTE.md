@@ -30,7 +30,7 @@ remains [05](05_PRODUCT_STRATEGY_BRIEF.md), [25](25_RECEIVER_UX_REDESIGN_BLUEPRI
 - **Decision D11:** external tools commonly support signatures, but this pack should not over-scope MVP into
   legal e-signature. Named confirmation plus audit line is the closed-beta recommendation; full e-signature is GA.
 - **Launch readiness:** external patterns strengthen the UX/business case, but they do not remove local gates:
-  provider migration reconciliation, ratified decision implementation, test-rigor gaps, visual QA, and review gate still control [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
+  provider migration reconciliation, test-rigor gaps, visual QA, live smoke, and review gate still control [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 
 ## 3. Sources
 

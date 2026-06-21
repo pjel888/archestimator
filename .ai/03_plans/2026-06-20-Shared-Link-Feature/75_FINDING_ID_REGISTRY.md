@@ -29,10 +29,10 @@ column records the re-rate. Verified facts are in
 | SEC-SHARE-02 | Session POST: weaker same-origin, no CSRF pair, no rate limit before recipient verify | **P2** | **Fixed** | Origin sev P2; **70 listed P1 (priority elevation)** — reconcile to P2 or annotate the raise. Fixed at `session/route.ts:29` (`assertSameOriginPublicPost`), `:41` (`checkSharedLinkSessionStartRateLimit`). **Source-verified.** |
 | SEC-SHARE-03 | Unbounded open/event writes on page + snapshot GET (limiter only on `/events`) | **P2** | **Fixed** | Origin sev P2 ("mostly telemetry cost/noise"); **70 listed P1** — least-justified raise, settle at P2. Fixed in 80 §10. |
 | SEC-SHARE-04 | Unsalted SHA-256 IP hashes in public route logs (vs HMAC pepper in DB) | P2 | **Fixed** | `hashPublicTelemetryValue()`; 80 §12. |
-| SEC-SHARE-05 | **Unsubscribe POST**: `assertSameOrigin` allows absent Origin, no CSRF, no rate limit | P3 | **Open** | **ID was wrongly reused by 70 for the activity leak.** Restored here to its original unsubscribe meaning. D5 is ratified harden-now: add stricter same-origin, CSRF nonce, and durable rate limit. `unsubscribe/route.ts` untouched in 80. |
+| SEC-SHARE-05 | **Unsubscribe POST**: `assertSameOrigin` allows absent Origin, no CSRF, no rate limit | P3 | **Fixed** | **ID was wrongly reused by 70 for the activity leak.** Restored here to its original unsubscribe meaning. D5 hardening is landed: unsubscribe GET is a read-only interstitial, POST uses `assertSameOriginPublicFormPost` + CSRF nonce + durable `shared_link_unsubscribe` rate limit; covered by `share-unsubscribe-interstitial.test.ts` and `project-publication-page.test.tsx`. |
 | SEC-SHARE-06 | Owner digest never fires from public recipient routes (auth-required silent skip) | P3 | **Fixed** | `maybeTriggerSharedLinkActivityDigest` no longer requires a current owner auth context for public comment/decision routes; the helper resolves owner/project context through service-role publication state and remains best-effort/rate-limited. Covered by `project-publication-activity.test.tsx`. D9 may still govern broader notification policy. |
-| SEC-SHARE-07 | Public snapshot exposes exact `project.location` | P3 | **Open** | D2 is ratified: add `location_visibility` (`exact` / `locality` / `hidden`, default `locality`) and sanitize the public snapshot. Currently exposed (`SharePageProposalHeader.tsx:11`). |
-| SEC-SHARE-08 | Non-atomic revoke+insert in `createProjectPublication` (transient-failure window) | P3 | **Open** | Pending-review `AC-MOD-06_one_published_publication_per_project.sql`. → **D8**/`90`. |
+| SEC-SHARE-07 | Public snapshot exposes exact `project.location` | P3 | **Fixed** | D2 is landed: `project_publications.location_visibility` (`exact` / `locality` / `hidden`, default `locality`) controls snapshot sanitization; provider readback confirms the column/constraint. |
+| SEC-SHARE-08 | Non-atomic revoke+insert in `createProjectPublication` (transient-failure window) | P3 | **Fixed** | `createProjectPublication` now calls service-role RPC `replace_project_publication(...)`, which locks the project row and revokes/inserts the replacement in one DB transaction; provider readback confirms the RPC and the one-published partial unique index. Evidence: [`evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md`](evidence/provider-readback/d1-d11-atomic-publish-digest-2026-06-21.md). |
 | **SEC-SHARE-09** | **Public activity route returned comment bodies** (bypassed recipient-session comment API) | P1 | **Fixed** | **New canonical id** (was mislabeled SEC-SHARE-05 in 70:31). Review-discovered; activity route no longer selects/returns comment bodies; 80 §19–20. |
 | **SEC-SHARE-10** | **OpenGraph `description` leaks proposal total + clientName** on no-password links | P3 | **Fixed** | `generateMetadata` now returns generic public/protected metadata without resolving the proposal snapshot, so link-unfurl crawlers do not receive totals or client name. Covered by `project-publication-page.test.tsx` + `security-findings-publication-contracts.test.ts`. D3 remains only for broader in-page public disclosure policy. |
 
@@ -80,7 +80,7 @@ column records the re-rate. Verified facts are in
 | QA-G07 | Offline queue flush + tampered-viewToken 409 route tests | P1 | **Fixed** | Tampered comment/decision `viewToken` 409 tests are landed, and the comment offline-queue test now asserts sessionStorage persistence, reconnect flush, queue clearing, posted body/viewToken, and fresh CSRF headers. |
 | QA-G08 | Comments-after-decision behavioral test | P1 | **Fixed** | `project-publication-decision.test.tsx` now drives a decision lock and submits a real follow-up comment through `SharePageComments`. |
 | QA-G09 | Tighten permissive status arrays | P2 | **Fixed** | Broad status-array assertions in comments/activity/decision tests were replaced with exact status/payload expectations; `rg` for `toContain(res.status)` style arrays is clean. |
-| QA-G10 | Live security-header smoke + mobile/print visual proof | P2 | **Open** | Header smoke/seed helpers landed (`smoke-share-headers.mjs`, `seed-shared-link-smoke.ts`) with unit coverage; live SHARE_URL execution and mobile/print visual proof remain deferred to `85`. |
+| QA-G10 | Live security-header smoke + mobile/print visual proof | P2 | **Partial** | Header smoke/seed helpers landed and production-mode local `SHARE_URL` smoke passed on 2026-06-21 (`evidence/shared-link-smoke/headers-2026-06-21.md`) after adding no-store to `/share` responses. Mobile/print visual proof remains deferred to `85`. |
 
 ## 5. Performance (origin: `50_PERFORMANCE_SPEED_AUDIT.md`)
 
@@ -108,13 +108,13 @@ column records the re-rate. Verified facts are in
 |---|---|:--:|---|---|
 | SHF-01 | Owner activity feed has no realtime/live updates (focus/visibility refresh only) | P2 | **Resolved for beta / GA backlog** | D7 ratifies focus/visibility refresh for beta with honest copy; Supabase Realtime remains GA backlog. |
 | SHF-02 | Floating navigation rail not present | P3 | **Resolved** | D6 ratifies the single-column document as canonical V2. Rail is not reinstated unless a future owner decision explicitly calls for it. |
-| SHF-03 | In-memory digest/rate-limit throttle not durable across workers | P3 | **Open** | D4 ratifies single-node beta only if recorded and the durable limiter/lockout layer is built now; durable-live is GA/multi-node. |
+| SHF-03 | In-memory digest/rate-limit throttle not durable across workers | P3 | **Fixed for beta / GA scale backlog** | D4 source/provider hardening is landed for beta: public password attempts already use durable `security_rate_limit_events`, owner digest throttling now reserves a durable slot through `reserve_security_rate_limit_slot(...)`, and delivery attempts are logged in `publication_digest_log`. GA still needs multi-node topology/perf proof, not a source rewrite. |
 
 ## 7. Dropped / reassigned / re-rated ledger
 
 | Item | What happened | Disposition |
 |---|---|---|
-| SEC-SHARE-05 | 70 reused the id for the activity leak | Activity leak → **SEC-SHARE-09**; SEC-SHARE-05 restored to **unsubscribe**, status Open-Deferred |
+| SEC-SHARE-05 | 70 reused the id for the activity leak | Activity leak → **SEC-SHARE-09**; SEC-SHARE-05 restored to **unsubscribe**, then fixed by D5 hardening |
 | SEC-SHARE-06 | Absent from 70 entirely | **Re-added, then Fixed**; D9 remains policy/waiver surface only |
 | MANAGER-F-01 | 70 marked "Covered" before the matrix existed | **Now Fixed** by the explicit 7 mutations × 5 actor classes matrix; prior "Covered" over-claim is historical only |
 | SEC-SHARE-02 / -03 | 70 raised P2→P1 silently | Canonical **P2**; 70 must annotate any raise |
@@ -130,9 +130,9 @@ column records the re-rate. Verified facts are in
 
 ## 8. Status roll-up (for `99_QUALITY_SCORECARD_AND_SIGNOFF.md`)
 
-- **Fixed:** SEC-SHARE-01/02/03/04/06/09/10, RUX-01..13/14(source)/15, MANAGER-F-01/02/03/04/05/06, PERF-02/03/04(code)/06/07/07B/08/10/11/13/14, QA-G02/03/04/05/07/08/09.
+- **Fixed:** SEC-SHARE-01/02/03/04/05/06/07/08/09/10, RUX-01..13/14(source)/15, MANAGER-F-01/02/03/04/05/06, PERF-02/03/04(code)/06/07/07B/08/10/11/13/14, QA-G02/03/04/05/07/08/09, SHF-03(beta).
 - **Partial:** QA-G06 (harness added; provider/local-Supabase proof pending).
-- **Open (engineering backlog):** SEC-SHARE-05/07/08, SHF-03, QA-G10, PERF-01A/05/09/12, plus ratified D1/D3/D9/D10/D11 implementation details in `71`.
+- **Open (engineering backlog):** QA-G10 visual half, PERF-01A/05/09/12, plus external deploy/live-QA/provider evidence in `90`/`91`.
 - **Owner decisions resolved:** D1-D11 (`71` + `.ai/10_state/decisions.md`). **Stale-invalid:** QA-G01.
 - **No P1 *source-fix* finding is open.** Remaining P1-class **test-rigor** gap is QA-G06 provider race; SHF-01
   is beta-resolved by D7 focus-refresh ratification with Supabase Realtime kept in GA backlog — so "ready" is conditional, not unqualified (see `99`).

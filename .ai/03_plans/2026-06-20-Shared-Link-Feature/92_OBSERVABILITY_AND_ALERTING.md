@@ -157,7 +157,10 @@ These are the four monitoring obligations the audit explicitly demands. Each has
   - **Daily (first 14 days of beta):** §2.1 error rate, §2.5 digest, §2.8 circuit-breaker — the three that page.
   - **Weekly:** §2.2 409 share (D1 input), §2.3 password failures, §2.4 rate-limit rows, §2.6 snapshot size, §2.7 rotate latency.
   - **At GA gate:** re-baseline every threshold from real traffic; promote any WATCH gate that breached to a hard gate or close it. Sign-off recorded in [`99`](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
-- **Durability caveat (D4 / SHF-03):** the digest + rate-limit throttles are **in-memory, per-process** (`actions.ts:1339-1346`, `digestRateLimit` Map). On multi-worker/restart they reset; **single-node beta only** (SHF-03 **Decision**, accepted). Any horizontal scale invalidates §2.5 thresholds until throttles move to DB/Redis (D4).
+- **Durability caveat (D4 / SHF-03):** the digest throttle now reserves a durable slot through
+  `reserve_security_rate_limit_slot(...)`, and password attempts use `security_rate_limit_events`.
+  GA/multi-node still needs topology/perf proof for those shared-store paths; it no longer requires an
+  in-memory-to-durable rewrite for the owner digest throttle.
 
 ---
 

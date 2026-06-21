@@ -92,10 +92,9 @@ WAVE 3 — manager workflow (FE + BE)
   MANAGER-F-05 (behavioral republish/rotate/loadActivity tests) ◄── Fixed locally
 
 WAVE 4 — security/notification (BE/DB, HIGH BLAST RADIUS → 90 + Codex gate)
-  D5 ─► SEC-SHARE-05 (unsubscribe/session DELETE CSRF/rate hardening) [ratified do-now]
-  D9 ─► SEC-SHARE-06 beta posture / digest log / delivery evidence    [code fixed + hardening open]
-  D8 ─► SEC-SHARE-08 (atomic revoke+insert)  ── shares actions.ts with fixed MANAGER-F-01 coverage
-                                                  → serialize against Wave 3 (see 72)
+  D5 ─► SEC-SHARE-05 (unsubscribe/session DELETE CSRF/rate hardening) [fixed]
+  D9 ─► SEC-SHARE-06 beta posture / digest log / delivery evidence    [fixed locally + provider readback]
+  D8 ─► SEC-SHARE-08 (atomic revoke+insert)                           [fixed locally + provider readback]
 
 WAVE 5 — performance (measure-first; mostly gated on a measurement, not a decision)
   PERF-01A ◄── D2 ratified (location_visibility first; then token-leakage review)
@@ -277,8 +276,10 @@ target source · target test · verification command · blast radius.** Severiti
   If using a hosted/provider link instead of local seed, create the same `url.env` manually from a known-published no-password link and keep the file in ignored evidence.
 - **Blast radius:** none (read-only smoke).
 - **Gate:** PASS iff all required headers present AND visual matrix signed off in [`85`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
-  **Status:** PARTIAL — `scripts/smoke-share-headers.mjs` and `scripts/seed-shared-link-smoke.ts`
-  landed with unit tests; no live `SHARE_URL` smoke or visual matrix has run yet.
+  **Status:** PARTIAL — production-mode local `SHARE_URL` smoke passed 2026-06-21 after the `/share` cache
+  header fix (`evidence/shared-link-smoke/headers-2026-06-21.md`: CSP present, private/no-store,
+  frame deny, nosniff, no-referrer, noindex). Mobile/print visual matrix in [`85`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md)
+  has not run yet.
 
 ### WAVE 2 — Receiver UX polish
 
@@ -509,24 +510,24 @@ target source · target test · verification command · blast radius.** Severiti
 
 ## 4. Resolved owner-decision block
 
-Each formerly blocked item now has a ratified [`71`](71_OPEN_DECISIONS_REGISTER.md) decision. Coding may
-start, but the feature remains NO-GO until implementation, deploy, QA, and perf evidence pass.
+Each formerly blocked item now has a ratified [`71`](71_OPEN_DECISIONS_REGISTER.md) decision. Source/provider
+implementation has advanced, but the feature remains NO-GO until deploy, live QA, visual, and perf evidence pass.
 
 | Decision | Question (abbrev.) | Unblocks item(s) |
 |---|---|---|
 | **D1** | Content-only republish forces recipient reload? | SEC-SHARE-01 already-Fixed posture; informs MANAGER-F-03 copy. (No Open coding item gated solely on D1.) |
 | **D2** | Expose exact `project.location` to recipients? (`SharePageProposalHeader.tsx:11`) | **PERF-01A** (server-redirect flow) |
 | **D3** | Expose `clientName`/totals/public IDs publicly? | OG leak is fixed; D3 now governs broader in-page/DTO disclosure policy. |
-| **D4** | In-memory vs durable digest/rate-limit throttle for beta? | Posture for SEC-SHARE-06 / SHF-03 durability (informs, not blocks) |
-| **D5** | Cross-origin/absent-Origin unsubscribe: harden vs accept? | **SEC-SHARE-05** |
+| **D4** | In-memory vs durable digest/rate-limit throttle for beta? | Digest durable-slot implementation/readback is landed; multi-node proof remains GA scale evidence. |
+| **D5** | Cross-origin/absent-Origin unsubscribe: harden vs accept? | **SEC-SHARE-05** fixed. |
 | **D6** | Floating-nav rail vs single-column canonical? | SHF-02 (deferral, not a coding item here) |
 | **D7** | Realtime activity vs focus-refresh? | **SHF-01** |
-| **D8** | Pending-review migration reconciliation + atomicity strategy? | **SEC-SHARE-08** |
-| **D9** | Accept SEC-SHARE-06 digest posture for beta? | SEC-SHARE-06 code fix is landed; D9 governs beta notification/delivery signoff. |
-| **D10** | Manager-read RLS on `project_publication_events` apply-now vs post-launch? | Apply now through [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) ledger/promotion path + guard test. |
-| **D11** | Recipient e-signature on decision (vs typed-name acceptance)? (from [`25`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)) | Implement named confirmation + visible audit line; full legal e-signature remains GA/legal review. |
+| **D8** | Pending-review migration reconciliation + atomicity strategy? | **SEC-SHARE-08** fixed by `replace_project_publication(...)` + unique index provider readback. |
+| **D9** | Accept SEC-SHARE-06 digest posture for beta? | SEC-SHARE-06/D9 code fix, durable slot, and digest log are landed; beta notification delivery remains part of live smoke/observability. |
+| **D10** | Manager-read RLS on `project_publication_events` apply-now vs post-launch? | Applied/read back through the provider hardening path. |
+| **D11** | Recipient e-signature on decision (vs typed-name acceptance)? (from [`25`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)) | Named confirmation + visible audit line is implemented; full legal e-signature remains GA/legal review. |
 
-Items with **no decision dependency** (start anytime): remaining QA-G06 provider proof, QA-G10, RUX-14 visual proof,
+Items with **no decision dependency** (start anytime): remaining QA-G06 provider proof, QA-G10 visual proof, RUX-14 visual proof,
 PERF-05 (security-review-gated, not owner-decision-gated),
 and PERF-09/12 measurement. PERF-06 is now a keep-green checkpoint rather than an open normalization task.
 
@@ -552,12 +553,12 @@ An item is **DONE** only when ALL apply (binary):
 6. **Registry bound** — the item's status is updated in [`75`](75_FINDING_ID_REGISTRY.md) (Open →
    Fixed/Partial/Deferred) by the registry owner; this plan does not self-mark.
 
-**Pack-level stop condition:** all non-decision-gated items DONE; every ratified decision item either
+**Pack-level stop condition:** all non-decision-gated items DONE; every ratified decision item remains
 DONE (implemented + evidenced) or explicitly Deferred with rationale in
 [`71`](71_OPEN_DECISIONS_REGISTER.md); final verdict recorded in
 [`99`](99_QUALITY_SCORECARD_AND_SIGNOFF.md). Per [`75`:134](75_FINDING_ID_REGISTRY.md), no P1
 *source-fix* finding is open today — the remaining P1 surface here is **test-rigor** (QA-G06 provider race) plus the
-SHF-01 beta posture, so "ready" stays conditional until the remaining QA/deploy/perf gates and ratified decision implementation land.
+SHF-01 GA realtime backlog, so "ready" stays conditional until the remaining QA/deploy/perf gates land.
 
 ---
 
