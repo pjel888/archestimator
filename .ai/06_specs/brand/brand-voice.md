@@ -1,13 +1,21 @@
 # Archestimator Brand Voice
 
-**Status:** Draft workspace
+**Status:** Updated to master corpus v4.3 (2026-06-18)
 **Created:** 2026-05-19
 
-## Voice direction
+## Personality: Controlled Confidence
 
-Archestimator should sound clear, competent, commercially literate, and slightly sharp. It should feel like a tool built by someone who understands the pain of quote, estimating, and proposal work, not like a generic SaaS template.
+Direct, sharp, technically credible, quietly competitive. The market should feel Archestimator is for people who care about winning proposals, defending numbers, and making better commercial decisions.
 
-The voice should own the emotional territory of clarity: untangling messy quote/estimating workflows, naming hidden time waste, and giving skilled teams permission to stop suffering through a process that only feels acceptable because it is familiar.
+**Earned superiority, not empty superiority.** Good copy makes the reader think: *“This is how disciplined teams quote, estimate, revise, and present numbers.”* Bad copy makes them think: *“This company is trying too hard to sound dominant before it has earned it.”*
+
+## The five voice principles
+
+1. **Lead with the change, not the mechanism.** Say what shifts for the reader first; the feature is the credibility clause. Mechanic nouns (library, sheets, rows, data) belong on `/features`, never in a hero.
+2. **Plain words, one intriguing idea.** Surround the one unfamiliar phrase (“cost intelligence layer”) with sentences a tired estimator gets in three seconds. Curiosity from the concept; trust from the clarity.
+3. **Calm conviction, never hype.** State things; do not sell them. “This is what changes for you” beats “revolutionary.” Leverage, not loudness.
+4. **Attack the workflow, never the user.** The villain is the spreadsheet rebuild loop and the dead file, never other estimators, never the reader.
+5. **Earn every claim.** Live/Partial/Planned discipline, and no false uniqueness. The honesty is part of the voice; it is what makes the confidence believable.
 
 ## Tone attributes
 
@@ -16,22 +24,30 @@ The voice should own the emotional territory of clarity: untangling messy quote/
 - Confident but not overclaiming
 - Professional, not corporate bland
 - Sharp enough to stand out
-- Grounded in quote, estimate, and proposal workflow reality
-- Empathetic toward estimators, suppliers, sales teams, and buyers, but unsentimental about broken workflows
+- Grounded in AEC estimate/proposal workflow reality
+- Empathetic toward estimators, contractors, architects, suppliers, and clients, but unsentimental about broken workflows
 - Clarity-first: the copy should make the messy problem feel visible
+
+## Voice formula
+
+**Sharp problem + commercial consequence + structured advantage.**
 
 ## Write like this
 
-- “Create quotes, estimates, and proposal-ready documents faster.”
-- “A clearer way to create quotes, estimates, and proposal-ready documents.”
-- “Keep quantities, costs, supplier context, assumptions, and proposal context in one workspace.”
+- “Your cost intelligence layer. Every estimate working for you on the next one.”
+- “You never start from zero again. Your numbers hold up.”
+- “From cost proposal to client approval.”
+- “The more you estimate in Archestimator, the more it works for you.”
+- “Keep your prices, suppliers, and revisions in one workspace.”
 - “Know what changed before a revision becomes a client problem.”
-- “Build the quote once. Reuse the logic. Keep the proposal aligned.”
+- “Build the estimate once. Reuse the logic. Keep the proposal aligned.”
 - “Fast is useful only if the number is still explainable.”
 - “Untangle the mess before it becomes a proposal problem.”
-- “Most teams do not realize how much time they lose to rechecking, rebuilding, and reconnecting quote work.”
+- “Most teams do not realize how much time they lose to rechecking, rebuilding, and reconnecting estimate work.”
 - “Do not suffer through a workflow that makes every revision feel like detective work.”
 - “Less file hunting. Less version confusion. More clarity around the number.”
+- “The teams that win do not guess their numbers.”
+- “The advantage is not quoting faster. It is quoting with control.”
 
 ## Avoid this
 
@@ -43,22 +59,30 @@ The voice should own the emotional territory of clarity: untangling messy quote/
 - “Trusted by” unless real
 - Fake customer language
 - Generic SaaS filler such as “streamline workflows,” “unlock productivity,” or “supercharge your team”
+- “Only the smart ones create quotes this way” — retired
+- “Your competitors are winning because they use Archestimator”
+- “You are losing because…”
+- “Winners use Archestimator”
+- “Stop being left behind”
+- Any claim that we are the only tool that makes estimates reusable
 
 ## Vocabulary to prefer
 
-- quotes and estimates
-- quote teams, suppliers, sales teams, buyers, and cost estimators
+- cost intelligence layer
+- cost estimate / cost proposal
+- AEC teams
+- contractors, GCs, cost estimators, quantity surveyors, architects, engineers, suppliers, fit-out firms, interior designers
+- clients, owners, developers, project managers, procurement
+- BOQ, DUPA, unit costs
 - estimate sheet
-- cost/catalog library
-- project hierarchy
+- Component Library
+- project hierarchy / area groups
 - line items
 - quantities
 - unit costs
 - assumptions
-- revisions
-- proposal package
-- itemized quotation
-- supplier context
+- revisions / version history / Activity
+- proposal handoff
 - client-ready proposal
 - traceable estimate
 - reusable cost components
@@ -72,7 +96,7 @@ The voice should own the emotional territory of clarity: untangling messy quote/
 
 ## Vocabulary to use carefully
 
-- AI
+- AI (deferred; mention only as roadmap, with privacy note)
 - automation
 - accuracy
 - world-class
@@ -80,14 +104,17 @@ The voice should own the emotional territory of clarity: untangling messy quote/
 - operating system
 - partner
 - trusted
+- procurement
+- enterprise
+- compliance
 
 ## Brand sentence patterns
 
 - “Create ___ faster without losing ___.”
 - “Keep ___, ___, and ___ connected.”
 - “See what changed, why it changed, and what the client is agreeing to.”
-- “The quote is not just a total. It is the logic behind the proposal.”
-- “Less spreadsheet drift. More quote control.”
+- “The estimate is not just a total. It is the logic behind the proposal.”
+- “Less spreadsheet drift. More estimate control.”
 - “Untangle ___ before it becomes ___.”
 - “Stop losing time to ___, ___, and ___.”
 - “The problem is not ___. The problem is ___.”
@@ -96,11 +123,13 @@ The voice should own the emotional territory of clarity: untangling messy quote/
 
 ## CTA language options
 
+- Request early access
 - See the workspace
 - Open the workspace
-- Start a quote
-- Explore the quote workspace
-- Build a sample quote
+- Start an estimate
+- Explore the estimate workspace
+- Build a sample estimate
+- Rebuild your last estimate in Archestimator
 
 ## Public-claim safety rules
 
@@ -108,5 +137,7 @@ The voice should own the emotional territory of clarity: untangling messy quote/
 - Do not imply professional certification.
 - Do not imply real customers, partners, or testimonials unless verified.
 - If a feature is aspirational, mark it as future direction in internal docs and avoid presenting it as live product capability.
-- If using “a clearer way,” support it immediately with concrete workflow proof so it does not read as empty superiority language.
+- Obey claims discipline: Live / Partial / Planned / Not-Yet.
+- If using “cost intelligence layer,” support it immediately with concrete live proof: reusable library, version history, proposal handoff.
 - If naming the messy workflow, respect user skill. Do not shame spreadsheet users, imply non-users are careless, or make fear the whole message. Name the pain, then offer relief through structure.
+- AI is deferred from launch; do not feature it as a current capability.

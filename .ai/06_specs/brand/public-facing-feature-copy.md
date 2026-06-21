@@ -1,6 +1,6 @@
 # Public-Facing Feature Copy
 
-**Status:** Active
+**Status:** Active, updated to master corpus v4.3 (2026-06-18)
 **Created:** 2026-05-19
 **Purpose:** Canonical landing-page feature names, benefit lines, and copy guardrails for the public Archestimator homepage.
 
@@ -19,21 +19,23 @@ Example:
 > Reuse what repeats.
 > Save repeated assemblies, materials, labor rates, and scope packages so every new estimate starts with proven cost logic.
 
-## Secondary main claim
+## Secondary main claims
 
-Use this as a major below-hero supporting headline:
+Use these as major below-hero supporting headlines:
 
-> A clearer way to create quotes, estimates, and proposal-ready documents
+> From cost proposal to client approval.
+
+> You never start from zero again. Your numbers hold up.
 
 **Placement:** below the hero/product preview area, before or near the workflow proof pillars.
 
 **Support copy:**
 
-Archestimator turns the quote or estimate into a structured workspace where line-item structure, reusable supplier/catalog logic, assumptions, revisions, proposal comparisons, and document handoff stay connected.
+Archestimator turns the cost estimate into a structured workspace where project structure, reusable cost components, revisions, proposal comparisons, and client approval stay connected.
 
 **Why it works:**
 
-It translates “the smart way” into a clearer user feeling: the product should feel easier to understand than scattered spreadsheets because the workflow follows how estimating work is actually organized.
+It translates the cost intelligence layer into a clearer user feeling: the product should feel easier to understand than scattered spreadsheets because the workflow follows how AEC estimating work is actually organized.
 
 **Guardrail:**
 
@@ -47,11 +49,11 @@ Do not use “most intuitive” as an unsupported market-ranking claim. Pair it 
 
 **Landing copy:**
 
-Build quotes and estimates around the offer structure: package, location, scope, supplier, cost component, and line item. Construction-style project hierarchy remains the current proof case.
+Build cost estimates around the project structure: project, group, area, line item. Designed for the way AEC teams actually build BOQs, DUPAs, and cost proposals.
 
 **Why it works:**
 
-It names the main workspace clearly, then proves that Archestimator is different because the sheet follows the real offer structure instead of a flat spreadsheet.
+It names the main workspace clearly, then proves that Archestimator is different because the sheet follows the real project structure instead of a flat spreadsheet.
 
 ### 2. Component Library
 
@@ -59,23 +61,23 @@ It names the main workspace clearly, then proves that Archestimator is different
 
 **Landing copy:**
 
-Save repeated products, assemblies, materials, labor rates, services, and scope packages so every new quote starts with reusable price logic.
+Save repeated products, assemblies, materials, labor rates, services, and scope packages so every new estimate starts with reusable price logic.
 
 **Why it works:**
 
-It keeps **Component Library** as the current product feature name while making the value obvious to estimators, suppliers, and sales teams.
+It keeps **Component Library** as the current product feature name while making the value obvious to estimators, contractors, and suppliers.
 
-### 3. Revision Intelligence
+### 3. Revision History
 
-**Benefit line:** Know what changed before it becomes a proposal problem.
+**Benefit line:** Know what changed before it becomes a client problem.
 
 **Landing copy:**
 
-Track quantity, unit-rate, scope, assumption, and proposal changes before they disappear into duplicated spreadsheet files.
+Track quantity, unit-rate, scope, assumption, and proposal changes through Activity, Node Activity, and row version history.
 
 **Why it works:**
 
-It is stronger than plain “version control” but still grounded in real quote and estimating work. It avoids absolute guarantees like “never lose data.”
+It is stronger than plain “version control” but still grounded in real estimating work. It avoids absolute guarantees like “never lose data.”
 
 ### 4. Proposal Comparisons
 
@@ -83,11 +85,11 @@ It is stronger than plain “version control” but still grounded in real quote
 
 **Landing copy:**
 
-Compare estimate sheets, alternates, and value-engineering options with visual breakdowns clients can actually understand.
+Compare estimates, alternates, and value-engineering options under one project with visual breakdowns clients can actually understand.
 
 **Why it works:**
 
-It connects multiple quote/estimate sheets, option comparison, client explanation, and visual breakdowns into one public-facing concept.
+It connects multiple estimates, option comparison, client explanation, and visual breakdowns into one public-facing concept.
 
 ### 5. Visual Cost Breakdowns
 
@@ -99,27 +101,27 @@ Break down cost differences by area, trade, scope, or revision so the client can
 
 **Why it works:**
 
-It replaces vague/internal “data visualization” with a quote-team/client conversation use case.
+It replaces vague/internal “data visualization” with an estimator/client conversation use case.
 
-### 6. Proposal-Ready Outputs
+### 6. Client Sharing & Approvals
 
-**Benefit line:** Keep the client package connected to the estimate.
+**Benefit line:** From cost proposal to client approval.
 
 **Landing copy:**
 
-Carry inclusions, exclusions, assumptions, allowances, BOQ structure, and commercial terms into client-ready output.
+Share a structured proposal with clients through a publication link. Collect comments, decisions, and approvals in one place, with password protection when needed.
 
 **Why it works:**
 
-It avoids pretending the product is mature proof-backed enterprise software, while still explaining the intended proposal workflow.
+It avoids pretending the product is mature proof-backed enterprise software, while still explaining the intended estimate-to-approval workflow.
 
-### 7. Industry Standard Export Formats
+### 7. Proposal Export (.xlsx)
 
 **Benefit line:** Send the work out in formats teams already use.
 
 **Landing copy:**
 
-Prepare quote sheets and proposal packages for spreadsheet and document handoff so clients, buyers, consultants, and internal reviewers can review, price, approve, and archive the work without learning a new file format.
+Export estimate sheets and proposal packages as Excel workbooks so clients, consultants, and internal reviewers can work with the formats they already expect.
 
 **Why it works:**
 
@@ -129,28 +131,29 @@ It names a concrete handoff direction while keeping the claim grounded in curren
 
 Use this order below the hero:
 
-1. **Product tabs / preview:** Estimate Workspace, Component Library, Revision Intelligence, Proposal Comparisons.
-2. **Secondary main claim:** “A clearer way to create quotes, estimates, and proposal-ready documents,” supported by connected-workflow copy.
-3. **Workflow pillar strip:** Structured quote/estimate sheets, Component Library, Traceable revisions, Proposal comparisons, Visual cost breakdowns, Proposal-ready outputs, Industry Standard Export Formats.
-4. **Main solution section:** the clearer way is the whole quote/proposal flow, not one isolated feature.
-5. **Method section:** build, revise, compare, hand off, and explain quotes in one flow.
-6. **Feature detail section:** structured quote/estimate sheets, Component Library, traceable revisions, proposal comparisons, Industry Standard Export Formats.
+1. **Product tabs / preview:** Estimate Workspace, Component Library, Revision History, Proposal Comparisons.
+2. **Secondary main claim:** “From cost proposal to client approval,” supported by connected-workflow copy.
+3. **Workflow pillar strip:** Structured estimates, Component Library, traceable revisions, proposal comparisons, visual cost breakdowns, client sharing, .xlsx export.
+4. **Main solution section:** the cost intelligence layer is the whole estimate/proposal flow, not one isolated feature.
+5. **Method section:** build, revise, compare, share, approve, and export in one flow.
+6. **Feature detail section:** structured estimates, Component Library, traceable revisions, proposal comparisons, .xlsx export.
 7. **Workflow outcome section:** faster setup, safer revisions, clearer client decisions, cleaner handoff.
 8. **MVP preview / pricing:** honest early-access framing.
-9. **Final CTA:** build your next quote the clearer way.
+9. **Final CTA:** build your next estimate the cost-intelligence way.
 
 ## Copy guardrails
 
 - Do **not** invent logos, testimonials, customers, adoption proof, certifications, or maturity claims.
-- Do **not** overuse “AI-powered.” The current public feature set should stand on estimating value first.
+- Do **not** feature AI as a current capability; AI is deferred to the roadmap.
 - Do **not** replace concrete feature names with generic benefit titles everywhere. Use both.
-- Use **Component Library** as a public product feature name when it appears with quote, estimating, or catalog context.
+- Use **Component Library** as a public product feature name when it appears with estimate or cost context.
 - Use “traceable,” “version history,” or “change deltas” instead of absolute guarantees like “never lose data.”
 - Use “visual cost breakdowns,” “show where the cost moved,” or “proposal comparisons” instead of “data visualization.”
-- Use **Industry Standard Export Formats** for the public feature name when describing spreadsheet/document handoff.
-- Use “A clearer way to create quotes, estimates, and proposal-ready documents” as the secondary main claim below the hero, not as a replacement for the current hero.
-- Use “teams that create quotes, estimates, and proposals” as the broad audience phrase; use construction-specific wording only when describing the current proof case.
+- Use **Proposal Export (.xlsx)** for the public feature name when describing spreadsheet handoff.
+- Use “From cost proposal to client approval” as a secondary main claim below the hero.
+- Use “AEC teams” as the broad audience phrase; name specific roles when targeting segments.
 - Keep the promise centered on speed, reuse, traceability, comparison, clearer client explanation, and standard-format handoff.
+- Do not claim immutable issued records, legal-document automation, procurement execution, payment processing, or ERP integration.
 
 ## Bad → better examples
 
@@ -160,7 +163,7 @@ Use this order below the hero:
 
 Better:
 
-> The smarter way is not one feature. It is the whole estimating flow.
+> The cost intelligence layer is not one feature. It is the whole estimating flow.
 
 ### Too internal
 
@@ -168,15 +171,15 @@ Better:
 
 Better:
 
-> Proposal Comparisons — compare estimate sheets, alternates, and value-engineering options with visual breakdowns clients can actually understand.
+> Proposal Comparisons — compare estimates, alternates, and value-engineering options with visual breakdowns clients can actually understand.
 
 ### Too fake-mature
 
-> Trusted by leading quote teams.
+> Trusted by leading construction firms.
 
 Better:
 
-> MVP preview — explore the early quote workspace while the core flow is being shaped.
+> MVP preview — explore the early estimate workspace while the core flow is being shaped.
 
 ### Too vague
 

@@ -1,23 +1,23 @@
 # Archestimator Brand Narrative
 
-**Status:** Draft workspace
+**Status:** Updated to master corpus v4.3 (2026-06-18)
 **Created:** 2026-05-19
 
 ## Narrative spine
 
-Creating a quote or estimate is not just adding line items. It is the work of turning a changing scope, supplier context, and commercial offer into a number that can be explained, revised, defended, and eventually issued to a client or buyer.
+Creating a cost estimate or cost proposal is not just adding line items. It is the work of turning a changing scope, supplier context, and commercial offer into a number that can be explained, revised, defended, and eventually approved by a client.
 
-Most teams still do that work across spreadsheets, copied templates, supplier notes, old files, and proposal documents that drift away from the estimate. They often do not notice how much time is being wasted because the waste feels normal: find the file, copy the rows, check the tab, remember the assumption, compare the version, rewrite the proposal, then recheck everything again.
+Most AEC teams still do that work across spreadsheets, copied templates, supplier notes, old files, and proposal documents that drift away from the estimate. They often do not notice how much time is being wasted because the waste feels normal: find the file, copy the rows, check the tab, remember the assumption, compare the version, rewrite the proposal, then recheck everything again.
 
 That is the mess Archestimator exists to untangle.
 
 The problem is not that estimators are slow or careless. The problem is that disconnected workflows force skilled people to spend too much time reconnecting work that should have stayed connected.
 
-Archestimator exists to make the quote and estimating workspace coherent. It brings structure, line items, reusable catalog/cost components, assumptions, supplier context, revisions, visual comparisons, and proposal context into one working surface, so teams can move faster with more clarity and less manual cleanup.
+Archestimator exists to give AEC teams a cost intelligence layer: one place where unit costs, suppliers, revisions, and client decisions compound instead of dying in spreadsheets, from first cost estimate to client approval.
 
 ## Before state
 
-- Quotes and estimates live in scattered spreadsheets and copied files.
+- Cost estimates and proposals live in scattered spreadsheets and copied files.
 - Revisions are hard to audit.
 - Assumptions and supplier context get buried.
 - Proposal text drifts away from the estimate.
@@ -27,41 +27,43 @@ Archestimator exists to make the quote and estimating workspace coherent. It bri
 
 ## After state
 
-- The quote or estimate is organized around the offer structure.
+- The estimate is organized around the project structure.
 - Reusable cost components save time across different projects.
-- Multiple estimate sheets can live under one project for options, alternates, revisions, and cost proposals.
-- Version control keeps estimate history safer and easier to trace.
-- Data visualizations help explain cost differences to clients.
+- Multiple estimates can live under one project for options, alternates, revisions, and cost proposals.
+- Version history and Activity keep estimate changes traceable.
+- Visual cost breakdowns help explain cost differences to clients.
 - Cost components and assumptions stay visible.
 - Revisions become easier to review.
 - Proposal output stays connected to the estimate logic.
 - The team can work faster with more confidence.
-- The quote feels clearer because the logic behind the number is visible.
+- The estimate feels clearer because the logic behind the number is visible.
 - Revisions become less like detective work and more like reviewable project history.
 
 ## Product worldview
 
-The fastest quote is not enough. The better quote or estimate is fast, reusable, version-controlled, comparable, visual, traceable, editable, and ready to become a clear client proposal.
+The fastest estimate is not enough. The better estimate is fast, reusable, version-controlled, comparable, visual, traceable, editable, and ready to become a clear client proposal.
 
-The brand should be willing to say the current workflow is unnecessarily painful: suppliers, sales teams, buyers, estimators, and contractors should not have to suffer through scattered files, hidden assumptions, and proposal mismatch when the work can be organized around one connected quotation method.
+The brand should be willing to say the current workflow is unnecessarily painful: contractors, estimators, architects, engineers, suppliers, and clients should not have to suffer through scattered files, hidden assumptions, and proposal mismatch when the work can be organized around one connected cost intelligence layer.
 
-The public page can summarize this feeling with the secondary main claim:
+The public page can summarize this with the campaign tagline:
 
-> A clearer way to create quotes, estimates, and proposal-ready documents
+> From cost proposal to client approval.
 
-The claim should be interpreted as workflow clarity: the product feels natural because the quote or estimate keeps structure, reusable catalog/cost logic, assumptions, revisions, comparisons, and document handoff connected.
+And the brand promise:
+
+> You never start from zero again. Your numbers hold up.
 
 ## Landing-page narrative order
 
 Recommended below-hero story sequence:
 
 1. Show the estimating workspace.
-2. State the secondary main claim: a clearer way to create quotes, estimates, and proposal-ready documents.
+2. State the campaign tagline and brand promise.
 3. Explain the scattered-work problem.
 4. Show how project hierarchy and cost rows stay connected.
 5. Show how reusable cost components speed up repeat work.
 6. Show how revisions and assumptions stay reviewable.
-7. Show how the quote or estimate turns into proposal-ready output and standard spreadsheet/document handoff.
+7. Show how the estimate turns into proposal-ready output and client approval.
 8. Explain MVP/pricing honestly.
 9. End with a direct workspace CTA.
 
@@ -69,7 +71,7 @@ Recommended below-hero story sequence:
 
 - Product screenshots or honest product mockups.
 - Clear workflow diagrams.
-- Specific estimating scenarios.
+- Specific estimating scenarios (BOQ, DUPA, fit-out, residential).
 - Founder/product thesis.
 - Research-backed competitor/workflow observations.
 
@@ -79,3 +81,4 @@ Recommended below-hero story sequence:
 - Fake testimonials.
 - Fake adoption metrics.
 - Fake certifications or partnerships.
+- Claims that AI is a current capability.

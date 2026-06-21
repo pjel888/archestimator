@@ -1,145 +1,123 @@
 # Hero Message Thesis
 
-**Status:** Draft
+**Status:** Updated to master corpus v4.3 (2026-06-18)
 **Created:** 2026-05-19
-**Current hero line:** “Only the smart ones create quotes this way.”
+
+**Previous hero line retired:** “Only the smart ones create quotes this way.” This old line was angsty in-group signaling and is now in the banned family (master file §16.4). The current hero system is built around the cost intelligence layer hook.
 
 ## Core idea
 
-The hero line is not only a clever headline. It expresses Archestimator's brand thesis:
+The hero is not a slogan. It is the brand thesis in one breath:
 
-> Better quote teams do not just price faster. They keep the offer, catalog logic, assumptions, revisions, and proposal handoff connected.
+> Archestimator is your cost intelligence layer.
 
-Archestimator's “smart way” is the belief that quote and estimating work becomes easier, clearer, and more reliable when the work follows how the offer is actually reviewed: by package, product/service, location, supplier, component, quantity, cost, assumption, revision, and proposal consequence.
+This names the deepest value: your estimating work compounds into structured commercial memory instead of dying in spreadsheets.
 
-The product should feel like a smarter estimating method, not just another estimating screen.
+## The hero stack
 
-## What “smart” means for Archestimator
+| Surface | Line | Role |
+|---|---|---|
+| **Hero headline** | Your cost intelligence layer. | The hook |
+| **Hero support** | The prices, suppliers, and estimates you build in Archestimator, structured and ready for your next proposal. Quote faster. Defend every number. | Plain payoff |
+| **Campaign tagline** | From cost proposal to client approval. | The promise of the full workflow |
+| **One-liner** | Archestimator: the cost intelligence layer for AEC teams. From cost proposal to client approval. | Bios, decks, directories |
+| **Plain anchor** | A construction cost estimating platform. | SEO / when the hook needs grounding |
+| **Investor frame** | The supplier-linked cost intelligence layer for AEC teams. | Investor/partner framing |
 
-“Smart” should not primarily mean artificial intelligence. It should mean better working logic.
+## What “cost intelligence layer” means
 
-For Archestimator, smart means:
+A cost intelligence layer is the structured memory that builds as you work in Archestimator. Not a folder of files, but a living layer of your own commercial knowledge that grows every time you create an estimate: the prices you use, the suppliers you choose, the line items you build, the proposals you send, the revisions your clients ask for.
 
-1. **Structurally organized** — the quote follows the structure of the offer, project, package, or product/service set.
-2. **Context-aware** — costs are grouped in ways quote teams, suppliers, buyers, and estimators already understand.
-3. **Context-preserving** — quantities, costs, assumptions, notes, revisions, and proposal language stay connected.
-4. **Reusable** — recurring assemblies and cost components can be inserted again instead of rebuilt from scratch.
-5. **Revision-conscious** — the system remembers that quotes and estimates change many times before agreement.
-6. **Proposal-ready** — the estimate is built with the eventual client-facing output in mind.
-7. **Estimator-led** — the tool supports judgment; it does not pretend to replace it.
+The plain version, for a tired estimator at 11pm:
 
-## What “this way” means
+> The more you estimate in Archestimator, the more it works for you.
 
-“This way” points to a product method:
+## What the hero promises (and what it must prove)
 
-- Start from the offer or project.
-- Break it into reviewable structure.
-- Price work in the correct package, area, supplier, or scope context.
-- Use reusable cost components where possible.
-- Keep assumptions attached to the estimate logic.
-- Track what changes when the project changes.
-- Turn the estimate into a proposal without losing context.
+The hero writes a check the page must cash with live product proof:
 
-The phrase should make users feel that Archestimator has a point of view. It is not a blank spreadsheet. It is a system with an opinion about how quotes, estimates, and proposal handoffs should be built.
+- **Reusable Component Library** — your prices, suppliers, brands, variants, and cost entries.
+- **Version history / Activity / Node Activity** — every change traceable.
+- **Proposal handoff** — shared links, comments, decisions, password protection, .xlsx export.
+
+What the hero points to but cannot yet claim as shipped:
+
+- Surfacing accumulated history by client, project type, or supplier (roadmap; not an external aggregator).
+- Supplier catalogs, quote requests, procurement bridge (later roadmap).
+- Persistent client-side archive (planned direction).
+
+## The dual benefit spine
+
+Every benefit ladders to two words:
+
+- **Time** — you stop rebuilding.
+- **Intelligence** — your work compounds.
+
+If a line serves neither, cut it.
+
+## The transformation: who you become
+
+**Before (named honestly, never mocking):**
+
+> You rebuild the same spreadsheet every project. You hunt through old files for a price you know you have used before. You quote from memory and hope. When a client asks “why this number?”, you reconstruct your reasoning from scratch.
+
+**After (specific, earned):**
+
+> Your last estimate is already working for you. Work with a client again and everything you quoted them before is right there. Your real prices and suppliers are already in the sheet. When the client questions a number, the revision history answers for you. You move faster, and you look like the most prepared person in the room, because you are.
+
+**Bridge:**
+
+> That is the cost intelligence layer. It saves you time and makes you smarter.
 
 ## The enemy
 
 The enemy is not Excel itself. Many estimators are good at spreadsheets.
 
-The enemy is **spreadsheet drift**:
-
-- copied files with unclear lineage;
-- rows detached from project location;
-- notes living outside the estimate;
-- assumptions buried in comments or memory;
-- proposal text that no longer matches the estimate;
-- revisions that require manual detective work;
-- totals that are fast to produce but hard to defend.
-
-Archestimator should respect estimator skill while challenging the messy workflow around it.
+The enemy is **spreadsheet drift**: copied files with unclear lineage; rows detached from project location; notes living outside the estimate; assumptions buried in comments or memory; proposal text that no longer matches the estimate; revisions that require manual detective work; totals that are fast to produce but hard to defend.
 
 The sharper enemy is normalized suffering: teams have learned to tolerate file hunts, version confusion, hidden assumptions, and manual proposal cleanup as if they are unavoidable parts of estimating. The brand should make that pain visible without shaming the estimator.
 
-## Brand interpretation
+## A/B hero options
 
-The brand should say:
+Test within the cost-intelligence-layer territory:
 
-> There is a smarter way to create cost estimates: organize the work the way the project is built, keep the commercial logic connected, and make every revision easier to understand.
+1. **Direct hook:** “Your cost intelligence layer.”
+2. **Payoff-first:** “Quote faster. Defend every number.”
+3. **Transformation:** “You never start from zero again.”
 
-It can also say, in internal narrative terms:
-
-> You do not have to suffer through a messy estimating workflow just because it is familiar. Untangle the work around the estimate, and the number becomes easier to build, revise, explain, and issue.
-
-This gives the hero line substance. It avoids empty arrogance because the product has a concrete reason to call the method smart.
-
-## Secondary below-hero claim
-
-The strongest companion line for the current hero is:
-
-> A clearer way to create quotes, estimates, and proposal-ready documents
-
-This should appear below the hero as a second main claim, not as a replacement headline.
-
-The relationship is:
-
-- **Hero:** “Only the smart ones create quotes this way.”
-- **Secondary claim:** “A clearer way to create quotes, estimates, and proposal-ready documents.”
-- **Proof:** project-shaped estimates, Component Library, Revision Intelligence, Proposal Comparisons, Visual Cost Breakdowns, Proposal-Ready Outputs, and Industry Standard Export Formats.
-
-“Clearer” means the workflow feels natural because it follows how quote teams already work: offer structure first, package/scope context second, catalog components third, revisions and proposal handoff connected throughout.
-
-Guardrail: do not let “clearer way” become an unsupported superiority boast. It works when the next visible content proves the claim through concrete workflow structure.
-
-## A/B Hero Options
-
-Use these as the preferred hero test options after the 2026-05-27 pivot:
-
-1. **Smart identity:** “Only the smart ones create quotes this way.”
-2. **Competitive pressure:** “Your competitors are already a step ahead.”
-
-The competitive-pressure option may imply urgency, but it must not say competitors use Archestimator until real customer proof exists. Keep proof-gated lines such as “Your competitors are already a step ahead because they use Archestimator” in the experiment board only, marked do-not-ship until evidence exists.
-
-## Emotional promise
-
-Archestimator should move the estimator from:
-
-- scattered → organized;
-- reactive → in control;
-- manual checking → visible context;
-- spreadsheet anxiety → estimate confidence;
-- proposal drift → aligned client output;
-- tangled workflow → clarity around the number.
+Do not test: superiority claims that imply non-users are dumb, competitive-pressure lines that claim competitors use Archestimator, or AI-led claims.
 
 ## Hero support copy territory
 
 Possible support lines that fit the thesis:
 
-- “Organize every quote by package, supplier, cost, and revision so the proposal stays clear from first draft to buyer review.”
-- “Build quotes around the way the offer is actually reviewed: products, services, locations, suppliers, assumptions, and client-ready outputs.”
-- “A smarter quote workspace for teams that need speed without losing the logic behind the number.”
-- “Structure the quote like the offer. Reuse what repeats. See what changed. Keep the proposal aligned.”
+- “Build estimates from a library of your own prices and suppliers.”
+- “Keep every revision on the record.”
+- “Send proposals your clients can review and approve.”
+- “The more you use Archestimator, the more your work works for you.”
+- “From cost proposal to client approval.”
+- “Organize every estimate by project, area, and trade so the proposal stays clear from first draft to client review.”
+- “Structure the estimate like the project. Reuse what repeats. See what changed. Keep the proposal aligned.”
 
 ## Guardrails
 
-Do not let the line become pure superiority signaling. The headline works only if the rest of the page proves what the smart method is.
-
-Avoid:
-
-- implying non-users are dumb;
-- claiming guaranteed accuracy;
-- leading with vague AI magic;
-- using “smart” without showing the organizing method;
-- making the product sound like a generic automation platform.
+- Do not let the line become pure superiority signaling.
+- Do not imply non-users are dumb.
+- Do not claim guaranteed accuracy.
+- Do not lead with vague AI magic.
+- Do not use “smart” without showing the organizing method.
+- Do not make the product sound like a generic automation platform.
+- Do not claim the cost intelligence layer is fully realized cross-project recall today.
 
 ## Landing page implication
 
-The sections below the hero should explain the “smart way” in this order:
+The sections below the hero should prove the cost intelligence layer in this order:
 
-1. Secondary claim: a clearer way to create quotes, estimates, and proposal-ready documents.
-2. Offer structure: package → product/service → location/scope → supplier/context.
-3. Catalog and cost components: reusable assemblies, products, services, line items, unit costs.
-4. Context: assumptions, supplier notes, inclusions/exclusions, proposal logic.
-5. Revision intelligence: what changed, where, and why.
-6. Proposal alignment and handoff: the quote remains connected to the client-facing output and can leave the workspace as spreadsheet/document packages.
+1. Secondary claim: “From cost proposal to client approval.”
+2. Problem: estimates die in spreadsheets; knowledge is rebuilt every project.
+3. Product proof: structured estimates, reusable library, traceable revisions.
+4. Client-side proof: shared proposals, comments, decisions, password protection.
+5. Roadmap direction: supplier-linked bridge, persistent client record.
+6. Honest MVP preview + early-access CTA.
 
 If the page does this, the hero line becomes a thesis instead of a slogan.

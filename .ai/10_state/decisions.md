@@ -1137,3 +1137,32 @@ can be re-tightened when the visual language settles.
 
 **Reversible:** remove the banner + revert the guidance wording to restore the
 strict contract once the design system stabilizes.
+
+---
+
+## 2026-06-21 — Shared-Link D1-D11 production verdicts ratified for beta
+
+**Decision:** Philip ratified the production-grade verdicts in
+`.ai/03_plans/2026-06-20-Shared-Link-Feature/71_PRODUCTION_ANSWERS.md`
+as the Shared-Link beta ship contract. The owner-decision gate is closed; the
+feature remains NO-GO until the resulting implementation, deploy, QA, and perf
+evidence gates pass.
+
+**Ratified verdicts:**
+
+- D1: Keep stale-write `409` + RPC equality lock; add non-destructive stale-snapshot banner with draft/scroll preservation and `currentSnapshotVersion` in the 409 response.
+- D2: Add `location_visibility` (`exact` / `locality` / `hidden`, default `locality`) and sanitize shared-link location output; never add GPS/lat-long.
+- D3: Keep clientName and totals on the bearer-link page, keep generic OpenGraph metadata, and replace raw public DB UUIDs with per-snapshot opaque ids.
+- D4: Accept in-memory throttles only under recorded single-node beta topology while building the durable digest/password-lockout layer now; durable-live is GA/multi-node.
+- D5: Harden session DELETE and unsubscribe POST with public same-origin/CSRF/rate-limit controls.
+- D6: Ratify the single-column receiver document as canonical V2; no floating rail unless a future owner decision reopens it.
+- D7: Ratify focus/visibility refresh for beta with honest copy; Supabase Realtime is GA backlog.
+- D8: Run the full shared-link deploy/migration runbook, promote AC-MOD-06 for beta, keep AC-MOD-T4-P2 deferred, and record topology.
+- D9: Accept public-recipient owner digest for beta with durable limiter, `publication_digest_log`, and observability regression sentinels.
+- D10: Apply/ledger-reconcile manager-read RLS on `project_publication_events` now and add a guard test.
+- D11: Ship named confirmation plus visible audit line and `signature_intent_hash`; full legal e-signature remains GA with legal review.
+
+**Directive:** Treat `.ai/03_plans/2026-06-20-Shared-Link-Feature/71_OPEN_DECISIONS_REGISTER.md`
+and `71_PRODUCTION_ANSWERS.md` as ratified source-of-truth for implementation.
+Do not archive the plan folder or claim feature ship-readiness until [90], [91],
+[85], [99], provider proof, visual/browser QA, and perf evidence gates are closed.

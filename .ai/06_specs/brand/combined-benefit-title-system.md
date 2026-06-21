@@ -1,8 +1,8 @@
 # Combined Benefit Title System
 
-**Status:** Draft
+**Status:** Updated to master corpus v4.3 (2026-06-18)
 **Created:** 2026-05-19
-**Purpose:** Combine the clean benefit titles with the punchier challenger-brand titles into a marketable landing-page naming system.
+**Purpose:** Combine clean benefit titles with punchier challenger-brand titles into a marketable landing-page naming system.
 
 ## Direction
 
@@ -14,13 +14,15 @@ This keeps the product surfaces recognizable while still making the customer ben
 
 For the active homepage feature-name system, use `public-facing-feature-copy.md`. This file remains useful for benefit-card titles, supporting lines, and alternate phrasing.
 
-## Secondary main claim
+## Secondary main claims
 
-Use this as the large below-hero bridge before benefit cards or workflow pillars:
+Use these as the large below-hero bridge before benefit cards or workflow pillars:
 
-> A clearer way to create quotes, estimates, and proposal-ready documents
+> From cost proposal to client approval.
 
-Pair it with the active public-facing feature set below so the claim is proven by workflow structure, not by hype.
+> You never start from zero again. Your numbers hold up.
+
+Pair them with the active public-facing feature set below so the claim is proven by workflow structure, not by hype.
 
 ## Active public-facing feature set
 
@@ -28,15 +30,15 @@ Use these as the main landing anchors:
 
 1. **Estimate Workspace** — build around the project, not a blank spreadsheet.
 2. **Component Library** — reuse what repeats.
-3. **Revision Intelligence** — know what changed before it becomes a proposal problem.
+3. **Revision History** — know what changed before it becomes a client problem.
 4. **Proposal Comparisons** — compare options without scattering files.
 5. **Visual Cost Breakdowns** — show clients where the cost moved.
-6. **Proposal-Ready Outputs** — keep the client package connected to the estimate.
-7. **Industry Standard Export Formats** — send the work out in formats teams already use.
+6. **Client Sharing & Approvals** — from cost proposal to client approval.
+7. **Proposal Export (.xlsx)** — send the work out in formats teams already use.
 
 ## Recommended combined benefit set
 
-### 1. Build Faster
+### 1. Never Start From Zero
 
 **Punch line:** Stop rebuilding every estimate from scratch.
 
@@ -52,13 +54,13 @@ Start from an organized project structure and reusable cost logic, so setup feel
 
 Save common assemblies, materials, labor patterns, and scope packages as cost components you can bring into future projects.
 
-### 3. Keep Versions Safe
+### 3. Your Numbers Hold Up
 
-**Punch line:** No more guessing which file is final.
+**Punch line:** Know what changed before it becomes a client problem.
 
 **Card copy:**
 
-Keep estimate sheets, revisions, and assumptions traceable inside the project, so important cost logic does not get lost in old spreadsheet copies.
+Keep estimate revisions, assumptions, and changes traceable inside the project, so important cost logic does not get lost in old spreadsheet copies.
 
 ### 4. Compare Every Option
 
@@ -66,7 +68,7 @@ Keep estimate sheets, revisions, and assumptions traceable inside the project, s
 
 **Card copy:**
 
-Create multiple estimate sheets under one project for alternates, revisions, value-engineering options, and different cost proposals.
+Create multiple estimates under one project for alternates, revisions, value-engineering options, and different cost proposals.
 
 ### 5. Show Clients the Difference
 
@@ -82,13 +84,13 @@ Use visual breakdowns to show where the cost moved, what changed, and why one pr
 
 **Card copy:**
 
-Organize costs by project, area, scope, and discipline so the estimate follows the way the work is actually built.
+Organize costs by project area, scope, and discipline so the estimate follows the way the work is actually built.
 
 ## Why this set works
 
-- **Build Faster** is clear and benefit-led.
+- **Never Start From Zero** is the brand promise in action.
 - **Reuse What Repeats** is punchier than “Reuse Proven Costs” and easier to feel immediately.
-- **Keep Versions Safe** is clearer than “Version Control” and more user-emotional.
+- **Your Numbers Hold Up** ties revision history to a concrete emotional payoff.
 - **Compare Every Option** is stronger than “Compare Options” without becoming unclear.
 - **Show Clients the Difference** is more marketable than “Show Cost Differences” because it names the audience and use case.
 - **Keep Costs in Place** is punchier than “Stay Project-Organized,” while the copy explains the project hierarchy.
@@ -97,9 +99,9 @@ Organize costs by project, area, scope, and discipline so the estimate follows t
 
 Use this if the landing section needs to feel calmer and more professional:
 
-1. **Build Faster**
+1. **Never Start From Zero**
 2. **Reuse What Repeats**
-3. **Keep Versions Safe**
+3. **Your Numbers Hold Up**
 4. **Compare Options**
 5. **Show Cost Differences**
 6. **Stay Project-Organized**
@@ -110,20 +112,20 @@ Use this if the section needs maximum landing-page energy:
 
 1. **Stop Rebuilding Estimates**
 2. **Reuse What Repeats**
-3. **No More Lost Versions**
+3. **Defend Every Number**
 4. **Compare Every Option**
 5. **Show Clients the Difference**
 6. **Keep Costs in Place**
 
 ## Recommended section intro
 
-> A clearer way to create quotes, estimates, and proposal-ready documents.
+> From cost proposal to client approval.
 
-> Stop chasing old spreadsheets. Build quotes and estimates in one organized workspace where costs can be reused, versions stay traceable, proposal options are easy to compare, clients and buyers can see the difference clearly, and teams can hand off spreadsheet/document outputs.
+> Stop chasing old spreadsheets. Build cost estimates in one organized workspace where costs can be reused, revisions stay traceable, proposal options are easy to compare, clients can see the difference clearly, and teams can hand off spreadsheet outputs.
 
 ## Shorter section intro
 
-> Build faster, reuse what repeats, keep versions safe, show clients the difference between every cost option, and export in the formats teams already use.
+> Build faster, reuse what repeats, defend every number, show clients the difference between every cost option, and export in the formats teams already use.
 
 ## Benefit card layout recommendation
 
@@ -135,11 +137,11 @@ For each benefit card, use:
 
 Example:
 
-**Keep Versions Safe**
+**Your Numbers Hold Up**
 
-No more guessing which file is final.
+Know what changed before it becomes a client problem.
 
-Keep estimate sheets, revisions, and assumptions traceable inside the project, so important cost logic does not get lost in old spreadsheet copies.
+Keep estimate revisions, assumptions, and changes traceable inside the project, so important cost logic does not get lost in old spreadsheet copies.
 
 ## Copy rules
 
@@ -149,4 +151,5 @@ Keep estimate sheets, revisions, and assumptions traceable inside the project, s
 - Retain **Component Library** as the internal/product feature name. For public landing copy, explain the benefit in user language when needed: reusable cost components, repeated assemblies, or reusable cost logic.
 - Use “traceable” instead of absolute data-loss guarantees.
 - Use “visual breakdowns” instead of internal “data visualization.”
-- Use **Industry Standard Export Formats** when describing spreadsheet/document handoff as a public homepage feature; do not imply finished legal-document automation or purchase-order execution.
+- Use **Proposal Export (.xlsx)** when describing spreadsheet handoff as a public homepage feature; do not imply finished legal-document automation or purchase-order execution.
+- Do not feature AI as a current capability.

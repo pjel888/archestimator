@@ -1,21 +1,23 @@
 # The Archestimator Way
 
-**Status:** Draft
+**Status:** Updated to master corpus v4.3 (2026-06-18)
 **Created:** 2026-05-19
 
 ## One-line definition
 
-The Archestimator way is to untangle messy quote and estimating work by creating itemized offers around the real structure of the sale or project, keeping cost/catalog logic connected, and making revisions easier to understand before the quote becomes a proposal or approval document.
+The Archestimator way is to untangle messy AEC estimating work by creating itemized cost estimates around the real structure of the project, keeping cost logic connected, and making revisions easier to understand before the estimate becomes a cost proposal or approval document.
 
 ## Secondary public articulation
 
-> A clearer way to create quotes, estimates, and proposal-ready documents
+> From cost proposal to client approval.
 
-Use this line to describe the user-facing feeling of the Archestimator way. “Clearer” should mean the user does not have to fight the tool: costs have a place, reusable components are close to the sheet, revisions are visible, proposal options are comparable, and handoff outputs leave as spreadsheet/document packages when the work needs to be shared.
+> You never start from zero again. Your numbers hold up.
+
+Use these lines to describe the user-facing feeling of the Archestimator way. “Cost intelligence layer” means the user does not have to fight the tool: costs have a place, reusable components are close to the sheet, revisions are visible, proposal options are comparable, and handoff outputs leave as spreadsheet packages when the work needs to be shared.
 
 ## The belief
 
-A quote or estimate is not just a spreadsheet of prices. It is a structured explanation of a commercial offer.
+A cost estimate is not just a spreadsheet of prices. It is a structured explanation of a commercial offer.
 
 If the estimate is organized poorly, every next step becomes harder: checking quantities, replacing components, explaining assumptions, reviewing revisions, and preparing the proposal.
 
@@ -23,7 +25,7 @@ If the estimate is organized well, the work becomes faster because the estimator
 
 Most teams do not realize how much time disappears into that re-orientation. They call it estimating, but much of it is file hunting, row copying, assumption recovery, revision comparison, and proposal cleanup.
 
-The Archestimator way says quote teams should not have to suffer through that mess when the work can be structured from the start.
+The Archestimator way says AEC teams should not have to suffer through that mess when the work can be structured from the start.
 
 ## The method
 
@@ -31,15 +33,15 @@ The Archestimator way has seven parts.
 
 ### 1. Start with the project structure
 
-Every quote begins with the offer itself: its packages, products, services, locations, suppliers, scopes, or project areas. This gives every cost a home.
+Every estimate begins with the project itself: its areas, trades, scopes, and work packages. This gives every cost a home.
 
 ### 2. Price in context
 
-A cost row should not float in a flat sheet. It should belong to a place, a scope, and a discipline. That context makes the number easier to check, revise, and explain.
+A cost row should not float in a flat sheet. It should belong to a place, a scope, and a trade. That context makes the number easier to check, revise, and explain.
 
 ### 3. Reuse what repeats
 
-Quote-heavy teams repeat products, assemblies, services, labor patterns, and scope packages. Archestimator should help users reuse proven cost/catalog components while still allowing quote-specific edits.
+AEC teams repeat products, assemblies, services, labor patterns, and scope packages. Archestimator helps users reuse proven cost components while still allowing estimate-specific edits.
 
 ### 4. Keep assumptions attached
 
@@ -51,11 +53,11 @@ Projects change. The estimating system should not treat change as an afterthough
 
 ### 6. Keep versions controlled
 
-Important estimate data should not disappear into old spreadsheet copies, overwritten files, or unclear filenames. Archestimator should keep estimate versions and revision history close to the project, so users can understand what changed without hunting through files.
+Important estimate data should not disappear into old spreadsheet copies, overwritten files, or unclear filenames. Archestimator keeps estimate revisions and history close to the project, so users can understand what changed without hunting through files.
 
 ### 7. Compare options visually
 
-A project can contain multiple estimate sheets: alternates, design options, value-engineering proposals, or revision scenarios. Archestimator should make those options easy to compare and explain through visual cost breakdowns, especially when talking to clients.
+A project can contain multiple estimates: alternates, design options, value-engineering proposals, or revision scenarios. Archestimator should make those options easy to compare and explain through visual cost breakdowns, especially when talking to clients.
 
 ## The product personality
 
@@ -78,17 +80,17 @@ The old way feels normal because teams have learned to survive it. Familiar does
 
 ### Archestimator way
 
-Start with the offer. Build the quote by package, location, supplier, or scope. Insert reusable cost/catalog components. Keep assumptions attached. Review changes in context. Hand off a proposal from the same commercial logic.
+Start with the project. Build the estimate by area, trade, and scope. Insert reusable cost components. Keep assumptions attached. Review changes in context. Hand off a proposal from the same commercial logic.
 
 The Archestimator way turns the pile of files into a connected estimating surface: less detective work, fewer disconnected outputs, and more clarity around the number.
 
 ## What “custom made for ease and organization” should mean
 
-Archestimator is not custom in the sense of being complicated or bespoke for every user. It is custom made around the way estimating work actually happens.
+Archestimator is not custom in the sense of being complicated or bespoke for every user. It is custom made around the way AEC estimating work actually happens.
 
 That means:
 
-- the workspace is shaped around quote/estimate structure;
+- the workspace is shaped around project/estimate structure;
 - the estimate sheet is not isolated from the project tree;
 - cost components are designed for reuse;
 - proposal context is treated as part of estimating, not a separate afterthought;
@@ -98,14 +100,14 @@ That means:
 
 The landing page should make these benefits explicit:
 
-- the secondary main claim: a clearer way to create quotes, estimates, and proposal-ready documents;
-- quote/estimate organization;
-- spatial hierarchy;
-- discipline/trade-aware costing;
+- the secondary main claims: “From cost proposal to client approval” and “You never start from zero again. Your numbers hold up.”
+- estimate organization;
+- project hierarchy;
+- trade/discipline-aware costing;
 - reusable cost components;
 - time saved through cross-project reuse;
-- multiple estimate sheets per project;
-- version control and traceable changes;
+- multiple estimates per project;
+- revision history and traceable changes;
 - visual comparison of cost proposals;
 - attached assumptions;
 - visible revision logic;
@@ -113,6 +115,6 @@ The landing page should make these benefits explicit:
 
 ## Possible public-facing articulation
 
-> The Archestimator way is simple: organize the quote around the offer, price each scope in context, reuse what repeats, and keep every assumption close to the number it supports.
+> The Archestimator way is simple: organize the estimate around the project, price each scope in context, reuse what repeats, and keep every assumption close to the number it supports.
 
-> That is how smart teams move faster without losing control of the quote.
+> That is how disciplined AEC teams move faster without losing control of the estimate.

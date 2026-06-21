@@ -27,9 +27,9 @@ Pull deeper files only when the task needs them:
 ## Current active work
 
 - Branch: `main`. Agents must verify the live branch with `git status --short --branch` before editing.
-- Mode: Post-reset MVP — active implementation with Supabase/Auth/Postgres backend.
+- Mode: Post-reset MVP — active implementation with Supabase/Auth/Postgres backend. Archestimator is the cost intelligence layer for AEC teams (AEC-committed, not contractor-first), with the campaign tagline **"From cost proposal to client approval."**
 - Preserved: `/` landing page with active A/B testing, consent banner, and CSP Report-Only.
-- Current implemented routes: full workshop ecosystem with projects, estimates, library, templates, charts, settings, shared links, invite entry, and AI copilot.
+- Current implemented routes: cost proposal workspace — build, send, revise, approve, and track commercial estimates — backed by projects, estimates, the reusable component library, templates, D3 charts, settings, shared publication links, invite entry, and feature-flagged AI helpers.
 - Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` with 67+ local migration files (50+ applied to linked remote). TanStack Query, Zustand, React Complex Tree, D3, Radix context menu, Phosphor icons, Storybook 10.4.2 (review surface only, no production route migration), and ExcelJS are installed.
 - Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript 6.0.3, Tailwind CSS v4, Storybook 10.4.2, Vitest 4.1.7.
 - Current codebase: ~498 source files, ~218 test files (115 Vitest DOM, 2 Bun unit, 7 Playwright E2E), ~51 app routes/pages, ~17 API routes.
@@ -57,12 +57,17 @@ Pull deeper files only when the task needs them:
 - Read first for restart: `AGENTS.md` plus the FAST PATH block at the top of
   `.ai/10_state/current-state.md`; pull self-diagnostic, feature inventory, and
   decisions only when restart risk or task scope requires them.
+- Source-of-truth note: the founder master startup corpus (v4.3, 2026-06-18) is
+  now in `.ai/00_corpus/ARCHESTIMATOR_MASTER.md`. Notion (Homebase, Launch
+  Readiness Checklist, Risk and Decision Register, Feature Inventory, Customer
+  Discovery Pipeline) remains canonical for live trackers and decided items.
 
 ---
 
 ## Canonical top-level folders
 
 - `00_system/` — governance, source-of-truth policy, validation, operating protocols.
+- `00_corpus/` — founder master startup corpus (brand, product, business, pricing, marketing, operations).
 - `01_roadmap/` — product phases, milestones, launch cutlines.
 - `02_audits/` — audits, reviews, risk reports, competitive checks.
 - `03_plans/` — approved or proposed plans before implementation.

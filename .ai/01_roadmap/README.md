@@ -364,15 +364,15 @@ These files are preserved for git history and context; do not reference them for
 
 ## Current Product Baseline
 
-The app has substantial product surface:
+The app has substantial product surface, now positioned as the **cost intelligence layer** for AEC teams:
 
 - **Public:** Landing, About, Features, Pricing, Contact pages
 - **Auth:** Google OAuth + email sign-in link via Supabase, safe redirect, protected `/workshop/*`
-- **Workshop:** Projects, estimates (tree/sheet editing), charts, component library, templates, settings
+- **Workshop / cost proposal workspace:** Projects, estimates (tree/sheet editing), charts, reusable component library, templates, settings — the live foundation for building, sending, revising, approving, and tracking cost proposals
 - **Collaboration:** Invite-entry tokens, project/estimate-sheet sharing, Teamspaces
-- **Publication:** Shared Link V2 (tabbed receiver, comments, decisions, recipients, activity, password gate)
-- **Export:** XLSX proposal export (mutable current estimate)
-- **AI:** Ask Flip (read-only, account-aware), Package-builder (draft/refine/apply, confirmation-gated)
+- **Publication:** Shared publication links (tabbed receiver, comments, decisions, recipients, activity, password gate)
+- **Export:** XLSX proposal export (mutable current estimate, not an immutable issued record)
+- **AI:** Ask Flip (read-only, account-aware), Package-builder (draft/refine/apply, confirmation-gated) — **feature-flagged/deferred for closed beta; not a launch capability and not included in any tier**
 - **Landing:** A/B testing, consent banner, CSP Report-Only
 
 ## Not Yet Implemented
@@ -425,7 +425,7 @@ The app has substantial product surface:
 3. **No deploy** without Philip approval.
 4. **Public copy** must claim only currently shipped, verified capability.
 5. **Proposal export copy** must distinguish mutable XLSX export from future immutable issued snapshots.
-6. **AI copy** must describe scoped Ask and confirmation-gated package-builder — not autonomous estimation.
+6. **AI is deferred from launch.** Public and internal copy must not feature AI as a current capability. When AI is mentioned, describe Ask-only (read-only Q&A) with a visible privacy note, and any Draft/Apply as confirmation-gated; never imply autonomous estimating. The existing Ask Flip / Package-builder helpers are feature-flagged/deferred for closed beta and are not part of the launch product or tiers.
 
 ---
 
@@ -435,6 +435,7 @@ The app has substantial product surface:
 - No app/workshop font above `12px`, no non-xs radius, no nonzero tracking, no bold/fill icon weights.
 - No duplicated feature-local controls; reuse shared UI primitives.
 - No AI writes, autonomous actions, retrieval/RAG, or stored conversations by implication.
+- **Claims discipline (master file §15):** no "immutable issued record" claims; no procurement/ERP/payment execution claims; no "only we make estimates reusable" claims; never describe Archestimator as an aggregator or database of external estimates.
 - Tests protect accepted behavior and key governance rules.
 - Code-review graph/GitNexus and `.ai` source-of-truth docs are part of the normal agent workflow.
 

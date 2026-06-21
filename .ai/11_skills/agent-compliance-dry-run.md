@@ -5,7 +5,7 @@ Use this before turning advisory agent-framework rules into enforced checks.
 ## Scenario Set
 
 Run at least three representative scenarios from
-`.ai/03_plans/2026-06-03-agentic-development-framework-rollout/33_AGENT_DRY_RUN_EVALS_AND_ADOPTION_TESTS.md`.
+`.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/33_AGENT_DRY_RUN_EVALS_AND_ADOPTION_TESTS.md`.
 
 ## Scorecard
 

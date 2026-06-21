@@ -42,6 +42,133 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Shared-Link D1-D11 owner decisions are ratified; implementation gates remain open (2026-06-21):**
+Philip ratified the production-grade verdicts in
+`.ai/03_plans/2026-06-20-Shared-Link-Feature/71_PRODUCTION_ANSWERS.md` for D1-D11. The active ship
+contract is: D1 keep stale-write 409/equality lock and add non-destructive banner + draft-preserve;
+D2 add `location_visibility` (`exact`/`locality`/`hidden`, default `locality`); D3 keep clientName/totals
+but replace raw public UUIDs with per-snapshot opaque ids; D4 record single-node beta and build durable
+digest/password-lockout limiter layer now; D5 harden session DELETE + unsubscribe POST origin/CSRF/rate
+limiting; D6 ratify single-column receiver document; D7 keep focus-refresh for beta with honest copy and
+defer Supabase Realtime to GA; D8 run the full deploy/migration runbook and promote AC-MOD-06 while
+keeping AC-MOD-T4-P2 deferred; D9 accept owner digest with durable limiter, `publication_digest_log`, and
+observability sentinel; D10 apply/ledger-reconcile manager-read RLS now; D11 ship named confirmation +
+visible audit line, with full legal e-signature deferred to GA/legal review. The plan folder must stay
+active; do not archive it yet because the ratified implementation, deploy smoke, browser/visual QA,
+QA-G06/QA-G10, hosted/provider perf evidence, and remaining backlog items are still open.
+
+**Estimate-sheet right-sidebar thumbnail implementation handoff added (2026-06-21):**
+The estimate-sheet audit/improvement plan pack now includes
+`.ai/03_plans/2026-06-21-Estimate-Sheet-Audit-And-Improvement/10-right-sidebar-component-thumbnails-plan.md`.
+The plan keeps the current UI direction conservative: component leaves in the
+right sidebar should get 24px square decorative thumbnails after the existing
+tree icon and before the title, while folder/template/source rows stay text-only.
+It reuses the existing `EstimateRowItem.imageUrl` / `thumbnail_path` lite
+library data path, rejects broad card/preview fallback imagery in virtualized
+rows, and requires native lazy images plus fixed placeholders so large catalogs
+do not fetch or decode every thumbnail. Verification is scoped to
+`component-library-ui`, `ui-tree` or a sidebar-thumbnail DOM test, and
+`estimate-sheet-library-lazy-load`, with browser proof reserved only if final
+CSS changes row height, focus/hover rails, drag affordances, or responsive
+clipping.
+
+**Documentation sync with founder master corpus v4.3 (2026-06-21):**
+
+Updated `README.md`, `.ai/README.md`, roadmap narrative, feature inventory, and brand specs to the AEC-committed "cost intelligence layer" positioning, deferred AI status, and claims discipline established in `.ai/00_corpus/ARCHESTIMATOR_MASTER.md` (v4.3, 2026-06-18). Notion remains canonical for live trackers; the master corpus is the repo-local startup canon.
+
+Files touched:
+- `/Users/philiplewis/Documents/archestimator/README.md`
+- `/Users/philiplewis/Documents/archestimator/.ai/README.md`
+- `/Users/philiplewis/Documents/archestimator/.ai/01_roadmap/README.md`
+- `/Users/philiplewis/Documents/archestimator/.ai/06_specs/feature-inventory.md`
+- `/Users/philiplewis/Documents/archestimator/.ai/06_specs/brand/README.md`
+
+Consistency checklist (verified against live files):
+- Root README no longer uses "Contractor-first" as lead positioning: ✅ `README.md:3` now opens with "Your cost intelligence layer."
+- AI is described as deferred/roadmap-only, not a launch feature: ✅ confirmed in README claims discipline and `.ai/README.md`.
+- Exports/publication are not described as immutable issued records: ✅ README key-features table lists "Shared proposal snapshots" (not immutable), and the claims-discipline section explicitly states exports are working documents, not immutable issued records.
+- No "only we make estimates reusable" or aggregator/pooled-data claims appear: ✅ confirmed in checked files.
+- `.ai/06_specs/brand/brand-foundation.md` aligns with AEC-committed mission/vision/promise and Tier 1/2/3 audience map from §4.5/R5.
+
+Open contradictions with `ARCHESTIMATOR_MASTER.md` v4.3:
+- None detected in the touched documentation files. The initial cross-check produced false positives because it referenced stale line numbers; live file review confirms the updates landed correctly.
+
+**Estimate-sheet component taxonomy canonicalized in UI copy (2026-06-21):**
+Estimate-sheet row-card/detail copy now uses two user-facing component types:
+`Library Component` and `Project Component`. Project-specific/detached rows,
+inline-authored express rows, projected project rows, and source-less row
+components are Project Components for users; internal implementation terms such
+as `expressComponent`, `projectComponentProjection`, `linkState`, and source
+snapshot provenance remain intact. The estimate-sheet plan pack is now scoped
+to the OpenCode/GLM audit only for this revision. The pack at
+`.ai/03_plans/2026-06-21-Estimate-Sheet-Audit-And-Improvement/` now includes
+`00-executive-summary-and-ratings.md`, `08-opencode-audit-synthesis.md`, and
+`09-remediation-checklist.md`.
+
+**Shared-Link targeted review implementation is local/provider-green; feature ship still NO-GO (2026-06-21):**
+Local code now supports selected proposal/estimate/line-item review targets on the public shared-link page:
+`ShareReviewWorkspace` owns the target state, `SharePageTabs` has a full collated bid-form view with row
+review actions, comments/decisions persist immutable target context, and activity history renders targeted
+comments plus row/estimate-level approvals/revisions/declines. The owner shared-link manager modal also now
+keeps a compact publishing overview visible across tabs, including saved link status, selected estimate count,
+saved access/expiry state, latest activity, and pending unsaved changes. Migration
+`20260621042221_shared_link_event_context.sql` adds stored target fields, row-to-estimate label-map metadata,
+app-layer and RPC-layer target membership checks, and avoids fabricating historical snapshot versions for old
+comments. Migration `20260621051701_shared_link_event_context_backfill_repair.sql` repairs historical row-target
+label/estimate context using the same tree-node sources the app parser reads. Evidence: the canonical shared-link suite
+`bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx
+tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-route.test.ts
+tests/vitest/share-no-store-invariants.test.ts tests/vitest/share-estimate-tree-panel-a11y.test.tsx
+tests/vitest/share-estimate-tree-view-performance.test.tsx tests/vitest/share-recipient-session-initializer.test.tsx
+tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx
+tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-activity.test.tsx
+tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/recipient-email-composer.test.tsx
+tests/vitest/security-findings-publication-contracts.test.ts
+tests/vitest/project-publication-security-hardening.test.ts tests/vitest/project-publication-schema.test.ts
+tests/vitest/share/share-page-decision-anonymous.test.tsx
+tests/vitest/share/share-page-decision-bar-copy-contract.test.tsx tests/vitest/project-publication-snapshot.test.ts
+tests/vitest/shared-link-perf-budgets-script.test.ts tests/vitest/shared-link-header-smoke-script.test.ts
+tests/vitest/shared-link-smoke-seed-script.test.ts --maxWorkers=1` passed 23 files / 353 tests;
+`bun run type-check` passed; `git diff --check` passed; `rg -n "#FFFDF8" src/components/share src/app/share`
+returned no matches. Provider readback on `ebxxqidacheyapmmzavr` is now green for the shared-link slice:
+`supabase migration list --linked` shows `20260620064601`, `20260620142000`, `20260621042221`, and
+`20260621051701` present in Local and Remote; all 11 `project_publications` rows have complete
+`estimateLabels`/`rowLabels`/`rowEstimateIds` label objects; row comment/response estimate mismatches are 0/0;
+target-context columns exist on comments/responses; and the target-aware `insert_client_comment` /
+`submit_client_response` RPCs are `security definer`, service-role executable only. Feature ship remains
+**NO-GO** until ratified D1-D11 implementation, app deploy/post-deploy smoke, browser/visual QA, and remaining hosted/provider perf budget evidence pass.
+The review gate is now green: native `code-reviewer` artifact
+`.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/review/codex-review-shared-link-2026-06-21.md`
+reported 0 blockers. Targeted follow-up evidence also landed: MANAGER-F-04 per-recipient failed-send chips/retry,
+RUX-11 real-component Storybook matrix, RUX-12 receiver-tab test-comment cleanup, MANAGER-F-03 unavailable-link
+copy parity, MANAGER-F-05 behavioral action tests, MANAGER-F-06 dashboard quick actions, QA-G03/G04/G08/G09 tests, QA-G10 header-smoke/seed helpers, `scripts/measure-shared-link-perf-budgets.ts`,
+`evidence/shared-link-activity-benchmark.md`, and `evidence/perf-budgets.md`. MANAGER-F-01 now has the full 7 mutation actions × 5 actor classes RBAC matrix (signed-in no-access, workspace member, project member, project viewer, and public/recipient-token visitor), and `actions.ts` ranks `member` below manager instead of letting it fall through `NaN`. MANAGER-F-06 is fixed locally by dashboard published-row copy/preview plus manager-only rotate/revoke quick actions with destructive confirms, tooltip semantics, refresh-on-success only, and `ok:false` error handling in both dashboard quick actions and the manager modal. QA-G07 offline queue hardening is now fixed by an explicit reconnect/flush/sessionStorage/CSRF test. QA-G06 has a gated provider/local-Supabase duplicate-decision race harness at `tests/vitest/share/duplicate-decision-race.provider.test.ts`, but the real DB proof remains pending because local Docker/Supabase was unavailable. The latest canonical shared-link suite passed 23 files / 353 tests. PERF-06 compact snapshot schema v1.3 now stores tab membership as row IDs while
+preserving legacy v1.2 reads; local snapshot bytes are PASS at 100 rows (29.7 KiB), 1k rows (263.1 KiB), and
+10k rows (2.55 MiB vs 4 MiB). Local PERF-09/PERF-12 CPU-only rows also pass, but hosted route/DB/provider timing
+evidence remains open. The plan folder must stay active;
+do not archive it as completed feature work yet because ratified decision implementation, deploy smoke, browser/visual QA,
+QA-G06/QA-G10, hosted/provider perf evidence, and remaining backlog items are still open.
+
+**Shared-Link plan pack reached 100% planning-handoff closure; feature remains NO-GO (2026-06-21):**
+The plan pack at `.ai/03_plans/2026-06-20-Shared-Link-Feature/` now includes
+`95_REQUIREMENT_TO_EVIDENCE_CLOSURE_LEDGER.md`, which maps every pasted user requirement to evidence and
+separates **100/100 planning-artifact readiness** from operational ship readiness. Reviewer-discovered
+contradictions were reconciled: PERF-01A is Open residual only (analytics deferral is partial evidence),
+D10 is apply-now or recorded post-launch defense-in-depth rather than a beta gate, SEC-SHARE-06 is
+deferrable only with explicit D9 waiver, `_COORDINATION.md` is historical, and 91/85/90 now name concrete
+perf, header-smoke, visual-contrast, Supabase harness, DB apply/rollback, and review-artifact contracts.
+Do not describe the feature as deploy/client-ready until the 90 Go/No-Go, ratified decision implementation, provider proof,
+visual QA, review artifact, and perf budgets pass.
+
+**Shared-Link plan pack historical provider snapshot (superseded 2026-06-21):**
+The plan pack at `.ai/03_plans/2026-06-20-Shared-Link-Feature/` was hardened after a planning audit:
+market/UX research, V2 receiver/manager UX contracts, beta decision gates, current QA anchors, and explicit
+NO-GO deploy language were added. Do not describe the feature as deploy-ready until
+`.ai/03_plans/2026-06-20-Shared-Link-Feature/90_DEPLOY_AND_MIGRATION_RUNBOOK.md` passes. The earlier verifier
+snapshot in this entry found `20260620064601` and `20260620142000` Local-only / Remote blank and live
+`activity_target_labels_json` absent; that provider state is superseded by the green readback recorded in the
+entry above. Deploy/ratified-implementation/visual/review/perf gates remain open.
+
 **Project Data page is comparison-first (2026-06-20):**
 The active `/workshop/projects/[projectId]/data` surface has been reframed from
 the prior insight-header plus ledger/right-rail layout into a single cost
@@ -2821,7 +2948,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 - The estimate-page Component Library sidebar Categories, Suppliers, and Brand trees share the same Supabase Component Library dataset and taxonomy/supplier/brand backbone as `/workshop/library`: `All Components` remains the estimate-sidebar category root, V3 organizer/category/subcategory order is preserved including empty folders, supplier folders come from `component_suppliers`, brand folders come from `component_brands`, and the estimate sidebar adds draggable/click-insertable library line-item leaves under matching `category_node_id`, `supplier_id`, or `brand_id` folders so they can be inserted into estimate areas.
 - Component-library inserts into live estimate rows generate UUID row ids before calling `insertEstimateRowItemFromLibrary()`, and the server action normalizes stale/non-UUID client row ids to server-generated UUIDs before Supabase sees the `estimate_row_items.id` UUID column. Static UI library items such as `lib-sofa` are treated as copied row snapshots, not `cost_library_items.id` foreign keys; only UUID-backed library items are persisted as `source_library_item_id` with `linked-clean`. Estimate row-item edits now expose quantity, adjustment percentage, and Misc Cost; discipline belongs to component-library metadata, and designation is not visible/editable on row items for now. Adjustment is displayed as a Contingency/Discount select plus positive percentage input and calculated peso value; contingency stores as a positive percentage, discount stores as a negative percentage, and total item cost includes the signed adjustment value. Migration `20260528184224_allow_estimate_row_discounts.sql` is applied to the linked remote and repaired into migration history, with remote constraints verified on `estimate_row_items` and `estimate_template_row_items` as `contingency_percentage >= -100 and contingency_percentage <= 100`.
 - Reusable estimate templates are active as of migration `20260522091621_component_library_templates.sql`. The template model is workspace scoped through `estimate_templates`, `estimate_template_nodes`, and `estimate_template_row_items` with RLS, explicit authenticated grants, deferred hierarchy triggers, and root-sort uniqueness that treats `parent_id = null` as a real sibling slot. The migration seeds default persisted templates for existing workspaces; the repository falls back to static seed templates only when the template tables are not present yet, not when migrated tables exist but are empty. Component surfaces do not apply their own static template defaults. Template insertion passes only `templateId` from the client and calls `public.insert_estimate_template_into_estimate`, which validates the source template tree and copies structures into `estimate_nodes` and `estimate_row_items` atomically with fresh UUIDs and snapshot metadata. Templates themselves remain immutable library source data during insertion.
-- Estimate area drop zones support click and keyboard activation in addition to drag/drop. Activating the drop zone now appends an empty Express component row using the same shared component-card frame as normal components, with inline editable image, name, supplier, unit cost, description, and unit fields plus the normal estimate quantity/adjustment/Misc Cost cells; it must not show the legacy `Drag or add a component here` placeholder. Persisted legacy blank placeholders are compatibility-only and should render through the same inline Express editor, upgrading to `metadata.expressComponent` on first edit.
+- Estimate area drop zones support click and keyboard activation in addition to drag/drop. Activating the drop zone now appends an empty Project Component row using the same shared component-card frame as normal components, with inline editable image, name, supplier, unit cost, description, and unit fields plus the normal estimate quantity/adjustment/Misc Cost cells; it must not show the legacy `Drag or add a component here` placeholder. Persisted legacy blank placeholders are compatibility-only and should render through the same inline Project Component editor, upgrading to internal `metadata.expressComponent` provenance on first edit.
 - `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/` is now the active reusable UI component library and Storybook planning pack. The older `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md` remains historical context only; read the 2026-06-06 plan before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 - `.ai/09_archive/store/2026-05-21-shadcn-context-menu-integration-complete/` is the archived closeout source for the first gradual shadcn/ui integration. The first target is implemented: estimate tree Group Node and Area Node rows use a compact shadcn/Radix Context Menu for Rename/Delete. Rename is inline in the tree row with optimistic local/query-cache updates and rollback; Delete uses the existing Modal confirmation before optimistic subtree removal, selected-node fallback, and route repair with `router.replace()` only when the active route is deleted. shadcn enters as copied shared primitives under the existing compact UI system; the reusable action-menu model is available for later filter/icon trigger adapters, but those future adapters are not implemented yet.
 - Estimate workspace persistence is state-first after RSC hydration. The `estimateQueryKeys.areaTree(estimateId)` TanStack Query cache is the live client tree source shared by `EstimateSheetTree` and `EstimateSheetContent`; RSC page props seed the cache, and Supabase server actions validate/persist mutations. Node rename is a scalar patch path that returns `{ nodeId, name }`, does not refetch/reapply the full tree, and does not call `revalidatePath()` on the active estimate route. Estimate row scalar edits for quantity, signed adjustment percentage, and Misc Cost now keep focused draft text local, patch the shared area-tree cache optimistically on commit, reconcile from the Supabase-returned canonical row fields, and rollback failed saves without visible row-level save pills. Rename rollback is scoped to the edited node so it cannot restore older whole-tree snapshots over newer cache writes. Delete/reorder remain structural mutation paths that can reconcile with a confirmed server tree, and route repair derives the current route node from the client pathname before falling back to server props. Shared area-tree cache revisions guard rollback paths from clobbering newer tree writes. The narrow Teamspaces Realtime foundation is active as private-channel code and migration policy: `project:{projectId}` Presence is for slow online/profile state, `estimate:{estimateId}` Broadcast is for throttled cursor messages, and access is authorized through `realtime.messages` RLS. It is not a table-wide Postgres Changes feed or an Activity feed; estimate sheets now mount visible, throttled, per-user colored cursor rendering with QA-visible channel/send status attributes.
