@@ -791,7 +791,7 @@ describe("estimate sheet library insertion persistence", () => {
       quantity: 0,
       expectedRowRevision: 7,
     }));
-    expect(within(row as HTMLElement).getByText("₱ 10.00")).toBeInTheDocument();
+    await waitFor(() => expect(within(row as HTMLElement).getByText("₱ 10.00")).toBeInTheDocument());
   });
 
   it("makes a linked component project-specific without clearing row values", async () => {

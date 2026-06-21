@@ -12,7 +12,7 @@ const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
 describe("live estimate node route", () => {
   it("loads project-scoped Supabase estimate tree data instead of sample project/tree data", () => {
-    expect(estimateNodePage).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
+    expect(estimateNodePage).toContain("resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
     expect(estimateNodePage).not.toContain("sampleProjects");
     expect(estimateNodePage).not.toContain("sampleEstimateTree");
     expect(estimateNodePage).toContain("if (!project || !estimate) notFound()");

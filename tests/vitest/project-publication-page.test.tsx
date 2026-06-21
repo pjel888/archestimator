@@ -704,6 +704,29 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(screen.getByRole("tabpanel")).toBeInTheDocument();
     });
 
+    it("uses a mobile-safe cost breakdown list instead of donut callout labels on the receiver page", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const estimateWithDisciplines: PublicationSnapshotEstimate = {
+        ...baseEstimate,
+        totalCost: 3500,
+        rows: [
+          { ...baseEstimate.rows[0], id: "row-structural", discipline: "Structural", rowTotal: 2300 },
+          { ...baseEstimate.rows[0], id: "row-electrical", description: "Electrical rough-in", discipline: "Electrical", rowTotal: 1200 },
+        ],
+      };
+
+      const { container } = render(<SharePageTabs estimates={[estimateWithDisciplines]} currencyCode="PHP" token="client-token-breakdown" />);
+
+      expect(container.querySelector("[data-share-cost-breakdown]")).toBeInTheDocument();
+      expect(container.querySelectorAll("[data-testid='donut-callout']")).toHaveLength(0);
+      const legend = container.querySelector("[data-share-cost-breakdown-list]");
+      expect(legend).toBeInTheDocument();
+      expect(legend?.textContent).toContain("Structural");
+      expect(legend?.textContent).toContain("Electrical");
+      expect(legend?.textContent).toContain("PHP 2,300.00");
+      expect(legend?.textContent).toContain("PHP 1,200.00");
+    });
+
     it("defers the print-only package until print intent, then includes every shared estimate", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       render(<SharePageTabs estimates={multiEstimates} currencyCode="PHP" token="client-token-print-all" />);

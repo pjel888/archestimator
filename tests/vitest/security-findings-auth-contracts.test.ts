@@ -87,6 +87,49 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(insertRpc).not.toContain("resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);");
   });
 
+  it("requires estimate edit access for row replace/update/delete and bulk node delete history RPCs", () => {
+    const hardeningMigration = latestMigrationBySuffix("_estimate_sheet_bulk_delete_and_edit_rpc_hardening.sql");
+    const dynamicallyHardenedFunctions = [
+      "update_estimate_row_item_with_history",
+      "replace_estimate_row_item_with_history",
+      "delete_estimate_row_item_with_history",
+      "delete_estimate_node_with_history",
+    ];
+
+    for (const functionName of dynamicallyHardenedFunctions) {
+      expect(hardeningMigration).toContain(functionName);
+    }
+    expect(hardeningMigration).toContain("resolved_workspace_id := public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id);");
+    expect(hardeningMigration).toContain("is missing estimate edit authorization");
+    expect(latestFunction("delete_estimate_nodes_bulk_with_history")).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(hardeningMigration).toContain("create or replace function public.delete_estimate_nodes_bulk_with_history");
+    expect(hardeningMigration).toContain("delete from public.estimate_nodes node");
+    expect(hardeningMigration).toContain("revoke all on function public.delete_estimate_nodes_bulk_with_history(uuid, uuid, uuid[], uuid, uuid) from public, anon");
+    expect(hardeningMigration).toContain("grant execute on function public.delete_estimate_nodes_bulk_with_history(uuid, uuid, uuid[], uuid, uuid) to authenticated");
+  });
+
+  it("keeps template-node subtree inserts transactional and estimate-edit gated", () => {
+    const estimateActions = read("src/lib/estimates/actions.ts");
+    const insertNodeAction = sourceBlock(
+      estimateActions,
+      "export async function insertEstimateTemplateNodeIntoEstimate",
+      "export async function insertEstimateRowItemFromLibrary",
+    );
+    const hardeningMigration = latestMigrationBySuffix("_estimate_sheet_bulk_delete_and_edit_rpc_hardening.sql");
+    const insertNodeRpc = latestFunction("insert_estimate_template_node_into_estimate_with_history");
+
+    expect(insertNodeAction).toContain('await assertCanEditEstimate(supabase, estimateId);');
+    expect(insertNodeAction).toContain('supabase.rpc("insert_estimate_template_node_into_estimate_with_history"');
+    expect(insertNodeAction).not.toContain('supabase.rpc("create_estimate_node_with_history"');
+    expect(insertNodeAction).not.toContain('supabase.rpc("insert_estimate_row_item_with_history"');
+    expect(insertNodeRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(insertNodeRpc).toContain("public.create_estimate_node_with_history");
+    expect(insertNodeRpc).toContain("public.insert_estimate_row_item_with_history");
+    expect(insertNodeRpc).toContain("'template_node_subtree_inserted'");
+    expect(hardeningMigration).toContain("revoke all on function public.insert_estimate_template_node_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid) from public, anon");
+    expect(hardeningMigration).toContain("grant execute on function public.insert_estimate_template_node_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid) to authenticated");
+  });
+
   it("requires source estimate edit access before copying estimate nodes or tabs into workspace templates", () => {
     const libraryActions = read("src/lib/component-library/actions.ts");
     const nodePublishAction = sourceBlock(

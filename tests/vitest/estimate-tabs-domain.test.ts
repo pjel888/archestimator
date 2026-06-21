@@ -60,7 +60,7 @@ describe("estimate tab repository compatibility wrappers", () => {
     const routeSource = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
     const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
-    expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
+    expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
     // U21: the resolver returns the tab list in parallel with the tree, so the
     // page prefers it (`tabs ??`) and only falls back to a direct getEstimateTabs
     // fetch when it wasn't provided.

@@ -98,12 +98,14 @@ function makeSupabase({
   rowMetadata = {},
   canEditEstimate = true,
   rpcData,
+  rpcError = null,
 }: {
   rowRevision?: number;
   sourceLibraryItemId?: string | null;
   rowMetadata?: Record<string, unknown>;
   canEditEstimate?: boolean;
   rpcData?: unknown;
+  rpcError?: (Error & { code?: string }) | null;
 } = {}) {
   const rowQuery = queryResult({
     data: {
@@ -131,6 +133,7 @@ function makeSupabase({
   const supabase = {
     rpc: vi.fn(async (fn: string) => {
       if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
+      if (rpcError) return { data: null, error: rpcError };
 
       return {
         data: rpcData ?? {
@@ -293,6 +296,40 @@ describe("estimate sheet version control server actions", () => {
     expect(supabase.rpc).toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.objectContaining({
       row_patch: { miscCost: 450 },
     }));
+  });
+
+  it("maps raw row revision conflicts to a stable stale-data error code", async () => {
+    const conflict = Object.assign(new Error("estimate_sheet_row_revision_conflict"), { code: "P0001" });
+    const supabase = makeSupabase({ rpcError: conflict });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
+
+    try {
+      await updateEstimateRowItem({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        rowId: "row-1",
+        quantity: 9,
+        expectedRowRevision: 6,
+      });
+      throw new Error("Expected row revision conflict to throw.");
+    } catch (error) {
+      expect(error).toMatchObject({
+        name: "EstimateRowRevisionConflictError",
+        code: "estimate_sheet_row_revision_conflict",
+      });
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain("This row changed elsewhere");
+    }
+  });
+
+  it("shows stale-data copy and actively refetches the active tree on row revision conflicts", () => {
+    const hookSource = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8");
+
+    expect(hookSource).toContain('const ESTIMATE_ROW_REVISION_CONFLICT_CODE = "estimate_sheet_row_revision_conflict"');
+    expect(hookSource).toContain("This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.");
+    expect(hookSource).toContain("isRowRevisionConflictError(error) ? \"active\" : \"none\"");
+    expect(hookSource).toContain("isRowRevisionConflictError(_error) ? \"active\" : \"none\"");
   });
 
   it("replaces row source through the history RPC with the existing row revision", async () => {

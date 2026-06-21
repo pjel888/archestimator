@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 const repositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
+  getEstimateTabTree: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
 
@@ -316,6 +317,16 @@ describe("createEstimateNode server action", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      project: { id: "project-1" },
+      estimate: { id: "estimate-1" },
+      tree: [{ id: "tab-root", name: "Tab Root", kind: "group", total: "₱0.00", children: [] }],
+    });
+    repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
+      project: { id: "project-1" },
+      estimate: { id: "estimate-1" },
+      tree: [{ id: "project-scope", name: "Project Scope", kind: "group", total: "₱0.00", children: [] }],
+    });
   });
 
   it("allows new area nodes under legacy organizing parents during the remote migration transition", async () => {
@@ -695,10 +706,10 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 
     expect(nodeQuery.in).toHaveBeenCalledWith("id", ["ground-floor", "kitchen"]);
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
-    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_node_with_history", {
+    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_nodes_bulk_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
-      target_node_id: "ground-floor",
+      target_node_ids: ["ground-floor"],
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
@@ -991,5 +1002,50 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it("copies template-node subtrees through one transactional RPC and refreshes the targeted tab", async () => {
+    const from = vi.fn((table: string) => {
+      throw new Error(`transactional node insert must not query ${table} in the action wrapper.`);
+    });
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "can_edit_estimate") return { data: true, error: null };
+      if (name === "insert_estimate_template_node_into_estimate_with_history") {
+        return { data: { insertedRootNodeId: "created-template-root" }, error: null };
+      }
+      throw new Error(`Unexpected RPC ${name}`);
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const { insertEstimateTemplateNodeIntoEstimate } = await import("@/lib/estimates/actions");
+
+    const result = await insertEstimateTemplateNodeIntoEstimate({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      targetParentNodeId: "parent-group",
+      templateId: "template-1",
+      templateNodeId: "template-node-1",
+      targetTabId: "tab-2",
+    });
+
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc).toHaveBeenNthCalledWith(1, "can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(rpc).toHaveBeenNthCalledWith(2, "insert_estimate_template_node_into_estimate_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_parent_node_id: "parent-group",
+      source_template_id: "template-1",
+      source_template_node_id: "template-node-1",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+      target_tab_id: "tab-2",
+    });
+    expect(rpc.mock.calls.map(([name]) => name)).not.toContain("create_estimate_node_with_history");
+    expect(rpc.mock.calls.map(([name]) => name)).not.toContain("insert_estimate_row_item_with_history");
+    expect(from).not.toHaveBeenCalled();
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith("project-1", "estimate-1", "tab-2");
+    expect(result).toEqual({
+      tree: [{ id: "tab-root", name: "Tab Root", kind: "group", total: "₱0.00", children: [] }],
+      insertedRootNodeId: "created-template-root",
+    });
   });
 });

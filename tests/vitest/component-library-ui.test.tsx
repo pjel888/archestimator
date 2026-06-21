@@ -80,6 +80,7 @@ const sharedLibraryItems: EstimateRowItem[] = [
     brandId: "db-brand",
     pricingSource: "Database Supplier",
     pricingDate: "2026-05-22",
+    imageUrl: "https://assets.example.test/steel-frame.jpg",
   },
 ];
 const sharedBrands = [
@@ -262,8 +263,10 @@ describe("component library UI", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete selected" }));
 
     expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat" })).not.toBeInTheDocument();
+    expect(screen.getByText("HEMLINGBY Loveseat removed from this sidebar view.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
+    expect(screen.getByText("HEMLINGBY Loveseat restored to this sidebar view.")).toBeInTheDocument();
   });
 
   it("shows left-aligned icon-only tools with tooltips and tree controls", () => {
@@ -633,6 +636,44 @@ describe("component library UI", () => {
     expect(item).toHaveAttribute("draggable", "true");
   });
 
+  it("renders fixed decorative thumbnails for component rows only in the sidebar", () => {
+    renderSidebar({
+      initialLibraryItems: sharedLibraryItems,
+      categoryTree: sharedCategoryTree,
+      brands: sharedBrands,
+    });
+
+    const folder = screen.getByRole("treeitem", { name: "Database Components" });
+    expect(folder.querySelector("[data-component-library-row-thumbnail]")).toBeNull();
+
+    const item = screen.getByRole("treeitem", { name: "Database Steel Frame" });
+    const thumbnail = item.querySelector("[data-component-library-row-thumbnail]");
+    expect(thumbnail).toBeInTheDocument();
+    expect(thumbnail).toHaveClass("size-6", "shrink-0");
+
+    const image = thumbnail?.querySelector("img");
+    expect(image).toBeInTheDocument();
+    expect(image).toHaveAttribute("src", "https://assets.example.test/steel-frame.jpg");
+    expect(image).toHaveAttribute("alt", "");
+    expect(image).toHaveAttribute("loading", "lazy");
+    expect(image).toHaveAttribute("decoding", "async");
+  });
+
+  it("uses thumbnail placeholders for missing or non-http image URLs", () => {
+    renderSidebar({
+      initialLibraryItems: [
+        { ...sharedLibraryItems[0], id: "invalid-image-item", imageUrl: "javascript:alert(1)" },
+      ],
+      categoryTree: sharedCategoryTree,
+      brands: sharedBrands,
+    });
+
+    const item = screen.getByRole("treeitem", { name: "Database Steel Frame" });
+    const thumbnail = item.querySelector("[data-component-library-row-thumbnail]");
+    expect(thumbnail).toBeInTheDocument();
+    expect(thumbnail?.querySelector("img")).toBeNull();
+  });
+
   it("opens right-click actions for folders and draggable component rows", async () => {
     const onInsert = vi.fn();
     renderSidebar({ onInsertComponent: onInsert, selectedNodeKind: "area", selectedNodeName: "Kitchen" });
@@ -664,12 +705,14 @@ describe("component library UI", () => {
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate" }));
     expect(await screen.findByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).toBeInTheDocument();
+    expect(screen.getByText("HEMLINGBY Loveseat duplicated in this sidebar view.")).toBeInTheDocument();
 
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat copy" }), { clientX: 16, clientY: 16 });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
     const dialog = await screen.findByRole("alertdialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
     expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).not.toBeInTheDocument();
+    expect(screen.getByText("HEMLINGBY Loveseat copy removed from this sidebar view.")).toBeInTheDocument();
   });
 
   it("opens the create-template modal when the sheets tree hands a node over", async () => {
