@@ -9,6 +9,7 @@ type ProjectDataPageProps = {
   params: Promise<{ projectId: string }>;
   searchParams?: Promise<{
     sheet?: string;
+    compare?: string;
     left?: string;
     right?: string;
     mode?: string;
@@ -23,6 +24,7 @@ export default async function ProjectDataPage({ params, searchParams }: ProjectD
 
   const summary = await getProjectDataRouteSummary(projectId, {
     selectedEstimateId: routeState.selectedEstimateId,
+    compareEstimateIds: routeState.compareEstimateIds,
     groupingMode: routeState.groupingMode,
   });
 

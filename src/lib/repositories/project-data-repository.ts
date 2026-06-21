@@ -25,6 +25,7 @@ export type ProjectDataRouteSummary = {
   projectName: string;
   estimateSheets: ProjectDataEstimateSheet[];
   selectedEstimateId: string | null;
+  compareEstimateIds: string[];
   selectedGroupingMode: ProjectChartGroupingMode;
   rollup: ProjectDataRollup;
   seriesByEstimateId: Record<string, ProjectChartEstimateSeries>;
@@ -35,6 +36,7 @@ export type ProjectDataRouteSummary = {
 
 export type GetProjectDataRouteSummaryOptions = {
   selectedEstimateId?: string | null;
+  compareEstimateIds?: string[] | null;
   groupingMode?: ProjectChartGroupingMode;
 };
 
@@ -57,9 +59,15 @@ export async function getProjectDataRouteSummary(
     options.selectedEstimateId && allowedEstimateIds.has(options.selectedEstimateId)
       ? options.selectedEstimateId
       : estimateSheets[0]?.id ?? null;
+  const compareEstimateIds = resolveCompareEstimateIds(
+    estimateSheets,
+    selectedEstimateId,
+    options.compareEstimateIds ?? null,
+  );
+  const chartEstimateIds = selectedEstimateId ? [selectedEstimateId, ...compareEstimateIds] : [];
 
   const chartsData = await getProjectChartsData(project.id, {
-    selectedEstimateIds: selectedEstimateId ? [selectedEstimateId] : [],
+    selectedEstimateIds: chartEstimateIds,
   });
 
   return {
@@ -67,6 +75,7 @@ export async function getProjectDataRouteSummary(
     projectName: project.name,
     estimateSheets,
     selectedEstimateId,
+    compareEstimateIds,
     selectedGroupingMode: options.groupingMode ?? "category",
     rollup: computeProjectDataRollup(estimateSheets),
     seriesByEstimateId: chartsData?.seriesByEstimateId ?? {},
@@ -74,6 +83,26 @@ export async function getProjectDataRouteSummary(
     didTruncate: Boolean(chartsData?.didTruncate),
     rowLimit: chartsData?.rowLimit ?? 5000,
   };
+}
+
+function resolveCompareEstimateIds(
+  estimateSheets: ProjectDataEstimateSheet[],
+  selectedEstimateId: string | null,
+  requestedCompareIds: string[] | null,
+): string[] {
+  if (!selectedEstimateId) return [];
+  const allowedIds = new Set(estimateSheets.map((estimate) => estimate.id));
+  const sourceIds =
+    requestedCompareIds === null
+      ? estimateSheets.map((estimate) => estimate.id).filter((id) => id !== selectedEstimateId).slice(0, 1)
+      : requestedCompareIds;
+  const out: string[] = [];
+  for (const id of sourceIds) {
+    if (id === selectedEstimateId || !allowedIds.has(id) || out.includes(id)) continue;
+    out.push(id);
+    if (out.length === 2) break;
+  }
+  return out;
 }
 
 function toProjectDataEstimateSheet(

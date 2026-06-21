@@ -1405,12 +1405,12 @@ input[type="number"] {
     inset 0 1px 0 rgba(255, 255, 255, 0.62);
 }
 
-/* ── Project Data workspace — 16×12 liquid-glass analysis grid ───────────────
+/* ── Project Data workspace — comparison-board shell ────────────────────────
    The route already sits inside the single blurred WorkshopPageShell glass
    surface. These panels therefore use translucent glass skins + bright edge
-   relief, not additional backdrop filters; dense ledgers and tables stay crisp
-   paper. Desktop uses an explicit 16-column / 12-row grid so hierarchy is a
-   layout contract, while mobile stacks the same surfaces in reading order. */
+   relief, not additional backdrop filters; dense comparison ledgers stay crisp
+   paper. Desktop gives the aligned sheet-comparison board the whole workspace
+   so cost-per-sheet columns remain adjacent instead of split across panels. */
 .project-data-grid {
   display: flex;
   flex-direction: column;
@@ -1449,6 +1449,11 @@ input[type="number"] {
     var(--workshop-shell-chrome-bg);
 }
 
+.project-data-grid__board {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .project-data-bucket-card {
   border: 1px solid color-mix(in srgb, var(--glass-border) 76%, rgba(255, 255, 255, 0.32));
   border-top-color: rgba(255, 255, 255, 0.56);
@@ -1471,6 +1476,11 @@ input[type="number"] {
   .project-data-grid__hero {
     grid-column: 1 / 17;
     grid-row: 1 / 4;
+  }
+
+  .project-data-grid__board {
+    grid-column: 1 / 17;
+    grid-row: 1 / 13;
   }
 
   .project-data-grid__primary {

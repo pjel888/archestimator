@@ -1,20 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { CostAcrossSheetsSection } from "@/components/workshop/project-data/CostAcrossSheetsSection";
-import { CostBreakdownSection } from "@/components/workshop/project-data/CostBreakdownSection";
-import { CostCompositionSection } from "@/components/workshop/project-data/CostCompositionSection";
-import { ProjectDataInsightHeader } from "@/components/workshop/project-data/ProjectDataInsightHeader";
-import { buildCostConcentration } from "@/lib/project-charts/build-concentration-sentence";
-import { collapseProjectChartBuckets } from "@/lib/project-charts/aggregate-project-charts";
-import type { ProjectChartBucket, ProjectChartGroupingMode } from "@/lib/project-charts/types";
+import { CostComparisonBoard } from "@/components/workshop/project-data/CostComparisonBoard";
+import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
 import type { ProjectDataRouteSummary } from "@/lib/repositories/project-data-repository";
-import { cn } from "@/lib/ui/cn";
 
 type ProjectDataClientProps = {
   summary: ProjectDataRouteSummary;
+};
+
+type CompareOverride = {
+  source: string;
+  value: string[];
 };
 
 export function ProjectDataClient({ summary }: ProjectDataClientProps) {
@@ -22,12 +21,15 @@ export function ProjectDataClient({ summary }: ProjectDataClientProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selectedOverride, setSelectedOverride] = useState<{ source: string | null; value: string | null } | null>(null);
+  const [compareOverride, setCompareOverride] = useState<CompareOverride | null>(null);
   const [groupingOverride, setGroupingOverride] = useState<{ source: ProjectChartGroupingMode; value: ProjectChartGroupingMode } | null>(null);
   const selectedEstimateId =
     selectedOverride?.source === summary.selectedEstimateId ? selectedOverride.value : summary.selectedEstimateId;
+  const compareSource = compareSourceKey(summary);
+  const compareEstimateIds = compareOverride?.source === compareSource ? compareOverride.value : summary.compareEstimateIds;
   const groupingMode =
     groupingOverride?.source === summary.selectedGroupingMode ? groupingOverride.value : summary.selectedGroupingMode;
-  const interactionKey = `${summary.projectId}:${selectedEstimateId ?? ""}:${groupingMode}`;
+  const interactionKey = `${summary.projectId}:${selectedEstimateId ?? ""}:${compareEstimateIds.join("|")}:${groupingMode}`;
   const [activeBucketState, setActiveBucketState] = useState<{ key: string; bucketId: string | null }>({
     key: interactionKey,
     bucketId: null,
@@ -37,45 +39,51 @@ export function ProjectDataClient({ summary }: ProjectDataClientProps) {
     setActiveBucketState({ key: interactionKey, bucketId });
   };
 
-  const selectedEstimate = useMemo(
-    () => summary.estimateSheets.find((estimate) => estimate.id === selectedEstimateId) ?? null,
-    [selectedEstimateId, summary.estimateSheets],
-  );
-  const selectedSeries = selectedEstimateId ? summary.seriesByEstimateId[selectedEstimateId] : undefined;
-  const allBuckets = useMemo(
-    () => selectedSeries?.[groupingMode]?.allBuckets ?? [],
-    [groupingMode, selectedSeries],
-  );
-  const buckets = useMemo(() => sortBuckets(collapseProjectChartBuckets(allBuckets, 6)), [allBuckets]);
-  const otherGroupCount = Math.max(0, allBuckets.length - 6);
-  const currencyCode = selectedEstimate?.currencyCode ?? "PHP";
-  const concentration = useMemo(
-    () => buildCostConcentration(allBuckets, selectedEstimate?.totalCost ?? 0, currencyCode, groupingMode),
-    [allBuckets, selectedEstimate?.totalCost, currencyCode, groupingMode],
-  );
-  const composition = selectedSeries?.composition ?? null;
-  const hasComposition = Boolean(composition && Number.isFinite(composition.grandTotal) && composition.grandTotal > 0);
-  const hasAcrossSheets = summary.rollup.kind === "mixed" || summary.estimateSheets.length >= 2;
-  const hasRightRail = hasComposition || hasAcrossSheets;
-
-  const replaceQuery = (next: { sheet?: string; mode?: ProjectChartGroupingMode }) => {
+  const replaceQuery = (next: { sheet?: string | null; compareIds?: string[]; mode?: ProjectChartGroupingMode }) => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("left");
     params.delete("right");
-    if (next.sheet) {
-      params.set("sheet", next.sheet);
-    } else if (selectedEstimateId) {
-      params.set("sheet", selectedEstimateId);
+    const nextSheet = next.sheet !== undefined ? next.sheet : selectedEstimateId;
+    const nextCompareIds = next.compareIds ?? compareEstimateIds;
+    if (nextSheet) {
+      params.set("sheet", nextSheet);
+    } else {
+      params.delete("sheet");
     }
-    if (next.mode) params.set("mode", next.mode);
+    if (nextCompareIds.length > 0) {
+      params.set("compare", nextCompareIds.join(","));
+    } else if (summary.estimateSheets.length > 1) {
+      params.set("compare", "none");
+    } else {
+      params.delete("compare");
+    }
+    const nextMode = next.mode ?? groupingMode;
+    if (nextMode === "category") {
+      params.delete("mode");
+    } else {
+      params.set("mode", nextMode);
+    }
     const query = params.toString();
     router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
   };
 
   const handleEstimateChange = (estimateId: string) => {
+    const nextCompareIds = normalizeCompareIds(
+      [selectedEstimateId, ...compareEstimateIds].filter((id): id is string => Boolean(id)),
+      estimateId,
+      summary,
+    );
     setSelectedOverride({ source: summary.selectedEstimateId, value: estimateId });
+    setCompareOverride({ source: compareSource, value: nextCompareIds });
     setActiveBucketId(null);
-    replaceQuery({ sheet: estimateId });
+    replaceQuery({ sheet: estimateId, compareIds: nextCompareIds });
+  };
+
+  const handleCompareEstimateIdsChange = (estimateIds: string[]) => {
+    const nextCompareIds = normalizeCompareIds(estimateIds, selectedEstimateId, summary);
+    setCompareOverride({ source: compareSource, value: nextCompareIds });
+    setActiveBucketId(null);
+    replaceQuery({ compareIds: nextCompareIds });
   };
 
   const handleGroupingModeChange = (mode: ProjectChartGroupingMode) => {
@@ -90,62 +98,39 @@ export function ProjectDataClient({ summary }: ProjectDataClientProps) {
       className="dashboard-canvas-wash flex h-full min-h-0 flex-col overflow-hidden bg-transparent"
       aria-label="Project cost data"
     >
-      <div className="project-data-grid min-h-0 flex-1 overflow-auto p-2 md:p-3" data-project-data-grid="16x12">
-        <ProjectDataInsightHeader
-          className="project-data-grid__hero project-data-panel project-data-panel--warm"
-          estimateSheets={summary.estimateSheets}
-          selectedEstimate={selectedEstimate}
+      <div className="project-data-grid min-h-0 flex-1 overflow-hidden p-2 md:p-3" data-project-data-grid="comparison-board">
+        <CostComparisonBoard
+          className="project-data-grid__board project-data-panel project-data-panel--paper"
+          summary={summary}
+          baselineEstimateId={selectedEstimateId}
+          compareEstimateIds={compareEstimateIds}
           groupingMode={groupingMode}
-          concentration={concentration}
-          sheetCount={summary.estimateSheets.length}
-          didTruncate={summary.didTruncate}
-          rowLimit={summary.rowLimit}
-          onEstimateChange={handleEstimateChange}
-          onGroupingModeChange={handleGroupingModeChange}
-        />
-        <CostBreakdownSection
-          className={cn(
-            "project-data-panel project-data-panel--paper",
-            hasRightRail ? "project-data-grid__primary" : "project-data-grid__full",
-          )}
-          projectId={summary.projectId}
-          selectedEstimate={selectedEstimate}
-          groupingMode={groupingMode}
-          buckets={buckets}
           activeBucketId={activeBucketId}
-          otherGroupCount={otherGroupCount}
+          onBaselineChange={handleEstimateChange}
+          onCompareEstimateIdsChange={handleCompareEstimateIdsChange}
+          onGroupingModeChange={handleGroupingModeChange}
           onActiveBucketChange={setActiveBucketId}
         />
-        {hasComposition ? (
-          <CostCompositionSection
-            className={cn(
-              "project-data-panel",
-              hasAcrossSheets ? "project-data-grid__side-top" : "project-data-grid__side-full",
-            )}
-            composition={composition}
-            currencyCode={currencyCode}
-            sheetName={selectedEstimate?.name ?? "Selected sheet"}
-          />
-        ) : null}
-        {hasAcrossSheets ? (
-          <CostAcrossSheetsSection
-            className={cn(
-              "project-data-panel",
-              hasComposition ? "project-data-grid__side-bottom" : "project-data-grid__side-full",
-            )}
-            summary={summary}
-            groupingMode={groupingMode}
-          />
-        ) : null}
       </div>
     </section>
   );
 }
 
-function sortBuckets(buckets: ProjectChartBucket[]): ProjectChartBucket[] {
-  return [...buckets].sort((left, right) => {
-    if (left.isOther && !right.isOther) return 1;
-    if (!left.isOther && right.isOther) return -1;
-    return right.total - left.total || left.label.localeCompare(right.label);
-  });
+function compareSourceKey(summary: ProjectDataRouteSummary): string {
+  return `${summary.selectedEstimateId ?? ""}:${summary.compareEstimateIds.join("|")}`;
+}
+
+function normalizeCompareIds(
+  estimateIds: string[],
+  selectedEstimateId: string | null,
+  summary: ProjectDataRouteSummary,
+): string[] {
+  const allowedIds = new Set(summary.estimateSheets.map((estimate) => estimate.id));
+  const out: string[] = [];
+  for (const id of estimateIds) {
+    if (!allowedIds.has(id) || id === selectedEstimateId || out.includes(id)) continue;
+    out.push(id);
+    if (out.length === 2) break;
+  }
+  return out;
 }

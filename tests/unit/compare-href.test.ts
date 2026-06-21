@@ -4,12 +4,18 @@ import { buildCompareHref, buildEstimateSheetHref } from "../../src/lib/workshop
 
 describe("buildCompareHref", () => {
   test("targets the Data route's canonical sheet contract with the first estimate selected", () => {
-    expect(buildCompareHref("proj-1", ["headline", "row"])).toBe("/workshop/projects/proj-1/data?sheet=headline");
+    expect(buildCompareHref("proj-1", ["headline", "row"])).toBe("/workshop/projects/proj-1/data?sheet=headline&compare=row");
   });
 
   test("preserves a grouping mode when provided", () => {
     expect(buildCompareHref("proj-1", ["headline", "row"], "supplier")).toBe(
-      "/workshop/projects/proj-1/data?sheet=headline&mode=supplier",
+      "/workshop/projects/proj-1/data?sheet=headline&compare=row&mode=supplier",
+    );
+  });
+
+  test("caps comparison deep links at two comparison sheets", () => {
+    expect(buildCompareHref("proj-1", ["headline", "row-a", "row-b", "row-c"])).toBe(
+      "/workshop/projects/proj-1/data?sheet=headline&compare=row-a%2Crow-b",
     );
   });
 

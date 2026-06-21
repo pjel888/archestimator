@@ -1,7 +1,8 @@
 /**
- * Deep-link builders for estimate cost data. The Data route's canonical
- * selection param is `?sheet=`; it still accepts legacy `?left=` only as a
- * reader fallback for old bookmarks.
+ * Deep-link builders for estimate cost data. The Data route's canonical board
+ * params are `?sheet=` for the baseline and `?compare=` for up to two other
+ * estimate sheets; it still accepts legacy `?left=`/`?right=` only as reader
+ * fallbacks for old bookmarks.
  */
 
 import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
@@ -12,8 +13,9 @@ export function buildCompareHref(
   groupingMode?: ProjectChartGroupingMode | null,
 ): string {
   const params = new URLSearchParams();
-  const [sheet] = estimateIds;
+  const [sheet, ...compareIds] = [...new Set(estimateIds)].slice(0, 3);
   if (sheet) params.set("sheet", sheet);
+  if (compareIds.length > 0) params.set("compare", compareIds.join(","));
   if (groupingMode) params.set("mode", groupingMode);
   const query = params.toString();
   return `/workshop/projects/${projectId}/data${query ? `?${query}` : ""}`;

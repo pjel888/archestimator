@@ -31,6 +31,7 @@ export const projectEstimateNodePage = readFileSync("src/app/workshop/projects/[
 export const projectChartsPage = readFileSync("src/app/workshop/projects/[projectId]/data/page.tsx", "utf8");
 export const projectDataLoading = readFileSync("src/app/workshop/projects/[projectId]/data/loading.tsx", "utf8");
 export const projectDataClient = readFileSync("src/components/workshop/project-data/ProjectDataClient.tsx", "utf8");
+export const projectDataComparisonBoard = readFileSync("src/components/workshop/project-data/CostComparisonBoard.tsx", "utf8");
 export const projectDataInsightHeader = readFileSync("src/components/workshop/project-data/ProjectDataInsightHeader.tsx", "utf8");
 export const projectDataCostBreakdown = readFileSync("src/components/workshop/project-data/CostBreakdownSection.tsx", "utf8");
 export const projectDataCostLedger = readFileSync("src/components/workshop/project-data/CostLedger.tsx", "utf8");

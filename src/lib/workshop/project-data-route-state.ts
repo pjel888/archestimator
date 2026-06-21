@@ -2,6 +2,7 @@ import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
 
 export type ProjectDataRouteSearchParams = {
   sheet?: string | string[];
+  compare?: string | string[];
   left?: string | string[];
   right?: string | string[];
   mode?: string | string[];
@@ -9,12 +10,20 @@ export type ProjectDataRouteSearchParams = {
 
 export type ProjectDataRouteState = {
   selectedEstimateId: string | null;
+  /**
+   * null means the URL did not express a compare preference, so the repository
+   * may choose a useful default. [] means the user explicitly chose no compare
+   * sheets (encoded as compare=none).
+   */
+  compareEstimateIds: string[] | null;
   groupingMode: ProjectChartGroupingMode;
 };
 
 export function resolveProjectDataRouteState(searchParams?: ProjectDataRouteSearchParams | null): ProjectDataRouteState {
+  const selectedEstimateId = readSelectedEstimateId(searchParams?.sheet, searchParams?.left);
   return {
-    selectedEstimateId: readSelectedEstimateId(searchParams?.sheet, searchParams?.left),
+    selectedEstimateId,
+    compareEstimateIds: readCompareEstimateIds(searchParams?.compare, searchParams?.right, selectedEstimateId),
     groupingMode: readGroupingMode(searchParams?.mode),
   };
 }
@@ -31,7 +40,39 @@ function readSelectedEstimateId(
   return readFirst(sheet) ?? readFirst(left) ?? null;
 }
 
+function readCompareEstimateIds(
+  compare: string | string[] | undefined,
+  right: string | string[] | undefined,
+  selectedEstimateId: string | null,
+): string[] | null {
+  const compareValues = readValues(compare);
+  if (compareValues.length > 0) {
+    return parseCompareValues(compareValues, selectedEstimateId);
+  }
+
+  const legacyRight = readFirst(right);
+  if (!legacyRight) return null;
+  return legacyRight === selectedEstimateId ? [] : [legacyRight];
+}
+
+function parseCompareValues(values: string[], selectedEstimateId: string | null): string[] {
+  if (values.some((value) => value.trim().toLowerCase() === "none")) return [];
+  const ids = values.flatMap((value) => value.split(",")).map((value) => value.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const id of ids) {
+    if (id === selectedEstimateId || out.includes(id)) continue;
+    out.push(id);
+    if (out.length === 2) break;
+  }
+  return out;
+}
+
 function readFirst(value: string | string[] | undefined): string | null {
   const candidate = Array.isArray(value) ? value[0] : value;
   return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
+}
+
+function readValues(value: string | string[] | undefined): string[] {
+  if (Array.isArray(value)) return value;
+  return typeof value === "string" ? [value] : [];
 }

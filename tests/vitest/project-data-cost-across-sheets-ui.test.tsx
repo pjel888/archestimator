@@ -83,6 +83,7 @@ function summary(overrides: Partial<ProjectDataRouteSummary> = {}): ProjectDataR
     projectName: "Lewis Residence",
     estimateSheets,
     selectedEstimateId: estimateSheets[0]?.id ?? null,
+    compareEstimateIds: estimateSheets.slice(1, 2).map((estimate) => estimate.id),
     selectedGroupingMode: "category",
     rollup: { kind: "single", currencyCode: "PHP", totalCost: estimateSheets.reduce((sum, estimate) => sum + estimate.totalCost, 0) },
     seriesByEstimateId: Object.fromEntries(

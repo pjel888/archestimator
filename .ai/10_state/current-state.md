@@ -42,6 +42,18 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Data page is comparison-first (2026-06-20):**
+The active `/workshop/projects/[projectId]/data` surface has been reframed from
+the prior insight-header plus ledger/right-rail layout into a single cost
+comparison board. The route now uses canonical `sheet=<baseline>` plus
+`compare=<id,id>` URL state (with `compare=none` for explicit no-compare and
+legacy `left`/`right` as read-only fallbacks), loads pre-bucketed series for the
+baseline and compare sheets, and renders one semantic table with shared-scale
+bars, per-sheet totals/shares, line counts, removable compare chips, mixed-
+currency delta suppression, and truncation warnings. Durable rationale and
+validation evidence are in
+`.ai/03_plans/2026-06-20-Project-Data-Page/v2-implementation-research-note.md`.
+
 **Production Project Dashboard Google Maps key restored (2026-06-20):**
 The deployed Project Dashboard map fallback that said `Google Maps API key
 missing` was caused by Vercel production lacking `GOOGLE_MAPS_API_KEY` while the

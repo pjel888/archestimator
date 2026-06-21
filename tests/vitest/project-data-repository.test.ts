@@ -49,8 +49,44 @@ describe("getProjectDataRouteSummary", () => {
     const summary = await getProjectDataRouteSummary("project-1", { selectedEstimateId: "foreign-estimate" });
 
     expect(summary?.selectedEstimateId).toBe("estimate-a");
+    expect(summary?.compareEstimateIds).toEqual(["estimate-b"]);
+    expect(repositoryMocks.getProjectChartsData).toHaveBeenCalledWith("project-1", {
+      selectedEstimateIds: ["estimate-a", "estimate-b"],
+    });
+  });
+
+  it("honors an explicit no-compare route preference", async () => {
+    repositoryMocks.listProjectEstimates.mockResolvedValue(summaryResult([
+      estimate("estimate-a", "Original Estimate"),
+      estimate("estimate-b", "Tender Estimate"),
+    ]));
+
+    const { getProjectDataRouteSummary } = await import("@/lib/repositories/project-data-repository");
+    const summary = await getProjectDataRouteSummary("project-1", { selectedEstimateId: "estimate-a", compareEstimateIds: [] });
+
+    expect(summary?.compareEstimateIds).toEqual([]);
     expect(repositoryMocks.getProjectChartsData).toHaveBeenCalledWith("project-1", {
       selectedEstimateIds: ["estimate-a"],
+    });
+  });
+
+  it("loads at most two requested comparison sheets for the selected board", async () => {
+    repositoryMocks.listProjectEstimates.mockResolvedValue(summaryResult([
+      estimate("estimate-a", "Original Estimate"),
+      estimate("estimate-b", "Tender Estimate"),
+      estimate("estimate-c", "Value Engineering"),
+      estimate("estimate-d", "Foreign Sheet"),
+    ]));
+
+    const { getProjectDataRouteSummary } = await import("@/lib/repositories/project-data-repository");
+    const summary = await getProjectDataRouteSummary("project-1", {
+      selectedEstimateId: "estimate-a",
+      compareEstimateIds: ["estimate-b", "estimate-c", "estimate-d"],
+    });
+
+    expect(summary?.compareEstimateIds).toEqual(["estimate-b", "estimate-c"]);
+    expect(repositoryMocks.getProjectChartsData).toHaveBeenCalledWith("project-1", {
+      selectedEstimateIds: ["estimate-a", "estimate-b", "estimate-c"],
     });
   });
 
@@ -64,6 +100,7 @@ describe("getProjectDataRouteSummary", () => {
     const summary = await getProjectDataRouteSummary("project-1", { selectedEstimateId: "estimate-20", groupingMode: "supplier" });
 
     expect(summary?.selectedEstimateId).toBe("estimate-20");
+    expect(summary?.compareEstimateIds).toEqual(["estimate-0"]);
     expect(summary?.selectedGroupingMode).toBe("supplier");
     expect(summary?.costAcrossSheetsMode).toBe("totals-only");
     expect(summary?.rollup).toEqual({ kind: "mixed", currencyCodes: ["PHP", "USD"] });
@@ -85,6 +122,7 @@ describe("getProjectDataRouteSummary", () => {
 
     expect(summary).toMatchObject({
       selectedEstimateId: "estimate-a",
+      compareEstimateIds: ["estimate-b"],
       costAcrossSheetsMode: "stacked",
       didTruncate: true,
       rowLimit: 12,
