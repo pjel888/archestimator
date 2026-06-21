@@ -8,10 +8,6 @@ metadata:
 
 # Supabase
 
-<!-- ARCHESTIMATOR REPO-LOCAL OVERRIDE — additive; preserve through fleet 3-way merge. Do not delete. -->
-> **ArchEstimator:** Supabase work is scoped to project `ebxxqidacheyapmmzavr` only; AI features are Ask-only; follow `.ai/00_system` + `.ai/10_state/decisions.md`. `.ai` wins on conflict.
-<!-- END ARCHESTIMATOR REPO-LOCAL OVERRIDE -->
-
 ## Core Principles
 
 **1. Supabase changes frequently — verify against changelog and current docs before implementing.**
