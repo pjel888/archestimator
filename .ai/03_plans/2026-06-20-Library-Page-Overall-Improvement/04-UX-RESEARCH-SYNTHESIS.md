@@ -30,7 +30,7 @@ Implication:
 
 - Keep facet categories predictable and domain-specific.
 - Prioritize facets that matter to cost trust: freshness, confidence, lifecycle, source/supplier, brand.
-- Avoid adding a category facet if the left folder tree already owns that axis, matching the existing project decision.
+- `folder` (`library_folder_id`, optional organization) and `category` (`cost_library_items.category` text, required taxonomy) are **two distinct axes** (per the 19 glossary) — do not conflate them. The left folder tree owns the `library_folder_id` axis, not the `category` axis, so do not duplicate the folder axis as a facet; a `category` facet is a separate decision.
 
 Sources:
 
@@ -58,8 +58,9 @@ Users often need multiple values in the same category, such as multiple supplier
 
 Implication:
 
-- Preserve current multi-select behavior for supplier, brand, lifecycle, and confidence.
-- Treat pricing freshness as a mutually exclusive status unless product requirements change.
+- Preserve current multi-select behavior for supplier, brand, lifecycle (`component_lifecycle_state`), and confidence.
+- `confidence` is FREE TEXT (`confidence` text column, not an enum per 19) — a confidence facet filters over derived labels, not a fixed enum; do not assume a controlled vocabulary until the migration-gated CHECK is added.
+- Treat pricing freshness as a mutually exclusive status (the `ComponentPricingFreshness = any | fresh | stale | missing` union in `component-facet-filter.tsx`) unless product requirements change.
 
 Source:
 
@@ -71,8 +72,10 @@ Professional data-heavy workflows benefit from a clear toolbar and results that 
 
 Implication:
 
-- Move toward a unified component toolbar: search, filters, sort, display mode, add action, and selected count.
-- Add table/list maintenance mode after the route and trust issues are solved.
+- Move toward a unified component toolbar: search, filters, sort, display mode, add action, and selected count. The selected-count + batch surface already exists as `BulkActionToolbar.tsx` (shared primitive `ui/bulk-action-toolbar.tsx`); reuse it rather than building a parallel toolbar.
+- Add a table/list maintenance mode after the route and trust issues are solved. This is canonical **Phase 5 (Dense Maintenance Mode & Browser-Proven Polish)** in `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`, and it lands **last** in the order `0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5`.
+- The card/dense **display-mode toggle does NOT exist yet** — it is net-new work (per the Phase 5 row in 19). Build the table-vs-grid contract per `12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md` and reuse the existing virtualization infra (`src/lib/workshop/virtualization-flags.ts`, `WORKSHOP_VIRTUALIZATION_FLAGS` + `@tanstack/react-virtual`) instead of adding a second virtualizer.
+- The dense-mode surface spec lives in `10-LIBRARY-SURFACE-SPECS.md`; its row/column copy lives in `22-COPY-DECK-AND-MICROCOPY.md`.
 - Keep cards for visual or early-beta browsing.
 
 Sources:
@@ -89,7 +92,7 @@ Implication:
 - Keep New Template as a short modal.
 - Keep Edit Component as a drawer.
 - Split Add Component so the default path is short and advanced work is progressive.
-- Keep preview/inspection in right docks rather than modals.
+- Keep preview/inspection in the inspector dock (`ComponentInspectorDock.tsx`) rather than modals.
 
 Sources:
 
@@ -120,18 +123,49 @@ Sources:
 
 For reusable costs, provenance is not a separate documentation page. It must show where users decide to reuse the item.
 
+This is canonical **Phase 2 (Source Trust at Decision Points)** in
+`19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`. The full state machine is
+`11-SOURCE-TRUST-STATE-MATRIX.md` and the chip strings are
+`22-COPY-DECK-AND-MICROCOPY.md`; bind to the real columns/helpers/enums in 19,
+not to invented labels.
+
+Trust-chip set this principle implies (each bound to a real column/helper/enum
+from 19, not new schema):
+
+| Chip | Source of truth | Render points |
+| --- | --- | --- |
+| Pricing freshness (fresh / stale / missing) | `pricing_date` via `getComponentPricingFreshness(item, now)` (`component-facet-filter.tsx:61`) + `getStalenessTone`/`getStalenessLabel` (`component-library/helpers.ts:667/675`); single 90-day window across `COMPONENT_FACET_STALE_DAYS=90`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS=90`, the `LibraryOverview.tsx:114` string | overview recents, browse cards, `ComponentInspectorDock.tsx`, insert pickers, template rows |
+| Confidence | `confidence` text column (FREE TEXT, not an enum — derive a badge over the string; a controlled vocabulary is migration-gated per 19) | same as above |
+| Lifecycle | `lifecycle_state` enum `component_lifecycle_state` = `draft \| in_production \| available \| discontinued \| archived` (NOT "Active/Deleted") | browse cards, inspector, insert pickers |
+| Source / source URL | `pricing_source` text (this IS the source URL; URL validity is app-side over free text) | inspector, insert pickers, template rows |
+| Supplier / brand | `supplier`/`supplier_id` (FK `component_suppliers`), `brand`/`brand_id` (FK `component_brands`) | browse cards, inspector |
+| Link/snapshot (template + estimate rows) | `link_state` enum `estimate_row_link_state` = `unlinked \| linked-clean \| linked-overridden \| detached \| source-changed` ("Missing source" is a DERIVED UI state, not an enum value) | template rows, insert pickers |
+
 Implication:
 
-- Show source, date/version, confidence, and caveats on cards, inspector, overview recents, template rows, and insert pickers.
-- Treat stale or low-confidence pricing as a decision warning, not just a detail hidden in the inspector.
+- Show these chips on browse cards, the inspector dock (`ComponentInspectorDock.tsx`), overview recents (`overview/LibraryOverview.tsx`), template rows, and insert pickers (`InsertIntoEstimatePicker.tsx`).
+- Treat stale or low-confidence pricing as a decision warning, not just a detail hidden in the inspector dock.
+- "Last reviewed" / template review metadata do **not** exist as columns — use `updated_at` as the "last touched" cue, or gate a real `last_reviewed` timestamp behind the Data Migration Gate (per 19). Template trust counts are a computed JOIN over `link_state`/`source_library_item_id`, not a stored field.
+- Use plain chip labels ("Price stale", "Low confidence", "Source changed", "Discontinued") per `11-SOURCE-TRUST-STATE-MATRIX.md` and `22-COPY-DECK-AND-MICROCOPY.md`; resolve conflicting states by the precedence list in 11.
 
 Sources:
 
 - Google data card guidance
 - GOV.UK AI-ready dataset guidance
-- Existing Archestimator component-library decisions and spec sections on source/pricing snapshots
+- Existing Archestimator component-library decisions and spec sections on source/pricing snapshots (see `11-SOURCE-TRUST-STATE-MATRIX.md` and the keystone `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`)
 
 ## Source Links
+
+> Citation provenance: external links below were captured during the two
+> research passes that produced this synthesis (drafted 2026-06-20; verified
+> against `main` per `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` on
+> 2026-06-21). Per-URL access dates and deep section anchors are **not** tracked
+> here — this is an accepted limitation. These citations inform priority and
+> direction only; no behavior in this pack depends on a specific external URL
+> resolving. Every implementable claim binds to the in-repo facts in doc 19, not
+> to these links. If an external page moves, treat the principle as the durable
+> artifact, not the URL.
+
 
 - NN/g Filters vs. Facets: https://www.nngroup.com/articles/filters-vs-facets/
 - NN/g Helpful Filter Categories and Values: https://www.nngroup.com/articles/filter-categories-values/
@@ -162,7 +196,9 @@ The second research pass sharpened four implementation implications:
 
 1. Dense mode is a first-class professional table workflow, not a cosmetic
    alternate card layout. It must support find/filter, compare, inspect/edit,
-   selected-count, and batch actions.
+   selected-count, and batch actions. This is canonical **Phase 5** (per 19); the
+   density toggle is net-new, and selected-count/batch reuse
+   `BulkActionToolbar.tsx`.
 2. Applied filters should remain visible and resettable. Supplier, lifecycle,
    brand, and confidence can support multi-select; pricing freshness should stay
    mutually exclusive unless requirements change.
@@ -177,11 +213,24 @@ The second research pass sharpened four implementation implications:
 Additional technical implications:
 
 - Large-list performance is a database/API/DOM problem, not just a visual one.
-  Server-side filtering/search, indexed text fields, reduced browse payloads,
-  pagination, or virtualization should be considered once scale budgets are hit.
-- Supabase/Postgres search work should prefer query/index decisions grounded in
-  actual workload: full-text indexes for text search and trigram indexes for
-  fuzzy name/supplier matching if needed.
+  Reduced browse payloads, pagination, or virtualization should be considered
+  once scale budgets are hit. Per 19, the Components-tab search/filter today is
+  100% **client-side synchronous** filtering over an in-memory dataset
+  (`ComponentLibraryManager.tsx:876-882`; facet filter at `:877`, search filter
+  at `:881`), so there is **no out-of-order / stale-
+  response race** to solve now — scope any server-side search as FUTURE if budget
+  is exceeded. The **real** perf risk is that the browse fetch
+  (`loadCurrentWorkspaceComponentRowsLibrary`) eagerly loads the full nested
+  detail graph (versions, price history, state history, attachments) per item;
+  target shrinking the browse payload / making detail lazy and inspector-scoped.
+  Reuse the existing virtualization infra
+  (`src/lib/workshop/virtualization-flags.ts`), and note Phase 0A must extend
+  `scripts/seed-performance-test-data.ts` to seed `cost_library_items` and
+  measure a baseline before any budget number is claimed.
+- Supabase/Postgres search work (full-text indexes for text search, trigram
+  indexes for fuzzy name/supplier matching) is **FUTURE-if-budget-exceeded**: no
+  Postgres FTS/trigram index exists yet, and it is only relevant once the
+  client-side path is proven insufficient against the seeded baseline.
 - Source trust is a cost-library norm: centralized cost libraries usually expose
   item cost, unit, supplier/manufacturer, catalog/source, and assembly context.
 

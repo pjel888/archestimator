@@ -1,20 +1,35 @@
 # 13 - Data Contracts, Route State, And Cache
 
+All names below are bound to verified codebase symbols. The single source of
+truth for tables, columns, enums, query keys, server actions, RPCs, and file
+paths is `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`; this doc cites the
+exact names but does not restate the full binding tables. Phase labels follow
+the Canonical Phase Map in doc 19.
+
 ## Canonical Routes
 
-- `/workshop/library`
-- `/workshop/library/components`
-- `/workshop/library/templates`
-
-Historical standalone template routes are not implementation targets unless a
-newer decision explicitly restores them.
+- `/workshop/library` (`src/app/workshop/library/page.tsx`)
+- `/workshop/library/components` (`components/page.tsx` ->
+  `LibraryComponentsRoute.tsx` -> `LibraryPageClient.tsx` -> dynamic
+  `ComponentLibraryManager`)
+- `/workshop/library/templates` (`templates/page.tsx`)
+- `/workshop/library/templates/[templateId]` — the per-template detail segment
+  route **already ships** (`templates/[templateId]/page.tsx`). It is NOT
+  historical and NOT a route to invent; template detail navigation MUST target
+  this segment route, not a parallel query-param surface (see Template Route
+  State below).
 
 ## Component Route State
 
 Recommended query params:
 
-- `component=<componentId>` opens the component inspector.
-- Existing search/filter/folder/sort/density/pagination params remain intact.
+- `component=<componentId>` opens the component inspector dock
+  (`ComponentInspectorDock.tsx`). This `?component=<id>` route state lands in
+  Phase 0B (Overlay & Route-State Reliability) per doc 19.
+- Existing search/filter/folder/sort params remain intact. NOTE: the density
+  toggle does NOT exist yet (net-new in Phase 5), and Components-tab browse is
+  client-side filtered over an in-memory dataset, so a `pagination` param is
+  only relevant once a server/virtualized path is introduced.
 - Closing the inspector removes only `component`.
 - Opening Quick Add should not reuse `component`; use a separate action state if
   a route param is needed.
@@ -24,74 +39,147 @@ Invalid `component` behavior:
 - show an inspector-level not-found state
 - preserve other search/filter context
 - offer clear-selection action
-- do not leak whether a cross-workspace object exists
+- do not leak whether a cross-workspace object exists. RLS policies (which use
+  the `is_workspace_member` predicate, migration `20260613201302`) already filter
+  cross-workspace rows; the component-library loader returns no row, so it
+  surfaces not-found rather than existence. (`is_workspace_member` is the RLS
+  POLICY predicate, NOT an action-layer call — the loader/repository under
+  `src/lib/component-library` never invokes it directly.)
 
 Workspace switch behavior:
 
-- selected object data from the previous workspace must not remain visible
+- selected object data from the previous workspace must not remain visible —
+  see the Mutation Cache Contract "Workspace-switch cache-bleed surface" below;
+  the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` is the surface that must
+  be invalidated/removed on switch
 - route state can remain, but the current workspace must refetch and resolve it
   safely
 - if invalid in the new workspace, show not-found/permission-safe state
 
 ## Template Route State
 
-Recommended query params:
+The per-template detail surface is the shipped segment route
+`/workshop/library/templates/[templateId]`, NOT a `template=<id>` query param.
+Reconcile any earlier `template=<templateId>` proposal to this:
 
-- `template=<templateId>` opens template preview/details.
-- `template` and `component` should not both drive visible inspectors at once;
-  the latest explicit user action wins.
+- Navigation to a full template preview/detail MUST push the segment route
+  `/workshop/library/templates/[templateId]` (already on disk), so the URL is
+  shareable, deep-linkable, and back/forward correct.
+- A lightweight in-list preview (peek without leaving the browse grid, Phase 4)
+  MAY use an ephemeral selection state, but it MUST NOT introduce a competing
+  `template=<id>` query param that diverges from the segment route. Pick one
+  surface per intent: segment route for detail, transient state for peek.
+- Because template detail is its own segment route (not a query param), it and
+  `component` cannot drive two visible inspectors on the same screen — they live
+  on different routes. The "inspector dock" (canonical term) is component-only;
+  template detail is a full route, never a parallel `template=<id>` param.
 
-Invalid template behavior mirrors component behavior.
+Invalid `templateId` behavior mirrors invalid `component` behavior: render a
+not-found/permission-safe state, preserve browse context, do not leak whether a
+cross-workspace template exists. RLS already enforces this via
+`is_workspace_member` / `is_workspace_editor`; the route loader surfaces the
+not-found rather than leaking existence.
 
 ## Overview Component Payload Additions
 
+Source table is `public.cost_library_items` (NOT a "components" table). Each
+field below binds to a real column; do not introduce a field that lacks a column
+without routing it through the Data Migration Gate.
+
 Recent/overview component cards need enough data to show safe trust cues:
 
-- id
-- name
-- category
-- supplier or brand display
-- unit
-- unit cost
-- lifecycle state
-- pricing date or derived freshness
-- confidence or derived confidence label
-- safe source label if available
-- image/fallback metadata
-- updated/reviewed timestamp
+| Card field | Source column / derivation |
+| --- | --- |
+| id | `cost_library_items.id` |
+| name | `cost_library_items.name` |
+| category | `cost_library_items.category` (text — required taxonomy axis, distinct from `libraryFolderId` folder axis) |
+| supplier / brand display | `cost_library_items.supplier` + `supplier_id` (FK `component_suppliers`), `brand` + `brand_id` (FK `component_brands`) |
+| unit | `cost_library_items.unit` |
+| unit cost | `cost_library_items.unit_cost` (and `misc_cost` if surfaced) |
+| lifecycle state | `cost_library_items.lifecycle_state` (enum `component_lifecycle_state`: `draft` / `in_production` / `available` / `discontinued` / `archived`) |
+| derived freshness | from `cost_library_items.pricing_date` (date \| null) via `getComponentPricingFreshness(item, now)` (`src/components/workshop/library/component-facet-filter.tsx:61`) -> `fresh/stale/missing` (the function's return type is `Exclude<ComponentPricingFreshness,"any">`, `:64`; `any` is the FILTER-only sentinel, never a returned value — matches keystone 19 line 228); tone/label via `getStalenessTone` / `getStalenessLabel` (`src/components/workshop/component-library/helpers.ts:667/675` -> `success/warning/danger`) |
+| confidence label | derived over `cost_library_items.confidence` (text \| null, FREE TEXT — NOT an enum) |
+| safe source label | derived display over `cost_library_items.pricing_source` (text \| null — this column IS the "source URL"; URL validity is validated app-side over free text) |
+| image / fallback | `cost_library_items.thumbnail_path` + fallback metadata |
+| updated timestamp | `cost_library_items.updated_at` (there is NO `last_reviewed` / `reviewed_at` column — see Component Detail Payload) |
 
-Avoid exposing raw source URL in overview cards. Keep raw source URL in protected
+"stale" in the table above means PRICING freshness only (canonical glossary).
+The 90-day window is `COMPONENT_FACET_STALE_DAYS = 90`
+(`src/components/workshop/library/component-facet-filter.tsx:12`) and must stay
+in lockstep with `LIBRARY_OVERVIEW_STALE_PRICING_DAYS = 90`
+(`src/lib/repositories/component-library-repository.ts:827`) and the hardcoded
+"90 days" string
+(`src/components/workshop/library/overview/LibraryOverview.tsx:114`); any new
+"very stale" (e.g. 180-day) tier extends these three together, it does not
+diverge.
+
+Avoid exposing the raw `pricing_source` string in overview cards. Render only a
+derived safe label there; keep the raw `pricing_source` value in protected
 detail/edit surfaces only.
 
 ## Component Detail Payload
 
-Protected detail/inspector can include:
+The protected inspector dock (`ComponentInspectorDock.tsx`, 315 lines) can
+include the following, each bound to a real column or join:
 
-- source URL/details
-- internal notes
-- price history
-- usage/link counts
-- snapshot/link status when opened from estimate context
-- last-reviewed metadata
+- raw source string — `cost_library_items.pricing_source` (text \| null)
+- price history — `cost_library_item_price_history` (workspace-scoped, RLS)
+- usage / link counts — COMPUTED via `getCostLibraryComponentUsage` over
+  `estimate_row_items` / `estimate_template_row_items` `source_library_item_id`,
+  NOT a stored field
+- snapshot / link status when opened from estimate context — `link_state` enum
+  `estimate_row_link_state` (`unlinked` / `linked-clean` / `linked-overridden` /
+  `detached` / `source-changed`) plus `source_snapshot` (Json). "Missing source"
+  is a DERIVED UI state when the source item is deleted, not an enum value; use
+  the canonical term "source-changed" for the link/snapshot axis (never "stale",
+  which is reserved for pricing freshness).
+- last-updated timestamp — `cost_library_items.updated_at`
 
-All protected fields require current workspace authorization.
+There is **NO `last_reviewed` / `reviewed_at` column** on `cost_library_items`
+(verified). Any "last reviewed" trust cue MUST either (a) re-scope to
+`updated_at` for MVP, or (b) be gated behind the Data Migration Gate below as a
+new column. Do not spec a "last reviewed" field as if it exists.
+
+All protected fields require current workspace authorization. Writes guard via
+`supabase.rpc("is_workspace_editor", { target_workspace_id })` as
+defense-in-depth over RLS (already implemented); reads rely on RLS membership.
 
 ## Template Trust Payload
 
+Source table is `estimate_templates`, which has ONLY `category` / `name` /
+`description` / `metadata` / `sort_order` / `created_by` / `updated_at` /
+`workspace_id`. There is NO review column on `estimate_templates`. Trust counts
+are a COMPUTED JOIN over the template's rows, not stored fields.
+
 Template cards/previews need:
 
-- template id/name/description
-- line/group count
-- dependency count
-- missing-link count
-- stale-source count
-- archived/discontinued dependency count
-- last reviewed/updated
-- target insert capability
+| Card field | Source column / derivation |
+| --- | --- |
+| template id / name / description | `estimate_templates.id` / `name` / `description` |
+| line / group count | COMPUTED over `estimate_template_row_items` |
+| dependency count | COMPUTED: distinct `estimate_template_row_items.source_library_item_id` |
+| missing-link count | COMPUTED: rows whose `source_library_item_id` no longer resolves (derived "source-changed", not an enum) |
+| source-changed count | COMPUTED via `estimate_template_row_items.link_state = 'source-changed'` |
+| archived / discontinued dependency count | COMPUTED join to `cost_library_items.lifecycle_state in ('archived','discontinued')` |
+| last updated | `estimate_templates.updated_at` (there is NO `last_reviewed`/review column on `estimate_templates`) |
+| target insert capability | per Insert Target Contract below |
 
-Template trust is derived from dependency health plus template review metadata.
+Template trust is derived ENTIRELY from dependency health (the computed joins
+above). There is no "template review metadata" to read; re-scope any "last
+reviewed" cue to `estimate_templates.updated_at`, or gate a new review column
+behind the Data Migration Gate. Use "source-changed" for the link axis and
+"stale" for pricing freshness only (canonical glossary).
 
 ## Insert Target Contract
+
+Insert-target selection and resolution use existing server actions
+(`src/lib/component-library/actions.ts`, `"use server"`):
+
+- `listEstimateInsertTargets` — enumerates valid project/estimate targets for
+  the picker UI.
+- `resolveEstimateTemplateInsertTarget` — THE server-side insert-target resolver
+  invoked before mutation (also referenced by doc 02 Flow 7); it re-resolves the
+  chosen target and returns a recovery state on stale/missing.
 
 Every insert action must display:
 
@@ -99,54 +187,144 @@ Every insert action must display:
 - target estimate
 - whether the target is active/current
 
-Before mutation:
+Before mutation (enforced by `resolveEstimateTemplateInsertTarget`):
 
 - re-resolve target on the server
-- verify current workspace ownership
-- verify user can mutate the target estimate
+- verify current workspace ownership via
+  `supabase.rpc("is_workspace_editor", { target_workspace_id })`
+- verify the user can mutate the target estimate via
+  `supabase.rpc("can_edit_estimate", { target_estimate_id })` (defense-in-depth
+  over RLS, already implemented)
 - verify source component/template is readable and insertable
-- detect stale target or missing estimate and return a recovery state
+- detect stale target or missing estimate and return a recovery state via the
+  typed errors in `src/lib/component-library/action-errors.ts`
 
 Never silently choose a different target.
 
 ## Mutation Cache Contract
 
-Mutations must invalidate or update all affected surfaces:
+Query keys are defined in `src/lib/component-library/query-keys.ts`. Each
+mutation row below names the EXACT key(s) to invalidate. Shorthand:
 
-| Mutation | Affected Surfaces |
+- `LIBRARY` = `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` = `["workspace-component-library"]`
+- `LITE` = `WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY` / `workspaceComponentLibraryLiteQueryKey(projectId)`
+- `ROWS` = `WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY` / `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`
+- `TEMPLATES` = `WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY` / `workspaceEstimateTemplatesQueryKey({ userId, workspaceId })`
+
+| Mutation (server action) | Query key(s) to invalidate |
 | --- | --- |
-| Create/update/archive component | overview, components, folders/counts, templates that depend on it, estimate insert/search surfaces |
-| Create/rename/delete folder | components, folder sidebar/counts, overview maintenance signals |
-| Bulk archive/delete | overview, components, folders/counts, selected inspector state |
-| Create/update template | overview, templates, template preview, estimate insert/search surfaces |
-| Insert component/template | target estimate, library usage/link metadata, recent/reuse signals |
-| Update source/trust metadata | cards/rows, inspector, template dependency health, estimate source-changed signals |
+| Create/update component (`createCostLibraryComponent` / `updateCostLibraryComponent`) | `LIBRARY`, `ROWS`, `LITE`; `TEMPLATES` only if dependency health surfaced |
+| Update price option (`upsertCostLibraryComponentPriceOption`) | `LIBRARY`, `ROWS`, `LITE` (freshness/price recompute) |
+| Change lifecycle / archive (`changeCostLibraryComponentLifecycleState`) | `LIBRARY`, `ROWS`, `LITE`, `TEMPLATES` (archived/discontinued dependency counts) |
+| Bulk archive (`previewBulkArchiveLibraryComponents` is read-only; `executeBulkArchiveLibraryComponents`) | `LIBRARY`, `ROWS`, `LITE`, `TEMPLATES`; clear selected inspector state |
+| Create/rename/delete/reorder folder (`createLibraryFolder` / `renameLibraryFolder` / `deleteLibraryFolder` / `reorderLibraryFolders`) | `LIBRARY`, `ROWS` (folder sidebar + per-folder counts) |
+| Move component to folder (`moveCostLibraryComponentToFolder`) | `LIBRARY`, `ROWS` |
+| Create/update template (template-editor actions) | `TEMPLATES` |
+| Insert component/template into estimate (insert via `insertEstimateTemplateIntoEstimate` (`src/lib/estimates/actions.ts:2309`, template -> estimate) / `insertTemplateIntoTemplate` (`template-editor-actions.ts:484`, template -> template); `resolveEstimateTemplateInsertTarget` only RESOLVES the target, it is not the mutation — keystone 19 lines 269-275) | the target estimate's tree key invalidated in `use-estimate-row-mutations.ts` (`estimateQueryKeys.tabTree(estimateId, tabId)` / `estimateQueryKeys.areaTree(estimateId)`, see `:333`), plus `ROWS` (`workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`) and `LIBRARY` for recent/reuse (the same two keys `use-estimate-row-mutations.ts:335` invalidates); usage recompute reads `getCostLibraryComponentUsage` (`actions.ts:1495`) |
+| Update source/trust metadata (`updateCostLibraryComponent`) | `LIBRARY`, `ROWS`, `LITE`; `TEMPLATES` if dependency health surfaced |
 
-Cache keys must include workspace identity. Any query key that can show
-workspace data must refetch or clear on workspace switch.
+### Workspace-switch cache-bleed surface (BLOCKER)
+
+`WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` is
+**UN-SCOPED** — it carries no `workspaceId`. Its primary READER is
+`TemplateEditorClient.tsx:160` (`useQuery` for the template-editor library dock), which
+uses the inline literal `["workspace-component-library"]` — the same cache entry, so a
+symbol-name grep misses it. It is also invalidated by `LibraryPageClient.tsx:126`,
+`use-estimate-row-mutations.ts:335`, and `EstimateSheetContent.tsx:1238/1241` (the in-estimate dock).
+This is the ONE real
+workspace-switch cache-bleed surface: on workspace switch its cached entry can
+show the previous workspace's data. Required handling:
+
+- On workspace switch, explicitly invalidate/remove `["workspace-component-library"]`
+  (it cannot self-scope by key), OR migrate it to a workspace-scoped factory.
+- The scoped keys (`ROWS` via `workspaceComponentRowsLibraryQueryKey(workspaceId)`
+  and `TEMPLATES` via `workspaceEstimateTemplatesQueryKey({ userId, workspaceId })`)
+  already encode workspace identity and are cross-workspace tested; do NOT
+  re-flag those as the bleed surface.
+
+Phase 0A must scaffold a cache test that asserts `["workspace-component-library"]`
+does not leak across a simulated workspace switch. This is pre-registered as
+evidence `ADV-WS-SWITCH-CACHE` in `24-EXECUTION-EVIDENCE-LEDGER.md`:
+command `vitest run tests/vitest/library-workspace-switch-cache.test.tsx`
+(net-new); pass criterion — after a simulated workspace A -> B switch with the
+inspector/editor dock open, the cache entry for `["workspace-component-library"]`
+clears/refetches and the assertion reads the SAME inline-literal entry that the
+reader `TemplateEditorClient.tsx:160` subscribes to, so no prior-workspace detail
+is observable; owner Phase 0A Contract Lock; gate `bun run test:dom`. This gates
+the doc 13 key-scoping change (see doc 19 phase map and doc 24).
 
 ## Server Action Contract
 
 Server actions remain the preferred mutation surface for protected Library work.
+Extend the EXISTING pattern, do not invent a new one:
 
-Each server action should:
+- Component/library actions: `src/lib/component-library/actions.ts` (`"use server"`).
+- Template editor actions: `src/lib/component-library/template-editor-actions.ts`.
+- Typed errors: `src/lib/component-library/action-errors.ts`.
+
+NOTE (verified gotcha): a `"use server"` file may export ONLY async functions.
+`tsc` and Vitest miss a non-async export there; only `next build` catches it. Run
+`bun run build` after editing any actions file.
+
+Each server action should (mirroring the existing actions above):
 
 - derive user/workspace context server-side
-- validate actor capability
+- validate actor capability via `supabase.rpc("is_workspace_editor", { target_workspace_id })`
+  (and `can_edit_estimate` for estimate-target writes) as defense-in-depth over RLS
 - validate object belongs to current workspace
 - validate input shape and length
-- perform mutation inside the smallest safe transaction
+- perform mutation through the backing RPC (e.g. `create_cost_library_component`,
+  `update_cost_library_component`, `set_cost_library_component_lifecycle_state`,
+  `upsert_cost_library_component_price_option`,
+  `execute_bulk_archive_library_components`, `delete_library_folder`,
+  `reorder_library_folders`) inside the smallest safe transaction
 - return permission, validation, conflict, stale-target, and network/database
-  errors distinctly enough for UI recovery
-- trigger scoped revalidation/cache invalidation
+  errors distinctly (via `action-errors.ts`) enough for UI recovery
+- trigger scoped revalidation per the Mutation Cache Contract above
+
+## Schema-Readiness Verdict
+
+The existing `cost_library_items` schema is SUFFICIENT for this pack with NO
+schema change:
+
+- lifecycle (`lifecycle_state` enum), pricing (`pricing_date`, `unit_cost`,
+  `misc_cost`, price history table), supplier/brand (`supplier`/`supplier_id`,
+  `brand`/`brand_id`), source (`pricing_source`), and confidence
+  (`confidence`, free text) are all present.
+- The Quick Add contract (required: `name`, `category`, `unit`, `unit_cost`;
+  optional: supplier/brand, `pricing_date`, `pricing_source`, `confidence`,
+  `libraryFolderId`) needs NO new column — it does NOT violate the doc 00
+  "no schema changes" non-goal.
+
+Only TWO things would need a migration, both DEFERRED unless explicitly pulled
+in: (1) a `last_reviewed` / `reviewed_at` column (does not exist on
+`cost_library_items` or `estimate_templates`), and (2) a controlled vocabulary
+(enum/CHECK) for `confidence` and/or `category` (both are free text today).
 
 ## Data Migration Gate
 
-If implementation needs new columns, indexes, RLS policies, or RPCs:
+If implementation needs new columns (e.g. `last_reviewed`), indexes, RLS
+policies, or RPCs:
 
-- create a scoped migration
+- create a scoped migration under `supabase/migrations`
 - add rollback/fix-forward notes
-- update generated types if applicable
-- add provider-scoped validation against Archestimator project
-  `ebxxqidacheyapmmzavr`
+- update generated types ADDITIVELY (splice new tables/columns; a raw
+  `gen:types` overwrite drops a hand-added export + RPC drift and breaks the
+  build — do not regenerate `types.ts` wholesale)
+- **Migration-ledger reconciliation:** if SQL is applied via
+  `supabase db query --file ...`, it writes NO `schema_migrations` row and the
+  ledger drifts. Reconcile with
+  `supabase migration repair --status applied <version>` (NOT MCP
+  `apply_migration`) so the ledger matches the applied schema.
+- run `bun run build` (a `"use server"` actions edit only surfaces at build) and
+  `bun run validate` before claiming the gate is closed
+- add provider-scoped validation against the Archestimator REMOTE Supabase
+  project ref `ebxxqidacheyapmmzavr` (this is the remote project ref; the local
+  name `archestimator` from `config.toml` `project_id` is NOT the ref)
+- **Confirm the remote ref before validating** (owner: the migration author, at
+  the start of the gate): run `supabase projects list` (or read
+  `NEXT_PUBLIC_SUPABASE_URL`) and expect the ref `ebxxqidacheyapmmzavr`; if it
+  diverges, do NOT trust the hardcoded literal — re-point the gate at the
+  confirmed ref. This pre-registers the check so a stale ref cannot silently
+  validate against the wrong project.
 - do not touch unrelated provider projects
