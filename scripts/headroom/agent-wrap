@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tool="${1:-}"
+if [[ "$tool" != "claude" && "$tool" != "codex" ]]; then
+  echo "usage: $0 claude|codex [args...]" >&2
+  exit 64
+fi
+shift
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "$script_dir/../.." && pwd)"
+wrapper_bin="$script_dir/bin"
+
+clean_path=""
+IFS=":" read -r -a path_parts <<< "${PATH:-}"
+for path_part in "${path_parts[@]}"; do
+  [[ -z "$path_part" || "$path_part" == "$wrapper_bin" ]] && continue
+  if [[ -z "$clean_path" ]]; then
+    clean_path="$path_part"
+  else
+    clean_path="$clean_path:$path_part"
+  fi
+done
+export PATH="$clean_path"
+
+if [[ "${HEADROOM_BYPASS:-0}" == "1" ]]; then
+  exec "$tool" "$@"
+fi
+
+case "$tool:${1:-}" in
+  claude:--version | claude:-v | claude:--help | claude:-h | claude:mcp | claude:config | claude:doctor | claude:update | claude:help)
+    exec "$tool" "$@"
+    ;;
+  codex:--version | codex:-V | codex:--help | codex:-h | codex:mcp | codex:login | codex:logout | codex:plugin | codex:completion | codex:update | codex:doctor | codex:features | codex:help)
+    exec "$tool" "$@"
+    ;;
+esac
+
+if ! command -v headroom >/dev/null 2>&1; then
+  echo "Headroom is not installed. Install it with: uv tool install --python 3.13 'headroom-ai[all]'" >&2
+  exit 127
+fi
+
+export HEADROOM_HOST="${HEADROOM_HOST:-127.0.0.1}"
+export HEADROOM_PORT="${HEADROOM_PORT:-8787}"
+export HEADROOM_OUTPUT_SHAPER="${HEADROOM_OUTPUT_SHAPER:-1}"
+export HEADROOM_TELEMETRY="${HEADROOM_TELEMETRY:-off}"
+export HEADROOM_STORE_URL="${HEADROOM_STORE_URL:-sqlite:///$HOME/.headroom/archestimator.db}"
+export HEADROOM_SAVINGS_PATH="${HEADROOM_SAVINGS_PATH:-$HOME/.headroom/archestimator_proxy_savings.json}"
+export HEADROOM_PROJECT_ROOT="${HEADROOM_PROJECT_ROOT:-$repo_root}"
+# ponytail: headroom's Kompress ONNX step has a ~30s budget; on large Codex contexts
+# (600KB-1.2MB / ~116k-token response.create frames) it times out and headroom
+# REFUSES to forward the first frame, closing Codex's WS with 1009 ->
+# "stream disconnected before completion". Fail-open = forward the original
+# uncompressed frame instead (legacy behaviour). Loses some savings on huge frames only.
+export HEADROOM_WS_FAIL_OPEN_ON_COMPRESSION_FAILURE="${HEADROOM_WS_FAIL_OPEN_ON_COMPRESSION_FAILURE:-1}"
+
+wrap_args=(wrap "$tool" --port "$HEADROOM_PORT" --no-serena)
+
+if [[ "${HEADROOM_WRAP_CONTEXT_TOOL:-0}" != "1" ]]; then
+  wrap_args+=(--no-context-tool)
+fi
+
+if [[ "${HEADROOM_WRAP_AUTO_MCP:-0}" != "1" ]]; then
+  wrap_args+=(--no-mcp)
+fi
+
+if [[ "${HEADROOM_WRAP_MEMORY:-0}" == "1" ]]; then
+  wrap_args+=(--memory)
+fi
+
+if [[ "${HEADROOM_WRAP_CODE_GRAPH:-0}" == "1" ]]; then
+  wrap_args+=(--code-graph)
+fi
+
+if [[ "${HEADROOM_WRAP_LEARN:-0}" == "1" ]]; then
+  wrap_args+=(--learn)
+fi
+
+if [[ "$tool" == "claude" ]]; then
+  wrap_args+=(--tool-search "${HEADROOM_TOOL_SEARCH:-auto}")
+fi
+
+exec headroom "${wrap_args[@]}" -- "$@"

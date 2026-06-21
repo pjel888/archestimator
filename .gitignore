@@ -85,6 +85,7 @@ yarn-error.log*
 # temporary one-off screenshot/capture harnesses
 scripts/.tmp-*.mjs
 /.omx/
+/.headroom/
 /.gitnexus/
 /.codex/cache
 /.codex/logs
