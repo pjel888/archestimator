@@ -5,6 +5,7 @@ import {
   readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
+import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 import {
   checkSharedLinkCommentReadRateLimit,
   checkSharedLinkCommentRateLimit,
@@ -27,6 +28,7 @@ const CIRCUIT_THRESHOLD = 0.5;
 let commentAttemptTimes: number[] = [];
 let comment5xxTimes: number[] = [];
 let commentCircuitOpenUntil = 0;
+let commentConsecutive5xx = 0;
 
 function pruneCircuit(now: number) {
   commentAttemptTimes = commentAttemptTimes.filter((t) => now - t < CIRCUIT_WINDOW_MS);
@@ -41,11 +43,19 @@ function recordAttempt(now: number) {
 function record5xx(now: number) {
   pruneCircuit(now);
   comment5xxTimes.push(now);
+  commentConsecutive5xx += 1;
   const fails = comment5xxTimes.length;
   const attempts = Math.max(commentAttemptTimes.length, 1);
-  if (attempts >= CIRCUIT_MIN_SAMPLES && fails / attempts > CIRCUIT_THRESHOLD) {
+  if (
+    commentConsecutive5xx >= CIRCUIT_MIN_SAMPLES ||
+    (attempts >= CIRCUIT_MIN_SAMPLES && fails / attempts > CIRCUIT_THRESHOLD)
+  ) {
     commentCircuitOpenUntil = now + CIRCUIT_COOLDOWN_MS;
   }
+}
+
+function recordSuccess() {
+  commentConsecutive5xx = 0;
 }
 
 function isCircuitOpen(now: number): boolean {
@@ -55,6 +65,7 @@ function isCircuitOpen(now: number): boolean {
     commentCircuitOpenUntil = 0;
     comment5xxTimes = [];
     commentAttemptTimes = [];
+    commentConsecutive5xx = 0;
   }
   return false;
 }
@@ -101,23 +112,26 @@ function readErrorMessage(error: unknown, fallback: string) {
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 const CANONICAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PUBLIC_REVIEW_TARGET_ID_PATTERN = /^(?:est|row)_[A-Za-z0-9_-]{8,40}$/;
 
-function readOptionalUuid(value: unknown, label: string): { ok: true; value: string | null } | { ok: false; message: string } {
+function readOptionalReviewTargetId(value: unknown, label: string): { ok: true; value: string | null } | { ok: false; message: string } {
   if (value == null) return { ok: true, value: null };
-  if (typeof value !== "string") return { ok: false, message: `${label} must be a UUID.` };
+  if (typeof value !== "string") return { ok: false, message: `${label} must be a valid review target id.` };
 
   const trimmed = value.trim();
   if (!trimmed) return { ok: true, value: null };
-  if (!CANONICAL_UUID_PATTERN.test(trimmed)) return { ok: false, message: `${label} must be a UUID.` };
+  if (!CANONICAL_UUID_PATTERN.test(trimmed) && !PUBLIC_REVIEW_TARGET_ID_PATTERN.test(trimmed)) {
+    return { ok: false, message: `${label} must be a valid review target id.` };
+  }
 
-  return { ok: true, value: trimmed.toLowerCase() };
+  return { ok: true, value: CANONICAL_UUID_PATTERN.test(trimmed) ? trimmed.toLowerCase() : trimmed };
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const access = await resolveProjectPublicationAccessByToken(token);
   if (!access) {
-    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
   }
 
   const cookieHeader = request.headers.get("cookie") || "";
@@ -198,7 +212,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (!access) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/comment", "PUBLICATION_NOT_FOUND", ipHash);
-    return Response.json({ error: "Publication not found." }, { status: 404, headers: { "Cache-Control": "no-store" } });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
   // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.
@@ -223,7 +237,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (requestViewToken && !viewedSnapshotVersion) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/comment", "VIEW_SNAPSHOT_INVALID", ipHash);
-    return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { error: "Publication snapshot changed. Please reload before posting a comment.", currentSnapshotVersion: access.snapshotVersion },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    );
   }
   if (typeof viewedSnapshotVersion === "number" && viewedSnapshotVersion !== access.snapshotVersion) {
     const ipHash = getIpHash(request);
@@ -231,7 +248,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       viewedSnapshotVersion,
       currentSnapshotVersion: access.snapshotVersion,
     });
-    return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { error: "Publication snapshot changed. Please reload before posting a comment.", currentSnapshotVersion: access.snapshotVersion },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    );
   }
   const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion;
 
@@ -242,14 +262,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  const estimateId = readOptionalUuid(body.estimateId, "Estimate id");
+  const estimateId = readOptionalReviewTargetId(body.estimateId, "Estimate id");
   if (!estimateId.ok) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/comment", "VALIDATION_INVALID_ESTIMATE_ID", ipHash);
     return Response.json({ error: estimateId.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  const rowId = readOptionalUuid(body.rowId, "Row id");
+  const rowId = readOptionalReviewTargetId(body.rowId, "Row id");
   if (!rowId.ok) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/comment", "VALIDATION_INVALID_ROW_ID", ipHash);
@@ -293,6 +313,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       estimateId: estimateId.value,
       rowId: rowId.value,
     });
+    recordSuccess();
 
     // P8: best-effort lightweight owner email digest (rate-limited 1/15min inside helper). Non-blocking for receiver.
     try {
@@ -306,7 +327,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     if (/snapshot|stale|changed/i.test(msg)) {
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/comment", "SNAPSHOT_VERSION_CHANGED", ipHash);
-      return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      return Response.json(
+        { error: "Publication snapshot changed. Please reload before posting a comment.", currentSnapshotVersion: access.snapshotVersion },
+        { status: 409, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    if (/^Invalid review target:/i.test(msg)) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/comment", "INVALID_REVIEW_TARGET", ipHash);
+      return Response.json({ error: msg }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
     const status = /rate|too many/i.test(msg) ? 429 : /not found|expired|recipient/i.test(msg) ? 403 : 500;
     const ipHash = getIpHash(request);

@@ -376,6 +376,30 @@ function sourceForShared(item: SharedLinkActivityInput): ActivitySource {
   return "share";
 }
 
+function sharedTargetKind(value: unknown): ActivityTarget["kind"] {
+  if (value === "row" || value === "estimate" || value === "proposal") return value;
+  return "proposal";
+}
+
+function targetForShared(metadata: Record<string, unknown>): ActivityTarget {
+  const kind = sharedTargetKind(metadata.targetKind ?? metadata.target_kind);
+  const label = readString(metadata.targetLabel, metadata.target_label, metadata.estimateName, metadata.areaName, kind === "proposal" ? "Proposal" : "Item");
+  const secondaryLabel = readOptionalString(metadata.targetSecondaryLabel, metadata.target_secondary_label);
+  return {
+    kind,
+    label,
+    ...(secondaryLabel ? { secondaryLabel } : {}),
+  };
+}
+
+function isProposalTarget(target: ActivityTarget) {
+  return target.kind === "proposal" || /^the proposal$/i.test(target.label) || /^proposal$/i.test(target.label);
+}
+
+function sharedDecisionObjectLabel(target: ActivityTarget) {
+  return isProposalTarget(target) ? "the proposal" : target.label;
+}
+
 export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: ComposeActivityOptions = {}): ActivityViewModel {
   return safeCompose(() => {
     const audience = opts.audience ?? "owner";
@@ -385,7 +409,7 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
     let action: ActivityViewModel["action"] = "recorded";
     let title = "Activity recorded.";
     const body = item.body ? stripUnsafeText(item.body, "Comment") : undefined;
-    const target: ActivityTarget = { kind: "proposal", label: readString(metadata.targetLabel, metadata.estimateName, metadata.areaName, "Proposal") };
+    const target = targetForShared(metadata);
     const badges: string[] = [];
 
     if (item.type === "comment") {
@@ -394,9 +418,12 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
       title = item.is_internal ? `${actor.displayName} added an internal note.` : `${actor.displayName} commented on ${target.label}.`;
     } else if (item.type === "decision") {
       action = DECISION_ACTIONS[item.decision ?? ""] ?? "recorded";
-      if (action === "approved") title = `${actor.displayName} approved the proposal.`;
-      else if (action === "requested_revision") title = `${actor.displayName} requested revisions.`;
-      else if (action === "declined") title = `${actor.displayName} declined the proposal.`;
+      const objectLabel = sharedDecisionObjectLabel(target);
+      if (action === "approved") title = `${actor.displayName} approved ${objectLabel}.`;
+      else if (action === "requested_revision") title = isProposalTarget(target)
+        ? `${actor.displayName} requested revisions.`
+        : `${actor.displayName} requested revisions for ${objectLabel}.`;
+      else if (action === "declined") title = `${actor.displayName} declined ${objectLabel}.`;
       else title = "Activity recorded.";
     } else if (item.type === "event") {
       const eventType = String(metadata.eventType ?? metadata.event_type ?? "");
@@ -410,7 +437,7 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
     }
 
     const facts = Object.entries(metadata)
-      .filter(([key]) => !/[Ii]d$|event_?type|metadata_json|ip_?hash|user_?agent_?hash|raw_?ip|raw_?user_?agent/i.test(key))
+      .filter(([key]) => !/[Ii]d$|event_?type|metadata_json|ip_?hash|user_?agent_?hash|raw_?ip|raw_?user_?agent|target_?kind|target_?label|target_?secondary_?label/i.test(key))
       .slice(0, 8)
       .map(([key, value]) => ({ label: formatActivityFieldLabel(key), value: formatActivityValue(key, value) }));
 

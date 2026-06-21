@@ -6,7 +6,7 @@ import {
   resolveProjectPublicationSnapshotByToken,
 } from "@/lib/publication/public-repository";
 import { hasPublicationAccessCookie } from "@/lib/publication/security";
-import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
+import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 import { after } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
 
   if (!publicationAccess) {
-    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
   }
 
   if (
@@ -53,7 +53,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
 
   const publication = await resolveProjectPublicationSnapshotByToken(token);
   if (!publication) {
-    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
   }
 
   after(async () => {
@@ -73,9 +73,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
 
   return Response.json(
     {
-      publicationId: publication.publicationId,
+      publicationId: publication.snapshot.project.id,
       passwordRequired: publication.passwordRequired,
-      snapshot: sanitizeProjectPublicationSnapshotForPublicRead(publication.snapshot),
+      snapshot: publication.snapshot,
     },
     { headers: noStoreHeaders },
   );

@@ -3,7 +3,16 @@ import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 import { deriveCredentialVersion, getClientIp, hashPublicationToken, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
-import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
+import {
+  createSharedLinkTargetLabelMapFromLabelsJson,
+  resolveSharedLinkStoredTargetMetadata,
+  validateSharedLinkReviewTarget,
+} from "@/lib/publication/activity-helpers";
+import {
+  createPublicationSnapshotIdMaps,
+  resolvePublicationSnapshotPublicId,
+  sanitizeProjectPublicationSnapshotForPublicRead,
+} from "@/lib/publication/snapshot";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 
@@ -40,11 +49,27 @@ export type SharedLinkPublicComment = {
   createdAt: string;
   authorName: string;
   authorType: "owner" | "recipient";
+  estimateId: string | null;
+  rowId: string | null;
+  targetKind: "proposal" | "estimate" | "row";
+  targetLabel: string | null;
+  targetSecondaryLabel: string | null;
+  snapshotVersionAtComment: number | null;
 };
 
 type SharedLinkPublicCommentRow = Pick<
   Tables<"shared_link_comments">,
-  "id" | "created_at" | "body" | "author_name" | "recipient_id"
+  | "id"
+  | "created_at"
+  | "body"
+  | "author_name"
+  | "recipient_id"
+  | "estimate_id"
+  | "row_id"
+  | "target_kind"
+  | "target_label"
+  | "target_secondary_label"
+  | "snapshot_version_at_comment"
 >;
 
 export type SharedLinkRecipientDecision = {
@@ -52,26 +77,54 @@ export type SharedLinkRecipientDecision = {
   note: string | null;
   submittedAt: string;
   final: true;
+  estimateId: string | null;
+  rowId: string | null;
+  targetKind: "proposal" | "estimate" | "row";
+  targetLabel: string | null;
+  targetSecondaryLabel: string | null;
+  signerName: string | null;
+  signatureIntentHash: string | null;
 };
 
 type PublicationLookupRow = Pick<
   Tables<"project_publications">,
   "expires_at" | "id" | "password_hash" | "revoked_at" | "snapshot_version" | "status"
 >;
+type PublicationWriteContextRow = Pick<
+  Tables<"project_publications">,
+  "activity_target_labels_json" | "id" | "snapshot_json" | "snapshot_version"
+>;
 
 type PublicationSnapshotLookupRow = PublicationLookupRow & Pick<Tables<"project_publications">, "snapshot_json">;
 type InsertClientCommentRpcArgs = Omit<
   Database["public"]["Functions"]["insert_client_comment"]["Args"],
-  "p_estimate_id" | "p_row_id"
+  "p_estimate_id" | "p_row_id" | "p_target_kind" | "p_target_label" | "p_target_secondary_label"
 > & {
   p_estimate_id: string | null;
   p_row_id: string | null;
+  p_target_kind: "proposal" | "estimate" | "row";
+  p_target_label: string | null;
+  p_target_secondary_label: string | null;
 };
 type SubmitClientResponseRpcArgs = Omit<
   Database["public"]["Functions"]["submit_client_response"]["Args"],
-  "p_note"
+  | "p_estimate_id"
+  | "p_note"
+  | "p_row_id"
+  | "p_signature_intent_hash"
+  | "p_signer_name"
+  | "p_target_kind"
+  | "p_target_label"
+  | "p_target_secondary_label"
 > & {
+  p_estimate_id: string | null;
   p_note: string | null;
+  p_row_id: string | null;
+  p_signature_intent_hash: string | null;
+  p_signer_name: string | null;
+  p_target_kind: "proposal" | "estimate" | "row";
+  p_target_label: string | null;
+  p_target_secondary_label: string | null;
 };
 
 export function createPublicationServiceClient() {
@@ -152,18 +205,51 @@ function readTokenHash(token: string) {
 // SEC-06 (AC-SEC-06): resolve a publication's id from its token hash so recipient lookups in
 // the comment/decision write paths can be constrained by publication_id. Returns null when no
 // publication matches the token hash (the caller treats that as "publication not found").
-async function resolvePublicationIdByTokenHash(
+async function resolvePublicationContextByTokenHash(
   supabase: ReturnType<typeof createPublicationServiceClient>,
   tokenHash: string,
-): Promise<string | null> {
+): Promise<PublicationWriteContextRow | null> {
   const { data, error } = await supabase
     .from("project_publications")
-    .select("id")
+    .select("id, activity_target_labels_json, snapshot_json, snapshot_version")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
   if (error) throw error;
-  return data?.id ?? null;
+  return data ?? null;
+}
+
+async function loadPublicationSnapshotForPublicIds(publicationId: string): Promise<ProjectPublicationSnapshot | null> {
+  const supabase = createPublicationServiceClient();
+  const { data, error } = await supabase
+    .from("project_publications")
+    .select("snapshot_json")
+    .eq("id", publicationId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.snapshot_json as ProjectPublicationSnapshot | null) ?? null;
+}
+
+function toPublicSnapshotId(snapshot: ProjectPublicationSnapshot | null, id: string | null) {
+  if (!snapshot || !id) return id;
+  return createPublicationSnapshotIdMaps(snapshot).rawToPublic.get(id.toLowerCase()) ?? id;
+}
+
+function resolveSubmittedReviewTargetIds(
+  snapshot: ProjectPublicationSnapshot | null | undefined,
+  input: { estimateId?: string | null; rowId?: string | null },
+) {
+  if (!snapshot) {
+    return {
+      estimateId: input.estimateId ?? null,
+      rowId: input.rowId ?? null,
+    };
+  }
+
+  return {
+    estimateId: resolvePublicationSnapshotPublicId(snapshot, input.estimateId),
+    rowId: resolvePublicationSnapshotPublicId(snapshot, input.rowId),
+  };
 }
 
 // SEC-02 (AC-SEC-02): the telemetry hash pepper. An unsalted sha256(ip) is reversible —
@@ -268,12 +354,14 @@ type RateLimitScope =
   | "project_publication_event"
   | "project_publication_password"
   | "project_publication_snapshot"
+  | "publication_digest"
   | "proposal_export"
   | "shared_link_session_start"
   | "shared_link_comment"
   | "shared_link_comment_read"
   | "shared_link_decision_read"
-  | "shared_link_decision";
+  | "shared_link_decision"
+  | "shared_link_unsubscribe";
 
 function hashRateLimitKey(scope: RateLimitScope, parts: Array<string | null | undefined>) {
   return createHash("sha256")
@@ -624,6 +712,29 @@ export async function checkSharedLinkDecisionReadRateLimit({
   });
 }
 
+export async function checkSharedLinkUnsubscribeRateLimit({
+  token,
+  recipientToken,
+  request,
+}: {
+  token: string;
+  recipientToken: string;
+  request: Request;
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "shared_link_unsubscribe",
+    keyParts: [
+      ...publicationRequestRateLimitKey(token, request),
+      hashPublicationToken(recipientToken, readPublicationTokenHashSecret()),
+    ],
+    metadata: { route: "unsubscribe" },
+    windows: [
+      { seconds: 60, limit: 5, message: genericRateLimitMessage },
+      { seconds: 60 * 60, limit: 20, message: genericRateLimitMessage },
+    ],
+  });
+}
+
 function toResolvedAccess(data: PublicationLookupRow): ResolvedProjectPublicationAccess {
   return {
     publicationId: data.id,
@@ -916,7 +1027,7 @@ export async function loadSharedLinkPublicComments({
   const supabase = createPublicationServiceClient();
   const { data, error } = await supabase
     .from("shared_link_comments")
-    .select("id, created_at, body, author_name, author_email, recipient_id")
+    .select("id, created_at, body, author_name, author_email, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
     .eq("publication_id", publicationId)
     .eq("is_internal", false)
     .order("created_at", { ascending: true })
@@ -925,16 +1036,23 @@ export async function loadSharedLinkPublicComments({
 
   if (error) throw error;
 
-  return (data ?? []).map((comment) => mapSharedLinkPublicComment(comment));
+  const snapshot = await loadPublicationSnapshotForPublicIds(publicationId);
+  return (data ?? []).map((comment) => mapSharedLinkPublicComment(comment, snapshot));
 }
 
-function mapSharedLinkPublicComment(comment: SharedLinkPublicCommentRow): SharedLinkPublicComment {
+function mapSharedLinkPublicComment(comment: SharedLinkPublicCommentRow, snapshot: ProjectPublicationSnapshot | null): SharedLinkPublicComment {
   return {
     id: comment.id,
     content: comment.body,
     createdAt: comment.created_at,
     authorName: comment.author_name || (comment.recipient_id ? "Client" : "Project team"),
     authorType: comment.recipient_id ? "recipient" : "owner",
+    estimateId: toPublicSnapshotId(snapshot, comment.estimate_id),
+    rowId: toPublicSnapshotId(snapshot, comment.row_id),
+    targetKind: comment.target_kind,
+    targetLabel: comment.target_label,
+    targetSecondaryLabel: comment.target_secondary_label,
+    snapshotVersionAtComment: comment.snapshot_version_at_comment,
   };
 }
 
@@ -952,14 +1070,19 @@ export async function loadSharedLinkRecipientDecision({
   if (!publicationId.trim() || !recipientId.trim()) return null;
 
   const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("shared_link_responses")
-    .select("decision, note, created_at")
-    .eq("publication_id", publicationId)
-    .eq("recipient_id", recipientId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data, error }, snapshot] = await Promise.all([
+    supabase
+      .from("shared_link_responses")
+      .select(
+        "decision, note, created_at, estimate_id, row_id, target_kind, target_label, target_secondary_label, signer_name, signature_intent_hash",
+      )
+      .eq("publication_id", publicationId)
+      .eq("recipient_id", recipientId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    loadPublicationSnapshotForPublicIds(publicationId),
+  ]);
 
   if (error) throw error;
   if (!data || !isSharedLinkDecisionType(data.decision)) return null;
@@ -969,6 +1092,13 @@ export async function loadSharedLinkRecipientDecision({
     note: data.note,
     submittedAt: data.created_at,
     final: true,
+    estimateId: toPublicSnapshotId(snapshot, data.estimate_id),
+    rowId: toPublicSnapshotId(snapshot, data.row_id),
+    targetKind: data.target_kind,
+    targetLabel: data.target_label,
+    targetSecondaryLabel: data.target_secondary_label,
+    signerName: data.signer_name ?? null,
+    signatureIntentHash: data.signature_intent_hash ?? null,
   };
 }
 
@@ -1000,10 +1130,11 @@ export async function insertSharedLinkComment(params: {
   // (at the app layer) resolve a recipient_token_hash even when posting against publication B.
   // The downstream RPC also re-validates the recipient belongs to the publication, but we close
   // the app-layer seam too (defense-in-depth — see SEC-06 in 06_SECURITY_AUDIT.md).
-  const publicationId = await resolvePublicationIdByTokenHash(supabase, pubHash);
-  if (!publicationId) {
+  const publicationContext = await resolvePublicationContextByTokenHash(supabase, pubHash);
+  if (!publicationContext) {
     throw new Error("Publication not found for comment.");
   }
+  const publicationId = publicationContext.id;
 
   // Lookup recipient_token_hash (P3 table — cast as in verify fn), scoped to the publication.
   const { data: rec, error: recErr } = await supabase
@@ -1020,15 +1151,31 @@ export async function insertSharedLinkComment(params: {
   const recipientTokenHash = rec.recipient_token_hash;
 
   const sanitizedBody = params.body.trim().slice(0, 1000);
+  const labels = createSharedLinkTargetLabelMapFromLabelsJson(publicationContext.activity_target_labels_json);
+  const resolvedTargetIds = resolveSubmittedReviewTargetIds(publicationContext.snapshot_json as ProjectPublicationSnapshot, {
+    estimateId: params.estimateId,
+    rowId: params.rowId,
+  });
+  const validatedTarget = validateSharedLinkReviewTarget(labels, {
+    estimate_id: resolvedTargetIds.estimateId,
+    row_id: resolvedTargetIds.rowId,
+  });
+  const targetContext = resolveSharedLinkStoredTargetMetadata(labels, {
+    estimate_id: validatedTarget.estimateId,
+    row_id: validatedTarget.rowId,
+  });
 
   // Call the exact P3 RPC (validates active pub + recipient match internally)
   const insertClientCommentArgs: InsertClientCommentRpcArgs = {
     p_token_hash: pubHash,
     p_recipient_token_hash: recipientTokenHash,
-    p_estimate_id: params.estimateId ?? null,
-    p_row_id: params.rowId ?? null,
+    p_estimate_id: validatedTarget.estimateId,
+    p_row_id: validatedTarget.rowId,
     p_body: sanitizedBody,
     p_expected_snapshot_version: params.expectedSnapshotVersion,
+    p_target_kind: targetContext.targetKind,
+    p_target_label: targetContext.targetLabel,
+    p_target_secondary_label: targetContext.targetSecondaryLabel ?? null,
   };
   const { data: commentId, error: rpcErr } = await supabase.rpc(
     "insert_client_comment",
@@ -1041,7 +1188,7 @@ export async function insertSharedLinkComment(params: {
   const id = String(commentId);
   const { data: insertedComment, error: insertedCommentErr } = await supabase
     .from("shared_link_comments")
-    .select("id, created_at, body, author_name, recipient_id")
+    .select("id, created_at, body, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
     .eq("publication_id", publicationId)
     .eq("id", id)
     .eq("is_internal", false)
@@ -1051,7 +1198,10 @@ export async function insertSharedLinkComment(params: {
     return { id };
   }
 
-  return { id, comment: mapSharedLinkPublicComment(insertedComment) };
+  return {
+    id,
+    comment: mapSharedLinkPublicComment(insertedComment, publicationContext.snapshot_json as ProjectPublicationSnapshot),
+  };
 }
 
 // (readTokenHash / hash helpers already defined earlier in this module for P3/P5 paths)
@@ -1070,6 +1220,9 @@ export async function submitSharedLinkDecision(params: {
   expectedSnapshotVersion: number;
   decision: "accepted" | "declined" | "revision_requested";
   note?: string | null;
+  signerName?: string | null;
+  estimateId?: string | null;
+  rowId?: string | null;
 }): Promise<{ id: string }> {
   if (!Number.isInteger(params.expectedSnapshotVersion) || params.expectedSnapshotVersion < 1) {
     throw new Error("Expected snapshot version is required.");
@@ -1081,10 +1234,11 @@ export async function submitSharedLinkDecision(params: {
   // SEC-06 (AC-SEC-06): scope the recipient lookup to the publication owning THIS token so a
   // recipient `id` from publication A cannot resolve under publication B at the app layer.
   // The RPC re-validates publication+recipient too; this closes the app-layer seam.
-  const publicationId = await resolvePublicationIdByTokenHash(supabase, pubHash);
-  if (!publicationId) {
+  const publicationContext = await resolvePublicationContextByTokenHash(supabase, pubHash);
+  if (!publicationContext) {
     throw new Error("Publication not found for decision.");
   }
+  const publicationId = publicationContext.id;
 
   // Lookup recipient_token_hash (P3 table — same pattern as comments), scoped to the publication.
   const { data: rec, error: recErr } = await supabase
@@ -1101,6 +1255,20 @@ export async function submitSharedLinkDecision(params: {
   const recipientTokenHash = rec.recipient_token_hash;
 
   const trimmedNote = params.note ? params.note.trim().slice(0, 2000) : null;
+  const signerName = params.signerName ? params.signerName.trim().slice(0, 120) : null;
+  const labels = createSharedLinkTargetLabelMapFromLabelsJson(publicationContext.activity_target_labels_json);
+  const resolvedTargetIds = resolveSubmittedReviewTargetIds(publicationContext.snapshot_json as ProjectPublicationSnapshot, {
+    estimateId: params.estimateId,
+    rowId: params.rowId,
+  });
+  const validatedTarget = validateSharedLinkReviewTarget(labels, {
+    estimate_id: resolvedTargetIds.estimateId,
+    row_id: resolvedTargetIds.rowId,
+  });
+  const targetContext = resolveSharedLinkStoredTargetMetadata(labels, {
+    estimate_id: validatedTarget.estimateId,
+    row_id: validatedTarget.rowId,
+  });
 
   // Call the exact P3 RPC (validates active pub + recipient + performs snapshot_version_at_decision lock + unique conflict)
   const submitClientResponseArgs: SubmitClientResponseRpcArgs = {
@@ -1109,6 +1277,13 @@ export async function submitSharedLinkDecision(params: {
     p_decision: params.decision,
     p_note: trimmedNote,
     p_expected_snapshot_version: params.expectedSnapshotVersion,
+    p_estimate_id: validatedTarget.estimateId,
+    p_row_id: validatedTarget.rowId,
+    p_signer_name: signerName,
+    p_signature_intent_hash: null,
+    p_target_kind: targetContext.targetKind,
+    p_target_label: targetContext.targetLabel,
+    p_target_secondary_label: targetContext.targetSecondaryLabel ?? null,
   };
   const { data: responseId, error: rpcErr } = await supabase.rpc(
     "submit_client_response",

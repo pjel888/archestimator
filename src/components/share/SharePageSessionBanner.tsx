@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { SHARE_CONTAINER_WIDTH } from "@/components/share/ShareContainer";
+import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
 type SharePageSessionBannerProps = {
   recipientEmail?: string | null;
@@ -17,7 +18,10 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
   async function clearRecipientSession() {
     setIsClearingRecipientSession(true);
     try {
-      await fetch(`/api/share/${encodeURIComponent(token)}/session`, { method: "DELETE" });
+      await fetch(`/api/share/${encodeURIComponent(token)}/session`, {
+        method: "DELETE",
+        headers: createPublicationCsrfHeaders(),
+      });
     } finally {
       window.location.reload();
     }

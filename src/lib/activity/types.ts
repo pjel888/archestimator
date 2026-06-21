@@ -31,7 +31,7 @@ export type ActivityActor = {
 
 export type ActivityTarget = {
   id?: string;
-  kind: "row" | "node" | "tab" | "sheet" | "proposal" | "comment_thread" | "recipient" | "system" | "unknown";
+  kind: "row" | "node" | "tab" | "sheet" | "estimate" | "proposal" | "comment_thread" | "recipient" | "system" | "unknown";
   label: string;
   secondaryLabel?: string;
 };

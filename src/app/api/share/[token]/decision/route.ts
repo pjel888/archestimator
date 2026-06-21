@@ -5,6 +5,7 @@ import {
   readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
+import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 import {
   checkSharedLinkDecisionReadRateLimit,
   checkSharedLinkDecisionRateLimit,
@@ -66,12 +67,27 @@ function readErrorMessage(error: unknown, fallback: string) {
 }
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
+const CANONICAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PUBLIC_REVIEW_TARGET_ID_PATTERN = /^(?:est|row)_[A-Za-z0-9_-]{8,40}$/;
+
+function readOptionalReviewTargetId(value: unknown, label: string): { ok: true; value: string | null } | { ok: false; message: string } {
+  if (value == null) return { ok: true, value: null };
+  if (typeof value !== "string") return { ok: false, message: `${label} must be a valid review target id.` };
+
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: true, value: null };
+  if (!CANONICAL_UUID_PATTERN.test(trimmed) && !PUBLIC_REVIEW_TARGET_ID_PATTERN.test(trimmed)) {
+    return { ok: false, message: `${label} must be a valid review target id.` };
+  }
+
+  return { ok: true, value: CANONICAL_UUID_PATTERN.test(trimmed) ? trimmed.toLowerCase() : trimmed };
+}
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const access = await resolveProjectPublicationAccessByToken(token);
   if (!access) {
-    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
   }
 
   const cookieHeader = request.headers.get("cookie") || "";
@@ -131,7 +147,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const { token } = await params;
   const body = (await request.json().catch(() => ({}))) as {
     decision?: string;
+    estimateId?: unknown;
     note?: string | null;
+    rowId?: unknown;
+    signerName?: unknown;
     viewToken?: unknown;
   };
 
@@ -143,6 +162,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   const note = typeof body.note === "string" ? sanitizeSharedLinkRecipientText(body.note, 2000) || null : null;
+  const signerName = typeof body.signerName === "string" ? sanitizeSharedLinkRecipientText(body.signerName, 120) || null : null;
+  const estimateId = readOptionalReviewTargetId(body.estimateId, "Estimate id");
+  if (!estimateId.ok) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "VALIDATION_INVALID_ESTIMATE_ID", ipHash);
+    return Response.json({ error: estimateId.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+  const rowId = readOptionalReviewTargetId(body.rowId, "Row id");
+  if (!rowId.ok) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "VALIDATION_INVALID_ROW_ID", ipHash);
+    return Response.json({ error: rowId.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
 
   const cookieHeader = request.headers.get("cookie") || "";
   const sessionName = createSharedLinkSessionCookieName(token);
@@ -156,7 +188,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (!access) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/decision", "PUBLICATION_NOT_FOUND", ipHash);
-    return Response.json({ error: "Publication not found." }, { status: 404, headers: { "Cache-Control": "no-store" } });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
   // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.
@@ -181,7 +213,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (requestViewToken && !viewedSnapshotVersion) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/decision", "VIEW_SNAPSHOT_INVALID", ipHash);
-    return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { error: "Publication snapshot changed. Please reload before submitting a decision.", currentSnapshotVersion: access.snapshotVersion },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    );
   }
   if (typeof viewedSnapshotVersion === "number" && viewedSnapshotVersion !== access.snapshotVersion) {
     const ipHash = getIpHash(request);
@@ -189,7 +224,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       viewedSnapshotVersion,
       currentSnapshotVersion: access.snapshotVersion,
     });
-    return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    return Response.json(
+      { error: "Publication snapshot changed. Please reload before submitting a decision.", currentSnapshotVersion: access.snapshotVersion },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
+    );
   }
   const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion;
 
@@ -198,6 +236,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const ipHash = getIpHash(request);
     logStructured("error", "/api/share/[token]/decision", "RECIPIENT_MISSING", ipHash);
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (decision === "accepted" && !signerName) {
+    const ipHash = getIpHash(request);
+    logStructured("error", "/api/share/[token]/decision", "VALIDATION_SIGNER_NAME_REQUIRED", ipHash);
+    return Response.json({ error: "Your name is required to approve this proposal." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   const rateCheck = await checkSharedLinkDecisionRateLimit({ publicationId: access.publicationId, recipientId });
@@ -217,6 +261,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       expectedSnapshotVersion,
       decision,
       note,
+      signerName,
+      estimateId: estimateId.value,
+      rowId: rowId.value,
     });
 
     // P8: best-effort owner email digest on decision (rate limited). Non-blocking.
@@ -225,7 +272,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       maybeTriggerSharedLinkActivityDigest(access.publicationId, token, "decision");
     } catch {}
 
-    return Response.json({ id, decision, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
+    return Response.json({ id, decision, signerName, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     const msg = readErrorMessage(error, "Failed to submit decision.");
     if (/already submitted/i.test(msg)) {
@@ -236,7 +283,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     if (/snapshot|stale|changed/i.test(msg)) {
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/decision", "SNAPSHOT_VERSION_CHANGED", ipHash);
-      return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      return Response.json(
+        { error: "Publication snapshot changed. Please reload before submitting a decision.", currentSnapshotVersion: access.snapshotVersion },
+        { status: 409, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    if (/^Invalid review target:/i.test(msg)) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/decision", "INVALID_REVIEW_TARGET", ipHash);
+      return Response.json({ error: msg }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
     const status = /not found|expired|recipient/i.test(msg) ? 403 : 500;
     const ipHash = getIpHash(request);

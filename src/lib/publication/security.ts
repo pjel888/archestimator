@@ -166,6 +166,14 @@ export function createPublicPostCsrfToken({
   return toBase64Url(randomBytes(16));
 }
 
+export function createPublicFormCsrfToken({
+  randomBytes = nodeRandomBytes,
+}: {
+  randomBytes?: RandomBytes;
+} = {}) {
+  return toBase64Url(randomBytes(16));
+}
+
 export function createPublicationAccessCookieName(token: string) {
   const suffix = createHash("sha256").update(token).digest("base64url").slice(0, 20);
   return `ae_publication_access_${suffix}`;
@@ -365,6 +373,28 @@ export function assertSameOriginPublicPost(request: Request): { ok: true } | { o
   const csrfHeader = request.headers.get("x-archestimator-csrf");
   const csrfCookie = readCookieValue(request.headers.get("cookie") ?? "", csrfCookieName);
   if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
+    return { ok: false, status: 403, message: "Publication request verification failed." };
+  }
+
+  return { ok: true };
+}
+
+export function assertSameOriginPublicDelete(request: Request): { ok: true } | { ok: false; status: number; message: string } {
+  return assertSameOriginPublicPost(request);
+}
+
+export function assertSameOriginPublicFormPost(
+  request: Request,
+  csrfToken: string | null | undefined,
+): { ok: true } | { ok: false; status: number; message: string } {
+  const origin = request.headers.get("origin");
+  const requestOrigin = new URL(request.url).origin;
+  if (!origin || origin !== requestOrigin) {
+    return { ok: false, status: 403, message: "Cross-origin publication requests are blocked." };
+  }
+
+  const csrfCookie = readCookieValue(request.headers.get("cookie") ?? "", csrfCookieName);
+  if (!csrfToken || !csrfCookie || csrfToken !== csrfCookie) {
     return { ok: false, status: 403, message: "Publication request verification failed." };
   }
 

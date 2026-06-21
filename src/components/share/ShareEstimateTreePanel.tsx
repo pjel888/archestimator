@@ -253,7 +253,7 @@ function TreeNodeRenderer({
         role="treeitem"
         aria-expanded={hasChildren ? expanded : undefined}
         tabIndex={isKeyboardInteractive ? 0 : -1}
-        className={`border-l border-hairline/70 cursor-pointer ${depth === 0 && hasChildren ? "bg-[#FFFDF8]" : ""}`}
+        className={`border-l border-hairline/70 cursor-pointer ${depth === 0 && hasChildren ? "bg-proposalPaper" : ""}`}
         data-share-tree-node={node.kind}
         data-share-tree-expanded={expanded ? "true" : "false"}
         data-share-tree-depth={depth}

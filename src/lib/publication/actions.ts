@@ -17,7 +17,10 @@ import {
   readPublicationTokenHashSecret,
   validatePublicationPassword,
 } from "@/lib/publication/security";
-import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
+import {
+  buildProjectPublicationSnapshot,
+  normalizeProjectPublicationLocationVisibility,
+} from "@/lib/publication/snapshot";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
@@ -30,12 +33,15 @@ import {
   encodeSharedLinkActivityCursor,
   isBeforeSharedLinkActivityCursor,
   readSharedLinkRecipientDisplayName,
-  resolveSharedLinkTargetLabel,
+  resolveSharedLinkStoredTargetMetadata,
   sharedLinkActivityCursorFilter,
 } from "@/lib/publication/activity-helpers";
 import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
 import { getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
-import type { ProjectPublicationSummary } from "@/lib/publication/types";
+import type {
+  ProjectPublicationLocationVisibility,
+  ProjectPublicationSummary,
+} from "@/lib/publication/types";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -92,7 +98,13 @@ type EstimateTabSource = {
 };
 type LatestPublication = Pick<
   Tables<"project_publications">,
-  "encrypted_token" | "expires_at" | "id" | "password_hash" | "selected_estimate_ids" | "snapshot_version"
+  | "encrypted_token"
+  | "expires_at"
+  | "id"
+  | "location_visibility"
+  | "password_hash"
+  | "selected_estimate_ids"
+  | "snapshot_version"
 >;
 type PublicationEmailIdentity = {
   email: string;
@@ -110,6 +122,7 @@ const roleRank = {
   owner: 40,
   admin: 30,
   editor: 20,
+  member: 20,
   viewer: 10,
 } as const;
 const managerRank = roleRank.admin;
@@ -362,7 +375,7 @@ async function resolvePublicationDigestOwner(
 async function readLatestProjectPublication(context: PublicationManagerContext): Promise<LatestPublication | null> {
   const { data, error } = await context.admin
     .from("project_publications")
-    .select("id, encrypted_token, expires_at, password_hash, selected_estimate_ids, snapshot_version")
+    .select("id, encrypted_token, expires_at, location_visibility, password_hash, selected_estimate_ids, snapshot_version")
     .eq("project_id", context.project.id)
     .eq("status", "published")
     .order("published_at", { ascending: false })
@@ -373,7 +386,11 @@ async function readLatestProjectPublication(context: PublicationManagerContext):
   return data;
 }
 
-async function buildSnapshotForProject(context: PublicationManagerContext, selectedEstimateIds: string[]) {
+async function buildSnapshotForProject(
+  context: PublicationManagerContext,
+  selectedEstimateIds: string[],
+  locationVisibility: ProjectPublicationLocationVisibility = "locality",
+) {
   let estimatesQuery = context.admin
     .from("estimates")
     .select("id, name, sheet_code, updated_at")
@@ -443,6 +460,7 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       projectCode: context.project.project_code,
       clientName: context.project.client_name,
       location: context.project.location,
+      locationVisibility,
       currencyCode: context.project.currency_code,
       // P9: capture cover for receiver hero (from metadata at publish; additive)
       coverImageUrl:
@@ -516,11 +534,13 @@ export async function createProjectPublication({
   selectedEstimateIds,
   password,
   expiresAt,
+  locationVisibility,
 }: {
   projectId: string;
   selectedEstimateIds?: string[];
   password?: string;
   expiresAt?: string | null;
+  locationVisibility?: ProjectPublicationLocationVisibility | null;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15/22 (MOD-PW-05): reject any supplied invalid password before any DB write —
@@ -532,9 +552,10 @@ export async function createProjectPublication({
     if (!passwordCheck.ok) return { ok: false, message: passwordCheck.message };
   }
   const estimateIds = normalizeSelectedEstimateIds(selectedEstimateIds);
+  const normalizedLocationVisibility = normalizeProjectPublicationLocationVisibility(locationVisibility);
   const latest = await readLatestProjectPublication(context);
   const previousClientLinkPath = latest ? readClientLinkPath(latest) : null;
-  const snapshot = await buildSnapshotForProject(context, estimateIds);
+  const snapshot = await buildSnapshotForProject(context, estimateIds, normalizedLocationVisibility);
   // MOD-SHEET-06: persist the RESOLVED ids — the estimates that actually made it into the snapshot
   // (deleted/filtered sheets are dropped) — so the stored count can never drift past the snapshot.
   const resolvedEstimateIds = (snapshot.estimates ?? []).map((estimate) => estimate.id);
@@ -565,6 +586,7 @@ export async function createProjectPublication({
     password_hash: password ? await hashPublicationPassword(password) : null,
     snapshot_json: snapshot,
     activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+    location_visibility: normalizedLocationVisibility,
     selected_estimate_ids: resolvedEstimateIds,
     snapshot_version: (latest?.snapshot_version ?? 0) + 1,
     published_by: context.currentUserId,
@@ -582,6 +604,7 @@ export async function republishProjectPublication({
   password,
   clearPassword = false,
   expiresAt,
+  locationVisibility,
 }: {
   projectId: string;
   selectedEstimateIds?: string[];
@@ -590,6 +613,7 @@ export async function republishProjectPublication({
   // AC-MOD-10: undefined = leave the stored expiry unchanged; null = clear expiry
   // (reactivate an expired link in place); a string = set/extend expiry.
   expiresAt?: string | null;
+  locationVisibility?: ProjectPublicationLocationVisibility | null;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15 (MOD-PW-05): a NEW password being set (provided and not clearing) must pass the
@@ -607,11 +631,15 @@ export async function republishProjectPublication({
       selectedEstimateIds: estimateIds.length ? estimateIds : undefined,
       password,
       expiresAt,
+      locationVisibility,
     });
   }
 
   const idsToUse = estimateIds.length ? estimateIds : latest.selected_estimate_ids;
-  const snapshot = await buildSnapshotForProject(context, idsToUse);
+  const normalizedLocationVisibility = normalizeProjectPublicationLocationVisibility(
+    locationVisibility ?? latest.location_visibility,
+  );
+  const snapshot = await buildSnapshotForProject(context, idsToUse, normalizedLocationVisibility);
   // MOD-SHEET-06: persist the RESOLVED ids actually present in the snapshot (drops deleted sheets)
   // so selectedEstimateCount can never exceed the snapshot's estimate count.
   const resolvedEstimateIds = (snapshot.estimates ?? []).map((estimate) => estimate.id);
@@ -635,6 +663,7 @@ export async function republishProjectPublication({
     .update({
       snapshot_json: snapshot,
       activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+      location_visibility: normalizedLocationVisibility,
       selected_estimate_ids: resolvedEstimateIds,
       snapshot_version: latest.snapshot_version + 1,
       published_at: new Date().toISOString(),
@@ -669,7 +698,8 @@ export async function rotateProjectPublicationLink({
   const latest = await readLatestProjectPublication(context);
   if (!latest) return createProjectPublication({ projectId, password });
 
-  const snapshot = await buildSnapshotForProject(context, latest.selected_estimate_ids);
+  const normalizedLocationVisibility = normalizeProjectPublicationLocationVisibility(latest.location_visibility);
+  const snapshot = await buildSnapshotForProject(context, latest.selected_estimate_ids, normalizedLocationVisibility);
   // MOD-SHEET-06: re-persist the RESOLVED ids present in the freshly rebuilt snapshot so a sheet
   // deleted since the last publish no longer inflates the stored count. Rotation re-publishes the
   // existing selection (no new picker input), so no zero-resolution guard is needed here.
@@ -1323,9 +1353,9 @@ export async function removeSharedLinkRecipient({
 }
 
 // ============================================================================
-// P8: Activity Feed & Notifications (red stub first — full impl follows in sequence)
+// P8: Activity Feed & Notifications
 // loadSharedLinkActivity: owner-only server action for manager modal (joins comments + responses + events)
-// Rate-limited owner digest (in-memory MVP; 1 per 15min per publication) using P0 sendEmail
+// Durable owner digest limiter + delivery log using P0 sendEmail.
 // ============================================================================
 
 export type ActivityItem = ActivityViewModel;
@@ -1336,26 +1366,87 @@ type LoadActivityResult = {
   nextCursor?: string;
 };
 
-// In-memory rate limiter for digest emails (MVP; per-process, resets on restart; production would use DB row or Redis)
-const digestRateLimit = new Map<string, number>(); // publicationId -> lastSentEpochMs
-const DIGEST_RATE_LIMIT_MS = 15 * 60 * 1000;
+const DIGEST_RATE_LIMIT_SECONDS = 15 * 60;
 
-function shouldSendDigest(publicationId: string, now = Date.now()): boolean {
-  const last = digestRateLimit.get(publicationId) ?? 0;
-  if (now - last >= DIGEST_RATE_LIMIT_MS) {
-    digestRateLimit.set(publicationId, now);
-    return true;
-  }
-  return false;
+type PublicationDigestLogStatus = "sent" | "mocked" | "failed" | "skipped" | "rate_limited";
+
+async function reservePublicationDigestSlot(
+  admin: ReturnType<typeof createPublicationAdminClient>,
+  publicationId: string,
+  kind: "comment" | "decision",
+) {
+  const now = Date.now();
+  const scope = "publication_digest";
+  const keyHash = hashPublicationRateLimitKey(scope, [publicationId]);
+  const windowStart = new Date(now - DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString();
+
+  const { count, error: countError } = await admin
+    .from("security_rate_limit_events")
+    .select("id", { count: "exact", head: true })
+    .eq("scope", scope)
+    .eq("key_hash", keyHash)
+    .gte("occurred_at", windowStart);
+  if (countError) throw countError;
+  if ((count ?? 0) >= 1) return false;
+
+  const { error: insertError } = await admin.from("security_rate_limit_events").insert({
+    scope,
+    key_hash: keyHash,
+    metadata_json: { route: "publication_digest", kind } as Json,
+    expires_at: new Date(now + DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString(),
+  });
+  if (insertError) throw insertError;
+
+  return true;
 }
 
-async function triggerOwnerDigestIfAllowed(publicationId: string, publicationToken: string, kind: "comment" | "decision") {
-  if (!shouldSendDigest(publicationId)) return { ok: true, skipped: "rate-limited" };
+async function recordPublicationDigestLog({
+  admin,
+  errorCode,
+  kind,
+  messageId,
+  ownerEmail,
+  publicationId,
+  status,
+}: {
+  admin: ReturnType<typeof createPublicationAdminClient>;
+  errorCode?: string | null;
+  kind: "comment" | "decision";
+  messageId?: string | null;
+  ownerEmail?: string | null;
+  publicationId: string;
+  status: PublicationDigestLogStatus;
+}) {
+  const ownerEmailHash = ownerEmail
+    ? createHash("sha256").update(ownerEmail.trim().toLowerCase()).digest("base64url")
+    : null;
+  const { error } = await admin.from("publication_digest_log").insert({
+    publication_id: publicationId,
+    activity_kind: kind,
+    delivery_status: status,
+    owner_email_hash: ownerEmailHash,
+    resend_message_id: messageId ?? null,
+    error_code: errorCode ?? null,
+  });
+  if (error) {
+    console.warn("[publication] owner digest log write failed", { publicationId, kind, status, error: error.message });
+  }
+}
+
+async function triggerOwnerDigestIfAllowed(publicationId: string, _publicationToken: string, kind: "comment" | "decision") {
+  let admin: ReturnType<typeof createPublicationAdminClient> | null = null;
   try {
-    const admin = createPublicationAdminClient();
+    admin = createPublicationAdminClient();
+    const reserved = await reservePublicationDigestSlot(admin, publicationId, kind);
+    if (!reserved) {
+      await recordPublicationDigestLog({ admin, publicationId, kind, status: "rate_limited" });
+      return { ok: true, skipped: "rate-limited" };
+    }
+
     const owner = await resolvePublicationDigestOwner(admin, publicationId);
     if (!owner) {
       console.warn("[publication] owner digest skipped: owner email unavailable", { publicationId });
+      await recordPublicationDigestLog({ admin, publicationId, kind, status: "skipped", errorCode: "owner-email-unavailable" });
       return { ok: true, skipped: "owner-email-unavailable" };
     }
 
@@ -1370,8 +1461,20 @@ async function triggerOwnerDigestIfAllowed(publicationId: string, publicationTok
     const text = `Hi ${owner.label},\n\nThere is new ${kind} activity on your shared project link.\n\nReview it from the Shared link > Activity tab in your project workspace.${complianceFooter.text}`;
     const html = `<p>Hi ${escapePublicationEmailHtml(owner.label)},</p><p>There is new <strong>${kind}</strong> activity on your shared project link.</p><p>Open the Shared link modal in the project workspace and select the Activity tab to review.</p>${complianceFooter.html}`;
     const res = await sendEmail({ to: owner.email, subject, text, html });
+    await recordPublicationDigestLog({
+      admin,
+      publicationId,
+      kind,
+      status: res.ok ? (res.mocked ? "mocked" : "sent") : "failed",
+      ownerEmail: owner.email,
+      messageId: res.ok ? res.messageId ?? null : null,
+      errorCode: res.ok ? null : res.code ?? "digest-send-failed",
+    });
     return { ok: res.ok, mocked: res.ok ? res.mocked : undefined };
   } catch {
+    if (admin) {
+      await recordPublicationDigestLog({ admin, publicationId, kind, status: "failed", errorCode: "digest-send-failed" });
+    }
     return { ok: false, error: "digest-send-failed" };
   }
 }
@@ -1406,11 +1509,11 @@ export async function loadSharedLinkActivity(
   // Parallel loads (additive, service role bypasses RLS for owner-verified path)
   let commentsQuery = admin
     .from("shared_link_comments")
-    .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
+    .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
     .eq("publication_id", pubId);
   let responsesQuery = admin
     .from("shared_link_responses")
-    .select("id, created_at, decision, note, recipient_id")
+    .select("id, created_at, decision, note, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label")
     .eq("publication_id", pubId);
   let eventsQuery = admin
     .from("shared_link_events")
@@ -1459,6 +1562,7 @@ export async function loadSharedLinkActivity(
   const raw: SharedLinkActivityInput[] = [];
   (commentsRes.data ?? []).forEach((c) => {
     const recipientDisplayName = c.recipient_id ? recipientDisplayNames.get(c.recipient_id) : undefined;
+    const target = resolveSharedLinkStoredTargetMetadata(targetLabels, c);
     raw.push({
       id: c.id,
       type: "comment",
@@ -1467,10 +1571,14 @@ export async function loadSharedLinkActivity(
       body: c.body,
       is_internal: !!c.is_internal,
       recipientDisplayName,
-      metadata: { targetLabel: resolveSharedLinkTargetLabel(targetLabels, c.row_id, c.estimate_id) ?? "the proposal" },
+      metadata: {
+        ...target,
+        snapshotVersionAtComment: c.snapshot_version_at_comment,
+      },
     });
   });
-  (responsesRes.data ?? []).forEach((r) =>
+  (responsesRes.data ?? []).forEach((r) => {
+    const target = resolveSharedLinkStoredTargetMetadata(targetLabels, r);
     raw.push({
       id: r.id,
       type: "decision",
@@ -1478,8 +1586,9 @@ export async function loadSharedLinkActivity(
       decision: r.decision,
       body: r.note || undefined,
       recipientDisplayName: r.recipient_id ? recipientDisplayNames.get(r.recipient_id) : undefined,
-    })
-  );
+      metadata: target,
+    });
+  });
   (eventsRes.data ?? []).forEach((e) => {
     const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json : {};
     raw.push({
@@ -1528,11 +1637,5 @@ export async function maybeTriggerSharedLinkActivityDigest(
   publicationToken: string,
   kind: "comment" | "decision"
 ) {
-  try {
-    await requireCurrentUserContext();
-  } catch {
-    return { ok: false, error: "digest-auth-required" };
-  }
-
   return triggerOwnerDigestIfAllowed(publicationId, publicationToken, kind);
 }

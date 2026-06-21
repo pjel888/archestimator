@@ -6,7 +6,7 @@ function SkeletonBlock({ className }: { className: string }) {
 
 export default function Loading() {
   return (
-    <main aria-label="Loading proposal review" className="min-h-screen bg-[#FFFDF8] py-8 text-ink">
+    <main aria-label="Loading proposal review" className="min-h-screen bg-proposalPaper py-8 text-ink">
       <ShareContainer className="space-y-4">
         <section
           role="status"
@@ -44,7 +44,7 @@ export default function Loading() {
             <SkeletonBlock className="h-8 w-24" />
           </div>
           <div className="mt-4 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <div className="hidden space-y-2 rounded-xs border border-hairline bg-[#FFFDF8] p-3 lg:block">
+            <div className="hidden space-y-2 rounded-xs border border-hairline bg-proposalPaper p-3 lg:block">
               {Array.from({ length: 8 }).map((_, index) => (
                 <SkeletonBlock key={index} className={`h-4 ${index % 3 === 0 ? "w-5/6" : "w-2/3"}`} />
               ))}

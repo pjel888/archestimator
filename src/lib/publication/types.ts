@@ -1,4 +1,5 @@
 export type ProjectPublicationStatus = "unpublished" | "published" | "expired" | "revoked";
+export type ProjectPublicationLocationVisibility = "exact" | "locality" | "hidden";
 
 /** Lightweight estimate info for the Estimates tab picker in publication manager (P1). */
 export type ProjectEstimateSheet = {
@@ -18,6 +19,7 @@ export type ProjectPublicationSummary = {
   publishedAt: string | null;
   expiresAt: string | null;
   passwordRequired: boolean;
+  locationVisibility: ProjectPublicationLocationVisibility;
   selectedEstimateCount: number;
   selectedEstimateIds: string[];
   snapshotVersion: number;
@@ -79,7 +81,13 @@ export type PublicationSnapshotEstimateTab = {
   isDefault: boolean;
   rowCount: number;
   totalCost: number;
-  rows: PublicationSnapshotRow[];
+  /**
+   * Compact snapshots (schema v1.3+) store tab membership as row IDs while
+   * preserving estimate-level rows for legacy consumers. Legacy v1.2 snapshots
+   * may still include fully duplicated tab rows and must remain readable.
+   */
+  rowIds?: string[];
+  rows?: PublicationSnapshotRow[];
   treeNodes?: PublicationSnapshotTreeNode[];
 };
 
@@ -98,7 +106,7 @@ export type PublicationSnapshotEstimate = {
 };
 
 export type ProjectPublicationSnapshot = {
-  schemaVersion: 1 | 1.2;
+  schemaVersion: 1 | 1.2 | 1.3;
   generatedAt: string;
   project: {
     id: string;
@@ -106,6 +114,7 @@ export type ProjectPublicationSnapshot = {
     projectCode: string | null;
     clientName: string | null;
     location: string | null;
+    locationVisibility: ProjectPublicationLocationVisibility;
     currencyCode: string;
     // P9: cover from projects.metadata (projectImageUrl etc) captured at publish time for hero
     coverImageUrl?: string | null;

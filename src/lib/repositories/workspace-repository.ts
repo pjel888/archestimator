@@ -22,6 +22,7 @@ import type {
   ProjectCollaboratorSummary,
 } from "@/lib/collaboration/types";
 import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
+import { normalizeProjectPublicationLocationVisibility } from "@/lib/publication/snapshot";
 import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
 import type { Json } from "@/lib/supabase/types";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
@@ -50,6 +51,7 @@ export type WorkshopProjectSummary = Pick<
 > & {
   accessKind: WorkshopProjectAccessKind;
   currentUserRole: CollaborationRole;
+  canManagePublication: boolean;
   isFavorite: boolean;
   favoriteCreatedAt: string | null;
   ownerWorkspaceName: string | null;
@@ -219,6 +221,7 @@ type ProjectPublicationRow = Pick<
   | "expires_at"
   | "id"
   | "latest_opened_at"
+  | "location_visibility"
   | "open_count"
   | "password_hash"
   | "project_id"
@@ -517,7 +520,7 @@ async function readOptionalProjectPublication(
   const { data, error } = await supabase
     .from("project_publications")
     .select(
-      "id, project_id, encrypted_token, password_hash, status, snapshot_json, snapshot_version, selected_estimate_ids, published_at, expires_at, revoked_at, open_count, latest_opened_at",
+      "id, project_id, encrypted_token, password_hash, status, snapshot_json, snapshot_version, selected_estimate_ids, published_at, expires_at, revoked_at, open_count, latest_opened_at, location_visibility",
     )
     .eq("project_id", projectId)
     .order("published_at", { ascending: false })
@@ -541,7 +544,7 @@ async function readOptionalProjectPublications(
   const { data, error } = await supabase
     .from("project_publications")
     .select(
-      "id, project_id, encrypted_token, password_hash, status, snapshot_version, published_at, expires_at, revoked_at, open_count, latest_opened_at",
+      "id, project_id, encrypted_token, password_hash, status, snapshot_version, published_at, expires_at, revoked_at, open_count, latest_opened_at, location_visibility",
     )
     .in("project_id", projectIds)
     .order("published_at", { ascending: false });
@@ -1394,6 +1397,8 @@ async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | 
         location: project.location,
         updated_at: project.updated_at,
         ...access,
+        canManagePublication:
+          profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(access.currentUserRole),
         isFavorite: projectFavoriteCreatedAt.has(project.id),
         favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
         pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(project.id) ?? 0,
@@ -1612,6 +1617,8 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
         location: project.location,
         updated_at: project.updated_at,
         ...access,
+        canManagePublication:
+          profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(access.currentUserRole),
         isFavorite: projectFavoriteCreatedAt.has(project.id),
         favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
         pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(project.id) ?? 0,
@@ -1982,6 +1989,7 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
     publishedAt: publication?.published_at ?? null,
     expiresAt: publication?.expires_at ?? null,
     passwordRequired: Boolean(publication?.password_hash),
+    locationVisibility: normalizeProjectPublicationLocationVisibility(publication?.location_visibility),
     selectedEstimateCount: publication?.selected_estimate_ids.length ?? 0,
     selectedEstimateIds: publication?.selected_estimate_ids ?? [],
     snapshotVersion: publication?.snapshot_version ?? 0,

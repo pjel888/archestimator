@@ -4,19 +4,35 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
+import {
+  normalizeShareReviewTarget,
+  serializeShareReviewTarget,
+  shareReviewTargetDisplay,
+  type ShareReviewTarget,
+  type ShareReviewTargetKind,
+} from "@/components/share/share-review-target";
 
 type DecisionType = "accepted" | "declined" | "revision_requested";
 
 interface SharePageDecisionProps {
   token: string;
   viewToken: string;
+  reviewTarget?: ShareReviewTarget;
 }
 
 interface DecisionState {
   decision: DecisionType;
   note?: string;
   submittedAt?: string;
+  estimateId?: string | null;
+  rowId?: string | null;
+  targetKind?: ShareReviewTargetKind;
+  targetLabel?: string | null;
+  targetSecondaryLabel?: string | null;
+  signerName?: string | null;
 }
+
+type DecisionTargetState = Pick<DecisionState, "estimateId" | "rowId" | "targetKind" | "targetLabel" | "targetSecondaryLabel">;
 
 type DecisionGetResponse = {
   decision?:
@@ -27,6 +43,12 @@ type DecisionGetResponse = {
         note?: string | null;
         submittedAt?: string;
         createdAt?: string;
+        estimateId?: string | null;
+        rowId?: string | null;
+        targetKind?: ShareReviewTargetKind;
+        targetLabel?: string | null;
+        targetSecondaryLabel?: string | null;
+        signerName?: string | null;
       };
 };
 
@@ -40,16 +62,29 @@ function decisionLabel(decision: DecisionType) {
   return "Revision requested";
 }
 
+function formatDecisionDate(value: string | undefined) {
+  if (!value) return "the recorded time";
+  const time = new Date(value);
+  if (Number.isNaN(time.getTime())) return "the recorded time";
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(time);
+}
+
 function confirmTitle(decision: DecisionType) {
-  if (decision === "accepted") return "Accept this proposal?";
+  if (decision === "accepted") return "Approve this proposal?";
   if (decision === "declined") return "Decline this proposal?";
-  return "Request a revision?";
+  return "Request changes?";
 }
 
 function confirmBody(decision: DecisionType) {
-  if (decision === "accepted") return "Your decision will be final. You can still add comments afterward.";
-  if (decision === "declined") return "Your decision will be final. You can still add comments afterward.";
-  return "Send your requested changes to the project team. Your response will be final, and comments remain available afterward.";
+  if (decision === "accepted") return "We'll notify the project team and keep comments open for follow-up.";
+  if (decision === "declined") return "We'll notify the project team. You can still leave comments if context would help.";
+  return "Send your requested changes to the project team. Comments remain open for details and follow-up.";
 }
 
 function normalizeDecision(payload: DecisionGetResponse["decision"]): DecisionState | null {
@@ -60,14 +95,33 @@ function normalizeDecision(payload: DecisionGetResponse["decision"]): DecisionSt
     decision,
     note: payload.note?.trim() || undefined,
     submittedAt: payload.submittedAt ?? payload.createdAt,
+    estimateId: payload.estimateId ?? null,
+    rowId: payload.rowId ?? null,
+    targetKind: payload.targetKind,
+    targetLabel: payload.targetLabel ?? null,
+    targetSecondaryLabel: payload.targetSecondaryLabel ?? null,
+    signerName: payload.signerName?.trim() || null,
   };
 }
 
-export default function SharePageDecision({ token, viewToken }: SharePageDecisionProps) {
+function targetStateFromReviewTarget(target: ShareReviewTarget): DecisionTargetState {
+  return {
+    targetKind: target.kind,
+    targetLabel: target.label,
+    targetSecondaryLabel: target.secondaryLabel ?? null,
+    estimateId: target.estimateId ?? null,
+    rowId: target.rowId ?? null,
+  };
+}
+
+export default function SharePageDecision({ token, viewToken, reviewTarget }: SharePageDecisionProps) {
   const { isValid } = useSharedLinkSession();
+  const activeReviewTarget = normalizeShareReviewTarget(reviewTarget);
+  const activeReviewTargetLabel = shareReviewTargetDisplay(activeReviewTarget);
   const [decided, setDecided] = useState<DecisionState | null>(null);
   const [pendingDecision, setPendingDecision] = useState<DecisionType | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [signerNameDraft, setSignerNameDraft] = useState("");
   const [isLoadingDecision, setIsLoadingDecision] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +132,23 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
   const announce = useCallback((msg: string) => {
     setLastAnnouncement(msg);
   }, []);
+
+  const refetchPersistedDecision = useCallback(async () => {
+    const res = await fetch(`/api/share/${encodeURIComponent(token)}/decision`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (res.status === 401 || res.status === 404) return false;
+    if (!res.ok) return false;
+
+    const json = (await res.json().catch(() => ({}))) as DecisionGetResponse;
+    const loadedDecision = normalizeDecision(json.decision ?? null);
+    if (!loadedDecision) return false;
+
+    setDecided(loadedDecision);
+    announce("Decision already recorded on this link.");
+    return true;
+  }, [announce, token]);
 
   useEffect(() => {
     if (!isValid) return;
@@ -122,6 +193,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
   const closeConfirm = useCallback(() => {
     setPendingDecision(null);
     setNoteDraft("");
+    setSignerNameDraft("");
     window.setTimeout(() => previouslyFocusedRef.current?.focus(), 0);
   }, []);
 
@@ -135,7 +207,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
         data-testid="decision-anonymous-state"
         role="note"
         aria-label="How to respond to this proposal"
-        className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-ink"
+        className="share-print-hidden w-full rounded-xs border border-hairline bg-proposalPaper p-3 text-ink"
       >
         <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
         <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">
@@ -151,10 +223,11 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
     previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPendingDecision(decision);
     setNoteDraft("");
+    setSignerNameDraft("");
     setError(null);
     window.setTimeout(() => {
       const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
-        "textarea, button, [href], input, select, [tabindex]:not([tabindex='-1'])",
+        "input, textarea, button, [href], select, [tabindex]:not([tabindex='-1'])",
       );
       firstFocusable?.focus();
     }, 0);
@@ -162,6 +235,11 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
 
   const confirmDecision = async () => {
     if (!pendingDecision || isSubmitting) return;
+    const signerName = signerNameDraft.trim();
+    if (pendingDecision === "accepted" && !signerName) {
+      setError("Your name is required to approve this proposal.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -169,8 +247,11 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
     const payload = {
       decision: pendingDecision,
       note: noteDraft.trim() || null,
+      signerName: pendingDecision === "accepted" ? signerName : null,
       viewToken,
+      ...serializeShareReviewTarget(activeReviewTarget),
     };
+    const targetState = targetStateFromReviewTarget(activeReviewTarget);
 
     try {
       const res = await fetch(`/api/share/${encodeURIComponent(token)}/decision`, {
@@ -184,9 +265,16 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
 
       const json = (await res.json().catch(() => ({}))) as { error?: string };
 
+      if (res.status === 409 && /snapshot|stale|changed/i.test(json?.error || "")) {
+        setError("This shared page was updated while you were deciding. Your draft is preserved. Refresh to review the latest version.");
+        return;
+      }
+
       if (res.status === 409 || /already submitted/i.test(json?.error || "")) {
-        setDecided({ decision: pendingDecision, note: payload.note || undefined });
-        announce("Decision already recorded on this link.");
+        const loadedDecision = await refetchPersistedDecision();
+        if (!loadedDecision) {
+          setError("Decision already recorded. Reload to view the saved response.");
+        }
         closeConfirm();
         return;
       }
@@ -196,7 +284,13 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
         throw new Error(msg);
       }
 
-      setDecided({ decision: pendingDecision, note: payload.note || undefined, submittedAt: new Date().toISOString() });
+      setDecided({
+        decision: pendingDecision,
+        note: payload.note || undefined,
+        submittedAt: new Date().toISOString(),
+        signerName: payload.signerName,
+        ...targetState,
+      });
       announce(`Decision recorded: ${decisionLabel(pendingDecision)}.`);
       closeConfirm();
     } catch (error: unknown) {
@@ -235,18 +329,28 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
   };
 
   if (decided) {
+    const recordedLine =
+      decided.decision === "accepted" && decided.signerName
+        ? `Approved by ${decided.signerName} on ${formatDecisionDate(decided.submittedAt)}.`
+        : `Decision recorded on ${formatDecisionDate(decided.submittedAt)}.`;
     return (
       <section
         data-share-decision-bar="true"
         data-testid="decision-locked-badge"
-        className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-[13px] leading-[18px] tracking-normal text-ink"
+        className="share-print-hidden w-full rounded-xs border border-hairline bg-proposalPaper p-3 text-[13px] leading-[18px] tracking-normal text-ink"
         role="status"
         aria-live="polite"
       >
         <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
         <div className="mt-1 text-[15px] font-medium leading-[20px] tracking-normal text-ink">{decisionLabel(decided.decision)}</div>
+        {decided.targetLabel ? (
+          <div className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+            Applies to {decided.targetLabel}
+            {decided.targetSecondaryLabel ? ` · ${decided.targetSecondaryLabel}` : ""}
+          </div>
+        ) : null}
         {decided.note && <div className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">Note: {decided.note}</div>}
-        <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-secondary">Decision recorded. You can still add comments below.</div>
+        <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-secondary">{recordedLine} You can still add comments below.</div>
         {error && <div role="alert" className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error}</div>}
         <div aria-live="polite" className="sr-only">{lastAnnouncement}</div>
       </section>
@@ -258,13 +362,16 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
       role="group"
       aria-label="Your response"
       data-share-decision-bar="true"
-      className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-ink pb-[env(safe-area-inset-bottom)]"
+      className="share-print-hidden w-full rounded-xs border border-hairline bg-proposalPaper p-3 text-ink pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">Your response</div>
           <p className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">
             {isLoadingDecision ? "Checking for an existing response..." : "Choose a response when you are ready."}
+          </p>
+          <p className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+            Applies to {activeReviewTargetLabel}
           </p>
         </div>
         <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
@@ -273,13 +380,23 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
             size="sm"
             onClick={() => openConfirm("accepted")}
             disabled={isSubmitting || isLoadingDecision}
-            aria-label="Accept proposal"
+            aria-label="Approve proposal"
             className="min-h-11 sm:min-h-8"
           >
-            Accept
+            Approve proposal
           </Button>
           <Button
-            variant="danger"
+            variant="secondary"
+            size="sm"
+            onClick={() => openConfirm("revision_requested")}
+            disabled={isSubmitting || isLoadingDecision}
+            aria-label="Request changes"
+            className="min-h-11 sm:min-h-8"
+          >
+            Request changes
+          </Button>
+          <Button
+            variant="plain"
             size="sm"
             onClick={() => openConfirm("declined")}
             disabled={isSubmitting || isLoadingDecision}
@@ -287,16 +404,6 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
             className="min-h-11 sm:min-h-8"
           >
             Decline
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => openConfirm("revision_requested")}
-            disabled={isSubmitting || isLoadingDecision}
-            aria-label="Request revision"
-            className="min-h-11 sm:min-h-8"
-          >
-            Request Revision
           </Button>
         </div>
       </div>
@@ -314,7 +421,7 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-confirm-title"
-            className="w-full max-w-md rounded-xs border border-hairline bg-[#FFFDF8] p-4 text-[13px] leading-[18px] tracking-normal text-ink shadow-sm"
+            className="w-full max-w-md rounded-xs border border-hairline bg-proposalPaper p-4 text-[13px] leading-[18px] tracking-normal text-ink shadow-sm"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={handleDialogKeyDown}
           >
@@ -322,6 +429,28 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
               {confirmTitle(pendingDecision)}
             </h2>
             <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">{confirmBody(pendingDecision)}</p>
+            <div className="mt-3 rounded-xs border border-hairline bg-white px-2 py-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+              Applies to {activeReviewTargetLabel}
+            </div>
+
+            {pendingDecision === "accepted" ? (
+              <div className="mt-3">
+                <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-secondary" htmlFor="decision-signer-name">
+                  Your name
+                </label>
+                <input
+                  id="decision-signer-name"
+                  className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
+                  maxLength={120}
+                  placeholder="Enter your name"
+                  value={signerNameDraft}
+                  onChange={(event) => setSignerNameDraft(event.target.value)}
+                  disabled={isSubmitting}
+                  autoComplete="name"
+                  required
+                />
+              </div>
+            ) : null}
 
             <div className="mt-3">
               <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-secondary" htmlFor="decision-note">
@@ -347,10 +476,10 @@ export default function SharePageDecision({ token, viewToken }: SharePageDecisio
                 Cancel
               </Button>
               <Button
-                variant={pendingDecision === "declined" ? "danger" : "primary"}
+                variant={pendingDecision === "declined" ? "secondary" : "primary"}
                 size="sm"
                 onClick={confirmDecision}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (pendingDecision === "accepted" && !signerNameDraft.trim())}
               >
                 {isSubmitting ? "Recording..." : "Confirm"}
               </Button>

@@ -10,6 +10,7 @@ import {
   hashPublicationToken,
   readPublicationTokenHashSecret,
 } from "@/lib/publication/security";
+import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 import {
   compareSharedLinkActivityDesc,
   createSharedLinkTargetLabelMapFromLabelsJson,
@@ -17,7 +18,7 @@ import {
   isBeforeSharedLinkActivityCursor,
   parseSharedLinkActivityCursor,
   readSharedLinkRecipientDisplayName,
-  resolveSharedLinkTargetLabel,
+  resolveSharedLinkStoredTargetMetadata,
   sharedLinkActivityCursorFilter,
 } from "@/lib/publication/activity-helpers";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   if (pubErr) throw pubErr;
   if (!pub || pub.status !== "published" || pub.revoked_at || (pub.expires_at && new Date(pub.expires_at) < new Date())) {
-    return Response.json({ error: "Publication not found or inactive." }, { status: 404, headers: { "Cache-Control": "no-store" } });
+    return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
   const pubId = pub.id;
@@ -154,13 +155,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   let commentsQuery = supabase
     .from("shared_link_comments")
-    .select("id, created_at, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
+    .select("id, created_at, is_internal, author_email, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
     .eq("publication_id", pubId)
     .eq("is_internal", false);
   let responsesQuery = verifiedRecipientId
     ? supabase
         .from("shared_link_responses")
-        .select("id, created_at, decision, note, recipient_id")
+        .select("id, created_at, decision, note, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label")
         .eq("publication_id", pubId)
         .eq("recipient_id", verifiedRecipientId)
     : null;
@@ -209,7 +210,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const targetLabels = createSharedLinkTargetLabelMapFromLabelsJson(pub.activity_target_labels_json);
   const rawActivities: SharedLinkActivityInput[] = [];
-  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "author_name" | "created_at" | "estimate_id" | "id" | "recipient_id" | "row_id">) => {
+  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "author_name" | "created_at" | "estimate_id" | "id" | "recipient_id" | "row_id" | "target_kind" | "target_label" | "target_secondary_label" | "snapshot_version_at_comment">) => {
+    const target = resolveSharedLinkStoredTargetMetadata(targetLabels, c);
     rawActivities.push({
       id: c.id,
       type: "comment",
@@ -217,10 +219,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       author: recipientDisplayNames.get(c.recipient_id ?? "") ?? "Client",
       is_internal: false,
       recipientDisplayName: recipientDisplayNames.get(c.recipient_id ?? ""),
-      metadata: { targetLabel: resolveSharedLinkTargetLabel(targetLabels, c.row_id, c.estimate_id) ?? "the proposal" },
+      metadata: {
+        ...target,
+        snapshotVersionAtComment: c.snapshot_version_at_comment,
+      },
     });
   });
-  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "id" | "note" | "recipient_id">) => {
+  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "estimate_id" | "id" | "note" | "recipient_id" | "row_id" | "target_kind" | "target_label" | "target_secondary_label">) => {
+    const target = resolveSharedLinkStoredTargetMetadata(targetLabels, r);
     rawActivities.push({
       id: r.id,
       type: "decision",
@@ -228,6 +234,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       decision: r.decision,
       body: r.note || undefined,
       recipientDisplayName: r.recipient_id ? recipientDisplayNames.get(r.recipient_id) : undefined,
+      metadata: target,
     });
   });
   (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json" | "recipient_id">) => {

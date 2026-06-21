@@ -3018,6 +3018,47 @@ export type Database = {
           },
         ]
       }
+      publication_digest_log: {
+        Row: {
+          activity_kind: "comment" | "decision"
+          created_at: string
+          delivery_status: "sent" | "mocked" | "failed" | "skipped" | "rate_limited"
+          error_code: string | null
+          id: string
+          owner_email_hash: string | null
+          publication_id: string
+          resend_message_id: string | null
+        }
+        Insert: {
+          activity_kind: "comment" | "decision"
+          created_at?: string
+          delivery_status: "sent" | "mocked" | "failed" | "skipped" | "rate_limited"
+          error_code?: string | null
+          id?: string
+          owner_email_hash?: string | null
+          publication_id: string
+          resend_message_id?: string | null
+        }
+        Update: {
+          activity_kind?: "comment" | "decision"
+          created_at?: string
+          delivery_status?: "sent" | "mocked" | "failed" | "skipped" | "rate_limited"
+          error_code?: string | null
+          id?: string
+          owner_email_hash?: string | null
+          publication_id?: string
+          resend_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_digest_log_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "project_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_publications: {
         Row: {
           activity_target_labels_json: Json
@@ -3026,6 +3067,7 @@ export type Database = {
           expires_at: string | null
           id: string
           latest_opened_at: string | null
+          location_visibility: "exact" | "locality" | "hidden"
           open_count: number
           password_hash: string | null
           project_id: string
@@ -3048,6 +3090,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           latest_opened_at?: string | null
+          location_visibility?: "exact" | "locality" | "hidden"
           open_count?: number
           password_hash?: string | null
           project_id: string
@@ -3070,6 +3113,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           latest_opened_at?: string | null
+          location_visibility?: "exact" | "locality" | "hidden"
           open_count?: number
           password_hash?: string | null
           project_id?: string
@@ -3191,6 +3235,10 @@ export type Database = {
           publication_id: string
           recipient_id: string | null
           row_id: string | null
+          snapshot_version_at_comment: number | null
+          target_kind: "proposal" | "estimate" | "row"
+          target_label: string | null
+          target_secondary_label: string | null
         }
         Insert: {
           author_email: string
@@ -3203,6 +3251,10 @@ export type Database = {
           publication_id: string
           recipient_id?: string | null
           row_id?: string | null
+          snapshot_version_at_comment?: number | null
+          target_kind?: "proposal" | "estimate" | "row"
+          target_label?: string | null
+          target_secondary_label?: string | null
         }
         Update: {
           author_email?: string
@@ -3215,6 +3267,10 @@ export type Database = {
           publication_id?: string
           recipient_id?: string | null
           row_id?: string | null
+          snapshot_version_at_comment?: number | null
+          target_kind?: "proposal" | "estimate" | "row"
+          target_label?: string | null
+          target_secondary_label?: string | null
         }
         Relationships: [
           {
@@ -3364,7 +3420,14 @@ export type Database = {
           note: string | null
           publication_id: string
           recipient_id: string | null
+          estimate_id: string | null
+          row_id: string | null
+          signer_name: string | null
+          signature_intent_hash: string | null
           snapshot_version_at_decision: number
+          target_kind: "proposal" | "estimate" | "row"
+          target_label: string | null
+          target_secondary_label: string | null
         }
         Insert: {
           created_at?: string
@@ -3373,7 +3436,14 @@ export type Database = {
           note?: string | null
           publication_id: string
           recipient_id?: string | null
+          estimate_id?: string | null
+          row_id?: string | null
+          signer_name?: string | null
+          signature_intent_hash?: string | null
           snapshot_version_at_decision: number
+          target_kind?: "proposal" | "estimate" | "row"
+          target_label?: string | null
+          target_secondary_label?: string | null
         }
         Update: {
           created_at?: string
@@ -3382,7 +3452,14 @@ export type Database = {
           note?: string | null
           publication_id?: string
           recipient_id?: string | null
+          estimate_id?: string | null
+          row_id?: string | null
+          signer_name?: string | null
+          signature_intent_hash?: string | null
           snapshot_version_at_decision?: number
+          target_kind?: "proposal" | "estimate" | "row"
+          target_label?: string | null
+          target_secondary_label?: string | null
         }
         Relationships: [
           {
@@ -3977,10 +4054,13 @@ export type Database = {
       insert_client_comment: {
         Args: {
           p_body: string
-          p_estimate_id: string
+          p_estimate_id: string | null
           p_expected_snapshot_version: number
           p_recipient_token_hash: string
-          p_row_id: string
+          p_row_id: string | null
+          p_target_kind?: "proposal" | "estimate" | "row"
+          p_target_label?: string
+          p_target_secondary_label?: string
           p_token_hash: string
         }
         Returns: string
@@ -4303,9 +4383,16 @@ export type Database = {
       submit_client_response: {
         Args: {
           p_decision: string
+          p_estimate_id?: string | null
           p_expected_snapshot_version: number
-          p_note: string
+          p_note: string | null
           p_recipient_token_hash: string
+          p_row_id?: string | null
+          p_signature_intent_hash?: string | null
+          p_signer_name?: string | null
+          p_target_kind?: "proposal" | "estimate" | "row"
+          p_target_label?: string
+          p_target_secondary_label?: string
           p_token_hash: string
         }
         Returns: string

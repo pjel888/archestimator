@@ -7,11 +7,13 @@ import {
   verifySharedLinkRecipientToken,
 } from "@/lib/publication/public-repository";
 import {
+  assertSameOriginPublicDelete,
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
   getSharedLinkSessionCookieParts,
   hasPublicationAccessCookie,
 } from "@/lib/publication/security";
+import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
   if (!publicationAccess) {
-    return NextResponse.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+    return NextResponse.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
   }
 
   if (
@@ -106,7 +108,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   return response;
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ token: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const sameOrigin = assertSameOriginPublicDelete(request);
+  if (!sameOrigin.ok) {
+    return NextResponse.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
+  }
+
   const { token } = await params;
   const sessionName = createSharedLinkSessionCookieName(token);
   const response = NextResponse.json({ ok: true }, { headers: noStoreHeaders });

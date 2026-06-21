@@ -1,38 +1,30 @@
 "use client";
 
-/* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
- * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
- *   code-review-graph__get_affected_flows_tool, code-review-graph__get_minimal_context_tool, code-review-graph__query_graph_tool,
- *   code-review-graph__semantic_search_nodes_tool (and related).
- * - Pre-edit: get_minimal_context_tool (task="P2 spec review fixes...", changed_files=[SharePageTabs.tsx, page.tsx]) → 3375 nodes/47144 edges, risk:medium(0.70), key_entities incl. ProjectPublicationView + SharePage + shared-link tablist test.
- * - get_affected_flows_tool on same 2 files → "0 flow(s) affected by changes in 2 file(s)", affected_flows:[], total:0.
- * - get_impact_radius_tool on same → 6 direct nodes, 0 execution flows (per affected_flows); blast radius isolated to public share surface (no upstream callers in active flows).
- * - query/semantic on symbols/files confirmed limited surface (new feature symbols on branch; file-based impact used). 0 affected flows result documented before any symbol edits.
- * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
- */
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { flushSync } from "react-dom";
 
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
-import type { PublicationSnapshotEstimate, PublicationSnapshotEstimateTab } from "@/lib/publication/types";
+import type { PublicationSnapshotEstimate, PublicationSnapshotEstimateTab, PublicationSnapshotRow } from "@/lib/publication/types";
 
 import Image from "next/image";
 
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
 import { CostDonutChart } from "@/components/charts/CostDonutChart";
+import { Button } from "@/components/ui/button";
 import { getBestShareTree, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
 import { ShareEstimateTreePanel } from "@/components/share/ShareEstimateTreePanel";
 import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
-
-const GRID_PREVIEW_ROW_LIMIT = 250;
+import type { ShareReviewTarget } from "@/components/share/share-review-target";
 
 interface SharePageTabsProps {
   estimates: PublicationSnapshotEstimate[];
   currencyCode: string;
   token: string;
+  onReviewTargetChange?: (target: ShareReviewTarget) => void;
 }
+
+const COLLATED_ROW_LIMIT = 250;
 
 function formatMoney(value: number, currencyCode: string) {
   return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
@@ -65,6 +57,20 @@ function getDefaultEstimateTabId(tabs: PublicationSnapshotEstimateTab[]): string
   return tabs.find((tab) => tab.isDefault)?.id ?? tabs[0]?.id ?? null;
 }
 
+function getEstimateTabRows(estimate: PublicationSnapshotEstimate, tab: PublicationSnapshotEstimateTab): PublicationSnapshotRow[] {
+  if (tab.rows?.length || !tab.rowIds) return tab.rows ?? [];
+
+  if (tab.rowIds) {
+    const rowsById = new Map(estimate.rows.map((row) => [row.id, row]));
+    return tab.rowIds.flatMap((rowId) => {
+      const row = rowsById.get(rowId);
+      return row ? [row] : [];
+    });
+  }
+
+  return estimate.rows.filter((row) => row.tabId === tab.id);
+}
+
 function getPrintableEstimateSections(estimate: PublicationSnapshotEstimate) {
   const tabs = getOrderedEstimateTabs(estimate);
 
@@ -84,7 +90,7 @@ function getPrintableEstimateSections(estimate: PublicationSnapshotEstimate) {
     id: `${estimate.id}:${tab.id}`,
     name: tabs.length === 1 ? estimate.name : `${estimate.name} - ${tab.name}`,
     meta: [estimate.sheetCode, `Tab ${tab.name}`].filter(Boolean).join(" · "),
-    rows: tab.rows,
+    rows: getEstimateTabRows(estimate, tab),
     totalCost: tab.totalCost,
   }));
 }
@@ -155,6 +161,7 @@ export default function SharePageTabs({
   estimates,
   currencyCode,
   token,
+  onReviewTargetChange,
 }: SharePageTabsProps) {
   const storageKey = `share-tab:${token}`;
   const hydrated = useIsHydrated();
@@ -168,11 +175,12 @@ export default function SharePageTabs({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  // P2: Sub-tab view mode per sheet (Tree View | Grid Preview)
-  const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
+  // P2: Sub-tab view mode per sheet (Tree View | Collated View)
+  const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "collated">>({});
   const [gridSearchByEstimateId, setGridSearchByEstimateId] = useState<Record<string, string>>({});
   const [estimateTabOverrides, setEstimateTabOverrides] = useState<Record<string, string>>({});
   const [renderPrintPackage, setRenderPrintPackage] = useState(false);
+  const [selectedReviewTargetKey, setSelectedReviewTargetKey] = useState<string | null>(null);
 
   const fallbackActiveId = estimates[0]?.id ?? "";
   const storedActiveId = hydrated ? readStoredActiveEstimateId(storageKey, estimates) : null;
@@ -183,7 +191,7 @@ export default function SharePageTabs({
   const contentRef = useRef<HTMLDivElement>(null);
   const estimateTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const setViewForCurrentSheet = (view: "tree" | "grid") => {
+  const setViewForCurrentSheet = (view: "tree" | "collated") => {
     if (activeId) {
       setSheetViews(prev => ({ ...prev, [activeId]: view }));
     }
@@ -199,7 +207,7 @@ export default function SharePageTabs({
   const handleSubTabKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.stopPropagation(); // CRITICAL: isolate from main tab bar roving
-      const next = currentView === "tree" ? "grid" : "tree";
+      const next = currentView === "tree" ? "collated" : "tree";
       setViewForCurrentSheet(next);
     }
   };
@@ -295,10 +303,10 @@ export default function SharePageTabs({
       ? estimateTabOverrides[wouldBeActive.id]
       : getDefaultEstimateTabId(activeEstimateTabs);
   const activeEstimateTab = activeEstimateTabs.find((tab) => tab.id === activeEstimateTabId) ?? null;
-  const activeContentRows = useMemo(
-    () => activeEstimateTab?.rows ?? wouldBeActive?.rows ?? [],
-    [activeEstimateTab?.rows, wouldBeActive?.rows],
-  );
+  const activeContentRows = useMemo(() => {
+    if (!wouldBeActive) return [];
+    return activeEstimateTab ? getEstimateTabRows(wouldBeActive, activeEstimateTab) : wouldBeActive.rows;
+  }, [activeEstimateTab, wouldBeActive]);
   const activeContentTreeNodes = activeEstimateTab?.treeNodes ?? wouldBeActive?.treeNodes;
   const activeContentTotal = activeEstimateTab?.totalCost ?? wouldBeActive?.totalCost ?? 0;
   const activeContentLabel = activeEstimateTab ? `${wouldBeActive?.name ?? "Estimate"} · ${activeEstimateTab.name}` : wouldBeActive?.name ?? "Estimate";
@@ -371,6 +379,15 @@ export default function SharePageTabs({
     return wrapTreeWithRoot(raw, activeContentLabel, activeContentTotal);
   }, [activeContentLabel, activeContentRows, activeContentTotal, activeContentTreeNodes, wouldBeActive]);
   const activeGridSearch = gridSearchKey ? gridSearchByEstimateId[gridSearchKey] ?? "" : "";
+  const activeEstimate = wouldBeActive ?? estimates[0] ?? {
+    id: "",
+    name: "Estimate",
+    sheetCode: "",
+    updatedAt: null,
+    rowCount: 0,
+    totalCost: 0,
+    rows: [],
+  };
   const filteredRows = useMemo(() => {
     const normalizedQuery = activeGridSearch.trim().toLowerCase();
     if (!normalizedQuery) return activeContentRows;
@@ -379,8 +396,38 @@ export default function SharePageTabs({
         .some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
   }, [activeContentRows, activeGridSearch]);
-  const visibleGridRows = filteredRows.slice(0, GRID_PREVIEW_ROW_LIMIT);
-  const hiddenGridRowCount = Math.max(filteredRows.length - visibleGridRows.length, 0);
+  const visibleCollatedRows = filteredRows.slice(0, COLLATED_ROW_LIMIT);
+  const hiddenCollatedRowCount = Math.max(filteredRows.length - visibleCollatedRows.length, 0);
+  const createRowReviewTarget = useCallback((row: (typeof activeContentRows)[number]): ShareReviewTarget => ({
+    kind: "row",
+    label: row.description || row.material || "Selected line item",
+    secondaryLabel: activeContentLabel,
+    estimateId: activeEstimate?.id ?? null,
+    rowId: row.id,
+  }), [activeContentLabel, activeEstimate?.id]);
+
+  const createEstimateReviewTarget = useCallback((): ShareReviewTarget => ({
+    kind: "estimate",
+    label: activeEstimate?.name ?? "Selected estimate",
+    secondaryLabel: activeEstimate?.sheetCode || null,
+    estimateId: activeEstimate?.id ?? null,
+    rowId: null,
+  }), [activeEstimate?.id, activeEstimate?.name, activeEstimate?.sheetCode]);
+
+  const handleEstimateReview = useCallback(() => {
+    const target = createEstimateReviewTarget();
+    setSelectedReviewTargetKey(`estimate:${target.estimateId ?? activeEstimate.id}`);
+    onReviewTargetChange?.(target);
+  }, [activeEstimate.id, createEstimateReviewTarget, onReviewTargetChange]);
+
+  const handleRowReview = useCallback(
+    (row: (typeof activeContentRows)[number]) => {
+      const target = createRowReviewTarget(row);
+      setSelectedReviewTargetKey(`row:${row.id}`);
+      onReviewTargetChange?.(target);
+    },
+    [createRowReviewTarget, onReviewTargetChange],
+  );
 
   useEffect(() => {
     const showPrintPackage = () => {
@@ -410,8 +457,7 @@ export default function SharePageTabs({
     );
   }
 
-  const activeEstimate = wouldBeActive ?? estimates[0];
-  const activeEstimateMetaText = [activeEstimate.sheetCode, activeEstimateTab ? `Tab ${activeEstimateTab.name}` : null]
+  const activeEstimateMetaText = [activeEstimate?.sheetCode, activeEstimateTab ? `Tab ${activeEstimateTab.name}` : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -422,7 +468,7 @@ export default function SharePageTabs({
           onto this row (UX-15: no separate full-width Tree/Grid strip). */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{activeEstimate.name}</h2>
+          <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{activeEstimate?.name}</h2>
           {activeEstimateMetaText ? (
             <p className="text-[13px] leading-[18px] tracking-normal text-secondary">{activeEstimateMetaText}</p>
           ) : null}
@@ -437,9 +483,9 @@ export default function SharePageTabs({
             className="flex items-center gap-0 rounded-xs border border-hairline bg-white"
             onKeyDown={handleSubTabKeyDown}
           >
-            {(["tree", "grid"] as const).map((mode) => {
+            {(["tree", "collated"] as const).map((mode) => {
               const isActive = currentView === mode;
-              const label = mode === "tree" ? "Tree View" : "Grid Preview";
+              const label = mode === "tree" ? "Scope outline" : "Line item table";
               return (
                 <button
                   key={mode}
@@ -453,7 +499,7 @@ export default function SharePageTabs({
                   }`}
                   onClick={() => setViewForCurrentSheet(mode)}
                 >
-                  {label}
+                  <span>{label}</span>
                 </button>
               );
             })}
@@ -569,41 +615,70 @@ export default function SharePageTabs({
         aria-labelledby={`tab-${activeEstimate.id}`}
         className="share-print-estimate border border-hairline bg-white"
       >
-        {currentView === "grid" ? (
+        {currentView === "collated" ? (
           <div>
-            <div className="border-b border-hairline bg-white p-2">
-              <input
-                type="search"
-                aria-label="Filter estimate rows"
-                value={activeGridSearch}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  setGridSearchByEstimateId((prev) => ({ ...prev, [gridSearchKey || activeEstimate.id]: next }));
-                }}
-                placeholder="Filter rows"
-                className="h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:border-focus"
-              />
+            <div className="flex flex-col gap-2 border-b border-hairline bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="text-[13px] font-medium leading-[18px] tracking-normal text-ink">Line item table</h3>
+                <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
+                  {filteredRows.length} line item{filteredRows.length === 1 ? "" : "s"} shown for client review
+                </p>
+                {hiddenCollatedRowCount > 0 ? (
+                  <p role="status" className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+                    Showing first {COLLATED_ROW_LIMIT} of {filteredRows.length} line items. Filter rows to narrow the table.
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[360px]">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={handleEstimateReview}
+                >
+                  Ask about estimate
+                </Button>
+                <input
+                  type="search"
+                  aria-label="Filter estimate rows"
+                  value={activeGridSearch}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setGridSearchByEstimateId((prev) => ({ ...prev, [gridSearchKey || activeEstimate.id]: next }));
+                  }}
+                  placeholder="Filter rows"
+                  className="h-8 min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:border-focus"
+                />
+              </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-left text-[13px] leading-[18px] tracking-normal">
-                <thead className="bg-surfaceMuted text-[12px] uppercase tracking-normal text-secondary">
+              <table className="min-w-[760px] border-collapse text-left text-[12px] leading-[16px] tracking-normal">
+                <thead className="bg-surfaceMuted text-[11px] uppercase tracking-normal text-secondary">
                   <tr>
-                    <th className="px-3 py-2 font-medium">Description</th>
-                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Discipline</th>
-                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Qty</th>
-                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Unit</th>
-                    <th className="px-3 py-2 text-right font-medium">Total</th>
+                    <th className="w-[52px] border-r border-hairline px-2 py-2 font-medium">ITEM</th>
+                    <th className="min-w-[240px] border-r border-hairline px-2 py-2 font-medium">PARTICULARS</th>
+                    <th className="w-[72px] border-r border-hairline px-2 py-2 font-medium">UNIT</th>
+                    <th className="w-[72px] border-r border-hairline px-2 py-2 text-right font-medium">QTY</th>
+                    <th className="w-[126px] border-r border-hairline px-2 py-2 text-right font-medium">LINE TOTAL</th>
+                    <th className="min-w-[120px] border-r border-hairline px-2 py-2 font-medium">CATEGORY</th>
+                    <th className="min-w-[140px] px-2 py-2 font-medium">NOTES</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRows.length > 0 ? visibleGridRows.map((row) => {
+                  {visibleCollatedRows.length > 0 ? visibleCollatedRows.map((row, index) => {
                     const imageUrl = normalizePublicationImageUrl(row.imageUrl);
+                    const isSelectedReviewTarget = selectedReviewTargetKey === `row:${row.id}`;
 
                     return (
-                      <tr key={row.id} className="border-t border-hairline">
-                        <td className="px-3 py-2 text-secondary">
-                          <div className="flex items-center gap-2">
-                            {/* P9: 32px thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; only when present) */}
+                      <tr
+                        key={row.id}
+                        className={`border-t border-hairline ${isSelectedReviewTarget ? "bg-surfaceMuted" : ""}`}
+                        data-review-target-selected={isSelectedReviewTarget ? "true" : undefined}
+                      >
+                        <td className="border-r border-hairline px-2 py-2 text-secondary">{index + 1}</td>
+                        <td className="border-r border-hairline px-2 py-2 text-secondary">
+                          <div className="flex items-start gap-2">
                             {imageUrl ? (
                               <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
                                 <Image
@@ -616,36 +691,39 @@ export default function SharePageTabs({
                                 />
                               </div>
                             ) : null}
-                            <span className="min-w-0">
-                              <span className="block">{row.description}</span>
-                              <span className="mt-0.5 block text-[12px] leading-[16px] text-secondary sm:hidden">
+                            <div className="min-w-0">
+                              <span className="block text-ink">{row.description}</span>
+                              <span className="mt-0.5 block text-[12px] leading-[16px] text-secondary">
                                 Qty {row.quantity} · {row.unit}
                               </span>
-                            </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="mt-1 min-h-8 px-2"
+                                aria-pressed={isSelectedReviewTarget}
+                                aria-label={`Ask about item: ${row.description || row.material || "line item"}`}
+                                onClick={() => handleRowReview(row)}
+                              >
+                                Ask about item
+                              </Button>
+                            </div>
                           </div>
                         </td>
-                        <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.discipline}</td>
-                        <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.quantity}</td>
-                        <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.unit}</td>
-                        <td className="px-3 py-2 text-right font-medium text-ink">
-                          {formatMoney(row.rowTotal, currencyCode)}
-                        </td>
+                        <td className="border-r border-hairline px-2 py-2 text-secondary">{row.unit}</td>
+                        <td className="border-r border-hairline px-2 py-2 text-right tabular-nums text-secondary">{row.quantity}</td>
+                        <td className="border-r border-hairline px-2 py-2 text-right tabular-nums font-medium text-ink">{formatMoney(row.rowTotal, currencyCode)}</td>
+                        <td className="border-r border-hairline px-2 py-2 text-secondary">{row.discipline}</td>
+                        <td className="px-2 py-2 text-secondary">{row.designation || row.material || "—"}</td>
                       </tr>
                     );
                   }) : (
                     <tr className="border-t border-hairline">
-                      <td colSpan={5} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary">
+                      <td colSpan={7} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary">
                         {`No rows match "${activeGridSearch.trim()}"`}
                       </td>
                     </tr>
                   )}
-                  {hiddenGridRowCount > 0 ? (
-                    <tr className="border-t border-hairline">
-                      <td colSpan={5} className="px-3 py-3 text-center text-[12px] leading-[16px] tracking-normal text-secondary">
-                        {`Showing first ${GRID_PREVIEW_ROW_LIMIT} of ${filteredRows.length} matching rows. Refine the filter to narrow the list.`}
-                      </td>
-                    </tr>
-                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -663,7 +741,6 @@ export default function SharePageTabs({
               <ShareEstimateTreeView
                 nodes={treeNodes}
                 currencyCode={currencyCode}
-                disclaimer="Reconstructed from estimate data (may differ from internal workspace view)"
                 activeNodeId={undefined}
               />
             </div>

@@ -11,11 +11,23 @@ type RecipientIdentityRow = {
 type TargetLabelMap = {
   estimateLabels: Map<string, string>;
   rowLabels: Map<string, string>;
+  rowEstimateIds: Map<string, string>;
+};
+
+type SharedLinkTargetKind = "proposal" | "estimate" | "row";
+
+export type SharedLinkStoredTargetInput = {
+  estimate_id?: string | null;
+  row_id?: string | null;
+  target_kind?: string | null;
+  target_label?: string | null;
+  target_secondary_label?: string | null;
 };
 
 export type SharedLinkTargetLabelsJson = {
   estimateLabels: Record<string, string>;
   rowLabels: Record<string, string>;
+  rowEstimateIds: Record<string, string>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,7 +45,39 @@ export function readSharedLinkRecipientDisplayName(recipient: RecipientIdentityR
 export function createSharedLinkTargetLabelMap(snapshotJson: Json | null | undefined): TargetLabelMap {
   const estimateLabels = new Map<string, string>();
   const rowLabels = new Map<string, string>();
-  if (!isRecord(snapshotJson) || !Array.isArray(snapshotJson.estimates)) return { estimateLabels, rowLabels };
+  const rowEstimateIds = new Map<string, string>();
+  if (!isRecord(snapshotJson) || !Array.isArray(snapshotJson.estimates)) return { estimateLabels, rowLabels, rowEstimateIds };
+
+  const collectNodeLabels = (nodes: unknown, nodeLabels: Map<string, string>) => {
+    if (!Array.isArray(nodes)) return;
+    const visit = (node: unknown) => {
+      if (!isRecord(node)) return;
+      const nodeId = readString(node.id);
+      const nodeLabel = readString(node.name);
+      if (nodeId && nodeLabel) nodeLabels.set(nodeId, nodeLabel);
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    nodes.forEach(visit);
+  };
+
+  const collectRows = (rows: unknown, estimateId: string | null, estimateLabel: string, nodeLabels: Map<string, string>) => {
+    if (!Array.isArray(rows)) return;
+    for (const row of rows) {
+      if (!isRecord(row)) continue;
+      const rowId = readString(row.id);
+      if (!rowId) continue;
+      if (estimateId) rowEstimateIds.set(rowId, estimateId);
+      const nodeId = readString(row.nodeId) ?? readString(row.node_id);
+      const label =
+        (nodeId ? nodeLabels.get(nodeId) : null) ??
+        readString(row.areaName) ??
+        readString(row.area_name) ??
+        readString(row.description) ??
+        readString(row.material) ??
+        estimateLabel;
+      rowLabels.set(rowId, label);
+    }
+  };
 
   for (const estimate of snapshotJson.estimates) {
     if (!isRecord(estimate)) continue;
@@ -42,34 +86,81 @@ export function createSharedLinkTargetLabelMap(snapshotJson: Json | null | undef
     if (estimateId) estimateLabels.set(estimateId, estimateLabel);
 
     const nodeLabels = new Map<string, string>();
-    if (Array.isArray(estimate.nodes)) {
-      for (const node of estimate.nodes) {
-        if (!isRecord(node)) continue;
-        const nodeId = readString(node.id);
-        const nodeLabel = readString(node.name);
-        if (nodeId && nodeLabel) nodeLabels.set(nodeId, nodeLabel);
-      }
-    }
+    collectNodeLabels(estimate.nodes, nodeLabels);
+    collectNodeLabels(estimate.treeNodes, nodeLabels);
+    collectNodeLabels(estimate.tree_nodes, nodeLabels);
 
-    if (Array.isArray(estimate.rows)) {
-      for (const row of estimate.rows) {
-        if (!isRecord(row)) continue;
-        const rowId = readString(row.id);
-        if (!rowId) continue;
-        const nodeId = readString(row.nodeId) ?? readString(row.node_id);
-        const label =
-          (nodeId ? nodeLabels.get(nodeId) : null) ??
-          readString(row.areaName) ??
-          readString(row.area_name) ??
-          readString(row.material) ??
-          readString(row.description) ??
-          estimateLabel;
-        rowLabels.set(rowId, label);
+    collectRows(estimate.rows, estimateId, estimateLabel, nodeLabels);
+
+    if (Array.isArray(estimate.tabs)) {
+      for (const tab of estimate.tabs) {
+        if (!isRecord(tab)) continue;
+        collectNodeLabels(tab.treeNodes, nodeLabels);
+        collectNodeLabels(tab.tree_nodes, nodeLabels);
+        collectRows(tab.rows, estimateId, estimateLabel, nodeLabels);
       }
     }
   }
 
-  return { estimateLabels, rowLabels };
+  return { estimateLabels, rowLabels, rowEstimateIds };
+}
+
+function normalizeSharedLinkTargetKind(value: unknown, fallback: SharedLinkTargetKind): SharedLinkTargetKind {
+  if (value === "row" || value === "estimate" || value === "proposal") return value;
+  return fallback;
+}
+
+export function resolveSharedLinkStoredTargetMetadata(
+  labels: TargetLabelMap,
+  input: SharedLinkStoredTargetInput,
+): {
+  targetKind: SharedLinkTargetKind;
+  targetLabel: string;
+  targetSecondaryLabel?: string;
+} {
+  const fallbackKind: SharedLinkTargetKind = input.row_id ? "row" : input.estimate_id ? "estimate" : "proposal";
+  const targetKind = normalizeSharedLinkTargetKind(input.target_kind, fallbackKind);
+  const fallbackLabel = resolveSharedLinkTargetLabel(labels, input.row_id, input.estimate_id);
+  const targetLabel =
+    readString(input.target_label) ??
+    fallbackLabel ??
+    (targetKind === "row" ? "Selected line item" : targetKind === "estimate" ? "Selected estimate" : "the proposal");
+  const targetSecondaryLabel =
+    readString(input.target_secondary_label) ??
+    (targetKind === "row" && input.estimate_id ? labels.estimateLabels.get(input.estimate_id) : undefined);
+
+  return {
+    targetKind,
+    targetLabel,
+    ...(targetSecondaryLabel ? { targetSecondaryLabel } : {}),
+  };
+}
+
+export function validateSharedLinkReviewTarget(
+  labels: TargetLabelMap,
+  input: Pick<SharedLinkStoredTargetInput, "estimate_id" | "row_id">,
+): { estimateId: string | null; rowId: string | null } {
+  const estimateId = readString(input.estimate_id);
+  const rowId = readString(input.row_id);
+
+  if (estimateId && !labels.estimateLabels.has(estimateId)) {
+    throw new Error("Invalid review target: selected estimate is not part of this publication.");
+  }
+
+  if (!rowId) {
+    return { estimateId, rowId: null };
+  }
+
+  const rowEstimateId = labels.rowEstimateIds.get(rowId);
+  if (!labels.rowLabels.has(rowId) || !rowEstimateId) {
+    throw new Error("Invalid review target: selected line item is not part of this publication.");
+  }
+
+  if (estimateId && rowEstimateId !== estimateId) {
+    throw new Error("Invalid review target: selected line item does not belong to the selected estimate.");
+  }
+
+  return { estimateId: estimateId ?? rowEstimateId, rowId };
 }
 
 function readStringRecordMap(value: unknown) {
@@ -88,14 +179,16 @@ export function createSharedLinkTargetLabelsJson(snapshotJson: Json | null | und
   return {
     estimateLabels: Object.fromEntries(labels.estimateLabels),
     rowLabels: Object.fromEntries(labels.rowLabels),
+    rowEstimateIds: Object.fromEntries(labels.rowEstimateIds),
   };
 }
 
 export function createSharedLinkTargetLabelMapFromLabelsJson(labelsJson: Json | null | undefined): TargetLabelMap {
-  if (!isRecord(labelsJson)) return { estimateLabels: new Map(), rowLabels: new Map() };
+  if (!isRecord(labelsJson)) return { estimateLabels: new Map(), rowLabels: new Map(), rowEstimateIds: new Map() };
   return {
     estimateLabels: readStringRecordMap(labelsJson.estimateLabels),
     rowLabels: readStringRecordMap(labelsJson.rowLabels),
+    rowEstimateIds: readStringRecordMap(labelsJson.rowEstimateIds),
   };
 }
 

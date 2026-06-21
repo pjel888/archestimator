@@ -4,26 +4,13 @@ import { after } from "next/server";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import { ShareContainer } from "@/components/share/ShareContainer";
-import SharePageTabs from "@/components/share/SharePageTabs";
-import SharePageComments from "@/components/share/SharePageComments";
-import SharePageDecision from "@/components/share/SharePageDecision";
 import SharePageHero from "@/components/share/SharePageHero";
-import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
 import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
 import { SharePageRecipientSessionInitializer } from "@/components/share/SharePageRecipientSessionInitializer";
+import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
 import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
 
-/* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
- * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
- *   code-review-graph__get_affected_flows_tool, code-review-graph__get_minimal_context_tool, code-review-graph__query_graph_tool,
- *   code-review-graph__semantic_search_nodes_tool (and related).
- * - Pre-edit: get_minimal_context_tool (task="P2 spec review fixes...", changed_files=[SharePageTabs.tsx, page.tsx]) → 3375 nodes/47144 edges, risk:medium(0.70), key_entities incl. ProjectPublicationView + SharePage + shared-link tablist test.
- * - get_affected_flows_tool on same 2 files → "0 flow(s) affected by changes in 2 file(s)", affected_flows:[], total:0.
- * - get_impact_radius_tool on same → 6 direct nodes, 0 execution flows (per affected_flows); blast radius isolated to public share surface (no upstream callers in active flows).
- * - query/semantic on symbols/files confirmed limited surface (new feature symbols on branch; file-based impact used). 0 affected flows result documented before any symbol edits (ProjectPublicationView, generateMetadata, SharePage, etc.).
- * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
- */
 import {
   checkProjectPublicationEventRateLimit,
   recordProjectPublicationAnalyticsEvent,
@@ -52,13 +39,6 @@ type SharePageProps = {
   searchParams?: Promise<Record<string, string | undefined>>;
 };
 
-function formatMoney(value: number, currencyCode: string) {
-  return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
-}
-
 function ProjectPublicationView({
   recipientEmail,
   recipientToken,
@@ -80,24 +60,22 @@ function ProjectPublicationView({
           ladder lives once in ShareContainer; share-print-content stays on this wrapper. */}
       <ShareContainer className="share-print-content flex flex-col gap-5 py-6">
         <SharePageProposalHeader project={snapshot.project} />
-        <SharePageSummaryCard snapshot={snapshot} />
-        <SharePageDecision token={token} viewToken={viewToken} />
+        <section id="share-summary">
+          <SharePageSummaryCard snapshot={snapshot} />
+        </section>
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
             Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
         <SharePageHero project={snapshot.project} />
 
-        <SharePageTabs
+        <ShareReviewWorkspace
           estimates={snapshot.estimates}
           currencyCode={snapshot.project.currencyCode}
           token={token}
+          viewToken={viewToken}
         />
-        <SharePageComments token={token} viewToken={viewToken} />
-        <section className="share-print-hidden border-t border-hairline pt-3">
-          <SharedLinkActivityFeed publicationToken={token} isOwner={false} />
-        </section>
         <footer className="share-print-hidden border-t border-hairline pt-3 text-[11px] leading-[15px] text-tertiary">
-          Shared via Archestimator • Activity logged for security
+          Shared via Archestimator. Access is protected for invited recipients.
         </footer>
       </ShareContainer>
     </main>
@@ -275,9 +253,9 @@ export default async function SharePage({ params, searchParams }: SharePageProps
 
 // ============================================================================
 // P2: OpenGraph metadata for /share/[token]
-// - Title with project name (+ code)
-// - Description with sheet/row/total summary
-// Image omitted (no direct service-role Supabase query on public route).
+// Keep unfurls generic. Link-preview bots can fetch unprotected links before a
+// recipient opens them, so OG metadata must not expose project totals or client
+// names.
 // ============================================================================
 
 const protectedPublicationMetadata = {
@@ -286,6 +264,15 @@ const protectedPublicationMetadata = {
   openGraph: {
     title: "Proposal Review | Archestimator",
     description: "This proposal is password protected.",
+  },
+} satisfies Metadata;
+
+const publicPublicationMetadata = {
+  title: "Proposal Review | Archestimator",
+  description: "A client proposal is available for review.",
+  openGraph: {
+    title: "Proposal Review | Archestimator",
+    description: "A client proposal is available for review.",
   },
 } satisfies Metadata;
 
@@ -301,32 +288,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
       return protectedPublicationMetadata;
     }
 
-    const publication = await resolveProjectPublicationSnapshotByToken(token);
-    if (!publication) {
-      return { title: "Shared Link | Archestimator" };
-    }
-
-    const snap = publication.snapshot;
-    const p = snap.project;
-    const count = snap.estimateCount;
-
-    const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Proposal Review`;
-    const desc = `${count} estimate${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. Prepared for client review.`;
-
-    // OG image deliberately omitted here to avoid introducing direct
-    // `createClient` + service-role + `supabase.from("projects")` access
-    // on the public unauthenticated /share/[token] route (conflicts with
-    // baseline "do not connect Supabase until explicitly approved" and
-    // publication-repository abstraction boundary). Title + description
-    // OG remain intact using only the already-resolved snapshot data.
-    return {
-      title,
-      description: desc,
-      openGraph: {
-        title,
-        description: desc,
-      },
-    };
+    return publicPublicationMetadata;
   } catch {
     return { title: "Shared Link | Archestimator" };
   }

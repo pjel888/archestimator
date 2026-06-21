@@ -4,6 +4,13 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
+import {
+  normalizeShareReviewTarget,
+  serializeShareReviewTarget,
+  shareReviewTargetDisplay,
+  type ShareReviewTarget,
+  type ShareReviewTargetKind,
+} from "@/components/share/share-review-target";
 
 interface Comment {
   id: string;
@@ -12,6 +19,12 @@ interface Comment {
   authorName?: string;
   authorType?: "owner" | "recipient";
   created_at: string; // ISO for display
+  estimateId?: string | null;
+  rowId?: string | null;
+  targetKind?: ShareReviewTargetKind;
+  targetLabel?: string | null;
+  targetSecondaryLabel?: string | null;
+  snapshotVersionAtComment?: number | null;
   isOptimistic?: boolean;
 }
 
@@ -21,6 +34,12 @@ type LoadedComment = {
   createdAt: string;
   authorName: string;
   authorType: "owner" | "recipient";
+  estimateId?: string | null;
+  rowId?: string | null;
+  targetKind?: ShareReviewTargetKind;
+  targetLabel?: string | null;
+  targetSecondaryLabel?: string | null;
+  snapshotVersionAtComment?: number | null;
 };
 
 type CommentPostResponse = {
@@ -31,10 +50,11 @@ type CommentPostResponse = {
 interface SharePageCommentsProps {
   token: string;
   viewToken: string;
+  reviewTarget?: ShareReviewTarget;
   // publicationId not required for P6 write path
 }
 
-type QueuedComment = { body: string; ts: number };
+type QueuedComment = { body: string; ts: number; reviewTarget?: ShareReviewTarget };
 
 function readErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "";
@@ -47,11 +67,18 @@ function mapLoadedComment(comment: LoadedComment): Comment {
     authorName: comment.authorName,
     authorType: comment.authorType,
     created_at: comment.createdAt,
+    estimateId: comment.estimateId ?? null,
+    rowId: comment.rowId ?? null,
+    targetKind: comment.targetKind,
+    targetLabel: comment.targetLabel ?? null,
+    targetSecondaryLabel: comment.targetSecondaryLabel ?? null,
+    snapshotVersionAtComment: comment.snapshotVersionAtComment ?? null,
   };
 }
 
-export default function SharePageComments({ token, viewToken }: SharePageCommentsProps) {
+export default function SharePageComments({ token, viewToken, reviewTarget }: SharePageCommentsProps) {
   const { isValid } = useSharedLinkSession();
+  const activeReviewTarget = normalizeShareReviewTarget(reviewTarget);
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
   const [isLoadingComments, setIsLoadingComments] = useState(false);
@@ -63,6 +90,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
 
   const MAX = 1000;
   const remaining = MAX - draft.length;
+  const activeReviewTargetLabel = shareReviewTargetDisplay(activeReviewTarget);
 
   const announce = useCallback((msg: string) => {
     setLastAnnouncement(msg);
@@ -72,6 +100,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
   // P12: client retry (3 attempts: immediate, +2s, +5s) + offline queue (sessionStorage + reconnect auto-flush)
   // Additive to P6 optimistic UI, error states, aria, design tokens. No behavior change on first-try success.
   const QUEUE_KEY = `shared-link-pending-comments-${token}`;
+  const DRAFT_KEY = `shared-link-comment-draft-${token}`;
 
   const loadQueue = useCallback((): QueuedComment[] => {
     try {
@@ -99,6 +128,24 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
 
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const staleSnapshot = error?.toLowerCase().includes("shared page was updated") ?? false;
+
+  useEffect(() => {
+    try {
+      const savedDraft = sessionStorage.getItem(DRAFT_KEY);
+      if (savedDraft) setDraft(savedDraft.slice(0, MAX));
+    } catch {}
+  }, [DRAFT_KEY]);
+
+  useEffect(() => {
+    try {
+      if (draft.trim()) {
+        sessionStorage.setItem(DRAFT_KEY, draft);
+      } else {
+        sessionStorage.removeItem(DRAFT_KEY);
+      }
+    } catch {}
+  }, [DRAFT_KEY, draft]);
 
   const loadComments = useCallback(async (signal?: AbortSignal) => {
     if (!isValid) return;
@@ -144,6 +191,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
 
     const remaining: QueuedComment[] = [];
     for (const item of q) {
+      const targetPayload = serializeShareReviewTarget(item.reviewTarget);
       try {
         // reuse the resilient post path (will do its own 3-attempt retry)
         const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
@@ -152,7 +200,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
             "Content-Type": "application/json",
             ...createPublicationCsrfHeaders(),
           },
-          body: JSON.stringify({ body: item.body, viewToken }),
+          body: JSON.stringify({ body: item.body, viewToken, ...targetPayload }),
         });
         if (!res.ok) {
           remaining.push(item);
@@ -188,7 +236,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
     };
   }, [flushQueue, loadQueue]);
 
-  const postWithRetry = useCallback(async (bodyStr: string): Promise<Response> => {
+  const postWithRetry = useCallback(async (bodyStr: string, target: ShareReviewTarget): Promise<Response> => {
     const isTest = process.env.NODE_ENV === "test";
     const delays = isTest ? [0, 0, 0] : [0, 2000, 5000]; // real delays only in prod; tests control timing
     let lastErr: unknown = null;
@@ -204,7 +252,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
             "Content-Type": "application/json",
             ...createPublicationCsrfHeaders(),
           },
-          body: JSON.stringify({ body: bodyStr, viewToken }),
+          body: JSON.stringify({ body: bodyStr, viewToken, ...serializeShareReviewTarget(target) }),
         });
         if (res.ok) {
           setRetryStatus(null);
@@ -212,6 +260,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
         }
         const errorPayload = (await res.json().catch(() => ({}))) as { error?: string };
         lastErr = new Error(errorPayload.error || `HTTP ${res.status}`);
+        if (res.status === 409) break;
         if (attempt === 3) break;
       } catch (error: unknown) {
         lastErr = error;
@@ -233,10 +282,16 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
 
     // Optimistic add (newest at end for flat chrono feed feel)
     const tempId = `temp-${Date.now()}`;
+    const targetForSubmit = activeReviewTarget;
     const optimistic: Comment = {
       id: tempId,
       body,
       created_at: new Date().toISOString(),
+      estimateId: targetForSubmit.estimateId ?? null,
+      rowId: targetForSubmit.rowId ?? null,
+      targetKind: targetForSubmit.kind,
+      targetLabel: targetForSubmit.label,
+      targetSecondaryLabel: targetForSubmit.secondaryLabel ?? null,
       isOptimistic: true,
     };
     setComments((prev) => [...prev, optimistic]);
@@ -246,7 +301,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
     announce("Comment posted. Waiting for confirmation.");
 
     try {
-      const res = await postWithRetry(body);
+      const res = await postWithRetry(body, targetForSubmit);
 
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -272,14 +327,17 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
       if (isOffline || errorMessage.includes("fetch")) {
         // P12: queue for later (additive; existing offline hint enhanced)
         const q = loadQueue();
-        q.push({ body, ts: Date.now() });
+        q.push({ body, ts: Date.now(), reviewTarget: targetForSubmit });
         saveQueue(q);
         setPendingCount(q.length);
         setError("You appear to be offline. Comment queued — will retry on reconnect.");
       } else {
-        const msg = errorMessage.includes("rate") || errorMessage.includes("429")
-          ? "Rate limit reached. Slow down and try again."
-          : "Failed to post comment. Please try again.";
+        const msg = /snapshot|stale|changed/i.test(errorMessage)
+          ? "This shared page was updated while you were writing. Your draft is preserved. Refresh to post against the latest version."
+          : errorMessage.includes("rate") || errorMessage.includes("429")
+            ? "Rate limit reached. Slow down and try again."
+            : "Failed to post comment. Please try again.";
+        if (/snapshot|stale|changed/i.test(errorMessage)) setDraft(body);
         setError(msg);
       }
       announce("Failed to post comment.");
@@ -287,7 +345,7 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
       setIsPosting(false);
       setRetryStatus(null);
     }
-  }, [draft, isValid, isPosting, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
+  }, [activeReviewTarget, draft, isValid, isPosting, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== "Enter" || e.shiftKey) return;
@@ -316,6 +374,9 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
           <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
           <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
             {comments.length} comment{comments.length === 1 ? "" : "s"} • visible to the project team
+          </p>
+          <p className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+            Applies to {activeReviewTargetLabel}
           </p>
         </div>
         {comments.length > 0 ? (
@@ -360,6 +421,12 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
                   {c.authorName || c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {c.isOptimistic ? " (sending...)" : ""}
                 </div>
+                {c.targetLabel ? (
+                  <div className="mt-1 inline-flex max-w-full rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 text-[11px] leading-[15px] tracking-normal text-secondary">
+                    <span className="truncate">{c.targetLabel}</span>
+                    {c.targetSecondaryLabel ? <span className="ml-1 truncate text-tertiary">· {c.targetSecondaryLabel}</span> : null}
+                  </div>
+                ) : null}
                 <div className="mt-0.5 whitespace-pre-wrap break-words">{c.body}</div>
               </li>
             ))}
@@ -374,9 +441,15 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
         {error && (
           <div className="mb-2 rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[12px] tracking-normal text-danger" role="alert">
             {error}
-            <Button variant="ghost" size="sm" className="ml-2" onClick={() => setError(null)}>
-              Dismiss
-            </Button>
+            {staleSnapshot ? (
+              <Button variant="ghost" size="sm" className="ml-2" onClick={() => window.location.reload()}>
+                Refresh
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" className="ml-2" onClick={() => setError(null)}>
+                Dismiss
+              </Button>
+            )}
           </div>
         )}
 
@@ -386,6 +459,10 @@ export default function SharePageComments({ token, viewToken }: SharePageComment
             {retryStatus ? retryStatus : `${pendingCount} comment${pendingCount > 1 ? "s" : ""} queued — will retry on reconnect`}
           </div>
         )}
+
+        <div className="mb-2 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+          Applies to {activeReviewTargetLabel}
+        </div>
 
         <textarea
           value={draft}
