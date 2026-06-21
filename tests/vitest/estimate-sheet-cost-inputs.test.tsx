@@ -75,6 +75,40 @@ function createDataTransferStub(initialDropEffect = "none") {
   };
 }
 
+function renderExpressReplacementSheet() {
+  const expressRow = {
+    ...estimateLibraryItems[0],
+    id: "express-row-1",
+    material: "Express Sink",
+    source: "project" as const,
+    sourceLibraryItemId: null,
+    linkState: "unlinked" as const,
+    metadata: withExpressComponentMetadata({}, { id: "express-component-1" }),
+  };
+  const targetRow = {
+    ...estimateLibraryItems[1],
+    id: "target-row-1",
+    material: "Library Target",
+  };
+  const expressTree: EstimateTreeNode[] = [
+    {
+      id: "express-area",
+      name: "Express Area",
+      kind: "area",
+      total: "PHP 0.00",
+      estimateRowItems: [expressRow, targetRow],
+      children: [],
+    },
+  ];
+  renderEstimateSheet("express-area", { nodes: expressTree });
+
+  return {
+    expressRow,
+    expressCell: screen.getByLabelText("Express Sink replaceable estimate component"),
+    targetCell: screen.getByLabelText("Library Target replaceable estimate component"),
+  };
+}
+
 afterEach(() => {
   cleanup();
   resetEstimateWorkspaceState();
@@ -557,7 +591,7 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("kitchen");
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    const palette = screen.getByRole("dialog", { name: "Command palette" });
+    const palette = await screen.findByRole("dialog", { name: "Command palette" });
     fireEvent.change(screen.getByLabelText("Command palette search"), { target: { value: "LED Downlight" } });
     fireEvent.keyDown(palette, { key: "Enter" });
 
@@ -706,43 +740,42 @@ describe("estimate sheet cost inputs", () => {
     expect(within(targetRow as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
   });
 
-  it("blocks express row replace and move before optimistic metadata clobber", () => {
-    const expressRow = {
-      ...estimateLibraryItems[0],
-      id: "express-row-1",
-      material: "Express Sink",
-      source: "project" as const,
-      sourceLibraryItemId: null,
-      linkState: "unlinked" as const,
-      metadata: withExpressComponentMetadata({}, { id: "express-component-1" }),
-    };
-    const targetRow = {
-      ...estimateLibraryItems[1],
-      id: "target-row-1",
-      material: "Library Target",
-    };
-    const expressTree: EstimateTreeNode[] = [
-      {
-        id: "express-area",
-        name: "Express Area",
-        kind: "area",
-        total: "PHP 0.00",
-        estimateRowItems: [expressRow, targetRow],
-        children: [],
-      },
-    ];
-    renderEstimateSheet("express-area", { nodes: expressTree });
-
-    const expressCell = screen.getByLabelText("Express Sink replaceable estimate component");
+  it("replaces an express row with a dragged library component", async () => {
+    const { expressRow, expressCell } = renderExpressReplacementSheet();
     const libraryDrop = createDataTransferStub("none");
     libraryDrop.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(estimateLibraryItems[2]));
     fireEvent.dragOver(expressCell, { dataTransfer: libraryDrop });
     fireEvent.drop(expressCell, { dataTransfer: libraryDrop });
 
-    expect(screen.getByLabelText("Express Sink replaceable estimate component")).toBeInTheDocument();
-    expect(screen.queryByLabelText(`${estimateLibraryItems[2].material} replaceable estimate component`)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Express Sink replaceable estimate component")).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(`${estimateLibraryItems[2].material} replaceable estimate component`)).toBeInTheDocument();
+    expect(screen.getByLabelText(`${estimateLibraryItems[2].material} quantity`)).toHaveValue(expressRow.quantity);
+  });
 
-    const targetCell = screen.getByLabelText("Library Target replaceable estimate component");
+  it("replaces an express row with a moved sheet component and clears the source row", async () => {
+    const { expressCell, targetCell } = renderExpressReplacementSheet();
+    const sourceRow = targetCell.closest("tr");
+    const targetRowElement = expressCell.closest("tr");
+    expect(sourceRow).not.toBeNull();
+    expect(targetRowElement).not.toBeNull();
+
+    const moveDrop = createDataTransferStub("none");
+    fireEvent.dragStart(within(targetCell).getByRole("button", { name: "Drag component Library Target" }), { dataTransfer: moveDrop });
+    fireEvent.dragOver(expressCell, { dataTransfer: moveDrop });
+    fireEvent.drop(expressCell, { dataTransfer: moveDrop });
+
+    await waitFor(() => {
+      expect(within(sourceRow as HTMLElement).getByLabelText("Component name")).toHaveValue("");
+      expect(within(targetRowElement as HTMLElement).getByLabelText("Library Target replaceable estimate component")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("Express Sink replaceable estimate component")).not.toBeInTheDocument();
+  });
+
+  it("does not move an express source component into another row", () => {
+    const { expressCell, targetCell } = renderExpressReplacementSheet();
+
     const moveDrop = createDataTransferStub("none");
     fireEvent.dragStart(within(expressCell).getByRole("button", { name: "Drag component Express Sink" }), { dataTransfer: moveDrop });
     fireEvent.dragOver(targetCell, { dataTransfer: moveDrop });

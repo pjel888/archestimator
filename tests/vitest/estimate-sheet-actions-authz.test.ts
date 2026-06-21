@@ -249,7 +249,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
   });
 
-  it("replaceEstimateRowItemWithLibrary blocks express rows before wholesale replacement", async () => {
+  it("replaceEstimateRowItemWithLibrary replaces express rows through the history RPC", async () => {
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
       if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
@@ -269,12 +269,24 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
     rpcSpy.mockImplementation((fn: string) => {
       if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
+      if (fn === "replace_estimate_row_item_with_history") return Promise.resolve({ data: null, error: null });
       return Promise.resolve({ data: null, error: null });
     });
 
-    await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).rejects.toThrow(
-      /express component rows cannot be replaced/i,
-    );
-    expect(rpcSpy).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
+    await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).resolves.toBeUndefined();
+
+    const replaceCall = rpcSpy.mock.calls.find(([fn]) => fn === "replace_estimate_row_item_with_history") as [string, { replacement_payload: Record<string, unknown> }] | undefined;
+    expect(replaceCall?.[1]).toMatchObject({
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: ROW_ID,
+      expected_row_revision: 1,
+      replacement_payload: expect.objectContaining({
+        sourceLibraryItemId: libraryItem.id,
+        material: libraryItem.material,
+        linkState: "linked-clean",
+      }),
+    });
+    expect(replaceCall?.[1].replacement_payload.metadata).not.toHaveProperty("expressComponent");
   });
 });
