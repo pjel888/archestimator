@@ -4397,6 +4397,32 @@ export type Database = {
         }
         Returns: string
       }
+      reserve_security_rate_limit_slot: {
+        Args: {
+          p_expires_at: string
+          p_key_hash: string
+          p_metadata_json?: Json
+          p_scope: string
+          p_window_start: string
+        }
+        Returns: boolean
+      }
+      replace_project_publication: {
+        Args: {
+          p_activity_target_labels_json: Json
+          p_encrypted_token: string
+          p_expires_at?: string | null
+          p_location_visibility: "exact" | "locality" | "hidden"
+          p_password_hash?: string | null
+          p_published_by: string
+          p_selected_estimate_ids: string[]
+          p_snapshot_json: Json
+          p_token_hash: string
+          target_project_id: string
+          target_workspace_id: string
+        }
+        Returns: string
+      }
       unlink_estimate_row_item_from_library_with_history: {
         Args: {
           acting_user_id?: string

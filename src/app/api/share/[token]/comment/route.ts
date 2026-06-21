@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import {
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
@@ -108,6 +110,27 @@ function readSessionPayload(value: string | undefined) {
 
 function readErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function scheduleOwnerDigest(publicationId: string, token: string, kind: "comment" | "decision") {
+  const run = async () => {
+    try {
+      const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
+      await maybeTriggerSharedLinkActivityDigest(publicationId, token, kind);
+    } catch (error) {
+      console.error("[share] deferred owner digest failed", {
+        error: readErrorMessage(error, "digest-send-failed"),
+        kind,
+        publicationId,
+      });
+    }
+  };
+
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
 }
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
@@ -315,11 +338,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     });
     recordSuccess();
 
-    // P8: best-effort lightweight owner email digest (rate-limited 1/15min inside helper). Non-blocking for receiver.
-    try {
-      const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
-      maybeTriggerSharedLinkActivityDigest(access.publicationId, token, "comment");
-    } catch {}
+    // P8/D9: best-effort owner email digest. `after()` keeps the public POST fast while
+    // still letting Next drain the async send/log work instead of abandoning a raw promise.
+    scheduleOwnerDigest(access.publicationId, token, "comment");
 
     return Response.json({ id, comment, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {

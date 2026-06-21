@@ -568,29 +568,18 @@ export async function createProjectPublication({
   const token = createPublicationToken();
   const clientLinkPath = `/share/${token}`;
 
-  await context.admin
-    .from("project_publications")
-    .update({
-      status: "revoked",
-      revoked_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("project_id", context.project.id)
-    .eq("status", "published");
-
-  const { error } = await context.admin.from("project_publications").insert({
-    workspace_id: context.project.workspace_id,
-    project_id: context.project.id,
-    token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
-    encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
-    password_hash: password ? await hashPublicationPassword(password) : null,
-    snapshot_json: snapshot,
-    activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
-    location_visibility: normalizedLocationVisibility,
-    selected_estimate_ids: resolvedEstimateIds,
-    snapshot_version: (latest?.snapshot_version ?? 0) + 1,
-    published_by: context.currentUserId,
-    expires_at: expiresAt ?? null,
+  const { error } = await callPublicationRpc<string>(context.admin, "replace_project_publication", {
+    target_workspace_id: context.project.workspace_id,
+    target_project_id: context.project.id,
+    p_token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
+    p_encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
+    p_password_hash: password ? await hashPublicationPassword(password) : null,
+    p_snapshot_json: snapshot,
+    p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
+    p_location_visibility: normalizedLocationVisibility,
+    p_selected_estimate_ids: resolvedEstimateIds,
+    p_published_by: context.currentUserId,
+    p_expires_at: expiresAt ?? null,
   });
 
   if (error) throw error;
@@ -1379,25 +1368,18 @@ async function reservePublicationDigestSlot(
   const scope = "publication_digest";
   const keyHash = hashPublicationRateLimitKey(scope, [publicationId]);
   const windowStart = new Date(now - DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString();
+  const expiresAt = new Date(now + DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString();
 
-  const { count, error: countError } = await admin
-    .from("security_rate_limit_events")
-    .select("id", { count: "exact", head: true })
-    .eq("scope", scope)
-    .eq("key_hash", keyHash)
-    .gte("occurred_at", windowStart);
-  if (countError) throw countError;
-  if ((count ?? 0) >= 1) return false;
-
-  const { error: insertError } = await admin.from("security_rate_limit_events").insert({
-    scope,
-    key_hash: keyHash,
-    metadata_json: { route: "publication_digest", kind } as Json,
-    expires_at: new Date(now + DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString(),
+  const { data, error } = await callPublicationRpc<boolean>(admin, "reserve_security_rate_limit_slot", {
+    p_scope: scope,
+    p_key_hash: keyHash,
+    p_window_start: windowStart,
+    p_expires_at: expiresAt,
+    p_metadata_json: { route: "publication_digest", kind } as Json,
   });
-  if (insertError) throw insertError;
+  if (error) throw error;
 
-  return true;
+  return Boolean(data);
 }
 
 async function recordPublicationDigestLog({
