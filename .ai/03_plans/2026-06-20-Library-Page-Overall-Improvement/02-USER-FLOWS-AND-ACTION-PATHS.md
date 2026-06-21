@@ -23,7 +23,7 @@ Target path:
 
 1. Search result or recent card routes to `/workshop/library/components?component=<id>` (canonical param per `13-DATA-CONTRACTS-ROUTE-CACHE.md`; `<id>` = `cost_library_items.id`).
 2. Components route (`LibraryPageClient.tsx` -> `ComponentLibraryManager.tsx`) reads `?component=<id>` and opens the inspector dock (`ComponentInspectorDock.tsx`) for that item.
-3. The card is highlighted, scrolled into view, and focus lands on the inspector heading or the close/edit action.
+3. The card is highlighted, scrolled into view, and focus lands on the inspector heading or the close/edit action. Visual (doc 35): the selected card adopts the glass selected state (`data-project-card-selected="true"` over `.workshop-project-card-glass` in Phase 2, `border-accent ring-1 ring-accent` on paper in Phase 1); the inspector dock renders as a floating `estimate-glass-rail` (`inspectorDock` slot).
 4. Back returns to Overview with the search state or at least route history intact.
 5. Closing the inspector removes only `component` from the URL.
 
@@ -64,6 +64,7 @@ Target path:
 - Add clear-all and per-facet reset.
 - Make selected component state URL-driven and shareable via `?component=<id>`.
 - Add dense list/table mode (Phase 5; net-new — no density toggle exists yet) reusing `src/lib/workshop/virtualization-flags.ts` (`WORKSHOP_VIRTUALIZATION_FLAGS` + `@tanstack/react-virtual`).
+- Visual (doc 35): the Components tab becomes a glass workspace — `estimate-glass-well` canvas, floating `estimate-glass-rail` tree/inspector rails, `estimate-glass-paper` centre, `estimate-glass-chrome` sticky header — via the `librarySurfaceClass(variant, slot)` slot system (Phase 1 skeleton). Catalogue cards promote to content-grade `.workshop-project-card-glass` in Phase 2; the Phase-5 dense mode must hold card-glass geometry at dense row heights (glass slots degrade to `--glass-bg-fallback` when `data-glass="ready"` is unset; jsdom never asserts blur).
 
 Inline states:
 
@@ -104,6 +105,7 @@ Target path:
   - Lifecycle and activity.
 - Replace the native dirty-discard confirm with the text-prompt dialog pattern (inline `ConfirmDialog` from `src/components/ui/overlays/confirm-dialog.tsx`), matching the migrated pattern in `TemplatesBrowseManager.tsx`.
 - Preserve focus return to the opener and restore draft state only when intentionally supported.
+- Visual (doc 35): per the overlay rule, modals keep a crisp paper interior (one blur per region, on the scrim only) so the form fields stay legible — Quick Add and the Advanced modal are NOT frosted panels; `BlurModal` is reserved for the rare single-blur case. The opener toolbar's primary action is a warm-glass CTA (`.dashboard-glass-warm`) / liquid button (`.workshop-liquid-button`).
 
 Inline states:
 
@@ -203,6 +205,7 @@ Target path:
 - Replace the move text entry with the creatable combobox primitive `src/components/ui/creatable-combobox.tsx` (supports existing groups plus create-new) — this is the scaling fix for an already-DS dialog, not a native-prompt migration.
 - Add a template trust summary when templates contain component-backed rows. Template trust counts (dependency count, missing-link, source-changed, archived/discontinued dependencies) are a COMPUTED JOIN over `estimate_template_row_items.source_library_item_id` / `link_state`, not stored fields; there is NO `last_reviewed`/`reviewed_at` column, so any "last reviewed" cue re-scopes to `estimate_templates.updated_at` or is gated behind the Data Migration Gate in `13-DATA-CONTRACTS-ROUTE-CACHE.md`.
 - Keep preview in dock, not modal, because users compare while browsing.
+- Visual (doc 35): the Templates tab adopts the same glass family as the Components tab (`workspaceWell`/`treeRail`/`centerColumn`/`sheetHeader` slots) in Phase 1; gallery rows stay paper through Phase 4 and promote to content-grade `.workshop-project-card-glass` in Phase 5 (one blur per region; chips are flat soft-fill spans on the glass, never nested glass).
 
 Inline states:
 
@@ -270,6 +273,7 @@ Target path:
 - Show source/trust chips for component-backed rows, bound to real columns/helpers: `pricing_date` freshness via `getComponentPricingFreshness` and `getStalenessTone`/`getStalenessLabel` (`success | warning | danger`); `lifecycle_state` (`draft | in_production | available | discontinued | archived`); `confidence` (free-text label).
 - Add source-change indicators using `estimate_template_row_items.link_state` (`unlinked | linked-clean | linked-overridden | detached | source-changed`); "missing source" is a DERIVED UI state when the source item is deleted, not an enum value. "Stale" is PRICING freshness only; link drift uses "source-changed".
 - Keep the `ConfirmDialog` add/rename/delete pattern as the model for the component folder actions in Flow 4.
+- Visual (doc 35): the editor work surface is an `estimate-glass-well` with a floating `estimate-glass-paper` centre and a sticky `estimate-glass-chrome` header; **editable rows/fields stay paper** (`bg-white`) inside the glass paper so text editing stays crisp, and drop zones are translucent `bg-surfaceMuted/50` (no extra blur). Trust chips render as flat soft-fill spans on the glass paper, never nested glass.
 
 Inline states:
 

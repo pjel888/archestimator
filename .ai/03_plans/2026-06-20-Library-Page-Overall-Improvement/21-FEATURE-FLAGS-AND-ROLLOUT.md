@@ -42,21 +42,74 @@ Consequence: "toggle without redeploy" is NOT free. Flipping a `NEXT_PUBLIC_*` v
 | Pattern to reuse | `express-components.ts` shape: exported name const per flag + `readFeatureFlag(value, fallback)` with injectable `env` seam. | Release lead | 0A | n/a | n/a | EV-RELEASE-01 | n/a | n/a | n/a | n/a | n/a | n/a | `src/lib/estimates/express-components.ts` |
 | Grouped reader | `getLibraryFeatureFlags(env?)` returning typed `LibraryFeatureFlags` object. | Release lead | 0A | n/a | n/a | EV-RELEASE-01 | n/a | n/a | n/a | n/a | n/a | n/a | `src/lib/component-library/feature-flags.ts` |
 
+### Pattern to mirror (quoted from `src/lib/collaboration/feature-flags.ts`)
+
+The new `src/lib/component-library/feature-flags.ts` module mirrors this exact shape so an
+implementer need not open the pattern file. `readFlag` normalizes truthy/falsy env strings and
+returns `boolean | null` (null = unset); each accessor defaults via `??`:
+
+```ts
+function readFlag(value: string | undefined): boolean | null {
+  if (value === undefined) return null;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "on", "true", "yes", "enabled"].includes(normalized)) return true;
+  if (["0", "off", "false", "no", "disabled"].includes(normalized)) return false;
+  return null;
+}
+
+// Per-flag accessor: default via ?? (false = safe off posture for all Library flags)
+export function isLibraryDenseModeEnabled(): boolean {
+  return readFlag(process.env.NEXT_PUBLIC_LIBRARY_DENSE_MODE) ?? false;
+}
+// ...one accessor per flag; `express-components.ts` uses an injectable `env` seam
+// (readFeatureFlag(value, fallback)) for testability — mirror that for unit tests.
+```
+
+Each Library flag accessor defaults `?? false` (beta-safe off posture). The grouped reader
+returns the typed `LibraryFeatureFlags` object over the same env reads.
+
 ---
 
 ## 4. Flag registry (normalized naming)
 
+Each flag is a **build-time env var** (house pattern, §2); flipping any one requires a Vercel
+env change + redeploy. **All rollback cells mean "fix-forward via redeploy previous env value
+(~5 min), NOT instant kill" (resolves C-010).** A genuine runtime kill-switch is Phase-later
+(§13). The `Owner` column matches §5 lane-specific verification (Release lead owns rollout
+posture only).
+
 | Env key | Accessor | Surface | Phase | Beta default | Stable default | Owner | Toggled via | Rollback |
 |---|---|---|---|---|---|---|---|---|
-| `NEXT_PUBLIC_LIBRARY_COMPONENT_DEEP_LINK` | `isLibraryComponentDeepLinkEnabled()` | `?component=<id>` route state, overview-to-component continuity, inspector deep-link | 0B/1 | off | on | Release lead | Vercel env + redeploy | redeploy flag=false |
-| `NEXT_PUBLIC_LIBRARY_QUICK_ADD` | `isLibraryQuickAddEnabled()` | Quick Add trigger and required-field path | 3 | off | on | Release lead | Vercel env + redeploy | redeploy flag=false |
-| `NEXT_PUBLIC_LIBRARY_TRUST_CHIPS` | `isLibraryTrustChipsEnabled()` | Trust chips on overview/recent/template rows + inspector + insert + template trust summary | 2/4 | off | on | Release lead | Vercel env + redeploy | redeploy flag=false |
-| `NEXT_PUBLIC_LIBRARY_FOLDER_DIALOGS` | `isLibraryFolderDialogsEnabled()` | Folder create/rename/delete text-prompt dialogs (replaces native prompts) | 0B | off | on | Release lead | Vercel env + redeploy | redeploy flag=false (legacy prompts remain behind flag branch) |
-| `library_dense_mode` (no own env; reads `WORKSHOP_VIRTUALIZATION_FLAGS`) | `isLibraryDenseModeEnabled()` | Card/dense view toggle and dense table/list | 5 | off | on | Release lead | Vercel env (virtualization vars) + redeploy | redeploy virtualization vars=false |
-| `library_virtualization_enabled` (reads `WORKSHOP_VIRTUALIZATION_FLAGS`) | `isLibraryVirtualizationEnabled()` | List virtualization reuse (`@tanstack/react-virtual`) | 5 | off | on | Release lead | Vercel env (virtualization vars) + redeploy | redeploy virtualization vars=false |
+| `NEXT_PUBLIC_LIBRARY_COMPONENT_DEEP_LINK` | `isLibraryComponentDeepLinkEnabled()` | `?component=<id>` route state, overview-to-component continuity, inspector deep-link | 0B/1 | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
+| `NEXT_PUBLIC_LIBRARY_QUICK_ADD` | `isLibraryQuickAddEnabled()` | Quick Add trigger and required-field path | 3 | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
+| `NEXT_PUBLIC_LIBRARY_TRUST_CHIPS` | `isLibraryTrustChipsEnabled()` | Trust chips on overview/recent/template rows + inspector + insert + template trust summary | 2/4 | off | on | Backend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
+| `NEXT_PUBLIC_LIBRARY_FOLDER_DIALOGS` | `isLibraryFolderDialogsEnabled()` | Folder create/rename/delete text-prompt dialogs (replaces native prompts) | 0B | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward; legacy prompts remain behind flag branch) |
+| `NEXT_PUBLIC_LIBRARY_DENSE_MODE` | `isLibraryDenseModeEnabled()` | Card/dense view toggle and dense table/list | 5 | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
+| `NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED` | `isLibraryVirtualizationEnabled()` | List virtualization reuse (`@tanstack/react-virtual`) | 5 | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
+
+> **Naming normalization (resolves C-004):** `library_dense_mode` and
+> `library_virtualization_enabled` are **independent** build-time env flags with **separate**
+> env keys (`NEXT_PUBLIC_LIBRARY_DENSE_MODE` and
+> `NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`), each defaulting `off`. Earlier drafts showed
+> `library_dense_mode` as "no own env; reads `WORKSHOP_VIRTUALIZATION_FLAGS`" — that was
+> conceptually broken (it left dense mode with no independent lever and made the
+> dense-on/virtualization-off combination unreachable). The two flags now have their own env
+> keys so all four combinations in `16` §4 (dense × virtualization) are addressable. Dense
+> mode can render with or without virtualization; virtualization can render in card or dense
+> mode. The dense accessor no longer derives from `WORKSHOP_VIRTUALIZATION_FLAGS` — it reads
+> its own env. Virtualization still reuses the `@tanstack/react-virtual` machinery from
+> `src/lib/workshop/virtualization-flags.ts`, but is gated by its own Library env var, not the
+> workshop-wide virtualization const.
+
+> **Phantom-flag notice (release-blocking defect, reconciled here):** docs 06 and 18 earlier
+> referenced a `library_overlays_v2` flag for Phase 5 (`ADV-MOBILE-BROWSE`). That flag is
+> **registered NOWHERE** — not in `src/`, not in this registry, not in docs 19/26 (verified by
+> `rg "library_overlays_v2"`). It is a phantom reference. Doc 18 `ADV-MOBILE-BROWSE` now uses
+> `library_dense_mode` (the real Phase 5 flag); doc 06 already corrected the same way. There
+> is **no** `library_overlays_v2` flag and there must not be one — if a distinct overlay flag
+> is ever needed, register it here FIRST, then reference it.
 
 Notes:
-- `library_dense_mode` and `library_virtualization_enabled` are INDEPENDENT (resolves C-004). Dense mode can render with or without virtualization. See `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md` for the 4 combinations and fallback ladder.
 - Beta default `off` means: ship code behind a flag that is unset in production until the phase gate passes; enable in preview/staging first.
 - Stable default `on` is the eventual posture; once a flag is on in production and stable for the cleanup window, remove it.
 
@@ -64,13 +117,20 @@ Notes:
 
 ## 5. Per-flag verification rows
 
-| Flag | Verification command | Pass condition | Owner | Phase | Evidence | Telemetry | Copy | A11y | Perf | Browser-proof | i18n | Binding |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `library_component_deep_link` | `bun run test:dom` route-state tests + `bun run test:e2e e2e/workshop-library-routes.spec.ts` | `?component=<id>` opens inspector when on; URL param parsed and ignored harmlessly when off. | Frontend lead | 0B/1 | EV-FRONTEND-01 | `library_find_*` | `library.search.*` | focus-visible | see `30` | Playwright | key-based | `src/components/workshop/LibraryPageClient.tsx` |
-| `library_quick_add` | `bun run test:dom` quick-add validation + `bun run test:e2e` save flow | Quick Add trigger visible and save succeeds when on; hidden and full `AddComponentModal` path used when off. | Frontend lead | 3 | EV-FRONTEND-08 | `quick_add_*` | `quick_add.*` | see `31` | n/a | Playwright | key-based | `src/components/workshop/component-library-manager/AddComponentModal.tsx` |
-| `library_trust_chips` | `bun run test:dom` chip-render assertions + `bun run test:e2e` screenshot | Chips render over real columns when on; existing card/row hierarchy shown when off; real stale/source-changed warnings unaffected. | Backend lead | 2/4 | EV-BE-04 | `trust_chip_*` | `trust.*.label` | see `31` | n/a | Playwright | key-based | `src/components/workshop/library/component-facet-filter.tsx:61` |
-| `library_folder_dialogs` | `bun run test:dom` overlay focus tests + `bun run test:e2e` folder CRUD | Text-prompt dialogs used when on; legacy native prompts used only as emergency fallback when off. | Frontend lead | 0B | EV-FRONTEND-02 | n/a | `folder.*` | alertdialog, focus-trap | n/a | Playwright | key-based | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1493` |
-| `library_dense_mode` + `library_virtualization_enabled` | `bun run test:e2e` narrow-viewport browse + perf measurements | Dense toggle and table render within `30` budget when on; card grid only when off. | Frontend lead | 5 | EV-FRONTEND-09 | n/a | `dense_mode.*` | see `31` | see `30` | Playwright | key-based | `src/lib/workshop/virtualization-flags.ts` |
+Each row names the **on-pass** and **off-pass** (rollback-confirmation) criterion: a flag is
+only verified when BOTH the on-state behaves and the off-state (flip back) reverts cleanly to
+the documented off behavior. **Rollback confirmation = the off-pass**, run after any flag flip
+in either direction, recorded under the flag's EV row in
+`24-EXECUTION-EVIDENCE-LEDGER.md`.
+
+| Flag | Verification command (on + off) | On-pass condition | Off-pass (rollback confirmation) | Owner | Phase | Evidence | Telemetry | Copy | A11y | Perf | Browser-proof | i18n | Binding |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `library_component_deep_link` | `bun run test:dom` route-state tests + `bun run test:e2e e2e/workshop-library-routes.spec.ts` | `?component=<id>` opens inspector when on | URL param parsed and ignored harmlessly when off; broad route renders; no stranded fetch | Frontend lead | 0B/1 | EV-FRONTEND-01 | `library_find_*` | `library.search.*` | focus-visible | see `30` | Playwright | key-based | `src/components/workshop/LibraryPageClient.tsx` |
+| `library_quick_add` | `bun run test:dom` quick-add validation + `bun run test:e2e` save flow | Quick Add trigger visible and save succeeds when on | trigger hidden; full `AddComponentModal` advanced path used | Frontend lead | 3 | EV-FRONTEND-08 | `quick_add_*` | `quick_add.*` | see `31` | n/a | Playwright | key-based | `src/components/workshop/component-library-manager/AddComponentModal.tsx` |
+| `library_trust_chips` | `bun run test:dom` chip-render assertions + `bun run test:e2e` screenshot | Chips render over real columns when on | existing card/row hierarchy shown; real stale/source-changed warnings still present | Backend lead | 2/4 | EV-BE-04 | `trust_chip_*` | `trust.*.label` | see `31` | n/a | Playwright | key-based | `src/components/workshop/library/component-facet-filter.tsx:61` |
+| `library_folder_dialogs` | `bun run test:dom` overlay focus tests + `bun run test:e2e` folder CRUD | Text-prompt dialogs used when on | legacy native prompts used as emergency fallback only | Frontend lead | 0B | EV-FRONTEND-02 | n/a | `folder.*` | alertdialog, focus-trap | n/a | Playwright | key-based | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1493` |
+| `library_dense_mode` (`NEXT_PUBLIC_LIBRARY_DENSE_MODE`) | `bun run test:e2e` narrow-viewport browse + perf measurements (all 4 combos from `16` §4) | dense toggle + table render within `30` budget (PROVISIONAL until 0A per C-015) when on | toggle + dense table gone; card grid only; `library_virtualization_enabled` state untouched (independent key) | Frontend lead | 5 | EV-FRONTEND-09 | `dense_mode_rendered` | `dense_mode.*` | see `31` | see `30` | Playwright | key-based | `src/lib/workshop/virtualization-flags.ts` |
+| `library_virtualization_enabled` (`NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`) | `bun run test:e2e` large-list perf (dense-on/virt-off is the riskiest combo) | list virtualizes within `30` budget when on | de-virtualizes to full DOM; `library_dense_mode` state untouched (independent key) | Frontend lead | 5 | EV-FRONTEND-09 | `dense_mode_rendered` | n/a | see `31` | see `30` | Playwright | key-based | `src/lib/workshop/virtualization-flags.ts` |
 
 ---
 
@@ -107,16 +167,27 @@ Notes:
 | Evidence | EV-BE-04 |
 | Binding | `src/components/workshop/library/component-facet-filter.tsx:61` |
 
-### `library_dense_mode` + `library_virtualization_enabled`
+### `library_dense_mode` (`NEXT_PUBLIC_LIBRARY_DENSE_MODE`)
 
 | Field | Value |
 |---|---|
-| Gates | Net-new card/dense view toggle and dense table/list (roadmap `LIB-P5-01`, doc 12). `library_dense_mode` decides whether the dense surface ships; `library_virtualization_enabled` decides whether the list virtualizes. |
-| Off behavior | Components tab renders card grid only; no dense toggle shown. Estimate-tree/rows virtualization flags unaffected. |
-| Perf gate | Must pass `30-PERF-BUDGET-AND-REGRESSION-GATES.md` 500-row budget or ship documented fallback before prod-on. |
-| Rollback | redeploy virtualization env vars=false |
+| Gates | Net-new card/dense view toggle and dense table/list (roadmap `LIB-P5-01`, doc 12). Decides whether the dense surface ships. |
+| Off behavior | Components tab renders card grid only; no dense toggle shown. Estimate-tree/rows virtualization flags unaffected (independent env var). |
+| Perf gate | Must pass `30-PERF-BUDGET-AND-REGRESSION-GATES.md` 500-row budget (PROVISIONAL until Phase 0A baseline per C-015) or ship documented fallback before prod-on. |
+| Rollback | redeploy `NEXT_PUBLIC_LIBRARY_DENSE_MODE=false` (fix-forward, ~5 min per C-010) |
 | Evidence | EV-FRONTEND-09 |
-| Binding | `src/lib/workshop/virtualization-flags.ts` |
+| Binding | `src/lib/workshop/virtualization-flags.ts` (reuses the dense-table render path; the flag now has its own env key, not a derivation from `WORKSHOP_VIRTUALIZATION_FLAGS`) |
+
+### `library_virtualization_enabled` (`NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`)
+
+| Field | Value |
+|---|---|
+| Gates | List virtualization reuse (`@tanstack/react-virtual`) for dense or large card lists. Independent of dense mode — virtualization can run in card mode too. |
+| Off behavior | Lists render full DOM; estimate-tree/rows virtualization flags unaffected. |
+| Perf gate | Same `30` 500-row gate; the dense-on/virtualization-off combination is the riskiest and must be measured (see `16` §4 four-combination matrix). |
+| Rollback | redeploy `NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED=false` (fix-forward, ~5 min per C-010) |
+| Evidence | EV-FRONTEND-09 |
+| Binding | `src/lib/workshop/virtualization-flags.ts` (reuses `@tanstack/react-virtual`; gated by its own Library env var) |
 
 ### `library_folder_dialogs`
 
@@ -165,7 +236,7 @@ Rollout rule: a flag goes prod-on only after its phase gate in `05-IMPLEMENTATIO
 | Step | Action | Owner | Evidence |
 |---|---|---|---|
 | 1 | Flag prod-on and stable for one full release cycle with no kill-switch usage and no open trust/perf regression. | Release lead | EV-RELEASE-02 |
-| 2 | Delete env var read, accessor, and `else` branch. For `library_folder_dialogs`, finally delete legacy `window.prompt`/`window.confirm` calls and tighten grep guard to unconditional. | Release lead | EV-RELEASE-02 |
+| 2 | Delete env var read, accessor, and `else` branch. For `library_folder_dialogs`, finally delete legacy `window.prompt`/`window.confirm` calls and tighten grep guard to unconditional. **Record the flag-deletion commit hash in `24-EXECUTION-EVIDENCE-LEDGER.md` under EV-RELEASE-02, with the `rg` output proving zero residual references to the deleted env var / accessor** (e.g. `rg "NEXT_PUBLIC_LIBRARY_DENSE_MODE" src .env.example` returns nothing). | Release lead | EV-RELEASE-02 |
 | 3 | Update `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` event names if any carried a flag dimension. | Telemetry lead | EV-TELEMETRY-01 |
 | 4 | Remove env var from Vercel and `.env.example` / `scripts/check-vercel-env-readiness.ts`. | Release lead | EV-RELEASE-02 |
 | 5 | Record removal in `.ai/10_state/decisions.md`. | Planning lead | EV-PLAN-07 |
@@ -177,9 +248,9 @@ Rollout rule: a flag goes prod-on only after its phase gate in `05-IMPLEMENTATIO
 | Field | Value |
 |---|---|
 | Who flips | Philip (owner) or delegated lane lead with Vercel project access |
-| Where | Vercel project env (`NEXT_PUBLIC_LIBRARY_*` vars; dense/virtualization flags flip via `NEXT_PUBLIC_*_VIRTUALIZATION` vars) |
+| Where | Vercel project env (`NEXT_PUBLIC_LIBRARY_*` vars — incl. `NEXT_PUBLIC_LIBRARY_DENSE_MODE` and `NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`, each its own key) |
 | How | Set var to `off`/`0`/`false` for affected environment, then trigger redeploy so Next re-inlines it |
-| Latency | Redeploy time (minutes), NOT instant |
+| Latency | Redeploy time (minutes), NOT instant — this is a **fix-forward** rollback, not an instant kill (resolves C-010). A genuine runtime (no-redeploy) kill-switch does not exist today; it is a Phase-later item (§13). |
 | Blast radius | Global for affected environment; no per-user/per-workspace partition |
 | Reverts to | Flag's documented off behavior |
 
@@ -201,7 +272,8 @@ Rollout rule: a flag goes prod-on only after its phase gate in `05-IMPLEMENTATIO
 | `library_component_deep_link` | inspector deep-links and overview-search continuity stop | broad route navigation; in-tab click still opens inspector |
 | `library_quick_add` | Quick Add trigger disappears | full `AddComponentModal` advanced path |
 | `library_trust_chips` | new trust chips/summary disappear | existing card/row hierarchy; safe payload retained; real warnings unaffected |
-| `library_dense_mode` (virtualization vars off) | dense table/toggle disappears or de-virtualizes | card grid only; estimate tree/rows virtualization unaffected unless those same vars flipped |
+| `library_dense_mode` (`NEXT_PUBLIC_LIBRARY_DENSE_MODE`) | dense table/toggle disappears (flipping dense off does NOT touch virtualization — independent keys) | card grid only; virtualization may still run in card mode if its own flag is on; estimate tree/rows virtualization unaffected |
+| `library_virtualization_enabled` (`NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`) | list de-virtualizes to full DOM render | full-DOM list; dense toggle unaffected (its own key); estimate tree/rows virtualization unaffected |
 | `library_folder_dialogs` | new folder text-prompt dialogs disappear | legacy native `window.prompt`/`window.confirm` folder actions (emergency only) |
 
 ---
@@ -241,7 +313,30 @@ Owner: Backend lead | Phase: 0B | Evidence: EV-BE-11 | Binding: `src/lib/compone
 
 ---
 
-## 13. Cross-references
+## 13. Phase-later: runtime kill-switch (Postgres-backed flag store)
+
+Today every Library flag is a build-time env var: flipping it requires a Vercel env change +
+redeploy (fix-forward, ~5 min — see §4 / §10). This is honest for closed beta. A **runtime**
+(no-redeploy) kill-switch is explicitly **Phase-later** — it is NOT built in phases 0A–5 and
+must not be implied as available. Tracked here so the gap is visible, not silent.
+
+| Field | Value |
+|---|---|
+| Scope | a Postgres-backed per-workspace/per-environment flag store read at request time (server) + a `NEXT_PUBLIC_*`-derived client default, enabling instant kill without redeploy |
+| Why deferred | closed beta has a controlled user set; the ~5 min fix-forward redeploy is acceptable. A runtime store is new infra (table + RLS + read path + cache invalidation) and is not justified at beta scale |
+| Owner | Release lead + Backend lead (design), Planning lead (scope decision) |
+| Phase | Phase-later (post-stable, not in 0A–5) |
+| Evidence | EV-RELEASE-PHASE-LATER (registered when scoped) |
+| Pre-requisites | must NOT reintroduce the cache-bleed pattern — a runtime flag read is workspace-scoped or environment-global, never a shared un-scoped key (cf. `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` defect, doc 13 §251) |
+| Telemetry | a flag-state-change event (`library_flag_toggled` with `{flag, from, to, actor}`) must emit to the prod sink (Phase-later sink per C-009) |
+| Rollback | the runtime store itself is revertible; build-time env vars remain the floor (env value still wins if the store is unavailable) |
+
+This row exists so an incident responder does not assume an instant kill-switch exists today.
+Until this ships, the §10 kill-switch runbook (fix-forward redeploy) is the only mechanism.
+
+---
+
+## 14. Cross-references
 
 - `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md` — rollback rows this doc makes concrete.
 - `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` — authoritative names, enums, query keys, phase map.

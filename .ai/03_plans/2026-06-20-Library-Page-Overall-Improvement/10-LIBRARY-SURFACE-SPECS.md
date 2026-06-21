@@ -5,23 +5,41 @@
 > the keystone disagree, the keystone wins. Phase labels use the canonical phase
 > map (0A Contract Lock, 0B Overlay & Route-State Reliability, 1 Findability, 2
 > Source Trust, 3 Quick Add, 4 Templates, 5 Dense Mode & Polish).
+>
+> **Visual layer:** this doc owns the DATA/state/action spec for each surface.
+> The **material + grid layer** for every surface is in
+> `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` — the "Glass material (35)" column in
+> §Surface-to-File Map is the one-line pointer; read 35 for the full glass slot
+> system, grids, overlays, motion, and AA-on-glass contract. Trust chips render
+> on glass/paper cards without their own blur (35 §4.3).
+>
+> **Relaxed per-row scope (C-018):** the per-surface sections here are spec
+> paragraphs, not 12-dimension execution rows. Under the relaxed scope of
+> `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3, Owner/Rollback/Telemetry/etc. apply
+> to implementation tasks, acceptance gates, and high-risk contract rows; the
+> acceptance-gate rows for dense mode (§Dense Component Row "Done-when") and the
+> Error-State Matrix carry copy + telemetry pointers, while informational rows
+> delegate to docs 27/17/20/24.
 
 ## Surface-to-File Map
 
 Every region in this doc binds to a real file. No region is path-less. Net-new
-regions are marked; everything else is EXTENDED in place, not rebuilt.
+regions are marked; everything else is EXTENDED in place, not rebuilt. The
+"Glass material" column is a one-line pointer to the material/grid layer in
+`35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` — read it as the authoritative visual
+treatment; this doc owns the data/state/action layer.
 
-| Region | Real file(s) | Status |
-|--------|--------------|--------|
-| Component Card | `src/components/workshop/component-library/ComponentCard.tsx`; recent variant `src/components/workshop/library/overview/RecentComponentCard.tsx` | extend |
-| Dense Component Row | net-new (no dense/table view exists today; Phase 5) | net-new |
-| Component Inspector | `src/components/workshop/library/ComponentInspectorDock.tsx` (315 ln) | extend |
-| Quick Add Component | `src/components/workshop/component-library-manager/AddComponentModal.tsx` (2359 ln) — split a quick-add path; advanced edit lives in `src/components/workshop/library/EditComponentDrawer.tsx` | extend / split |
-| Advanced Component Edit | `src/components/workshop/library/EditComponentDrawer.tsx` | extend |
-| Folder Management | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx` (create `:1493`, rename `:1515`, delete `:1534`) | extend |
-| Template Card/Row | `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx` | extend |
-| Template Preview / Insert | resolver `resolveEstimateTemplateInsertTarget` (`src/lib/component-library/actions.ts`); picker `InsertIntoEstimatePicker.tsx` (`Modal`) | extend |
-| Overview surface | `src/components/workshop/library/overview/LibraryOverview.tsx`; search `LibraryOverviewSearch.tsx` | extend |
+| Region | Real file(s) | Status | Glass material (35) |
+|--------|--------------|--------|---------------------|
+| Component Card | `src/components/workshop/component-library/ComponentCard.tsx`; recent variant `src/components/workshop/library/overview/RecentComponentCard.tsx` | extend | slot `catalogueCard`: paper in Phase 1 → `.workshop-project-card-glass` Phase 2 (35 §4.2, §12.6) |
+| Dense Component Row | net-new (no dense/table view exists today; Phase 5) | net-new | slot `stickyHead` `estimate-glass-headchrome` (Phase 5); rows on the glass paper (35 §4.2, §12.7) |
+| Component Inspector | `src/components/workshop/library/ComponentInspectorDock.tsx` (315 ln) | extend | slot `inspectorDock` → `estimate-glass-rail` (desktop ≥lg); narrow = glass `InspectorDrawer` (35 §4.6, §12.8) |
+| Quick Add Component | `src/components/workshop/component-library-manager/AddComponentModal.tsx` (2359 ln) — split a quick-add path; advanced edit lives in `src/components/workshop/library/EditComponentDrawer.tsx` | extend / split | Modal = paper panel (35 §5); CTA tile = `.dashboard-glass-warm` (35 §4.2, §12.9) |
+| Advanced Component Edit | `src/components/workshop/library/EditComponentDrawer.tsx` | extend | `Sheet`/`Drawer` = single glass panel; editable fields stay paper inside (35 §4.6, §5, §12.8) |
+| Folder Management | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx` (create `:1493`, rename `:1515`, delete `:1534`) | extend | tree rail = `treeRail` slot `estimate-glass-rail` (35 §4.2); prompts = paper `ConfirmDialog` (35 §5) |
+| Template Card/Row | `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx` | extend | slot `galleryRow`: paper Phase 1-4 → `.workshop-project-card-glass` Phase 5 (35 §4.4, §12.7) |
+| Template Preview / Insert | resolver `resolveEstimateTemplateInsertTarget` (`src/lib/component-library/actions.ts`); picker `InsertIntoEstimatePicker.tsx` (`Modal`) | extend | Modal = paper panel (35 §5); creatable-combobox + target disclosure inside |
+| Overview surface | `src/components/workshop/library/overview/LibraryOverview.tsx`; search `LibraryOverviewSearch.tsx` | extend | bento board on `estimate-glass-well`; tiles via `DashboardGlassPanel` {warm/glass/plain} (35 §3.4, §4.1, §12.4) |
 
 ## What Already Exists (extend, do not rebuild)
 
@@ -44,6 +62,13 @@ primitives to reuse:
   `COMPONENT_FACET_STALE_DAYS=90`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS=90`
   (`component-library-repository.ts:827`), and the hardcoded "90 days" UI string
   (`LibraryOverview.tsx:114`). See keystone for the single-source-of-truth note.
+- **Freshness is 4-tier beta scope (C-021):** the binding canonical freshness is
+  `fresh` / `stale` / `very stale` / `missing`. The 3-tier
+  `fresh/stale/missing` above describes the **current** helper return; the
+  180-day `very stale` tier is implemented in **Phase 2** as a helper-layer
+  extension to `getComponentPricingFreshness` (`component-facet-filter.tsx:61`) +
+  `getStalenessTone`/`getStalenessLabel` (`helpers.ts:667`/`:675`) + the THREE
+  90-day constants — **no schema change**. Extend in lockstep, never diverge.
 
 ## Overview
 
@@ -100,12 +125,15 @@ keystone Data Layer; payload list in `13-DATA-CONTRACTS-ROUTE-CACHE.md`):
 State rules:
 
 - price and unit stay visually adjacent
-- freshness badge sits near price; the STATUS (`fresh | stale | missing`) comes
-  from `getComponentPricingFreshness`, tone via `getStalenessTone` ->
-  `success | warning | danger`. `getStalenessLabel` supplies only the recency
-  TEXT (`<n>d ago` / `Recent` / null), not the freshness status itself.
+- freshness **chip** sits near price; the STATUS (`fresh | stale | very stale | missing`,
+  the 4-tier beta scope per C-021) comes from `getComponentPricingFreshness`,
+  tone via `getStalenessTone` -> `success | warning | danger`. `getStalenessLabel`
+  supplies only the recency TEXT (`<n>d ago` / `Recent` / null), not the freshness
+  status itself. (Per C-002 the term is **chip**, not "badge".)
 - distinct labels exist for each real state, not invented ones:
-  - pricing freshness: `fresh` / `stale` / `missing` (no `pricing_date`)
+  - pricing freshness: `fresh` / `stale` / `very stale` / `missing` (no
+    `pricing_date`); the 4th `very stale` (180-day) tier lands in Phase 2 as a
+    helper-layer extension — no schema change
   - lifecycle: all FIVE `component_lifecycle_state` values —
     `draft`, `in_production`, `available`, `discontinued`, `archived`
     (there is NO "Active"; map prior "Active" -> `available`)
@@ -123,14 +151,16 @@ State rules:
   the inspector not-found state and does not highlight any card.
 - card actions are permission-aware (hidden/disabled for `viewer` role)
 
-Visual treatment for trust labels (badge tone, chip shape, z-tier) maps to
-`23-DESIGN-SYSTEM-COMPONENT-MAPPING.md`; the label strings map to
-`22-COPY-DECK-AND-MICROCOPY.md` -> "Trust Badge Labels And Tooltips" (the
-Freshness / Confidence / Lifecycle / Link-Snapshot tables), keyed by canonical
-STATE NAME (e.g. "Very stale", "No price date", "source-changed"), NOT by a
-`trust.*` dotted key — doc 22 stores trust copy as state-name table rows, not a
-dotted-key namespace. The Dense Row freshness/confidence cells and the Inspector
-trust state bind to the SAME state-name rows.
+Visual treatment for trust labels (chip tone, chip shape, z-tier) maps to
+`23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` (and, for chips on glass, 35 §4.3 —
+chips are flat soft-fill spans with no `backdrop-filter` of their own); the label
+strings map to `22-COPY-DECK-AND-MICROCOPY.md` -> "Trust Badge Labels And
+Tooltips" (the Freshness / Confidence / Lifecycle / Link-Snapshot tables), keyed
+by canonical STATE NAME (e.g. "Very stale", "No price date", "source-changed"),
+NOT by a `trust.*` dotted key — doc 22 stores trust copy as state-name table
+rows, not a dotted-key namespace. The Dense Row freshness/confidence cells and
+the Inspector trust state bind to the SAME state-name rows. Per C-002 the trust
+element is a **chip**, not a "badge".
 
 ## Dense Component Row
 
@@ -167,11 +197,71 @@ Rules:
 - use native table semantics for read-mostly rows
 - use ARIA grid only if cells become directly editable or row navigation cannot
   be represented by normal table/buttons/links (a11y assertions are manual
-  ARIA/focus tests in Testing Library — there is no jest-axe harness; see
-  `12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md`)
+  ARIA/focus tests in Testing Library — there is no jest-axe harness today; per
+  C-014 `jest-axe` is a Phase-0A deliverable; see
+  `12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md`). Measurable gate: **ARIA
+  grid ONLY when a cell becomes `contentEditable`** or grid navigation is
+  essential; otherwise stay native `<table>`.
 - all row actions must be keyboard reachable
 - result count and applied-filter chips remain visible above the table (the
   applied-filter chips + reset + count/scope strip are Phase 1 Findability work)
+
+Done-when (Phase 5 dense mode — C-018 acceptance gate):
+
+- the card/dense **display-mode toggle** ships (it does NOT exist today — net-new)
+  and persists via the existing `viewMode` preference shape (`"compact" | "detailed" | "grid"`
+  in `component-library/helpers.ts:664`); do not add a new pref key.
+- ≥1 sortable column with a defined default sort key; selection is wired to
+  `BulkActionToolbar.tsx` (shared primitive `ui/bulk-action-toolbar.tsx`) with a
+  single-range vs additive model chosen.
+- a dense-mode empty-state copy key is pulled from
+  `22-COPY-DECK-AND-MICROCOPY.md` §Empty and Error States.
+- **Performance budget links:** dense list virtualization reuses
+  `src/lib/workshop/virtualization-flags.ts` (`WORKSHOP_VIRTUALIZATION_FLAGS` +
+  `@tanstack/react-virtual`) — NO second virtualizer. Virtualization engages only
+  past a threshold measured from the Phase-0A seed baseline
+  (`scripts/seed-performance-test-data.ts`, which today does NOT seed
+  `cost_library_items` — Phase 0A must extend it and measure before any budget
+  number is claimed; budgets are PROVISIONAL until then per C-015, final in
+  `30-PERF-BUDGET-AND-REGRESSION-GATES.md`). Flag: `library_virtualization_enabled`
+  (build-time env, bool, default false — gates virtualization only; independent of
+  dense mode per C-004). Rollback: remove the toggle, force card view (build-time
+  flag = redeploy previous env per C-010).
+
+## Error-State Matrix
+
+Every failure state below binds to its doc-22 copy key (state-name table row,
+not a dotted key) and its doc-20 telemetry event, so each row is
+12-dimension-complete under the relaxed scope (C-018 — these are acceptance-gate
+states, so they carry copy + telemetry pointers). The "Glass material" column
+points to the 35 §4.7 treatment: empty/error/loading render as **paper** panels
+centred on the glass well/paper — never nested glass cards.
+
+| Surface | Failure state | Cause | User-facing action | Copy key (22) | Telemetry (20) | Glass material (35) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Overview | page-level data failure | overview fetch error | page-level retry | `error.load_failed` + retry CTA | `library.overview.load_failed` | paper panel on glass well (35 §4.7) |
+| Overview | empty library | no components/templates | starter CTA | `empty_library_starter` | `library.overview.empty` | paper panel on glass well (35 §4.7) |
+| Overview | permission denied | `viewer` role (read-only) | surface read-only affordance | `permission_denied_viewer` | `library.permission.denied` | paper panel on glass well (35 §4.7) |
+| Component Card / Dense Row | stale pricing | `pricing_date` aged (fresh → stale → very stale) | warn, allow reuse | chip state-name rows (`Price stale` / `Price very stale`) | `library.chip.rendered{tone}` | chip on glass/paper card (35 §4.3) |
+| Inspector | invalid id | `?component=<id>` unresolved | inspector not-found | `inspector_not_found` | `library.inspector.open_failed{reason=invalid_id}` | paper not-found panel (35 §4.7) |
+| Inspector | permission denied | `viewer` write action | hide/disable write actions | `permission_denied_viewer` | `library.permission.denied` | glass rail (35 §4.6) |
+| Inspector | deleted after load | source row deleted post-open | inspector not-found | `inspector_not_found` | `library.inspector.open_failed{reason=deleted}` | paper not-found panel (35 §4.7) |
+| Inspector | network retry | transient fetch error | retry | `error.retry` | `library.inspector.open_failed{reason=network}` | glass rail (35 §4.6) |
+| Inspector | stale data changed after open | divergence after open | re-prompt / refresh | `source_changed` | `library.inspector.source_changed` | glass rail (35 §4.6) |
+| Quick Add | duplicate-ish | name+category+supplier match | non-blocking warning, "Create anyway" | `duplicate_warning` (22) | `library.quick_add.duplicate_warned` | paper Modal (35 §5) |
+| Template Insert | partial failure | some rows failed to insert | show failures, allow partial | `insert_partial_failure` | `library.template.insert_partial` | paper Modal (35 §5) |
+| Template Insert | stale target | target estimate changed | re-resolve via `resolveEstimateTemplateInsertTarget` | `insert_stale_target` | `library.template.insert_stale_target` | paper Modal (35 §5) |
+
+Notes:
+
+- "stale" in this matrix is **pricing freshness only** (glossary); link/snapshot
+  drift uses the `source-changed` term, never "stale".
+- Copy keys above are pointers into `22-COPY-DECK-AND-MICROCOPY.md` §Empty and
+  Error States + §Trust Badge Labels And Tooltips (state-name rows); pull the
+  exact strings from there, do not invent inline copy.
+- Telemetry events point into `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md`; for
+  closed beta the sufficient sink is `console.warn` (C-009) — prod sink is
+  Phase-later.
 
 ## Component Inspector
 
@@ -237,9 +327,9 @@ File: split a quick-add path out of
 `src/components/workshop/component-library-manager/AddComponentModal.tsx` (2359
 ln). Phase 3 (Add/Edit Component Flow Split). Persists via the existing
 `createCostLibraryComponent` server action (`src/lib/component-library/actions.ts`
--> RPC `create_cost_library_component`). No schema change — every field below is
-an existing `cost_library_items` column, so this does NOT violate the `00-PLAN.md`
-"no schema changes" non-goal.
+-> RPC `create_cost_library_component`). **No schema change (C-011)** — every
+field below is an existing `cost_library_items` column and all validation is
+app-layer, so this does NOT violate the `00-PLAN.md` "no schema changes" non-goal.
 
 Purpose: capture reusable data without forcing an advanced editor.
 
@@ -257,14 +347,20 @@ Optional fields:
 - `pricing_source`
 - `confidence` — FREE TEXT (`string | null`), not an enum and not a controlled
   vocabulary. A controlled vocabulary would need a migration and is DEFERRED. The
-  UI derives a label/badge over the free-text value; do not present a fixed
-  confidence picker.
+  UI derives a label/**chip** over the free-text value; do not present a fixed
+  confidence picker. (Per C-002 the term is **chip**, not "badge".)
 - `libraryFolderId` — OPTIONAL; defaults to the currently selected folder.
 
 Rules:
 
 - inline validation on the four required fields
-- duplicate-ish warning (name/category/supplier near-match)
+- duplicate warning: triggers when a `cost_library_items` row in the same
+  workspace matches on `lowercased(trim(name))` AND `category` AND (`supplier` OR
+  `brand`). Display as a **non-blocking** inline warning with a "Create anyway"
+  action; debounce the check 300 ms after the name field loses focus. The check
+  is a **client filter over the already-loaded rows library** (no server-side
+  duplicate-check action exists — keystone 19 lists none); Phase 3. C-011: no
+  schema change, app-layer validation only.
 - permission-aware trigger (hidden for `viewer`; write guarded by
   `is_workspace_editor`)
 - app-owned dirty-discard confirmation REPLACES the native

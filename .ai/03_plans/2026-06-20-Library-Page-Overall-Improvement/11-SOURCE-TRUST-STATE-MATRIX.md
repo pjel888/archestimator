@@ -28,10 +28,10 @@ distinct: `getComponentPricingFreshness(item, now)`
 (`component-facet-filter.tsx:61`) returns a STATUS
 (`"fresh" | "stale" | "missing"`), while `getStalenessTone(pricingDate?)`
 (`component-library/helpers.ts:667`) returns a TONE
-(`"success" | "warning" | "danger" | undefined`) for badge styling. Recency TEXT
+(`"success" | "warning" | "danger" | undefined`) for chip styling. Recency TEXT
 comes from `getStalenessLabel(pricingDate?)` (`component-library/helpers.ts:675`,
 returns `"<n>d ago" | "Recent" | null`) — it is a label, not a status, so never
-say a freshness/status badge comes "via `getStalenessLabel`". See doc 19
+say a freshness/status chip comes "via `getStalenessLabel`". See doc 19
 "Confidence and Freshness Models" for the full helper binding.
 
 Tone tokens map to design-system semantic tokens via `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md`;
@@ -57,7 +57,7 @@ The 90-day window lives in THREE places that must change together (doc 19):
 change must update all three plus their tests and copy together.
 
 The "Very stale" 180-day tier is **beta scope** as a fourth freshness STATUS
-(resolved in [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md) C-001). Today
+(resolved in [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md) C-001/C-021). Today
 `getComponentPricingFreshness` only emits `fresh | stale | missing`, so a distinct
 "very stale" status must be added there and the three 90-day constants extended
 with a 180-day `longWindow` in lockstep — not diverged into a fourth source of
@@ -67,11 +67,28 @@ status tier and its copy keys (`trust.very_stale.label`,
 `trust.very_stale.tooltip`, `trust.very_stale.announcement` per doc 22), not the
 tone. The table does NOT collapse; all four tiers ship for beta.
 
+### Phase-2 helper-extension binding (Very stale)
+
+The "Very stale" row is net-new code on an existing helper, not a config change.
+Implement it as follows (no schema change — app-layer only):
+
+| Step | Symbol / location | Change | Test |
+| --- | --- | --- | --- |
+| Status union | `ComponentPricingFreshness` (`component-facet-filter.tsx:17`) | add `"very_stale"` to the union (alongside `any\|fresh\|stale\|missing`) | jsdom |
+| Status branch | `getComponentPricingFreshness(item, now)` (`component-facet-filter.tsx:61`) | add a 180-day branch returning `"very_stale"` past `longWindow`; the existing 90-day `stale` branch stays | jsdom |
+| Window constant | `COMPONENT_FACET_STALE_DAYS = 90` (`component-facet-filter.tsx:12`) | introduce a sibling `COMPONENT_FACET_VERY_STALE_DAYS = 180` (or equivalent `longWindow`); the THREE 90-day sources below MUST stay in lockstep | jsdom |
+| Insert confirmation | insert pickers / inspector insert action | "Require explicit confirmation before insert" reuses the existing `ConfirmDialog` from `ui/overlays/confirm-dialog.tsx` (per keystone — do NOT invent a new primitive), gated by `library_trust_chips` | jsdom + Playwright |
+| Tone | `getStalenessTone(pricingDate?)` (`helpers.ts:667`) | already returns `danger` past 180 days (`helpers.ts:670`) — no change needed | jsdom |
+
+Flag: `library_trust_chips` (per `21-FEATURE-FLAGS-AND-ROLLOUT.md`). Rollback:
+redeploy flag=false (~5 min, fix-forward; runtime kill-switch is Phase-later per
+C-010). Evidence: EV-BE-04.
+
 ## Confidence (derived label over free text)
 
 `cost_library_items.confidence` is FREE-TEXT `string | null` today, NOT a stored
 enum (doc 19 "Confidence and Freshness Models"). The UI derives a display
-label/badge over whatever free text was entered; it must not assume a fixed set
+label/chip over whatever free text was entered; it must not assume a fixed set
 of values. A controlled vocabulary (enum or CHECK constraint) would require a
 migration and is DEFERRED behind the Data Migration Gate.
 
@@ -110,12 +127,12 @@ not here. Editor vs viewer gating uses `is_workspace_editor` (role in
 | Enum value | Meaning | Browse Behavior | Insert Behavior |
 | --- | --- | --- | --- |
 | `draft` | Incomplete / work-in-progress, not yet usable. | Visible to editors (`is_workspace_editor`); hidden from `viewer` browse by default. | Hidden from insert pickers; warn if surfaced. |
-| `in_production` | Being built / priced; not yet generally available. | Visible to editors, badged "In production". | Allowed with an "In production" warning chip. |
+| `in_production` | Being built / priced; not yet generally available. | Visible to editors, chipped "In production". | Allowed with an "In production" warning chip. |
 | `available` | Usable for new estimates (the value the prior draft mislabeled "Active"). | Normal visibility for all roles. | Allowed. |
 | `discontinued` | No longer offered; historical. | Visible only when referenced or explicitly filtered in. | Block by default; require explicit override to insert. |
 | `archived` | Hidden from default browse; recoverable via `set_cost_library_component_lifecycle_state`. | Hidden by default; visible under an "Archived" filter. | Blocked. |
 
-Tone tokens and chip copy for each lifecycle badge come from docs 23 / 22
+Tone tokens and chip copy for each lifecycle chip come from docs 23 / 22
 (`trust.lifecycle.<value>`), not hardcoded here.
 
 ## Link/Snapshot States
@@ -140,26 +157,23 @@ divergence and reserve "stale" for PRICING freshness only.
 | `source-changed` | Source `cost_library_items` row changed after the snapshot. | Show changed-fields review before update/reuse. |
 | Missing source (derived) | `source_library_item_id` does not resolve to a live row (deleted). | Show missing-source warning and recovery (re-link / detach) options. |
 
-### State transitions
+### State transitions (testable)
 
 These describe how a row moves between `link_state` values; the divergence
 detection compares the live `cost_library_items` row against `source_snapshot`.
+Each transition binds to a trigger symbol and a pass condition asserted in a test
+(jsdom unless noted). Doc 18 owns the ADV rows; doc 24 owns the pre-registered
+run.
 
-- `unlinked` -> `linked-clean`: row is inserted from a library item (insert
-  resolvers `listEstimateInsertTargets` / `resolveEstimateTemplateInsertTarget`
-  stamp `source_library_item_id` + `source_snapshot`).
-- `linked-clean` -> `linked-overridden`: user edits a linked row's local values
-  away from the snapshot.
-- `linked-clean` / `linked-overridden` -> `source-changed`: the source library
-  row's tracked fields change after the snapshot was taken (detected on read).
-- `source-changed` -> `linked-clean`: user accepts the change (snapshot
-  refreshed to current source) with no local override.
-- `source-changed` -> `linked-overridden`: user keeps local values while the
-  source has also moved.
-- any linked state -> Missing source (derived): the source row is deleted
-  (`source_library_item_id` stops resolving).
-- any linked state -> `detached`: user deliberately severs the link;
-  Missing-source can also be resolved by detaching.
+| from | to | trigger (action / symbol) | pass condition (asserted `link_state`) | test type |
+| --- | --- | --- | --- | --- |
+| `unlinked` | `linked-clean` | insert from a library item — `listEstimateInsertTargets` / `resolveEstimateTemplateInsertTarget` stamps `source_library_item_id` + `source_snapshot` | `link_state === 'linked-clean'`, snapshot matches source | jsdom + Playwright |
+| `linked-clean` | `linked-overridden` | user edits a linked row's local values away from the snapshot | `link_state === 'linked-overridden'` | jsdom |
+| `linked-clean` / `linked-overridden` | `source-changed` | source library row's tracked fields change after the snapshot was taken (detected on read) | `link_state === 'source-changed'` | jsdom |
+| `source-changed` | `linked-clean` | user accepts the change (snapshot refreshed to current source) with no local override | `link_state === 'linked-clean'`, snapshot re-matches source | jsdom |
+| `source-changed` | `linked-overridden` | user keeps local values while the source has also moved | `link_state === 'linked-overridden'` | jsdom |
+| any linked state | Missing source (derived) | source row is deleted (`source_library_item_id` stops resolving) | derived "missing source" UI; no stored enum change | jsdom |
+| any linked state | `detached` | user deliberately severs the link (Missing-source can also be resolved by detaching) | `link_state === 'detached'` | jsdom |
 
 ## Precedence (single winner)
 
@@ -178,6 +192,23 @@ so overview rows, recent rows, template rows, and the inspector all agree.
 6. Confidence: Low -> Missing -> Unrecognized passthrough.
 7. Healthy: `available` + Fresh + `linked-clean` -> no chip (or a subtle
    trusted affordance only).
+
+| Rank | Winner | ADV row (doc 18/24) |
+| --- | --- | --- |
+| 1 | Missing source (derived) | `ADV-TEMPLATE-DEP` (source row removed) |
+| 2 | Lifecycle `archived` / `discontinued` | `ADV-LIFECYCLE-INSERT` |
+| 3 | Link `source-changed`, then `linked-overridden` | `ADV-SOURCE-CHANGED` |
+| 4 | Lifecycle `draft` / `in_production` | `ADV-LIFECYCLE-INSERT` |
+| 5 | Freshness Very stale -> Stale -> Missing date | Very stale -> net-new test under `EV-BE-04`; Stale/Missing under `EV-BE-03` |
+| 6 | Confidence Low -> Missing -> passthrough | `EV-BE-04` |
+| 7 | Healthy (no chip) | implicit in `ADV-LIFECYCLE-INSERT` happy path |
+
+Precedence tests (jsdom): assert a row satisfying several ranks renders exactly
+ONE primary chip — the highest rank wins — and secondary states appear only in
+the inspector dock detail. Concretely: a `discontinued` item (rank 2) with a
+stale price (rank 5) renders the discontinued chip inline, not a competing
+freshness chip; a `source-changed` link (rank 3) on a `draft` item (rank 4)
+renders source-changed. Flag: `library_trust_chips`.
 
 Permission is enforced upstream by RLS / `is_workspace_editor`, not as a trust
 chip: a `viewer` simply does not see editor-only browse rows or insert actions,
@@ -203,6 +234,15 @@ Fields that must NOT be written into `snapshot_json`:
 - `cost_library_item_price_history` (workspace-scoped) rows
 - provider evidence attachments (`thumbnail_path` / attachment graph)
 
+Binding + test contract: the snapshot builder lives in
+`src/lib/.../activity-helpers.ts` (per keystone "Public / Share Snapshot Surface"
+and doc 14's snapshot field-selection audit). The public snapshot shows only the
+frozen label `trust.public_snapshot.label` = "Snapshot verified on {date}" (doc
+22, C-012) — trust chips are REDACTED from public/shared snapshots, live
+workspace only. Test: an assertion that a generated `snapshot_json` fixture
+contains none of `pricing_source` / `supplier` / `brand` / `confidence` / the
+derived trust label. ADV row: `ADV-PUBLIC-REDACTION` (doc 24 Phase 0A).
+
 ## Copy Guidelines
 
 All chip strings are owned by `22-COPY-DECK-AND-MICROCOPY.md` under the
@@ -224,3 +264,30 @@ Use plain labels that state the issue, mapped to the canonical states:
 Avoid vague labels like "Needs attention" unless paired with specific detail.
 Per the glossary, never call link/snapshot divergence "stale" — that word is
 reserved for pricing freshness.
+
+### Trust-chip exposure telemetry
+
+Trust impressions are coarse and per-surface, not per-row. Two events from
+`20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` §6 cover exposure (flag
+`library_trust_chips`, evidence `EV-BE-04`):
+
+| Event | When | Payload (privacy-safe) |
+| --- | --- | --- |
+| `trust_chip_rendered` | first render-per-surface of a trust chip on overview/recent/template rows + inspector + insert | `workspaceId`, `surface`, `kind`, `freshness`, `hasConfidenceLabel`, `sampled: true` |
+| `trust_chip_unclassified` | first render-per-surface where freshness is `missing` AND `hasConfidenceLabel` is false | `workspaceId`, `surface`, `kind` |
+
+`hasConfidenceLabel` is a boolean over free-text `confidence` presence (non-null,
+non-empty after trim) — the raw `confidence` string is NEVER emitted. Denominator
+for the "Trust classification 90%+" metric = `rendered / (rendered +
+unclassified)` over that exact definition. Insert-gate decisions surface as
+`insert_target_confirmed` / `insert_target_mismatch` (doc 20), not as a separate
+trust event.
+
+### Localize-ready copy-key guidance
+
+Every chip label/tooltip resolves to a copy key in doc 22 (`trust.*`,
+`lifecycle.*`, `link.*`) and a tone token in doc 23; this matrix never hardcodes
+a user-facing string. The `very_stale` tier ships the three new keys
+(`trust.very_stale.label` / `.tooltip` / `.announcement`) registered in doc 22
+§8 — they are i18n-key-based (source: doc 28) so a locale switch needs no schema
+change. Canonical term is **chip** (not badge) per C-002.

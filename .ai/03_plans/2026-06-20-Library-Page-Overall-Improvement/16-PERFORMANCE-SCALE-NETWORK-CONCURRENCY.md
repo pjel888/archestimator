@@ -30,7 +30,21 @@ Closed-beta libraries may start small, but the UI should avoid patterns that bre
 | 5,000+ backing components | Client-side filtering may exceed budget; revisit server-side/indexed path (FUTURE). | Perf lead | 5 | `library_virtualization_enabled` | server-search fallback | EV-PERF-01 | n/a | n/a | n/a | see `30` §3 | Playwright | n/a | `src/lib/workshop/virtualization-flags.ts` |
 | 10,000 components | `LIBRARY_COMPONENT_CAP = 10_000` (`actions.ts:212`, enforced via `assertWithinLibraryQuota` at `actions.ts:477`) is the existing hard cap. | Backend lead | all | n/a | raise cap only by product decision | EV-BE-06 | n/a | n/a | n/a | n/a | n/a | n/a | `src/lib/component-library/actions.ts:212` |
 
-> **Budget provenance:** every ms/KB number above is either a measured Phase 0A value stored in `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/perf/0A/` or links to the final budget table in `30-PERF-BUDGET-AND-REGRESSION-GATES.md` §3. No provisional threshold stands alone in this doc.
+> **Budget provenance (PROVISIONAL — resolves C-015):** all numeric thresholds
+> in this doc are **PROVISIONAL** and resolve to `30-PERF-BUDGET-AND-REGRESSION-GATES.md` §3.
+> **No Phase 0A measurement exists yet** (§3 is where the seed + measure happens). Until
+> `_PHASE-0A-PERF-BASELINE.md` is written, the 100 / 500 / 5,000 tiers carry **no pass/fail
+> number an engineer can assert against** — they are placeholders that the 0A baseline will
+> replace. To keep the gate testable before 0A lands, each tier carries a provisional default
+> below; these defaults are NOT budgets and are superseded the moment the 0A baseline exists.
+>
+> | Tier | Provisional default (NOT a budget) |
+> |---|---|
+> | 100 components (card mode) | initial frame ≤ 200 ms, keystroke INP ≤ 50 ms — provisional |
+> | 500 visible rows (dense mode) | initial frame ≤ 500 ms, keystroke INP ≤ 100 ms — provisional |
+> | 5,000+ backing components | client filter still usable OR documented server-search fallback — provisional |
+>
+> Final budgets live in `30` §3 once the 0A baseline replaces these placeholders.
 
 ---
 
@@ -66,6 +80,40 @@ Closed-beta libraries may start small, but the UI should avoid patterns that bre
 | Focus indicator visible on 2px outline in dense rows. | A11y lead | 5 | EV-A11Y-05 | `31` |
 | Mobile touch targets ≥ 44×44 px in dense mode. | A11y lead | 5 | EV-A11Y-05 | `31` |
 
+### Dense / virtualization flag combinations (resolves C-004)
+
+`library_dense_mode` and `library_virtualization_enabled` are **independent** build-time
+env flags (default `false` each — see `21` §4). All four combinations are addressable and
+must each be measured in Phase 0A / 5:
+
+| `library_dense_mode` | `library_virtualization_enabled` | Rendered surface | Perf risk | Owner | Phase |
+|---|---|---|---|---|---|
+| false | false | Card grid only (default). | Lowest — card count bounded by viewport. | Frontend lead | default |
+| true | false | Dense table/list, full DOM render. | Rises with row count; 500-row gate is the blocker. | Frontend lead | 5 |
+| false | true | Card grid + virtualized list (defensive). | Low; virtualization with few off-screen rows is near-free. | Frontend lead | 5 |
+| true | true | Dense table/list + `@tanstack/react-virtual`. | Intended large-list posture; reuses `WORKSHOP_VIRTUALIZATION_FLAGS`. | Frontend lead | 5 |
+
+Operator flips each via its **own** env var (see `21` §4), so dense-on / virtualization-off
+is reachable without touching the other. The fallback ladder in §8 moves a given combination
+down a rung when its tier fails.
+
+### One-blur-per-region GPU budget (cross-ref doc 35 §11)
+
+The Library glass shell (doc 35 §12, Phase 1) and content-grade card glass (Phase 2 / 5) are
+GPU-budgeted by the **one-blur-per-region** rule, not a parallel glass system. This binds the
+perf doc to the material layer:
+
+| Rule | Value | Binding |
+|---|---|---|
+| One blur per region | never stack `backdrop-filter` inside `backdrop-filter` | `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` §11; mirrors `estimate-surface-variant.tsx:21` slots |
+| Blur cap | `18px` max (`--glass-blur`) | `src/app/globals.css:110` |
+| Simultaneous glass panels | ≤ workspace shell + one drawer/modal — do NOT frost every card in Phase 1 | doc 35 §11 GPU budget |
+| Deferred arming | blur armed only after `<html data-glass="ready">` (idle + first paint) | doc 35 §11; `35` §8 |
+| Card glass posture | Phase-2 component cards / Phase-5 template cards are translucent fills (not extra blurs) unless the 0A-measured budget allows — measure in Phase 0A, see `30` | doc 35 §11 |
+
+The 0A perf baseline (§3) MUST include a glass-on vs glass-off frame-time delta at the 500-row
+tier so the GPU budget is measured, not assumed.
+
 ---
 
 ## 5. Browse payload reduction (PRIMARY perf lever, Phase 0B)
@@ -76,7 +124,7 @@ Closed-beta libraries may start small, but the UI should avoid patterns that bre
 | 2 | Widen `loadCurrentWorkspaceComponentRowsLibrary` (`actions.ts:445-448`) to accept `{ includeDetailGraph?: boolean }` and forward it, OR add a sibling lite action. Action body sits AFTER `requireCurrentUserContext()` (`:446`). | Backend lead | 0B | n/a | revert signature change | EV-BE-05 | n/a | n/a | n/a | n/a | jsdom | n/a | `src/lib/component-library/actions.ts:445` |
 | 3 | Confirm NO consumer reads versions/price history/state history/attachments off the browse `WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY` cache except `ComponentInspectorDock.tsx`. | Backend lead | 0B | n/a | n/a | EV-BE-05 | n/a | n/a | n/a | n/a | `rg` | n/a | `src/lib/component-library/query-keys.ts` |
 | 4 | `LibraryPageClient.tsx` passes `false` to the browse action. | Frontend lead | 0B | `library_component_deep_link` (route-state surface) | redeploy flag=false | EV-FRONTEND-02 | n/a | n/a | n/a | see `30` §3 | Playwright | n/a | `src/components/workshop/LibraryPageClient.tsx` |
-| 5 | Load inspector-scoped detail graph lazily when `ComponentInspectorDock.tsx` opens for a given item, keyed off `?component=<id>` route state. | Frontend lead | 0B | `library_component_deep_link` | redeploy flag=false | EV-FRONTEND-02 | n/a | `component_inspector.loading_detail` | see `31` | see `30` §3 | Playwright | key-based | `src/components/workshop/library/ComponentInspectorDock.tsx` |
+| 5 | Load inspector-scoped detail graph lazily when `ComponentInspectorDock.tsx` opens for a given item, keyed off `?component=<id>` route state. **Lazy detail load (binding):** when `?component=<id>` resolves, `ComponentInspectorDock.tsx` calls `getCurrentWorkspaceComponentRowsLibrary` filtered to that one item with `includeDetailGraph: true` (reusing the existing repository path) under a **NEW** workspace-scoped query key `workspaceComponentDetailGraphQueryKey(workspaceId, itemId)` registered in `13-DATA-CONTRACTS-ROUTE-CACHE.md` §query-keys. If the 0A sub-seed shows the rows call still over-fetches for a single item, replace it with a new `getComponentDetailGraph(itemId)` RPC (Phase-0B decision — flag in `13`); until then reuse the existing call with the scoped key. Do NOT re-fetch the whole browse list to populate the inspector. | Frontend lead | 0B | `library_component_deep_link` | redeploy flag=false | EV-FRONTEND-02 | n/a | `component_inspector.loading_detail` | see `31` | see `30` §3 | Playwright | key-based | `src/components/workshop/library/ComponentInspectorDock.tsx` |
 
 ---
 
@@ -117,10 +165,16 @@ When the Library page exceeds the Phase 0A-measured budget, choose the first app
 
 2. LCP > doc-30 target after payload reduction?
    → Yes: add route segment caching (unstable_cache with cacheTag). Re-measure.
+   → NET-NEW infrastructure: no `unstable_cache`/`cacheTag` pattern exists in
+     `src/app/workshop/library/` today; reaching this node requires an architecture
+     decision (Phase 0A/0B), not a mechanical edit.
    → Still > target? Go to step 3.
 
 3. LCP > target after caching?
    → Yes: split library overview into server-rendered summary + client-rendered detail. Re-measure.
+   → NET-NEW component split: `LibraryOverview.tsx` is a single dataset today (§1 fact 1);
+     reaching this node requires splitting it into a server summary + client detail
+     component — an architecture decision, not a mechanical step. Flag for owner sign-off.
    → Still > target? Go to step 4.
 
 4. Heap > doc-30 threshold (500 components)?
@@ -153,10 +207,10 @@ When the Library page exceeds the Phase 0A-measured budget, choose the first app
 
 | Case | Surface | Action re-run | Invalidation/refetch key | Conflict behavior | Owner | Phase | Flag | Rollback | Evidence | Telemetry | Copy | A11y | Perf | Browser-proof | i18n | Binding |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Component changed after inspector opened | `ComponentInspectorDock.tsx` | lazy detail fetch (inspector-scoped) | `?component=<id>` detail key per `13` | Compare `updated_at`; if advanced, surface conflict banner; do NOT clobber local edits. | Frontend lead | 0B | `library_component_deep_link` | redeploy flag=false | EV-FRONTEND-02 | n/a | `component_inspector.stale_after_open` | live-region | n/a | Playwright | key-based | `src/components/workshop/library/ComponentInspectorDock.tsx` |
-| Component archived/deleted after insert picker opened | Insert picker | `resolveEstimateTemplateInsertTarget` | insert-target key per `13` | Check `estimate_row_link_state` health; warn/block/allow-override. | Frontend lead | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | `insert_target_mismatch` | `insert_target.stale_target` | see `31` | n/a | Playwright | key-based | `src/lib/component-library/actions.ts` |
-| Folder renamed/deleted while dialog open | Folder dialog | `delete_library_folder` RPC | folder/tree key per `13` | Re-read tree and re-render dialog over fresh state. | Frontend lead | 0B | `library_folder_dialogs` | redeploy flag=false | EV-FRONTEND-02 | n/a | `folder.error.concurrent` | alertdialog | n/a | Playwright | key-based | `src/lib/component-library/actions.ts` |
-| Template changed after preview opened | Template preview | template-browse/editor read | template key per `13` | Recompute computed-join trust summary. | Frontend lead | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | `trust_chip_rendered` | `template.trust_summary.*` | live-region | n/a | Playwright | key-based | `src/app/workshop/library/templates/[templateId]/page.tsx` |
+| Component changed after inspector opened | `ComponentInspectorDock.tsx` | lazy detail fetch (inspector-scoped) | `?component=<id>` detail key per `13-DATA-CONTRACTS-ROUTE-CACHE.md` §224 (Mutation Cache Contract) + §Component Detail Payload | Compare `updated_at`; if advanced, surface conflict banner; do NOT clobber local edits. | Frontend lead | 0B | `library_component_deep_link` | redeploy flag=false | EV-FRONTEND-02 | n/a | `component_inspector.stale_after_open` | live-region | n/a | Playwright | key-based | `src/components/workshop/library/ComponentInspectorDock.tsx` |
+| Component archived/deleted after insert picker opened | Insert picker | `resolveEstimateTemplateInsertTarget` | insert-target key per `13-DATA-CONTRACTS-ROUTE-CACHE.md` §193 (Insert Target Contract) | Check `estimate_row_link_state` health; warn/block/allow-override. | Frontend lead | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | `insert_target_mismatch` | `insert_target.stale_target` | see `31` | n/a | Playwright | key-based | `src/lib/component-library/actions.ts` |
+| Folder renamed/deleted while dialog open | Folder dialog | `delete_library_folder` RPC | folder/tree key per `13-DATA-CONTRACTS-ROUTE-CACHE.md` §224 (Mutation Cache Contract) | Re-read tree and re-render dialog over fresh state. | Frontend lead | 0B | `library_folder_dialogs` | redeploy flag=false | EV-FRONTEND-02 | n/a | `folder.error.concurrent` | alertdialog | n/a | Playwright | key-based | `src/lib/component-library/actions.ts` |
+| Template changed after preview opened | Template preview | template-browse/editor read | template key per `13-DATA-CONTRACTS-ROUTE-CACHE.md` §167 (Template Trust Payload) | Recompute computed-join trust summary. | Frontend lead | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | `trust_chip_rendered` | `template.trust_summary.*` | live-region | n/a | Playwright | key-based | `src/app/workshop/library/templates/[templateId]/page.tsx` |
 | Estimate/project target changed after target picker opened | Insert picker | `resolveEstimateTemplateInsertTarget` | insert-target key per `13` | Re-resolve and re-guard with `rpc("can_edit_estimate",{target_estimate_id})`. | Frontend lead | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | `insert_target_mismatch` | `insert_target.permission` | see `31` | n/a | Playwright | key-based | `src/lib/component-library/actions.ts` |
 | Local unsaved changes and source updates arrive | Any editable surface | n/a | n/a | Preserve local buffer, report conflict, require explicit choice; never silently overwrite. | Frontend lead | all | n/a | git revert of auto-merge | EV-FRONTEND-11 | n/a | `*.error.concurrent` | live-region | n/a | jsdom | key-based | `03-MODALS-POPOVERS-AND-OVERLAYS.md` |
 
@@ -174,6 +228,21 @@ Default behavior for every case: refetch or report conflict (never silently acce
 | Template preview + dependency changed concurrently | `bun run test:dom` | Trust summary recomputes; stale warning appears. | Frontend lead | 4 | EV-FRONTEND-07 |
 | Local edit + source update race | `bun run test:dom` | Local buffer preserved; user must choose. | Frontend lead | all | EV-FRONTEND-11 |
 
+### High-risk mutation-overlap matrix
+
+The Library page has several mutations that can overlap on the same row / tree /
+target. These are the highest-blast-radius overlap pairs and the exact pass
+condition each must satisfy (canonical commands from keystone "Test Commands" —
+never bare `bun test`):
+
+| Overlap pair | Owning test + command | Pass condition | Owner | Phase | Evidence |
+|---|---|---|---|---|---|
+| Bulk archive (`executeBulkArchiveLibraryComponents`) while a single-component lifecycle change is in flight on the same item | `vitest run tests/vitest/library-bulk-vs-single-lifecycle.test.tsx` (net-new) | Second mutation is rejected or re-resolved; no row lands in a mixed `archived`/other state; `bulk_action_executed` and `component_lifecycle_changed` both fire with consistent final state. | Backend lead | 0B | EV-BE-12 |
+| Quick Add save (`createCostLibraryComponent`) while the parent folder is being deleted (`deleteLibraryFolder`) | `vitest run tests/vitest/library-quickadd-vs-folder-delete.test.tsx` (net-new) | Save either attaches to a surviving folder or fails with `folder.error.concurrent`; the new component is never orphaned on a deleted folder_id. | Frontend lead | 3 | EV-FRONTEND-08 |
+| Insert-into-estimate (`insertEstimateRowItemFromLibrary`) while the source component is archived mid-picker | `vitest run tests/vitest/library-insert-vs-source-archive.test.tsx` (net-new) + `ADV-XWS-ESTIMATE-TARGET` suite | `estimate_row_link_state` resolves to `source-changed`/`detached` not a silent clean insert; `insert_target_mismatch` fires. | Frontend lead | 4 | EV-FRONTEND-07 |
+| Folder rename (`renameLibraryFolder`) + folder move (`moveCostLibraryComponentToFolder`) on the same folder concurrently | `vitest run tests/vitest/library-folder-rename-vs-move.test.tsx` (net-new) | Tree re-read after both settle; no component lands under a stale folder name; RLS rejects foreign folder id. | Frontend lead | 0B | EV-FRONTEND-02 |
+| Workspace switch mid-bulk-archive | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` clears before the bulk result lands; no cross-workspace archive applied. | Backend lead | 0A | EV-18-003 |
+
 ---
 
 ## 11. Performance no-go conditions
@@ -182,15 +251,16 @@ Default behavior for every case: refetch or report conflict (never silently acce
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Dense/table mode locks up at 500-row tier | see `30-PERF-BUDGET-AND-REGRESSION-GATES.md` §3 | `bun run test:e2e` against seeded workspace reading `performance.measure("library-grid-render")` | BLOCKING (Phase 5) once 0A baseline replaces placeholder | Perf lead | 5 | `library_dense_mode` | redeploy flag=false | EV-PERF-01 | n/a | n/a | see `31` | see `30` §3 | Playwright | n/a | `src/lib/workshop/virtualization-flags.ts` |
 | Browse fetch ships full nested detail graph for grid | browse payload not reduced vs `includeDetailGraph: false` baseline | payload-byte capture true vs false | BLOCKING (Phase 0B) | Backend lead | 0B | n/a | revert to true | EV-BE-05 | n/a | n/a | n/a | see `30` §3 | Playwright | n/a | `src/lib/component-library/actions.ts:445` |
-| Query keys show old workspace data after switch | any cross-workspace bleed via un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` | cache-scope test; `bun run test:dom` | BLOCKING (today) | Backend lead | 0B | n/a | revert key-scoping change | EV-BE-10 | n/a | n/a | n/a | n/a | jsdom | n/a | `src/lib/component-library/query-keys.ts:5` |
+| Query keys show old workspace data after switch | any cross-workspace bleed via un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (still the bare `["workspace-component-library"]` literal) | cache-scope test; `bun run test:dom` — scoping fix + all-call-site migration owned by `13-DATA-CONTRACTS-ROUTE-CACHE.md` §251 (Workspace-switch cache-bleed surface BLOCKER) + `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` §Cache And Session Risks | BLOCKING (today) | Backend lead | 0B | n/a | revert key-scoping change | EV-BE-10 | n/a | n/a | n/a | n/a | jsdom | n/a | `src/lib/component-library/query-keys.ts:5` |
 | 5,000-row tier exceeds keystroke budget with no server path planned | see `30` §3 | `bun run test:e2e`; `_PHASE-0A-PERF-BASELINE.md` | BLOCKING (Phase 5) once 0A baseline replaces placeholder | Perf lead | 5 | `library_virtualization_enabled` | server-search fallback | EV-PERF-01 | n/a | n/a | n/a | see `30` §3 | Playwright | n/a | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:881` |
 | Loading/error states remove navigation context | any surface drops skeleton/retry frame or loses active folder/filter context | `bun run test:dom`; manual browser proof | BLOCKING (today) | Frontend lead | all | n/a | revert offending state change | EV-FRONTEND-10 | n/a | `*.error.network` | live-region | n/a | Playwright | key-based | `src/components/workshop/LibraryPageClient.tsx` |
 
 ---
 
-## 12. Perf artifact schema
+## 12. Perf artifact schema (repeated measurements + regression tracking)
 
-All measurements follow `30-PERF-BUDGET-AND-REGRESSION-GATES.md` §5:
+All measurements follow the single canonical schema in
+`30-PERF-BUDGET-AND-REGRESSION-GATES.md` §5:
 
 ```
 .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/perf/
@@ -199,7 +269,19 @@ All measurements follow `30-PERF-BUDGET-AND-REGRESSION-GATES.md` §5:
       <measurement-id>.json
 ```
 
-JSON schema and comparison format are canonical in `30` §5. This doc adds no duplicate schema.
+Each `<measurement-id>.json` carries the dimensions needed for **repeated
+measurement + regression tracking** (schema owned by `30` §5): `phase`, `surface`,
+`flag_combination` (one of the 4 dense × virtualization combos from §4, or
+`card-default`), `row_count` (100 / 500 / 5,000 / 10,000), `glass` (on/off — §4 GPU
+budget), `captured_at` (ISO), `git_sha`, `metrics` (initial-frame ms, keystroke INP
+ms, browse-payload bytes, parse ms), and `environment` (dev / preview / prod,
+device class). A measurement is **repeated** by writing a new file under the same
+`<surface>` with a fresh `captured_at`; regression tracking compares files within a
+`<surface>` across `captured_at`/`git_sha` (see `30` §5 comparison format).
+
+JSON schema and comparison format are canonical in `30` §5. This doc adds no
+duplicate schema; it only names the Library-specific dimension values above so
+every Library measurement is repeatable and regressible.
 
 ---
 

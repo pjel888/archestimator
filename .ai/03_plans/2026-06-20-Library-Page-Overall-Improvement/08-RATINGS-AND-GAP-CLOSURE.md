@@ -109,6 +109,29 @@ difference is the whole point:
   `24-EXECUTION-EVIDENCE-LEDGER.md` with an exact command, a concrete pass
   criterion, an owning doc, and the phase gate it unblocks.
 
+**Decision rule (single-line, C-016):** when a doc cites a readiness score for a
+go/no-go on *starting* a phase, use **Rubric A** (execution-inclusive); when
+citing *planning completeness*, use **Rubric B** (planning-achievable). Rubric B
+100/100/100 = **implementation-ready, NOT execution-complete** (residuals are
+pre-registered execution evidence, not planning gaps).
+
+### Delta log vs prior audit
+
+| Metric | Pre-audit draft | This doc (prior pass) | Doc 25 §1 (authoritative) | 2026-06-21 re-audit |
+| --- | --- | --- | --- | --- |
+| Strategy (pack-wide) | ~78% | 93% (Rubric A) / 100% (Rubric B) | 92.4% | ~82 |
+| Quality (pack-wide) | ~80% | 92% (Rubric A) / 100% (Rubric B) | 91.0% | ~78 |
+| Implementation-readiness (pack-wide) | ~70% | 91% (Rubric A) / 100% (Rubric B) | 87.5% | ~70 |
+
+The re-audit (2026-06-21) honest average is ~80 on the execution-inclusive
+Rubric A. The Rubric B 100/100/100 ceiling is a planning-achievable statement
+(implementation-ready, not execution-complete) and does not contradict the ~80;
+the two measure different things. Treat
+`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1 (and §3 honest re-scores) as the
+authoritative per-doc scores; this doc's flat "Rubric B = 100 for every doc"
+table below is the planning-achievable ceiling, and per-doc residual gaps cited
+in `25` §3 are pre-registered execution evidence, not planning gaps.
+
 | Dimension | Pre-audit | Rubric A (execution-inclusive) | Rubric B (planning-achievable) |
 | --- | ---: | ---: | ---: |
 | Strategy (pack-wide) | 78% | 93% | **100%** |
@@ -123,6 +146,13 @@ against existing `cost_library_items` columns.
 Per-doc, on Rubric B (planning-achievable), after the closure pass every doc is at
 **100**; the "residual" column is no longer an open gap but a pointer to where the
 execution evidence is pre-registered:
+
+> **Reconciliation (2026-06-21 re-audit):** this flat-100 table is the
+> planning-achievable *ceiling*. On the execution-inclusive Rubric A the same
+> docs score ~80-97 per `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1/§3 — e.g.
+> doc 11 has real open residuals (very-stale tier net-new, telemetry/i18n
+> columns) that are pre-registered execution evidence, not closed planning gaps.
+> Do not quote the flat 100 as an execution-inclusive score.
 
 | Doc | Pre-audit | Rubric B | Execution evidence pre-registered in |
 | --- | ---: | ---: | --- |

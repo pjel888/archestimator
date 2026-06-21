@@ -2,14 +2,24 @@
 
 Phase labels and order are canonical per
 `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` ("Canonical Phase Map"):
-**0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5**. Every file path, table, column, enum,
-query key, server action, RPC, and test command below is the verified on-disk
-name from doc 19; this roadmap does not restate the full binding tables — it
-references them. The old `P0` reliability bucket splits into **Phase 0A**
-(contract lock, tests-first) and **Phase 0B** (overlay + route-state work).
-Folder-prompt replacement lands in **Phase 0B (early)**, and Quick Add is
-**Phase 3** — this resolves the prior `17` slice ordering, where folder work was
-listed after Quick Add.
+**0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5** (resolves C-006 — doc 19 owns the phase
+map; this doc sequences against it and does not redefine labels). Every file
+path, table, column, enum, query key, server action, RPC, and test command below
+is the verified on-disk name from doc 19; this roadmap does not restate the full
+binding tables — it references them. The old `P0` reliability bucket splits into
+**Phase 0A** (contract lock, tests-first) and **Phase 0B** (overlay +
+route-state work). Folder-prompt replacement lands in **Phase 0B (early)**, and
+Quick Add is **Phase 3** — this resolves the prior `17` slice ordering, where
+folder work was listed after Quick Add.
+
+**Library visual language:** wherever this roadmap touches a Library surface's
+material/grid layer, it binds to the liquid-glass surface-variant spec in
+`35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` (the per-region SLOT system mirroring
+`src/components/workshop/estimate-surface-variant.tsx`). The Phase-1 glass
+skeleton item set (LIB-P1-04) is the C-022 scope decision: the glass shell
+lands in Phase 1; content-grade card glass stays Phase 2 (component cards) /
+Phase 5 (template cards). This roadmap does not restate the slot/grid contract —
+cross-reference doc 35 §12.
 
 Each item carries a `Seq` (global build order) and `Depends on` edge so an
 implementer can schedule without re-deriving the graph. Test commands use
@@ -80,9 +90,10 @@ Target:
   `src/app/api/share/[token]/route.ts`, which renders a FROZEN
   `project_publications.snapshot_json` (not a live Library query). Redaction is
   about what the snapshot builder `src/lib/publication/actions.ts` puts into
-  `snapshot_json` (written at `:566` and `:636`; helper context in
-  `activity-helpers.ts`), not a leaking live endpoint. This matches doc 18's
-  `ADV-PUBLIC-REDACTION` row exactly.
+  `snapshot_json` (written at `:587` and `:664`; a third write at `:727` is the
+  RPC param `p_snapshot_json`; helper context in `activity-helpers.ts`), not a
+  leaking live endpoint. This matches doc 18's `ADV-PUBLIC-REDACTION` row
+  exactly.
 
 Validation:
 
@@ -123,18 +134,22 @@ Validation:
   budget number — no budget is asserted before measurement.
 - Dense-mode budget: a measured target (proposed: 500 seeded rows render with a
   steady-state frame <16ms) OR the documented virtualization/pagination fallback
-  (reuse `WORKSHOP_VIRTUALIZATION_FLAGS`). The <16ms target is PROVISIONAL until
-  the measurement below lands and is recorded.
-- Measurement instrument (named, so no clarifying question is needed): measure
-  the steady-state frame via either (a) a Playwright trace over the seeded
-  dataset — `bun run test:e2e` with `--trace on` against
-  `e2e/workshop-library-routes.spec.ts`, reading the trace's frame/commit timing
-  — or (b) a `performance.now()` / React Profiler `onRender` commit-duration
-  harness placed under `scripts/` driving the seeded rows; record the MEDIAN
-  steady-state frame (and the keystroke re-filter ms at 500 and 5,000 rows) in
-  `24-EXECUTION-EVIDENCE-LEDGER.md` under the "Perf baseline measurement note"
-  row (doc 24, Phase 0A). No 100/500/5,000/10,000 budget number may be asserted
-  anywhere in the pack before this doc-24 row is populated.
+  (reuse `WORKSHOP_VIRTUALIZATION_FLAGS`). The <16ms target is **PROVISIONAL
+  until the Phase 0A baseline measurement lands and is recorded** (resolves
+  C-015; final committed thresholds live in `30-PERF-BUDGET-AND-REGRESSION-GATES.md`).
+- Measurement instrument (CANONICAL, named): Playwright `--trace on` against
+  `e2e/workshop-library-routes.spec.ts` over the seeded dataset, reading the
+  trace's frame/commit timing. This is the canonical instrument — no new script
+  is required. Record the MEDIAN steady-state frame (median of >=3 runs with p95
+  recorded; any single-run variance >25% triggers re-measurement — see doc 24
+  "Artifact storage and naming") and the keystroke re-filter ms at 500 and 5,000
+  rows in `24-EXECUTION-EVIDENCE-LEDGER.md` under the "Perf baseline measurement
+  note" row (doc 24, Phase 0A). OPTIONAL fallback instrument: a
+  `performance.now()` / React Profiler `onRender` harness under `scripts/`
+  (`bench-library-browse.mjs`) — if used, it is a Seq-0A prerequisite with its
+  own doc-24 evidence row; it is NOT the default and is not required to claim a
+  budget. No 100/500/5,000/10,000 budget number may be asserted anywhere in the
+  pack before this doc-24 row is populated.
 - Concurrent edit/delete/insert cases return conflict or refetch states (not a
   silent overwrite).
 - Run: `bun run test:dom`; perf measurement is recorded in doc 24 (above), not
@@ -353,6 +368,54 @@ Validation:
 - DOM tests for filtered (e.g. "12 of 240") vs unfiltered ("240 components")
   counts and for scope label = folder name + category.
 - Run: `bun run test:dom`.
+
+### LIB-P1-04 - Library glass skeleton (C-022 scope)
+
+Seq: 10.5 (can land in parallel with LIB-P1-01..03; binds the same Phase-1
+findability surfaces to the glass shell). Depends on: LIB-P0A-01 (so the
+cache/route contract is locked before the shell wraps it).
+
+Target:
+
+- The Library shell becomes a FIRST-CLASS liquid-glass skin matching the
+  workshop shell (sidebar/dashboard/estimate-sheet), via the per-region
+  surface-variant SLOT system in `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md`
+  §12.1-12.5 — the material/grid layer this item binds to (it does NOT restate
+  the slot/grid contract). The Phase-1 scope is the GLASS SKELETON ONLY
+  (doc 35 §12.1-12.5): glass workspace well + floating rails/paper + chrome
+  toolbar + liquid buttons + warm-glass CTA (`.dashboard-glass-warm`) + the
+  `LibrarySurfaceVariantProvider` (mirroring the shipped
+  `src/components/workshop/estimate-surface-variant.tsx` provider/slot model) +
+
+  the workspace track grid + catalogue content grid + overview bento (reusing
+  `.dashboard-root` row discipline). Content-grade card glass (component cards,
+  template cards) is explicitly **Phase 2 / Phase 5**, NOT this item (resolves
+  C-022).
+- One-blur-per-region, AA-safe, deferred arming via `<html data-glass="ready">`
+  (do not gate arming on `no-preference`; keep the rAF backstop — per doc 35).
+- Brand color: author glass/warm-CTA surfaces against the live primary
+  `--brand-orange #F24405` (`src/app/globals.css:37`).
+
+Files + reference system (verified, doc 35 owns the slot map):
+
+- `src/components/workshop/estimate-surface-variant.tsx:21` — the canonical
+  per-region variant model (`EstimateSurfaceVariant = "paper"|"glass"` context
+  + slot union `:51-68`); the Library provider mirrors this (doc 35 §12.3).
+- `src/app/globals.css:1545-1637` — `.estimate-glass-well`/`.estimate-glass-rail`/
+  `.estimate-glass-paper` are the reference classes for the Library
+  one-blur-per-region discipline; the Library glass classes are NEW, added
+  glass-scoped (paper paths unchanged).
+
+Validation:
+
+- DOM/snapshot tests for the shell (provider mounts, slots resolve paper vs
+  glass, deferred-arming class flips to `data-glass="ready"`), bound to the doc
+  35 §12.5 acceptance criteria. A11y is manual pre-Phase-0A axe (C-014); post-0A
+  run `expect(await axe(page)).toHaveNoViolations()`.
+- Run: `bun run test:dom`; browser proof for the one-blur-per-region + deferred
+  arming visual claim (`bun run test:e2e` or manual, recorded in doc 24).
+- Cross-reference doc 35 §12.1-12.5 for the slot/grid contract this item
+  implements; this roadmap does NOT duplicate the slot map.
 
 ## Phase 2 - Source Trust At Decision Points
 
@@ -663,33 +726,70 @@ Gate IDs align to the Canonical Phase Map (0A/0B/1-5).
 | 3 | Quick Add validates the four required fields (`name`/`category`/`unit`/`unit_cost`), preserves data on failure, blocks `viewer` actors, uses the `ConfirmDialog` discard; advanced mode exposes all five `lifecycle_state` values. |
 | 4 | Insert picker names target + dependency health and re-resolves via `resolveEstimateTemplateInsertTarget`; creatable-combobox move invalidates the scoped templates key. |
 | 5 | Dense mode meets the measured Phase 0A budget or uses the documented virtualization fallback; toggle/sort/selection/action parity tested. |
-| Phase-later | LIB-LATER-01 may remain unmigrated at beta release: it is an accepted-residual item tracked in `24-EXECUTION-EVIDENCE-LEDGER.md`, NOT a regression. The native-prompt static grep on `src/components/workshop/component-library/index.tsx` is expected to still hit `:939` (`window.confirm`) and `:1428` (`window.prompt`); those two hits are allowlisted as the known Phase-later residual and do not block beta. The deferral is acceptable only while the in-estimate panel is out of the 0A-5 critical path; it is not silently dropped. |
+| Phase-later | LIB-LATER-01 may remain unmigrated at beta release: it is an accepted-residual item tracked in `24-EXECUTION-EVIDENCE-LEDGER.md`, NOT a regression. The native-prompt static grep on `src/components/workshop/component-library/index.tsx` is expected to still hit `:939` (`window.confirm`) and `:1428` (`window.prompt`); those two hits are the EXACT allowlisted residual — the grep guard uses an explicit path allowlist (`rg -n "window\.(prompt\|confirm)"` scoped to those two line anchors); any other `window.(prompt\|confirm)` hit in the three in-scope trees is a no-go regression. The deferral is acceptable only while the in-estimate panel (`src/components/workshop/component-library/index.tsx`, C-003/C-017 Phase-later residual — tracked, not in the 0A-5 critical path) is out of scope; it is not silently dropped. |
 | Final | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` has pass/skipped-risk entries and no no-go release condition remains; AND every Seq item (1-19) has its pre-registered evidence row in `24-EXECUTION-EVIDENCE-LEDGER.md` populated (command + pass/fail + date) before merge, with LIB-LATER-01 recorded there as an accepted residual. |
 
 ## Build Order Summary
 
-| Seq | Item | Phase | Depends on |
-| --- | --- | --- | --- |
-| 1 | LIB-P0A-01 route/payload/cache contracts | 0A | doc 13 |
-| 2 | LIB-P0A-02 security/exposure contracts | 0A | doc 14 |
-| 3 | LIB-P0A-03 perf/network/concurrency contracts | 0A | doc 16 |
-| 4 | LIB-P0B-01 `?component=<id>` route state | 0B | LIB-P0A-01 |
-| 5 | LIB-P0B-02 folder text-prompt dialog | 0B | LIB-P0A-01 |
-| 6 | LIB-P0B-03 Add dirty-discard `ConfirmDialog` | 0B | LIB-P0A-01 |
-| 7 | LIB-P0B-04 bulk-archive copy fix | 0B | none |
-| 8 | LIB-P1-01 visible applied filters | 1 | LIB-P0B-01 |
-| 9 | LIB-P1-02 overview search continuity | 1 | LIB-P0B-01 |
-| 10 | LIB-P1-03 result count/scope strip | 1 | LIB-P1-01, LIB-P1-02 |
-| 11 | LIB-P2-01 trust chips on cards | 2 | LIB-P0B-01 |
-| 12 | LIB-P2-02 template trust summary | 2 | LIB-P2-01 |
-| 13 | LIB-P2-03 normalize create/edit source fields | 2 | LIB-P2-01 |
-| 14 | LIB-P3-01 quick-add default path | 3 | LIB-P0B-03, LIB-P2-03 |
-| 15 | LIB-P3-02 advanced catalog record mode | 3 | LIB-P3-01 |
-| 16 | LIB-P4-01 explicit insert target | 4 | LIB-P2-02 |
-| 17 | LIB-P4-02 scalable template move | 4 | none |
-| 18 | LIB-P5-01 component table/dense mode | 5 | LIB-P1-03, LIB-P2-01, LIB-P0A-03 |
-| 19 | LIB-P5-02 browser verification pass | 5 | all prior |
-| deferred | LIB-LATER-01 estimate-page panel overlays | Phase-later | LIB-P0B-02/03 |
+Each row now carries the four actionable-row dimensions (resolves C-019 under
+the relaxed scope of doc 34 §3 — these are implementation-task rows, not
+informational rows). **Flag** points to the doc 21 §4 accessor (build-time env,
+fix-forward rollback per C-010 — a flag flip is a **redeploy with `flag=false`,
+~5 min**, NOT an instant kill; runtime kill-switch is Phase-later). **Owner**
+names the owning role from `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md`.
+**Rollback** is the one-line behavior from doc 17. **Evidence ID** is the doc 24
+row to populate before merge. C-010 reminder: build-time-flag rollback =
+redeploy previous env (fix-forward); NOT instant kill.
+
+| Seq | Item | Phase | Depends on | Flag (doc 21) | Owner (doc 27) | Rollback (doc 17) | Evidence (doc 24) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | LIB-P0A-01 route/payload/cache contracts | 0A | doc 13 | none (test/contract) | Backend lead | `git revert` of the contract/test scaffolding | ADV-XWS-COMPONENT-PARAM / ADV-WS-SWITCH-CACHE |
+| 2 | LIB-P0A-02 security/exposure contracts | 0A | doc 14 | none | Security lead | `git revert` | ADV-PUBLIC-REDACTION / ADV-VIEWER-MUTATION |
+| 3 | LIB-P0A-03 perf/network/concurrency contracts | 0A | doc 16 | none | Perf lead | `git revert`; perf budgets PROVISIONAL (C-015) until this row lands | Perf seed extension + baseline note |
+| 4 | LIB-P0B-01 `?component=<id>` route state | 0B | LIB-P0A-01 | `library_component_deep_link` | Frontend lead | redeploy `flag=false` (~5 min, fix-forward C-010) -> drop param, broad route | ADV-DELETED-RESULT |
+| 5 | LIB-P0B-02 folder text-prompt dialog | 0B | LIB-P0A-01 | `library_folder_dialogs` | Frontend lead | redeploy `flag=false` -> legacy `window.*` branch (emergency only) | ADV-FOLDER-DELETE-FAIL / ADV-CONCURRENT-RENAME |
+| 6 | LIB-P0B-03 Add dirty-discard `ConfirmDialog` | 0B | LIB-P0A-01 | `library_folder_dialogs` | Frontend lead | `git revert` (no flag) | ADV-DIRTY-ADD-NESTED |
+| 7 | LIB-P0B-04 bulk-archive copy fix | 0B | none | none (`git revert`) | Frontend lead | `git revert` | ADV-BULK-COPY |
+| 8 | LIB-P1-01 visible applied filters | 1 | LIB-P0B-01 | `library_component_deep_link` | Frontend lead | redeploy `flag=false` -> chips/reset hide | ADV-STALE-URL-PARAMS |
+| 9 | LIB-P1-02 overview search continuity | 1 | LIB-P0B-01 | `library_component_deep_link` | Frontend lead | redeploy `flag=false` -> broad route | ADV-DELETED-RESULT |
+| 10 | LIB-P1-03 result count/scope strip | 1 | LIB-P1-01, LIB-P1-02 | `library_component_deep_link` | Frontend lead | redeploy `flag=false` -> strip hides | ADV-STALE-URL-PARAMS |
+| 10.5 | LIB-P1-04 Library glass skeleton (C-022) | 1 | LIB-P0A-01 | **TBD** — doc 21 §4 must register a Phase-1 glass-shell flag (e.g. `NEXT_PUBLIC_LIBRARY_GLASS_SHELL` with `isLibraryGlassShellEnabled()`, default off, rollback = redeploy `flag=false`); do NOT wire a flag doc 21 does not register (see the `library_overlays_v2` phantom-flag defect). If glass ships paper-default with no toggle, set this cell to `none (git revert)` and document that in doc 21. | Frontend/Design lead | redeploy `flag=false` (fix-forward) -> paper shell (variant defaults to paper) | EV-24-GLASS-SHELL (doc 24) |
+| 11 | LIB-P2-01 trust chips on cards | 2 | LIB-P0B-01 | `library_trust_chips` | Frontend lead | redeploy `flag=false` -> chip layer hides (existing card hierarchy preserved) | Trust chip rendering test |
+| 12 | LIB-P2-02 template trust summary | 2 | LIB-P2-01 | `library_trust_chips` | Frontend lead | redeploy `flag=false` -> summary layer hides | Template dependency-health test |
+| 13 | LIB-P2-03 normalize create/edit source fields | 2 | LIB-P2-01 | `library_trust_chips` | Frontend lead | redeploy `flag=false` | Add/Edit source-field normalization |
+| 14 | LIB-P3-01 quick-add default path | 3 | LIB-P0B-03, LIB-P2-03 | `library_quick_add` | Frontend lead | redeploy `flag=false` -> hide Quick Add trigger, route to `AddComponentModal` | ADV-QUICKADD-UNSAFE |
+| 15 | LIB-P3-02 advanced catalog record mode | 3 | LIB-P3-01 | `library_quick_add` | Frontend lead | redeploy `flag=false` | Quick Add required-field validation |
+| 16 | LIB-P4-01 explicit insert target | 4 | LIB-P2-02 | none (git revert) | Backend lead | `git revert` | ADV-XWS-ESTIMATE-TARGET |
+| 17 | LIB-P4-02 scalable template move | 4 | none | none (git revert) | Frontend lead | `git revert` | Creatable-combobox move proof |
+| 18 | LIB-P5-01 component table/dense mode | 5 | LIB-P1-03, LIB-P2-01, LIB-P0A-03 | `library_dense_mode` (+ `library_virtualization_enabled` independent, C-004) | Frontend lead | redeploy `flag=false` -> card grid only | ADV-DENSE-500 |
+| 19 | LIB-P5-02 browser verification pass | 5 | all prior | none | QA lead | n/a (verification only) | EV-24 browser-proof rows |
+| deferred | LIB-LATER-01 estimate-page panel overlays | Phase-later | LIB-P0B-02/03 | Phase-later (no flag in 0A-5) | Frontend lead | n/a (not in critical path) | Tracked residual in doc 24 |
+
+### Merge-readiness checklist (applies to every Seq above)
+
+A Seq item is NOT merge-ready until ALL of the following hold (binds doc 06
+Completion Gate, doc 17 Release Gates, and doc 24 evidence to this roadmap):
+
+- Its doc 24 Evidence row is populated (command + pass/fail + date + named
+  human owner from doc 27).
+- The phase's `bun run validate` is green; the NARROW suite(s) named in the
+  item's Validation block run via `vitest run tests/vitest/<file>` or
+  `bun run test:dom` (NEVER `bun test` for vitest — C-005).
+- If the item's Flag is non-`none`, the flag ships OFF by default (doc 21);
+  rollback = redeploy `flag=false` (fix-forward, ~5 min — C-010), NOT an instant
+  kill.
+- Any perf number the item asserts is PROVISIONAL until the Phase 0A baseline
+  lands (C-015); final thresholds live in doc 30.
+- The Phase-later grep allowlist (below) still holds; no NEW `window.*` native
+  prompt appears in the three in-scope trees.
+
+**Phase-later grep allowlist (exact form):** `rg -n "window\.(prompt|confirm)"`
+over `src/components/workshop/component-library-manager`,
+`src/components/workshop/library`, and
+`src/components/workshop/component-library/index.tsx`. The ONLY allowlisted
+hits are `component-library/index.tsx:939` (`window.confirm`) and `:1428`
+(`window.prompt`) — the LIB-LATER-01 Phase-later residual (C-003/C-017). Any
+other hit is a no-go regression.
 
 Final note: every Seq item above has a pre-registered evidence row in
 `24-EXECUTION-EVIDENCE-LEDGER.md` (command + pass criterion + owning phase) that

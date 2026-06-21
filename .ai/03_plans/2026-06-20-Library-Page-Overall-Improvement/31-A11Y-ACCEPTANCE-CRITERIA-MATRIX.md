@@ -1,8 +1,20 @@
 # 31 — Accessibility Acceptance Criteria Matrix
 
-> **Status:** Living document. Initialized 2026-06-21 by the Ultrawork audit
-> loop. Defines the a11y acceptance criteria for every Library surface. Every
-> actionable row must declare its a11y pass condition.
+> **Status:** axe gate is Phase 0A — **pre-0A a11y is manual only; this matrix
+> defines the post-0A target state.** Resolves C-014 from
+> [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md).
+> Per [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+> §Test Commands, there is **no** axe / jest-axe a11y harness configured today,
+> and no standalone `FocusTrap` primitive in the overlay inventory; a11y tests
+> are manual ARIA/focus assertions in Testing Library until 0A installs
+> `jest-axe` + `@axe-core/playwright` (evidence: `EV-0A-AXE-HARNESS`, owned by
+> A11y lead; seq: add to
+> [05-IMPLEMENTATION-ROADMAP.md](05-IMPLEMENTATION-ROADMAP.md) 0A scope; EV rows
+> in [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md)).
+> Until those EV rows are green, the pre-merge axe gate in §3 is INACTIVE.
+> Living document, initialized 2026-06-21 by the Ultrawork audit loop. Defines
+> the a11y acceptance criteria for every Library surface. Every actionable row
+> must declare its a11y pass condition.
 >
 > **Scope:** Keyboard, screen reader, focus, contrast, motion, ARIA, live
 > regions, and per-surface a11y acceptance criteria.
@@ -10,7 +22,8 @@
 > **Companion docs:** [12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md](12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md),
 > [06-QA-AND-VALIDATION-PLAN.md](06-QA-AND-VALIDATION-PLAN.md),
 > [18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md](18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md),
-> [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md).
+> [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md),
+> [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) (§10 — glass text/focus/reduced-transparency contrast).
 
 ---
 
@@ -52,6 +65,22 @@ Accessibility is a first-class contract, not a post-hoc check. This doc:
 | ARIA roles | Correct role per element | axe + manual review |
 | Label association | Every input has associated label | axe |
 
+### Glass-surface contrast acceptance (cross-ref [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §10)
+
+The liquid-glass surfaces (well/rails/paper/chrome/drawers/warm CTA) add contrast
+constraints on top of the baseline. Bind every glass surface to these rules:
+
+| Requirement | Rule | How to verify |
+|---|---|---|
+| Text on frosted white | `--ink:#3D3D3D` / `--secondary:#5d5d5d` on frosted white (rgba 0.58–0.9 ≈ white) passes WCAG 2.1 AA (4.5:1). Load-bearing meta uses `--secondary`, **never** `--tertiary:#7f7f7f` (fails AA — recorded). | manual + axe (post-0A) + Playwright over the glass variant |
+| Focus ring on glass | `--focus:#3D3D3D` ring ≥2px, ≥3:1 against adjacent frosted/transparent neighbors | manual + Playwright focus screenshot ([29](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md)) |
+| Color not sole carrier | Selected/active combine border + ring + weight/brightness — never color alone (matters on glass where tint shifts) | manual review |
+| Reduced transparency | `--glass-bg-fallback` opaque panel preserves all text/selection states without blur; honor `prefers-reduced-transparency` | manual + `prefers-reduced-transparency` test |
+| Reduced motion | glass transitions disabled; state readable without the readiness ramp | `globals.css` reduced-motion blocks |
+| Touch target | glass chrome buttons ≥44×44 on touch | Playwright measurement |
+
+Binding: these mirror [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §10 exactly; do not relax them. Glass is visual-only and introduces no new ARIA roles or live regions.
+
 ---
 
 ## 3. Testing matrix
@@ -73,6 +102,15 @@ Per [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOL
 - **Pre-0A:** axe is NOT configured. a11y is manual only.
 - **0A:** configure axe-core via `jest-axe` for jsdom tests + `@axe-core/playwright` for Playwright.
 - **Post-0A:** axe is a pre-merge gate. All Library components must pass `expect(await axe(page)).toHaveNoViolations()`.
+
+**Ownership / scheduling (the gap C-014 leaves open):**
+
+| Task | Owner | Phase | Evidence | Seq |
+|---|---|---|---|---|
+| Install `jest-axe` + `@axe-core/playwright`; add axe setup to vitest config; add first axe test per Library surface (overview, components, inspector, quick-add, overlays, trust chip) | A11y lead | 0A | `EV-0A-AXE-HARNESS` | add to [05](05-IMPLEMENTATION-ROADMAP.md) 0A scope; EV rows in [24](24-EXECUTION-EVIDENCE-LEDGER.md) |
+| Standalone `FocusTrap` primitive (none in `ui/overlays/` today — only `Modal`/`AppModal`/`BlurModal`, `ConfirmDialog`, `Sheet`/`Drawer`/`SidePanel`/`InspectorDrawer`) | Frontend lead | 0B | `EV-0B-FOCUS-TRAP` | add to [05](05-IMPLEMENTATION-ROADMAP.md) 0B scope |
+
+Until `EV-0A-AXE-HARNESS` is green, the "axe automated ... Gate: Pre-merge (post-0A)" row above is **INACTIVE** and §8's `rg "jest-axe|@axe-core/playwright" package.json` is expected to find nothing.
 
 ### Screen reader testing
 
@@ -123,18 +161,25 @@ A11y: n/a (non-interactive display only)
 
 State changes must be announced via `aria-live`:
 
-| State change | aria-live value | Copy key | Example |
-|---|---|---|---|
-| Search results loaded | polite | `search.result_announcement` | "12 results found" |
-| Filter applied | polite | `filter.applied_announcement` | "Filter applied: stale components" |
-| Trust state changed | polite | `trust.state_change_announcement` | "Component trust updated to fresh" |
-| Component added | polite | `component.added_announcement` | "Component added to library" |
-| Component archived | polite | `component.archived_announcement` | "Component archived" |
-| Component deleted | assertive | `component.deleted_announcement` | "Component permanently deleted" |
-| Error occurred | assertive | `error.announcement` | "Error: unable to load library" |
-| Overlay opened | polite | `overlay.opened_announcement` | "Component picker opened" |
-| Overlay closed | polite | `overlay.closed_announcement` | "Component picker closed" |
-| Permission denied | assertive | `permission.denied_announcement` | "You do not have permission to view this component" |
+> **Copy keys below are PROPOSED and must be registered in
+> [22-COPY-DECK-AND-MICROCOPY.md](22-COPY-DECK-AND-MICROCOPY.md) — none exist
+> in `src/` today (the codebase is not keyed; see
+> [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+> and [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §3.1).
+> Until registered, live-region announcements are manual-test-only.
+
+| State change | aria-live value | Copy key | Example | Register in doc 22 |
+|---|---|---|---|---|
+| Search results loaded | polite | `search.result_announcement` | "12 results found" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Filter applied | polite | `filter.applied_announcement` | "Filter applied: stale components" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Trust state changed | polite | `trust.state_change_announcement` | "Component trust updated to fresh" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Component added | polite | `component.added_announcement` | "Component added to library" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Component archived | polite | `component.archived_announcement` | "Component archived" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Component deleted | assertive | `component.deleted_announcement` | "Component permanently deleted" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Error occurred | assertive | `error.announcement` | "Error: unable to load library" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Overlay opened | polite | `overlay.opened_announcement` | "Component picker opened" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Overlay closed | polite | `overlay.closed_announcement` | "Component picker closed" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
+| Permission denied | assertive | `permission.denied_announcement` | "You do not have permission to view this component" | pending registration — Copy lead, Phase 0B, EV-COPY-a11y |
 
 ### Rules
 
@@ -200,26 +245,42 @@ State changes must be announced via `aria-live`:
 
 ## 8. Verification
 
-```bash
-# axe harness configured (post-0A)
-rg "jest-axe|@axe-core/playwright" package.json
-# Expected: axe-core dependency present after Phase 0A
+Paths below use the real Library roots per
+[19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+§Verified File Paths. There is **no** `src/components/library/` — earlier
+drafts cited it; those commands returned "No such directory". The real roots
+are `src/components/workshop/library/`, `src/components/workshop/component-library/`,
+and `src/components/workshop/component-library-manager/`.
 
-# Every Library component has an axe test
-rg "toHaveNoViolations" src/components/library/ --type ts --type tsx
-# Expected: every component has an axe test
+```bash
+# axe harness configured (post-0A only — pre-0A expect 0 matches)
+rg "jest-axe|@axe-core/playwright" package.json
+# Expected pre-0A: 0 matches (harness is a Phase 0A deliverable, EV-0A-AXE-HARNESS — see §3).
+# Expected post-0A: axe-core dependency present.
+
+# Every Library component has an axe test (post-0A only)
+rg "toHaveNoViolations" \
+   src/components/workshop/library/ \
+   src/components/workshop/component-library/ \
+   src/components/workshop/component-library-manager/ \
+   --type ts --type tsx
+# Expected pre-0A: 0 matches (no harness). Expected post-0A: every component has an axe test.
 
 # Every actionable row has an A11y: field
 rg "A11y:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" --count
-# Expected: 26+ files with A11y: rows (after Wave 2)
+# Expected: measured baseline is ~1 pack-wide today (only this doc + doc 12-adjacent rows declare it); the "26+ files" target is aspirational until Wave 2 adds the field per doc.
 
-# aria-live regions present for state changes
-rg "aria-live" src/components/library/ --type tsx
-# Expected: matches the live region contract in §5
+# aria-live regions present for state changes (live-region copy keys are PROPOSED per §5)
+rg "aria-live" \
+   src/components/workshop/library/ \
+   src/components/workshop/component-library/ \
+   src/components/workshop/component-library-manager/ \
+   --type tsx
+# Expected pre-0A: record the actual count as baseline. Expected post-0A: matches the live region contract in §5.
 
-# Focus management in overlays
-rg "focus-trap|FocusTrap" src/components/library/ --type tsx
-# Expected: every overlay uses a focus trap primitive
+# Focus management in overlays — check whether a focus-trap primitive exists today
+rg -i "focus.?trap|FocusTrap" src/components/ui/
+# Expected pre-0A: 0 matches — there is NO standalone FocusTrap primitive in the overlay inventory (Modal/AppModal/BlurModal, ConfirmDialog, Sheet/Drawer/SidePanel/InspectorDrawer, Popover, Combobox). Focus trapping is a Phase 0B prerequisite (EV-0B-FOCUS-TRAP, see §3) until then focus-cycle behavior is verified manually + via Playwright in [29](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md).
 ```
 
 ---

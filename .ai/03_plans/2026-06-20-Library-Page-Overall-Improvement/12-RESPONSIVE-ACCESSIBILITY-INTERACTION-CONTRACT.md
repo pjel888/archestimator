@@ -11,12 +11,12 @@ inventory: library surfaces already use `sm:` today (e.g.
 classes below map to: `sm` 640px / `md` 768px / `lg` 1024px / `xl` 1280px / `2xl`
 1536px.
 
-| Width Class | Range (min-width) | Tailwind prefix | Layout |
-| --- | --- | --- | --- |
-| Desktop/wide | >= 1280px | `xl` / `2xl` | Overview plus full component/template surfaces; inspector dock as right-side panel (`ComponentInspectorDock.tsx`). |
-| Laptop | 1024px - 1279px | `lg` | Dense toolbar wraps; inspector dock may reduce content density but remains a side panel. |
-| Tablet | 768px - 1023px | `md` | Primary list/card area with inspector dock as a drawer (`InspectorDrawer` from `ui/overlays/sheet-drawer.tsx`); toolbar filters collapse progressively. |
-| Mobile | < 768px | base (below `md`) | Single-column browse; drawers for inspector dock/preview; sticky primary actions only when non-overlapping. |
+| Width Class | Range (min-width) | Tailwind prefix | Layout | RTL/bidi note (cross-ref [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §5) |
+| --- | --- | --- | --- | --- |
+| Desktop/wide | >= 1280px | `xl` / `2xl` | Overview plus full component/template surfaces; inspector dock as right-side panel (`ComponentInspectorDock.tsx`). | LTR: dock anchors right. Under `dir="rtl"` the dock anchors LEFT (rail order mirrors via CSS logical properties; slot semantics unchanged — [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §9). |
+| Laptop | 1024px - 1279px | `lg` | Dense toolbar wraps; inspector dock may reduce content density but remains a side panel. | Same dock-flip as desktop under RTL. |
+| Tablet | 768px - 1023px | `md` | Primary list/card area with inspector dock as a drawer (`InspectorDrawer` from `ui/overlays/sheet-drawer.tsx`); toolbar filters collapse progressively. | Under RTL the `InspectorDrawer` sheet-side flips (slides from the start side, which is left in RTL); filter chips mirror, input aligns right. |
+| Mobile | < 768px | base (below `md`) | Single-column browse; drawers for inspector dock/preview; sticky primary actions only when non-overlapping. | One glass panel on screen at a time; long Arabic/RTL labels must not overflow buttons (No-Overlap rules below). |
 
 Use `inspector dock` for the right-side surface in all widths; the only thing
 that changes across breakpoints is whether it renders inline (>= 1024px) or as an
@@ -92,12 +92,16 @@ Rules:
   `LibraryOverviewSearch.tsx:265`; owner Phase 1).
 - Destructive confirmation keeps focus inside the dialog (focus trap) until closed.
 
-> Net-new dependency (Phase 5): the "switch card/dense mode" keyboard path
-> depends on a density toggle that DOES NOT EXIST in the codebase yet. It is
-> net-new Phase 5 work (Dense Maintenance Mode & Browser-Proven Polish) — see
-> the CANONICAL PHASE MAP in 19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md.
-> Until that toggle ships, this path is a forward contract, not a current
-> requirement; do not gate Phase 0B-4 keyboard QA on it.
+> Net-new dependency (Phase 5 ONLY — flag: `library_dense_mode`, rollback:
+> redeploy virtualization vars=false, C-004/C-010): the "switch card/dense mode"
+> keyboard path depends on a density toggle that DOES NOT EXIST in the
+> codebase yet. It is net-new **Phase 5** work (Dense Maintenance Mode &
+> Browser-Proven Polish) — see the CANONICAL PHASE MAP in
+> 19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md. `library_dense_mode` and
+> `library_virtualization_enabled` are INDEPENDENT (C-004): dense mode can
+> render with or without virtualization. Until that toggle ships, this path is
+> a **forward contract, not a current requirement; do not gate Phase 0B-4
+> keyboard QA on it.**
 
 ## Screen Reader Contract
 
@@ -121,15 +125,23 @@ Live-region announcements (each gets an explicit `aria-live` politeness; the
 default for status text is `polite` / `role="status"`, reserved `assertive` /
 `role="alert"` only for errors and destructive results that must interrupt):
 
-| Announcement | Politeness | `aria-live` / role |
-| --- | --- | --- |
-| Result count + scope after filter/search change | polite | `aria-live="polite"` / `role="status"` |
-| Selected component/template opened from route (`?component=<id>`) or search | polite | `aria-live="polite"` / `role="status"` |
-| Inspector dock / drawer closed | polite | `aria-live="polite"` / `role="status"` |
-| Destructive action completed (bulk archive succeeded) | assertive | `aria-live="assertive"` / `role="alert"` |
-| Insert success | polite | `aria-live="polite"` / `role="status"` |
-| Insert failure / write error | assertive | `aria-live="assertive"` / `role="alert"` |
-| Retry failure while context is preserved | assertive | `aria-live="assertive"` / `role="alert"` |
+| Announcement | Politeness | `aria-live` / role | Copy string (doc 22 §12A key) |
+| --- | --- | --- | --- |
+| Result count + scope after filter/search change | polite | `aria-live="polite"` / `role="status"` | `{count, plural, =0 {No results} =1 {1 result found} other {# results found}}` — `search.result_announcement` |
+| Filter applied | polite | `aria-live="polite"` / `role="status"` | `Filter applied: {filterLabel}.` — `filter.applied_announcement` |
+| Selected component/template opened from route (`?component=<id>`) or search | polite | `aria-live="polite"` / `role="status"` | `Component trust updated to {state}.` — `trust.state_change_announcement`; inspector open is `overlay.opened_announcement` |
+| Inspector dock / drawer opened | polite | `aria-live="polite"` / `role="status"` | `{overlayName} opened.` — `overlay.opened_announcement` |
+| Inspector dock / drawer closed | polite | `aria-live="polite"` / `role="status"` | `{overlayName} closed.` — `overlay.closed_announcement` |
+| Destructive action completed (bulk archive succeeded) | polite | `aria-live="polite"` / `role="status"` | `Component archived.` — `component.archived_announcement` |
+| Insert success | polite | `aria-live="polite"` / `role="status"` | `Added to {estimateName}.` — `templates.insert_success_*` (doc 22 §10) |
+| Insert failure / write error | assertive | `aria-live="assertive"` / `role="alert"` | `Error: {message}.` — `error.announcement` |
+| Retry failure while context is preserved | assertive | `aria-live="assertive"` / `role="alert"` | `Error: {message}.` — `error.announcement` |
+| Permission denied (viewer attempts a write) | assertive | `aria-live="assertive"` / `role="alert"` | `You do not have permission to {action}.` — `permission.denied_announcement` |
+
+Copy strings are the verbatim entries in
+`22-COPY-DECK-AND-MICROCOPY.md` §12A — copy them; do not re-author here. Count
+strings use ICU MessageFormat pluralization (doc 22 §12; doc 28 §4). Chips carry
+no `aria-live` (chip, NOT badge — C-002).
 
 Whether each announcement above REUSES an existing live region or needs a
 NET-NEW one, plus the test asserting its text and politeness, is pre-registered
@@ -217,9 +229,73 @@ documented properties (trigger / initial focus / close-cancel / submit / error
 focus / focus return / permission-denied / concurrent-change) are pre-registered
 per overlay in 24-EXECUTION-EVIDENCE-LEDGER.md (mirrored in
 06-QA-AND-VALIDATION-PLAN.md) — `<file>` above is a per-overlay slot resolved by
-that ledger, not a value the implementer invents. There is NO axe/jest-axe
-harness in this repo; if automated a11y assertions are wanted, adding jest-axe is
-an explicit prerequisite, not assumed.
+that ledger, not a value the implementer invents.
+
+### A11y test matrix (resolves C-014)
+
+There is **NO axe/jest-axe harness** in this repo today (keystone "Test
+Commands"). Automated contrast/label/landmark a11y is a **Phase 0A net-new
+prerequisite** — not assumed, not deferred silently:
+
+| Row | Harness | Command | Owner / phase | Status |
+| --- | --- | --- | --- | --- |
+| 1 — existing ARIA/focus + `aria-live` assertions | Testing Library (jsdom) | `bun run test:dom` / `vitest run tests/vitest/<file>` (C-005) | implementer of each phase (0B/1/3/4) | exists; this is the current a11y floor |
+| 2 — automated axe/jest-axe gate | **NET-NEW prerequisite — add `jest-axe` before this row holds** | `bun run test:dom` once `jest-axe` is installed and wired into the shared render helper | A11y lead, **Phase 0A Contract Lock**; acceptance criteria cross-ref `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` | NOT shipped; adding it is an explicit Phase 0A deliverable. Pre-axe, contrast/label a11y is MANUAL against the doc 31 §4 / doc 35 §10 contrast rules |
+
+### Overlay/layout rollback + flag refs
+
+Overlay and responsive-layout changes carry a flag/rollback contract inline (per
+C-018/C-019/C-020 — under the relaxed scope of `34-ROW-LEVEL-COMPLETENESS-MATRIX.md`
+§3 these apply to implementation tasks + acceptance gates + high-risk contract
+rows; informational rows delegate to docs 27/17/20). Per-surface flag/rollback:
+
+| Surface | flag (`21`) | rollback (C-010 — redeploy prev env, fix-forward ~5 min; runtime kill-switch is Phase-later) |
+| --- | --- | --- |
+| Folder create/rename/delete + Add dirty-discard dialogs | `library_folder_dialogs` | redeploy flag=false → legacy native prompts as emergency fallback |
+| `?component=<id>` route state + overview-search continuity | `library_component_deep_link` | redeploy flag=false → broad route, no inspector deep-link |
+| Applied-filter chips + reset | `library_component_deep_link` | redeploy flag=false → existing card/row hierarchy, applied filters hidden |
+| Trust chips on rows/inspector | `library_trust_chips` | redeploy flag=false → existing hierarchy; real stale/source-changed warnings stay (not flag-gated) |
+| Quick Add | `library_quick_add` | redeploy flag=false → full `AddComponentModal` advanced path |
+| Dense/table mode (Phase 5 only — see below) | `library_dense_mode` (independent of `library_virtualization_enabled`, C-004) | redeploy virtualization vars=false → card grid only; a11y fixes stay when independent |
+
+### Glass-surface a11y acceptance (cross-ref [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §10)
+
+When a Library surface renders on the liquid-glass canvas (Phase 1 shell, Phase 2
+component cards, Phase 5 template cards — see [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md)
+§12), it must additionally satisfy:
+
+- **Text contrast AA on frosted white:** `--ink:#3D3D3D` / `--secondary:#5D5D5D`
+  on the frosted white fill (`rgba(255,255,255,0.58–0.9`) passes WCAG 2.1 AA
+  (4.5:1). Load-bearing meta uses `--secondary`, NEVER `--tertiary:#7F7F7F`
+  (fails AA — recorded lesson; also doc 22 §2 WCAG note). Verified manually
+  pre-axe; via jest-axe post-Phase-0A.
+- **Focus ring on glass:** `--focus:#3D3D3D` ring ≥2px and ≥3:1 against adjacent
+  glass colors stays visible on frosted backgrounds
+  (`focus-visible:ring-2 focus-visible:ring-focus`, [23](23-DESIGN-SYSTEM-COMPONENT-MAPPING.md)
+  §Focus; [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §7 focus row).
+- **Color is not the sole carrier:** selected/active states combine border +
+  ring + weight/brightness (never color alone) — applies on glass and paper.
+- **Reduced transparency:** the `--glass-bg-fallback` opaque panel preserves all
+  text/selection/focus states without blur (manual + `prefers-reduced-transparency`).
+
+### Localization / bidi caveats for narrow layouts (cross-ref [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §5)
+
+- Beta ships `en-US` LTR only, but Library layout MUST be RTL-ready: use CSS
+  logical properties (`margin-inline-start`/`padding-inline-end`), `dir="auto"`
+  on user-generated folder/component names, and no hardcoded `left`/`right` in
+  component styles. Doc 28 §8 records the current physical-property baseline
+  count (do not assume 0).
+- Under `dir="rtl"`: the inspector dock anchors LEFT (rail order mirrors via the
+  workspace track grid), the `InspectorDrawer` sheet-side flips (slides from the
+  start side), the facet-filter input aligns right and chips mirror, and the
+  modal close/X mirrors to top-left.
+- Long-label wrap at < 768px is a No-Overlap rule (below); under RTL the same
+  no-overflow contract holds for long Arabic/RTL labels — buttons and chips must
+  wrap/truncate with accessible names, never overflow.
+- The i18n runtime decision (next-intl vs react-intl/etc.) is a Phase 0A
+  load-bearing undecided item (doc 28 §3.1); until it lands, the copy strings in
+  the live-region table above are the doc 22 §12A registry values, keyed
+  (proposed, not yet live in `src/`).
 
 ## No-Overlap Rules
 

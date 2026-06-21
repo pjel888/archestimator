@@ -54,6 +54,8 @@ conflicts AND every verification command returns the expected output.
 | C-018 | Owner role: missing per-row owner across pack | Resolved | all → 27 |
 | C-019 | Rollback: missing per-row rollback across pack | Resolved | all → 17 |
 | C-020 | Telemetry event: missing per-row event across pack | Resolved | all → 20 |
+| C-021 | `very_stale` 4-tier beta confirmed; helper-extension binding (folds in `agent-sync-audit.md`) | Resolved | 09, 11, 10, 12, 22, 19 |
+| C-022 | Glass-shell scope: Library liquid-glass skeleton = Phase 1 (doc 35 vs doc 19 phase label) | Resolved | 35, 19, 05 |
 
 ---
 
@@ -409,6 +411,67 @@ conflicts AND every verification command returns the expected output.
   ```
 - **Owner:** Telemetry lead
 
+### C-021: `very_stale` 4-tier beta confirmed; Phase-2 helper-extension binding
+
+> **Folds in the now-deleted `agent-sync-audit.md`** (2026-06-21 apply pass).
+> The orphan sync-audit file's single open decision — "C-001 freshness tiers:
+> ship 4-tier and make doc 19 note the helper must be extended, OR defer
+> `very stale` to Phase-later" — is resolved here as **(a) ship 4-tier**.
+
+- **Status:** Resolved
+- **Docs involved:** [09-MVP-STRATEGY-AND-SUCCESS-METRICS.md](09-MVP-STRATEGY-AND-SUCCESS-METRICS.md), [11-SOURCE-TRUST-STATE-MATRIX.md](11-SOURCE-TRUST-STATE-MATRIX.md), [10-LIBRARY-SURFACE-SPECS.md](10-LIBRARY-SURFACE-SPECS.md), [12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md](12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md), [22-COPY-DECK-AND-MICROCOPY.md](22-COPY-DECK-AND-MICROCOPY.md), [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+- **Conflict description:** Doc 19's `getComponentPricingFreshness` (`component-facet-filter.tsx:61`) returns three values today — `fresh` / `stale` / `missing` — backed by the three 90-day constants (`COMPONENT_FACET_STALE_DAYS`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS`, the `LibraryOverview.tsx:114` UI string). C-001 mandates a 4th `very stale` (180-day) tier as beta scope. The open question (carried by `agent-sync-audit.md`, now folded here) was whether to (a) ship the 4-tier extension or (b) defer `very stale` to Phase-later. This is the **implementation-binding** companion to C-001 (which fixes the terminology/copy drift).
+- **Resolution:** **Ship 4-tier** — option (a). Freshness is `fresh` / `stale` / `very stale` / `missing` (4 tiers) for beta scope. The 4th tier is a **Phase-2 helper-layer extension** that adds a 180-day `very stale` tier by extending, in lockstep and with NO schema change:
+  - `getComponentPricingFreshness(item, now)` at `component-facet-filter.tsx:61` (add a `"very stale"` return arm),
+  - `getStalenessTone(pricingDate?)` / `getStalenessLabel(pricingDate?)` at `component-library/helpers.ts:667` / `:675`,
+  - the THREE 90-day constants (`COMPONENT_FACET_STALE_DAYS` `component-facet-filter.tsx:12`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS` `component-library-repository.ts:827`, the `LibraryOverview.tsx:114` UI string) — a new `VERY_STALE`-day companion constant plus the existing 90-day `STALE` constant, kept as a single source of truth.
+  No fourth source of truth is introduced; the 90-day window remains the `stale` boundary and 180-day becomes the `very stale` boundary.
+- **Required updates:**
+  - `19` → the "Any new 'very stale' tier …" paragraph in the Confidence and Freshness Models section now records the C-021 Phase-2 binding (4-tier, helper-layer only, no schema change). DONE 2026-06-21.
+  - `11` → `very stale` stays canonical 4-tier definition (already per C-001).
+  - `09`, `10`, `12`, `22` → see C-001 required updates (4-tier copy/visual/a11y). Any doc presenting a bare `fresh/stale/missing` 3-tier formulation must note it describes the *current* helper return and that Phase-2 extends it to 4-tier.
+- **Verification:**
+  ```bash
+  # 4-tier canonical formulation appears in 19 and 11
+  rg "fresh.*stale.*very stale.*missing|fresh / stale / very stale / missing" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" -l
+  # Expected: 11, 19 (and any doc that quotes the canonical tier list).
+
+  # The orphan sync-audit file is gone
+  test ! -f .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/agent-sync-audit.md
+  # Expected: exits 0 (file deleted; its finding folded into C-021).
+
+  # Phase-2 extension note is in doc 19
+  rg "Phase 2.*very stale|very stale.*Phase 2|C-021" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md
+  # Expected: at least one match.
+  ```
+- **Owner:** Planning lead
+
+### C-022: Glass-shell scope — Library liquid-glass skeleton = Phase 1
+
+- **Status:** Resolved
+- **Docs involved:** [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md), [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md), [05-IMPLEMENTATION-ROADMAP.md](05-IMPLEMENTATION-ROADMAP.md)
+- **Conflict description:** Doc 35 (the liquid-glass Library UX/UI spec) introduces a per-region glass surface-variant slot system that mirrors the shipped estimate-surface model (`estimate-surface-variant.tsx:21`) and defines a two-posture rollout: Phase 1 = glass skeleton (well + floating rails/paper + chrome + liquid buttons + warm CTA + provider + grids); Phase 2/5 = content-grade card glass. Doc 19's Canonical Phase Map labels Phase 1 purely as "Findability & Applied Filters", with no glass-shell scope. The two phase-1 scopes must be reconciled — does the glass shell land in Phase 1 or later?
+- **Resolution:** **The glass shell is Phase 1.** Doc 35's two-posture split is canonical: Phase 1 = glass skeleton (per doc 35 §12.1-12.5), Phase 2 = component card glass, Phase 5 = template card glass. Doc 19's Phase 1 row is **extended** (not replaced) to include the Library workspace glass skeleton — the Phase-1 findability work and the Phase-1 glass skeleton are co-scoped (both are foundational surface work). Card glass stays Phase 2 (components) / Phase 5 (templates). Doc 19 is the canonical phase map; doc 35 binds its slot system to the estimate-surface reference model recorded in doc 19's "Reference glass-surface system" subsection; doc 05 sequences against doc 19's extended Phase 1.
+- **Required updates:**
+  - `19` → Canonical Phase Map Phase 1 row extended to include "Library workspace glass skeleton (doc 35 §12.1-12.5): glass well + floating rails/paper + chrome + liquid buttons + warm CTA + the `LibrarySurfaceVariantProvider` + workspace/content grids" and a pointer that card glass stays Phase 2/5. Added the "Reference glass-surface system" subsection binding doc 35 to the estimate-surface model. DONE 2026-06-21.
+  - `35` → cross-reference doc 19's "Reference glass-surface system" subsection as the binding model; assert the Phase-1 skeleton / Phase-2-5 card split aligns with doc 19's extended Phase 1. (Lead-owned doc — cross-reference only, do not edit.)
+  - `05` → note that Phase 1 sequences both findability AND the glass skeleton (per doc 19 extended Phase 1).
+- **Verification:**
+  ```bash
+  # Doc 19 Phase 1 row now names the glass skeleton
+  rg "glass skeleton|LibrarySurfaceVariantProvider|doc 35 §12" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md
+  # Expected: at least one match in the Canonical Phase Map.
+
+  # Doc 19 binds the estimate-surface reference for doc 35
+  rg "Reference glass-surface system|estimate-surface-variant.tsx:21" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md
+  # Expected: at least one match.
+
+  # Card glass stays Phase 2/5 (not Phase 1)
+  rg "card glass stays Phase 2|content-grade card glass" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md
+  # Expected: at least one match.
+  ```
+- **Owner:** Planning lead
+
 ---
 
 ## 4. Verification commands (confirm 0 unresolved)
@@ -446,12 +509,21 @@ rg "Owner:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" 
 
 ## 5. Sign-off
 
+> **2026-06-21 apply-pass update:** The prior "inline application accepted as
+> residual" caveat is **lifted**. Conflicts **C-001 through C-022 are now
+> applied inline across the pack** by the 2026-06-21 multi-agent apply pass
+> (each agent owned a non-overlapping doc set; per-doc apply status is tracked
+> in doc 25). Any remaining inline
+> deltas are doc-specific residuals logged against the specific doc, not a
+> pack-wide open item. The orphan `agent-sync-audit.md` was folded into C-021
+> and deleted in this same pass.
+
 | Reviewer | Verdict | Date | Notes |
 |---|---|---|---|
-| Planning lead | READY-WITH-CAVEATS | 2026-06-21 | All 20 conflicts have binding resolutions. Inline updates to affected docs accepted as residual (owner: Planning lead, phase: Wave 2, evidence: doc 25 §5). |
-| Reviewer gate (Oracle) | READY-WITH-CAVEATS | 2026-06-21 | Conflict log is complete and binding. Inline application of C-001 through C-020 to affected docs remains — accepted residual per relaxed standard. |
+| Planning lead | READY | 2026-06-21 | All 22 conflicts have binding resolutions. C-001..C-022 applied inline across the pack by the 2026-06-21 apply pass (per-doc residuals tracked in doc 25). `agent-sync-audit.md` folded into C-021 and deleted. |
+| Reviewer gate (Oracle) | READY | 2026-06-21 | Conflict log is complete and binding (22/22). Inline application of C-001 through C-022 to affected docs is no longer a pack-wide open residual; any doc-specific deltas are logged per-doc. |
 
 The pack is internally consistent when:
-1. ✅ Every conflict in §3 has a binding resolution (20/20 resolved).
-2. ⚠️ Inline updates to affected docs tracked as accepted residual (see C-001 through C-020 Required updates).
-3. ✅ Both reviewers signed off above (READY-WITH-CAVEATS).
+1. ✅ Every conflict in §3 has a binding resolution (22/22 resolved).
+2. ✅ Inline updates for C-001 through C-022 applied across the pack by the 2026-06-21 apply pass (pack-wide residual caveat lifted; doc-specific residuals tracked per-doc).
+3. ✅ Both reviewers signed off above (READY).

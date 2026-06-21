@@ -2,10 +2,22 @@
 
 ## Purpose
 
-Quick Add (Phase 3 per `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`) and
-future catalog import/export must be designed around safe data entry. Even if
-bulk import/export is deferred, the MVP should avoid choices that make future
-file workflows unsafe.
+This doc has TWO clearly separated parts:
+
+1. **CURRENT (executable) — Field Validation for Quick Add (Phase 3):** the four
+   required fields + optional fields, validation rules, error copy, and the
+   executable test rows. This is the only work in this doc with a current
+   execution target.
+2. **PHASE-LATER (no current execution target) — Import / Export / File Upload:**
+   future-safe design contracts only. There is **no route, component, or test
+   file** for bulk import, catalog export, or file upload today. These are
+   forward contracts so a future implementer knows the safety rules; they are
+   marked `PHASE-LATER` at each section and grouped at the end.
+
+> **Phase-later scope note:** Quick Add (Phase 3) is the only executable work in
+> this doc. Import, Export, and File Upload are `PHASE-LATER — no current
+> execution target`. Archive vs Delete (C-013) and Quick Add's no-schema-change
+> contract (C-011) are stated in the executable part below.
 
 All names, columns, enums, helpers, and test commands here are authoritative in
 `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (CANON); this doc binds to those
@@ -13,25 +25,33 @@ rather than restating the full inventory. User-facing strings are owned by
 `22-COPY-DECK-AND-MICROCOPY.md` "Input / File Validation Messages" — every error
 string below is the verbatim copy-deck entry; do not invent new phrasing.
 
-## Field Validation
+## Current — Field Validation (Phase 3, executable)
 
 All four required Quick Add fields and every optional field map to existing
 `public.cost_library_items` columns (CANON Quick Add Contract) — Quick Add needs
-**no schema change**. Validation is enforced in `createCostLibraryComponent` /
+**no schema change** (C-011: reuses existing columns, app-layer validation only).
+Validation is enforced in `createCostLibraryComponent` /
 `updateCostLibraryComponent` (`src/lib/component-library/actions.ts`); the Add
 and Edit source fields must be normalized so both write the same columns.
 
-| Field | Column | Rule | Bound (numeric) |
-|-------|--------|------|-----------------|
-| name | `name` (text) | required; trim; length-limited | <= 120 chars |
-| category | `category` (text) | required; **plain text, not an enum** — accept free text or pick-from-existing; do NOT assume a controlled vocabulary | <= 120 chars |
-| unit | `unit` (text) | required; trim; normalize casing where possible (e.g. `m2`, `each`, `hr`) | <= 32 chars |
-| unit_cost | `unit_cost` (numeric) | required; numeric; non-negative (>= 0) unless explicit credit/allowance is designed later; round to 2 decimal places (currency precision) | >= 0, scale 2 |
-| misc_cost | `misc_cost` (numeric) | optional; same non-negative + 2-decimal rule | >= 0, scale 2 |
-| supplier / brand | `supplier` / `brand` (text; `supplier_id`/`brand_id` FK) | optional; trim; length-limited | <= 120 chars |
-| pricing_date | `pricing_date` (date / null) | optional; valid date; not future-dated (must be <= today; reject any date after the request day) | server-day bound |
-| pricing_source | `pricing_source` (text / null) | optional; this **is** the "source URL" — free-text column, no DB constraint; URL validity is checked **app-side** over free text | <= 2048 chars |
-| confidence | `confidence` (text / null) | optional; **free-text string, NOT an enum** today — a controlled vocabulary (enum/CHECK) is a DEFERRED migration; validate length only, store verbatim | <= 120 chars |
+| Field | Column | Rule | Bound (numeric) | phase | flag | rollback | evidence (doc 24) |
+|-------|--------|------|-----------------|-------|------|----------|-------------------|
+| name | `name` (text) | required; trim; length-limited | <= 120 chars | 3 | `library_quick_add` | redeploy flag=false → full `AddComponentModal` advanced path (C-010) | EV-FRONTEND-08 |
+| category | `category` (text) | required; **plain text, not an enum** — accept free text or pick-from-existing; do NOT assume a controlled vocabulary | <= 120 chars | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| unit | `unit` (text) | required; trim; normalize casing where possible (e.g. `m2`, `each`, `hr`) | <= 32 chars | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| unit_cost | `unit_cost` (numeric) | required; numeric; non-negative (>= 0) unless explicit credit/allowance is designed later; round to 2 decimal places (currency precision) | >= 0, scale 2 | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| misc_cost | `misc_cost` (numeric) | optional; same non-negative + 2-decimal rule | >= 0, scale 2 | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| supplier / brand | `supplier` / `brand` (text; `supplier_id`/`brand_id` FK) | optional; trim; length-limited | <= 120 chars | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| pricing_date | `pricing_date` (date / null) | optional; valid date; not future-dated (must be <= today; reject any date after the request day) | server-day bound | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| pricing_source | `pricing_source` (text / null) | optional; this **is** the "source URL" — free-text column, no DB constraint; URL validity is checked **app-side** over free text | <= 2048 chars | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+| confidence | `confidence` (text / null) | optional; **free-text string, NOT an enum** today — a controlled vocabulary (enum/CHECK) is a DEFERRED migration; validate length only, store verbatim | <= 120 chars | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 |
+
+> **C-013 (Archive vs Delete, cross-ref):** this doc governs Quick Add field
+> entry; lifecycle transitions (archive vs delete) are owned by doc 14 + doc 22
+> §7. "Archive" = soft-delete (recoverable via `changeCostLibraryComponentLifecycleState`
+> out of `archived`); "Delete" = hard-delete (irreversible). Quick Add does not
+> touch either; it writes a new `lifecycle_state` (default `draft` on import —
+> see the Deferred Import section).
 
 Notes:
 
@@ -57,12 +77,14 @@ Text fields (all of `name`, `category`, `unit`, `supplier`, `brand`,
   `×`, `m²`)
 - avoid rendering raw HTML — render as text, never `dangerouslySetInnerHTML`
 
-## CSV/Spreadsheet Formula Safety
+## CSV/Spreadsheet Formula Safety (executable-adjacent — Phase 0A/1 test)
 
 The live export surface for this app is the **proposal/publication workbook**
 exporter at `src/lib/proposal-export/create-proposal-workbook.ts`
 (`createProposalWorkbook` / `createProposalWorkbookBuffer`, ExcelJS). It already
-implements a formula-injection defense — reuse it; do not reinvent it.
+implements a formula-injection defense — reuse it; do not reinvent it. This is
+the one executable-adjacent surface in this doc: the defense already ships, so
+the **test** is promotable to an executable Phase-0A/1 row (see Tests below).
 
 Existing guard (F-18, P1-T7) at `create-proposal-workbook.ts:45-50`: every data
 string column carries the text number-format `TEXT_FORMAT = "@"`, so a cell whose
@@ -85,7 +107,17 @@ Rules for any new export/import path:
 - never execute formulas from import files; treat every imported cell as inert
   text
 
-## Import Workflow Contract
+## Deferred (Phase-later) — Import, Export, File Upload
+
+> The three contracts below are **PHASE-LATER — no current execution target.**
+> There is no route, component, server action, or test file for bulk import,
+> catalog export, or file upload today. Quick Add (Phase 3, above) + the
+> proposal-export formula-safety test (Phase 0A/1, below) are the only
+> executable work in this doc. The contracts exist so a future implementer knows
+> the safety rules; they delegate the 12-dimension rows (Owner/Rollback/etc.)
+> per `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3 (C-018/C-019/C-020).
+
+### Import Workflow Contract (PHASE-LATER)
 
 Bulk import is deferred, but future-safe design requires:
 
@@ -103,10 +135,26 @@ source is verified and the user confirms source confidence. Concretely: imported
 rows default to `lifecycle_state = draft` (CANON `component_lifecycle_state`:
 `draft | in_production | available | discontinued | archived`), with empty
 `confidence` and a flagged-stale `pricing_date` (or null) — never auto-promoted
-to `available`. Trust/freshness is derived per the `22` "Trust Badge Labels"
-tables; importing must not bypass that derivation.
+to `available`. Trust/freshness is derived per the `22` "Trust chip Labels"
+tables (chip, NOT badge — C-002); importing must not bypass that derivation.
 
-## Export Workflow Contract
+**Import preview / error / rollback matrix (Phase-later):**
+
+| Step | Preview shown | Error handling | Rollback |
+| --- | --- | --- | --- |
+| Parse + map columns | mapped-column preview per row; unmapped columns flagged | invalid header / unmappable column -> block import with `import_row_missing_unit`-style copy (doc 22 §11) | no mutation yet (preview-only) |
+| Validate rows | per-row valid/invalid preview; validation summary count | per-row error copy (doc 22 §11 `validation.import_row_missing_unit`); rejected rows excluded from commit | no mutation yet |
+| Duplicate detection | duplicate rows flagged in preview | duplicates skipped or merged per user choice | no mutation yet |
+| Commit | final commit preview; user confirms | partial failure -> `import_failed_partial_commit`; committed rows kept, failed rows reported | partial-commit reporting (no silent partial commit); full rollback only if no rows committed |
+
+**Telemetry/audit events (Phase-later, cross-ref [20](20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md) §6A):**
+`import_failed_partial_commit` (Warn; `workspaceId`, `rowsAttempted`,
+`rowsCommitted`), `upload_rejected_type` / `formula_injection_detected` (Warn;
+doc 20 §6A — a formula detected in import), `bulk_export` (Warn; doc 20 §6A —
+>50 templates exported in one session). Closed-beta sink = `console.warn`
+(C-009); payloads are ID-only, no free-text user content.
+
+### Export Workflow Contract (PHASE-LATER)
 
 Future export must support:
 
@@ -123,17 +171,27 @@ The public/client-safe surface today is **not** a live Library query — it is t
 `project_publications.snapshot_json` (versioned by `snapshot_version`).
 Redaction is therefore a property of **what the snapshot builder PUTS INTO**
 `snapshot_json` — the builder is `buildSnapshotForProject`
-(`src/lib/publication/actions.ts:376`), which uses an explicit `estimate_row_items`
+(`src/lib/publication/actions.ts:389`), which uses an explicit `estimate_row_items`
 column allowlist and **never queries `cost_library_items` /
 `cost_library_item_price_history`**, plus a public-read sanitizer
-`sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:112`)
-that re-derives each public row from a fixed allowlist (dropping `unitCost`/`miscCost`)
+`sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:301`)
+that re-derives each public row from a fixed allowlist (emitting `rowTotal`
+without emitting `unitCost`/`miscCost`/`contingencyPercentage` as own-properties)
 — not of a live endpoint, and NOT of `activity-helpers.ts` (which only reads labels
 back OUT of an already-built snapshot, never composes the field selection). See
-`14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`. Any client-safe catalog/proposal export
-must apply the same field-selection discipline at build time
+`14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` (line bindings re-verified 2026-06-21).
+Any client-safe catalog/proposal export must apply the same field-selection
+discipline at build time
 (`src/lib/proposal-export/build-proposal-export-model.ts:43` already runs
 `applyAudiencePolicy`).
+
+**Export telemetry/audit events (Phase-later, cross-ref [20](20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md) §6A):**
+`export_large_export_logged` (Info; `workspaceId`, `rowsExported` — fires when an
+export crosses the large-export threshold), `bulk_export` (Warn; doc 20 §6A —
+>50 templates exported in one session). Closed-beta sink = `console.warn` (C-009).
+The redaction-notice copy for client-safe exports is
+`validation.export_redaction_notice` ("This export excludes private source
+details.", doc 22 §11).
 
 Private by default (bound to real `cost_library_items` columns / related tables):
 
@@ -146,7 +204,7 @@ Private by default (bound to real `cost_library_items` columns / related tables)
 - internal usage / link history (`source_library_item_id`, `source_snapshot`,
   `link_state` on `estimate_row_items` / `estimate_template_row_items`)
 
-## File Upload Contract
+### File Upload Contract (PHASE-LATER)
 
 Component images already have a storage surface: the `thumbnail_path` column on
 `cost_library_items`, plus `image_bucket` / `storage_bucket` on price options
@@ -155,7 +213,8 @@ Component images already have a storage surface: the `thumbnail_path` column on
 `updateCostLibraryComponent` in `src/lib/component-library/actions.ts`). Quick
 Add does NOT introduce file upload (its required fields are text/numeric only) —
 this contract governs any image/attachment work that touches that existing
-surface, and is not blocking for Phase 3.
+surface, and is not blocking for Phase 3. **There is no upload route, component,
+or test today — this is PHASE-LATER.**
 
 If images, attachments, or import files are touched:
 
@@ -174,13 +233,36 @@ If images, attachments, or import files are touched:
   mutation when avoidable (write the row and the object atomically, or clean up
   the object if the row write fails)
 
-## Error Copy
+**Upload preview / error / rollback matrix (Phase-later):**
+
+| Step | Preview shown | Error handling | Rollback |
+| --- | --- | --- | --- |
+| Select file | file name + size + thumbnail preview (image) | oversized -> `validation.file_too_large` ("This file is too large. Use a file under {limit}.", doc 22 §11); bad type -> `validation.file_unsupported` | rejected file never uploaded |
+| Validate (magic bytes + extension + size) | validation result inline | unsupported type/size -> reject with copy; show per-file error state | no storage write |
+| Upload (write to workspace-scoped path) | upload progress | upload failure -> inline error; `upload_rejected_type` telemetry | orphan cleanup: if the row write fails after the object write, delete the object (no orphans) |
+| Attach to row | attached preview on the row | `cost_library_items` write failure -> row not created, object cleaned up | atomic row+object write, else rollback the object |
+
+**Telemetry/audit events (Phase-later, cross-ref [20](20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md) §6A):**
+`upload_rejected_type` (Warn; `workspaceId`, `field` — a file rejected for
+type/size), `formula_injection_detected` (Warn; doc 20 §6A — a formula detected
+in an imported file). Closed-beta sink = `console.warn` (C-009).
+
+**Design-system mapping (Phase-later, cross-ref [23](23-DESIGN-SYSTEM-COMPONENT-MAPPING.md)):**
+
+| Surface | DS primitive / pattern | Notes |
+| --- | --- | --- |
+| File picker | native `<input type="file">` wrapped in the shared button primitive; `aria-haspopup`, visible focus ring | reuse the shared `ui/button.tsx`; do not invent a custom dropzone primitive |
+| Upload preview | image `thumbnail` using the existing `thumbnail_path` rendering; non-image -> file-icon + name + size | preview is decorative; the accessible name is the file name |
+| Error summary | the shared error-summary / inline-error pattern (`danger` token); per-file error states | copy from doc 22 §11 verbatim; `secondary`/`danger` tokens, never `tertiary` (#7F7F7F, fails AA) |
+| Progress affordance | a standard progress indicator; reduced-motion neutralizes any animation (doc 12 Reduced Motion) | state must be understandable without the animation |
+
+## Current — Error Copy (Phase 3, executable)
 
 The single source of truth for these strings is `22-COPY-DECK-AND-MICROCOPY.md`
 "Input / File Validation Messages" — copy verbatim, do not re-author here. Each
-rule above maps to a copy-deck entry:
+Quick Add rule maps to a copy-deck entry (Phase 3):
 
-| Rule | Copy-deck string (`22`) |
+| Rule | Copy-deck string (`22` §11) |
 |------|-------------------------|
 | name missing | Enter a component name. |
 | name too long | Use 120 characters or fewer for the name. |
@@ -195,43 +277,39 @@ rule above maps to a copy-deck entry:
 | source URL invalid | Enter a valid https URL. |
 | source URL too long | Shorten this URL. |
 | confidence note too long | Use 120 characters or fewer for the confidence note. |
-| file too large (future) | This file is too large. Use a file under {limit}. |
-| unsupported file type (future) | This file type is not supported. |
-| import row missing unit (future) | Row {n} is missing a unit. |
-| export redaction notice (future) | This export excludes private source details. |
+
+The Phase-later import/export/upload copy rows are owned by doc 22 §11 and are
+NOT executable in this pack: `file too large` ("This file is too large. Use a
+file under {limit}."), `unsupported file type` ("This file type is not
+supported."), `import row missing unit` ("Row {n} is missing a unit."),
+`export redaction notice` ("This export excludes private source details.").
 
 Field-and-fix phrasing: name the field, state the fix. Avoid generic
 invalid/error copy when the field and fix are known. The WCAG rule from `22`
 applies — validation/consequence text must use the `secondary` token
 (`#5D5D5D`), never `tertiary` (`#7F7F7F`, fails AA).
 
-## Tests To Add When Implemented
+## Tests
 
 Run jsdom suites with `bun run test:dom` (all) or `vitest run tests/vitest/<file>`
 (one) — NOT `bun test`, which is bound to `tests/unit` only and silently skips
-the vitest suites (CANON Test Commands). Full gate: `bun run validate`. There is
-no axe/jest-axe harness; assertions are plain Testing Library checks unless
-`jest-axe` is added as an explicit prerequisite.
+the vitest suites (CANON Test Commands; C-005). Full gate: `bun run validate`.
+There is no axe/jest-axe harness today (C-014 — adding `jest-axe` is a Phase 0A
+net-new prerequisite); assertions are plain Testing Library checks until then.
 
-- invalid `pricing_source` URL rejected app-side (non-`http(s)` scheme,
-  over-length) in `createCostLibraryComponent` / `updateCostLibraryComponent`
-- unit_cost negative / non-numeric rejected; 2-decimal rounding applied
-- name / supplier / brand / confidence over-length rejected at the bounds above
-- `pricing_date` in the future rejected
-- unsafe formula-like text (`=`, `+`, `-`, `@`) round-trips as literal text via
-  `create-proposal-workbook.ts` `TEXT_FORMAT` (assert the cell is text, not a
-  formula)
-- oversized file (future upload)
-- unsupported file type (future upload)
-- cross-workspace storage object ID denied before read/delete
-- import preview with valid and invalid rows (future)
-- public/client-safe path: the snapshot builder `buildSnapshotForProject`
-  (`src/lib/publication/actions.ts:376`) + public-read sanitizer
-  `sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:112`),
-  and the proposal exporter's `applyAudiencePolicy`
-  (`src/lib/proposal-export/build-proposal-export-model.ts:43`), exclude the
-  private fields listed above (it is the snapshot/export field-selection that is
-  tested, NOT a live library endpoint and NOT `activity-helpers.ts` — per `14`;
-  the snapshot redaction proof is `ADV-PUBLIC-REDACTION`,
-  `vitest run tests/vitest/share-snapshot-redaction.test.tsx`, in
-  `24-EXECUTION-EVIDENCE-LEDGER.md`)
+### Executable (Phase 0A/1/3)
+
+| Test | Command | Pass criterion | Owner | Phase | Evidence (doc 24) |
+| --- | --- | --- | --- | --- | --- |
+| Quick Add field validation | `vitest run tests/vitest/library-add-component-modal-a11y.test.tsx` (+ a new validation suite) | invalid `pricing_source` URL rejected app-side (non-`http(s)` scheme, over-length); unit_cost negative/non-numeric rejected + 2-decimal rounding; name/supplier/brand/confidence over-length rejected at bounds; `pricing_date` future rejected | Frontend lead | 3 | EV-FRONTEND-08 |
+| Proposal-export formula safety (executable-adjacent) | `vitest run tests/vitest/proposal-export-formula-safety.test.ts` | unsafe formula-like text (`=`, `+`, `-`, `@`) round-trips as LITERAL TEXT via `create-proposal-workbook.ts` `TEXT_FORMAT` — the cell is text, not a formula (no leading char stripped, no quote-prefix corruption) | Export lane | 0A/1 | EV-FRONTEND-08 |
+| Public/client-safe redaction (cross-ref `14`) | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` | the snapshot builder `buildSnapshotForProject` (`actions.ts:389`) + public-read sanitizer `sanitizeProjectPublicationSnapshotForPublicRead` (`snapshot.ts:301`), and the proposal exporter's `applyAudiencePolicy` (`build-proposal-export-model.ts:43`), exclude the private fields above (snapshot/export field-selection is tested, NOT a live endpoint and NOT `activity-helpers.ts`); pre-registered as `ADV-PUBLIC-REDACTION` | Security lead | 0A | ADV-PUBLIC-REDACTION |
+
+### Phase-later (no current execution target)
+
+- oversized file (upload), unsupported file type (upload), cross-workspace
+  storage object ID denied before read/delete, import preview with valid and
+  invalid rows. These are governed by the Deferred contracts above; telemetry
+  events (`upload_rejected_type`, `import_failed_partial_commit`,
+  `export_large_export_logged`, `formula_injection_detected`) are registered in
+  doc 20 §6A.

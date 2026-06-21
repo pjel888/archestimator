@@ -14,6 +14,12 @@
 
 This is an observability seam, not a product analytics platform. Closed-beta needs structured, privacy-safe, debuggable events — not a vendor pipeline. Scope stays inside the canonical phase map (`19`).
 
+**Non-goal:** the liquid-glass library redesign (doc 35 v2) has NO dedicated
+telemetry family in this taxonomy. If the glass surface lands and its render
+arming (`data-glass="ready"`) or one-blur-per-region behavior needs measuring,
+add a `library_glass_*` family (rendered/armed/deferred) bound to the glass
+provider and `--glass-*` tokens; until then it is out of telemetry scope.
+
 Owner: Telemetry lead | Phase: 0A | Flag: n/a | Rollback: revert `library-telemetry.ts` file | Evidence: EV-TELEMETRY-01 | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: n/a
 
 ---
@@ -33,7 +39,7 @@ Decision: do NOT invent a new telemetry framework. Create `src/lib/component-lib
 
 | Aspect | Rationale |
 |---|---|
-| Why `console.warn` is enough for beta | Closed beta has no external users, no SLA dashboard, and no analytics vendor contract. The 09 metrics are learnable from structured logs, DOM/e2e tests, and moderated beta tasks. A prod sink is Phase-later. |
+| Why `console.warn` is enough for beta | Closed beta has no external users, no SLA dashboard, and no analytics vendor contract. The 09 metrics are learnable from structured logs, DOM/e2e tests, and moderated beta tasks — specifically: (1) component find time < 30s is learnable from `library_find_*` durations in a moderated beta task; (2) template find time < 30s same; (3) Quick Add completion < 90s from `quick_add_*` durations; (4) insert accuracy from the server-confirmed `insert_target_confirmed`/`insert_target_mismatch` ratio (DOM/e2e primary); (5) trust classification 90%+ from the `trust_chip_rendered`/`unclassified` ratio. All five are derivable from console.warn + test spies + a human reading the log — no aggregation pipeline required. A prod sink is Phase-later. |
 | What "done" means for beta telemetry | Events emit correctly to `console.warn` with the correct schema; tests spy on `recordLibraryEvent` and assert payload shape. |
 | Future sink path | `setLibraryTelemetrySink(sink)` registers an async function; default remains `console.warn`; failures swallowed so telemetry never blocks user actions. |
 | No PII/price leakage | Payload type does not declare free-text user content, `pricing_source`, `confidence`, names, or prices. |
@@ -76,6 +82,14 @@ type LibraryTelemetryPayload = {
 };
 ```
 
+> **Freshness tier status (binding vs intent):** `getComponentPricingFreshness`
+> (`component-facet-filter.tsx:61`) returns `fresh | stale | missing` (3 tiers)
+> **today**. The `very stale` value in the payload union is **beta-target scope**
+> (per `11` "Phase-2 helper-extension binding" and `26` C-001/C-021): the helper
+> is extended additively to a 180-day `very_stale` tier in Phase 2 — no schema
+> change, app-layer only. Until that extension lands, `trust_chip_rendered`
+> emits the 3 reachable values; the `very stale` arm goes live with Phase 2.
+
 Owner: Telemetry lead | Phase: 0A | Evidence: EV-TELEMETRY-01 | Binding: `src/lib/component-library/library-telemetry.ts`
 
 ---
@@ -96,7 +110,7 @@ Owner: Telemetry lead | Phase: 0A | Evidence: EV-TELEMETRY-01 | Binding: `src/li
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Volume | Events are coarse and lifecycle-scoped, not per-row. `trust_chip_*` emits ONCE per surface per session. Find/Quick Add sessions are bounded by timeout caps. | Telemetry lead | 0A | n/a | n/a | EV-TELEMETRY-01 | all events | n/a | n/a | n/a | n/a | n/a | `src/lib/component-library/library-telemetry.ts` |
 | Backpressure | `console.warn` is synchronous and local; no network backpressure. Future async sink must swallow failures and never block UI. | Telemetry lead | 0A | n/a | n/a | EV-TELEMETRY-01 | n/a | n/a | n/a | n/a | n/a | n/a | `src/lib/component-library/library-telemetry.ts` |
-| Sampling | No probabilistic sampling for beta. `trust_chip_*` uses deterministic first-render-per-surface sampling. If volume exceeds 1,000 events/session, add `sampled: true` flag and switch to 1-in-10 for `library_find_started` only. | Telemetry lead | 5 | n/a | revert sampling config | EV-TELEMETRY-03 | `library_find_started` | n/a | n/a | n/a | n/a | n/a | `src/lib/component-library/library-telemetry.ts` |
+| Sampling | No probabilistic sampling in beta — `console.warn` is unaggregated, so a session-volume trigger is unobservable. `trust_chip_*` uses deterministic first-render-per-surface sampling (`sampled: true` is always true for that family). A probabilistic 1-in-N policy for `library_find_started` is a Phase-later prerequisite gated on a prod sink (`setLibraryTelemetrySink`) that can report session volume; until then `sampled` is a stable flag, not a measured threshold. | Telemetry lead | 5 | n/a | revert sampling config | EV-TELEMETRY-03 | `library_find_started` | n/a | n/a | n/a | n/a | n/a | `src/lib/component-library/library-telemetry.ts` |
 | Budget | Telemetry must not add > 5 KB to initial bundle or > 1 ms per event emission. | Perf lead | 0A | n/a | n/a | EV-PERF-01 | n/a | n/a | n/a | see `30` §3 | n/a | n/a | `30-PERF-BUDGET-AND-REGRESSION-GATES.md` §3 |
 
 ---
@@ -104,6 +118,12 @@ Owner: Telemetry lead | Phase: 0A | Evidence: EV-TELEMETRY-01 | Binding: `src/li
 ## 6. Event taxonomy
 
 All events route through `recordLibraryEvent(event, payload)` in the new twin. Code owner per event family is listed.
+
+> **Instrumentation status:** the twin file `library-telemetry.ts` is NET-NEW
+> and NONE of the trigger file:line anchors below contain a `recordLibraryEvent`
+> call today — they are INSERTION TARGETS, not existing calls. The host phase
+> adds each call site; one evidence row in `24-EXECUTION-EVIDENCE-LEDGER.md`
+> per event group proves the call was added.
 
 | Event | Code owner | Trigger file / function | Payload fields | Scoping | Excluded (NEVER in payload) |
 |---|---|---|---|---|---|
@@ -117,15 +137,69 @@ All events route through `recordLibraryEvent(event, payload)` in the new twin. C
 | `insert_target_confirmed` | Frontend lead | success return of `insertEstimateTemplateIntoEstimate` (template) or `insertEstimateRowItemFromLibrary` (component) | `workspaceId`, `projectId`, `estimateId`, `sourceKind`, `sourceItemId`, `targetStale` | editor + `can_edit_estimate` | source/target display names |
 | `insert_target_mismatch` | Frontend lead | resolve step returns no `targetParentNodeId`, or insert action error-returns | `workspaceId`, `projectId`, `estimateId`, `reason` | editor | any name |
 | `trust_chip_rendered` | Backend lead | first-render-per-surface emit of trust chip on overview/recent/template rows + inspector + insert | `workspaceId`, `surface`, `kind`, `freshness`, `hasConfidenceLabel`, `sampled: true` | per-workspace; once per surface per session | `pricing_source`, raw `confidence`, item name |
-| `trust_chip_unclassified` | Backend lead | first-render-per-surface where freshness/confidence cannot be derived | `workspaceId`, `surface`, `kind` | once per surface per session | item identity |
+| `trust_chip_unclassified` | Backend lead | first-render-per-surface where freshness is `missing` AND `hasConfidenceLabel` is false (concrete denominator below) | `workspaceId`, `surface`, `kind` | once per surface per session | item identity |
+
+> **Classification denominator (concrete):** `hasConfidenceLabel` =
+> `confidence` IS NOT NULL AND non-empty after trim. `trust_chip_unclassified`
+> fires when `freshness === 'missing'` AND `hasConfidenceLabel === false`. The
+> "Trust classification 90%+" metric (§7) =
+> `trust_chip_rendered / (trust_chip_rendered + trust_chip_unclassified)` over
+> that exact definition. Confidence is free text (doc 19), so any non-empty
+> string "derives" a label and is NOT unclassified.
 
 ### Notes
 
-- `freshness` is the DERIVED 4-tier enum from `getComponentPricingFreshness` (`fresh`/`stale`/`very stale`/`missing`). `hasConfidenceLabel` is a boolean over `confidence` presence — the free-text `confidence` string is NEVER emitted.
+- `freshness` is the derived freshness STATUS from `getComponentPricingFreshness` (`component-facet-filter.tsx:61`), today `fresh`/`stale`/`missing`. The `very stale` (180-day) tier is beta-target scope (Phase 2, per `11` "Phase-2 helper-extension binding" and `26` C-001/C-021) — it is added additively to the helper and goes live in Phase 2; the payload union declares it so the schema does not change when the tier lands. `hasConfidenceLabel` is a boolean over `confidence` presence (non-null, non-empty after trim) — the free-text `confidence` string is NEVER emitted.
 - `reason` on failure events is an action-error CODE from `action-errors.ts`, not a raw exception message.
 - `sessionFindId` / `sessionAddId` are client-generated opaque ids scoping a start/stop pair.
 
 Owner: Telemetry lead | Phase: 0A | Evidence: EV-TELEMETRY-01 | Binding: `src/lib/component-library/library-telemetry.ts`
+
+---
+
+## 6A. Security telemetry events (source: doc 32 §5, EV-TELEMETRY-SEC)
+
+Doc 32 §5 defines 15 security/abuse events. They are REGISTERED HERE so this doc
+remains the single telemetry source and so the schema/version, sink, sampling,
+i18n-label, and code-owner rules in §§3-5/10 apply uniformly. These are
+**net-new** (no call sites today; Phase 0B insertion targets, per §6
+"Instrumentation status" note). Closed beta sink: `console.warn` is sufficient
+(C-009) — security events are coarse, ID-only, and monitored by the security lead
+reading the log + a grep assertion (§11 "Public/share emits nothing" pattern).
+
+| Event | Trigger | Payload (privacy-safe) | Severity | Sink (beta) | Code owner | Phase | Evidence |
+|---|---|---|---|---|---|---|---|
+| `authz_denied` | user attempts action their role lacks | `workspaceId`, `action`, `role` (NO user_id in beta payload) | Info | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
+| `idor_attempt` | user attempts resource outside their workspace | `workspaceId`, `resourceId` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
+| `cache_bleed_detected` | cross-workspace data detected in cache | `workspaceAId`, `workspaceBId`, `cacheKey` | Error | `console.warn` | Security lead | 0A | EV-TELEMETRY-SEC |
+| `redaction_regression` | trust chip appears in public snapshot | `snapshotId`, `componentId` | Error | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
+| `xss_attempt` | script tag detected in user input | `workspaceId`, `field`, `inputSnippet` (truncated, no PII) | Warn | `console.warn` | Security lead | 3 | EV-TELEMETRY-SEC |
+| `formula_injection_detected` | formula detected in import | `workspaceId`, `field` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
+| `csrf_attempt` | server action called from wrong origin | `origin`, `action` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
+| `rate_limit_exceeded` | user exceeds rate limit | `workspaceId`, `endpoint`, `count` | Info | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
+| `snapshot_bypass_attempt` | attempt to access live component via shared URL | `workspaceId`, `url` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
+| `telemetry_pii_leak` | PII detected in a telemetry payload (meta-monitoring) | `eventName`, `field` | Error | `console.warn` | Telemetry lead | 0A | EV-TELEMETRY-SEC |
+| `search_rate_anomaly` | >100 searches/minute | `workspaceId`, `count`, `window` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
+| `snapshot_enumeration_pattern` | >10 snapshot accesses/minute from same IP | `ipHash`, `count`, `window` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
+| `folder_api_anomaly` | abnormal folder API usage | `workspaceId`, `pattern` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
+| `bulk_export` | >50 templates exported in one session | `workspaceId`, `count` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
+| `trust_state_tamper` | client attempts to set trust state | `workspaceId`, `attemptedValue` | Error | `console.warn` | Security lead | 2 | EV-TELEMETRY-SEC |
+
+### Security-event rules
+
+- **Schema/version:** same `v1` schema, same `recordLibraryEvent(event, payload)`
+  twin, additive-only (§3). Security events share the `workspaceId`-only scoping
+  rule; no raw user identity in beta payload (prod sink adds stable actor id under
+  its own privacy review).
+- **i18n-safe labels:** event names are ASCII snake_case; dashboard labels localize
+  via copy keys in doc 22, never embedded (§10).
+- **Backpressure/volume:** coarse and threshold-triggered (e.g. >100/min), not
+  per-row; `console.warn` is local so no network backpressure (§5). A prod sink
+  via `setLibraryTelemetrySink` swallows failures and never blocks UI.
+- **PII meta-monitoring:** `telemetry_pii_leak` is the self-check that no event
+  payload carries PII; asserted in tests (§11).
+- **Cross-ref:** threat vectors and abuse cases are owned by doc 32; ADV scenarios
+  by doc 18. This doc owns only the telemetry shape.
 
 ---
 
@@ -213,6 +287,7 @@ Rollout/flag coupling: each event group is gated by the same feature flag as its
 - `09-MVP-STRATEGY-AND-SUCCESS-METRICS.md` — the metrics this doc instruments.
 - `13-DATA-CONTRACTS-ROUTE-CACHE.md` — `?component=<id>` route state and insert target contract.
 - `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` — data classification and public/share snapshot redaction.
+- `32-SECURITY-THREAT-MODEL-EXPANSION.md` §5 — source of the 15 security/abuse telemetry events registered in §6A.
 - `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md` — large-list perf metric (out of telemetry scope).
 - `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` — authoritative names, enums, phase labels, test commands.
 - `21-FEATURE-FLAGS-AND-ROLLOUT.md` — flags that gate each event group.

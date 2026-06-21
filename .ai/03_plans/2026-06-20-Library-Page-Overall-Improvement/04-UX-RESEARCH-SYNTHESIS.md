@@ -59,8 +59,8 @@ Users often need multiple values in the same category, such as multiple supplier
 Implication:
 
 - Preserve current multi-select behavior for supplier, brand, lifecycle (`component_lifecycle_state`), and confidence.
-- `confidence` is FREE TEXT (`confidence` text column, not an enum per 19) — a confidence facet filters over derived labels, not a fixed enum; do not assume a controlled vocabulary until the migration-gated CHECK is added.
-- Treat pricing freshness as a mutually exclusive status (the `ComponentPricingFreshness = any | fresh | stale | missing` union in `component-facet-filter.tsx`) unless product requirements change.
+- `confidence` is FREE TEXT (`confidence` text column, not an enum per 19) — a confidence facet filters over derived labels, not a fixed enum; do not assume a controlled vocabulary until the migration-gated CHECK is added. **Pass:** a confidence multi-select operates over the DERIVED label set produced by the chip deriver (e.g. Low / Medium / High / None buckets over the free-text value), with an "uncategorized" bucket for values the deriver cannot classify — do NOT present raw free-text strings as filter options.
+- Treat pricing freshness as a mutually exclusive status (the `ComponentPricingFreshness = any | fresh | stale | missing` union in `component-facet-filter.tsx`) unless product requirements change. Note (C-021, per `19` §Confidence and Freshness Models): the **beta scope is 4-tier** — `fresh` / `stale` / `very stale` / `missing` — implemented in **Phase 2** by extending `getComponentPricingFreshness` (`component-facet-filter.tsx:61`) + `getStalenessTone`/`getStalenessLabel` (`component-library/helpers.ts:667`/`:675`) + the THREE 90-day constants (`COMPONENT_FACET_STALE_DAYS=90`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS=90`, the `LibraryOverview.tsx:114` string) to a 180-day `very stale` tier. No schema change. The 3-tier `fresh/stale/missing` above describes the **current** helper return; the binding canonical scope is 4-tier.
 
 Source:
 
@@ -130,12 +130,12 @@ This is canonical **Phase 2 (Source Trust at Decision Points)** in
 not to invented labels.
 
 Trust-chip set this principle implies (each bound to a real column/helper/enum
-from 19, not new schema):
+from 19, not new schema). Per C-002 the term is **chip**, not "badge":
 
 | Chip | Source of truth | Render points |
 | --- | --- | --- |
-| Pricing freshness (fresh / stale / missing) | `pricing_date` via `getComponentPricingFreshness(item, now)` (`component-facet-filter.tsx:61`) + `getStalenessTone`/`getStalenessLabel` (`component-library/helpers.ts:667/675`); single 90-day window across `COMPONENT_FACET_STALE_DAYS=90`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS=90`, the `LibraryOverview.tsx:114` string | overview recents, browse cards, `ComponentInspectorDock.tsx`, insert pickers, template rows |
-| Confidence | `confidence` text column (FREE TEXT, not an enum — derive a badge over the string; a controlled vocabulary is migration-gated per 19) | same as above |
+| Pricing freshness (fresh / stale / very stale / missing) | `pricing_date` via `getComponentPricingFreshness(item, now)` (`component-facet-filter.tsx:61`) + `getStalenessTone`/`getStalenessLabel` (`component-library/helpers.ts:667/675`); 90-day window across `COMPONENT_FACET_STALE_DAYS=90`, `LIBRARY_OVERVIEW_STALE_PRICING_DAYS=90`, the `LibraryOverview.tsx:114` string. The 180-day `very stale` tier is a Phase-2 helper-layer extension (4-tier beta scope, C-021) — no schema change. | overview recents, browse cards, `ComponentInspectorDock.tsx`, insert pickers, template rows |
+| Confidence | `confidence` text column (FREE TEXT, not an enum — derive a **chip** over the string; a controlled vocabulary is migration-gated per 19) | same as above |
 | Lifecycle | `lifecycle_state` enum `component_lifecycle_state` = `draft \| in_production \| available \| discontinued \| archived` (NOT "Active/Deleted") | browse cards, inspector, insert pickers |
 | Source / source URL | `pricing_source` text (this IS the source URL; URL validity is app-side over free text) | inspector, insert pickers, template rows |
 | Supplier / brand | `supplier`/`supplier_id` (FK `component_suppliers`), `brand`/`brand_id` (FK `component_brands`) | browse cards, inspector |
@@ -153,6 +153,86 @@ Sources:
 - Google data card guidance
 - GOV.UK AI-ready dataset guidance
 - Existing Archestimator component-library decisions and spec sections on source/pricing snapshots (see `11-SOURCE-TRUST-STATE-MATRIX.md` and the keystone `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`)
+
+### 9. Visual direction: the Library speaks the workshop's liquid-glass language
+
+The workshop already speaks a coherent liquid-glass language — the sidebar is a
+frosted rail, the dashboard is a single frosted workspace shell with content-grade
+glass project cards, and the estimate sheet is a "well + floating rails +
+near-opaque paper + frosted chrome" workspace driven by a per-region
+surface-variant slot system (`src/components/workshop/estimate-surface-variant.tsx:21`).
+The Library today is the one major workshop surface that does **not** speak this
+language (100 % paper/flat). Adopting the same material as a first-class skin is a
+UX-direction principle, not a token map: it is how the Library joins the
+workshop's visual family.
+
+Implication:
+
+- The Library speaks the **same liquid-glass language** as the sidebar, dashboard,
+  and estimate sheet. The material and grid system are fully specified in
+  `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` — cross-reference it wherever this doc or
+  its siblings discuss the Library visual language. The slot system mirrors
+  `estimate-surface-variant.tsx` (slots: `workspaceWell` / `treeRail` /
+  `inspectorDock` / `centerColumn` / `chromeToolbar` / `sheetHeader` /
+  `catalogueCard` / `galleryRow` / `ctaTile` / `countStrip`).
+- **Source trust + the visual surface are one.** Trust chips (Principle 8) render
+  **on** glass/paper cards without their own blur — they are flat soft-fill spans
+  (`bg-*Soft` + `text-*`); nested glass is forbidden (per 35 §0, §11). The chip
+  reads through the single frosted region, exactly as on paper. One blur per
+  region, never stacked (35 §2).
+- **Two postures, one variant system.** Phase 1 ships the glass skeleton
+  (workspace well + floating rails + paper centre + chrome + liquid buttons +
+  warm-glass CTA + the `LibrarySurfaceVariantProvider` + grids); Phase 2
+  (component cards) / Phase 5 (template rows) promote cards/rows to
+  content-grade glass. Phase sequencing is the canonical phase map in
+  `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5).
+- DESIGN.md is an alpha guide, not law — aesthetic detail is deferred to the
+  owner; this principle is binding on **names** (tokens, classes, slots, the
+  one-blur-per-region / AA / reduced-motion contracts), not on aesthetic taste.
+
+Sources:
+
+- `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` — the full glass spec (material, slot
+  system, grids, overlays, motion); this principle endorses it as the material
+  + grid layer for every Library surface.
+- `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` — token/primitive mapping for chips,
+  buttons, focus, and (after 35) the glass slot/tokens; this principle endorses
+  the shared token layer.
+- Reference shipped surfaces already using the language (sidebar
+  `.sidebar-glass`, dashboard `.dashboard-glass` + `.workshop-project-card-glass`,
+  estimate `.estimate-glass-well/-rail/-paper/-chrome`) — listed with file:line in
+  35 §1.
+
+## Applies-To Matrix — principle → file:line → phase → owner → test → evidence
+
+This synthesis is a **strategy-input / research doc**, not an execution plan. To
+keep the handoff concrete rather than narrative, each principle below is bound to
+its owning spec doc, the canonical file:line binding (from the keystone 19), the
+canonical phase, the owner role, the test class, and the pre-registered evidence
+ID (from `24-EXECUTION-EVIDENCE-LEDGER.md`). Per the relaxed scope of
+`34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3, these are informational delegation rows
+— the 12-dimension acceptance rows live in the owning spec doc + doc 35 §12.
+"Visual" rows (9 + the chip render points in 8) also cross-reference
+`35-LIQUID-GLASS-LIBRARY-UX-SPEC.md`.
+
+| Principle | Owning spec | file:line binding (keystone 19) | Phase | Owner | Test | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1. Separate exact search from filtering | 10 §Overview, 13 | `ComponentLibraryManager.tsx` search `:383`, `:844-846` | 1 | Frontend lead | `bun run test:dom` (chip/param isolation) | doc 24 |
+| 2. Facets reveal the content space | 10, 13 | `component-facet-filter.tsx`; `library_folder_id` axis (19 glossary) | 1 | Frontend lead | `bun run test:dom` facet set | doc 24 |
+| 3. Applied filter state stays visible | 12, 10 §Dense Row | applied-filter chip strip (net-new; 23 §Applied-Filter Chip) | 1 | Frontend lead | Playwright chip count === filter count, clear-all resets to 0 | doc 24 |
+| 4. Multi-select within categories | 10, 13 | `confidence` free text (19); `ComponentPricingFreshness` (`component-facet-filter.tsx:17`) | 1 | Frontend lead | `bun run test:dom` multi-select | doc 24 |
+| 5. Dense catalog workflows | 12, 10 §Dense Row, 35 §12.7 | net-new dense view; reuse `virtualization-flags.ts` | 5 | Frontend lead | Playwright table vs grid; `bun run test:dom` | doc 24 |
+| 6. Least intrusive overlay | 03, 10 | overlays `ui/overlays/*` (19 §Overlay primitives); z-tiers | 0B / 3 / 4 | Frontend lead | `bun run test:dom` focus/escape | doc 24 |
+| 7. Accessibility semantics match behavior | 12, 31 | shared tab/modal/dropdown/tree primitives | 0A-5 | A11y lead | manual ARIA/focus (no axe harness today — C-014; `jest-axe` is a Phase-0A deliverable) | doc 24 |
+| 8. Source trust at decision points | 11, 22, 23 | `pricing_date`/`confidence`/`lifecycle_state`/`link_state` (19 Enums + Data Layer); helpers `:61`/`:667`/`:675` | 2 | Frontend lead | `bun run test:dom` chip render + tone; AA spot check | doc 24 |
+| 9. Visual direction: liquid glass | 35 (owns), 23 | `estimate-surface-variant.tsx:21`; slot system 35 §2 | 1 (shell) / 2 / 5 | Design lead + Frontend lead | Playwright paper+glass `xl`+`md` (35 §14) | doc 24 (EV-G-* in 35 §12) |
+
+**Note on trust chips + glass (Principle 8 + 9 together):** trust chips render on
+glass/paper cards without their own blur. See 35 §4.3 for the binding (soft fills
++ semantic foreground; no `backdrop-filter` on any chip) and 23 §AA-Safe Foreground
+Mapping for the tone→token contrast (verified on both `#ffffff` paper and the
+frosted-white glass backdrop; AA fallback is `text-secondary`, never
+`text-tertiary`).
 
 ## Source Links
 
@@ -208,7 +288,11 @@ The second research pass sharpened four implementation implications:
 4. Import/export can stay deferred, but cost-catalog products commonly support
    CSV/Excel-style catalog maintenance. The MVP should therefore protect future
    import/export with validation, formula safety, and public/private field
-   classification now.
+   classification now. **Forward pointer:** bind this to
+   `15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md` as a Phase-0A/0B data-contract note —
+   the `cost_library_items` column set (19 §Data Layer) MUST remain
+   import/export-safe (CSV-header-stable, no PII in cost fields) so the deferred
+   import/export does not require a schema reshuffle later.
 
 Additional technical implications:
 

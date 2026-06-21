@@ -13,6 +13,18 @@ Status: authoritative. Last verified against `main` on 2026-06-21.
 
 ## Purpose
 
+> **Doc type note (2026-06-21):** This keystone is a **binding / reference
+> registry**, not an implementation task list. Its rows are **informational**
+> under the relaxed scope of `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3 — they
+> delegate the other 11 row-level dimensions (Owner / Rollback / Telemetry /
+> Evidence / etc.) to the companion docs that consume each binding
+> (`27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md`, `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md`,
+> `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md`, `24-EXECUTION-EVIDENCE-LEDGER.md`,
+> `21-FEATURE-FLAGS-AND-ROLLOUT.md`). This is why this doc scores high on
+> Readiness while carrying low 12-dimension row-completeness: it is a registry,
+> not a task ledger. Do not pad its rows with per-binding Owner/Rollback/Telemetry
+> columns — that is ceremony that belongs in the consuming docs.
+
 This is the single source of truth for the Library Page Overall Improvement
 pack. Every other doc in this pack defers to the names here. When a sibling doc
 disagrees with this one on a path, column, enum value, query key, action name,
@@ -106,11 +118,24 @@ The only four files in `src/components/workshop/component-library-manager/`:
 | `LibraryFolderTree.tsx` | — | folder tree UI |
 | `library-folder-tree-shared.ts` | — | shared folder-tree logic |
 
-In-scope adjacent live file the prose plan omits but `00-PLAN.md` scope covers:
+In-scope adjacent live file the prose plan omits but `00-PLAN.md` scope covers
+(`component-library/index.tsx` is **Phase-later residual — tracked, not in
+phases 0A-5 critical path**; see `05-IMPLEMENTATION-ROADMAP.md` §Phase-later):
 
 | File | Native-overlay debt | Disposition |
 |------|---------------------|-------------|
 | `src/components/workshop/component-library/index.tsx` | `window.confirm("Discard component changes?")` :939, `window.prompt("Folder name")` :1428 | estimate-page panel; Phase-later, but list it — do not silently drop |
+
+### Reference glass-surface system (binding for doc 35)
+
+Any Library liquid-glass migration must mirror the shipped estimate-surface
+per-region variant model — do not invent a parallel glass system. This is the
+canonical reference a sibling doc (35) binds to:
+
+| Surface | Real path | Notes |
+|---------|-----------|-------|
+| Estimate surface variant | `src/components/workshop/estimate-surface-variant.tsx:21` | `EstimateSurfaceVariant = "paper" \| "glass"` context (:21), `EstimateSurfaceVariantProvider` (:25), `useEstimateSurfaceVariant()` (:39), and a SLOT map whose slots include `root`/`treeRail`/`libraryRail`/`centerColumn` (with `centerColumnFallback`)/`chromeToolbar` (slot union :51-68, switch :85-126). This is the canonical per-region variant model for any Library glass migration (see [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md)). |
+| Estimate glass classes | `src/app/globals.css:1545-1637` | `.estimate-glass-well` (:1545), `.estimate-glass-rail` (:1568), `.estimate-glass-paper` (:1589), with `[aria-current]`/`[data-estimate-row-active]`/`[data-replace-target-active]` surface-state hooks through :1637. The Library glass skeleton (doc 35 §12.3) reuses this one-blur-per-region discipline. |
 
 Already migrated off native prompts (verified: the remaining `window.*` matches
 are comments, not calls):
@@ -242,7 +267,15 @@ Reuse the existing freshness logic rather than inventing new logic:
 
 Any new "very stale" tier (e.g. 180-day) is **net-new** and must extend these
 three constants and helpers in lockstep, not diverge into a fourth source of
-truth.
+truth. Per C-021 (see `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md`), the
+4-tier beta scope is `fresh` / `stale` / `very stale` / `missing`: the
+implementation extends `getComponentPricingFreshness`
+(`component-facet-filter.tsx:61`) + `getStalenessTone`/`getStalenessLabel`
+(`component-library/helpers.ts:667`/`:675`) + the THREE 90-day constants above
+to a 180-day `very stale` tier in **Phase 2** (no schema change — a helper-layer
+extension only). Any sibling doc that presents a 3-tier `fresh/stale/missing`
+formulation is describing the *current* helper return and must note the Phase-2
+4-tier extension; the binding canonical freshness is 4-tier.
 
 ## Query Keys
 
@@ -301,7 +334,14 @@ Writes guard via `supabase.rpc("is_workspace_editor",{target_workspace_id})` and
 (already implemented). Errors live in `action-errors.ts`; the template editor in
 `template-editor-actions.ts`.
 
-RPCs (real): `is_workspace_editor`, `is_workspace_member`, `can_edit_estimate`,
+RPCs (real): `is_workspace_editor`, `is_workspace_member`,
+**`is_workspace_admin(target_workspace_id uuid)`** — owner+admin only authz
+primitive (definition hoisted/declared at
+`supabase/migrations/20260620103306_rls_initplan_hoist.sql:56`, comment block
+`:53-56`; returns true when the caller is a `workspace_members` row with role
+in `('owner','admin')`). Consumed by owner-scoped policies across
+`auth_account_data`, `ai_audit_foundation`, `mass_deletion_governance`, and the
+core public-policy split. `can_edit_estimate`,
 `create_cost_library_component`, `update_cost_library_component`,
 `upsert_cost_library_component_price_option`,
 `set_cost_library_component_lifecycle_state`,
@@ -383,7 +423,7 @@ THESE labels. Canonical priority order: **0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5**.
 |-------|------|-------|---------------------|
 | 0A | Contract Lock | lock docs 13/14/15/16/17 + this keystone's bindings; scaffold route-state / authz / cache / stale-target tests; extend the perf seed + measure baseline | old 00 "Phase 0a", 05 "P0A", 17 slice 1 |
 | 0B | Overlay & Route-State Reliability | replace folder native prompts (`ComponentLibraryManager`) + Add dirty-discard confirm (`AddComponentModal`) with the inline `ConfirmDialog`+input pattern; add `?component=<id>` route state; fix bulk-archive copy. Folder-prompt replacement lands HERE (early), NOT after Quick Add | old 00 "Phase 0b", 05 "P0", parts of 03 |
-| 1 | Findability & Applied Filters | overview search continuity to `?component=<id>`; visible applied-filter chips + reset; result count/scope strip | old "phase 1", 05 "P1" |
+| 1 | Findability & Applied Filters | overview search continuity to `?component=<id>`; visible applied-filter chips + reset; result count/scope strip. **Library workspace glass skeleton** (doc 35 §12.1-12.5): glass well + floating rails/paper + chrome + liquid buttons + warm CTA + the `LibrarySurfaceVariantProvider` + workspace track grid + catalogue content grid + overview bento (the per-region variant model binding is in the "Reference glass-surface system" subsection above). This is the C-022 glass-shell scope decision (resolves doc 35 vs this phase map — the shell is Phase 1). Content-grade card glass stays Phase 2 (component cards) / Phase 5 (template cards). | old "phase 1", 05 "P1" |
 | 2 | Source Trust at Decision Points | trust chips on overview/recent/template rows + inspector + insert, bound to real columns/helpers | old "phase 2", 05 "P2", doc 11 |
 | 3 | Add/Edit Component Flow Split (Quick Add) | quick-add required-field path + progressive advanced; normalize Add/Edit source fields | old "phase 2b/3", 05 "P3", docs 09/10 |
 | 4 | Templates Browse/Insert/Editor Clarity | explicit insert target (`resolveEstimateTemplateInsertTarget`), creatable-combobox move, template trust summary | old "phase 4", 05 "P4" |
@@ -441,6 +481,7 @@ Reference these by name, not by description:
 | `22-COPY-DECK-AND-MICROCOPY.md` | user-facing strings |
 | `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` | overlay primitives + z-index tiers |
 | `24-EXECUTION-EVIDENCE-LEDGER.md` | pre-registered execution evidence (exact command, pass criterion, owner, phase) for every render/test/migration claim in the pack |
+| `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` | liquid-glass Library UX/UI spec — surface-variant slot system (mirrors the estimate-surface model bound above), workspace/content grids, glass overlays, warm-glass CTAs, content-grade card glass. The material/grid layer referenced by any doc that discusses the Library visual language. |
 
 Overlay primitives (real exports, for doc 23) and z-index tiers:
 

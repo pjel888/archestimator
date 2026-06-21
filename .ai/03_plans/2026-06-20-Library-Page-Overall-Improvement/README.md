@@ -1,7 +1,7 @@
 # Library Page Overall Improvement Plan
 
 Date: 2026-06-20
-Status: planning and audit pack hardened to implementation-ready handoff, no app code changed. Bar: this pass targets a defensible 100/100/100 on the PLANNING-ACHIEVABLE rubric (strategy/quality/readiness), up from the prior independently-verified 93/92/91 recorded in `08-RATINGS-AND-GAP-CLOSURE.md`; the authoritative scores live in `08`, not here. Readiness is pre-registered, not executed: every execution-evidence item (rendered UI, green tests, applied migrations, measured perf baseline) is bound to an exact command + pass criterion + owner + phase in `24-EXECUTION-EVIDENCE-LEDGER.md`.
+Status: planning and audit pack hardened to implementation-ready handoff, no app code changed. Scores are **planning-achievable** (Rubric B: 100/100/100 = implementation-ready, NOT execution-complete) under a **relaxed 12-dimension standard** (gate-rows-only, `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3). The authoritative per-doc scores and honest re-audit average (~S82/Q78/R70) live in **`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1** — not the earlier 93/92/91 (recorded in `08-RATINGS-AND-GAP-CLOSURE.md`) or 90.3 headline, which were pre-inline-application of the 20 conflict resolutions now applied across the pack. Readiness is pre-registered, not executed: every execution-evidence item (rendered UI, green tests, applied migrations, measured perf baseline) is bound to an exact command + pass criterion + owner + phase in `24-EXECUTION-EVIDENCE-LEDGER.md`.
 Primary routes: the four Library routes verified in `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (Verified File Paths) — `/workshop/library`, `/workshop/library/components`, `/workshop/library/templates`, `/workshop/library/templates/[templateId]`.
 
 > AUTHORITATIVE BINDINGS: `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` is the single source of truth for every file path, line number, column, enum, query key, server action, RPC, constant, threshold, and test command in this pack. Read it first; if any other doc disagrees with 19, 19 wins.
@@ -10,7 +10,7 @@ Primary routes: the four Library routes verified in `19-VERIFIED-CODEBASE-BINDIN
 
 ## Pack Audit Status (2026-06-21)
 
-Every doc in this pack is scored 1–100 on three dimensions: **Strategy**, **Quality**, **Implementation Readiness**. The authoritative scores live in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md`. Current pack averages: **Strategy 92.4, Quality 91.0, Readiness 87.5, Pack avg 90.3**. The 10 companion docs (25–34) close the systemic gaps that kept the original 26 docs below 100%.
+Every doc in this pack is scored 1–100 on three dimensions: **Strategy**, **Quality**, **Implementation Readiness**. These scores are **planning-achievable** (Rubric B: 100/100/100 = implementation-ready, NOT execution-complete) under a **relaxed 12-dimension standard** — gate-rows-only per `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3 (Owner/Rollback/Telemetry/etc. apply to implementation tasks, acceptance gates, and high-risk contract rows; informational rows delegate to docs 27/17/20 with a section pointer). The headline average and per-doc scores live in **`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1** (the honest re-audit average, ~S82/Q78/R70) — read that as the source of truth, not the earlier 90.3 figure, which was pre-inline-application of the conflict resolutions. The 20 cross-doc conflicts logged in `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` are now **applied inline** to the affected docs (including C-001 4-tier freshness, C-002 chip terminology, C-003 component-library/index.tsx disposition, C-011 Quick Add no-schema, C-012 public-snapshot redaction, C-013 archive-vs-delete, C-016 rubric definition). The 11 companion docs (25–35) are individually scored in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1. **Execution-inclusive readiness is lower** than the planning-achievable figure (no rendered UI, no green tests, no measured perf baseline yet) and is pre-registered — not demonstrated — in `24-EXECUTION-EVIDENCE-LEDGER.md`.
 
 ### 12-dimension row-level completeness standard
 
@@ -29,6 +29,10 @@ Every doc, phase, and workstream has a named owner. See `27-OWNERS-AND-ACCOUNTAB
 Improve the full Library experience, including the overview page, component library, template browser, template editor, and all Library modals, drawers, popovers, context menus, and confirmation flows.
 
 The target experience is a compact source-trust workspace: users can find reusable components and templates quickly, understand whether costs are current and trustworthy, reuse items without losing context, and complete create/edit/destructive actions through one predictable overlay system.
+
+### Visual thesis
+
+Both the Components and Templates tabs, plus all Library modals/drawers, adopt the **liquid-glass surface system** already shipping in the workshop sidebar, dashboard, and estimate sheet — frosted glass over the cool grey canvas with the warm bloom, hairline cool-neutral borders, warm-glass CTAs, content-grade glass cards, and one `backdrop-filter` per region armed after first paint via `<html data-glass="ready">`. The mechanism is a per-region **surface-variant slot system** (`librarySurfaceClass(variant, slot)`) that mirrors the proven estimate-sheet slot model (`estimate-surface-variant.tsx`). **The current Library is 100 % paper/flat** — `bg-white` containers across all four routes, zero `--glass-*` tokens, zero `backdrop-filter` (verified against `src/components/workshop/library/`); this pack closes that visual gap. The detailed per-region glass variant + grid + overlay spec is the authority for the material layer: `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md`. Two postures: **Phase 1** ships the glass skeleton (workspace well + rails + paper centre + chrome + liquid buttons + warm CTA + provider + grids); **Phase 2 / Phase 5** promote the catalogue/gallery cards to content-grade glass. Wherever a doc below discusses the Library visual language, treat doc 35 as the material/grid layer it binds to.
 
 ## Start Here
 
@@ -50,6 +54,43 @@ The target experience is a compact source-trust workspace: users can find reusab
 16. [PULL on demand] Read `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` for per-surface a11y pass conditions.
 17. [PULL on demand] Read `32-SECURITY-THREAT-MODEL-EXPANSION.md` for the full threat model beyond doc 14.
 18. [PULL on demand] Read `33-DB-RLS-AND-MIGRATION-CONTRACT.md` for the DB/RLS/migration contract (no migrations in 0A–5).
+19. [PULL on demand] Read `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` (v2, 2026-06-21) for the liquid-glass material + grid + overlay redesign of both tabs and the modals — the pack's visual thesis and the material layer every visual-language claim binds to.
+
+## Verify this pack is current (run from repo root)
+
+Three commands confirm the keystone bindings still hold before you code. If any output diverges, the keystone (`19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`) is stale — reconcile it first.
+
+```sh
+# 1. The four Library routes exist on disk (expect 4 page.tsx files)
+fd -t f page.tsx src/app/workshop/library/
+
+# 2. The known bulk-archive copy bug is still present (expect :107)
+rg -n "confirmationHint = canExecute" src/components/workshop/BulkDestructivePreviewModal.tsx
+
+# 3. Native window.prompt/window.confirm debt still sits where this pack says (expect the cited hits)
+rg -rn "window\.(prompt|confirm)" src/components/workshop/component-library-manager/ src/components/workshop/component-library/index.tsx
+```
+
+Expected for command 3: `ComponentLibraryManager.tsx:1493`, `:1515`, `:1534`; `AddComponentModal.tsx:963`; `component-library/index.tsx:939`, `:1428` (the `:1422` match is a comment, not a call).
+
+### Verified at a glance
+
+The highest-leverage bindings inline; `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` remains the deep authority (file:line / symbol / constant / RPC registry and re-verification appendix).
+
+| Fact | Value | Source |
+|------|-------|--------|
+| Library routes (4) | `/workshop/library`, `/workshop/library/components`, `/workshop/library/templates`, `/workshop/library/templates/[templateId]` (segment detail ships) | `19` §Verified File Paths |
+| Lifecycle enum (5 values) | `draft \| in_production \| available \| discontinued \| archived` (doc 11's "Active"→`available`, "Deleted" is NOT an enum value) | `19` §Enums |
+| Un-scoped cache-bleed key | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` at `src/lib/component-library/query-keys.ts:5-6`; call sites incl. the `TemplateEditorClient.tsx:160` **inline literal** (a symbol-name grep misses it), plus `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241` | `19` §Query Keys |
+| Freshness: three 90-day constants (change together) | `COMPONENT_FACET_STALE_DAYS=90` (`component-facet-filter.tsx:12`); `LIBRARY_OVERVIEW_STALE_PRICING_DAYS=90` (`component-library-repository.ts:827`); `"…older than 90 days"` string (`LibraryOverview.tsx:114`) | `19` §Confidence and Freshness Models |
+| Freshness helpers | `getComponentPricingFreshness` (`component-facet-filter.tsx:61`); `getStalenessTone`/`getStalenessLabel` (`component-library/helpers.ts:667/675`) | `19` §Confidence and Freshness Models |
+| Test commands | `bun run test:dom` (all jsdom) · `vitest run tests/vitest/<file>` (one) · `bun run test:e2e` (Playwright). **NEVER `bun test`** for vitest (it runs `tests/unit` only). Full gate: `bun run validate`. | `19` §Test Commands |
+| Native prompt/confirm debt | `ComponentLibraryManager.tsx:1493/1515/1534`; `AddComponentModal.tsx:963`; `component-library/index.tsx:939/1428` | `19` §Verified File Paths |
+| Current visual language | 100 % paper/flat: `bg-white` containers across all 4 routes; zero `--glass-*` tokens; zero `backdrop-filter` in `src/components/workshop/library/` (verified 2026-06-21). Glass redesign = doc 35. | `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` §0/§4 |
+| Trust taxonomy (beta scope) | 4 tiers — `fresh` / `stale` / `very stale` / `missing`. Today's code returns only `fresh\|stale\|missing`; the 180-day `very stale` tier is net-new Phase 2 work extending the three constants + helpers in lockstep (C-001). | `19` §Confidence and Freshness Models |
+| Archive vs Delete | "Archive" = soft-delete (`lifecycle_state = archived`, recoverable); "Delete" = hard-delete (irreversible). Bulk-archive copy must branch on `actionCopy.verb`, not `canExecute` (C-013). | `19` §Enums |
+| Quick Add contract | Required `name`/`category`(text)/`unit`/`unit_cost`; optional supplier/brand, `pricing_date`, `pricing_source`, `confidence`(free text), `libraryFolderId`. **No schema change** — all columns exist on `cost_library_items` (C-011). | `19` §Canonical Quick Add Contract |
+| Public/shared snapshots | Trust chips REDACTED from `project_publications.snapshot_json`; public shows "Snapshot verified on <date>" (`trust.public_snapshot.label`). Live workspace only (C-012). | `19` §Public / Share Snapshot Surface |
 
 ## Key Conclusions
 
@@ -108,6 +149,7 @@ The pack is organized by concern. Use this matrix to find the right doc for each
 | What conflicts exist? | `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` | Planning lead | all |
 | What are the current scores? | `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` | Planning lead | all |
 | What is the completeness standard? | `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` | Planning lead | all |
+| What is the glass redesign? | `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` | Design lead | 1, 2, 5 |
 
 ## Artifact Map
 
@@ -146,3 +188,4 @@ The pack is organized by concern. Use this matrix to find the right doc for each
 - `32-SECURITY-THREAT-MODEL-EXPANSION.md` - full threat model: 12 attack vectors, 5 abuse cases, security telemetry events, per-surface security acceptance criteria. Deepens doc 14.
 - `33-DB-RLS-AND-MIGRATION-CONTRACT.md` - DB/RLS/migration contract: schema, RLS policies for all Library tables, no-migration gate for 0A–5, query optimization, backfill plans. Deepens docs 13 and 14.
 - `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` - 12-dimension row-level completeness standard: defines what counts as an actionable row, per-doc compliance matrix, gap closure plan, verification commands.
+- `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` - the liquid-glass Library redesign (v2, 2026-06-21): full glass as a first-class skin matching the workshop shell via a per-region surface-variant slot system mirroring `estimate-surface-variant.tsx`, a workspace/catalogue/overview grid system, glass overlays (drawers glass; modals paper), warm-glass CTAs, content-grade glass cards (Phase 2 components / Phase 5 templates). One-blur-per-region, AA-safe, deferred arming. This is the material/grid layer every visual-language claim in the pack binds to.

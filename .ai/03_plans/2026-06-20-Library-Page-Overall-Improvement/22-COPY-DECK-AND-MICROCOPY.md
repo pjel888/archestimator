@@ -26,7 +26,7 @@ Every string is classified by role so implementers know which token and tone to 
 | 2 — Body/helper | Explanation, consequence, or guidance | "Archived components are hidden from browse..." | `secondary` | Copy lead | all | EV-COPY-01 |
 | 3 — Action label | Button, link, or menu item | "Create folder", "Discard draft" | `primary`/`destructive` | Copy lead | all | EV-COPY-01 |
 | 4 — Validation/error | Field or surface error | "Enter a folder name." | `danger` | Copy lead | all | EV-COPY-01 |
-| 5 — Meta/trust | Chip, badge, tooltip, status | "Stale price", "Verified source" | `secondary`/`success`/`warning`/`danger` | Copy lead | 2 | EV-COPY-01 |
+| 5 — Meta/trust | Chip, tooltip, status | "Stale price", "Verified source" | `secondary`/`success`/`warning`/`danger` | Copy lead | 2 | EV-COPY-01 |
 | 6 — Screen-reader only | Accessible name not visible | "Close inspector", "{n} components selected" | n/a | A11y lead | all | EV-A11Y-01 |
 
 > **WCAG:** meta/trust text must not rely on `#7F7F7F` (`tertiary`) for load-bearing meaning — it fails AA. Use `secondary` (`#5D5D5D`) for any chip label, validation message, or consequence line the user must read. `tertiary` is allowed only for non-load-bearing decoration.
@@ -45,6 +45,7 @@ Every string is classified by role so implementers know which token and tone to 
 | No bare "Something went wrong" without concrete next step. | Actionable error recovery. | Copy lead | all | EV-COPY-01 |
 | Helper copy stays short enough for compact workspace. | Dense-mode readability. | Copy lead | 5 | EV-COPY-01 |
 | Canonical term for trust/freshness/status labels is **chip** (not badge). | Resolves C-002 with `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md`. | Copy lead | all | EV-COPY-01 |
+| Trust/affordance chips use semantic tone tokens (`success`/`warning`/`danger`/`secondary`) only; never `--brand-orange` (#F24405) or clay (#AA412A) for chip fills. | Brand color is campaign-only per DESIGN.md alpha status (per SHARED brand-color binding); chips must not inherit a "trusted" brand tint. | Copy lead | 2 | EV-COPY-01 |
 
 ---
 
@@ -143,6 +144,14 @@ Surface: `BulkDestructivePreviewModal.tsx`. The current code sets `confirmationH
 
 One label per canonical state. Labels are `secondary`/tone tokens, never `tertiary`. Chips that gate an action carry an accessible name on the focusable row/card/inspector. Use "source changed" for link drift and "stale" only for pricing freshness (`19` CANON glossary).
 
+> **Canonical key namespace:** Doc 22 OWNS the copy keys (this is the one
+> authoritative source for chip strings); doc 11 owns state *semantics*. Doc 11's
+> illustrative "Copy Guidelines" bullets (e.g. `trust.freshness.stale` -> "Price
+> stale") are prose pointers and resolve to the keys in the tables below
+> (`trust.stale.label`). Where the two docs' key spellings differ, doc 22 wins
+> and doc 11 defers. The within-90-days label is `Current` here (`trust.current.label`);
+> doc 11's `fresh` wording is the freshness STATUS name, not the chip label.
+
 ### Freshness (derived from `pricing_date`; helpers `getComponentPricingFreshness`, `getStalenessTone`/`getStalenessLabel`)
 
 The 90-day window is `COMPONENT_FACET_STALE_DAYS` / `LIBRARY_OVERVIEW_STALE_PRICING_DAYS`. A 180-day "Very stale" tier is NEW and must EXTEND these constants together (resolves C-001).
@@ -152,8 +161,24 @@ The 90-day window is `COMPONENT_FACET_STALE_DAYS` / `LIBRARY_OVERVIEW_STALE_PRIC
 | Current | `trust.current.label` / `trust.current.tooltip` | Current | success | Priced within the last {window} days. | Copy lead | 2 | `library_trust_chips` | redeploy flag=false | EV-COPY-01 | key-based |
 | Stale | `trust.stale.label` / `trust.stale.tooltip` | Stale price | warning | Priced more than {window} days ago. Review before reuse. | Copy lead | 2 | `library_trust_chips` | redeploy flag=false | EV-COPY-01 | key-based |
 | Very stale | `trust.very_stale.label` / `trust.very_stale.tooltip` | Very stale | danger | Priced over {longWindow} days ago. Confirm the price before inserting. | Copy lead | 2 | `library_trust_chips` | redeploy flag=false | EV-COPY-01 | key-based |
+
+The Very stale tier (C-001) ships THREE keys so it is announced, not just shown.
+The status is net-new per doc 11 "Phase-2 helper-extension binding" (extend
+`getComponentPricingFreshness` + the three 90-day constants to a 180-day
+`longWindow`; no schema change):
+
+| Key | Copy | aria-live | Tone | Owner | Phase | Flag | Evidence | i18n |
+|---|---|---|---|---|---|---|---|---|
+| `trust.very_stale.announcement` | Component pricing is very stale — last verified over {longWindow} days ago. | assertive | danger | Copy lead | 2 | `library_trust_chips` | EV-COPY-01 | key-based (ICU `{longWindow}`) |
 | Missing date | `trust.missing_date.label` / `trust.missing_date.tooltip` | No price date | secondary | No pricing date recorded. Add one to track freshness. | Copy lead | 2 | `library_trust_chips` | redeploy flag=false | EV-COPY-01 | key-based |
-| Unknown | `trust.unknown.label` / `trust.unknown.tooltip` | Freshness unknown | secondary | Freshness cannot be computed for this item. | Copy lead | 2 | `library_trust_chips` | redeploy flag=false | EV-COPY-01 | key-based |
+| Unknown (forward-compat only) | `trust.unknown.label` / `trust.unknown.tooltip` | Freshness unknown | secondary | Freshness cannot be computed for this item. | Copy lead | Phase-later | `library_trust_chips` | redeploy flag=false | EV-COPY-01 | key-based |
+
+> The "Unknown" row is **forward-compat only** and does NOT render today: per
+> doc 11 (which the keystone treats as authoritative for state semantics), when
+> `pricing_date` is null the helper returns `missing`, so there is no separate
+> unknown state in beta scope. The key is registered so a future non-derivable
+> tier (e.g. a corrupt row) does not require a copy change. Doc 22 owns copy
+> keys; doc 11 owns state semantics — they reconcile here.
 
 ### Confidence (free-text `confidence` column — UI derives a label; no enum)
 
@@ -324,6 +349,33 @@ Every count-based string MUST use ICU MessageFormat pluralization.
 
 ---
 
+## 12A. Live-region announcement copy (source: doc 31 §5)
+
+State changes must be announced via `aria-live`. Doc 31 §5 defines the contract;
+these ~10 keys are REGISTERED HERE so doc 22 remains the single authoritative
+copy source and so announcements localize without a schema change (source: doc 31,
+ICU plural where counts appear). `polite` for non-urgent; `assertive` for
+errors, destructive actions, permission denied (per doc 31 §5 Rules).
+
+| Key | aria-live | Copy | Surfaces | Owner | Phase | Flag | Evidence | i18n |
+|---|---|---|---|---|---|---|---|---|
+| `search.result_announcement` | polite | {count, plural, =0 {No results} =1 {1 result found} other {# results found}} | Search/filter | A11y lead | 1 | `library_component_deep_link` | EV-A11Y-01 | ICU plural `{count}` |
+| `filter.applied_announcement` | polite | Filter applied: {filterLabel}. | Search/filter | A11y lead | 1 | `library_component_deep_link` | EV-A11Y-01 | key-based (ICU `{filterLabel}`) |
+| `trust.state_change_announcement` | polite | Component trust updated to {state}. | Trust chip | A11y lead | 2 | `library_trust_chips` | EV-A11Y-01 | key-based (ICU `{state}`) |
+| `component.added_announcement` | polite | Component added to library. | Quick add | A11y lead | 3 | `library_quick_add` | EV-A11Y-01 | key-based |
+| `component.archived_announcement` | polite | Component archived. | Bulk archive | A11y lead | 0B | n/a | EV-A11Y-01 | key-based |
+| `component.deleted_announcement` | assertive | Component permanently deleted. | Bulk delete (Phase-later) | A11y lead | Phase-later | n/a | EV-A11Y-01 | key-based |
+| `error.announcement` | assertive | Error: {message}. | Error states | A11y lead | all | per-host-flag | EV-A11Y-01 | key-based (ICU `{message}`) |
+| `overlay.opened_announcement` | polite | {overlayName} opened. | Overlay/modal | A11y lead | 0B | `library_folder_dialogs` | EV-A11Y-01 | key-based (ICU `{overlayName}`) |
+| `overlay.closed_announcement` | polite | {overlayName} closed. | Overlay/modal | A11y lead | 0B | `library_folder_dialogs` | EV-A11Y-01 | key-based (ICU `{overlayName}`) |
+| `permission.denied_announcement` | assertive | You do not have permission to {action}. | Permission denied | A11y lead | all | per-host-flag | EV-A11Y-01 | key-based (ICU `{action}`) |
+
+`{message}` / `{action}` interpolate stable codes/short labels, never raw
+exceptions or PII. The very-stale insert-gate confirm (doc 11) reuses
+`trust.very_stale.announcement` (§8) under assertive when the confirm fires.
+
+---
+
 ## 13. Rollback and variant management
 
 | Scenario | Action | Owner | Evidence |
@@ -343,6 +395,7 @@ Every count-based string MUST use ICU MessageFormat pluralization.
 | Every copy key has a surface/state mapping | `rg "^\| " 22-COPY-DECK-AND-MICROCOPY.md` | every row has key + copy | Copy lead | all |
 | Count-based keys use ICU plural | `rg "plural" 22-COPY-DECK-AND-MICROCOPY.md` | all count strings listed in §12 | i18n lead | all |
 | No hardcoded trust/stale strings in components (future) | `rg "['\"](?:Stale price\|Very stale\|No price date\|Verified source)['\"]" src/components/workshop/library/ --type ts --type tsx` | 0 matches | i18n lead | 2 |
+| No `tertiary` (#7F7F7F) for chip labels (WCAG AA) | `rg "text-\[var\(--tertiary\)\]\|color:.*#7F7F7F" src/components/workshop/library/ --type ts --type tsx` | 0 matches in chip/label components | A11y lead | 2 |
 
 ---
 
@@ -356,4 +409,5 @@ Every count-based string MUST use ICU MessageFormat pluralization.
 - `21-FEATURE-FLAGS-AND-ROLLOUT.md` — flags gating Very-stale tier and trust-chip rollout.
 - `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` — token-to-tone and overlay-primitive mapping.
 - `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` — ICU MessageFormat and RTL rules.
+- `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` §5 — source of the live-region announcement copy keys registered in §12A.
 - `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` C-001, C-002, C-012, C-013 — resolved conflicts.

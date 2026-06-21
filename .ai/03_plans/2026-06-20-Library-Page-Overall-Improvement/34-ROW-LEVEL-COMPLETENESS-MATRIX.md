@@ -53,55 +53,76 @@ Every actionable row in every doc MUST satisfy each of these 12 dimensions:
 
 ---
 
-## 3. Actionable-row template
+## 3. Actionable-row template (authoritative relaxed scope)
 
-### Relaxed scope (per Oracle review, 2026-06-21)
+> **Authoritative definition.** This section is the canonical definition of
+> the 12-dimension row-level completeness standard for the pack.
+> [25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md)
+> §0 Rubric points here and does NOT restate a stricter "every actionable
+> row" mandate — the two docs agree by construction (this removes the prior
+> rubric-vs-enforcement contradiction). The per-conflict rules in
+> [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md)
+> C-018/C-019/C-020 apply: Owner / Rollback / Telemetry / etc. apply to
+> implementation tasks, acceptance gates, and high-risk contract rows ONLY;
+> informational rows delegate to docs 27/17/20 with a section pointer.
 
-The 12-dimension template applies to **three categories of rows** only:
+### Relaxed scope (canonical, 2026-06-21)
+
+The 12-dimension template applies to **three categories of rows** only —
+collectively "gate rows":
 
 1. **Implementation tasks** — rows in doc 05 (Seq), doc 17 (phase rollback), doc 06 (test scenarios), doc 18 (ADV scenarios).
 2. **Acceptance gates** — rows that define pass/fail conditions for release (doc 06, doc 18, doc 24, doc 30).
 3. **High-risk contract rows** — authz rows (doc 14), cache keys (doc 13), RLS policies (doc 33), data contracts (doc 13), validation rules (doc 15).
 
-**Informational rows** (UX principles in doc 04, user flows in doc 02, copy keys in doc 22, design primitives in doc 23, event definitions in doc 20) do NOT need the full 12-dimension template. They delegate to their companion doc for the relevant dimension.
+**Informational rows** (UX principles in doc 04, user flows in doc 02, copy
+keys in doc 22, design primitives in doc 23, event definitions in doc 20)
+do NOT need the full 12-dimension template. They delegate the relevant
+dimension to its companion doc (27 for Owner, 22 for Copy, 20 for
+Telemetry, 19 for Binding, etc.) with a section pointer.
 
-This relaxed scope preserves implementation readiness for the rows that matter while avoiding a maintenance-heavy plan tax on informational rows.
+This relaxed scope preserves implementation readiness for the rows that
+matter while avoiding a maintenance-heavy plan tax on informational rows.
 
-Every actionable row in every doc MUST use this template (or delegate to
+Every **gate row** in every doc MUST use this template (or delegate to
 [27](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md) §6):
 
 ```
 | <row content> | Owner: <role> | Phase: <phase> | Flag: <flag> | Rollback: <behavior> | Evidence: EV-<n> | Telemetry: <event> | Copy: <key> | A11y: <criterion> | Perf: <budget> | Browser-proof: <boundary> | i18n: <rule> | Binding: <file:line> |
 ```
 
-### What counts as an "actionable row"?
+### Where rows live (doc → row-type map)
 
-An actionable row is any row in a doc that describes work to be done, a
-behavior to verify, a test to run, a contract to enforce, or a decision to
-track. Specifically:
+The enumeration below lists **where each row type lives**, NOT a per-row
+mandate. A row's dimension applicability is decided by the gate-row rule
+above, not by which list it appears in. (This reconciles the prior
+internal contradiction where the same doc both exempted "flow rows in 02,
+copy rows in 22" as informational and listed them as actionable — they are
+informational for dimension-1/12 purposes but still need their own
+dimension's coverage, e.g. copy rows still need a Copy key trivially.)
 
-- **Phase rows** in 00, 05, 17 — each phase is an actionable row.
-- **Seq rows** in 05 — each Seq is an actionable row.
-- **Test scenario rows** in 06, 18 — each scenario is an actionable row.
-- **Surface spec rows** in 10 — each surface is an actionable row.
-- **State rows** in 11, 12 — each state is an actionable row.
-- **Cache key rows** in 13 — each cache key is an actionable row.
-- **Authz rows** in 14 — each actor/object pair is an actionable row.
-- **Validation rows** in 15 — each validation rule is an actionable row.
-- **Perf budget rows** in 16 — each budget is an actionable row.
-- **Rollback rows** in 17 — each phase rollback is an actionable row.
-- **ADV rows** in 18 — each adversarial scenario is an actionable row.
-- **Binding rows** in 19 — each binding is an actionable row.
-- **Event rows** in 20 — each event is an actionable row.
-- **Flag rows** in 21 — each flag is an actionable row.
-- **Copy rows** in 22 — each copy key is an actionable row.
-- **Primitive rows** in 23 — each primitive mapping is an actionable row.
-- **Evidence rows** in 24 — each evidence item is an actionable row.
-- **Flow rows** in 02 — each user flow is an actionable row.
-- **Overlay rows** in 03 — each overlay is an actionable row.
-- **Principle rows** in 04 — each UX principle is an actionable row.
-- **Metric rows** in 09 — each success metric is an actionable row.
-- **Finding rows** in 01 — each audit finding is an actionable row.
+- **Phase rows** in 00, 05, 17 — gate rows (implementation task).
+- **Seq rows** in 05 — gate rows (implementation task).
+- **Test scenario rows** in 06, 18 — gate rows (acceptance gate).
+- **Surface spec rows** in 10 — gate rows where they define build work.
+- **State rows** in 11, 12 — informational (delegate).
+- **Cache key rows** in 13 — gate rows (high-risk contract).
+- **Authz rows** in 14 — gate rows (high-risk contract).
+- **Validation rows** in 15 — gate rows (high-risk contract).
+- **Perf budget rows** in 16 — gate rows (acceptance gate).
+- **Rollback rows** in 17 — gate rows (implementation task).
+- **ADV rows** in 18 — gate rows (acceptance gate).
+- **Binding rows** in 19 — informational (the binding IS the dimension-12 value).
+- **Event rows** in 20 — informational (delegate to 20).
+- **Flag rows** in 21 — gate rows (rollback contract).
+- **Copy rows** in 22 — informational (delegate to 22).
+- **Primitive rows** in 23 — informational (delegate to 23).
+- **Evidence rows** in 24 — gate rows (acceptance gate).
+- **Flow rows** in 02 — informational (delegate).
+- **Overlay rows** in 03 — gate rows where they define build work.
+- **Principle rows** in 04 — informational (delegate).
+- **Metric rows** in 09 — gate rows (acceptance gate).
+- **Finding rows** in 01 — informational (delegate).
 
 Non-actionable rows (narrative prose, section intros, rubric definitions)
 do NOT need the 12-dimension template.
@@ -142,56 +163,125 @@ do NOT need the 12-dimension template.
 | [23-DESIGN-SYSTEM-COMPONENT-MAPPING.md](23-DESIGN-SYSTEM-COMPONENT-MAPPING.md) | 15 | 0 | 12 | 0 | 0 | 0 | 0 | 5 | 10 | 0 | 0 | 0 | 12 | 16% |
 | [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) | 30 | 0 | 30 | 0 | 0 | 30 | 0 | 0 | 0 | 0 | 25 | 0 | 25 | 31% |
 | [README.md](README.md) | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0% |
+| [25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0% (meta-doc — not row-scored) |
+| [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md) | 28 | 0 | 0 | 5 | 2 | 3 | 2 | 2 | 2 | 0 | 0 | 0 | 0 | ~0% (conflict-registry rows; not gate rows) |
+| [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md) | 6 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | ~33% (2 fully-complete role rows) |
+| [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 2 | 1 | 0 | ~0% (contract-DEFINES i18n; few gate rows) |
+| [29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | ~0% (contract-DEFINES browser-proof) |
+| [30-PERF-BUDGET-AND-REGRESSION-GATES.md](30-PERF-BUDGET-AND-REGRESSION-GATES.md) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 0 | 0 | ~0% (contract-DEFINES perf budget) |
+| [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 11 | 0 | 0 | 0 | 0 | 0 | ~0% (contract-DEFINES a11y) |
+| [32-SECURITY-THREAT-MODEL-EXPANSION.md](32-SECURITY-THREAT-MODEL-EXPANSION.md) | 0 | 0 | 0 | 0 | 0 | 12 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | ~0% (threat-model rows; Telemetry-heavy) |
+| [33-DB-RLS-AND-MIGRATION-CONTRACT.md](33-DB-RLS-AND-MIGRATION-CONTRACT.md) | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | ~100% (7 fully-complete gate rows) |
+| [34-ROW-LEVEL-COMPLETENESS-MATRIX.md](34-ROW-LEVEL-COMPLETENESS-MATRIX.md) | 5 | 5 | 5 | 3 | 3 | 3 | 3 | 4 | 4 | 3 | 3 | 3 | 2 | ~33% (2 fully-complete rows + this self-ref) |
+| [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | 10 | ~100% (10 fully-complete gate rows in §12) |
 
-### Aggregate (initial state)
+### Implies max Readiness (gate-row completeness → doc-25 readiness ceiling)
 
-- **Total actionable rows across pack:** 466
-- **Average % completeness:** 15%
-- **Lowest-completeness doc:** [04-UX-RESEARCH-SYNTHESIS.md](04-UX-RESEARCH-SYNTHESIS.md) (0%), [README.md](README.md) (0%)
-- **Highest-completeness doc:** [06-QA-AND-VALIDATION-PLAN.md](06-QA-AND-VALIDATION-PLAN.md) (32%), [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) (31%)
+A doc's measured gate-row completeness (above) bounds the **Readiness** score
+it can honestly claim in [25](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md) §1.
+This is why the dimension-defining companion docs (28/29/30/31/32) score low
+on Readiness despite being the canonical source for their dimension: their
+job is to *define* a dimension, not to apply it per-surface. The build
+consumes them dimension-by-dimension, so their low gate-row completeness is
+not a build blocker — but their §1 Readiness reflects it honestly.
 
-### Why so low?
+| Doc | Gate-row % | Doc-25 Readiness | Note |
+|---|---|---|---|
+| 35 (glass spec) | ~100% | 86 | highest-completeness companion; §12 has 10 fully-complete rows |
+| 33 (DB/RLS) | ~100% | 42 | high completeness but Readiness capped by fictional-schema fix (§3.5c) + Q score 45 |
+| 27 (owners) | ~33% | 82 | defines Owner; 2 fully-complete role rows |
+| 34 (this doc) | ~33% | 55 | self-referential; 2 fully-complete rows |
+| 28/29/30/31/32 | ~0% | 40–50 | define a single dimension; few/no gate rows |
+
+### Aggregate (initial state, original docs 00–24 + README)
+
+- **Total actionable rows across original docs:** 466
+- **Average % completeness (original docs, all-rows baseline):** 15%
+- **Lowest-completeness doc (original):** [04-UX-RESEARCH-SYNTHESIS.md](04-UX-RESEARCH-SYNTHESIS.md) (0%), [README.md](README.md) (0%)
+- **Highest-completeness doc (original):** [06-QA-AND-VALIDATION-PLAN.md](06-QA-AND-VALIDATION-PLAN.md) (32%), [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) (31%)
+
+### Aggregate (companion docs 25–35, gate-row baseline)
+
+- **Highest gate-row completeness:** [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) (~100%, 10 fully-complete rows in §12) and [33](33-DB-RLS-AND-MIGRATION-CONTRACT.md) (~100%, 7 fully-complete rows).
+- **Dimension-defining companion docs (28/29/30/31/32):** ~0% gate-row completeness by design — they DEFINE one dimension each; their low Readiness in doc 25 §1 reflects unfinished per-surface application, not a build blocker.
+
+### Why the original-doc baseline is so low?
 
 The initial pack was strong on narrative content and codebase bindings but
 did not use a per-row 12-dimension template. Most rows have Phase and
 Binding but lack Owner, Flag, Rollback, Evidence, Telemetry, Copy, A11y,
-Perf, Browser-proof, and i18n. Wave 2 improvements will add these fields to
-every actionable row.
+Perf, Browser-proof, and i18n. Under the relaxed scope (§3), the
+informational rows among these delegate and are NOT counted as gaps; the
+gate-row subset is the focus of the doc 25 §3.5 master fix ledger.
 
 ---
 
 ## 5. Verification commands
 
-Run these from the plan folder root. All must return 100% for the pack to
-be row-level complete.
+Run these from the plan folder root. The **per-dimension counts** must be
+non-zero for every gate-row doc; the **composite** is computed by
+intersecting per-dimension row sets, NOT by a single-line regex (see the
+note below on why the old single-line regex was structurally wrong).
 
 ```bash
-# Dimension 1: Owner
+# Per-dimension counts (one loop per dimension — repeat for all 12).
+# These are robust to any row layout (horizontal |, middot ·, or vertical).
+DIMS="Owner Phase Flag Rollback Evidence Telemetry Copy A11y Perf Browser-proof i18n Binding"
 for f in .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/*.md; do
-  count=$(rg -c "Owner:" "$f" 2>/dev/null || echo 0)
-  echo "$f: $count Owner: rows"
-done
-
-# Dimension 2: Phase
-for f in .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/*.md; do
-  count=$(rg -c "Phase:" "$f" 2>/dev/null || echo 0)
-  echo "$f: $count Phase: rows"
-done
-
-# Dimension 3: Flag
-for f in .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/*.md; do
-  count=$(rg -c "Flag:" "$f" 2>/dev/null || echo 0)
-  echo "$f: $count Flag: rows"
-done
-
-# ... repeat for dimensions 4-12 ...
-
-# Composite: count rows with all 12 dimensions
-for f in .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/*.md; do
-  total=$(rg -c "Owner:.*Phase:.*Flag:.*Rollback:.*Evidence:.*Telemetry:.*Copy:.*A11y:.*Perf:.*Browser-proof:.*i18n:.*Binding:" "$f" 2>/dev/null || echo 0)
-  echo "$f: $total fully-complete rows"
+  echo "== $(basename "$f") =="
+  for d in $DIMS; do
+    count=$(rg -c "$d:" "$f" 2>/dev/null || echo 0)
+    printf "  %-13s %s\n" "$d" "$count"
+  done
 done
 ```
+
+### Composite completeness — per-doc block check (replaces the old single-line regex)
+
+> **Why the old regex was wrong.** The previous §5 used a single-line regex
+> `Owner:.*Phase:.*Flag:.*...Binding:` to count "fully-complete rows". This
+> breaks for two layouts the pack actually uses: (1) rows that use the
+> middot `·` separator instead of the regex's implied `.*`-matchable single
+> token (doc 35 §12 uses `·`), and (2) vertical/multi-line markdown tables
+> where each dimension is on its own line. A single-line regex returns ~0
+> for compliant rows in those layouts, so the counts it produced were
+> unreliable. (Note: rows that DO use a single line with `|` or `·`
+> separators still match a relaxed single-line check — the issue is the
+> regex cannot tell the two apart and silently undercounts the `·`/vertical
+> cases.)
+>
+> The replacement is a **per-doc block check**: for each doc, count the
+> number of *line windows* of width N (default 3 lines, to span a vertical
+> table row) that contain ALL 12 dimension keywords. A window containing
+> all 12 counts as one fully-complete row regardless of separator or
+> horizontal/vertical layout.
+
+```bash
+# Per-doc block check: count windows of N lines containing all 12 keywords.
+# Adjust -N for wider vertical tables. This matches BOTH horizontal (|/·)
+# and vertical layouts, unlike the old single-line regex.
+DIMS="Owner: Phase: Flag: Rollback: Evidence: Telemetry: Copy: A11y: Perf: Browser-proof: i18n: Binding:"
+for f in .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/*.md; do
+  awk -v dims="$DIMS" -v N=3 '
+    BEGIN { n=split(dims, d, " "); }
+    {
+      buf[NR%N]=$0;
+      if (NR>=N) {
+        win=""; for(i=0;i<N;i++){ win=win " " buf[(NR-i+N)%N]; }
+        hit=0;
+        for(k=1;k<=n;k++){ if(index(win,d[k])){hit++;} }
+        if(hit==n){count++;}
+      }
+    }
+    END{ print FILENAME": "count+0" fully-complete rows (block check, window="N")"; }
+  ' "$f"
+done
+```
+
+For a quick spot-check that does not depend on awk windowing, intersect the
+per-dimension line-number sets: a row is fully-complete if the SAME
+1–3-line span contains all 12 keywords. The §4 matrix above was measured
+with this block method.
 
 ---
 
@@ -216,22 +306,34 @@ For each doc below 100%, the gap closure plan is:
 | P0 | 04, 15, README | 0% → 100% (largest gap) |
 | P1 | 07, 22, 21, 01 | <15% → 100% |
 | P2 | 00, 02, 03, 05, 06, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 23, 24 | 8-32% → 100% |
-| P3 | 25, 26, 27, 28, 29, 30, 31, 32, 33, 34 | New docs — build to 100% from start |
+| P3 | 25, 26, 27, 28, 29, 30, 31, 32, 34 | Companion docs — measured gate-row completeness in §4 (25/26/28/29/30/31/32 ~0%, 27/34 ~33%); raise per-surface application. Docs 33 and 35 are already ~100% gate-row complete. |
 
 ---
 
 ## 7. Sign-off
 
+> **Reconciliation note (2026-06-21 re-audit).** The §4 matrix measures the
+> *initial* state (15% average across the original docs, 0% Owner on most).
+> That number is the **baseline**, not the current gate-row compliance — it
+> counts rows the relaxed scope (§3) exempts as non-compliant. The sign-off
+> below is against the **relaxed-scope** gate-row standard, not the §4
+> raw-completeness figure. The two are reconciled by the "Implies max
+> Readiness" table in §4: docs 33 and 35 are at ~100% gate-row compliance
+> (proven by the §5 block check); the original-doc gate rows are in
+> flight (see doc 25 §3.5 master fix ledger). Do not read §4's 0–32% and
+> §7's READY-WITH-CAVEATS as contradictory — §4 is the all-rows baseline,
+> §7 is the gate-row verdict.
+
 | Reviewer | Verdict | Date | Notes |
 |---|---|---|---|
-| Planning lead | READY-WITH-CAVEATS | 2026-06-21 | 12-dim standard relaxed per Oracle review. Implementation task rows satisfy standard. Accepted residual: informational rows delegate to companion docs. |
-| QA lead | READY-WITH-CAVEATS | 2026-06-21 | Companion docs cover all 12 dimensions. Accepted residual: inline conflict resolution updates pending (owner: Planning lead, phase: Wave 2). |
-| Reviewer gate (Oracle) | READY-WITH-CAVEATS | 2026-06-21 | Audit quality 88%, comp docs 84%, pack readiness 72%. Relaxed standard accepted. Remaining Wave 2 inline work accepted as residual with owner, phase, and evidence tracking. |
+| Planning lead | READY-WITH-CAVEATS | 2026-06-21 | 12-dim standard relaxed per Oracle review (§3 authoritative). Gate-row compliance proven for docs 33/35 (~100%); original-doc gate rows in flight per doc 25 §3.5. Accepted residual: informational rows delegate to companion docs. |
+| QA lead | READY-WITH-CAVEATS | 2026-06-21 | Companion docs cover all 12 dimensions. Accepted residual: per-surface application of each companion doc's standard uneven (docs 28–32 Readiness 40–50 in doc 25 §1). |
+| Reviewer gate (Oracle) | READY-WITH-CAVEATS | 2026-06-21 | Pack readiness ~74 (honest, doc 25 §1). Relaxed standard accepted. Remaining inline work accepted as residual with owner, phase, and evidence tracking. |
 
 The pack is row-level complete when:
-1. ✅ Implementation task rows satisfy all 12 dimensions (or delegate).
-2. ✅ Acceptance gate rows satisfy all 12 dimensions (or delegate).
-3. ✅ High-risk contract rows satisfy all 12 dimensions (or delegate).
-4. ⚠️ Informational rows delegate to companion docs (accepted residual).
-5. ✅ All 12 dimensions covered by dedicated companion docs (28-33).
+1. ⚠️ Implementation task rows satisfy all 12 dimensions (or delegate) — proven for 33/35; in flight for original docs (doc 25 §3.5).
+2. ⚠️ Acceptance gate rows satisfy all 12 dimensions (or delegate) — in flight.
+3. ⚠️ High-risk contract rows satisfy all 12 dimensions (or delegate) — proven for 33 (DB/RLS); in flight for 13/14.
+4. ✅ Informational rows delegate to companion docs (accepted residual, not a gap).
+5. ✅ All 12 dimensions covered by dedicated companion docs (28–33).
 6. ✅ All three reviewers signed off above (READY-WITH-CAVEATS).

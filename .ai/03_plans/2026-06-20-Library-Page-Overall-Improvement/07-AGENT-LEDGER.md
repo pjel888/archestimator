@@ -12,7 +12,7 @@
 
 | Claim | Owner | Evidence | Phase | Status |
 |---|---|---|---|---|
-| This plan pack is implementation-ready at 100/100/100 for the planning-achievable rubric. | Planning lead | All 35 docs score 100/100/100 in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md`; 0 unresolved conflicts in `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md`; every actionable row satisfies the 12-dimension standard in `34-ROW-LEVEL-COMPLETENESS-MATRIX.md`. | all | closed (this pass) |
+| This plan pack is planning-complete (implementation-ready, not execution-complete) per Rubric B. | Planning lead | Docs 00-24 + README scored in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1; docs 25-34 are companion/contract docs that define the standard rather than being scored against it. An **independent re-audit (2026-06-21)** found the pack honestly averages ~80 (S82/Q78/R70 on the execution-inclusive Rubric A), NOT a flat 100 — see the re-audit entry in §12 and `08-RATINGS-AND-GAP-CLOSURE.md` "Delta log". The prior "all 35 docs at 100/100/100" claim was the planning-achievable Rubric B ceiling and is not defensible as an execution-inclusive score; treat `25` §1 as authoritative. | all | closed for PLANNING rubric; execution residual open (12-dim fields applied to gate-rows only; C-001..C-022 applied inline across the 2026-06-21 apply pass) |
 
 ---
 
@@ -167,6 +167,42 @@ Owner: Planning lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: EV-PLA
 ---
 
 ## 11. Cross-references
+
+> **Doc 19 drift check note (added 2026-06-21):** the §9 drift check fires on
+> textual change (line number or symbol name). It must ALSO fire on *semantic*
+> change that keeps the same name — the most dangerous drift. Add this row to
+> §9 triggers: "New enum value added to `component_lifecycle_state` or
+> `estimate_row_link_state`, or a new query-key factory in `query-keys.ts`" ->
+> re-verify doc 11 lifecycle/link tables and doc 13 cache table; log in
+> `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md`. Owner: Planning lead. The §8
+> evidence commands remain the textual re-verification harness.
+
+---
+
+## 12. 2026-06-21 independent re-audit + apply pass
+
+This ledger was originally written against the pack's self-assessed
+"100/100/100 planning-achievable" rating. An **independent re-audit on
+2026-06-21** (separate agent fleet from the original authors) challenged that and
+produced the honest finding below; a follow-on apply pass (this ledger's
+"Phase-4 apply workflow") carried the conflict resolutions inline into the
+owned docs.
+
+| Item | Detail |
+|---|---|
+| Audit workflow | Phase-1 audit: a parallel multi-agent fleet re-scored all 38 docs against the keystone (doc 19) and the `26` conflict set, with per-doc `jq`-queryable findings (`.result.reviews[].reviews[]`). |
+| Apply workflow | Phase-4 apply: a parallel multi-agent fleet with NON-OVERLAPPING doc ownership edited each assigned doc surgically (this is the apply pass this ledger now records). Each agent read the keystone + its owned docs + the per-doc `jq` findings, then applied the binding conflict resolutions (C-001..C-022) inline. |
+| Honest finding | The pack averages ~80 on the **execution-inclusive** Rubric A (S82/Q78/R70 across the cluster), NOT the claimed ~90.3 aggregate or a flat 100. The planning-achievable Rubric B ceiling (100/100/100 = implementation-ready, NOT execution-complete, per C-016) is a separate, correct statement that does not contradict the ~80 execution-inclusive score. |
+| Marquee deliverable | `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` v2 (already rewritten by the lead) — a full liquid-glass library redesign as a first-class skin matching the workshop shell, via a per-region surface-variant slot system. Other docs cross-reference it as the material/grid layer. |
+| Conflict resolutions applied | C-001 (4-tier beta freshness), C-002 (chip not badge), C-005 (test cmd), C-009 (console.warn beta-sink), C-012 (public snapshot label), C-013 (archive vs delete), C-016 (Rubric B decision rule), C-020 (relaxed per-row dims), plus the path-bug correction (no `src/components/library/`). |
+| What this changes in this ledger | §1 headline claim reframed to "planning-complete (Rubric B), not execution-complete"; the ~80 honest score is recorded here and in `08` delta log; the §9 drift check gains a semantic-change trigger. |
+
+This is provenance, not a product claim: the ~80 is an audit of the *documents*
+on the execution-inclusive rubric; no application code changed.
+
+---
+
+## 13. Cross-references
 
 - `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` — authoritative bindings and phase map.
 - `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` — 12-dimension row template this doc uses.

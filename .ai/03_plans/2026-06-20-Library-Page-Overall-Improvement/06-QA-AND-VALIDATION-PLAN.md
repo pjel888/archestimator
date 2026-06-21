@@ -290,16 +290,19 @@ components-tab search is 100% client-side synchronous today (the
 `sheetItems.filter((item) => componentMatchesFacets(...))` call at
 `ComponentLibraryManager.tsx:877`).
 
-Crosswalk to doc 18 rows (doc 18 currently labels rows by prose only): the doc 18
-"Low-confidence insert" and "Discontinued insert" rows fold into `ADV-TEMPLATE-DEP`
-plus the insert-picker lifecycle gating; "Source changed after insert picker" and
-"Target estimate deleted" fold into `ADV-XWS-ESTIMATE-TARGET`; "Cross-workspace
-folder mutation" folds into `ADV-CONCURRENT-RENAME` / `ADV-FOLDER-DELETE-FAIL`
-server-side coverage; "Bulk action partial invalid IDs", "Screen reader route
-open", "Template partial failure", and "Import/export future path" map to
-`ADV-BULK-COPY`, `ADV-DELETED-RESULT`, `ADV-XWS-ESTIMATE-TARGET`, and
-`ADV-PUBLIC-REDACTION` respectively. When doc 18 is updated, give every doc 18 row
-its `ADV-*` ID directly so this crosswalk paragraph can be deleted.
+Crosswalk to doc 18 rows: doc 18 now carries the shared `ADV-*` IDs directly on
+every row (verified 2026-06-21 — the prior "doc 18 labels rows by prose only"
+state is resolved), so the two matrices no longer drift and the prose-only
+crosswalk that lived here is retired. The historical mapping was: doc 18
+"Low-confidence insert" and "Discontinued insert" -> `ADV-TEMPLATE-DEP` plus the
+insert-picker lifecycle gating; "Source changed after insert picker" and "Target
+estimate deleted" -> `ADV-XWS-ESTIMATE-TARGET`; "Cross-workspace folder mutation"
+-> `ADV-CONCURRENT-RENAME` / `ADV-FOLDER-DELETE-FAIL` server-side coverage;
+"Bulk action partial invalid IDs", "Screen reader route open", "Template partial
+failure", and "Import/export future path" -> `ADV-BULK-COPY`, `ADV-DELETED-RESULT`,
+`ADV-XWS-ESTIMATE-TARGET`, and `ADV-PUBLIC-REDACTION` respectively. The
+Completion Gate at the end of this doc still requires doc 18 and doc 06 to use
+IDENTICAL IDs.
 
 Rows tagged `(net-new)` require CREATING the owning test file first — it does not
 exist under `tests/vitest/` yet, so the first `vitest run` will fail with "no
@@ -312,6 +315,22 @@ from "Existing Useful Coverage". The nine net-new files in this pack are
 and `library-overview-navigation.test.tsx`; this mirrors how doc 18 tags
 `(net-new)` vs `(extend existing)`.
 
+**Shared net-new files (one authorship closes multiple ADV rows):** several
+net-new files discharge more than one ADV row, so authoring them is shared work
+across phases:
+
+| Net-new file | Discharges ADV IDs |
+| --- | --- |
+| `library-add-component-modal-a11y.test.tsx` | `ADV-DIRTY-ADD-NESTED`, `ADV-QUICKADD-UNSAFE`, `ADV-KEYBOARD-MGMT` (a11y portions) |
+| `library-template-insert-picker.test.tsx` | `ADV-XWS-ESTIMATE-TARGET`, `ADV-TEMPLATE-DEP` |
+| `component-library-folder-actions.test.ts` (extend) | `ADV-FOLDER-DELETE-FAIL`, `ADV-CONCURRENT-RENAME`, `ADV-KEYBOARD-MGMT` (folder portions) |
+| `library-overview-navigation.test.tsx` | `ADV-DELETED-RESULT` |
+| `library-applied-filters.test.tsx` | `ADV-STALE-URL-PARAMS` |
+
+An implementer authoring one of these files should know up front which other ADV
+rows it closes, so a single authorship is not mistaken for a single-row
+deliverable.
+
 | ID | Scenario | Risk | Phase | Owning test + command | Evidence needed | 12-dim metadata |
 | --- | --- | --- | --- | --- | --- | --- |
 | ADV-DELETED-RESULT | Overview search/recent result opens a deleted/foreign component | User loses exact item; not-found leak | 1 | `vitest run tests/vitest/library-overview-navigation.test.tsx` (net-new) | DOM route-state test into `?component=<id>`; recoverable not-found; later browser route proof only if router behavior changes | Owner: QA lead \| Phase: 1 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-001 \| Telemetry: `library_search_executed`, `library_component_selected` \| Copy: see 22 §search/result \| A11y: see 31 §4 Library overview \| Perf: n/a \| Browser-proof: jsdom (route-state DOM); Playwright for real navigation \| i18n: n/a \| Binding: LibraryOverviewSearch.tsx:258; LibraryPageClient.tsx route state (doc 19) |
@@ -320,12 +339,12 @@ and `library-overview-navigation.test.tsx`; this mirrors how doc 18 tags
 | ADV-STALE-URL-PARAMS | Filtered catalogue with stale URL params | Empty or incorrect state | 1 | `vitest run tests/vitest/library-applied-filters.test.tsx` (net-new) | DOM URL-param + no-results tests over `getComponentPricingFreshness` facet state | Owner: QA lead \| Phase: 1 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-004 \| Telemetry: `filter_applied`, `filter_reset` \| Copy: see 22 §filter \| A11y: see 31 §4 Search/filter \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: component-facet-filter.tsx:12,61 (doc 19) |
 | ADV-XWS-ESTIMATE-TARGET | Template insert with no valid / stale / foreign target | Rows inserted somewhere unexpected; wrong-estimate mutation | 4 | `vitest run tests/vitest/library-template-insert-picker.test.tsx` (net-new) + action test (below) | Insert-picker disabled/error state from `resolveEstimateTemplateInsertTarget`; server action rejects stale/foreign target via `can_edit_estimate` | Owner: QA lead \| Phase: 4 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-005 \| Telemetry: `insert_target_resolved`, `insert_target_failed` \| Copy: see 22 §insert-target \| A11y: see 31 §4 Template preview \| Perf: n/a \| Browser-proof: jsdom; Playwright for route transition \| i18n: n/a \| Binding: resolveEstimateTemplateInsertTarget + can_edit_estimate (doc 19) |
 | ADV-BULK-COPY | Bulk archive copy claims irreversibility | User mistrusts action | 0B | `vitest run tests/vitest/bulk-destructive-preview-modal.test.tsx` | Copy unit test on `confirmationHint` branching on `actionCopy.verb` | Owner: QA lead \| Phase: 0B \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-006 \| Telemetry: `bulk_action_previewed` \| Copy: see 22 §bulk-archive \| A11y: see 31 §4 Overlay/modal \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: BulkDestructivePreviewModal.tsx:107-108 (doc 19) |
-| ADV-MOBILE-BROWSE | Mobile component browse / inspector-dock drawer overlap | Controls overlap or scroll traps fail | 5 | Playwright `e2e/workshop-library-routes.spec.ts` (manual/browser) | Browser/manual proof after layout changes (jsdom cannot prove geometry) | Owner: QA lead \| Phase: 5 \| Flag: `library_overlays_v2` \| Rollback: redeploy flag=false \| Evidence: EV-06-007 (screenshot `phase-5/mobile-browse/...`) \| Telemetry: n/a \| Copy: n/a \| A11y: see 31 §4 Component inspector \| Perf: see 30 §dense mobile (provisional until Phase 0A baseline) \| Browser-proof: Playwright (e2e/workshop-library-routes.spec.ts) \| i18n: n/a \| Binding: ComponentInspectorDock.tsx (doc 19) |
+| ADV-MOBILE-BROWSE | Mobile component browse / inspector-dock drawer overlap | Controls overlap or scroll traps fail | 5 | Playwright `e2e/workshop-library-routes.spec.ts` (manual/browser) | Browser/manual proof after layout changes (jsdom cannot prove geometry) | Owner: QA lead \| Phase: 5 \| Flag: `library_dense_mode` (resolves C-004 — doc 21 §4 registers `library_dense_mode` + independent `library_virtualization_enabled`; there is NO `library_overlays_v2` flag anywhere — that was a phantom reference) \| Rollback: redeploy flag=false (fix-forward, ~5 min, C-010) \| Evidence: EV-06-007 (screenshot `phase-5/mobile-browse/...`) \| Telemetry: n/a \| Copy: n/a \| A11y: see 31 §4 Component inspector \| Perf: see 30 §dense mobile (PROVISIONAL until Phase 0A baseline per C-015) \| Browser-proof: Playwright (e2e/workshop-library-routes.spec.ts) \| i18n: n/a \| Binding: ComponentInspectorDock.tsx (doc 19) |
 | ADV-KEYBOARD-MGMT | Keyboard-only library management | Accessibility regression | 0B/5 | `vitest run tests/vitest/component-library-folder-actions.test.ts` + `...modal-a11y.test.tsx` | Manual ARIA/focus DOM tests first (no axe harness); browser proof for portal focus if needed | Owner: QA lead \| Phase: 0B/5 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-008 \| Telemetry: `overlay_opened`, `overlay_closed` \| Copy: n/a \| A11y: see 31 §4 all surfaces \| Perf: n/a \| Browser-proof: jsdom; Playwright for cross-portal focus \| i18n: n/a \| Binding: ComponentLibraryManager.tsx; AddComponentModal.tsx (doc 19) |
 | ADV-XWS-COMPONENT-PARAM | Cross-workspace `?component=<id>` param | IDOR / data leak | 0A | `vitest run tests/vitest/library-route-state-authz.test.tsx` (net-new, Phase 0A scaffold) | Permission-safe not-found/denied test, no object detail leaked | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-009 \| Telemetry: `route_state_authz_denied` \| Copy: see 22 §permission-denied \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: LibraryPageClient.tsx route state (doc 19) |
 | ADV-XWS-ESTIMATE-ACTION | Cross-workspace estimate insert target (server) | Wrong estimate mutation | 0A | `vitest run tests/vitest/estimate-insert-target-authz.test.tsx` (net-new) | Server-action test that `resolveEstimateTemplateInsertTarget` rejects stale/foreign target | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-010 \| Telemetry: `insert_target_authz_denied` \| Copy: see 22 §permission-denied \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom (server action) \| i18n: n/a \| Binding: resolveEstimateTemplateInsertTarget + can_edit_estimate (doc 19) |
 | ADV-WS-SWITCH-CACHE | Workspace switch with inspector dock open | Prior-workspace cache bleed | 0A | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) | Query/cache test proving `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (currently un-scoped `["workspace-component-library"]`) clears/refetches on switch | Owner: Backend lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-011 \| Telemetry: `workspace_switched`, `cache_invalidated` \| Copy: n/a \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY (doc 19) |
-| ADV-PUBLIC-REDACTION | Public/shared snapshot includes private source metadata | Private data leak | 0A | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | Redaction assertions on the snapshot builder field selection (snapshot builder `src/lib/publication/actions.ts`, writes `snapshot_json` at `:566`/`:636`; helper context `activity-helpers.ts`) for `pricing_source`, `confidence`, price history into `project_publications.snapshot_json` — NOT a live library endpoint | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-012 \| Telemetry: `snapshot_redaction_verified` \| Copy: see 22 §public-snapshot \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: src/lib/publication/actions.ts snapshot_json :566/:636 (doc 19) |
+| ADV-PUBLIC-REDACTION | Public/shared snapshot includes private source metadata | Private data leak | 0A | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | Redaction assertions on the snapshot builder field selection (snapshot builder `src/lib/publication/actions.ts`, writes `snapshot_json` at `:587`/`:664`; a third write at `:727` is the RPC param `p_snapshot_json`; helper context `activity-helpers.ts`) for `pricing_source`, `confidence`, price history into `project_publications.snapshot_json` — NOT a live library endpoint | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-012 \| Telemetry: `snapshot_redaction_verified` (console.warn sink for closed beta per C-009) \| Copy: see 22 §public-snapshot \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: src/lib/publication/actions.ts snapshot_json :587/:664 (doc 19) |
 | ADV-VIEWER-MUTATION | Viewer opens Quick Add or submits a mutation | Unauthorized mutation | 0A/3 | `vitest run tests/vitest/library-viewer-authz.test.tsx` (net-new) | UI hidden/disabled assertion + server denial via `is_workspace_editor` (role in owner/admin/member; viewer read-only) | Owner: Security lead \| Phase: 0A/3 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-013 \| Telemetry: `mutation_authz_denied` \| Copy: see 22 §permission-denied \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: is_workspace_editor RPC (doc 19) |
 | ADV-QUICKADD-UNSAFE | Formula-like text or invalid `pricing_source` URL | Unsafe stored source / export data | 3 | `vitest run tests/vitest/library-add-component-modal-a11y.test.tsx` (net-new) | Field validation/sanitization test (app-side URL validation over free-text `pricing_source`) | Owner: QA lead \| Phase: 3 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-014 \| Telemetry: `quick_add_validation_failed` \| Copy: see 22 §quick-add \| A11y: see 31 §4 Quick add form \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: AddComponentModal.tsx (doc 19) |
 | ADV-CONCURRENT-RENAME | Folder renamed/deleted concurrently | Silent overwrite or wrong route state | 0B | `vitest run tests/vitest/component-library-folder-actions.test.ts` | Conflict/retry test; no silent overwrite | Owner: QA lead \| Phase: 0B \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-015 \| Telemetry: `folder_renamed`, `folder_rename_failed` \| Copy: see 22 §folder-rename \| A11y: see 31 §4 Folder management \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: ComponentLibraryManager.tsx:1515 (doc 19) |
@@ -367,6 +386,15 @@ criteria that every relevant scenario must satisfy.
 | Focus indicator visibility ≥2px contrast ≥3:1 | Design lead | 0B–5 | all interactive ADV rows | Manual screenshot review or axe contrast pass post-0A |
 
 ## Completion Gate For Future Implementation
+
+**0A-sequencing clause (binding):** the five contract-lock ADV cases —
+`ADV-XWS-COMPONENT-PARAM`, `ADV-VIEWER-MUTATION`, `ADV-PUBLIC-REDACTION`,
+`ADV-WS-SWITCH-CACHE`, `ADV-XWS-ESTIMATE-ACTION` — are ALL Phase 0A net-new
+suites (see `05-IMPLEMENTATION-ROADMAP.md` Seq 1-2: `LIB-P0A-01`/`LIB-P0A-02`).
+They MUST land in Phase 0A before any Phase 0B merge; they are NOT gates a later
+phase may satisfy retroactively, and 0B/1 deep-link work is blocked on them
+(see the doc 05 LIB-P0A-01 dependency edge). The protected-flow clause below
+inherits this sequencing.
 
 A future implementation should not be marked complete until:
 

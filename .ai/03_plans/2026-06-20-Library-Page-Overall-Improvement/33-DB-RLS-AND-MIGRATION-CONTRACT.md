@@ -1,10 +1,17 @@
 # 33 — DB, RLS, and Migration Contract
 
 > **Status:** Living document. Initialized 2026-06-21 by the Ultrawork audit
-> loop. Defines the database, RLS, and migration contract for the Library
+> loop; **reconciled to the real migrations and the keystone on 2026-06-21**
+> (table names, indexes, RLS policies, snapshot line numbers, and the
+> public-read mechanism all now verified against `supabase/migrations/` and
+> doc 19). Defines the database, RLS, and migration contract for the Library
 > page. Deepens [13-DATA-CONTRACTS-ROUTE-CACHE.md](13-DATA-CONTRACTS-ROUTE-CACHE.md)
 > and [14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md](14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md)
 > with schema, RLS policies, migration safety, and backfill plans.
+>
+> **Material liquid-glass layer:** the visual/material treatment of every
+> Library surface lives in [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md);
+> this doc is the data/RLS/migration layer only.
 >
 > **Scope:** Schema, RLS policies, migration order, backfill, rollback,
 > connection pooling, query optimization, and per-table contracts.
@@ -20,7 +27,7 @@
 
 The Library page relies on Supabase/Postgres for persistence. This doc:
 
-1. **Defines the schema** for Library tables (components, folders, templates).
+1. **Defines the schema** for Library tables (`cost_library_items`, `library_folders`, `estimate_templates`).
 2. **Defines RLS policies** for each table.
 3. **Defines migration safety** — order, rollback, verification.
 4. **Defines the no-migration gate** for the 0A–5 scope (per [25](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md) §3).
@@ -68,10 +75,10 @@ Owner: DB lead | Phase: 0A | Flag: n/a (schema gate) | Rollback: git revert; no 
 
 | Change | Phase | Migration | Backfill | Rollback |
 |---|---|---|---|---|
-| `very_stale` enum value | Phase-later | ALTER TYPE `component_lifecycle_state` | None (derived from `pricing_date`) | DROP enum value |
+| `very_stale` freshness tier (NOT an enum value) | Phase 2 | **None** — derived from `pricing_date` in the app layer (extends the three 90-day constants + `getComponentPricingFreshness` to a 180-day tier). `component_lifecycle_state` enum is `draft`/`in_production`/`available`/`discontinued`/`archived` — `very_stale` is NOT one of its values. | None | n/a (no migration) |
 | `last_reviewed` / `reviewed_at` column | Phase-later | ALTER TABLE `cost_library_items` / `estimate_templates` | None (defaults to `updated_at` or null) | DROP column |
 | Controlled-vocabulary `confidence` / `category` | Phase-later | ALTER TYPE / CHECK constraint | None (existing free text migrates to nearest enum) | DROP constraint / type |
-| Component versioning | Phase-later | New table | Backfill from current | DROP table |
+| Component versioning expansion | Phase-later | ALTER/extend the EXISTING `cost_library_item_versions` table (do NOT create a parallel table; `20260523120957_component_library_item_versioning.sql`) | Backfill from current | DROP added columns |
 | Audit log table | Phase-later | New table | None | DROP table |
 | Soft-delete tombstones | Phase-later | ALTER TABLE add column | Backfill existing | DROP column |
 
@@ -88,7 +95,7 @@ Owner: DB lead | Phase: Phase-later | Flag: n/a | Rollback: per-row `down` migra
 3. **Workspace isolation** — users can only access data in their workspace.
 4. **Role-based access** — `viewer` read-only; `member`/`admin`/`owner` edit; `admin`/`owner` manage members/publications.
 5. **Service role bypasses RLS** — but MUST NEVER be used for user requests.
-6. **Public snapshots have their own policy** — redacted, no live data; read via `sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:112`) at build + read time.
+6. **Public snapshots have their own policy** — redacted, no live data; read via `sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:301`) at build + read time.
 
 ### Verified RLS helper functions
 
@@ -96,8 +103,15 @@ Owner: DB lead | Phase: Phase-later | Flag: n/a | Rollback: per-row `down` migra
 |---|---|---|---|
 | `is_workspace_member(target_workspace_id uuid)` | Any membership | `20260613201302_rls_initplan_is_workspace_member.sql` | [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §RLS / Authz Primitives |
 | `is_workspace_editor(target_workspace_id uuid)` | `owner`/`admin`/`member` | `20260613192344_teamspace_rls_authuid_perf.sql` | [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §RLS / Authz Primitives |
+| `is_workspace_admin(target_workspace_id uuid)` | `owner`/`admin` only | `20260620103306_rls_initplan_hoist.sql:56` | [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §RLS / Authz Primitives |
 | `can_edit_estimate(target_estimate_id uuid)` | Estimate edit right | `20260613192344_teamspace_rls_authuid_perf.sql` | [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Server Actions and RPCs |
+| `can_manage_project_publication(target_project_id uuid)` | Publication manage right (used by `project_publications` RLS) | `20260527120000_project_client_publication.sql` | `supabase/migrations/20260527120000_project_client_publication.sql:78-86` |
 | `is_platform_admin()` | Platform admin override | core schema | [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §RLS / Authz Primitives |
+
+> **Cross-doc note:** `is_workspace_admin` and `can_manage_project_publication` are
+> real and used by `project_publications` policies, but doc 19's RLS/Authz table
+> does not yet list them. This doc cites them at their verified migration lines;
+> doc 19 should reconcile (owned by the keystone lead).
 
 ### Policy templates with 12-dimension metadata
 
@@ -270,25 +284,54 @@ Owner: DB lead | Phase: 0B | Flag: n/a | Rollback: re-apply core schema policy |
 
 #### `public.project_publications`
 
-Public snapshots are read via `src/app/share/[token]` and `src/app/api/share/[token]/route.ts`. The row is readable by the unauthenticated public via the share token, but the `snapshot_json` payload is redacted at build time by `buildSnapshotForProject` (`src/lib/publication/actions.ts:376`) and again at read time by `sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:112`).
+Public snapshots are read via `src/app/share/[token]` and `src/app/api/share/[token]/route.ts`. The `snapshot_json` payload is redacted at build time by `buildSnapshotForProject` (`src/lib/publication/actions.ts:389`) and again at read time by `sanitizeProjectPublicationSnapshotForPublicRead` (`src/lib/publication/snapshot.ts:301`).
+
+> **How public/anon reads work (verified):** the share route does **not** rely on
+> a `TO PUBLIC` RLS policy. It resolves the token via the **service-role** client
+> (`src/lib/publication/public-repository.ts:132-140`, one client per request),
+> which **bypasses RLS**, then rate-limits (`checkProjectPublicationSnapshotRateLimit`)
+> and serves the redacted snapshot. RLS on `project_publications` only gates
+> **authenticated manager** access; anon reads are enforced by the repository +
+> rate-limiter, not by RLS. Do **not** add a `TO PUBLIC USING (true)` policy —
+> that would be an open-read regression; access control is the repository's job.
+
+Verified policies from `20260527120000_project_client_publication.sql:88-127`
+(RLS enabled at :88; `can_manage_project_publication(project_id)` defined at
+:78-86; grants tightened at :120-127 — table is revoked from `public`/`anon`/
+`authenticated` and only `select, insert, update` granted to `authenticated`):
 
 ```sql
 ALTER TABLE public.project_publications ENABLE ROW LEVEL SECURITY;
 
--- Select: public by share token (token resolution happens in the repository)
-CREATE POLICY "project publications can be read by public token"
+-- Select: authenticated publication managers only (NOT public; anon reads
+-- bypass RLS via the service-role client in public-repository.ts).
+CREATE POLICY "project publication managers can read publication rows"
   ON public.project_publications
-  FOR SELECT TO PUBLIC USING (true);
+  FOR SELECT TO authenticated
+  USING (public.can_manage_project_publication(project_id));
 
--- Insert/Update/Delete: workspace admins and owners
-CREATE POLICY "project publications can be managed by workspace admins"
+CREATE POLICY "project publication managers can insert publication rows"
   ON public.project_publications
-  FOR ALL TO authenticated
-  USING (is_platform_admin() OR is_workspace_admin(workspace_id))
-  WITH CHECK (is_platform_admin() OR is_workspace_admin(workspace_id));
+  FOR INSERT TO authenticated
+  WITH CHECK (public.can_manage_project_publication(project_id));
+
+CREATE POLICY "project publication managers can update publication rows"
+  ON public.project_publications
+  FOR UPDATE TO authenticated
+  USING (public.can_manage_project_publication(project_id))
+  WITH CHECK (public.can_manage_project_publication(project_id));
+
+-- NOTE: there is NO DELETE policy on project_publications today; hard-delete is
+-- not granted at the RLS layer. Publications are revoked/expired via UPDATE, not
+-- deleted. If hard-delete is later required, add a FOR DELETE policy gated on
+-- can_manage_project_publication (or is_workspace_admin) as a Phase-later item.
 ```
 
-Owner: Security lead | Phase: 0B | Flag: n/a | Rollback: re-apply publication migration policies | Evidence: EV-0A-RLS-PUBLICATIONS | Telemetry: `redaction_regression` if private fields enter snapshot | Copy: `trust.public_snapshot.label` | A11y: n/a | Perf: index scan via `project_publications_project_id_idx` / token lookup | Browser-proof: n/a | i18n: key-based | Binding: `src/app/api/share/[token]/route.ts:78`
+**Index for public token lookup:** `project_publications_token_hash_idx`
+(`20260527120000_project_client_publication.sql:43-44`, on `token_hash`) — the
+repository resolves a share token to a row by `token_hash`, not by `id`.
+
+Owner: Security lead | Phase: 0B | Flag: n/a | Rollback: re-apply publication migration policies | Evidence: EV-0A-RLS-PUBLICATIONS | Telemetry: `redaction_regression` if private fields enter snapshot | Copy: `trust.public_snapshot.label` | A11y: n/a | Perf: index scan via `project_publications_token_hash_idx` (token lookup) / `project_publications_project_status_idx` | Browser-proof: n/a | i18n: key-based | Binding: `supabase/migrations/20260527120000_project_client_publication.sql:88-127`; service-role read path `src/lib/publication/public-repository.ts:132-140`
 
 ### RLS verification
 
@@ -370,11 +413,12 @@ supabase/migrations/20260701000000_add_component_versioning.sql
 Every migration MUST have a rollback:
 
 ```sql
--- up
-ALTER TABLE components ADD COLUMN version integer DEFAULT 1;
+-- up (illustrative Phase-later example; real versioning table already partially
+--     exists as cost_library_item_versions — see §6)
+ALTER TABLE public.cost_library_items ADD COLUMN version integer DEFAULT 1;
 
 -- down
-ALTER TABLE components DROP COLUMN version;
+ALTER TABLE public.cost_library_items DROP COLUMN version;
 ```
 
 ---
@@ -383,21 +427,39 @@ ALTER TABLE components DROP COLUMN version;
 
 ### Required indexes
 
-> The exact index names are in [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md).
+> All names below are **verified against the real migrations** (enumerated via
+> `rg -ni 'create.*(index)' supabase/migrations/ | rg 'cost_library|library_folder|estimate_template|project_publication'`).
+> Earlier drafts invented `idx_components_*` / `idx_folders_*` / `idx_templates_*`
+> / `idx_snapshots_*` names and a fabricated `last_verified_at` column — **none
+> of those exist**; this table corrects them. A row marked **"To create in
+> Phase 0A"** means the index does not exist today and must be added (with
+> migration review) before the cited query can hit an index; track each under
+> Evidence `EV-0A-IDX-<name>`.
 
-| Table | Index | Purpose |
-|---|---|---|
-| components | `idx_components_workspace_id` | Filter by workspace (every query) |
-| components | `idx_components_folder_id` | Filter by folder |
-| components | `idx_components_last_verified_at` | Trust state computation |
-| components | `idx_components_name_trigram` | Search by name (trigram for fuzzy) |
-| folders | `idx_folders_workspace_id` | Filter by workspace |
-| folders | `idx_folders_parent_folder_id` | Tree traversal |
-| templates | `idx_templates_workspace_id` | Filter by workspace |
-| snapshots | `idx_snapshots_workspace_id` | Filter by workspace |
-| snapshots | `idx_snapshots_expires_at` | Expire old snapshots |
-| workspace_members | `idx_workspace_members_user_id` | Lookup user's workspaces |
-| workspace_members | `idx_workspace_members_workspace_id` | Lookup workspace's members |
+| Table | Index (real name) | Purpose | Status |
+|---|---|---|---|
+| `cost_library_items` | `cost_library_items_workspace_id_idx` | Filter by workspace (every query) | exists — `20260518090000_archestimator_core_schema.sql:124` |
+| `cost_library_items` | `cost_library_items_library_folder_id_idx` | Filter by folder (`library_folder_id`) | exists — `20260523030333_library_folder_organization.sql:26` |
+| `cost_library_items` | `cost_library_items_workspace_lifecycle_idx` | Workspace + lifecycle filter | exists — `20260523120957_component_library_item_versioning.sql:93` |
+| `cost_library_items` | `cost_library_items_category_node_id_idx` | Filter by category node | exists — `20260522064018_component_library_taxonomy_source.sql:41` |
+| `cost_library_items` | `cost_library_items_supplier_id_idx` | Filter by supplier | exists — `20260522064018_component_library_taxonomy_source.sql:42` |
+| `cost_library_items` | `cost_library_items_brand_id_idx` | Filter by brand | exists — `20260524053500_component_brand_library.sql:21` |
+| `cost_library_items` | (none on `pricing_date`) | Trust-state computation (freshness) | **To create in Phase 0A — Evidence EV-0A-IDX-pricing_date**. Trust derives from `pricing_date` (no `last_verified_at`/`last_reviewed` column exists — see [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Data Layer). Confirm whether an index is even needed after the Phase 0A perf seed before adding it. |
+| `cost_library_items` | (no trigram / GIN index on `name`) | Fuzzy name search | **To create in Phase 0A — Evidence EV-0A-IDX-name-trigram**. No `pg_trgm`/GIN index exists today; client-side synchronous search (`ComponentLibraryManager.tsx:876-882`) is the current mechanism. Only add server FTS/trigram **if** Phase 0A measurement shows client search is the bottleneck (see [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Performance Reality). |
+| `library_folders` | `library_folders_workspace_parent_sort_idx` | Workspace + tree traversal (parent + sort) | exists — `20260523030333_library_folder_organization.sql:22` |
+| `library_folders` | `library_folders_workspace_source_category_key` (unique) | One source-category node per workspace | exists — `20260523030333_library_folder_organization.sql:23` |
+| `estimate_templates` | `estimate_templates_workspace_sort_idx` | Workspace + sort + name | exists — `20260522091621_component_library_templates.sql:62` |
+| `estimate_template_nodes` | `estimate_template_nodes_template_parent_sort_idx` | Template + parent + sort | exists — `20260522091621_component_library_templates.sql:63` |
+| `estimate_template_row_items` | `estimate_template_row_items_template_node_sort_idx` | Template + node + sort | exists — `20260522091621_component_library_templates.sql:64` |
+| `project_publications` | `project_publications_project_status_idx` | Project + status + published_at | exists — `20260527120000_project_client_publication.sql:40-41` |
+| `project_publications` | `project_publications_token_hash_idx` | Share-token → row resolution (the public read path) | exists — `20260527120000_project_client_publication.sql:43-44` |
+| `project_publications` | `project_publications_one_published_per_project_idx` (unique) | One published publication per project | exists — `20260621120000_shared_link_d1_d11_hardening.sql:240` |
+| `workspace_members` | `workspace_members_user_id_idx` | Lookup a user's workspaces | exists — `20260518090000_archestimator_core_schema.sql:121` |
+
+> **No `pricing_date` index and no name-trigram index exist today.** Both are
+> candidates, not facts — they are gated behind the Phase 0A perf seed (doc 16
+> §3 step 1, which currently does **not** cover `cost_library_items`) and must be
+> measured before being asserted. Do not list either as "required for beta".
 
 ### EXPLAIN ANALYZE requirement
 
@@ -405,15 +467,20 @@ Every Library query MUST be verified with `EXPLAIN ANALYZE`:
 
 ```sql
 EXPLAIN ANALYZE
-SELECT * FROM components
+SELECT id, name, category, unit, unit_cost, pricing_date, lifecycle_state
+FROM public.cost_library_items
 WHERE workspace_id = '<uuid>'
 ORDER BY name;
 ```
 
-**Pass conditions:**
-- Index scan (not seq scan) for workspace-filtered queries
-- Execution time < 20ms for 500-component workspace
-- Execution time < 100ms for worst-case query
+**PROVISIONAL targets** (not verified SLAs — there is no Phase 0A perf seed for
+`cost_library_items` yet; final budgets land in
+[30](30-PERFORMANCE-BUDGETS-AND-PROVISIONAL-TARGETS.md) after the baseline):
+
+- Index scan (not seq scan) for workspace-filtered queries — expected to hit
+  `cost_library_items_workspace_id_idx`.
+- Execution time < 20ms for a 500-component workspace.
+- Execution time < 100ms for the worst-case query.
 
 ### Connection pooling
 
@@ -433,28 +500,47 @@ ORDER BY name;
 
 ## 6. Backfill plans (Phase-later)
 
-### If `very_stale` enum is added
+### If `very_stale` freshness tier is added
 
 ```sql
--- No backfill needed — `very_stale` is derived from `last_verified_at` threshold
--- Application layer computes: if last_verified_at < NOW() - INTERVAL '180 days' THEN 'very_stale'
+-- No backfill needed — `very_stale` is DERIVED from `pricing_date` (the real
+-- freshness column). No `last_verified_at` / `last_reviewed` column exists
+-- anywhere (confirmed in doc 19 §Data Layer; `rg -n 'last_reviewed|last_verified_at'
+-- supabase/migrations` returns 0 hits).
+-- Application layer computes (extends the three 90-day constants in lockstep,
+-- per doc 19 §Confidence and Freshness Models):
+--   if pricing_date IS NULL                       -> 'missing'
+--   if pricing_date >= NOW() - INTERVAL '90 days' -> 'fresh'
+--   if pricing_date >= NOW() - INTERVAL '180 days' -> 'stale'
+--   else                                           -> 'very_stale'
+-- Touch points: COMPONENT_FACET_STALE_DAYS (component-facet-filter.tsx:12),
+-- LIBRARY_OVERVIEW_STALE_PRICING_DAYS (component-library-repository.ts:827),
+-- the LibraryOverview.tsx:114 UI string, getComponentPricingFreshness
+-- (component-facet-filter.tsx:61), getStalenessTone/getStalenessLabel
+-- (component-library/helpers.ts:667/675).
 ```
 
-### If component versioning is added
+### If component versioning is expanded
+
+> A versioning table **already exists**: `cost_library_item_versions` (with
+> `cost_library_item_versions_workspace_item_idx` at
+> `20260523120957_component_library_item_versioning.sql:95`). Reconcile any
+> Phase-later expansion against that table rather than inventing a parallel
+> `component_versions` table that references a non-existent `components` table.
 
 ```sql
--- Create versioning table
-CREATE TABLE component_versions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  component_id uuid REFERENCES components(id),
-  version integer NOT NULL,
-  snapshot jsonb NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
+-- Expand the EXISTING cost_library_item_versions, do NOT create a new table.
+-- cost_library_items is the real parent table (not "components").
+-- (Illustrative; actual columns are defined in 20260523120957 — extend those.)
 
--- Backfill: create version 1 for all existing components
-INSERT INTO component_versions (component_id, version, snapshot)
-SELECT id, 1, to_jsonb(components) FROM components;
+-- Backfill example (version 1 for any item missing a version row):
+INSERT INTO public.cost_library_item_versions (workspace_id, cost_library_item_id, /* ...existing columns... */)
+SELECT workspace_id, id /* , ...defaults... */
+FROM public.cost_library_items item
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.cost_library_item_versions v
+  WHERE v.cost_library_item_id = item.id
+);
 ```
 
 ### If audit log is added
@@ -477,14 +563,21 @@ CREATE TABLE audit_log (
 
 ## 7. Per-table DB acceptance criteria
 
-| Table | RLS | Indexes | Query performance | Backup |
+> Policy/index counts are verified against §3 and §5. Query targets are
+> PROVISIONAL pending the Phase 0A perf seed (doc 16 §3 step 1; final in
+> [30](30-PERFORMANCE-BUDGETS-AND-PROVISIONAL-TARGETS.md)).
+
+| Table | RLS | Indexes (verified) | Query performance (provisional) | Backup |
 |---|---|---|---|---|
-| components | ✓ (4 policies) | ✓ (4 indexes) | < 20ms (500 components) | Daily physical backup |
-| folders | ✓ (4 policies) | ✓ (2 indexes) | < 10ms | Daily physical backup |
-| templates | ✓ (4 policies) | ✓ (1 index) | < 15ms | Daily physical backup |
-| workspaces | ✓ | ✓ (PK) | < 5ms | Daily physical backup |
-| workspace_members | ✓ | ✓ (2 indexes) | < 5ms | Daily physical backup |
-| snapshots | ✓ (4 policies) | ✓ (2 indexes) | < 10ms | Daily physical backup |
+| `cost_library_items` | ✓ (4 policies: select/insert/update/delete) | ✓ (`cost_library_items_workspace_id_idx`, `_library_folder_id_idx`, `_workspace_lifecycle_idx`, `_category_node_id_idx`, `_supplier_id_idx`, `_brand_id_idx`); **no** `pricing_date` / trigram index | < 20ms (500 items, post-seed) | Daily physical backup |
+| `library_folders` | ✓ (1 `FOR ALL` policy) | ✓ (`library_folders_workspace_parent_sort_idx`, `_workspace_source_category_key`) | < 10ms | Daily physical backup |
+| `estimate_templates` | ✓ (4 policies) | ✓ (`estimate_templates_workspace_sort_idx`) | < 15ms | Daily physical backup |
+| `estimate_template_nodes` | ✓ (4 policies, parent-scoped) | ✓ (`estimate_template_nodes_template_parent_sort_idx`) | < 10ms | Daily physical backup |
+| `estimate_template_row_items` | ✓ (4 policies, parent-scoped) | ✓ (`estimate_template_row_items_template_node_sort_idx` + linkage indexes) | < 10ms | Daily physical backup |
+| `cost_library_item_price_history` | ✓ (workspace-scoped) | ✓ (`cost_library_item_price_history_workspace_item_idx`) | < 10ms | Daily physical backup |
+| `workspaces` | ✓ | ✓ (PK) | < 5ms | Daily physical backup |
+| `workspace_members` | ✓ | ✓ (`workspace_members_user_id_idx`) | < 5ms | Daily physical backup |
+| `project_publications` | ✓ (3 policies: select/insert/update; no delete) | ✓ (`project_publications_token_hash_idx`, `_project_status_idx`, `_one_published_per_project_idx`) | < 10ms (token-hash lookup) | Daily physical backup |
 
 ### Acceptance template (for every actionable row)
 
@@ -494,8 +587,8 @@ DB: <table>.<operation> | <RLS policy> | <index> | <query target> | <backup>
 
 Examples:
 ```
-DB: components.select | components_select | idx_components_workspace_id | < 20ms | daily backup
-DB: components.insert | components_insert | n/a (write) | n/a | daily backup
+DB: cost_library_items.select | "cost library items can be read by members and managers" | cost_library_items_workspace_id_idx | < 20ms | daily backup
+DB: cost_library_items.insert | "cost library items can be inserted by managers" | n/a (write) | n/a | daily backup
 DB: n/a (no DB access in this row)
 ```
 
@@ -504,25 +597,29 @@ DB: n/a (no DB access in this row)
 ## 8. Verification
 
 ```bash
-# RLS enabled on all Library tables
-supabase db execute --sql "SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('components', 'folders', 'templates', 'snapshots') ORDER BY relname"
+# RLS enabled on all Library tables (real table names)
+supabase db execute --sql "SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('cost_library_items', 'library_folders', 'estimate_templates', 'estimate_template_nodes', 'estimate_template_row_items', 'cost_library_item_price_history', 'project_publications') ORDER BY relname"
 # Expected: relrowsecurity = true for all
 
 # No migrations in 0A-5 scope
 ls supabase/migrations/ | sort | tail -5
 # Expected: no migrations dated after the 0A-5 start date
 
-# All required indexes exist
-supabase db execute --sql "SELECT indexname FROM pg_indexes WHERE tablename IN ('components', 'folders', 'templates', 'snapshots')"
-# Expected: all indexes from §5 present
+# All existing indexes present (real names from §5)
+supabase db execute --sql "SELECT tablename, indexname FROM pg_indexes WHERE tablename IN ('cost_library_items', 'library_folders', 'estimate_templates', 'estimate_template_nodes', 'estimate_template_row_items', 'project_publications') ORDER BY tablename, indexname"
+# Expected: the index names enumerated in §5 (status=exists rows).
+# The pricing_date and name-trigram indexes are NOT expected today
+# (they are Phase-0A candidates tracked under EV-0A-IDX-*).
 
-# Query performance within budget
-supabase db execute --sql "EXPLAIN ANALYZE SELECT * FROM components WHERE workspace_id = '<test-uuid>'"
-# Expected: Index Scan, execution time < 20ms
+# Query performance within budget (PROVISIONAL — seed cost_library_items first,
+# doc 16 §3 step 1; final budgets in doc 30)
+supabase db execute --sql "EXPLAIN ANALYZE SELECT id, name, category, unit, unit_cost, pricing_date, lifecycle_state FROM public.cost_library_items WHERE workspace_id = '<test-uuid>' ORDER BY name"
+# Expected: Index Scan using cost_library_items_workspace_id_idx; provisional target < 20ms
 
 # Every actionable row has a DB: field
 rg "DB:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" --count
-# Expected: 26+ files with DB: rows (after Wave 2)
+# Expected: DB: rows propagate across actionable docs (Phase-later per doc 34 §6;
+# doc 34 currently measures DB: at 0 files pack-wide — propagation is a residual).
 ```
 
 ---
@@ -551,6 +648,15 @@ rg "DB:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" --c
 
 ## 10. Sign-off
 
+> **DRAFT — not yet signed off.** As of 2026-06-21 all reviewer verdicts are
+> `pending`. The policy/index/table bindings in §2–§8 have been reconciled to the
+> real migrations and the keystone (doc 19), but the EXPLAIN ANALYZE budgets
+> (§5/§7) remain PROVISIONAL pending the Phase 0A perf seed, and per-row `DB:`
+> propagation (doc 34) is a Phase-later residual. Treat this contract as
+> implementation-ready for the schema/RLS facts it asserts, and as provisional
+> for the perf targets. Sign-off is recorded below when the Phase 0A baseline
+> lands; until then this section is a DRAFT placeholder.
+
 | Reviewer | Verdict | Date | Notes |
 |---|---|---|---|
 | DB lead | pending | — | — |
@@ -562,7 +668,10 @@ rg "DB:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" --c
 The DB/RLS contract is complete when:
 1. Every table in §2 has RLS enabled (§3).
 2. No migrations in 0A-5 scope (§4).
-3. Every required index exists (§5).
-4. Every query passes EXPLAIN ANALYZE within budget (§5).
+3. Every "exists" index in §5 is present (§8 verification confirms); the
+   Phase-0A-candidate indexes (`pricing_date`, name-trigram) are decided and
+   tracked under `EV-0A-IDX-*`.
+4. Every query passes EXPLAIN ANALYZE within the **final** budget in
+   [30](30-PERFORMANCE-BUDGETS-AND-PROVISIONAL-TARGETS.md) (post Phase 0A seed).
 5. Every backfill plan is defined (§6).
 6. All five reviewers sign off above.

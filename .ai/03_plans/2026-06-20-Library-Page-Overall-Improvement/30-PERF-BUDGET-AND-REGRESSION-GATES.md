@@ -1,8 +1,18 @@
 # 30 — Performance Budget and Regression Gates
 
-> **Status:** Living document. Initialized 2026-06-21 by the Ultrawork audit
-> loop. Defines the performance budget, measurement schema, and regression
-> gates for the Library page. Replaces the provisional thresholds in
+> **Status:** PROVISIONAL — resolves
+> [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md)
+> C-015. Every numeric target in §3 is an **industry-default** threshold, not
+> a codebase-derived budget. Budgets become **final** only after the Phase 0A
+> baseline is measured and stored (§2); pre-0A the bundle/Lighthouse gates in
+> §4 are **advisory, not blocking**. The Phase 0A baseline prerequisite
+> (extending `scripts/seed-performance-test-data.ts` to cover
+> `cost_library_items` — currently it does not, per
+> [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+> §Performance Reality) is owned by the Perf lead (evidence: `EV-0A-PERF-BASELINE`).
+> Living document, initialized 2026-06-21 by the Ultrawork audit loop. Defines
+> the performance budget, measurement schema, and regression gates for the
+> Library page. Replaces the provisional thresholds in
 > [16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md](16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md)
 > with final budgets after Phase 0A baseline measurement.
 >
@@ -11,7 +21,8 @@
 >
 > **Companion docs:** [16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md](16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md),
 > [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md),
-> [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md).
+> [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md),
+> [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) (§11 — GPU one-blur-per-region budget).
 
 ---
 
@@ -64,7 +75,7 @@ Performance must be measured, budgeted, and gated — not assumed. This doc:
 
 ---
 
-## 3. Performance budget
+## 3. Performance budget (provisional — industry defaults; to be replaced by measured Phase 0A baseline per C-015)
 
 ### Core Web Vitals targets
 
@@ -120,29 +131,54 @@ Performance must be measured, budgeted, and gated — not assumed. This doc:
 | Heap usage (500 components) | < 50MB | > 100MB | Chrome DevTools heap snapshot |
 | Heap usage (dense mode) | < 80MB | > 150MB | Dense mode + virtualization |
 
+### GPU / blur budget (one blur per region — glass surfaces)
+
+Cross-ref [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §11 Performance guardrails. Glass `backdrop-filter` is GPU-expensive; the hard rule is **never stack a blur inside a blur** and cap simultaneous frosted regions.
+
+| Rule | Target | Threshold (no-go) | Binding |
+|---|---|---|---|
+| Simultaneous glass panels | ≤ workspace shell + one drawer/modal | any second nested `backdrop-filter` inside a `backdrop-filter` | [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §11 "GPU budget" |
+| Blur radius | ≤ 18px (`--glass-blur`) | > 18px | `globals.css:110` |
+| Phase-1 card glass | translucent **fills**, not extra blurs | frosted cards in Phase 1 (content-grade card glass is Phase 2/5, and only if the 0A-measured GPU budget allows) | [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §0, §4 |
+| Deferred arming | blur armed only after `<html data-glass="ready">` | blur in the first paint path | `LiquidGlassReady.tsx:25` |
+| No animated blur | blur value never transitions (except the one readiness ramp) | any blur `transition` outside the readiness ramp | [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §8 |
+
+Measure the GPU budget as part of the Phase 0A baseline (§2); the card-glass
+decision in Phase 2/5 is gated on the 0A measurement, not asserted here.
+
 ---
 
 ## 4. Regression gates
 
 ### Pre-merge gate (every PR touching Library)
 
-| Gate | Command | Pass condition |
-|---|---|---|
-| Bundle size | `bun run build && du -sh .next/static/chunks/` | Initial JS < 200KB |
-| Lighthouse (desktop) | `lighthouse http://localhost:3000/library --only-categories=performance` | LCP < 2.5s, INP < 200ms, CLS < 0.1 |
-| jsdom tests | `bun run test:dom -- --grep library` | All pass |
-| Playwright smoke | `bun run test:e2e -- --grep "library smoke"` | All pass |
-| Query analysis | `EXPLAIN ANALYZE` on library query | Seq scan < 100ms, index scan < 20ms |
+> **GATE-INACTIVE until Phase 0A baseline is stored (§2).** Pre-0A the
+> bundle-size and Lighthouse rows are **advisory, not blocking** — there is no
+> measured baseline to regress against, and
+> [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+> §Performance Reality confirms the perf seed does **not** cover
+> `cost_library_items` yet. 0A must first extend
+> `scripts/seed-performance-test-data.ts` before any threshold is enforced
+> (evidence: `EV-0A-PERF-BASELINE`).
+
+| Gate | Command | Pass condition | Phase |
+|---|---|---|---|
+| Bundle size | `bun run build && du -sh .next/static/chunks/` | Initial JS < 200KB (advisory pre-0A) | 0A-gated |
+| Lighthouse (desktop) | `lighthouse http://localhost:3000/workshop/library --only-categories=performance` (use `/workshop/library/components` and `/workshop/library/templates` where the grid/gallery rendering actually happens) | LCP < 2.5s, INP < 200ms, CLS < 0.1 (advisory pre-0A) | 0A-gated |
+| jsdom tests | `bun run test:dom` (all) or `vitest run tests/vitest/<file>` (one) — see keystone §Test Commands; `bun run test:dom -- --grep library` only if the suite supports a grep filter | All pass | all phases |
+| Playwright smoke | `bun run test:e2e` (confirm the real suite/grep naming against `tests/e2e` before relying on `--grep "library smoke"`) | All pass | all phases |
+| Query analysis | `EXPLAIN ANALYZE` on `loadCurrentWorkspaceComponentRowsLibrary` (the real browse query; see §5) | Seq scan < 100ms, index scan < 20ms | 0A-gated |
 
 ### Phase exit gate (per phase)
 
 | Gate | Command | Pass condition |
 |---|---|---|
 | All pre-merge gates | (above) | All pass |
-| Lighthouse (mobile) | `lighthouse --emulated-form-factor=mobile` | LCP < 4.0s, INP < 500ms |
-| Full Playwright suite | `bun run test:e2e -- --grep library` | All pass |
+| Lighthouse (mobile) | `lighthouse --emulated-form-factor=mobile http://localhost:3000/workshop/library` | LCP < 4.0s, INP < 500ms |
+| Full Playwright suite | `bun run test:e2e` | All pass |
 | Perf measurement | Phase 0A methodology (§2) | Within budget (§3) |
 | Memory measurement | Chrome DevTools heap snapshot | Within budget (§3) |
+| GPU / blur budget | Playwright visual (no nested `backdrop-filter`); see §3 GPU budget | ≤ workspace shell + one drawer/modal frosted | [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §11 |
 | Evidence ledger | All EV rows for phase green | [24](24-EXECUTION-EVIDENCE-LEDGER.md) |
 
 ### No-go conditions (block release)
@@ -233,7 +269,7 @@ When the Library page exceeds budget, choose the first applicable fallback:
 
 ```
 1. Response body > 100KB (500 components)?
-   → Yes: Reduce includeDetailGraph to false (doc 16 §127-165). Re-measure.
+   → Yes: Reduce the eager nested-detail graph in loadCurrentWorkspaceComponentRowsLibrary (src/lib/component-library/actions.ts) — per 19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md §Performance Reality it "eagerly loads the FULL nested detail graph (versions, price history, state history, attachments) per item". Add a shallow/includeDetailGraph option and make detail lazy + inspector-scoped. Re-measure.
    → Still > 100KB? Go to step 2.
 
 2. LCP > 2.5s after payload reduction?
@@ -245,7 +281,7 @@ When the Library page exceeds budget, choose the first applicable fallback:
    → Still > 2.5s? Go to step 4.
 
 4. Heap > 50MB (500 components)?
-   → Yes: Enable virtualization (library_virtualization_enabled=true). Re-measure.
+   → Yes: Enable virtualization via WORKSHOP_VIRTUALIZATION_FLAGS (src/lib/workshop/virtualization-flags.ts; per keystone §Infrastructure already present — reuse, do not add a parallel virtualizer). Re-measure.
    → Still > 50MB? Go to step 5.
 
 5. Heap > 80MB with virtualization?
@@ -253,7 +289,7 @@ When the Library page exceeds budget, choose the first applicable fallback:
    → Still > 80MB? Go to step 6.
 
 6. Search INP > 200ms (client-side)?
-   → Yes: Move search to server-side RPC. Re-measure.
+   → Yes: The components-tab search/filter is 100% client-side synchronous today (ComponentLibraryManager.tsx:876-882, per keystone §Performance Reality) — there is no async race. Only move search to a server-side RPC/FTS if the measured INP budget is exceeded; FTS/trigram does not exist yet (keystone §Infrastructure). Re-measure.
    → Still > 200ms? Go to step 7.
 
 7. All fallbacks exhausted?
@@ -283,17 +319,19 @@ Perf: n/a (static route, no runtime cost)
 ## 8. Verification
 
 ```bash
-# Phase 0A baseline exists
-ls .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/perf/0A/
-# Expected: baseline measurements for all surfaces
+# Phase 0A baseline exists (post-0A only)
+ls .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/perf/0A/ 2>&1
+# Expected pre-0A: "No such file or directory" — dir is created in Phase 0A (EV-0A-PERF-BASELINE; 0A must extend scripts/seed-performance-test-data.ts to cover cost_library_items first).
+# Expected post-0A: baseline measurements for all surfaces.
 
 # Every actionable row has a Perf: field
 rg "Perf:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" --count
-# Expected: 26+ files with Perf: rows (after Wave 2)
+# Expected: measured baseline is ~1 pack-wide today (only doc 16 has Perf-ish rows); the "26+ files" target is aspirational until Wave 2 adds the field per doc. Final measured baseline: see 34-ROW-LEVEL-COMPLETENESS-MATRIX.md §4 Perf column.
 
-# No provisional thresholds remain
+# Provisional thresholds remain until Phase 0A (C-015)
 rg "provisional" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md"
-# Expected: 0 matches (after Phase 0A baseline finalizes budgets)
+# Expected pre-0A: >0 matches (this doc's §3 heading + Status banner + §9 deliberately say "provisional until Phase 0A").
+# Expected post-0A: 0 matches (after the baseline finalizes budgets in EV-0A-PERF-BASELINE).
 ```
 
 ---

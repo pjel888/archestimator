@@ -80,9 +80,13 @@ evidence — rendered UI proof, actual passing tests, live RLS/schema confirmati
 and a measured perf baseline — which by definition cannot be produced from a
 planning pass; it is the OUTPUT of the implementation phase, not a planning defect.
 
+> **Caveat (12-dim completeness):** per-doc 12-dimension completeness under the relaxed (gate-rows-only) standard is tracked in `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3; the n/a-padded scope/constraint rows above are intentionally informational and not counted toward readiness. The honest per-doc and pack-average scores live in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1.
+
 ## Design Thesis
 
-The Library should feel like a professional source-trust command center, not a card gallery with scattered actions.
+The Library should feel like a professional source-trust command center in **liquid glass**, not a flat card gallery with scattered actions.
+
+**Glass as a first-class skin.** Both tabs and all modals/drawers adopt the liquid-glass surface system already shipping in the workshop sidebar, dashboard, and estimate sheet — frosted glass over the cool grey canvas with the warm bloom, hairline cool-neutral borders, and one `backdrop-filter` per region armed after first paint via `<html data-glass="ready">`. The mechanism is a per-region **surface-variant slot system** (`librarySurfaceClass(variant, slot)`) that mirrors the proven estimate-sheet slot model (`src/components/workshop/estimate-surface-variant.tsx` → `estimateSurfaceClass`). Slots: `workspaceWell` / `treeRail` / `inspectorDock` / `centerColumn` / `chromeToolbar` / `sheetHeader` / `catalogueCard` / `galleryRow` / `ctaTile` / `countStrip`. Glass overlays: drawers are single-blur glass panels; modals keep a crisp paper interior. Warm-glass CTAs reuse `.dashboard-glass-warm`; content-grade glass cards reuse `.workshop-project-card-glass` (Phase 2 component cards / Phase 5 template rows). Two postures: **Phase 1** ships the glass skeleton (well + rails + paper + chrome + liquid buttons + warm CTA + provider + grids); **Phase 2 / Phase 5** promote catalogue/gallery cards to content-grade glass. The detailed per-region slot map, grid system, overlay treatment, and token/radius contract are the authority for the material layer: `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md`. The current Library is 100 % paper/flat (`bg-white` everywhere, zero glass tokens) — see the scored finding in `01-CURRENT-STATE-AUDIT.md`.
 
 The stable mental model:
 
@@ -133,6 +137,7 @@ A future implementation should be considered successful when:
 - Selected component/template route params fail safely, preserve surrounding search/filter context, and do not leak cross-workspace object existence.
 - Large-list behavior has a rendering fallback (reusing `WORKSHOP_VIRTUALIZATION_FLAGS` from `src/lib/workshop/virtualization-flags.ts`) once a MEASURED beta-scale threshold is reached. Note per `16`/`19`: Components-tab search is 100% client-side synchronous (`ComponentLibraryManager.tsx:876-882`), so no out-of-order/stale-response race exists today and no Postgres FTS/trigram index exists yet — server-search is FUTURE-if-budget-exceeded; the live perf risk is the eager full nested detail graph in the browse fetch.
 - Network, stale target, and concurrent edit failures preserve safe user context and never silently mutate a different estimate, folder, component, or template.
+- Glass surfaces arm blur only after first paint + idle via the `<html data-glass="ready">` path (one `backdrop-filter` per region, never stacked); glass slots degrade to `--glass-bg-fallback` when readiness is unset; jsdom never asserts blur, only Playwright does (per `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` §8/§11 and `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md`).
 - Rollback/fix-forward plans exist for each phase before implementation begins.
 
 ## Beta Outcome Metrics
@@ -312,7 +317,7 @@ trust and route/overlay consistency.
 
 Exit criteria: the dense mode reuses the existing virtualization flags;
 browser-only claims (sticky headers, portals, scroll containment, mobile,
-keyboard) have matching screenshot/manual proof. Rough size: L.
+keyboard) have matching screenshot/manual proof. **Glass + density collision:** glass card geometry holds at dense row heights (no blur-induced jank at >500 rows; measured per `30-PERF-BUDGET-AND-REGRESSION-GATES.md`); per-region glass slots degrade to `--glass-bg-fallback` (`#fbfbfc`) when `<html data-glass="ready">` is unset; jsdom never asserts blur, only Playwright does (per `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md`). See `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` §4.2/§11 for the card-glass + virtualization guardrails. Rough size: L.
 
 ## Deletion Criteria
 

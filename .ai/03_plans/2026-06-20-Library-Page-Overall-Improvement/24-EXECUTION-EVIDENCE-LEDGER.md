@@ -22,7 +22,7 @@ This ledger cross-references and does not restate:
 
 | Doc | This ledger pulls from it |
 |-----|---------------------------|
-| `06-QA-AND-VALIDATION-PLAN.md` | the `ADV-*` matrix, per-test run commands, the `bun test` vs `vitest run` rule, browser-proof criteria |
+| `06-QA-AND-VALIDATION-PLAN.md` | the `ADV-*` matrix, per-test run commands, the canonical command `bun run test:dom` (NEVER `bun test` for vitest — C-005), browser-proof criteria |
 | `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md` | the Phase 0A seed+measure task, the no-go thresholds, the browse-payload lever |
 | `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md` | the per-phase release gates and the migration-gate (DB rollback) section |
 | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` | the canonical `ADV-*` IDs, severities, and the completion / no-go gates |
@@ -64,6 +64,66 @@ exist.
   doc 17 "Database / RLS Rollback"). Their evidence rows are pre-registered in
   the dedicated table at the end so the pack is complete, with the explicit gate
   that they must NOT be smuggled into a UI-polish PR.
+- **Telemetry sink (resolves C-009):** for closed beta the sufficient telemetry
+  sink is `console.warn` (the events named in doc 20 are emitted via
+  `console.warn` until a production telemetry sink is wired). A production sink
+  is Phase-later; do NOT block a phase on a prod sink existing.
+- **Perf budgets are PROVISIONAL (resolves C-015):** every perf number in this
+  ledger (Phase 0A baseline, ADV-DENSE-500, the 5,000-row keystroke budget) is
+  PROVISIONAL until the Phase 0A baseline measurement note lands. Final
+  committed thresholds live in `30-PERF-BUDGET-AND-REGRESSION-GATES.md`; this
+  ledger records the measurement, doc 30 owns the threshold.
+
+## Artifact storage, naming, and measurement rules
+
+These rules apply to every evidence row below. They are stated once here so each
+row does not repeat them.
+
+**Artifact storage path:** all execution artifacts live under
+`.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/`:
+
+| Artifact | Path convention |
+| --- | --- |
+| Screenshot (visual proof) | `_evidence/<phase>/<scenario>/<browser>-<viewport>-<timestamp>.png` (e.g. `_evidence/phase-1/library-route-state/chrome-mac1280-20260621T1453.png`) |
+| Screenshot metadata | a companion `<same-name>.json` per doc 29 §4 (browser, viewport, URL, flag state, capture harness) |
+| Perf note | `_evidence/<phase>/perf-baseline-<date>.md` (e.g. `_evidence/phase-0a/perf-baseline-20260621.md`) |
+| Playwright trace | `_evidence/<phase>/<scenario>/trace-<timestamp>.zip` |
+
+**Naming convention:** `library-phase<ph>-<surface>-<viewport>.png` is an
+acceptable shorthand inside the path above; viewports come from the doc 29
+matrix.
+
+**Browser matrix for visual proof (binds to doc 29):**
+
+| Surface class | Required browsers / viewports |
+| --- | --- |
+| Desktop route/navigation, z-index, focus trap | Chrome macOS 1280, Safari macOS 1280 |
+| Mobile responsive / inspector-dock overlap | Safari iOS iPhone 15, Chrome Android Pixel 8 (or iPhone SE for chip-wrap) |
+| Dense-mode render + scroll | Chrome macOS 1280, Safari macOS 1280 |
+| Drag/drop folder reorder | Chrome macOS 1280 |
+
+**Timing-variance / confidence-interval rules (perf rows):** each perf metric
+is the **median of >=3 runs** with the **p95 recorded**; any single-run
+variance >25% is flagged for re-measurement before the number is committed to
+doc 30. Record the run count, median, p95, and any flagged variance in the perf
+note.
+
+**Named human owner per row:** every evidence row below carries an Owner role
+from `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` (added as a column to each phase
+table). The role is accountable for producing the artifact; a named individual
+is assigned at phase kickoff (recorded in doc 27).
+
+**Failure-remediation loop:** if an evidence row's command FAILS or is
+SKIP-WITH-RISK, the owning role MUST, before the phase can be called done:
+
+1. record the failure (command + output + date) in this ledger under the row,
+2. file the failure as a doc 18 `ADV-*` no-go or skip-with-risk with a root-cause
+   hypothesis,
+3. either (a) fix and re-run within the phase, or (b) escalate to the owner per
+   doc 27 with a re-plan proposal (the cache-bleed stop condition in doc 17 is
+   the canonical example of a re-plan trigger),
+4. the phase done-gate does NOT close until the row is PASS or the no-go is
+   accepted by the release lead with a documented residual.
 
 ## Phase 0A — Contract Lock (test/contract scaffolding + seed baseline)
 
@@ -71,12 +131,19 @@ No flag (test/contract only). These scaffold the invariants every later phase
 leans on; the four P0 security/cache suites and the perf baseline are authored
 here even though the behavior they guard ships later.
 
+**Owner assignment (per-row accountability, doc 27):** the `ADV-XWS-*` and
+`ADV-VIEWER-MUTATION` rows -> **Security lead**; the `ADV-WS-SWITCH-CACHE` row
+-> **Backend lead**; the `ADV-PUBLIC-REDACTION` row -> **Security lead**; the
+perf seed + perf baseline rows -> **Perf lead**; the route-state scaffold row
+-> **Frontend lead**. A named individual per role is assigned at phase kickoff
+and recorded in doc 27.
+
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
 | Cross-workspace `?component=<id>` IDOR test (`ADV-XWS-COMPONENT-PARAM`) | `vitest run tests/vitest/library-route-state-authz.test.tsx` (net-new) | A foreign-workspace `cost_library_items.id` in `?component=<id>` yields a permission-safe not-found/denied state; no object detail (name/cost/source) rendered or returned. | doc 18 ADV-XWS-COMPONENT-PARAM; doc 06 matrix | 0A contract lock; gates 0B/1 deep-link work |
 | Estimate insert-target authz test (`ADV-XWS-ESTIMATE-ACTION`) | `vitest run tests/vitest/estimate-insert-target-authz.test.tsx` (net-new) | `resolveEstimateTemplateInsertTarget` called with a stale/foreign estimate ID is rejected via `rpc("can_edit_estimate",{target_estimate_id})`; no mutation occurs and no target node id is returned. | doc 18 ADV-XWS-ESTIMATE-ACTION; doc 17 "Authz/RLS" | 0A; gates Phase 4 insert |
-| Workspace-switch cache-bleed test (`ADV-WS-SWITCH-CACHE`) | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) | After a workspace switch with the inspector dock open, the cache entry `["workspace-component-library"]` clears/refetches; assert the test reads the SAME inline-literal entry that `TemplateEditorClient.tsx:160` (`useQuery({ queryKey: ["workspace-component-library"] })`) subscribes to — no prior-workspace detail is observable. | doc 06 / doc 18 ADV-WS-SWITCH-CACHE; keystone "Query Keys" | 0A; gates the doc 13 key-scoping change |
-| Public/share snapshot redaction test (`ADV-PUBLIC-REDACTION`) | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | The snapshot builder field-selection (`src/lib/publication/actions.ts`, which writes `snapshot_json` at `:566` and `:636`) excludes `pricing_source`, free-text `confidence`, and price history from `project_publications.snapshot_json`; assertion is on the serialized snapshot object, NOT a live library endpoint. | doc 18 ADV-PUBLIC-REDACTION; doc 14 | 0A; gates any trust-metadata work that could enter the snapshot |
+| Workspace-switch cache-bleed test (`ADV-WS-SWITCH-CACHE`) | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) | After a workspace switch with the inspector dock open, the scoped cache entry (the migrated `workspaceComponentLibraryQueryKey(workspaceId)`; until migration, the un-scoped `["workspace-component-library"]`) clears/refetches; the assertion covers ALL FIVE call sites — the reader `TemplateEditorClient.tsx:160` (`useQuery({ queryKey: ["workspace-component-library"] })`), the template-editor self-invalidate at `TemplateEditorClient.tsx:166` (`void queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] })`), and the writers `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241` — so no prior-workspace detail is observable. A test that mocks only the four commonly-cited sites misses the `:166` self-invalidate. | doc 06 / doc 18 ADV-WS-SWITCH-CACHE; keystone "Query Keys" | 0A; gates the doc 13 key-scoping change |
+| Public/share snapshot redaction test (`ADV-PUBLIC-REDACTION`) | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | The snapshot builder field-selection (`src/lib/publication/actions.ts`, which writes `snapshot_json` at `:587` and `:664`; a third write at `:727` is the RPC param `p_snapshot_json`) excludes `pricing_source`, free-text `confidence`, and price history from `project_publications.snapshot_json`; assertion is on the serialized snapshot object, NOT a live library endpoint. | doc 18 ADV-PUBLIC-REDACTION; doc 14 | 0A; gates any trust-metadata work that could enter the snapshot |
 | Viewer-role mutation denial test (`ADV-VIEWER-MUTATION`) | `vitest run tests/vitest/library-viewer-authz.test.tsx` (net-new) | A `viewer`-role actor sees Quick Add / mutation controls hidden or disabled in the UI AND the server denies the action via `rpc("is_workspace_editor",{target_workspace_id})` (role in owner/admin/member; only `viewer` read-only). | doc 18 ADV-VIEWER-MUTATION; doc 17 "Authz/RLS" | 0A; gates Phase 3 Quick Add |
 | Perf seed extension for `cost_library_items` | Extend `scripts/seed-performance-test-data.ts` to seed N `cost_library_items` (folder + supplier/brand spread). Confirm the gap first: `rg -n "cost_library_items" scripts/seed-performance-test-data.ts` returns ZERO before the edit. | The script seeds at the four tiers (100 / 500 / 5,000 / 10,000) against Supabase project `ebxxqidacheyapmmzavr`; a post-edit `rg -n "cost_library_items" scripts/seed-performance-test-data.ts` now returns non-zero. | doc 16 "Phase 0A Seed + Measure"; doc 18 Evidence Requirements (perf) | 0A; PREREQUISITE for every budget number in doc 16 and the `ADV-DENSE-500` gate |
 | Perf baseline measurement note | `bun run test:e2e` against the seeded workspace for render/interaction timing; one-off measurement run for browse payload size. Record card-grid/dense initial render ms per tier (React Profiler commit duration or marked `performance.measure`), keystroke re-filter ms at 500 & 5,000 rows, and `loadCurrentWorkspaceComponentRowsLibrary` transfer KB + parse ms for `includeDetailGraph` true vs false. | A written Phase 0A measurement note records all three metrics at the four tiers; no 100/500/5,000/10,000 budget is claimed elsewhere without this note as its reference. | doc 16 "Phase 0A Seed + Measure" + "Performance No-Go Conditions" | 0A; converts doc 16's PROVISIONAL budgets into committed thresholds; gates Phase 5 |
@@ -86,6 +153,11 @@ here even though the behavior they guard ships later.
 
 Flags: `library_folder_dialogs`, `library_component_deep_link` (doc 21). The
 native-prompt grep reaching zero on its 0B targets is a hard completion gate.
+
+**Owner assignment (per-row accountability, doc 27):** all Phase 0B rows ->
+**Frontend lead** (native-prompt removal, folder-actions behavior, Add-modal
+a11y, bulk-archive copy, deep-link e2e). The browse-payload-reduction proof row
+is shared Frontend lead + Perf lead.
 
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
@@ -102,6 +174,10 @@ native-prompt grep reaching zero on its 0B targets is a hard completion gate.
 
 Flag: `library_component_deep_link` (doc 21).
 
+**Owner assignment (per-row accountability, doc 27):** all Phase 1 rows ->
+**Frontend lead** (overview selection/deep-link, applied-filter chips,
+route-navigation e2e).
+
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
 | Overview selection / deep-link test (`ADV-DELETED-RESULT`) | `vitest run tests/vitest/library-overview-navigation.test.tsx` (net-new) | Component search result click AND Enter route to Components with `?component=<id>` (owned by `LibraryPageClient.tsx`); recent-component card uses the same route-state; template results still open `/workshop/library/templates/[templateId]`; a deleted/foreign result yields a recoverable not-found; selection + result count announced once (ARIA); active tab/panel semantics correct. | doc 06 "Library overview selection"; doc 18 ADV-DELETED-RESULT | Phase 1; deep-link release gate |
@@ -112,15 +188,23 @@ Flag: `library_component_deep_link` (doc 21).
 
 Flag: `library_trust_chips` (doc 21).
 
+**Owner assignment (per-row accountability, doc 27):** trust chip rendering +
+90-day guard -> **Frontend lead**; the snapshot-redaction-holds row ->
+**Security lead**.
+
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
 | Trust chip rendering test | `vitest run tests/vitest/library-overview.test.tsx` (extend) + the touched chip-surface suite | Trust chips render over REAL columns/helpers: pricing freshness via `getStalenessTone`/`getStalenessLabel` and `getComponentPricingFreshness`; free-text `confidence` (no fixed enum assumed); `updated_at` for "last touched" (NOT a non-existent `last_reviewed`); source via `pricing_source` with app-side URL validation. | doc 18 Completion Gates (trust chips); keystone "Confidence and Freshness Models" | Phase 2; trust-chip release gate |
-| 90-day single-source-of-truth guard | `rg -n "COMPONENT_FACET_STALE_DAYS = 90" src/components/workshop/library/component-facet-filter.tsx` ; `rg -n "LIBRARY_OVERVIEW_STALE_PRICING_DAYS = 90" src/lib/repositories/component-library-repository.ts` ; `rg -n "older than 90 days" src/components/workshop/library/overview/LibraryOverview.tsx` | If any freshness threshold or "very stale" tier changes, all THREE locations (`component-facet-filter.tsx:12`, `component-library-repository.ts:827`, `LibraryOverview.tsx:114`) change in lockstep — no fourth source of truth introduced. | keystone "Confidence and Freshness Models" | Phase 2; guards against threshold drift |
+| 90-day single-source-of-truth guard | `rg -n "COMPONENT_FACET_STALE_DAYS = 90" src/components/workshop/library/component-facet-filter.tsx` ; `rg -n "LIBRARY_OVERVIEW_STALE_PRICING_DAYS = 90" src/lib/repositories/component-library-repository.ts` ; `rg -n "older than 90 days" src/components/workshop/library/overview/LibraryOverview.tsx` | If any freshness threshold or "very stale" tier changes, all THREE locations (`component-facet-filter.tsx:12`, `component-library-repository.ts:827`, `LibraryOverview.tsx:114`) change in lockstep — no fourth source of truth introduced. Additionally (Phase 2 "very stale" tier): `getComponentPricingFreshness` (`component-facet-filter.tsx:61`), `getStalenessTone`, and `getStalenessLabel` (`component-library/helpers.ts:667/675`) all agree on tier boundaries for any `{fresh,stale,very stale,missing}` partition; a unit test asserts helper-output consistency, not just a grep on the three constants. | keystone "Confidence and Freshness Models" | Phase 2; guards against threshold drift |
 | Snapshot redaction holds with trust metadata live | Re-run `vitest run tests/vitest/share-snapshot-redaction.test.tsx` after trust-chip work | After trust chips exist, `pricing_source` / `confidence` / price history still never enter `project_publications.snapshot_json`. | doc 18 ADV-PUBLIC-REDACTION; doc 14 | Phase 2; re-asserts the 0A redaction gate against new surfaces |
 
 ## Phase 3 — Add/Edit Component Flow Split (Quick Add)
 
 Flag: `library_quick_add` (doc 21).
+
+**Owner assignment (per-row accountability, doc 27):** Quick Add validation +
+Add/Edit normalization -> **Frontend lead**; the `ADV-VIEWER-MUTATION` row ->
+**Security lead**.
 
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
@@ -132,6 +216,10 @@ Flag: `library_quick_add` (doc 21).
 
 No new flag (reuses `library_trust_chips` for the summary layer) (doc 21).
 
+**Owner assignment (per-row accountability, doc 27):** insert-picker target +
+stale/foreign target rejection + dependency-health -> **Backend lead**;
+creatable-combobox move -> **Frontend lead**.
+
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
 | Insert-picker target test (`ADV-XWS-ESTIMATE-TARGET`) | `vitest run tests/vitest/library-template-insert-picker.test.tsx` (net-new) | `InsertIntoEstimatePicker.tsx` (a `Modal`) over `listEstimateInsertTargets` + `resolveEstimateTemplateInsertTarget`: no-projects empty state; no-estimates empty state; no-resolvable-target error; submit disabled until a valid target; target disclosure visible before submit; submit failure stays inline and does not close. Resolver (`resolveEstimateTemplateInsertTarget`) returns `targetParentNodeId`; the actual insert is `insertEstimateTemplateIntoEstimate` — do not conflate. | doc 06 "Insert template picker"; doc 18 ADV-XWS-ESTIMATE-TARGET | Phase 4; insert release gate |
@@ -142,7 +230,14 @@ No new flag (reuses `library_trust_chips` for the summary layer) (doc 21).
 ## Phase 5 — Dense Maintenance Mode & Browser-Proven Polish (LAST)
 
 Flag: `library_dense_mode` (doc 21). Every budget number here references the
-Phase 0A measurement note; none may be claimed without it.
+Phase 0A measurement note; none may be claimed without it. **All Phase 5 perf
+budgets are PROVISIONAL (C-015) until the Phase 0A baseline lands; final
+thresholds in doc 30.**
+
+**Owner assignment (per-row accountability, doc 27):** the 500-row and 5,000-row
+budget rows -> **Perf lead**; mobile inspector-dock geometry, sticky/scroll +
+portal/z-index, cross-portal focus-trap -> **QA lead**; the `ADV-OUT-OF-ORDER`
+N/A row -> **Perf lead** (re-opens only if a server/FTS search ships).
 
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
@@ -155,14 +250,19 @@ Phase 0A measurement note; none may be claimed without it.
 
 ## Cross-cutting evidence (any phase that touches the surface)
 
+**Owner assignment (per-row accountability, doc 27):** cache-invalidation exact-key
+proof -> **Backend lead**; full validation gate + whitespace/diff hygiene +
+evidence-status crosswalk -> **Release lead**; native-prompt full-surface guard
+-> **Frontend lead**; rendered-UI screenshots -> **QA lead**.
+
 | Evidence item | Exact command or proof method | Pass criterion (concrete) | Owning doc/section | Phase gate it unblocks |
 | --- | --- | --- | --- | --- |
-| Cache-invalidation exact-key proof (`ADV-WS-SWITCH-CACHE`) | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) + existing `tests/vitest/library-components-cache.test.tsx` / `library-templates-cache.test.tsx` | The un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (`["workspace-component-library"]`) is scoped by `workspaceId` (mirroring the rows-library key); the scoping change migrates ALL call sites — the reader at `TemplateEditorClient.tsx:160` and the writers at `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241`; each mutation names the EXACT key(s) it invalidates (no "invalidate the library cache" abstractly). | doc 18 Completion Gates (cache); keystone "Query Keys" | Any cache-touching phase; P0 no-go if bleed reproducible |
+| Cache-invalidation exact-key proof (`ADV-WS-SWITCH-CACHE`) | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) + existing `tests/vitest/library-components-cache.test.tsx` / `library-templates-cache.test.tsx` | The un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (`["workspace-component-library"]`) is scoped by `workspaceId` via the factory `workspaceComponentLibraryQueryKey(workspaceId)` (mirroring the rows-library key; resolves C-007); the scoping change migrates ALL FIVE call sites — the reader at `TemplateEditorClient.tsx:160`, the template-editor self-invalidate at `TemplateEditorClient.tsx:166`, and the writers at `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241`; each mutation names the EXACT key(s) it invalidates (no "invalidate the library cache" abstractly). A test that mocks only the four commonly-cited sites misses the `:166` self-invalidate. | doc 18 Completion Gates (cache); keystone "Query Keys" | Any cache-touching phase; P0 no-go if bleed reproducible |
 | Full validation gate | `bun run validate` | `type-check && lint && lint:design-system && lint:design && test && test:dom` all pass before any phase is called done. | doc 17 Release Gates; doc 18 Completion Gates | Every phase done-gate |
 | Native-prompt full-surface guard | `rg -n "window\.(prompt\|confirm)" src/components/workshop/component-library-manager src/components/workshop/library src/components/workshop/component-library/index.tsx` | 0B targets reach ZERO (`ComponentLibraryManager.tsx:1493/1515/1534`, `AddComponentModal.tsx:963`); the Phase-later estimate-page panel (`component-library/index.tsx:939/1428`) is a TRACKED residual, not a silent miss; matches in `TemplateEditorClient.tsx` / `TemplatesBrowseManager.tsx` are comments — do not re-flag. | doc 06 Static Guards; doc 18 Completion Gates | 0B done-gate; tracks Phase-later residual |
 | Whitespace/diff hygiene | `git diff --check` | No trailing whitespace or conflict markers in the diff. | doc 06 Static Guards | Every phase |
 | Evidence-status crosswalk | Inspect doc 18 matrix + doc 06 matrix | Every `ADV-*` row carries a pass / skip-with-risk / no-go status for implemented scenarios; doc 06 and doc 18 use IDENTICAL IDs (no drift). | doc 18 Completion Gates | Release gate |
-| Rendered-UI screenshots | `bun run test:e2e` artifact capture, or manual browser capture per the screenshot harness, for each shipped phase's visible surface | A screenshot exists for each phase's rendered surface (deep-link selection, applied-filter chips, trust chips, Quick Add, insert picker, dense toggle). These are EXECUTION OUTPUTS — their absence is not a planning gap; the final report attaches them or lists them as not-yet-captured with the owning command. | doc 06 Browser-Proof Criteria; doc 18 Evidence Requirements | Release readiness presentation; never blocks the PLAN's readiness |
+| Rendered-UI screenshots | `bun run test:e2e` artifact capture, or manual browser capture per the screenshot harness, for each shipped phase's visible surface | A screenshot exists for each phase's rendered surface (deep-link selection, applied-filter chips, trust chips, Quick Add, insert picker, dense toggle). **Naming/storage:** `library-phase<ph>-<surface>-<viewport>.png` under `_evidence/<phase>/<scenario>/` per the "Artifact storage and naming" rules above; a companion `.json` metadata file per doc 29 §4; browser/viewport matrix per doc 29 (see the matrix in "Artifact storage and naming" above). These are EXECUTION OUTPUTS — their absence is not a planning gap; the final report attaches them or lists them as not-yet-captured with the owning command. | doc 06 Browser-Proof Criteria; doc 29; doc 18 Evidence Requirements | Release readiness presentation; never blocks the PLAN's readiness |
 
 ## Migration-gated evidence (DEFERRED — out of scope for Phases 0A-5)
 
