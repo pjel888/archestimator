@@ -148,12 +148,14 @@ function LibraryItemRowContent({
   addDisabled = false,
   addLabel,
   showAddAction,
+  showThumbnail,
   onAdd,
 }: {
   item: EstimateRowItem;
   addDisabled?: boolean;
   addLabel?: string;
   showAddAction: boolean;
+  showThumbnail: boolean;
   onAdd: () => void;
 }) {
   const name = getComponentName(item);
@@ -166,6 +168,7 @@ function LibraryItemRowContent({
 
   return (
     <span className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5">
+      {showThumbnail ? <LibraryItemThumbnail item={item} /> : null}
       <span className="flex min-w-0 flex-1 flex-col">
         <span data-component-library-tree-label className="truncate text-[10px] font-medium leading-4 text-ink">
           {name}
@@ -197,6 +200,38 @@ function LibraryItemRowContent({
           </Button>
         </span>
       ) : null}
+    </span>
+  );
+}
+
+function readLibraryItemThumbnailUrl(item: EstimateRowItem) {
+  const url = typeof item.imageUrl === "string" ? item.imageUrl.trim() : "";
+  if (!url) return "";
+  if (url.startsWith("/") || url.startsWith("https://") || url.startsWith("http://")) return url;
+  return "";
+}
+
+function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
+  const [failed, setFailed] = useState(false);
+  const thumbnailUrl = failed ? "" : readLibraryItemThumbnailUrl(item);
+  return (
+    <span
+      data-component-library-row-thumbnail
+      className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-xs border border-hairline bg-surface-muted"
+      aria-hidden="true"
+    >
+      {thumbnailUrl ? (
+        <img
+          src={thumbnailUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Package size={12} weight="regular" aria-hidden="true" className="text-tertiary" />
+      )}
     </span>
   );
 }
@@ -263,6 +298,7 @@ export function LibraryTree({
   addLabel,
   showItemAddAction,
   onItemDragStart,
+  showThumbnails = false,
   selectable = false,
   checkedIds,
   onCheckToggle,
@@ -397,11 +433,12 @@ export function LibraryTree({
           addDisabled={addDisabled}
           addLabel={addLabel}
           showAddAction={canShowAddAction}
+          showThumbnail={showThumbnails}
           onAdd={() => onItemAdd?.(item)}
         />
       );
     },
-    [addDisabled, addLabel, canShowAddAction, onItemAdd],
+    [addDisabled, addLabel, canShowAddAction, onItemAdd, showThumbnails],
   );
 
   if (nodes.length === 0) {

@@ -1,5 +1,6 @@
 import type { Preview } from "@storybook/nextjs-vite";
 import "../src/app/globals.css";
+import "../src/app/share/print.css";
 import { withArchEstimatorTheme } from "../src/stories/decorators/withArchEstimatorTheme";
 import { withMockAuth } from "../src/stories/decorators/withMockAuth";
 import { withMockRouter } from "../src/stories/decorators/withMockRouter";

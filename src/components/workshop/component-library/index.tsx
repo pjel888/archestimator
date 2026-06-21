@@ -620,7 +620,7 @@ type EstimateRightSidebarProps = {
   initialLibraryItems?: EstimateRowItem[];
   templates?: EstimateTemplate[];
   projectSources?: ReusableEstimateSource[];
-  onInsertProjectSource?: (source: ProjectSourceInsertTarget) => boolean | void;
+  onInsertProjectSource?: (source: ProjectSourceInsertTarget) => boolean | Promise<boolean> | void | Promise<void>;
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
@@ -1480,14 +1480,15 @@ function EstimateRightSidebarBase({
   );
 
   const addProjectSource = useCallback(
-    (source: ProjectSourceInsertTarget) => {
+    async (source: ProjectSourceInsertTarget) => {
       const sourceName = getProjectReusableSourceDisplayName(source);
       if (!canInsertTemplate) {
         setLastActionMessage("Select an Area before adding project sources.");
         return false;
       }
 
-      const didInsert = onInsertProjectSource ? onInsertProjectSource(source) !== false : false;
+      setLastActionMessage(`Adding ${sourceName}${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}...`);
+      const didInsert = onInsertProjectSource ? (await onInsertProjectSource(source)) !== false : false;
       if (!didInsert) {
         setLastActionMessage(`${sourceName} was not inserted. Select an Area and try again.`);
         return false;
@@ -1505,7 +1506,7 @@ function EstimateRightSidebarBase({
       { ...item, id: `custom-copy-${Date.now()}`, material: `${getComponentName(item)} copy`, name: `${getComponentName(item)} copy`, isCustom: true, createdAt: now, updatedAt: now },
       ...items,
     ]);
-    setLastActionMessage(`${getComponentName(item)} duplicated.`);
+    setLastActionMessage(`${getComponentName(item)} duplicated in this sidebar view.`);
   }, []);
 
   const toggleFavorite = useCallback(
@@ -1711,7 +1712,7 @@ function EstimateRightSidebarBase({
       resetComponentForm();
       setPreviewItemId(nextComponent.id);
       setPreviewProjectSourceKey(null);
-      setLastActionMessage(`${getComponentName(nextComponent)} ${editItemId ? "updated" : "created"}.`);
+      setLastActionMessage(`${getComponentName(nextComponent)} ${editItemId ? "updated" : "created"} in this sidebar view.`);
       if (addNow) addComponent(nextComponent);
       onLibraryDataChanged?.();
     },
@@ -1722,7 +1723,7 @@ function EstimateRightSidebarBase({
     setLibraryItems((items) => items.filter((entry) => entry.id !== item.id));
     setDeleteCandidate(null);
     setDeletedItems([item]);
-    setLastActionMessage(`${getComponentName(item)} deleted. Undo is available.`);
+    setLastActionMessage(`${getComponentName(item)} removed from this sidebar view. Undo is available.`);
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
     onLibraryDataChanged?.();
@@ -1731,7 +1732,7 @@ function EstimateRightSidebarBase({
   const undoDelete = useCallback(() => {
     if (!deletedItems.length) return;
     setLibraryItems((items) => [...deletedItems, ...items]);
-    setLastActionMessage(deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} restored.` : `${deletedItems.length} components restored.`);
+    setLastActionMessage(deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} restored to this sidebar view.` : `${deletedItems.length} components restored to this sidebar view.`);
     setDeletedItems([]);
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
     onLibraryDataChanged?.();
@@ -1791,7 +1792,7 @@ function EstimateRightSidebarBase({
     if (insertLibraryItems(bulkSelectedItems)) clearBulkSelection();
   }, [bulkSelectedItems, clearBulkSelection, insertLibraryItems]);
 
-  const handleBulkAddSelectedTemplates = useCallback(() => {
+  const handleBulkAddSelectedTemplates = useCallback(async () => {
     const { templates: checkedTemplates, templateNodes, items } = bulkTemplateUnits;
     let insertedCount = 0;
     if (canInsertTemplate) {
@@ -1801,9 +1802,9 @@ function EstimateRightSidebarBase({
       templateNodes.forEach(({ template, node }) => {
         if (addTemplateNode(template, node)) insertedCount += 1;
       });
-      bulkProjectSourceTargets.forEach((source) => {
-        if (addProjectSource(source)) insertedCount += 1;
-      });
+      for (const source of bulkProjectSourceTargets) {
+        if (await addProjectSource(source)) insertedCount += 1;
+      }
     }
     const componentItems = [...items, ...bulkProjectSourceRowItems];
     if (componentItems.length > 0 && insertLibraryItems(componentItems)) insertedCount += componentItems.length;
@@ -1834,7 +1835,7 @@ function EstimateRightSidebarBase({
     clearBulkSelection();
     setPreviewItemId((current) => (current && deletedItemIds.has(current) ? null : current));
     setLastActionMessage(
-      `${bulkSelectedItems.length} ${bulkSelectedItems.length === 1 ? "component" : "components"} deleted. Undo is available.`,
+      `${bulkSelectedItems.length} ${bulkSelectedItems.length === 1 ? "component" : "components"} removed from this sidebar view. Undo is available.`,
     );
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
@@ -2209,6 +2210,7 @@ function EstimateRightSidebarBase({
                 addDisabled={!canInsert}
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
+                showThumbnails
                 selectable
                 checkedIds={bulkSelectedIds}
                 onCheckToggle={handleBulkCheckToggle}
@@ -2390,7 +2392,7 @@ function EstimateRightSidebarBase({
         {deletedItems.length ? (
           <div className="absolute right-2 bottom-2 z-30 max-w-72 border border-hairline bg-white p-2 shadow-xl">
             <p className="text-[9px] font-medium text-ink">
-              {deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} deleted.` : `${deletedItems.length} components deleted.`}
+              {deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} removed from this sidebar view.` : `${deletedItems.length} components removed from this sidebar view.`}
             </p>
             <Button type="button" variant="secondary" size="sm" className="mt-1 h-6 min-h-6 text-[9px]" onClick={undoDelete}>
               Undo

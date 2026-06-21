@@ -37,6 +37,8 @@ export type LibraryTreeProps = {
   addDisabled?: boolean;
   addLabel?: string;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;
+  /** Shows fixed-size decorative thumbnails for component leaf rows only. */
+  showThumbnails?: boolean;
   showItemAddAction?: boolean;
   /** Enables bulk-select checkboxes; cascade rules live with the consumer. */
   selectable?: boolean;
