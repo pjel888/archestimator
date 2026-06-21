@@ -184,6 +184,10 @@ export function collectFileViolations(rel, text) {
   lines.forEach((line, index) => {
     const lineTextSizes = textSizesOnLine(line);
 
+    if (rel !== "src/app/globals.css" && /#fffdf8/i.test(line)) {
+      fileViolations.push(`${rel}:${index + 1} hard-codes #FFFDF8. Use the proposalPaper token instead.`);
+    }
+
     for (const { label, px, named } of lineTextSizes) {
       if (named) {
         fileViolations.push(`${rel}:${index + 1} uses ${label}. App/workshop typography must use explicit text-[8px], text-[9px], text-[10px], text-[11px], or text-[12px] role sizes.`);
