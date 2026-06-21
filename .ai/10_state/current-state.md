@@ -42,6 +42,16 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+## 2026-06-21 Estimate Sheet Implementation — Phase -1
+
+- Phase: Canonical component taxonomy verification.
+- Files changed: `.ai/10_state/current-state.md`.
+- Tests changed/added: none.
+- Verification command: `bunx vitest run tests/vitest/estimate-component-drag.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-row-details-crud.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx --maxWorkers=1`; `rg -n "Express component replaceable estimate component|Project-specific component|Make component project-specific|Make project-specific|Customized library component" src/components/workshop/EstimateSheetContent.tsx src/components/workshop/estimate-sheet tests/vitest`.
+- Result: pass; Vitest reported 4 files / 82 tests passed, and the stale-copy guard returned no matches.
+- Blockers: none.
+- Next: audit and implement Phase 0/1 P1 correctness gaps.
+
 **Shared-Link D1-D11 owner decisions are ratified; implementation gates remain open (2026-06-21):**
 Philip ratified the production-grade verdicts in
 `.ai/03_plans/2026-06-20-Shared-Link-Feature/71_PRODUCTION_ANSWERS.md` for D1-D11. The active ship
