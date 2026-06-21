@@ -6,7 +6,7 @@ unauthenticated, money-bearing share surface. Demonstrates control coverage inst
 statuses are bound to [75](75_FINDING_ID_REGISTRY.md); if this doc disagrees with 75, 75 wins.**
 
 Source-of-truth cross-links: canonical IDs/severities/statuses [75](75_FINDING_ID_REGISTRY.md) ·
-source-verified facts + open decisions D1–D11 [`_COORDINATION.md`](_COORDINATION.md) ·
+source-verified facts + ratified decisions D1-D11 [`_COORDINATION.md`](_COORDINATION.md) ·
 field-by-field exposure DPIA [13](13_DATA_PRIVACY_DISCLOSURE_DECISION.md) (D2/D3) ·
 forward execution + acceptance criteria [91](91_FORWARD_EXECUTION_PLAN.md) ·
 owner decisions [71](71_OPEN_DECISIONS_REGISTER.md).
@@ -113,12 +113,12 @@ Threat → existing control (with `file:line`) → residual risk → linked find
 
 | STRIDE | Threat | Existing control | Residual | Finding (75) |
 |---|---|---|---|---|
-| S/E | Write without a valid recipient session | Same-origin+CSRF (`comment/route.ts:168`, `decision/route.ts:126`) + signed session bound to credentialVersion; RPC re-validates active publication + recipient hash | None material. | MANAGER-F-01 (**Partial** — full role-rejection matrix Open) |
+| S/E | Write without a valid recipient session | Same-origin+CSRF (`comment/route.ts:168`, `decision/route.ts:126`) + signed session bound to credentialVersion; RPC re-validates active publication + recipient hash | None material. | MANAGER-F-01 (**Fixed** — full role-rejection matrix landed) |
 | T | **Replay stale snapshot: approve/comment against superseded content after content-only republish** | Route 409 when `viewedSnapshotVersion !== access.snapshotVersion` (`comment/route.ts:228`-`234`, `decision/route.ts:186`-`192`) **+** RPC `is distinct from` equality lock (migration `20260620142000`). Belt-and-suspenders. | Closed. (Conflicts with the UX intent that old pages keep working → **D1**.) | **SEC-SHARE-01** (P1, **Fixed**) |
-| T | Tampered `viewToken` accepted | Unverifiable/absent-but-present view token → 409 (`comment/route.ts:223`-`226`, `decision/route.ts:181`-`184`) | Closed; needs route test (QA-G07). | SEC-SHARE-01 / QA-G07 (**Open** test) |
+| T | Tampered `viewToken` accepted | Unverifiable/absent-but-present view token → 409 (`comment/route.ts:223`-`226`, `decision/route.ts:181`-`184`) | Closed and route-tested. | SEC-SHARE-01 / QA-G07 (**Fixed**) |
 | R | Recipient denies submitting a decision | Decision is one-shot, recipient-bound, telemetry-logged; second submit → 409 (`decision/route.ts:234`) | Non-repudiation is "recipient token + session" strength, not signed legal attestation. Accepted for beta. | — |
 | D | Comment flooding | Durable per-recipient limiter (`comment/route.ts:269`, `decision/route.ts:203`) + read-side limiter (`comment/route.ts:152`) | Per-recipient; an attacker still needs a valid session. | SEC-SHARE-03 cluster (**Fixed**) |
-| I | XSS via comment/note body | Comment sanitized + length-capped (test `project-publication-comments.test.tsx:259-278`); note `sanitizeSharedLinkRecipientText(note,2000)` (`decision/route.ts:145`); no `dangerouslySetInnerHTML` on receiver | DOM-render escaping test still Open. | QA-G01/G02 (**Stale-invalid**→ regression test), QA-G03 (**Open**) |
+| I | XSS via comment/note body | Comment sanitized + length-capped (test `project-publication-comments.test.tsx:259-278`); note `sanitizeSharedLinkRecipientText(note,2000)` (`decision/route.ts:145`); no `dangerouslySetInnerHTML` on receiver; DOM-render escaping is now covered by `tests/vitest/share/recipient-content-escaping.test.tsx`. | None material for current receiver rendering. | QA-G01/G02 (**Stale-invalid**→ regression test), QA-G03 (**Fixed**) |
 
 ### A8 — Telemetry / event tables
 
@@ -154,7 +154,7 @@ them here against 75 closes the "ad-hoc list" coverage gap.
 |---|---|---|---|
 | **Session DELETE has no same-origin/CSRF guard** | `session/route.ts:109` (no `assertSameOrigin`, no CSRF, no auth) | **D5** family | Owner call: 403 cross-origin DELETE vs allow (logout-CSRF nuisance only, no data risk). See [71](71_OPEN_DECISIONS_REGISTER.md) **D5**. |
 | **Unsubscribe absent-Origin POST** | `unsubscribe/route.ts:70` + `security.ts:346`-`348` (`assertSameOrigin` allows missing Origin; doc [10](10_SECURITY_PRIVACY_API_AUDIT.md) cites `security.ts:346`) | **SEC-SHARE-05** (P3, Open-Deferred) | Add CSRF nonce in interstitial or require Origin on POST + durable rate limit. Tracked [91](91_FORWARD_EXECUTION_PLAN.md). |
-| **Owner digest never fires from public routes** | `comment/route.ts:299`-`300`, `decision/route.ts:224`-`225` → `maybeTriggerSharedLinkActivityDigest` requires `requireCurrentUserContext()` → returns `digest-auth-required` (`actions.ts:1526`,`1532`,`1534`), swallowed | **SEC-SHARE-06** (P3, Open) | Notification gap, not a breach. Fix = service-role helper that verifies publicationId+token hash without a browser session. → **D9**. |
+| **Owner digest never fires from public routes** | Prior auth-gated helper returned `digest-auth-required` from public recipient routes; current helper resolves publication/owner context through service-role state. | **SEC-SHARE-06** (P3, **Fixed**) | Notification gap closed locally; D9 now records beta notification/delivery acceptance and observability evidence. |
 | **Stale-snapshot replay** (approve/comment on superseded content) | `comment/route.ts:228`-`234`, `decision/route.ts:186`-`192` + migration `20260620142000` | **SEC-SHARE-01** (P1, **Fixed**) | Closed (route 409 + RPC equality). Residual = UX tension with "old page keeps working" → **D1**. |
 | **location / clientName / totalCost public disclosure** | `types.ts:107`,`:108`,`:115` | **SEC-SHARE-07** (P3, Decision) | Owner decision **D2** (location) / **D3** (clientName, totals, public IDs); recorded field-by-field in DPIA [13](13_DATA_PRIVACY_DISCLOSURE_DECISION.md). |
 | **Non-atomic revoke+insert** in `createProjectPublication` | `actions.ts` revoke-then-insert; pending `AC-MOD-06_one_published_publication_per_project.sql` | **SEC-SHARE-08** (P3, Open) | Availability/integrity (transient failure → no active link). Transaction/RPC + uniqueness index. → **D8**, runbook [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). |

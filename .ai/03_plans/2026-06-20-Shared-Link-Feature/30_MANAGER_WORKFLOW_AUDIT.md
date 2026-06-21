@@ -1,16 +1,16 @@
 # 2026-06-20 — Shared Link Feature: Manager/Workshop Publication Workflow Audit
 
-> **Anchor-verification stamp:** file:line anchors re-verified against `ProjectPublicationHeader.tsx` 1172 lines / `actions.ts` 1538 lines on 2026-06-21.
+> **Anchor-verification stamp:** file:line anchors re-verified against `ProjectPublicationHeader.tsx` 1225 lines / `actions.ts` 1539 lines on 2026-06-21.
 
-**Status (as of 2026-06-21):** Remediated — line anchors re-verified against current source, §3 findings table repaired, finding statuses bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md). Canonical IDs/severities/statuses for this lane are **MANAGER-F-01 … MANAGER-F-06**; [75 §3](75_FINDING_ID_REGISTRY.md) wins on any disagreement. Source files re-checked at this date: `ProjectPublicationHeader.tsx` is **1172 lines**, `actions.ts` is **1538 lines** (prior `1514-1535` / `1471` / `997-1009` anchors were drifted or test-file lines — corrected below). UX redesign work for F-03/F-04/F-06 is tracked in the (planned) [`35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md).
+**Status (as of 2026-06-21):** Remediated — line anchors re-verified against current source, §3 findings table repaired, finding statuses bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md). Canonical IDs/severities/statuses for this lane are **MANAGER-F-01 … MANAGER-F-06**; [75 §3](75_FINDING_ID_REGISTRY.md) wins on any disagreement. Source files re-checked at this date: `ProjectPublicationHeader.tsx` is **1229 lines**, `actions.ts` is **1539 lines**, `WorkshopDashboard.tsx` is **337 lines**, and `PublishedProjectQuickActions.tsx` is **205 lines** (prior `1514-1535` / `1471` / `997-1009` anchors were drifted or test-file lines — corrected below). F-01 is now Fixed by the full RBAC role-rejection matrix and `member` rank fix; F-03 is now Fixed by the shared unavailable-link copy contract; F-04 is now Fixed by per-recipient failed-send chips and retry coverage in `RecipientEmailComposer`; F-05 is now Fixed by behavioral action tests for republish, rotate, and activity load; F-06 is now Fixed by the dashboard published-row quick actions, including manager-only destructive controls and `ok:false` error handling. Broader manager presentation redesign remains tracked in [`35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md).
 
 ## 0) Goals / non-goals + success metrics
 
 **Goals (this lane).**
-- Prove that **every publication mutation endpoint** rejects non-manager actors (owner/member/viewer/recipient) with an explicit RBAC matrix test — not just assertion-ordering smoke (MANAGER-F-01).
+- Preserve proof that **every publication mutation endpoint** rejects non-manager actors (signed-in no-access, workspace member, project member, project viewer, and public/recipient-token visitor) with an explicit RBAC matrix test — not just assertion-ordering smoke (MANAGER-F-01, Fixed).
 - Guarantee **zero duplicate server calls** on rotate/revoke under rapid double-click (MANAGER-F-02, Fixed — keep regression).
-- Surface **per-recipient partial-send failure** with retry (MANAGER-F-04) and unify invalid-link error copy (MANAGER-F-03).
-- Replace symbol-presence/smoke action tests with **behavioral contract tests** (MANAGER-F-05).
+- Preserve **per-recipient partial-send failure** retry coverage (MANAGER-F-04, Fixed) and unified invalid-link error copy (MANAGER-F-03, Fixed).
+- Preserve behavioral action contract tests for republish/rotate/activity-load (MANAGER-F-05, Fixed).
 
 **Non-goals.**
 - Receiver-page UX redesign (owned by [`25_RECEIVER_UX_REDESIGN_BLUEPRINT.md`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)).
@@ -99,7 +99,7 @@ I did not edit source files and did not touch unrelated dirty files.
   - `src/app/api/share/[token]/unsubscribe/route.ts:48-69` (unsubscribe interstitial + POST-only mutation)
   - `src/lib/publication/actions.ts:1526` (`maybeTriggerSharedLinkActivityDigest`)
 - Note:
-  - Digest function exists, but no direct “send now” manager action exposed in header for immediate digest retry. The function is also auth-gated (`actions.ts:1531-1534` returns `digest-auth-required` when `requireCurrentUserContext()` throws), so it never fires from public recipient routes — this is the security-lane finding **SEC-SHARE-06** (decision **D9**, see [75 §1](75_FINDING_ID_REGISTRY.md)); this lane only owns the missing manual-retry UX.
+  - Digest function exists, but no direct “send now” manager action exposed in header for immediate digest retry. The former public-route auth gate is fixed under **SEC-SHARE-06** (decision **D9** now governs beta notification/delivery acceptance, see [75 §1](75_FINDING_ID_REGISTRY.md)); this lane only owns the missing manual-retry UX.
 
 ### G) Activity and feed
 - Entry points:
@@ -123,27 +123,27 @@ I did not edit source files and did not touch unrelated dirty files.
 
 ## 3) Findings table
 
-Canonical IDs/severities/statuses are bound to [75 §3](75_FINDING_ID_REGISTRY.md). Local `F-0n` labels map 1:1 to `MANAGER-F-0n`. **Status note:** per [75 §3](75_FINDING_ID_REGISTRY.md) and [`_COORDINATION.md` §4 fact 8](_COORDINATION.md), **MANAGER-F-01 is PARTIAL** — only assertion-ordering + rotate double-click landed (80 §11); the full owner/member/viewer/recipient × every-mutation role-rejection matrix is **still Open**, so this row is **not** marked Covered. **MANAGER-F-02 is Fixed.** UX rows F-03/F-04/F-06 cross-link the (planned) manager-modal redesign [`35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md).
+Canonical IDs/severities/statuses are bound to [75 §3](75_FINDING_ID_REGISTRY.md). Local `F-0n` labels map 1:1 to `MANAGER-F-0n`. **Status note:** per [75 §3](75_FINDING_ID_REGISTRY.md), **MANAGER-F-01 through MANAGER-F-06 are Fixed.** F-01 now has the full five-actor-class × every-mutation role-rejection matrix and a source fix for `member` role ranking. F-06 now adds dashboard quick actions; [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md) may still polish the broader manager copy/preview presentation.
 
 | ID (→75) | Sev | Tag | Status | Evidence (file:line) | Impact | Recommendation | Verification needed |
 |---|:--:|---|---|---|---|---|---|
-| F-01 → MANAGER-F-01 | P1 | RBAC | **Partial** | `src/lib/publication/actions.ts:160` (`assertProjectPublicationManager`), rank gate `:195`; landed assertion-ordering + rotate double-click in `tests/vitest/project-publication-header.test.tsx:1219-1244` | Manager context is asserted at every mutation entry, but there is no dedicated role-matrix test exercising **every** mutation endpoint for owner-of-other-workspace/member/viewer/recipient; regression risk remains if a future edit bypasses the helper. | Add an explicit RBAC matrix asserting reject on all mutation actions (`create/republish/rotate/revoke/recipient add/resend/remove`) for non-manager roles and verify no write path is reachable. | Add matrix in `tests/vitest/project-publication-actions.test.ts`; assert each call throws and the admin RPC spy is never invoked. |
-| F-02 → MANAGER-F-02 | P1 | concurrency | **Fixed** | `src/lib/publication/actions.ts:652` (rotate), `:710` (revoke) vs in-flight latch in `ProjectPublicationHeader.tsx:996-1000,997-1009`; regression test in `project-publication-header.test.tsx` (rotate double-click) | Rapid double-click on rotate/revoke could fire a duplicate server mutation before pending settled. | Keep central disabling in the shared command path; preserve the duplicate-click regression test. | Re-run the rotate/revoke duplicate-click test; assert single server call (`toHaveBeenCalledTimes(1)`). |
-| F-03 → MANAGER-F-03 | P2 | UX | **Open** | `src/app/api/share/[token]/route.ts:36-46,67-68` and `src/app/share/[token]/page.tsx:142-165` | Error/circuit responses for expired/revoked/invalid tokens are generic JSON, and owner recovery copy is not unified with the manager copy path in the header. | Define one error-copy contract shared by the page and the API route; add owner-recovery guidance in the header for revoked/rotated/expired states. UX shape owned by [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md). | Add route-level tests asserting branded/consistent error payloads for `revoked`/`expired`/`invalid`; snapshot the unified copy strings. |
-| F-04 → MANAGER-F-04 | P2 | UX | **Open** | `src/components/workshop/publication/RecipientEmailComposer.tsx:163-207` and `:240-242` | Recipient send success/failure messaging is global; no per-recipient failure surface for partially failed batched sends. | Add structured per-recipient status chips + explicit retry CTA in local composer state for failed adds/resends. UX shape owned by [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md). | Add component-level tests in `project-publication-header.test.tsx` asserting partial-failure rendering preserves successfully-sent recipients and shows a retry CTA. |
-| F-05 → MANAGER-F-05 | P3 | test-rigor | **Open** | `tests/vitest/project-publication-actions.test.ts` exports/text presence checks only — they do not exercise behavioral contracts. | Coverage is mostly compile/smoke around exports and copy, leaving permission and sequencing behavior gaps. | Extend tests to verify return-payload contract, idempotent transitions, and activity filtering. | Add behavioral tests for `republishProjectPublication` (`:579`), `rotateProjectPublicationLink` (`:652`), and `loadSharedLinkActivity` (`:1381`) success/error branches. |
-| F-06 → MANAGER-F-06 | P3 | UX | **Open** | `src/components/workshop/ProjectPublicationHeader.tsx:966-996` and `src/components/workshop/dashboard/WorkshopDashboard.tsx:30-50` | Dashboard shows published links but project-level quick controls are read/list style; managers must open project detail for non-trivial operations. | Add a quick secondary-action affordance (copy/revoke/rotate menu) in the dashboard/list for high-friction cases. UX shape owned by [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md). | Add a11y/usability test with keyboard + tooltip semantics for any added controls. |
+| F-01 → MANAGER-F-01 | P1 | RBAC | **Fixed** | `src/lib/publication/actions.ts:109-116` includes `member` below manager rank; `assertProjectPublicationManager` at `:161`; matrix test at `tests/vitest/project-publication-actions.test.ts:316` | Every manager mutation now has regression coverage for signed-in no-access users, workspace members, project members, project viewers, and public/recipient-token visitors without an owner session, including the prior `member` rank fallthrough. | Preserve the shared helper and the role matrix when adding publication mutations or changing role names. | `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed 1 file / 25 tests; canonical suite passed 23 files / 353 tests. |
+| F-02 → MANAGER-F-02 | P1 | concurrency | **Fixed** | `src/lib/publication/actions.ts:653` (rotate), `:711` (revoke) vs in-flight latch in `ProjectPublicationHeader.tsx`; regression test in `project-publication-header.test.tsx` (rotate double-click) | Rapid double-click on rotate/revoke could fire a duplicate server mutation before pending settled. | Keep central disabling in the shared command path; preserve the duplicate-click regression test. | Re-run the rotate/revoke duplicate-click test; assert single server call (`toHaveBeenCalledTimes(1)`). |
+| F-03 → MANAGER-F-03 | P2 | UX | **Fixed** | `src/lib/publication/share-copy.ts`, `src/app/share/[token]/not-found.tsx`, public share API 404 paths, `tests/vitest/project-publication-route.test.ts`, `tests/vitest/share-no-store-invariants.test.ts` | Error/circuit responses for expired/revoked/invalid tokens now share one branded unavailable-link copy contract. | Preserve `SHARED_LINK_UNAVAILABLE_COPY` as the single source for unavailable-link page and API 404 envelopes; [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md) can still improve preview/copy presentation, but the page/API parity bug is closed. | Re-run route/page/no-store coverage and keep assertions importing the shared copy export rather than duplicating literals. |
+| F-04 → MANAGER-F-04 | P2 | UX | **Fixed** | `src/components/workshop/publication/RecipientEmailComposer.tsx`; `tests/vitest/recipient-email-composer.test.tsx` | Batched recipient sends now preserve successful recipients and surface failed recipients individually with error copy. | Preserve structured per-recipient failure chips and retry CTA in local composer state for failed adds/resends. UX-list polish can still build on [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md), but the functional retry gap is closed. | `bunx vitest run tests/vitest/recipient-email-composer.test.tsx --maxWorkers=1` covers partial-failure rendering and retry. |
+| F-05 → MANAGER-F-05 | P3 | test-rigor | **Fixed** | `tests/vitest/project-publication-actions.test.ts` imports the actions module under mocked Supabase/server dependencies and exercises republish, rotate, and owner activity-load branches. | Return-payload, write/RPC payload, conflict, inactive-token, and revalidation contracts are now covered beyond symbol-presence smoke checks. | Preserve these behavioral assertions when action signatures change; MANAGER-F-01 role matrix coverage is now separate and fixed. | `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed 1 file / 25 tests. |
+| F-06 → MANAGER-F-06 | P3 | UX | **Fixed** | `src/components/workshop/dashboard/PublishedProjectQuickActions.tsx:47`, `src/components/workshop/dashboard/WorkshopDashboard.tsx:66`, `tests/vitest/workshop-reset.test.tsx:288` | Dashboard published rows now expose project-level copy/preview for published links and manager-only rotate/revoke controls without opening project detail. | Preserve the row-level quick-action group, confirmation modal for destructive actions, no refresh on `ok:false`, and refresh after successful rotate/revoke. Broader modal presentation polish remains in [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md). | `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx --maxWorkers=1` passed 3 files / 107 tests; `bun run type-check` passed. |
 
 ## 4) Missing/non-working or UX-friction parts + likely root cause
 - No immediate digest “send now” control in manager path
   - Evidence: owner-side UI paths show compose/recipients/activity but no direct digest retry action near header (`RecipientEmailComposer.tsx` and `ProjectPublicationHeader.tsx` do not expose explicit digest trigger).
   - Likely root cause: digest is background/rule-driven; no explicit manual action endpoint in UI contract.
-- Partial recipient-send failure visibility is coarse
-  - Evidence: composer message is aggregated and one submit state (`RecipientEmailComposer.tsx:163-207, 370-378`).
-  - Root cause: batch function surfaces summary, while UI does not keep per-recipient result channel.
-- Inconsistent route messaging for invalid links
-  - Evidence: public route surfaces password/access/copy branches (`src/app/share/[token]/page.tsx:142-172`) while API route returns generic JSON errors (`src/app/api/share/[token]/route.ts:36-46,67-68`).
-  - Root cause: separation between API and page-level copy may leave UX parity unresolved.
+- Partial recipient-send failure visibility is now functional
+  - Evidence: `RecipientEmailComposer` keeps failed-recipient status/error state and exposes retry; `recipient-email-composer.test.tsx` covers the partial-failure and retry path.
+  - Residual: [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md) can still improve the recipient list presentation, but MANAGER-F-04's functional gap is closed.
+- Unavailable-link route messaging is now unified
+  - Evidence: `src/lib/publication/share-copy.ts` exports `SHARED_LINK_UNAVAILABLE_COPY`; `src/app/share/[token]/not-found.tsx` and public share API 404 envelopes import it.
+  - Residual: [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md) can still make the manager-side preview/copy moment more trustworthy, but MANAGER-F-03's page/API parity gap is closed.
 - Activity feed path split can make manager interpretation inconsistent
   - Evidence: activity filtering path differs by caller context (`src/app/api/share/[token]/activity/route.ts:142,251-252`) and owner gating in header (`ProjectPublicationHeader.tsx:683-684`).
   - Root cause: dual path design (owner route/path vs public path) with role-dependent projection.
@@ -164,11 +164,11 @@ Canonical IDs/severities/statuses are bound to [75 §3](75_FINDING_ID_REGISTRY.m
 
 ## 6) Implementation priorities and tests needed
 1. High priority (owner workflow reliability)
-  - Add explicit duplicate-click/idempotency test for rotate/revoke (`project-publication-header.test.tsx`, use existing in-flight latch assertions).
-  - Add mutation RBAC matrix for all publication action functions (`project-publication-actions.test.ts`).
-2. High priority (recipient lifecycle)
-  - Add per-recipient failure UI state + retry action for send/add in `RecipientEmailComposer.tsx`.
-  - Add behavior test asserting partial failure preserves successfully sent recipients.
+  - Preserve explicit duplicate-click/idempotency tests for rotate/revoke (`project-publication-header.test.tsx`, use existing in-flight latch assertions).
+  - Preserve the mutation RBAC matrix for all publication action functions (`project-publication-actions.test.ts`).
+2. Recipient lifecycle (fixed functional retry; preserve)
+  - Keep per-recipient failed-send UI state + retry action in `RecipientEmailComposer.tsx`.
+  - Keep behavior test asserting partial failure preserves successfully sent recipients.
 3. Medium priority (observability)
   - Add explicit audit-event type for invalid/expired link attempts and owner-visible activity marker.
   - Test via `tests/vitest/project-publication-route.test.ts` + `project-publication-activity.test.tsx`.
@@ -180,7 +180,7 @@ Canonical IDs/severities/statuses are bound to [75 §3](75_FINDING_ID_REGISTRY.m
 - Frontend lane
   - Improve recipient composer error surfaces and stale-link UI hints in `ProjectPublicationHeader.tsx`/`RecipientEmailComposer.tsx`.
 - API/security lane
-  - Validate and document error contract symmetry between page and share route (`src/app/share/[token]/page.tsx` vs `src/app/api/share/[token]/route.ts`).
+  - Preserve error contract symmetry between the branded unavailable-link page and share API 404 envelopes (`src/lib/publication/share-copy.ts`).
   - Confirm any new digest/event type with privacy constraints.
 - Data/DB lane
   - Ensure any new activity event additions remain compatible with existing RLS + visibility filters.
@@ -191,14 +191,14 @@ If any of the above tests are authored in parallel, keep behavior contracts in o
 
 ## 8) Per-finding acceptance criteria, tests, commands, owner-lane, pass/fail gate
 
-Each row binds to [75 §3](75_FINDING_ID_REGISTRY.md). UX work for F-03/F-04/F-06 is shaped by the (planned) [`35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md); the rows below own the **engineering/test** gate.
+Each row binds to [75 §3](75_FINDING_ID_REGISTRY.md). MANAGER-F-03/F-04 are fixed source contracts; [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md) may still improve their presentation. UX work for F-06 is shaped by the (planned) manager redesign; the rows below own the **engineering/test** gate.
 
-### MANAGER-F-01 (P1 · RBAC · **Partial → complete the matrix**) — owner-lane: API/security
-- **Acceptance (Given/When/Then):** Given an actor who is owner-of-another-workspace, a project member (rank `member`), a project viewer, or a recipient-token holder, When they invoke any of `createProjectPublication` / `republishProjectPublication` / `rotateProjectPublicationLink` / `revokeProjectPublication` / recipient add/resend/remove, Then the action throws "Only project owners and admins can publish shared links." and the publication admin RPC spy is invoked **0** times.
+### MANAGER-F-01 (P1 · RBAC · **Fixed**) — owner-lane: API/security
+- **Acceptance (Given/When/Then):** Given an actor who is a signed-in user without project access, workspace member, project member (rank `member`), project viewer, or public/recipient-token visitor without an owner session, When they invoke any of `createProjectPublication` / `republishProjectPublication` / `rotateProjectPublicationLink` / `revokeProjectPublication` / recipient add/resend/remove, Then the action rejects (manager-only error for signed-in non-managers; login redirect for public visitors) and publication writes/RPC/revalidations are **0**.
 - **Exact target test file:** `tests/vitest/project-publication-actions.test.ts`
-- **New test name:** `it("rejects every publication mutation for non-manager roles (RBAC matrix)")`
+- **Test name:** `it("rejects every publication mutation for non-manager roles without writes")`
 - **Run command:** `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1`
-- **Pass/fail gate:** PASS only when the matrix covers all 7 mutations × 4 non-manager roles (28 cases) and each asserts throw + zero RPC. Until then MANAGER-F-01 stays **Partial** in [75](75_FINDING_ID_REGISTRY.md).
+- **Pass/fail gate:** PASS = matrix covers all 7 mutations × 5 actor classes (35 cases), each asserts reject + zero write/RPC/revalidate side effects, and the focused action suite passes 1 file / 25 tests.
 
 ### MANAGER-F-02 (P1 · concurrency · **Fixed** — regression guard) — owner-lane: Frontend
 - **Acceptance:** Given a live publication, When the manager double-clicks Rotate (or Revoke) before the first promise resolves, Then the corresponding server action is called exactly once.
@@ -207,35 +207,35 @@ Each row binds to [75 §3](75_FINDING_ID_REGISTRY.md). UX work for F-03/F-04/F-0
 - **Run command:** `bunx vitest run tests/vitest/project-publication-header.test.tsx --maxWorkers=1`
 - **Pass/fail gate:** PASS = `expect(rotate/revoke).toHaveBeenCalledTimes(1)`.
 
-### MANAGER-F-03 (P2 · UX · **Open**) — owner-lane: API/security + Frontend (copy shape: [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md))
+### MANAGER-F-03 (P2 · UX · **Fixed**) — owner-lane: API/security + Frontend
 - **Acceptance:** Given an expired/revoked/invalid token, When the recipient hits the API route and the page, Then both surfaces present the same branded copy for that state (no raw generic JSON leak to the user-facing path).
-- **Exact target test file:** `tests/vitest/project-publication-route.test.ts` (exists — extend it)
-- **New test name:** `it("returns unified branded error copy for revoked/expired/invalid tokens")`
-- **Run command:** `bunx vitest run tests/vitest/project-publication-route.test.ts --maxWorkers=1`
-- **Pass/fail gate:** PASS = page copy strings and route payload reference the same canonical message set for each state.
+- **Exact target files:** `src/lib/publication/share-copy.ts`, `src/app/share/[token]/not-found.tsx`, public share API 404 routes.
+- **Target tests:** `tests/vitest/project-publication-route.test.ts`, `tests/vitest/share-no-store-invariants.test.ts`.
+- **Run command:** `bunx vitest run tests/vitest/project-publication-route.test.ts tests/vitest/share-no-store-invariants.test.ts --maxWorkers=1`
+- **Pass/fail gate:** PASS = page copy strings and route payload reference `SHARED_LINK_UNAVAILABLE_COPY`.
 
-### MANAGER-F-04 (P2 · UX · **Open**) — owner-lane: Frontend (UX shape: [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md))
+### MANAGER-F-04 (P2 · UX · **Fixed**) — owner-lane: Frontend (UX shape: [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md))
 - **Acceptance:** Given a batched recipient send where one recipient fails, When the result returns, Then successfully-sent recipients remain marked sent and the failed recipient shows a per-row failure chip + retry CTA.
-- **Exact target test file:** `tests/vitest/project-publication-header.test.tsx`
-- **New test name:** `it("surfaces per-recipient partial-send failure with a retry CTA")`
-- **Run command:** `bunx vitest run tests/vitest/project-publication-header.test.tsx --maxWorkers=1`
+- **Exact target test file:** `tests/vitest/recipient-email-composer.test.tsx`
+- **Test name:** partial failure rendering + failed-recipient retry CTA coverage.
+- **Run command:** `bunx vitest run tests/vitest/recipient-email-composer.test.tsx --maxWorkers=1`
 - **Pass/fail gate:** PASS = failed recipient renders retry control; sent recipients are not reverted.
 
-### MANAGER-F-05 (P3 · test-rigor · **Open**) — owner-lane: QA
+### MANAGER-F-05 (P3 · test-rigor · **Fixed**) — owner-lane: QA
 - **Acceptance:** Given the action functions, When invoked in success and error branches, Then tests assert the return-payload contract and idempotent transitions (not just symbol/text presence).
 - **Exact target test file:** `tests/vitest/project-publication-actions.test.ts`
-- **New test name:** `it("asserts behavioral return contracts for republish/rotate/loadSharedLinkActivity")`
+- **Test names:** `it("asserts behavioral return contracts for republish success and invalid-password failure")`; `it("asserts behavioral return contracts for rotate success and stale-token conflict")`; `it("asserts behavioral return contracts for owner activity load and inactive tokens")`.
 - **Run command:** `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1`
-- **Pass/fail gate:** PASS = success and error branches asserted for `republishProjectPublication` (`actions.ts:579`), `rotateProjectPublicationLink` (`:652`), `loadSharedLinkActivity` (`:1381`).
+- **Pass/fail gate:** PASS = success and error branches asserted for `republishProjectPublication`, `rotateProjectPublicationLink`, and `loadSharedLinkActivity`; latest run passed 1 file / 25 tests.
 
-### MANAGER-F-06 (P3 · UX · **Open**) — owner-lane: Frontend (UX shape: [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md))
+### MANAGER-F-06 (P3 · UX · **Fixed 2026-06-21**) — owner-lane: Frontend (UX shape: [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md))
 - **Acceptance:** Given a published project in the dashboard/list, When the manager wants copy/rotate/revoke, Then a keyboard-reachable quick-action affordance is available without opening project detail.
-- **Exact target test file:** `tests/vitest/project-publication-header.test.tsx` (or a new dashboard-quick-actions test)
-- **New test name:** `it("exposes keyboard-reachable quick actions (copy/rotate/revoke) in the dashboard list")`
-- **Run command:** `bunx vitest run tests/vitest/project-publication-header.test.tsx --maxWorkers=1`
-- **Pass/fail gate:** PASS = quick-action menu items reachable by keyboard with correct tooltip/aria semantics.
+- **Exact target test file:** `tests/vitest/workshop-reset.test.tsx`
+- **Test name:** `it("exposes keyboard-reachable shared-link quick actions in the dashboard published list")`
+- **Run command:** `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx --maxWorkers=1`
+- **Pass/fail gate:** PASS — quick-action controls are reachable by keyboard with tooltip semantics; copy writes the absolute URL; preview links to the share path; rotate/revoke are manager-only, require confirmation before invoking server actions, render `ok:false` results as errors, do not refresh on failed actions, and refresh afterward on success.
 
 **Lane-wide green gate (run before claiming this lane done):**
 `bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-activity.test.tsx --maxWorkers=1` and `bun run type-check` — both must exit 0.
 
-All four cited test files are present (verified 2026-06-21): `project-publication-actions.test.ts`, `project-publication-header.test.tsx`, `project-publication-activity.test.tsx`, `project-publication-route.test.ts`. UNVERIFIED: whether the route test already asserts the *unified* branded-copy contract for MANAGER-F-03 — confirm with `bunx vitest run tests/vitest/project-publication-route.test.ts --maxWorkers=1` and extend if the assertion is absent.
+All four cited test files are present (verified 2026-06-21): `project-publication-actions.test.ts`, `project-publication-header.test.tsx`, `project-publication-activity.test.tsx`, `project-publication-route.test.ts`. MANAGER-F-03's unified branded-copy contract is now covered by `project-publication-route.test.ts` and `share-no-store-invariants.test.ts`.

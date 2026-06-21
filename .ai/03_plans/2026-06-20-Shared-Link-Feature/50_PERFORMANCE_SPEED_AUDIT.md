@@ -25,7 +25,7 @@ This is a read-only audit of the current worktree. Multiple agents are active; t
 **Evidence pointer.** Deferred measurements land in [`evidence/`](evidence/):
 - `evidence/shared-link-activity-benchmark.md` — output of the §5 `scripts/benchmark-shared-link-activity.ts` run.
 - `evidence/perf-explain-queries.md` — output of the four §5 `EXPLAIN (ANALYZE, BUFFERS)` queries against realistic rows.
-- `evidence/perf-budgets.md` — captured p95 / byte / duration numbers vs the §3a budget table.
+- `evidence/perf-budgets.md` — captured p95 / byte / duration numbers vs the §3a budget table. Snapshot bytes, local password-unlock CPU cost, and local rotate token-hash cost are now measured locally and pass; hosted route/DB/provider timings remain separate evidence.
 
 Until these files exist with real numbers, every "code-shape addressed" status in §3 stays **perf UNVERIFIED** and the §3a budget gates are **UNVERIFIED (binary: FAIL)**.
 
@@ -187,14 +187,14 @@ Status vocabulary in this table is bound to [`75` §5](75_FINDING_ID_REGISTRY.md
 | PERF-03 | P1 | Fixed (code) / measure-open | `src/lib/publication/public-repository.ts:292`–`:298` (cleanup delete), `:305`–`:319` (single-flight throttle) | Code-shape: expired-row cleanup is throttled and single-flight in-process instead of run on every protected attempt. Latency/`EXPLAIN` UNVERIFIED. | Keep DB-side index/cardinality measurement on the beta-readiness checklist. | PASS = `evidence/perf-explain-queries.md` holds the `delete … where expires_at <= now()` `EXPLAIN` against realistic rows. UNVERIFIED ⇒ FAIL. |
 | PERF-04 | P2 | Fixed (code) / measure-open (≡ Code-shape addressed; perf UNVERIFIED) | `src/app/api/share/[token]/activity/route.ts`, `src/lib/publication/actions.ts`, `supabase/migrations/20260620064601_project_publication_activity_target_labels.sql` | Code-shape: activity reads use compact `activity_target_labels_json` instead of full `snapshot_json`. **Provider migration + hosted p95 UNVERIFIED.** | Reconcile the local migration safely in provider history (ledger order in [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md)), then measure p95 with large snapshots. | PASS = migration confirmed applied in `90` + activity p95 recorded in `evidence/perf-budgets.md`. UNVERIFIED ⇒ FAIL. |
 | PERF-05 | P2 | Open | comment view-snapshot/RPC path at `src/app/api/share/[token]/comment/route.ts:216`–`:236` (the `viewedSnapshotVersion` block; **`:215` re-anchored** — it was a `SESSION_INVALID` log + return, not the RPC path), `src/lib/publication/public-repository.ts:941`, `:954`, `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:133`, `:148`; analogous decision path at `src/app/api/share/[token]/decision/route.ts:154`, `public-repository.ts:1011`, `:1024` | Comment and decision writes perform app-layer access/session lookups, then helper publication/recipient lookups, then RPC-side publication/recipient lookups — secure but serial round trips on the interaction path. | Consolidate write validation into one RPC, or pass already-validated identifiers to an RPC variant that still enforces snapshot/version constraints. Security-sensitive (after review). | PASS = query-count test for comment/decision POST + p95 of current vs one-RPC prototype in `evidence/perf-budgets.md` + security review confirms rejected/revoked/password-gated sessions still fail. UNVERIFIED ⇒ FAIL. |
-| PERF-06 | P2 | Open (measure first) | `src/lib/publication/actions.ts:376` (estimates), `:`-bounded row/node/tab loads in `buildSnapshotForProject`, `src/lib/publication/snapshot.ts:212`, `:241`, `:260` | Publish/republish remains O(estimates + rows + nodes + tabs) and stores row data both at estimate level and inside tab payloads. (Thumbnail-only select is now **PERF-13**, a distinct row.) | First add byte-size budgets (§3a). For vNext, normalize the snapshot so rows are referenced by tab/node instead of duplicated. | PASS = snapshot byte histogram for small/median/large projects in `evidence/perf-budgets.md` vs the §3a budget. UNVERIFIED ⇒ FAIL. |
+| PERF-06 | P2 | Fixed | `src/lib/publication/snapshot.ts`, `src/components/share/SharePageTabs.tsx`, `tests/vitest/project-publication-snapshot.test.ts`, `tests/vitest/shared-link-perf-budgets-script.test.ts`, `evidence/perf-budgets.md` | Publish/republish remains O(estimates + rows + nodes + tabs), but compact schema v1.3 no longer stores duplicated tab row objects. Tabs store `rowIds`, while estimate-level rows remain for legacy consumers and v1.2 `tab.rows` remains readable. Local synthetic measurement: 100 rows 29.7 KiB PASS, 1k rows 263.1 KiB PASS, 10k rows 2.55 MiB PASS vs 4 MiB. (Thumbnail-only select is now **PERF-13**, a distinct row.) | Keep v1.3 compact tab membership and legacy v1.2 read support. | PASS = snapshot byte histogram for small/median/large projects in `evidence/perf-budgets.md` is at or below the §3a budget. |
 | PERF-07 | P2 | Fixed | `src/components/share/ShareEstimateTreeView.tsx`, `src/components/share/ShareEstimateTreePanel.tsx` | Code-shape: inline tree rows capped for desktop/mobile with a hidden-row status summary. | Consider full virtualization only if hosted/mobile INP still shows a problem. | PASS = a test asserts the desktop/mobile row cap; DOM node-count measurement at large snapshots stays optional. |
 | PERF-07B | P2 | Fixed | `src/components/share/SharePageTabs.tsx` | Code-shape: Grid Preview renders only the first 250 matching rows with a refine-filter summary. | Consider virtualization only if recipients need full unfiltered tables at larger row counts. | PASS = a test asserts the 250-row cap + refine copy. |
 | PERF-08 | P2 | Fixed | `src/lib/publication/actions.ts` (`SHARED_LINK_RECIPIENT_ADD_CONCURRENCY = 4`) | Code-shape: recipient insert/send/status pipelines run with bounded concurrency and preserve per-recipient partial-failure reporting. | Batch insert/background queue remains a later scale optimization, not beta-blocking. | PASS = a test asserts bounded concurrency + per-recipient failure isolation; 1/10/50 recipient timing in `evidence/perf-budgets.md` is the §3a budget check. |
-| PERF-09 | P3 | Open (measure) | `src/app/api/share/[token]/password/route.ts:68`, `src/lib/publication/security.ts:150`, `:157`, `password/route.ts:71`, `:84` | Password unlock intentionally pays `scrypt` plus synchronous attempt/event writes — appropriate for security, but successful-unlock latency may be noticeable on low-power/serverless instances. | Do not weaken password hashing. Move non-security analytics off-path where possible; measure `scrypt` cost under production runtime. | PASS = `evidence/perf-budgets.md` records p50/p95 unlock latency (correct + incorrect), split into hash / DB / intentional-backoff time. UNVERIFIED ⇒ FAIL. |
+| PERF-09 | P3 | Open (hosted evidence) | `src/app/api/share/[token]/password/route.ts:68`, `src/lib/publication/security.ts:150`, `:157`, `password/route.ts:71`, `:84` | Password unlock intentionally pays `scrypt` plus synchronous attempt/event writes — appropriate for security. Local CPU-only scrypt verify now passes the budget (10k p95 30.46 ms vs 500 ms), but hosted route DB writes/backoff remain unmeasured. | Do not weaken password hashing. Move non-security analytics off-path where possible; measure hosted route time split into hash / DB / intentional-backoff. | PASS = hosted `evidence/perf-budgets.md` row records p50/p95 unlock latency split into hash / DB / intentional-backoff time. Local CPU-only evidence is green but not sufficient for ship. |
 | PERF-10 | P3 | Fixed | `src/components/share/SharePageComments.tsx`, `src/app/api/share/[token]/comment/route.ts`, `src/lib/publication/public-repository.ts` | Code-shape: successful comment POST returns the canonical inserted comment; the client replaces the optimistic row without a second comments GET. | Add pagination if comment volume exceeds 50–100 per link. | PASS = `bunx vitest run tests/vitest/project-publication-comments.test.tsx --maxWorkers=1` covers the route response + one-GET client submit path. |
 | PERF-11 | P3 | Fixed | `src/app/share/[token]/loading.tsx`, `tests/vitest/share-no-store-invariants.test.ts` | Code-shape: the dynamic share page now has a proposal-shaped route loading boundary. Prior-plan id **RT03** ([75 §5](75_FINDING_ID_REGISTRY.md)). | Keep manual/browser proof optional for a future UI lane; static route coverage is enough for this pass. | PASS = `bunx vitest run tests/vitest/share-no-store-invariants.test.ts --maxWorkers=1` covers the boundary file. |
-| PERF-12 | P3 | Open (measure) | `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:26`, `:56` | Rotation locks the publication and updates all recipient tokens for that publication — correct for security, but recipient-heavy publications make rotate O(recipient count). | Accept for MVP if recipient counts are low; otherwise chunked invalidation or a credential-version model that avoids rewriting every recipient token. | PASS = `evidence/perf-budgets.md` records rotation duration at 10/100/1,000 recipients + lock-wait metrics vs §3a budget. UNVERIFIED ⇒ FAIL. |
+| PERF-12 | P3 | Open (provider evidence) | `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:26`, `:56` | Rotation locks the publication and updates all recipient tokens for that publication — correct for security, but recipient-heavy publications make rotate O(recipient count). Local CPU-only token hashing now passes the budget (100-recipient p95 0.23 ms vs 2 s), but provider lock/update cost remains unmeasured. | Accept for MVP if recipient counts are low; otherwise chunked invalidation or a credential-version model that avoids rewriting every recipient token. | PASS = provider-backed rotation duration at 10/100/1,000 recipients + lock-wait metrics vs §3a budget. Local CPU-only evidence is green but not sufficient for ship. |
 | PERF-13 | P2 | Fixed | `src/lib/publication/actions.ts` row-thumbnail extraction (`source_snapshot->>imageUrl` projection) | Code-shape: snapshot row-thumbnail extraction selects `source_snapshot->>imageUrl` instead of pulling full `source_snapshot` JSON, cutting per-row transfer/parse. (Promoted to a first-class id per [75 §5](75_FINDING_ID_REGISTRY.md); 50 previously folded this into PERF-06.) | None beyond keeping the narrow projection; do not re-introduce a full `source_snapshot` select. | PASS = a test (or grep guard) asserts the snapshot builder selects `source_snapshot->>imageUrl` and not the full column. Byte delta vs full-column baseline is the §3a budget check in `evidence/perf-budgets.md`. |
 | PERF-14 | P2 | Fixed | `src/app/share/[token]/` print-package component, mounted on `beforeprint` (deferred print package; ties to RUX-04) | Code-shape: the full proposal print package is deferred to `beforeprint` instead of mounting on first render, so the normal receiver DOM is not inflated by all-row print output. (Promoted to a first-class id per [75 §5](75_FINDING_ID_REGISTRY.md); 50 previously listed this only as a positive note.) | Keep the deferred-print pattern; do not eagerly mount the print DOM. | PASS = a test asserts the print package is absent from first-render DOM and arms on `beforeprint`; receiver DOM node-count delta is the §3a budget check. |
 
@@ -211,7 +211,8 @@ selection — are now first-class findings **PERF-14** and **PERF-13** in §3 pe
 ## 3a. Performance budget table (beta gates)
 
 Each budget is **UNVERIFIED** until its number is captured in [`evidence/perf-budgets.md`](evidence/).
-A row whose number is missing or breaches the target is a binary **FAIL**. Production thresholds/alerts
+A row whose number is missing or breaches the target is a binary **FAIL**. As of 2026-06-21, snapshot
+bytes are measured locally and the 10k tier is a **PASS**. Production thresholds/alerts
 for these signals live in [`92_OBSERVABILITY_AND_ALERTING.md`](92_OBSERVABILITY_AND_ALERTING.md).
 
 | Budget | Dimension | Target | Beta-blocking? | Bound finding | Capture method |
@@ -220,7 +221,7 @@ for these signals live in [`92_OBSERVABILITY_AND_ALERTING.md`](92_OBSERVABILITY_
 | Public page p95 | recipient link (render + `/session` + reload) | ≤ 2500 ms first-request-to-interactive p95 | **Yes** | PERF-01A | hosted synthetic |
 | Snapshot bytes | small project (≤ 100 rows) | ≤ 64 KB `snapshot_json` | No | PERF-06, PERF-13 | DB `octet_length(snapshot_json)`; `evidence/perf-budgets.md` |
 | Snapshot bytes | median project (~1k rows) | ≤ 512 KB `snapshot_json` | **Yes** | PERF-06, PERF-13 | DB `octet_length` |
-| Snapshot bytes | large project (≥ 10k rows) | ≤ 4 MB `snapshot_json` (else normalize) | **Yes** | PERF-06 | DB `octet_length` |
+| Snapshot bytes | large project (≥ 10k rows) | ≤ 4 MB `snapshot_json` (else normalize) | **Yes** | PERF-06 | DB `octet_length` / local synthetic helper. **Current local fixture: 2.55 MiB PASS.** |
 | Publish/republish duration | by row count | ≤ 1.5 s @ 1k rows · ≤ 6 s @ 10k · ≤ 20 s @ 50k | **Yes** (10k tier) | PERF-06, PERF-13 | server timing around `createProjectPublication`/republish |
 | Rotate duration | by recipient count | ≤ 500 ms @ 10 · ≤ 2 s @ 100 · ≤ 8 s @ 1k recipients | **Yes** (100 tier) | PERF-12 | server timing around the rotate RPC + lock-wait metric |
 
@@ -263,9 +264,11 @@ High-blast-radius optimizations:
 - Change rotate semantics to avoid O(recipient count) credential rewrites.
 - Consider full virtualization only if the current tree/grid caps still show hosted/mobile INP problems on large snapshots.
 
-## 5. Suggested measurement commands and metrics
+## 5. Measurement commands and metrics
 
-No build or browser automation was run for this audit/implementation pass. Suggested follow-up commands:
+No build or browser automation was run for this audit/implementation pass. The executable beta-budget helper
+contract is owned by [`91_FORWARD_EXECUTION_PLAN.md`](91_FORWARD_EXECUTION_PLAN.md) §0.1. Use these commands
+to close the performance gates; the output file is the canonical evidence source for [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 
 ```bash
 bunx vitest run \
@@ -282,7 +285,34 @@ MARKDOWN_FILE=.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-a
 bun scripts/benchmark-shared-link-activity.ts
 ```
 
-Suggested Supabase/Postgres measurements:
+```bash
+bun scripts/measure-shared-link-perf-budgets.ts \
+  --mode recipient-session-tti \
+  --samples 20 \
+  --out .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/perf-budgets.md
+
+bun scripts/measure-shared-link-perf-budgets.ts \
+  --mode snapshot-bytes \
+  --rows 500,2500,10000 \
+  --samples 5 \
+  --out .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/perf-budgets.md
+
+bun scripts/measure-shared-link-perf-budgets.ts \
+  --mode password-unlock \
+  --rows 500,2500,10000 \
+  --samples 20 \
+  --append \
+  --out .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/perf-budgets.md
+
+bun scripts/measure-shared-link-perf-budgets.ts \
+  --mode rotate-cost \
+  --rows 1,10,50,100 \
+  --samples 10 \
+  --append \
+  --out .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/perf-budgets.md
+```
+
+Supabase/Postgres measurements for the provider query-shape gate:
 
 ```sql
 explain (analyze, buffers)

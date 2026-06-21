@@ -2,14 +2,17 @@
 
 Date opened: 2026-06-21
 Owner of this remediation pass: Claude (planning lead), for Philip.
-Status: **IN PROGRESS** — driving the pack from ~69% to 100% (strategy / quality / implementation-readiness).
+Status: **HISTORICAL LEDGER** — remediation pass assembled; final closure lives in
+[`95_REQUIREMENT_TO_EVIDENCE_CLOSURE_LEDGER.md`](95_REQUIREMENT_TO_EVIDENCE_CLOSURE_LEDGER.md) and
+[`99_QUALITY_SCORECARD_AND_SIGNOFF.md`](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 
-> This is an **internal working file** for the remediation pass. It is the shared brain
+> This is an **internal historical working file** for the remediation pass. It was the shared brain
 > for any agent (human or AI) touching this folder. It declares file ownership so concurrent
 > agents do not collide, and it records the canonical reconciliation facts every doc must agree
 > with. The public-facing canonical truth lives in [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md).
-> Delete this file (or archive it) once the pack reaches 100% and is signed off in
-> [`99_QUALITY_SCORECARD_AND_SIGNOFF.md`](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
+> Keep this file only as provenance; do not treat its early scores or ownership assignments as the
+> current readiness verdict. Current truth is [75](75_FINDING_ID_REGISTRY.md), [95](95_REQUIREMENT_TO_EVIDENCE_CLOSURE_LEDGER.md),
+> and [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 
 ---
 
@@ -52,7 +55,7 @@ Legend: **(keep+remediate)** edit existing · **(NEW)** author new.
 | `50_PERFORMANCE_SPEED_AUDIT.md` | keep+remediate | + "code-shape vs measured", PERF-13/14 + PERF-01A, budgets |
 | `60_SPEC_TRACEABILITY_ARCHITECTURE_AUDIT.md` | keep+remediate | + fix fabricated citations, re-frame floating-nav, reconcile SHF-01 |
 | `70_CONSOLIDATED_FINDINGS_AND_BACKLOG.md` | keep+remediate | + severity reconcile, ID un-collision, un-merge, provenance, backlog rigor |
-| `71_OPEN_DECISIONS_REGISTER.md` | NEW | Consolidated owner decisions D1–D11 |
+| `71_OPEN_DECISIONS_REGISTER.md` | UPDATED | Ratified owner decisions D1-D11 |
 | `72_BLAST_RADIUS_DEPENDENCY_MAP.md` | NEW | Shared-symbol/file collision + dependency map |
 | `75_FINDING_ID_REGISTRY.md` | NEW | **Canonical ID → title/severity/status/origin** (source of truth) |
 | `80_IMPLEMENTATION_AND_VERIFICATION_LOG.md` | keep+remediate | + actions.ts, test-count reconcile, rollback, pre-deploy checklist |
@@ -89,7 +92,7 @@ All four source-truth verifications returned **CONFIRMED**. Bind every doc to th
    `20260620142000_restore_shared_link_snapshot_equality_lock.sql` uses
    `v_snapshot_version is distinct from p_expected_snapshot_version` in both `insert_client_comment`
    and `submit_client_response`. **Belt-and-suspenders (route + RPC).**
-2. **SHF-01 (realtime owner feed) = NOT FIXED.** Only **RUX-10 (mount the public-safe feed)** landed.
+2. **SHF-01 (realtime owner feed) = NOT FIXED.** **RUX-10 is fixed by V2 removal from the public receiver page**; owner activity remains manager-side.
    `SharedLinkActivityFeed.tsx:81-95,175` refresh on focus/visibility only — no WebSocket/polling/SSE/
    Supabase-realtime. **70's "RUX-10 / SHF-01 | Fixed" merge is WRONG.** Un-merge: RUX-10 = Fixed;
    SHF-01 = Open (or spec-ratify focus-refresh as intended V2). → decision **D7**.
@@ -99,7 +102,7 @@ All four source-truth verifications returned **CONFIRMED**. Bind every doc to th
 4. **Comment-sanitization test = ALREADY STRONG.** `project-publication-comments.test.tsx:259-278`
    asserts the inserted body excludes `<script>/<img>/<b>/onerror`, includes `bold`, length ≤1000.
    Doc 40 conflated it with the adjacent permissive RPC test (~287). The "weak sanitizer" P0 is stale;
-   only the adjacent RPC/activity permissive-status tests (`comments:~287`, `activity:451-460,604-610`)
+   only the adjacent RPC/activity permissive-status tests (`comments:287`, `activity:484`, `activity:491`, `activity:657`)
    are genuine (P2) tightening items.
 5. **Migration drift = REAL.** Both 2026-06-20 migrations exist in `supabase/migrations/`
    (committed 17:11). `supabase/migrations-pending-review/` holds 10 AC-MOD-* files + EXECUTION_ORDER
@@ -112,11 +115,12 @@ All four source-truth verifications returned **CONFIRMED**. Bind every doc to th
    Doc 70 reused SEC-SHARE-05 for the activity comment-body leak (**Fixed**). Resolution: the
    activity-leak fix becomes **SEC-SHARE-09** (review-discovered, Fixed); SEC-SHARE-05 restored to its
    unsubscribe meaning and tracked as Open-deferred.
-7. **SEC-SHARE-06 (owner digest never fires from public routes) = OPEN, DROPPED.** Public comment/
-   decision routes call `maybeTriggerSharedLinkActivityDigest`, which requires `requireCurrentUserContext()`
-   and returns `digest-auth-required`; failure is swallowed. Functional notification gap — re-add to 70.
-8. **MANAGER-F-01 = PARTIALLY covered.** Only assertion-ordering + rotate double-click landed (80 §11);
-   the full owner/member/viewer/recipient role-rejection matrix is still open. 70's "Covered" → "Partial".
+7. **SEC-SHARE-06 (owner digest never fires from public routes) = FIXED after this pass.** Public comment/
+   decision routes call `maybeTriggerSharedLinkActivityDigest` without requiring current-user auth; D9 remains
+   the beta notification/delivery acceptance surface.
+8. **MANAGER-F-01 = Fixed.** The full signed-in no-access / workspace member / project member /
+   project viewer / public recipient-token visitor rejection matrix landed after the earlier
+   assertion-ordering + rotate double-click work, and `member` role ranking is now explicit.
 9. **Severity drift.** SEC-SHARE-02 and SEC-SHARE-03 are **P2** in doc 10, listed **P1** in doc 70.
    Canonical = origin-audit severity (**P2**); 70 must annotate any deliberate priority elevation.
    Both are Fixed, so this is register-accuracy, not open risk.
@@ -131,7 +135,7 @@ All four source-truth verifications returned **CONFIRMED**. Bind every doc to th
 
 ---
 
-## 5. Open owner decisions (consolidated — full table in `71_OPEN_DECISIONS_REGISTER.md`)
+## 5. Owner decisions (ratified 2026-06-21 — full table in `71_OPEN_DECISIONS_REGISTER.md`)
 
 D1 content-only republish forces recipient reload? · D2 expose exact `project.location` to recipients? ·
 D3 expose `clientName`/totals/public IDs publicly? · D4 in-memory vs durable digest/rate-limit throttle
@@ -141,8 +145,8 @@ D9 fix SEC-SHARE-06 digest now vs beta backlog? · D10 manager-read RLS on `proj
 as release gate vs post-launch? · D11 named e-signature vs named confirmation on Approve (new this pass
 from [25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)).
 
-Plus review-discovered **SEC-SHARE-10** (OG `description` leaks total+clientName on no-password links,
-`page.tsx:314`; → D3) — canonical in [75](75_FINDING_ID_REGISTRY.md).
+Plus review-discovered **SEC-SHARE-10** (OG `description` leaked total+clientName on no-password links;
+now fixed with generic metadata; → D3 broader disclosure policy) — canonical in [75](75_FINDING_ID_REGISTRY.md).
 
 ---
 

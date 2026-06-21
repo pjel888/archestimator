@@ -7,9 +7,10 @@ Lens: `/impeccable` · Owner decision-maker: Philip · Implementing lane: fronte
 > Shared-Link experience — **"from the modal to the shared link page itself"** — to have bad UX/UI. This
 > is the **sender-side** redesign: the publication modal in `src/components/workshop/ProjectPublicationHeader.tsx`
 > (~1172 lines) + `RecipientEmailComposer.tsx`, where a manager creates the link, controls access, invites
-> the client, and watches for a decision. Grounded in a source-level user-POV teardown. The manager UX
-> findings from [30](30_MANAGER_WORKFLOW_AUDIT.md) (MANAGER-F-03/F-04/F-06) are subsumed here. Verification
-> in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
+> the client, and watches for a decision. Grounded in a source-level user-POV teardown. MANAGER-F-03
+> and MANAGER-F-04 are functionally fixed in source; MANAGER-F-06 quick actions are now fixed locally.
+> This blueprint still owns the higher-level manager presentation redesign for the copy/preview moment and recipients list polish.
+> Verification in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
 
 ---
 
@@ -38,9 +39,9 @@ File:line anchors below were re-verified against `ProjectPublicationHeader.tsx` 
 | M-3 | **P0** | *"I changed a setting and nothing happened."* | Access and Estimates tabs have **no save of their own**; password, expiry, and estimate selection only persist when the manager later finds the footer **Update/Generate** button (`:954-987`). "Unsaved — Update to apply" hints (`:777,802`) acknowledge the disconnect. Worse, pressing Update can silently become a destructive **"Clear password?"** confirm (`:963-966`). |
 | M-4 | P1 | *"Which button makes a link, and which one breaks my client's link?"* | **Three-to-four near-synonyms** with different blast radius: "Generate/Update shared page" (`:986`), "New link"=rotate (`:998`, breaks every recipient link), "Turn off link"=revoke (`:1010`), plus "Reactivate"/"Create new link instead" (`:935,948`). Fear of pressing the wrong one. |
 | M-5 | P1 | *"Did anyone open it? What did they say?"* — the payoff is hardest to find. | Activity is the **last** tab, owner-gated, rendered at the **smallest type** (9px, `:685-686`). The "something happened" signal is a **2px dot** on the 14px trigger (`:572-578`) most users never notice. (MANAGER-F-06.) |
-| M-6 | P1 | *Recipients feel cramped and low-trust.* | Each invited person is a tiny **8–9px pill** carrying email + raw status word ("pending/sent/opened/failed") + resend ↻ + ×, packed into one wrapping row (`RecipientEmailComposer.tsx:284,289-298`). No scannable list, no per-recipient open timestamp, destructive Remove hidden in a 9px ×. (MANAGER-F-04.) |
+| M-6 | P1 | *Recipients feel cramped and low-trust.* | Each invited person is still visually cramped, though the functional failed-send retry path is fixed. The remaining issue is presentation: compact pills carry email + raw status word ("pending/sent/opened/failed") + resend/remove controls in a wrapping row, with limited scanability and no per-recipient open timestamp. (Builds on MANAGER-F-04 rather than blocking it.) |
 | M-7 | P1 | *Dead-end when email isn't configured.* | If delivery isn't configured the **whole composer is disabled** with a muted sentence telling the manager to "copy the share link manually" (`RecipientEmailComposer.tsx:277-281`) — no path forward. |
-| M-8 | P2 | *The copy moment is anticlimactic / untrusting.* | Copy is a ghost button firing an `sr-only` toast (`:738-761`) with **no visible "Copied ✓"**, no client preview, no QR. The emotional peak of the flow has the same weight as everything else. (MANAGER-F-03 adjacent.) |
+| M-8 | P2 | *The copy moment is anticlimactic / untrusting.* | Copy is a ghost button firing an `sr-only` toast (`:738-761`) with **no visible "Copied ✓"**, no client preview, no QR. The emotional peak of the flow has the same weight as everything else. MANAGER-F-03's page/API unavailable-link copy is fixed; this row is the remaining presentation opportunity around confidence and preview. |
 | M-9 | P2 | *Everything is flat and squinty.* | Type is uniformly meta-sized (8px access chip `:764`, 9px labels, 10px body); **nothing rises to a 12px title or a confident primary** — zero hierarchy, reads cheap. Native `datetime-local` expiry input (`:859-868`) breaks the SF Pro language. |
 
 **Diagnosis:** the modal is a **database settings panel** for what is fundamentally a **linear,
@@ -107,13 +108,30 @@ for ~2s, a **"Preview as client"** link (opens [25](25_RECEIVER_UX_REDESIGN_BLUE
 small **QR**. Password/expiry state is quiet inline metadata beneath. This answers *"what does my client
 actually see?"* before they send it — the Linear/Notion/Figma share pattern.
 
+**QR strategy:** MVP should not add a new QR dependency by default. First verify whether an existing package,
+browser `Canvas`, or platform utility already covers QR generation within the bundle budget. If not, defer QR
+and keep "Copy link" + "Preview as client" as the beta path; the sheet must not block on QR.
+
 ### 4.4 Access — inline Apply + friendly presets (fixes M-3/M-9)
 Clean "Require password" toggle with an explicit current-state line; password field with show/**Save inline**;
 expiry as **chips** (No expiry / 7 / 14 / 30 days / Custom) replacing the OS-native `datetime-local`. The
 ambiguous "checked box + blank field" state is resolved by showing the saved state explicitly. Honors the
 existing draft/credential-version semantics (do not weaken — see [10](10_SECURITY_PRIVACY_API_AUDIT.md)).
 
-### 4.5 Recipients — a real, humanized list (fixes M-6/M-7; MANAGER-F-04)
+**Action persistence contract:** "saves where made" is a product contract, not decorative copy.
+
+| Setting / action | Save trigger | Existing server action / seam | Dirty state | Success / error copy | Destructive confirm |
+|---|---|---|---|---|---|
+| Estimate inclusion | inline Apply or section Save | create/update publication action in `actions.ts` | "Unsaved estimate changes" near section | "Included estimates updated" / scoped error | No |
+| Password on/off/value | inline Apply in Access | update publication credentials/access action | "Password changes not live yet" | "Password saved" / validation error | Turning off password requires confirm if link is live |
+| Expiry | preset chip + Apply | update publication access action | "Expiry changes not live yet" | "Expiry updated" | Shortening existing live expiry requires confirm |
+| Copy link | immediate client action | no server mutation | none | visible "Copied" state | No |
+| Add recipient | per-recipient Add/Send | recipient add/send action | row pending | per-row Delivered/Failed with retry | No |
+| Remove recipient | row overflow action | recipient remove action | row pending | "Recipient removed" / scoped error | Yes if recipient has opened/responded |
+| Reset link / rotate | Advanced action | rotate credentials action | modal pending | "Link reset; old links no longer work" | Yes, names blast radius |
+| Turn off link | Advanced danger action | revoke action | modal pending | "Link turned off" | Yes |
+
+### 4.5 Recipients — a real, humanized list (builds on fixed MANAGER-F-04)
 One row per person: name/email, a **calm human status pill** (Invited / Delivered / **Opened 2h ago** /
 Approved — icon + text, never color-only), right-aligned **⋯** overflow for Resend/Remove. The chip input
 stays **only for adding** new emails. Destructive Remove (which deletes a recorded decision) moves out of a
@@ -126,7 +144,7 @@ decision, at readable hierarchy (not 9px). This is the realtime question **D7** 
 SHF-01): the owner feed currently refreshes on focus/visibility only (`SharedLinkActivityFeed.tsx:81-95` —
 source-verified, **not** realtime). Decision: either add a lightweight live mechanism or ratify focus-refresh
 with honest "Refresh for the latest" copy. A **dashboard quick-action menu** (copy/preview/rotate/revoke,
-MANAGER-F-06) gives managers the common actions without opening the modal.
+MANAGER-F-06) now gives managers the common actions without opening the modal.
 
 ### 4.7 Unify the action vocabulary (fixes M-4)
 - **One neutral primary**: "**Create link**" before a link exists → "**Save changes**" after. No separate footer.
@@ -137,7 +155,7 @@ MANAGER-F-06) gives managers the common actions without opening the modal.
 
 ## 5. Mapping to existing findings & decisions
 
-- Subsumes **MANAGER-F-03** (unify page/API error + recovery copy via the hero/preview), **MANAGER-F-04** (recipient status chips + retry), **MANAGER-F-06** (dashboard quick actions). **MANAGER-F-01** (RBAC matrix, [75](75_FINDING_ID_REGISTRY.md) = Partial) and **F-02/F-05** are backend/test items in [91](91_FORWARD_EXECUTION_PLAN.md), unaffected by this presentation redesign.
+- Builds on fixed **MANAGER-F-01** (RBAC matrix), **MANAGER-F-03** (page/API unavailable-link copy now comes from `SHARED_LINK_UNAVAILABLE_COPY`), **MANAGER-F-04** (failed-recipient retry), **MANAGER-F-05** (behavioral action tests), and **MANAGER-F-06** (dashboard quick actions); this blueprint can still improve the manager copy/preview moment and recipient list presentation. **F-02** is a backend/test regression item in [91](91_FORWARD_EXECUTION_PLAN.md), unaffected by this presentation redesign.
 - Resolves the realtime question **D7** (SHF-01) on the *manager* side (the client never sees the activity feed — see [25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md) §4.5).
 - Triggers no new schema; all controls map to existing `actions.ts` server actions (verify call sites in [72](72_BLAST_RADIUS_DEPENDENCY_MAP.md)).
 

@@ -2,7 +2,7 @@
 
 Date: 2026-06-20 · **As-of remediation: 2026-06-21**
 
-Status: **Landed (code + focused tests) — pre-deploy DB reconciliation + Codex gate OUTSTANDING.** Finding IDs/severities/statuses are bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) (canonical; 75 wins on any disagreement). Deploy ordering, drift reconciliation, and rollback live in [`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). Open decisions in [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_REGISTER.md). Codex review-gate status belongs in [`LOOP_LEDGER.md`](LOOP_LEDGER.md) (see §Codex Review-Gate Status below).
+Status: **Landed (code + focused tests + code review) — app deploy/ratified-implementation/visual/perf gates OUTSTANDING.** Finding IDs/severities/statuses are bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) (canonical; 75 wins on any disagreement). Deploy ordering, drift reconciliation, and rollback live in [`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). Ratified decisions are in [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_REGISTER.md). Codex review-gate status belongs in [`LOOP_LEDGER.md`](LOOP_LEDGER.md) (see §Codex Review-Gate Status below).
 
 ## Files Changed
 
@@ -28,10 +28,18 @@ Source:
 - `src/components/share/SharePageTabs.tsx`
 - `src/components/workshop/ProjectPublicationHeader.tsx`
 - `src/components/workshop/publication/RecipientEmailComposer.tsx`
+- `src/stories/domain/share/receiver-states.stories.tsx`
 - `src/lib/publication/actions.ts` (owner server actions — implements items 15/18/20: `activity_target_labels_json` persist on publish/republish/rotate at `actions.ts:567,637,698`, compact-label read in `loadSharedLinkActivity` at `actions.ts:1392,1458`, bounded-concurrency recipient sends at `actions.ts:786-791,1038`, and `imageUrl:source_snapshot->>imageUrl` row projection at `actions.ts:399`)
 - `src/lib/publication/activity-helpers.ts`
 - `src/lib/publication/public-repository.ts`
+- `src/lib/publication/share-copy.ts`
+- `src/lib/publication/snapshot.ts`
+- `src/lib/publication/types.ts`
 - `src/lib/share/sanitize-recipient-text.ts`
+- `scripts/check-storybook-component-coverage.mjs`
+- `scripts/measure-shared-link-perf-budgets.ts`
+- `scripts/smoke-share-headers.mjs`
+- `scripts/seed-shared-link-smoke.ts`
 - `supabase/migrations/20260620064601_project_publication_activity_target_labels.sql`
 - `supabase/migrations/20260620142000_restore_shared_link_snapshot_equality_lock.sql`
 
@@ -51,6 +59,13 @@ Tests:
 - `tests/vitest/share-estimate-tree-panel-a11y.test.tsx`
 - `tests/vitest/share-estimate-tree-view-performance.test.tsx`
 - `tests/vitest/share-recipient-session-initializer.test.tsx`
+- `tests/vitest/share/recipient-content-escaping.test.tsx`
+- `tests/vitest/design-enforcer-share-allowlist.test.ts`
+- `tests/vitest/shared-link-perf-budgets-script.test.ts`
+- `tests/vitest/shared-link-header-smoke-script.test.ts`
+- `tests/vitest/shared-link-smoke-seed-script.test.ts`
+- `tests/vitest/storybook-component-coverage.test.ts`
+- `tests/vitest/storybook-provider-boundary.test.ts`
 
 Audit artifacts:
 - `00_INDEX.md`
@@ -62,6 +77,12 @@ Audit artifacts:
 - `60_SPEC_TRACEABILITY_ARCHITECTURE_AUDIT.md`
 - `70_CONSOLIDATED_FINDINGS_AND_BACKLOG.md`
 - `80_IMPLEMENTATION_AND_VERIFICATION_LOG.md`
+- `85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md`
+- `99_QUALITY_SCORECARD_AND_SIGNOFF.md`
+- `LOOP_LEDGER.md`
+- `evidence/perf-budgets.md`
+- `evidence/shared-link-activity-benchmark.md`
+- `evidence/review/codex-review-shared-link-2026-06-21.md`
 
 ## Implementation Details
 
@@ -147,7 +168,7 @@ Problem:
 - The receiver UI only mounts the active estimate tab, so browser print could omit non-active estimate sheets.
 
 Change:
-- `SharePageTabs` now renders a `share-print-only` package containing every shared estimate and every v1.2 estimate tab only on browser print intent.
+- `SharePageTabs` now renders a `share-print-only` package containing every shared estimate and every estimate tab only on browser print intent, resolving compact v1.3 `rowIds` and legacy v1.2 tab rows.
 - `print.css` hides interactive tab chrome during print and shows the full print package instead.
 - The page test proves `beforeprint` mounts all included estimate content and `afterprint` removes the package from normal browsing DOM.
 
@@ -260,18 +281,17 @@ Change:
 - `addSharedLinkRecipients` now processes recipient insert-send-status pipelines with bounded concurrency (`4`) while preserving per-recipient ordering and partial-failure reporting.
 - Tests prove failed recipient sends are error-toned and multi-recipient sends overlap instead of waiting strictly serially.
 
-### 19. Receiver Activity Feed
+### 19. Receiver Activity Handling
 
 Problem:
-- Specs and public route support described receiver-visible activity, but `/share/[token]` did not render it.
-- The activity component also used one-off orange notice classes and low-contrast tertiary text.
+- V1 specs and public route support described receiver-visible activity, but that exposed an owner-style feed on the client-facing proposal surface.
+- The activity component also used one-off orange notice classes and low-contrast tertiary text when used owner-side.
 
 Change:
-- The receiver page now mounts `SharedLinkActivityFeed` in a print-hidden section after comments.
-- The feed uses the existing public-safe activity route, which filters internal content and recipient-scopes decisions/events.
+- The receiver page no longer mounts `SharedLinkActivityFeed`; owner activity remains in the workshop publication manager activity tab.
 - The public activity route now redacts comment bodies entirely, so it does not bypass the stricter recipient-session comment API.
 - Activity notice and muted text now use existing accent/secondary tokens.
-- Page tests prove the receiver page fetches `/api/share/:token/activity`.
+- Page tests prove the receiver page does not render `activity-feed` and does not fetch `/api/share/:token/activity`.
 
 ### 20. Review-Discovered Performance And Privacy Fixes
 
@@ -327,29 +347,199 @@ Change:
 - Analytics failures are caught so recipient session creation is not converted into a public error.
 - A route test proves the session response stays successful when analytics recording rejects.
 
+### 25. Per-Recipient Partial Send Retry Surface
+
+Problem:
+- The recipient composer could report partial send failures globally, but individual failed recipients did not have their own failed chip or retry CTA.
+- Successfully-sent recipients could be visually mixed with failed recipients, weakening manager recovery flow.
+
+Change:
+- `RecipientEmailComposer` now merges per-recipient email results into each chip.
+- Successful recipients keep their sent state; failed recipients show a danger-state "failed" chip plus a per-row Retry action.
+- Retry uses resend for persisted recipients and add-recipient retry for local-only failed entries.
+- `recipient-email-composer.test.tsx` proves a mixed success/failure batch preserves the sent recipient and retries only the failed recipient.
+
+### 26. Real-Component Receiver Storybook Matrix
+
+Problem:
+- RUX-11 required a receiver state matrix that imports real share components with mocked seams rather than fixture-only panels or public route imports.
+
+Change:
+- Added `Domain/Share/ReceiverStates` stories for password, anonymous/session banner, decision, comments, scope-group/fallback, trust-block, not-found, loading, print, and sticky-mobile states.
+- Storybook-local seams set a test cookie and replace `globalThis.fetch`; the story does not import `src/app/share/[token]/page.tsx` or provider/repository code.
+- `scripts/check-storybook-component-coverage.mjs` now requires the new story exports, and provider-boundary tests remain green.
+
+### 27. Targeted Test-Rigor Gap Closure
+
+Problem:
+- QA-G03/G04/G08/G09 were test-rigor gaps: real DOM escaping, recipient-session redirect/cookie integration, comments-after-decision behavior, and broad status-array assertions.
+
+Change:
+- Added `tests/vitest/share/recipient-content-escaping.test.tsx`.
+- Extended `share-recipient-session-initializer.test.tsx` to cover POST, CSRF, cookie setup, and sanitized clean-link navigation.
+- Replaced the comments-after-decision stub with a real decision lock plus follow-up comment submission through `SharePageComments`.
+- Tightened broad status-array assertions in comments/activity/decision tests to exact status/payload expectations.
+
+### 28. Performance Budget Helper And Evidence
+
+Problem:
+- The plan required `scripts/measure-shared-link-perf-budgets.ts`, but the helper did not exist; PERF-06 was still "measure first".
+
+Change:
+- Added `scripts/measure-shared-link-perf-budgets.ts` with modes for `recipient-session-tti`, `snapshot-bytes`, `password-unlock`, and `rotate-cost`.
+- Added regression coverage for the helper.
+- Initial local snapshot-byte evidence showed 100 rows PASS, 1k rows PASS, and 10k rows FAIL at 4.87 MiB vs the 4 MiB budget; §29 records the compact v1.3 fix and refreshed PASS evidence.
+- Captured local activity composition/query fan-out evidence in `evidence/shared-link-activity-benchmark.md`.
+
+### 29. Compact Snapshot v1.3 Tab Row IDs
+
+Problem:
+- PERF-06 was a real payload-size failure: active tab snapshots duplicated each row at `estimate.rows` and again at `estimate.tabs[].rows`.
+
+Change:
+- Added compact snapshot schema v1.3. New tabbed snapshots keep `estimate.rows` for legacy readers and store tab membership as `tabs[].rowIds` instead of duplicated row objects.
+- Kept legacy v1.2 public-read support for stored snapshots that still include `tabs[].rows`.
+- Updated `SharePageTabs` to resolve either v1.3 `rowIds` or legacy v1.2 `rows`.
+- Updated the perf-budget helper note and regression tests.
+
+### 30. Receiver Tab Typography Test-Comment Cleanup
+
+Problem:
+- RUX-12 was a documentation/test accuracy gap: comments still referred to older `text-[10/9/11px]` scale while the current receiver tabs use `text-[13px]`.
+
+Change:
+- `project-publication-page.test.tsx` now asserts the actual `text-[13px]` tab class.
+- The path-scoped `/share` Client Portal type-scale exemption is documented in the test where the assertion lives.
+
+### 31. Header-Smoke Helpers
+
+Problem:
+- QA-G10 needed a repeatable live header-smoke path, but the repo had no redacted helper for checking public share security headers.
+
+Change:
+- Added `scripts/smoke-share-headers.mjs` for HEAD/GET fallback and redacted JSON/Markdown evidence.
+- Added `scripts/seed-shared-link-smoke.ts` for local smoke URL creation, with hosted execution explicitly gated.
+- Added unit coverage for both helpers; live SHARE_URL execution and visual proof remain open.
+
+### 32. Local Perf Measurement Append Support
+
+Problem:
+- PERF-09/PERF-12 evidence needed to coexist with snapshot-byte rows in one perf budget ledger.
+
+Change:
+- `scripts/measure-shared-link-perf-budgets.ts` supports append mode and Markdown row rendering.
+- `evidence/perf-budgets.md` now includes local CPU-only password-unlock and rotate-cost rows alongside snapshot-byte evidence.
+
+### 33. Unified Unavailable-Link Copy
+
+Problem:
+- MANAGER-F-03 had branded not-found page copy and API 404 envelopes that could drift independently.
+
+Change:
+- Added `src/lib/publication/share-copy.ts`.
+- Public share not-found and API 404 paths now import the same unavailable-link copy contract.
+- Route and no-store tests assert the shared contract.
+
+### 34. Behavioral Action-Contract Tests
+
+Problem:
+- MANAGER-F-05 tests were still too close to symbol-presence smoke and did not assert action return/write/RPC/revalidation contracts.
+
+Change:
+- `project-publication-actions.test.ts` now imports the actual server action module under mocked Supabase/server dependencies.
+- It covers republish success/invalid password, rotate success/stale-token conflict, and owner activity-load success/inactive-token failure.
+
+### 35. Full Manager RBAC Role-Rejection Matrix
+
+Problem:
+- MANAGER-F-01 still lacked proof that every publication mutation rejected non-manager actors and public/recipient-token visitors, and project/workspace `member` roles could fall through the rank comparison because `member` was absent from `roleRank`.
+
+Change:
+- Added `member` to `src/lib/publication/actions.ts` `roleRank` below manager rank.
+- Added a 7 mutation actions × 5 actor classes matrix in `project-publication-actions.test.ts`.
+- Each matrix case asserts the shared authorization error plus zero publication writes, RPC calls, and revalidations.
+
+### 36. Offline Queue Flush Test Hardening
+
+Problem:
+- QA-G07 still had a soft placeholder for offline comment queue behavior.
+
+Change:
+- Replaced the placeholder with assertions that an offline comment persists in `sessionStorage`, shows queued UI, retries three failed POST attempts, flushes once on reconnect, clears the queue, sends the queued body/viewToken, and uses a fresh CSRF header instead of a hard-coded token.
+
+### 37. Dashboard Shared-Link Quick Actions
+
+Problem:
+- MANAGER-F-06 still required managers to open project detail before common shared-link actions were available.
+
+Change:
+- Added `PublishedProjectQuickActions` to the dashboard published-project list.
+- Each published row now exposes copy and preview controls with tooltip semantics; manager rows also expose rotate and revoke.
+- Rotate and revoke reuse the existing publication server actions, require modal confirmation before mutation, render `ok:false` results as errors, and refresh the dashboard only after success.
+- `workshop-reset.test.tsx` now covers keyboard tooltip behavior, absolute-link copy, preview href/target, destructive confirmation gates, server-action payloads, manager-only destructive visibility, `ok:false` errors, and router refresh-on-success.
+- `ProjectPublicationHeader` now also treats publication action `{ ok: false }` results as errors before applying local optimistic state; `project-publication-header.test.tsx` covers the stale-rotate path.
+
 ## Verification Evidence
 
-Final focused shared-link suite (CANONICAL run — covers all 16 test files in the Files Changed > Tests list; `project-publication-security-hardening.test.ts` was missing from the prior 15-file command and is now included so the enumerated file set and the Tests list agree):
+Final focused shared-link suite (CANONICAL run — covers the 23 test files that pin the shared-link page, manager,
+API, schema, decision-copy, compact snapshot, perf-helper, and smoke-helper contracts):
 
 ```bash
-bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-route.test.ts tests/vitest/share-no-store-invariants.test.ts tests/vitest/share-estimate-tree-panel-a11y.test.tsx tests/vitest/share-estimate-tree-view-performance.test.tsx tests/vitest/share-recipient-session-initializer.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/recipient-email-composer.test.tsx tests/vitest/security-findings-publication-contracts.test.ts tests/vitest/project-publication-security-hardening.test.ts --maxWorkers=1
+bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-route.test.ts tests/vitest/share-no-store-invariants.test.ts tests/vitest/share-estimate-tree-panel-a11y.test.tsx tests/vitest/share-estimate-tree-view-performance.test.tsx tests/vitest/share-recipient-session-initializer.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/recipient-email-composer.test.tsx tests/vitest/security-findings-publication-contracts.test.ts tests/vitest/project-publication-security-hardening.test.ts tests/vitest/project-publication-schema.test.ts tests/vitest/share/share-page-decision-anonymous.test.tsx tests/vitest/share/share-page-decision-bar-copy-contract.test.tsx tests/vitest/project-publication-snapshot.test.ts tests/vitest/shared-link-perf-budgets-script.test.ts tests/vitest/shared-link-header-smoke-script.test.ts tests/vitest/shared-link-smoke-seed-script.test.ts --maxWorkers=1
 ```
 
-Result — **CANONICAL run re-executed 2026-06-21** (verbatim vitest summary):
+Result — **CANONICAL run re-executed 2026-06-21 after MANAGER-F-01 five-actor RBAC + QA-G07 offline-queue hardening + MANAGER-F-06 dashboard quick actions** (verbatim vitest summary):
 
 ```
- Test Files  16 passed (16)
-      Tests  302 passed (302)
-   Duration  22.82s
+ Test Files  23 passed (23)
+      Tests  353 passed (353)
+   Duration  34.48s
 ```
 
-- **VERIFIED:** the 16-file canonical command exits `0`, `Test Files 16 passed (16)` / `Tests 302 passed (302)`, zero failed/skipped. Binary gate: **PASS**.
-- The historical `15 files / 295 tests` figure was the earlier 15-file command (which omitted `project-publication-security-hardening.test.ts`); the canonical 16-file superset now reads **302 tests**. Both are reconciled — the file enumeration, the command, and the count agree.
+- **VERIFIED:** the 23-file canonical command exits `0`, `Test Files 23 passed (23)` / `Tests 353 passed (353)`, zero failed/skipped. Binary gate: **PASS**.
+- Historical `15 files / 295 tests`, `16 files / 302 tests`, `16 files / 313 tests`, `19 files / 328 tests`, `21 files / 340 tests`, and `23 files / 352 tests` figures are superseded by the 23-file command above; the current file enumeration, command, and count agree.
 
 Additional checks:
 - Focused ESLint passed for `SharePageRecipientSessionInitializer`, `SharePageTabs`, `SharePageComments`, `SharePageSessionBanner`, public comment/session/activity routes, public repository, publication actions, and the touched shared-link tests.
-- `bun run type-check` passed.
-- `git diff --check` passed.
+- `bun run type-check` passed again 2026-06-21 after the MANAGER-F-01/QA-G07/MANAGER-F-06 changes.
+- Targeted ESLint passed for the MANAGER-F-06 dashboard files:
+  `bun run lint src/components/workshop/dashboard/PublishedProjectQuickActions.tsx src/components/workshop/dashboard/WorkshopDashboard.tsx tests/vitest/workshop-reset.test.tsx`.
+- `git diff --check` passed again 2026-06-21 after the MANAGER-F-01/QA-G07/MANAGER-F-06 changes.
+- MANAGER-F-06 dashboard/header quick-action regression passed 2026-06-21 after review fixes:
+  `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx --maxWorkers=1`
+  → **3 files / 107 tests passed**.
+- Targeted ESLint passed for the MANAGER-F-06 dashboard/header/repository files; ESLint reported two pre-existing warnings in `workspace-repository.ts` (`_workspaceId`, `_createdBy`) and no errors.
+- Dashboard follow-up code review findings were resolved and recorded at
+  `evidence/review/codex-review-shared-link-dashboard-followup-2026-06-21.md`.
+- `rg -n "#FFFDF8" src/components/share src/app/share` returned no matches.
+- `rg -n "\bfetch\s*\(" src/stories/domain/share/receiver-states.stories.tsx` returned no matches.
+- The no-broad-status-array scan over public share route tests returned no matches for `toContain(res.status)`, numeric `.includes(res.status)`, or `expect([status...])` patterns.
+- The canonical command above folds in the formerly separate compact snapshot, perf-helper, header-smoke-helper, and smoke-seed-helper tests. jsdom printed the expected `Not implemented: navigation to another Document` warnings from the intentional `window.location.replace` paths.
+- Perf helper coverage passed 2026-06-21:
+  `bunx vitest run tests/vitest/shared-link-perf-budgets-script.test.ts --maxWorkers=1`
+  → **1 file / 4 tests passed**.
+- Storybook source/provider gates passed 2026-06-21:
+  `node scripts/check-storybook-component-coverage.mjs`
+  → **88 story files/titled stories, 473 exports, 43 required titles, Storybook component coverage OK**.
+- Activity benchmark evidence captured:
+  `SHARED_LINK_ACTIVITY_BENCHMARK_ROWS=100,500,1000,2500,10000 SHARED_LINK_ACTIVITY_BENCHMARK_LIMIT=100 MARKDOWN_FILE=.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-activity-benchmark.md bun scripts/benchmark-shared-link-activity.ts`
+  → local 10k synthetic activity composition: owner 56.33 ms, public anonymous 40.42 ms, public recipient 40.07 ms.
+- Snapshot byte budget evidence captured:
+  `bun scripts/measure-shared-link-perf-budgets.ts --mode snapshot-bytes --rows 100,1000,10000 --samples 5 --out .ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/perf-budgets.md`
+  → 100 rows 29.7 KiB PASS, 1k rows 263.1 KiB PASS, 10k rows 2.55 MiB **PASS** vs 4 MiB.
+- Native `code-reviewer` gate passed 2026-06-21; artifact:
+  `evidence/review/codex-review-shared-link-2026-06-21.md`.
+
+Provider readback (project `ebxxqidacheyapmmzavr`, 2026-06-21):
+- `SUPABASE_CLI_TELEMETRY_OPTOUT=1 supabase migration list --linked` showed `20260620064601`,
+  `20260620142000`, `20260621042221`, and `20260621051701` present in both Local and Remote.
+- SQL probe: `project_publications` publication count = 11; complete `estimateLabels` object count = 11;
+  complete `rowLabels` object count = 11; complete `rowEstimateIds` object count = 11.
+- SQL probe: `row_comment_estimate_mismatches = 0`; `row_response_estimate_mismatches = 0`.
+- SQL probe: `shared_link_comments` has all 6 target-context columns; `shared_link_responses` has all 5
+  target-context columns.
+- SQL probe: target-aware `insert_client_comment` and `submit_client_response` are `security_definer = true`,
+  `service_role_can_execute = true`, `anon_can_execute = false`, `authenticated_can_execute = false`.
 
 Earlier incremental runs:
 - 3 files / 55 tests passed after stale snapshot fix.
@@ -386,40 +576,58 @@ the Sev/Status columns here are copied from 75 and corrected to match if they ev
 | 8 | Full-package print output | RUX-04 / PERF-14 | P1/P2 | Fixed |
 | 9 | Recipient session POST hardening | SEC-SHARE-02 | **P2** | Fixed (70 listed P1 — canonical P2) |
 | 10 | Public open-event write limiting | SEC-SHARE-03 | **P2** | Fixed (70 listed P1 — canonical P2) |
-| 11 | Manager regression coverage | MANAGER-F-01 / MANAGER-F-02 | P1 | **MANAGER-F-01 Partial** · MANAGER-F-02 Fixed |
+| 11 | Manager regression coverage | MANAGER-F-01 / MANAGER-F-02 | P1 | **MANAGER-F-01 Fixed** · MANAGER-F-02 Fixed |
 | 12 | HMAC-peppered structured log hashes | SEC-SHARE-04 | P2 | Fixed |
 | 13 | Receiver form a11y + comment ergonomics | RUX-08 / RUX-09 | P2 | Fixed |
 | 14 | Rate-limit cleanup throttle | PERF-03 | P1 | Fixed |
 | 15 | Compact activity target labels | PERF-04 | P2 | Fixed (code) / measure-open |
 | 16 | Large tree row guard | PERF-07 | P2 | Fixed |
 | 17 | Mobile review context + contrast | RUX-05 / RUX-07 | P1/P2 | Fixed |
-| 18 | Recipient failure tone + bounded sends | MANAGER-F-04 (UX) / PERF-08 | P2 | **MANAGER-F-04 Open (UX retry surface)** · PERF-08 Fixed |
-| 19 | Receiver activity feed | RUX-10 / SEC-SHARE-09 / RUX-15 | P2/P1/P3 | Fixed (RUX-10 distinct from **SHF-01 Open**) |
+| 18 | Recipient failure tone + bounded sends | MANAGER-F-04 (UX) / PERF-08 | P2 | MANAGER-F-04 Fixed · PERF-08 Fixed |
+| 19 | Receiver activity handling | RUX-10 / SEC-SHARE-09 / RUX-15 | P2/P1/P3 | Fixed by V2 removal from public receiver; owner activity remains manager-side; **SHF-01 Open** |
 | 20 | Review-discovered perf + privacy fixes | SEC-SHARE-09 / PERF-07B / PERF-13 / PERF-14 | P1/P2 | Fixed |
 | 21 | Recipient session initializer lint fix | — (review hygiene) | P3 | Fixed |
 | 22 | Canonical comment POST reconciliation | PERF-10 | P3 | Fixed |
 | 23 | Receiver session banner touch targets | RUX-06 | P2 | Fixed |
 | 24 | Recipient session analytics deferral | PERF-01A (partial) | P2 | PERF-01A Open (analytics deferral only; server-redirect gated on **D2**) |
+| 25 | Per-recipient partial send retry surface | MANAGER-F-04 | P2 | Fixed |
+| 26 | Real-component receiver Storybook matrix | RUX-11 | P2 | Fixed |
+| 27 | Targeted test-rigor gap closure | QA-G03 / QA-G04 / QA-G08 / QA-G09 | P1/P2 | Fixed |
+| 28 | Performance budget helper + evidence | PERF-06 / PERF-09 / PERF-12 | P2/P3 | Helper landed; PERF-06 fixed in §29 · PERF-09/12 local CPU-only measurements pass; hosted/provider evidence remains open |
+| 29 | Compact snapshot v1.3 tab row IDs | PERF-06 | P2 | Fixed locally; hosted/provider perf evidence remains separate |
+| 30 | Receiver tab typography test-comment cleanup | RUX-12 | P3 | Fixed locally; project-publication-page test now asserts `text-[13px]` and documents the path-scoped `/share` Client Portal type-scale exemption |
+| 31 | Header-smoke helpers | QA-G10 | P2 | Helper scripts landed with unit coverage; live SHARE_URL smoke and visual matrix remain open |
+| 32 | Local perf measurement append support | PERF-09 / PERF-12 | P3 | `evidence/perf-budgets.md` now keeps snapshot + password-unlock + rotate-cost rows in one table |
+| 33 | Unified unavailable-link copy | MANAGER-F-03 | P2 | Fixed locally; branded not-found page and share API 404 envelopes import one copy contract |
+| 34 | Behavioral action-contract tests | MANAGER-F-05 | P3 | Fixed locally; republish, rotate, and owner activity-load success/error branches now assert observable outcomes in `project-publication-actions.test.ts` |
+| 35 | Full manager RBAC role-rejection matrix | MANAGER-F-01 | P1 | Fixed locally; `project-publication-actions.test.ts` rejects 7 mutation actions × 5 actor classes with zero write/RPC/revalidate side effects, and `actions.ts` ranks `member` below manager |
+| 36 | Offline queue flush test hardening | QA-G07 | P1 | Fixed locally; `project-publication-comments.test.tsx` asserts sessionStorage persistence, reconnect flush, queue clearing, body/viewToken payload, and fresh CSRF headers |
+| 37 | Dashboard shared-link quick actions | MANAGER-F-06 | P3 | Fixed locally; `PublishedProjectQuickActions` adds copy/preview plus manager-only rotate/revoke with tooltip semantics, destructive confirms, `ok:false` error handling, and refresh-on-success, covered by `workshop-reset.test.tsx` |
 
 Notes binding to 75 (do not contradict):
 - §9 and §10 are **canonical P2** (origin-audit severity); doc 70 listed them P1. This is register-accuracy, both are Fixed — no open risk. See [75 §1](75_FINDING_ID_REGISTRY.md) and [_COORDINATION §4.9](_COORDINATION.md).
-- §11 closes only assertion-ordering + rotate double-click; the full owner/member/viewer/recipient × every-mutation **RBAC matrix (MANAGER-F-01) remains Partial/Open**. Do not mark this item "done" against MANAGER-F-01.
-- §18 lands bounded sends (PERF-08 Fixed) but the **per-recipient partial-send retry UX (MANAGER-F-04) is Open**, spec'd in [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md).
-- §19 mounts the public-safe feed (RUX-10 Fixed) and closes the comment-body leak (**SEC-SHARE-09**, the review-discovered id — NOT the unsubscribe SEC-SHARE-05). **Owner-feed realtime (SHF-01) is Open** → **D7**.
+- §11 originally closed only assertion-ordering + rotate double-click; §35 now closes the full five-actor-class × every-mutation **RBAC matrix (MANAGER-F-01)**.
+- §18/§25 land both bounded sends (PERF-08 Fixed) and the per-recipient partial-send retry UX (MANAGER-F-04 Fixed).
+- §19 removes the owner-style activity feed from the public receiver page (RUX-10 Fixed) and preserves the comment-body leak fix (**SEC-SHARE-09**, the review-discovered id — NOT the unsubscribe SEC-SHARE-05). **Owner-feed realtime (SHF-01) is Open** → **D7**.
+- §34 closes MANAGER-F-05; §35 closes the separate MANAGER-F-01 role-rejection matrix.
+- §36 closes QA-G07's remaining offline-queue hardening gap; QA-G06 remains the only P1-class QA test-rigor gate.
+- §37 closes MANAGER-F-06; the review-found manager-only visibility and `ok:false` result-handling gaps are now covered, and all MANAGER-F source/test gaps are fixed locally.
 
 ## Iteration Definition-of-Done
 
 This implementation iteration is **DONE** only when every box is green; until then it is **Landed-pending**:
 
-1. **Tests green.** The 16-file canonical command (see Verification Evidence) exits `0` with `Test Files 16 passed (16)`, verbatim summary pasted. Gate: PASS/FAIL on exit code.
-   - Verify: `bunx vitest run <16 files> --maxWorkers=1`
+1. **Tests green.** The canonical 23-file command (see Verification Evidence) exits `0` with `Test Files 23 passed (23)`, verbatim summary pasted. Gate: PASS/FAIL on exit code.
+   - Verify: `bunx vitest run <23 files> --maxWorkers=1`
 2. **Type-check green.** Gate: `bun run type-check` exits `0`.
 3. **Diff hygiene.** Gate: `git diff --check` exits `0`.
-4. **DB reconciled pre-deploy.** `activity_target_labels_json` migration applied (or ledger-repaired) BEFORE the app revision ships; RPC equality contract verified live. Gate: see [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go. Owner-lane: DB/release.
-5. **Codex review-gate satisfied.** HIGH-BLAST-RADIUS (DB/RPC/security) → `/codex:review` PASS on the shared-link diff, OR an explicit recorded waiver. Gate: status logged in [`LOOP_LEDGER.md`](LOOP_LEDGER.md). Owner-lane: Claude lead.
+4. **DB reconciled pre-deploy.** Shared-link migrations `20260620064601`, `20260620142000`, `20260621042221`, and `20260621051701` are applied/repaired and read back on provider BEFORE the app revision ships; app deploy smoke still pending. Gate: see [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go. Owner-lane: DB/release.
+5. **Codex review-gate satisfied.** HIGH-BLAST-RADIUS (DB/RPC/security) → native `code-reviewer` report recorded at
+   `evidence/review/codex-review-shared-link-2026-06-21.md`, with status logged in [`LOOP_LEDGER.md`](LOOP_LEDGER.md).
+   Gate: **PASS** for this code-review gate.
 6. **No canonical-P1 source-fix finding regressed.** Gate: 75 §8 roll-up still shows "No P1 source-fix finding is open" after this diff.
 
-Open P1-class **test-rigor** gaps (QA-G03..G08) and **SHF-01** are tracked separately in
+Remaining P1-class **test-rigor** gap (QA-G06 provider-backed race) and **SHF-01** are tracked separately in
 [`91_FORWARD_EXECUTION_PLAN.md`](91_FORWARD_EXECUTION_PLAN.md) and are NOT part of this iteration's DoD —
 "ready" is therefore conditional (see [`99_QUALITY_SCORECARD_AND_SIGNOFF.md`](99_QUALITY_SCORECARD_AND_SIGNOFF.md)).
 
@@ -505,21 +713,34 @@ the launch verdict in [`99`](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 This shared-link diff is **HIGH-BLAST-RADIUS** (public-facing routes, RPC redefinitions, security/privacy
 fixes), so the Codex review gate applies per `CLAUDE.md` / `.ai/12_agents/payloads/claude.md`.
 
-- **Status: NOT YET SATISFIED (UNVERIFIED).** No `/codex:review` PASS or explicit waiver is recorded for
-  this diff in this pass.
-- **Required action (one of):**
-  - Run `/codex:review` on the shared-link diff and adopt fixes on the merits; OR
-  - Record an explicit owner waiver (rationale + who) if the gate is intentionally skipped for beta.
-- **Where it is recorded:** the gate outcome (PASS / fixes-adopted / waiver) belongs in
-  [`LOOP_LEDGER.md`](LOOP_LEDGER.md), not here — this section only flags the outstanding gate. This log
-  is updated with a back-reference once the ledger entry lands.
-- **Binary gate:** PASS iff a Codex-review PASS (or recorded waiver) exists in `LOOP_LEDGER.md` for this
-  diff; else FAIL (blocks the Iteration Definition-of-Done above).
+- **Status: SATISFIED (PASS).** Native `code-reviewer` subagent review found 0 blocking findings and
+  approved the scoped shared-link code-review gate.
+- **Artifact:** [`evidence/review/codex-review-shared-link-2026-06-21.md`](evidence/review/codex-review-shared-link-2026-06-21.md).
+- **Boundary:** this clears the code-review gate only. It does not clear ratified decision implementation, browser/visual QA,
+  app deploy/post-deploy smoke, or performance budget gates.
+
+## 38. QA-G06 Duplicate-Decision Race Harness
+
+- Added `tests/vitest/share/duplicate-decision-race.provider.test.ts`.
+- Added `evidence/provider-race/duplicate-decision-race.md`.
+- The test is gated by `SUPABASE_DB_URL`, seeds deterministic disposable rows, runs two concurrent
+  `submit_client_response(...)` calls for the same publication/recipient, asserts one success plus one
+  duplicate failure, checks one persisted response row, and cleans up in `finally`.
+- Verification:
+  - `bunx vitest run tests/vitest/share/duplicate-decision-race.provider.test.ts --maxWorkers=1` passed
+    as 1 skipped file because `SUPABASE_DB_URL` was not set.
+  - `bun run lint tests/vitest/share/duplicate-decision-race.provider.test.ts` passed.
+  - `supabase status` failed locally because Docker was not running, so this does **not** prove the
+    provider/local-Supabase race yet.
+- Status: QA-G06 is **Partial**, not Fixed, until this harness passes against local Supabase or the linked
+  Archestimator provider database.
 
 ## Validation Not Run
 
-- Browser/Playwright/visual QA: intentionally skipped because static/component/route tests prove the changed behavior and the Codex App speed guardrail says browser automation is not a default gate.
-- Linked Supabase migration apply: migration files were authored locally; provider mutation was not run in this pass. Live Supabase definitions for comment/decision strict equality were inspected and already had equality/null rejection, but remote migration history is drifted from local history.
-- Deployment ordering: `activity_target_labels_json` must be applied before deploying this app revision because new code selects/writes that column.
-- Local Supabase migration listing: `supabase migration list --local` could not connect because local Postgres on `127.0.0.1:54322` was not running.
+- Browser/Playwright/visual QA: intentionally skipped in this pass because Product Design/browser guidance requires a chosen browser/approval for Playwright-style proof, and static/component/route tests prove the source changes. The client-ship visual gate remains open in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
+- App deploy/post-deploy smoke: not run. Provider shared-link migration/readback is green, but the app revision still needs the [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go.
+- Hosted/provider performance: not complete. Local activity and snapshot-byte evidence is recorded, and PERF-06 snapshot bytes now pass locally; public page p95, password unlock, rotate cost, and provider `EXPLAIN` remain open.
+- Local Supabase migration listing/provider race: local Supabase could not run because Docker was not
+  available (`supabase status` could not connect to the Docker daemon). QA-G06 harness exists but real DB
+  execution remains pending.
 - Full `bun run validate`: skipped because the worktree has substantial unrelated dirty changes outside the shared-link scope. Focused tests plus type-check covered the modified behavior.

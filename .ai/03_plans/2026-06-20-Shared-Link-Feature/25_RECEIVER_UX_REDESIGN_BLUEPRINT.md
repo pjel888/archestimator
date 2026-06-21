@@ -126,10 +126,35 @@ This is the money. Redesign for a nervous layperson:
 - **Confirmation:** a warm **success-green "Approved"** receipt state with what-happens-next and an audit-trail line (signer + timestamp) so the high-stakes click feels safe, real, and acknowledged.
 - **Open product question:** whether "Approve" should capture a **named e-signature** (legally-credible, DocuSign-style) — strong premium/trust signal. → new decision **D11** in [71](71_OPEN_DECISIONS_REGISTER.md).
 
+**Sticky decision accessibility mechanics:** the sticky mobile Respond bar must be last in visual hierarchy
+but not a keyboard trap. DOM order remains after proposal content; skip link/landmark navigation reaches the
+proposal before actions; the sticky bar uses `position: sticky/fixed` only below the reading content, respects
+`env(safe-area-inset-bottom)`, never covers focused inputs or the final line of content, hides in print, and
+announces the opened decision sheet with a labeled modal plus focus restore. Keyboard users must be able to
+open, tab through, Escape-close, and submit without losing scroll context.
+
 ### 4.5 Questions, not "Discussion" (R-6 / R-4)
 - Rename the comments panel **"Questions for {firm}" / "Message your contractor."** Keep the existing safe plumbing (sanitized, rate-limited, recipient-session-gated — see [10](10_SECURITY_PRIVACY_API_AUDIT.md)).
 - **Remove the owner security/activity log from the client view entirely** (`page.tsx:96-101`); it belongs to the manager (see [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md)). This also retires the worst sub-9px type on the page.
 - Translate session language: replace "Sign in as a recipient" / "recipient session required" with friendly no-login copy, and give forwarded/lapsed visitors a graceful **"Need a fresh link? Contact {firm}"** fallback instead of a dead-end.
+
+### 4.6 Content / data contract
+
+The V2 receiver needs proposal-document content that may not exist in today's snapshot. Do not fake it in
+UI copy; wire each field to an explicit source or fallback.
+
+| Field | Preferred source | Fallback for beta | Privacy / decision note |
+|---|---|---|---|
+| Firm name | workspace/organization profile | preparer display name or "Your contractor" | Required for trust; safe on bearer link if owner confirms. |
+| Firm logo | workspace brand asset | omit logo; keep text masthead | No placeholder box. |
+| Prepared by | current user profile on publish | firm name | Avoid exposing private personal email. |
+| Prepared for | publication recipient/client display | project client display | Bound to D3; do not leak in OG previews unless accepted. |
+| Project display | project name/code | generic "Proposal" | Exact address/location governed by D2. |
+| Scope summary | manager-authored proposal summary | generated from estimate names, marked editable before publish | Summary must not invent scope. |
+| Inclusions/exclusions | manager-authored proposal fields | first release can show "Included in estimate" groups only, with exclusions hidden until authored | Exclusions are trust-critical; no bogus boilerplate. |
+| Payment terms / validity / warranty | manager-authored fields | hide section if unavailable except validity when expiry exists | Legal-ish copy needs owner review. |
+| Cover image | project cover image after safe URL normalization | omit media, do not use stock placeholder | RUX-14 contrast/placement gate applies. |
+| Signature/audit line | recorded decision response + recipient identity + timestamp | named confirmation without legal signature | D11 decides full e-signature/storage. |
 
 ---
 
@@ -149,9 +174,9 @@ This is the money. Redesign for a nervous layperson:
 
 ## 6. Mapping to existing findings & decisions
 
-This blueprint **subsumes and supersedes** the receiver polish items, reframing them as one redesign:
+This blueprint **subsumes and supersedes** the receiver polish items for V2, reframing them as one redesign:
 - Closes the intent behind **RUX-05** (AA copy), **RUX-07** (mobile context), **RUX-13** (`#FFFDF8` → the surface *becomes* paper, so the token is applied, not drifted), **RUX-14** (cover contrast — label leaves the image).
-- Reframes **RUX-10 vs SHF-01**: the client does **not** get the activity feed at all (removed), so SHF-01 (owner realtime) is purely a manager-side concern → [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md)/D7.
+- Reframes **RUX-10 vs SHF-01**: V1's mounted public-safe activity feed can remain a source-fix evidence point, but V2 removes client-visible activity entirely. SHF-01 (owner realtime) is purely a manager-side concern → [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md)/D7.
 - Triggers decisions **D1** (republish reload — now also a UX problem: a reading client must not be yanked), **D2** (expose exact `project.location` — the masthead makes this visible; recommend client-safe city/region default, see [13](13_DATA_PRIVACY_DISCLOSURE_DECISION.md)), **D6** (nav contract — *resolved here*: single-column document is canonical; no floating rail), **D11** (e-signature).
 
 ---

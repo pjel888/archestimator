@@ -28,10 +28,10 @@ Open decisions referenced: [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_R
 
 > **Instrumentation readiness (read first):** most signals below ride emitters that are **LIVE today** —
 > sink A (`logStructured` from the public routes) and sink B (the DB event tables) already emit, so those
-> alert gates only need a drain/query wired, not new code. A minority require a **NEW emitter before the
-> gate can fire**: the `digest-auth-required` silent no-op (§2.5 / §3.1, currently swallowed with no log
-> line) and the "owner awareness" success metric (§6, BLOCKED by SEC-SHARE-06). Do **not** read those two
-> gates as already-wired — they are pre-requisite work, not just dashboard wiring.
+> alert gates only need a drain/query wired, not new code. A minority require more evidence before the
+> gate can fire in production: digest delivery success/failure (§2.5 / §3.1) and the "owner awareness"
+> success metric (§6). SEC-SHARE-06's public-route auth gate is fixed in code; any future
+> `digest-auth-required` occurrence is a regression sentinel, not the expected path.
 
 There are exactly **three** sinks. Every signal in §2 maps to one; if a signal has no sink today it is
 marked **UNVERIFIED — no emitter** with the command to confirm.
@@ -39,7 +39,7 @@ marked **UNVERIFIED — no emitter** with the command to confirm.
 | Sink | What it holds | How to query (beta) |
 |---|---|---|
 | **A. Structured route logs** | `logStructured(level, route, errorCode, ipHash, extra)` JSON lines emitted from the public API routes (def: `src/app/api/share/[token]/comment/route.ts:70`; mirrored in `decision/route.ts`, `session/route.ts`). IP is HMAC-hashed (SEC-SHARE-04, `hashPublicTelemetryValue()`), never raw. | Vercel/host log drain → log-search by `route` + `errorCode`. No metrics backend wired yet → **UNVERIFIED: confirm a drain exists** with `rg -n "logStructured" src/app/api/share` (emitter present) and a host-side check that logs are retained. |
-| **B. DB event tables** | `project_publication_events` (`event_type ∈ {open, password_success, password_failure, password_attempt, download_attempt_blocked}`, insert at `src/lib/publication/public-repository.ts:712,748,786`); `security_rate_limit_events` (insert/delete at `src/lib/ai/rate-limit.ts:52-68`). | SQL via Supabase MCP `execute_sql` / `get_logs`, read-only. Manager-read RLS on `project_publication_events` is **gated on D10** (`75` MANAGER-F-01 / 71) — until then query as service-role. |
+| **B. DB event tables** | `project_publication_events` (`event_type ∈ {open, password_success, password_failure, password_attempt, download_attempt_blocked}`, insert at `src/lib/publication/public-repository.ts:712,748,786`); `security_rate_limit_events` (insert/delete at `src/lib/ai/rate-limit.ts:52-68`). | SQL via Supabase MCP `execute_sql` / `get_logs`, read-only. Manager-read RLS on `project_publication_events` is **gated on D10** ([71](71_OPEN_DECISIONS_REGISTER.md)) — until then query as service-role. |
 | **C. Provider/host metrics** | Vercel function p50/p95/p99 latency + error rate per route; Supabase DB CPU/latency; email-provider send results (Resend/P0 `sendEmail`). | Provider dashboards; not yet alert-wired. |
 
 ---
@@ -86,21 +86,21 @@ low-volume — and must be re-baselined after the first 7 days of real traffic (
 - **Routing:** **DB/infra owner**.
 - **Gate:** FAIL if row count exceeds 250k OR the GC job has not run in 25h (pre-launch: FAIL if AC-MOD-T4-P7 is unapplied and no lazy-delete fallback verified — confirm with `rg -n "delete" src/lib/ai/rate-limit.ts`).
 
-### 2.5 Digest send success/failure — **SEC-SHARE-06 silent-failure watch**
-- **Sink:** A (the only signal today is `console.warn`). Send path: `actions.ts:1362-1375` (`{ ok:false, error:"digest-send-failed" }`); owner-email-missing skip warns at `actions.ts:1358`; **the auth gate that silently no-ops from public routes** is `maybeTriggerSharedLinkActivityDigest` at `actions.ts:1526-1534` returning `{ ok:false, error:"digest-auth-required" }`.
-- **Source/query:** count `console.warn("[publication] owner digest skipped…")` and any `digest-send-failed`; **critically**, instrument the `digest-auth-required` early return — it is currently swallowed and emits **no log line**, so the failure is invisible.
-- **Threshold:** ANY `digest-auth-required` occurrence (should be **0** once SEC-SHARE-06 is fixed); `digest-send-failed` > 5% of attempted digests.
-- **Severity:** **P3, Open** per 75 (SEC-SHARE-06). Functional notification gap: owners never learn a recipient commented/decided.
-- **Routing:** **receiver-route owner** + product owner (notification reliability). Decision **D9** (fix now vs beta backlog).
-- **Gate:** FAIL the *digest feature acceptance* if any `digest-auth-required` is observed in beta. (Until SEC-SHARE-06 is fixed, this signal cannot be emitted — see the instrumentation pre-req in §3.1.)
+### 2.5 Digest send success/failure — **SEC-SHARE-06 regression watch**
+- **Sink:** A (the only signal today is `console.warn`). Send path records digest send failures / owner-email-missing skips; SEC-SHARE-06's former public-route `digest-auth-required` path is fixed and should not occur.
+- **Source/query:** count `console.warn("[publication] owner digest skipped…")`, any `digest-send-failed`, and any future `digest-auth-required` string if it reappears in route/action logs.
+- **Threshold:** ANY `digest-auth-required` occurrence; `digest-send-failed` > 5% of attempted digests.
+- **Severity:** **P3, Fixed-with-regression-watch** per 75 (SEC-SHARE-06). Functional notification gap is closed locally; delivery evidence is still needed for beta acceptance.
+- **Routing:** **receiver-route owner** + product owner (notification reliability). Decision **D9** records beta notification/delivery acceptance.
+- **Gate:** FAIL the *digest feature acceptance* if any `digest-auth-required` is observed in beta.
 
 ### 2.6 Snapshot byte size (PERF-06 byte budget)
 - **Sink:** B/C. The heavy `snapshot_json` blob is read in the snapshot path (`public-repository.ts:115,651-660`); size grows O(n) with the published estimate.
 - **Source/query:** `select max(pg_column_size(snapshot_json)), avg(pg_column_size(snapshot_json)) from project_publications where status='published';`
-- **Threshold:** p95 `snapshot_json` size > **512 KB** (warn 256 KB) — placeholder budget; **UNVERIFIED** until measured (see [`50`](50_PERFORMANCE_SPEED_AUDIT.md) PERF-06 "measure first").
-- **Severity:** P2, Open (PERF-06, "Open (measure first)" per 75).
+- **Threshold:** measured local budget uses tiered fixture caps: 100 rows <= 64 KiB, 1k rows <= 512 KiB, and 10k rows <= 4 MiB. Evidence in [`evidence/perf-budgets.md`](evidence/perf-budgets.md) shows compact v1.3 passing at 100 rows 29.7 KiB, 1k rows 263.1 KiB, and 10k rows 2.55 MiB.
+- **Severity:** P2, Fixed locally (PERF-06); provider `pg_column_size(snapshot_json)` monitoring remains useful during beta.
 - **Routing:** **performance owner**.
-- **Gate:** WATCH; produces the byte-size evidence PERF-06 requires. FAIL only if p95 snapshot fetch (C) regresses past the route latency budget in `50`.
+- **Gate:** PASS locally for snapshot bytes while the histogram stays under budget; fail if provider `snapshot_json` bytes breach the tiered caps in beta.
 
 ### 2.7 Rotate duration — PERF-12 O(recipients)
 - **Sink:** C (route/function latency for the rotate action) + A if instrumented.
@@ -114,7 +114,7 @@ low-volume — and must be re-baselined after the first 7 days of real traffic (
 - **Sink:** A. Circuit breaker is real and source-verified: `comment/route.ts:20` (">50% 5xx over 5min → 503 for 2min cooldown"), open-state log `CIRCUIT_OPEN` at `comment/route.ts:264` returning 503 + `Retry-After: 120` at `:265`. Rate-limit 429s at `:159,:275`.
 - **Source/query:** count `logStructured(... "CIRCUIT_OPEN" ...)` events; count 503/5xx vs total on `POST comment`/`POST decision`.
 - **Threshold:** ANY `CIRCUIT_OPEN` event is a page (it means >50% of comment writes were failing); 5xx rate > 1% sustained 10 min.
-- **Severity:** P1-class operational (the breaker exists; QA-G05 "circuit-breaker route test" is **Open** per 75 — the behavior is unverified by test, so the monitor is the only proof in beta).
+- **Severity:** P1-class operational (the breaker exists; QA-G05 exact 503/`Retry-After: 120` route test is **Fixed** per 75, and this monitor is the beta runtime signal).
 - **Routing:** **receiver-route on-call**, page immediately on `CIRCUIT_OPEN`.
 - **Gate:** FAIL if any `CIRCUIT_OPEN` fires without a corresponding upstream (Supabase/provider) incident — indicates an app-side defect, not a dependency outage.
 
@@ -124,11 +124,11 @@ low-volume — and must be re-baselined after the first 7 days of real traffic (
 
 These are the four monitoring obligations the audit explicitly demands. Each has an owner-lane and a binary gate.
 
-### 3.1 SEC-SHARE-06 silent digest failure — **instrumentation pre-requisite**
+### 3.1 SEC-SHARE-06 digest delivery — **observability follow-up**
 - **Owner-lane:** receiver-route owner.
-- **Action:** before the digest can be monitored (§2.5), the `digest-auth-required` early return (`actions.ts:1534`) and `digest-send-failed` (`actions.ts:1375`) must emit a **structured log line** (sink A), not a swallowed return. Acceptance — *Given* a public comment/decision POST triggers `maybeTriggerSharedLinkActivityDigest`, *When* the auth gate returns `digest-auth-required`, *Then* exactly one structured warn line lands in the route log with the publication id (hashed) and reason.
-- **Verification:** `rg -n "digest-auth-required|digest-send-failed" src/lib/publication/actions.ts` shows a log emit adjacent to each return; route test asserts the line. `bunx vitest run src/lib/publication/__tests__ --maxWorkers=1`.
-- **Gate:** FAIL until both returns are observable. Tracks D9.
+- **Action:** capture delivery evidence for the fixed public-route digest path and keep send failures observable. Acceptance — *Given* a public comment/decision POST triggers `maybeTriggerSharedLinkActivityDigest`, *Then* the helper runs without `digest-auth-required`, and any email-send failure emits one structured warning with publication identity redacted/hashed.
+- **Verification:** `bunx vitest run tests/vitest/project-publication-activity.test.tsx --maxWorkers=1`; hosted smoke/evidence should record one public comment/decision digest attempt and no `digest-auth-required` logs.
+- **Gate:** FAIL if `digest-auth-required` appears or digest delivery errors exceed §2.5 thresholds. Tracks D9.
 
 ### 3.2 PERF-12 rotate O(recipients) growth
 - **Owner-lane:** manager-workflow owner.
@@ -206,5 +206,5 @@ on open/comment/decision); plus a manual `execute_sql` count after a seeded beta
 | Product owner (Philip) | §2.2, §6 | (no page) D1 input + metric capturability; holds dashboard + GA verdict |
 
 All severities/statuses above are bound to [`75`](75_FINDING_ID_REGISTRY.md). No conflict with 75 was
-found while authoring (SEC-SHARE-06 P3/Open, PERF-06 P2/Open-measure, PERF-12 P3/Open-measure,
-SEC-SHARE-01 P1/Fixed, QA-G05 P1/Open all match).
+found while authoring; current 75 status is SEC-SHARE-06 P3/Fixed, PERF-06 P2/Fixed,
+PERF-12 P3/Open-measure, SEC-SHARE-01 P1/Fixed, QA-G05 P1/Fixed.

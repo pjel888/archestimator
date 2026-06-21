@@ -6,6 +6,11 @@ This brief is the missing top of the pack. The engineering lanes assume it but n
 below is the *intent* that the audits, the redesign blueprints, and the backlog serve. Structure follows
 Rumelt's kernel: **diagnosis → guiding policy → coherent action.**
 
+External-market context that informed the receiver/manager UX direction is summarized in
+[15](15_MARKET_AND_UX_RESEARCH_NOTE.md). It supports the close-cycle focus (professional proposal,
+opened/seen feedback, approvals, and signature/confirmation), but it does not override local security,
+database, owner-decision, or visual-QA gates.
+
 ---
 
 ## 1. Diagnosis — the problem
@@ -46,7 +51,7 @@ is the sender's control-and-feedback; performance (50) is "fast enough not to er
    document that breathes (`proposalPaper`, Source Serif). The manager is **compact private** but must be
    **linear and legible**, not a settings database. Stop pointing the dense app register at clients.
 3. **Closed-beta first, GA-gated.** Ship to a controlled set of contractors on a **single-node** topology;
-   treat durability (D4), realtime (D7), and snapshot-scale (PERF-06) as **GA blockers**, not beta blockers.
+   treat durability (D4), realtime (D7), and provider-scale perf evidence as **GA blockers**, not beta blockers. PERF-06 snapshot bytes now pass locally with compact v1.3 row IDs.
 4. **Decide explicitly.** Nothing ships by default-in-code on a money/privacy/security question without an
    owner call ([71](71_OPEN_DECISIONS_REGISTER.md)).
 
@@ -57,16 +62,18 @@ is the sender's control-and-feedback; performance (50) is "fast enough not to er
   bearer surface leaks nothing unintended (10/12/13).
 - Make the receiver a **premium, trustworthy proposal document** and the manager modal a **calm linear
   Share sheet** (25/35) — the owner's explicit "the UX is bad, fix it" mandate.
-- Get the pack to **executable, deployable, decided** state (90/91/71/99) for a closed beta.
+- Get the pack to **executable and decision-ready** state (90/91/71/99) for a closed beta. Deployability is
+  proved only after [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) and the ratified implementation gates pass.
 
 **Non-goals (this iteration)**
-- Full legal e-signature (D11), realtime owner feed (D7), durable distributed throttling (D4), normalized
-  snapshot storage (PERF-06), one-RPC write consolidation (PERF-05), a floating nav rail (D6 — retired).
+- Full legal e-signature (D11), realtime owner feed (D7), durable distributed throttling (D4),
+  one-RPC write consolidation (PERF-05), a floating nav rail (D6 — retired).
 
 ## 5. Success metrics
 
-The feature is *successful* (not merely *complete*) when these move. Instrumentation substrate already
-exists (open-event + session telemetry); wire it up per [92](92_OBSERVABILITY_AND_ALERTING.md).
+The feature is *successful* (not merely *complete*) when these move. Some event sources exist
+(open-event + session telemetry), but dashboards, owner digest reliability, alert sinks, and beta reporting
+still need implementation/verification per [92](92_OBSERVABILITY_AND_ALERTING.md).
 
 | | Metric | Why | Source |
 |---|---|---|---|
@@ -76,6 +83,7 @@ exists (open-event + session telemetry); wire it up per [92](92_OBSERVABILITY_AN
 | Secondary | Comment / question volume per link | Engagement vs confusion proxy. | comment events |
 | Secondary | Stale-409 rate (republish-during-review friction, D1) | Whether republish UX hurts. | 409 telemetry ([92](92_OBSERVABILITY_AND_ALERTING.md)) |
 | Qualitative | Manager confidence ("looked professional / I knew when they opened it") | The sender's emotional bar. | beta interviews |
+| Market check | Proposal-viewed and approved/changed signals | Proposal tools commonly sell opened/approval feedback as close-cycle value; validate Archestimator's version in beta. | [15](15_MARKET_AND_UX_RESEARCH_NOTE.md) + beta interviews |
 
 **Anti-metric:** raising "links created" without raising **response rate** means the surface still isn't
 closing — watch the ratio, not the volume.
@@ -85,15 +93,15 @@ closing — watch the ratio, not the volume.
 - **V1:** simple public link (read-only snapshot, no identity/decision/control).
 - **V2 (this):** recipient management + decisions + comments + access control (password/expiry/rotate/revoke)
   + owner activity + security hardening + a redesigned, trustworthy receiver/manager experience.
-- **Later (GA+):** legal e-signature (D11), realtime owner feed (D7), durable throttling (D4), normalized
-  snapshot (PERF-06), one-RPC writes (PERF-05), rotate credential-version model (PERF-12).
+- **Later (GA+):** legal e-signature (D11), realtime owner feed (D7), durable throttling (D4),
+  one-RPC writes (PERF-05), rotate credential-version model (PERF-12), provider-scale perf hardening.
 
 ## 7. Scope cut for this iteration
 
 | In-scope now | Deferred to V2.x / GA | Out-of-scope |
 |---|---|---|
-| Decision-integrity (SEC-SHARE-01 ✓), public-API safety, sanitization, no-store, CSRF, rate-limit | Durable throttle (D4), realtime feed (D7), normalized snapshot (PERF-06), one-RPC writes (PERF-05) | Full legal e-signature (D11 — GA decision) |
-| Receiver + manager UX redesign (25/35), phased | RBAC role-rejection matrix completion (MANAGER-F-01 residual) | Floating nav rail (D6 — retired) |
+| Decision-integrity (SEC-SHARE-01 ✓), public-API safety, sanitization, no-store, CSRF, rate-limit, compact snapshot bytes (PERF-06 ✓) | Durable throttle (D4), realtime feed (D7), one-RPC writes (PERF-05), provider-scale perf hardening | Full legal e-signature (D11 — GA decision) |
+| Receiver + manager UX redesign (25/35), phased | RBAC role-rejection matrix maintenance (MANAGER-F-01 fixed; preserve coverage) | Floating nav rail (D6 — retired) |
 | Privacy decisions D2/D3, digest fix D9, deploy/migration reconciliation D8 | RLS symmetry on events (D10 — post-launch) | Multi-node/scale-out features |
 
 ## 8. Why the landed fixes matter (product weighting)
@@ -113,6 +121,6 @@ single-node topology is recorded; and [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) 
 **GA adds:** durable throttle, realtime feed (if chosen), snapshot-scale budgets met, e-signature decision,
 and the response-rate metric trending up in beta.
 
-Links: backlog [70](70_CONSOLIDATED_FINDINGS_AND_BACKLOG.md) · decisions [71](71_OPEN_DECISIONS_REGISTER.md)
-· execution [91](91_FORWARD_EXECUTION_PLAN.md) · scorecard [99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) · id
-registry [75](75_FINDING_ID_REGISTRY.md).
+Links: research [15](15_MARKET_AND_UX_RESEARCH_NOTE.md) · backlog [70](70_CONSOLIDATED_FINDINGS_AND_BACKLOG.md)
+· decisions [71](71_OPEN_DECISIONS_REGISTER.md) · execution [91](91_FORWARD_EXECUTION_PLAN.md) · scorecard
+[99](99_QUALITY_SCORECARD_AND_SIGNOFF.md) · id registry [75](75_FINDING_ID_REGISTRY.md).

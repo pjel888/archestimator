@@ -7,7 +7,8 @@ Mode: static/source/story/test/spec inspection only. No browser, Playwright, scr
 > **As-of status (2026-06-21):** This doc was reconciled post-implementation and carries
 > "Fixed" stamps from the implementation pass. **The canonical status, severity, and IDs for every
 > RUX finding live in [75](75_FINDING_ID_REGISTRY.md) §2 — if this doc disagrees, 75 wins.** As of
-> 2026-06-21 the open RUX backlog per 75 is **RUX-11/12/13/14**; RUX-01..10 and RUX-15 are Fixed.
+> 2026-06-21 the open RUX backlog per 75 is **RUX-14 visual proof** plus any owner-accepted visual proof gates;
+> RUX-01..13 and RUX-15 are Fixed.
 > Cross-refs: receiver redesign blueprint [25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md), UX-acceptance +
 > visual-QA gate [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md), open decisions
 > [71](71_OPEN_DECISIONS_REGISTER.md), coordination [_COORDINATION.md](_COORDINATION.md).
@@ -102,9 +103,9 @@ Worktree note: `git status --short` showed many unrelated dirty files in dashboa
 
 7. Activity
    - `SharedLinkActivityFeed` supports owner/public fetch branches, loading/error/empty/feed states, focus/visibility refresh, keyboard-focusable feed articles, details disclosure, pagination, and honest refresh copy: `SharedLinkActivityFeed.tsx:25-95`, `SharedLinkActivityFeed.tsx:97-176`.
-   - **CORRECTED 2026-06-21 (RUX-10 Fixed — see [75](75_FINDING_ID_REGISTRY.md) §2):** the original narrative here claimed the public `/share/[token]` page "does not import or mount `SharedLinkActivityFeed`". That is now stale. The receiver page **does** import it (`page.tsx:11`) and mounts it with `isOwner={false}` through the public-safe filtered activity route (`page.tsx:97`: `<SharedLinkActivityFeed publicationToken={token} isOwner={false} />`). It is also still mounted for owners in the workshop publication manager activity tab (`ProjectPublicationHeader.tsx:683-699`).
-   - **Scope guard:** RUX-10 = receiver page now mounts the feed. It does **NOT** add realtime/live updates — the feed still refreshes only on focus/visibility (`SharedLinkActivityFeed.tsx:81-95`). The missing-realtime gap is the **distinct, still-Open** finding **SHF-01** (75 §6, [60](60_SPEC_TRACEABILITY_ARCHITECTURE_AUDIT.md)); do not conflate the two.
-   - This resolves the older walkthrough drift that lists receiver activity: `.ai/06_specs/walkthrough-shared-link-overhaul.md:82-86`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:117-120`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:186-187` (the receiver still uses a single-column layout, not the full Link/Sheets/Access/Recipients/Activity tabbed dashboard — see SHF-02, 75 §6).
+   - **CURRENT 2026-06-21 (RUX-10 Fixed by V2 removal — see [75](75_FINDING_ID_REGISTRY.md) §2):** the public `/share/[token]` page no longer imports or mounts `SharedLinkActivityFeed`. Public feedback history is represented through comments/decision context; owner activity remains in the workshop publication manager activity tab. The stale V1 evidence that `/share` fetched `/api/share/[token]/activity` is superseded and must not be used as a V2 requirement.
+   - **Scope guard:** RUX-10 = receiver page does not expose an owner-style activity feed. It does **NOT** decide realtime/live updates — the owner feed still refreshes only on focus/visibility. The missing-realtime gap is the **distinct, still-Open** finding **SHF-01** (75 §6, [60](60_SPEC_TRACEABILITY_ARCHITECTURE_AUDIT.md)); do not conflate the two.
+   - This intentionally diverges from older walkthrough drift that listed receiver activity: `.ai/06_specs/walkthrough-shared-link-overhaul.md:82-86`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:117-120`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:186-187` (the receiver still uses a single-column layout, not the full Link/Sheets/Access/Recipients/Activity tabbed dashboard — see SHF-02, 75 §6).
 
 8. Print/mobile/error states
    - Print CSS hides receiver-only chrome, removes backgrounds/shadows, and targets `.share-print-estimate` blocks for page breaks: `print.css:1-48`.
@@ -125,39 +126,38 @@ Worktree note: `git status --short` showed many unrelated dirty files in dashboa
 | RUX-07 | P2 | Fixed in this implementation pass. Mobile grid/tree rows now show `Qty ... · unit` as secondary inline metadata. **Fix:** Grid/tree mobile rows render `Qty … · unit` (`SharePageTabs.tsx`, `ShareEstimateTreeView.tsx`). | Mobile reviewers can verify basic quantity/unit math without switching to desktop. | Keep discipline hidden on compact mobile unless product asks for denser row details. | `project-publication-page.test.tsx` and `share-estimate-tree-panel-a11y.test.tsx` cover quantity/unit visibility. |
 | RUX-08 | P2 | Fixed in this implementation pass. Plain Enter now inserts a newline, while Ctrl/Command+Enter submits. **Fix:** `SharePageComments.tsx` (Enter = newline; Ctrl/⌘+Enter submits). | Multi-line review notes are less likely to be sent accidentally. | Keep client-facing compose controls button-first unless a shortcut is visibly explained. | `tests/vitest/project-publication-comments.test.tsx` covers newline and keyboard submit behavior. |
 | RUX-09 | P2 | Fixed in this implementation pass. Password feedback now has a stable alert id and the input receives `aria-invalid`/`aria-describedby` when feedback is present. **Fix:** `ProjectPublicationPasswordForm.tsx` (`aria-invalid`/`aria-describedby`). | Screen-reader users get a programmatic relationship between the password field and invalid/locked feedback. | Keep future password-gate feedback tied to the input. | `tests/vitest/project-publication-page.test.tsx` covers invalid/locked ARIA state. |
-| RUX-10 | P2 | Fixed in this implementation pass. `/share/[token]` now mounts `SharedLinkActivityFeed` through the existing public-safe filtered activity route. **Fix:** `src/app/share/[token]/page.tsx:11` (import) + `page.tsx:97` (`<SharedLinkActivityFeed publicationToken={token} isOwner={false} />`) via `/api/share/[token]/activity`. **Distinct from SHF-01 (realtime, still Open — 75 §6); RUX-10 does NOT add live updates.** | Receiver activity is no longer only an owner/workshop concept, and the implementation now matches the spec direction without leaking internal activity. | Keep public activity copy restrained and monitor whether clients need a separate Activity tab later. | `project-publication-page.test.tsx` proves the receiver page fetches `/api/share/:token/activity`; `project-publication-activity.test.tsx` covers public filtering. |
-| RUX-11 | P2 | Storybook share receiver coverage is fixture-only and explicitly avoids public share routes/session/comments/password: `share-review.stories.tsx:21-32`, `share-review-panel.stories.tsx:32-43`. | Designers cannot inspect the real receiver state matrix in Storybook: password gate, anonymous read-only, recipient session, decision modal, comments/offline, mobile table/tree, and print states are not represented. | Add integrated static stories for the actual share components with mocked hooks/fetches, not token routes. Include state matrix and mobile viewport docs. | Storybook story audit or static story tests, no browser automation required unless later requested. |
-| RUX-12 | P3 | `tests/vitest/project-publication-page.test.tsx:476-479` still says tab buttons use `text-[10px]`/`[9px]`/`[11px]`, while implementation uses `text-[13px]` at `SharePageTabs.tsx:393`. The design enforcer allowlist intentionally exempts `/share` px caps: `design-enforcer-share-allowlist.test.ts:8-18`, `design-enforcer-share-allowlist.test.ts:30-46`. | Test comments and historical contracts are stale. Future agents may "fix" receiver typography toward the old app cap and hurt client readability. | Update stale test comments/expectation language to reference the Client Portal type-scale exemption and current 13px tabs. | Docs/test-only check; no product behavior change. |
+| RUX-10 | P2 | Fixed in this implementation pass. `/share/[token]` no longer mounts the owner/public activity feed; recipient history remains comments/decision context while owner activity stays in the workshop manager activity tab. **Distinct from SHF-01 (realtime, still Open — 75 §6); RUX-10 does NOT decide live updates.** | The receiver surface avoids importing owner-style activity behavior into the client review page. | Keep receiver feedback history focused unless product explicitly reintroduces a public activity surface. | `project-publication-page.test.tsx` proves the receiver page does not mount `activity-feed` or fetch `/api/share/:token/activity`; `project-publication-activity.test.tsx` still covers the public-safe route. |
+| RUX-11 | P2 | Fixed. `src/stories/domain/share/receiver-states.stories.tsx` imports the real receiver components and exposes password, anonymous, recipient banner, decision, comments/offline, scope groups, trust, not-found, loading, print, and sticky-response states. | Designers now have an integrated static receiver-state matrix without requiring token routes. | Keep the matrix aligned with new receiver states; do not replace it with fixture-only token stories. | `node scripts/check-storybook-component-coverage.mjs`, `tests/vitest/storybook-component-coverage.test.ts`, and `tests/vitest/storybook-provider-boundary.test.ts` cover the required stories and provider boundaries. |
+| RUX-12 | P3 | Fixed. `tests/vitest/project-publication-page.test.tsx` now asserts the actual `text-[13px]` estimate-tab class and documents the path-scoped `/share` Client Portal type-scale exemption. | Future agents no longer get a stale signal to downsize receiver tab typography toward the old app cap. | Preserve the `/share` px-cap exemption as path-scoped in `design-enforcer-share-allowlist.test.ts`. | `bunx vitest run tests/vitest/project-publication-page.test.tsx --maxWorkers=1`. |
 | RUX-13 | P2 | **CORRECTED 2026-06-21 (per [75](75_FINDING_ID_REGISTRY.md) §2): full set is 8 `#FFFDF8` literals across 4 files, not 5/2.** `SharePageDecision.tsx:138`, `:242`, `:261`, `:317`; `ShareEstimateTreePanel.tsx:256` (was stale `:239`); `src/app/share/[token]/not-found.tsx:5`; `src/app/share/[token]/loading.tsx:9`, `:47`. Token exists in `DESIGN.md:369`. **Source-verified 2026-06-21** via `grep -rn "FFFDF8" src/ \| grep -v test`. | Theming is mostly disciplined, but hard-coded proposal paper makes future theme adjustments harder and creates token drift risk. | **Fix:** add a `bg-proposalPaper` utility (Tailwind token / CSS var) and replace all 8 literals; add a "no `#FFFDF8` outside tokens" lint guard. | Design lint/token grep proves zero `#FFFDF8` literals outside tokens/tests. See acceptance criteria below. |
 | RUX-14 | P3 | Cover image overlay uses `from-black/35` with `text-white/90` on arbitrary project images: `SharePageHero.tsx:42-43`. **Source-verified 2026-06-21.** | Contrast over light/complex cover images is indirect and image-dependent; label may be illegible. It is not critical content, but it can look unpolished. | **Fix:** strengthen the scrim (or move the "Project cover" label off the image) so the label meets **WCAG AA 4.5:1** over a worst-case light cover. | Visual contrast proof over a representative light cover image lives in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md). See acceptance criteria below. |
 | RUX-15 | P3 | Fixed in this implementation pass. `SharedLinkActivityFeed` now uses existing accent/secondary tokens instead of one-off orange notice classes. **Fix:** `SharedLinkActivityFeed.tsx` (accent/secondary tokens). | Activity notices better match the restrained receiver surface. | Keep orange reserved for warning semantics. | Static source review and activity tests passed. |
 
-### 3a. Acceptance criteria for the open RUX backlog (RUX-11/12/13/14)
+### 3a. Acceptance criteria for RUX proof gates and fixed story/test gates
 
-Status/severity for all four are bound to [75](75_FINDING_ID_REGISTRY.md) §2 (all **Open**). Owner-lane and
+Status/severity for all rows are bound to [75](75_FINDING_ID_REGISTRY.md) §2. Owner-lane and
 binary pass/fail gates below; sequencing in [91](91_FORWARD_EXECUTION_PLAN.md).
 
-- **RUX-11** (P2, Open) — **Owner lane:** Test/Story lane.
+- **RUX-11** (P2, Fixed) — **Owner lane:** Test/Story lane.
   - Given a designer opens Storybook, When they view the share-receiver stories, Then the real share
     components (password gate, anonymous read-only, recipient session, decision modal, comments +
     offline/queued, mobile table/tree, print) render with mocked hooks/fetches — **not** token routes.
-  - Target file(s): `src/stories/domain/share/*.stories.tsx` (extend `share-review.stories.tsx`,
-    `share-review-panel.stories.tsx`); spec lives in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
-  - Verify: `bunx vitest run src/stories/domain/share --maxWorkers=1` (or the static story test that
-    asserts the state matrix is present).
+  - Target file(s): `src/stories/domain/share/receiver-states.stories.tsx`; spec lives in
+    [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
+  - Verify: `node scripts/check-storybook-component-coverage.mjs` plus the focused Storybook vitest
+    coverage/provider-boundary tests.
   - **Gate (binary):** PASS only if every state in the 85 matrix has a corresponding story and the
     suite is green; otherwise FAIL.
 
-- **RUX-12** (P3, Open, docs-only) — **Owner lane:** Test/QA lane.
-  - Given the receiver tab font is `text-[13px]` (`SharePageTabs.tsx:393`), When a reader inspects the
-    test, Then the stale `text-[10px]`/`[9px]`/`[11px]` comment language at
-    `tests/vitest/project-publication-page.test.tsx:476-479` is updated to reference the current 13px
-    tabs and the Client Portal type-scale exemption (`design-enforcer-share-allowlist.test.ts:8-18`).
+- **RUX-12** (P3, Fixed) — **Owner lane:** Test/QA lane.
+  - Given the receiver tab font is `text-[13px]`, When a reader inspects the test, Then the stale
+    `text-[10px]`/`[9px]`/`[11px]` language is gone and the test references the current 13px tabs
+    plus the Client Portal type-scale exemption (`design-enforcer-share-allowlist.test.ts:8-18`).
   - Target file(s): `tests/vitest/project-publication-page.test.tsx`.
   - Verify: `bunx vitest run tests/vitest/project-publication-page.test.tsx --maxWorkers=1`.
   - **Gate (binary):** PASS only if no stale `text-[10/9/11px]` comment remains and the suite is green.
 
-- **RUX-13** (P2, Open) — **Owner lane:** Design-system lane.
+- **RUX-13** (P2, Fixed) — **Owner lane:** Design-system lane.
   - Given 8 `#FFFDF8` literals across 4 files (enumerated above), When the fix lands, Then all 8 are
     replaced by a `bg-proposalPaper` utility and a lint/test guard fails on any new `#FFFDF8` outside
     tokens/tests.
@@ -168,7 +168,7 @@ binary pass/fail gates below; sequencing in [91](91_FORWARD_EXECUTION_PLAN.md).
     `bunx vitest run tests/vitest/design-enforcer-share-allowlist.test.ts --maxWorkers=1` is green.
   - **Gate (binary):** PASS only if the grep is empty AND the guard test is green; otherwise FAIL.
 
-- **RUX-14** (P3, Open) — **Owner lane:** Design / Visual-QA lane.
+- **RUX-14** (P3, Fixed source / visual-proof open) — **Owner lane:** Design / Visual-QA lane.
   - Given the "Project cover" label over an arbitrary cover image, When rendered over a worst-case
     light/complex cover, Then the label text meets **WCAG AA 4.5:1** contrast (stronger scrim or the
     label moved off-image).
@@ -187,7 +187,10 @@ Run from repo root:
 grep -rn "FFFDF8" src/ | grep -v test
 
 # RUX-11/12/13 focused suites:
+node scripts/check-storybook-component-coverage.mjs
 bunx vitest run \
+  tests/vitest/storybook-component-coverage.test.ts \
+  tests/vitest/storybook-provider-boundary.test.ts \
   tests/vitest/project-publication-page.test.tsx \
   tests/vitest/design-enforcer-share-allowlist.test.ts \
   --maxWorkers=1
@@ -206,26 +209,23 @@ bun run type-check
 
 | Dimension | Score | Key Finding |
 |---|---:|---|
-| Accessibility | 3/4 | Strong ARIA effort exists for tabs, dialogs, regions, live updates, and feed articles; this pass fixed contrast, tree keyboard reachability, receiver activity exposure, mobile quantity/unit context, session-banner touch targets, and password error association. Storybook state coverage remains. |
+| Accessibility | 3/4 | Strong ARIA effort exists for tabs, dialogs, regions, live updates, and feed articles; this pass fixed contrast, tree keyboard reachability, receiver activity exposure, mobile quantity/unit context, session-banner touch targets, password error association, and Storybook state coverage. Browser visual proof remains separate. |
 | Performance-perceived UX | 3/4 | Good no-store/dynamic posture, deferred telemetry, lazy row images, reserved hero aspect ratio, no always-on activity polling, deferred print package, and visible recipient-session failure. Recipient-link server redirect remains a future optimization. |
 | Responsive behavior | 3/4 | Horizontal tab scroll, mobile tree collapse, safe-area padding, mobile quantity/unit context, and session-banner hit areas are covered. Dense proposal tree/table rows are still intentionally compact. |
-| Theming | 3/4 | Mostly tokenized, restrained, and proposal-paper aligned. Low-contrast tertiary usage and orange activity notice were cleaned up; hard-coded `#FFFDF8` token drift remains. |
+| Theming | 3/4 | Mostly tokenized, restrained, and proposal-paper aligned. Low-contrast tertiary usage, orange activity notice, and hard-coded `#FFFDF8` token drift were cleaned up; cover-image contrast proof remains. |
 | Anti-pattern risk | 3/4 | The surface avoids obvious AI-slop patterns: no purple gradients, no over-rounded cards, no hero-metric template, no heavy decorative depth. Main risk is raw admin/dashboard feel in dense tree/grid sections and stale specs that describe a different tabbed dashboard. |
-| Total | 12/20 | Acceptable after the implementation pass, with remaining polish centered on Storybook state coverage, token cleanup, and visual proof. |
+| Total | 12/20 | Acceptable after the implementation pass, with remaining polish centered on contrast visual proof and owner-accepted browser QA. |
 
-**Target threshold:** the launch acceptance bar for this surface is **≥ 16/20 (4/5 dimensions at 3/4 or
-better, none below 3/4)**, with the four open RUX items (RUX-11/12/13/14) closed. The authoritative
-acceptance bar, state/viewport matrix, and visual-QA gate live in
-[85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md); the receiver-redesign direction is in
-[25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md). The 12/20 here is the **post-pass baseline**, not the
-ship bar — closing RUX-11/12/13/14 lifts Accessibility/Theming/Anti-pattern dimensions toward the
-threshold. Binary gate: PASS only when total ≥ 16/20 **and** RUX-11..14 are Fixed per
-[75](75_FINDING_ID_REGISTRY.md) §2.
+**Baseline vs ship bar:** the **12/20** score here is the post-pass baseline for the current receiver,
+not the client-ship bar. This audit's older **>=16/20** threshold is superseded by
+[85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md): beta client ship requires **>=18/20**, the required state/
+viewport matrix and RUX-14 contrast acceptance. The receiver-redesign direction is
+in [25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md). Binary gate: PASS only when the 85 gate passes and
+the remaining RUX-14 proof item is Fixed or explicitly accepted per [75](75_FINDING_ID_REGISTRY.md) §2.
 
 ## 5. Non-Working Or Missing States To Fix
 
-- Real receiver Storybook state matrix for password, anonymous, recipient, decision modal, comments, activity, mobile, print, and errors.
-- Proposal-paper hard-coded color literals should become a token utility if the design system formalizes that surface.
+- Keep the real receiver Storybook state matrix current as password, anonymous, recipient, decision modal, comments, activity, mobile, print, and error states evolve.
 - Cover-image label contrast still needs visual review with representative light/complex project images.
 
 ## 6. Positive Patterns To Preserve
@@ -244,7 +244,7 @@ threshold. Binary gate: PASS only when total ≥ 16/20 **and** RUX-11..14 are Fi
 
 - Source-edit lanes should treat this report as read-only audit input. This lane did not modify source and observed unrelated dirty files already present.
 - Product/spec lane: resolve the Activity receiver mismatch and floating-navigation/spec drift. The walkthrough lists `ShareFloatingTreeNav.tsx` and receiver Activity tabs, but current source lacks `ShareFloatingTreeNav.tsx` and the receiver route is not a Link/Sheets/Access/Recipients/Activity dashboard.
-- Accessibility lane: remaining known work is mainly Storybook state coverage plus optional browser/manual proof for the fixed receiver states.
+- Accessibility lane: remaining known work is mainly optional browser/manual proof for the fixed receiver states.
 - Design-system lane: decide whether proposal-paper hard-code should become a Tailwind token utility, and darken or scope `text-tertiary` for small client-facing copy.
-- Test/story lane: add source-level or Storybook-static coverage for missing receiver states without browser automation unless a later lane explicitly requests it.
+- Test/story lane: maintain source-level or Storybook-static coverage for receiver states without browser automation unless a later lane explicitly requests it.
 - Print/export lane: verify whether shared-link print is intended to be full package, active sheet only, or replaced by a future PDF/download artifact.

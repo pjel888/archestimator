@@ -34,7 +34,7 @@ SECURITY DEFINER RPCs, so it sits on the SEC-SHARE-01, PERF-04/05, and QA-G05/G0
 |---|---|---|
 | `app/api/share/[token]/route.ts` (snapshot GET) | imports repo + security | SEC-SHARE-03, PERF-02 |
 | `app/api/share/[token]/comment/route.ts` | `insertSharedLinkComment` (`public-repository.ts:983`) via `comment/route.ts:288` | SEC-SHARE-01, PERF-05, QA-G05/G07 |
-| `app/api/share/[token]/decision/route.ts` | `submitSharedLinkDecision` (`public-repository.ts:1067`) via `decision/route.ts:214` | SEC-SHARE-01, PERF-05, QA-G06/G07 |
+| `app/api/share/[token]/decision/route.ts` | `submitSharedLinkDecision` (`public-repository.ts:1067`) via `decision/route.ts:214` | SEC-SHARE-01, PERF-05, QA-G06 plus QA-G07 regression coverage |
 | `app/api/share/[token]/activity/route.ts` | `loadSharedLinkPublicComments` (`:909`) | SEC-SHARE-09, QA-G09 |
 | `app/api/share/[token]/session/route.ts` | `verifySharedLinkRecipientToken` (`:801`), `checkSharedLinkSessionStartRateLimit` (`:492`) | SEC-SHARE-02, PERF-01A |
 | `app/api/share/[token]/events/route.ts` | `recordProjectPublicationEvent` (`:724`), `checkProjectPublicationEventRateLimit` (`:462`) | SEC-SHARE-03, PERF-02 |
@@ -80,14 +80,14 @@ receiver-mounted `SharedLinkActivityFeed.tsx`, and the comment/decision routes**
 
 | Symbol | Anchor | Dependents | Lane(s) / finding |
 |---|---|---|---|
-| `createProjectPublication` | `actions.ts:514` | header create flow | SEC-SHARE-08 (non-atomic revoke+insert), MANAGER-F-01 |
+| `createProjectPublication` | `actions.ts:515` | header create flow | SEC-SHARE-08 (non-atomic revoke+insert), MANAGER-F-01 |
 | `republishProjectPublication` | `actions.ts:579` | header republish | SEC-SHARE-01/D1, MANAGER-F-05 |
 | `rotateProjectPublicationLink` | `actions.ts:652` → RPC `rotate_project_publication_credentials` (`:691`) | header rotate button | MANAGER-F-02 (Fixed), PERF-12 |
-| `revokeProjectPublication` | `actions.ts:710` | header revoke | MANAGER-F-01/F-06 |
-| `addSharedLinkRecipients` / `resendSharedLinkRecipientEmail` | `:1038` / `:1205` | `RecipientEmailComposer.tsx:163-207` | MANAGER-F-04, PERF-08 (Fixed) |
+| `revokeProjectPublication` | `actions.ts:711` | header revoke | MANAGER-F-01/F-06 |
+| `addSharedLinkRecipients` / `resendSharedLinkRecipientEmail` | `:1038` / `:1205` | `RecipientEmailComposer.tsx:163-207` | MANAGER-F-04 (Fixed), PERF-08 (Fixed) |
 | `loadSharedLinkActivity` | `actions.ts:1381` | `SharedLinkActivityFeed.tsx` (owner mode) | PERF-04, SHF-01/D7, QA-G09 |
-| `maybeTriggerSharedLinkActivityDigest` | `actions.ts:1526` | comment/decision routes (public) | **SEC-SHARE-06 (Open)** / D9 |
-| Tests | — | `project-publication-actions.test.ts`, `project-publication-rotate-resend.test.ts` | QA (MANAGER-F-05: smoke-only today) |
+| `maybeTriggerSharedLinkActivityDigest` | `actions.ts` | comment/decision routes (public) | **SEC-SHARE-06 (Fixed)** / D9 delivery signoff |
+| Tests | — | `project-publication-actions.test.ts`, `project-publication-rotate-resend.test.ts` | QA (MANAGER-F-05 behavioral action contracts now fixed locally) |
 
 **Merge-collision risk: CRITICAL.** Most-edited, multi-lane (Manager, Perf, Security all queue
 edits), 1538 lines, and `"use server"`-fragile. **Owning lane: Manager**, with Security and Perf
@@ -127,7 +127,7 @@ Cell = the file/symbol where two lanes' open work physically overlaps → coordi
 
 | | Security | Perf | Manager | Receiver UX |
 |---|---|---|---|---|
-| **Security** | — | `public-repository.ts` RPC wrappers (SEC-SHARE-01 ↔ PERF-05); `security.ts` `assertSameOrigin*` (SEC-SHARE-02 ↔ -05) | `actions.ts` digest gate `:1526` (SEC-SHARE-06/D9 ↔ Manager edits); `createProjectPublication:514` (SEC-SHARE-08 ↔ MANAGER-F-01) | activity route body-leak guard (SEC-SHARE-09) ↔ feed mount (RUX-10) |
+| **Security** | — | `public-repository.ts` RPC wrappers (SEC-SHARE-01 ↔ PERF-05); `security.ts` `assertSameOrigin*` (SEC-SHARE-02 ↔ -05) | `actions.ts` digest gate `:1533` (SEC-SHARE-06/D9 ↔ Manager edits); `createProjectPublication:515` (SEC-SHARE-08 ↔ MANAGER-F-01) | activity route body-leak guard (SEC-SHARE-09) ↔ feed mount (RUX-10) |
 | **Perf** | (above) | — | `actions.ts:1381` `loadSharedLinkActivity` (PERF-04 ↔ SHF-01/D7); rotate `:691` (PERF-12 ↔ MANAGER-F-02) | `SharePageTabs.tsx` row caps (PERF-07/07B ↔ RUX-07 mobile rows) |
 | **Manager** | (above) | (above) | — | `SharedLinkActivityFeed.tsx` (owner mode ↔ recipient mode); `35` modal redesign ↔ `25` receiver redesign share the dual-mode feed |
 | **Receiver UX** | (above) | (above) | (above) | — |
@@ -160,15 +160,16 @@ conflict or silently reverts a security fix.
    both touch `security.ts:346-358`. SEC-SHARE-05 work branches from the Fixed `assertSameOriginPublicPost`.
    **Gate:** `bunx vitest run tests/vitest/project-publication-security.test.ts tests/vitest/project-publication-security-hardening.test.ts --maxWorkers=1` green.
 
-3. **SEC-SHARE-09 activity-leak guard (Fixed) → any RUX-10 feed edit.**
-   The receiver feed mount (RUX-10, Fixed; page.tsx:97) consumes `/api/share/[token]/activity`, which
-   no longer returns comment bodies. Any redesign edit to the activity route or feed must keep the
-   no-body invariant. **Gate:** `bunx vitest run tests/vitest/project-publication-activity.test.tsx --maxWorkers=1`; assert response has no `comment` body field.
+3. **SEC-SHARE-09 activity-leak guard (Fixed) → any future receiver activity edit.**
+   The receiver page currently does not mount an activity feed, but `/api/share/[token]/activity`
+   remains a public-safe route and no longer returns comment bodies. Any redesign that reintroduces
+   receiver activity must keep the no-body invariant. **Gate:** `bunx vitest run tests/vitest/project-publication-activity.test.tsx --maxWorkers=1`; assert response has no `comment` body field.
 
-4. **MANAGER-F-01 RBAC matrix (Partial) before MANAGER-F-04/F-06 UX.**
-   The full owner/member/viewer/recipient × every-mutation matrix sits on the same `actions.ts`
-   mutation exports that F-04 (partial-send retry) and F-06 (quick-actions) extend. Land the RBAC
-   contract first so the new surfaces inherit it. **Gate:** `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1`.
+4. **MANAGER-F-01 RBAC matrix (Fixed) remains the guardrail for MANAGER-F-06's fixed dashboard UX work.**
+   The full five-actor-class × every-mutation matrix sits on the same `actions.ts`
+   mutation exports that future quick-actions or behavioral action tests extend. MANAGER-F-04's
+   composer retry surface is already Fixed, but any future recipient mutation extension should still
+   inherit this RBAC contract. **Gate:** `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1`.
 
 5. **D7 (realtime vs focus-refresh) decision precedes `25`/`35` feed work.**
    `SharedLinkActivityFeed.tsx:81-95,175` is the shared dual-mode file; whether it gains realtime
@@ -227,9 +228,9 @@ notes this dirty tree; here is the binding protocol.
 
 - **Receiver page** = the public `/share/[token]` surface, rendered by `app/share/[token]/page.tsx`. It is a
   **single-column page** (`ShareContainer.tsx:8` — "Single column only (no xl sticky-rail / grid split — that
-  is a deferred follow-up)"), **NOT a tabbed dashboard.** It mounts inline, in order:
-  `SharePageTabs` (`page.tsx:90`) + `SharePageComments` (`page.tsx:95`) + `SharedLinkActivityFeed isOwner={false}`
-  (`page.tsx:97`). Redesigned in [`25`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md).
+  is a deferred follow-up)"), **NOT a tabbed dashboard.** It mounts receiver review content inline,
+  including `SharePageTabs` and `SharePageComments`; it does not currently mount `SharedLinkActivityFeed`.
+  Redesigned in [`25`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md).
 
 - **`SharePageTabs.tsx`** (677 lines) = the receiver's **estimate view switcher** (Sheets / Grid / Tree of the
   estimate data) **inside** the single-column page — it is a tablist component, not the manager modal and not
