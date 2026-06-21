@@ -56,14 +56,16 @@ The 90-day window lives in THREE places that must change together (doc 19):
 `"prices older than 90 days"` UI string (`LibraryOverview.tsx:114`). Any threshold
 change must update all three plus their tests and copy together.
 
-The "Very stale" 180-day tier is net-new as a freshness STATUS: today
+The "Very stale" 180-day tier is **beta scope** as a fourth freshness STATUS
+(resolved in [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md) C-001). Today
 `getComponentPricingFreshness` only emits `fresh | stale | missing`, so a distinct
 "very stale" status must be added there and the three 90-day constants extended
-with a 180-day longWindow in lockstep — not diverged into a fourth source of
+with a 180-day `longWindow` in lockstep — not diverged into a fourth source of
 truth. Note `getStalenessTone` already returns `danger` past 180 days
 (`helpers.ts:670`), so the TONE mapping is in place; the net-new work is the
-status tier (and its copy key), not the tone. If the 180-day tier is descoped,
-the table collapses to Fresh / Stale / Missing.
+status tier and its copy keys (`trust.very_stale.label`,
+`trust.very_stale.tooltip`, `trust.very_stale.announcement` per doc 22), not the
+tone. The table does NOT collapse; all four tiers ship for beta.
 
 ## Confidence (derived label over free text)
 

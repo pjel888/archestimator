@@ -8,6 +8,22 @@ Primary routes: the four Library routes verified in `19-VERIFIED-CODEBASE-BINDIN
 
 "Implementation-ready" means every path, enum, query key, RPC, server action, constant, command, and numeric threshold in this pack is bound to verified code (anchored to `src/...` file:line and named symbols), so the only remaining items are execution evidence — rendered UI, green tests, applied migrations — not planning gaps to resolve.
 
+## Pack Audit Status (2026-06-21)
+
+Every doc in this pack is scored 1–100 on three dimensions: **Strategy**, **Quality**, **Implementation Readiness**. The authoritative scores live in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md`. Current pack averages: **Strategy 92.4, Quality 91.0, Readiness 87.5, Pack avg 90.3**. The 10 companion docs (25–34) close the systemic gaps that kept the original 26 docs below 100%.
+
+### 12-dimension row-level completeness standard
+
+Every actionable row in every doc must satisfy 12 dimensions: **Owner, Phase, Flag, Rollback, Evidence, Telemetry, Copy, A11y, Perf, Browser-proof, i18n, Binding**. See `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` for the full standard and per-doc compliance tracking.
+
+### Cross-doc consistency
+
+All cross-doc conflicts are logged and resolved in `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md`. The pack is internally consistent when that doc shows 0 unresolved conflicts.
+
+### Ownership
+
+Every doc, phase, and workstream has a named owner. See `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` for the full ownership model.
+
 ## Goal
 
 Improve the full Library experience, including the overview page, component library, template browser, template editor, and all Library modals, drawers, popovers, context menus, and confirmation flows.
@@ -24,6 +40,16 @@ The target experience is a compact source-trust workspace: users can find reusab
 6. [MANDATORY before coding] Read `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`, and `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` before implementation.
 7. [PULL on demand] Read `06-QA-AND-VALIDATION-PLAN.md` for proportional verification, and `21-FEATURE-FLAGS-AND-ROLLOUT.md` for per-phase flags and rollback.
 8. [PULL on demand] Pull `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md`, `22-COPY-DECK-AND-MICROCOPY.md`, and `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` when wiring events, copy, and overlay primitives respectively.
+9. [MANDATORY before coding] Read `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` for the full audit scores and improvement plan.
+10. [MANDATORY before coding] Read `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` to know who owns what.
+11. [MANDATORY before coding] Read `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` for the 12-dimension row-level completeness standard every actionable row must satisfy.
+12. [PULL on demand] Read `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` when a cross-doc inconsistency is suspected.
+13. [PULL on demand] Read `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` when wiring copy or layout that must be localizable.
+14. [PULL on demand] Read `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md` when determining jsdom vs Playwright proof boundary.
+15. [PULL on demand] Read `30-PERF-BUDGET-AND-REGRESSION-GATES.md` for the final perf budget (after Phase 0A baseline).
+16. [PULL on demand] Read `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` for per-surface a11y pass conditions.
+17. [PULL on demand] Read `32-SECURITY-THREAT-MODEL-EXPANSION.md` for the full threat model beyond doc 14.
+18. [PULL on demand] Read `33-DB-RLS-AND-MIGRATION-CONTRACT.md` for the DB/RLS/migration contract (no migrations in 0A–5).
 
 ## Key Conclusions
 
@@ -55,6 +81,34 @@ This pack is grounded in:
 - No measured performance baseline was captured because the perf seed does not yet cover `cost_library_items`; no budget number may be claimed until it is measured. (pre-registered in: `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md` "Phase 0A Seed + Measure" + `24-EXECUTION-EVIDENCE-LEDGER.md` "Perf seed extension" / "Perf baseline measurement note", Phase 0A.)
 - Provenance of binding verification: the code-review graph index (1,429 files, 16,148 nodes, 190,581 edges as of 2026-06-19) plus targeted `rg`/file:line reads were used to verify the bindings recorded in doc 19; this is verification tooling, not a quality claim. (pre-registered in: `07-AGENT-LEDGER.md`; not an execution gap — it is the verification method behind the keystone.)
 
+## Launcher Matrix
+
+The pack is organized by concern. Use this matrix to find the right doc for each need.
+
+| Need | Read | Owner | Phase |
+|---|---|---|---|
+| What is the plan scope? | `00-PLAN.md` | Planning lead | all |
+| What are the verified codebase bindings? | `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` | Planning lead | all (keystone) |
+| What is the build order? | `05-IMPLEMENTATION-ROADMAP.md` | Planning lead | 0A–5 |
+| What are the test commands? | `06-QA-AND-VALIDATION-PLAN.md` | QA lead | 0A–6 |
+| What are the adversarial scenarios? | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` | QA lead | 6 |
+| What evidence is pre-registered? | `24-EXECUTION-EVIDENCE-LEDGER.md` | QA lead | 0A–6 |
+| What are the data contracts? | `13-DATA-CONTRACTS-ROUTE-CACHE.md` | Backend lead | 0B |
+| What is the security model? | `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` + `32-SECURITY-THREAT-MODEL-EXPANSION.md` | Security lead | 0B |
+| What is the DB/RLS contract? | `33-DB-RLS-AND-MIGRATION-CONTRACT.md` | DB lead | 0B (no migrations 0A–5) |
+| What are the feature flags? | `21-FEATURE-FLAGS-AND-ROLLOUT.md` | Release lead | 0A–5 |
+| What is the rollback plan? | `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md` | Release lead | 0A–5 |
+| What are the telemetry events? | `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` | Telemetry lead | 0A–5 |
+| What is the copy deck? | `22-COPY-DECK-AND-MICROCOPY.md` | Copy lead | 0A–5 |
+| What is the i18n contract? | `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` | i18n lead | 0A–5 |
+| What is the a11y matrix? | `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` | A11y lead | 1, 5b, 6 |
+| What is the perf budget? | `30-PERF-BUDGET-AND-REGRESSION-GATES.md` | Perf lead | 0A (baseline) → 5 |
+| What is the browser-proof boundary? | `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md` | QA lead | 6 |
+| Who owns what? | `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` | Planning lead | all |
+| What conflicts exist? | `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` | Planning lead | all |
+| What are the current scores? | `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` | Planning lead | all |
+| What is the completeness standard? | `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` | Planning lead | all |
+
 ## Artifact Map
 
 - `00-PLAN.md` - scope, non-goals, design thesis, acceptance criteria, phase strategy.
@@ -82,3 +136,13 @@ This pack is grounded in:
 - `22-COPY-DECK-AND-MICROCOPY.md` - canonical user-facing strings (trust chips, confirms, empty/error states) for the text-prompt dialogs and trust cues.
 - `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` - maps each spec element to real overlay/UI primitives (`ConfirmDialog`, `Modal`, `InspectorDrawer`, `creatable-combobox`, z-index tiers `z-[1000]`/`z-[1050]`/`z-[1100]`).
 - `24-EXECUTION-EVIDENCE-LEDGER.md` - pre-registered execution-evidence register: the exact command, pass criterion, owner, and phase for every rendered-UI / green-test / applied-migration / measured-perf-baseline item this pack defers to the build phase. This is the readiness mechanism — every execution-only proof is named here in advance so nothing is unplanned.
+- `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` - master audit scoring all 26 original docs 1–100% on strategy/quality/readiness, with per-doc gap analysis, fix plans, improvement waves, and verification scenarios.
+- `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` - binding conflict log: every cross-doc inconsistency enumerated with a binding resolution, required updates, and verification command. 0 unresolved conflicts is the gate.
+- `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` - owner/accountability model: 12 owner roles, doc-level ownership (35 docs), phase-level ownership (0A–6), workstream ownership (22 workstreams), RACI matrix, escalation path.
+- `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` - i18n, RTL, and localization contract: locale support scope, copy key naming, pluralization (ICU MessageFormat), RTL-ready layout, locale-safe interpolation, per-surface i18n acceptance criteria.
+- `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md` - browser-proof boundary (jsdom vs Playwright), browser matrix, screenshot artifact convention, per-surface proof requirements.
+- `30-PERF-BUDGET-AND-REGRESSION-GATES.md` - perf budget per surface, measurement methodology, regression gates, artifact schema, fallback decision tree. Replaces provisional thresholds in doc 16 after Phase 0A baseline.
+- `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` - a11y acceptance criteria for every Library surface: keyboard, screen reader, focus, contrast, motion, ARIA, live regions, per-surface pass conditions.
+- `32-SECURITY-THREAT-MODEL-EXPANSION.md` - full threat model: 12 attack vectors, 5 abuse cases, security telemetry events, per-surface security acceptance criteria. Deepens doc 14.
+- `33-DB-RLS-AND-MIGRATION-CONTRACT.md` - DB/RLS/migration contract: schema, RLS policies for all Library tables, no-migration gate for 0A–5, query optimization, backfill plans. Deepens docs 13 and 14.
+- `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` - 12-dimension row-level completeness standard: defines what counts as an actionable row, per-doc compliance matrix, gap closure plan, verification commands.

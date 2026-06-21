@@ -15,6 +15,8 @@ Included:
 - Library overlays: modals, drawers, docks, popovers, command/search popups, dropdown menus, context menus, confirmation dialogs, and text-prompt dialogs.
 - Library-adjacent shared surfaces when they affect consistency, especially the estimate-page component library panel and reusable overlay primitives.
 
+> **12-dim (scope boundary):** Owner: Planning lead | Phase: all | Flag: n/a (scope) | Rollback: n/a | Evidence: n/a | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Verified File Paths
+
 Non-goals:
 
 - Database schema changes unless a future implementation task proves they are required. Quick Add (Phase 3) does NOT require one: every Quick Add field — `name`, `category` (text), `unit`, `unit_cost`, optional `supplier`/`brand`, `pricing_date`, `pricing_source`, `confidence` (free text), `library_folder_id` — already exists as a column on `public.cost_library_items` (see the Quick Add Contract in `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`), so this non-goal holds. A controlled `confidence`/`category` vocabulary or any `last_reviewed`/`reviewed_at` column WOULD need a migration and stays deferred behind the Data Migration Gate.
@@ -23,16 +25,26 @@ Non-goals:
 - Replacing the whole app shell or changing the global navigation model.
 - Reintroducing deprecated standalone `/workshop/components` or `/workshop/templates` surfaces except as redirects.
 
+> **12-dim (non-goal contract):** Owner: Planning lead | Phase: all | Flag: n/a | Rollback: revert any migration PR | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §Data Migration Gate | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Canonical Quick Add Contract
+
 ## Current Product Decision Constraints
 
 - The unified Library is the canonical hub. Components and templates stay inside `/workshop/library`.
+  - **12-dim:** Owner: Planning lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: n/a | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Verified File Paths
 - `DESIGN.md` is a guide, not enforceable law, but its app/workshop density guidance is still the best local baseline.
+  - **12-dim:** Owner: Design lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: n/a | Telemetry: n/a | Copy: n/a | A11y: see [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: DESIGN.md
 - The Library should stay compact, keyboard-friendly, and work-focused.
+  - **12-dim:** Owner: A11y lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §Phase 6 | Telemetry: n/a | Copy: n/a | A11y: see [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) | Perf: n/a | Browser-proof: Playwright | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Performance Reality
 - Component Library data must preserve source, pricing date, confidence, supplier, lifecycle, and copied estimate snapshots.
+  - **12-dim:** Owner: Backend lead | Phase: 0A | Flag: n/a | Rollback: revert data contract PR | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §0A | Telemetry: n/a | Copy: see [22-COPY-DECK-AND-MICROCOPY.md](22-COPY-DECK-AND-MICROCOPY.md) | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Data Layer
 - Browser automation is not a default planning artifact. Use it later only when it proves a browser-only claim.
+  - **12-dim:** Owner: QA lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: see [29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md) | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: see [29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md) | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Test Commands
 - Older specs that reference standalone `/workshop/templates` or `/workshop/components` are historical context only unless a newer decision explicitly restores them.
+  - **12-dim:** Owner: Planning lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: n/a | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Verified File Paths
 - Public/shared proposal surfaces must not expose protected Library source URLs (`pricing_source`), internal notes, confidence labels, or workspace-only price history by default. Per `14`/`19` this is enforced in the snapshot builder that writes `project_publications.snapshot_json` (rendered by `src/app/share/[token]` + `src/app/api/share/[token]/route.ts`), not a live Library endpoint.
+  - **12-dim:** Owner: Security lead | Phase: 0A | Flag: n/a | Rollback: revert redaction PR | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §ADV-PUBLIC-REDACTION | Telemetry: n/a | Copy: see [22-COPY-DECK-AND-MICROCOPY.md](22-COPY-DECK-AND-MICROCOPY.md) | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Public / Share Snapshot Surface
 - Implementation must start with Phase 0A Contract Lock (see the Canonical Phase Map in `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`), reconciling `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`, and `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md` to that keystone before UI work.
+  - **12-dim:** Owner: Planning lead | Phase: 0A | Flag: n/a | Rollback: n/a | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §0A | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Canonical Phase Map (C-006)
 
 ## Planning Readiness Rating After Hardening
 
@@ -176,10 +188,12 @@ These jsdom suites run under `bun run test:dom` (all) or `vitest run tests/vites
 ## Implementation Phases
 
 Phase labels and order are canonical and owned by
-`19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` ("Canonical Phase Map"). Order:
-**0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5**. Per-phase rollback maps to feature flags in
-`21-FEATURE-FLAGS-AND-ROLLOUT.md`. Sizes below are rough planning estimates for
-sequencing, not commitments.
+`19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` ("Canonical Phase Map"; C-006).
+This section is a summary; defer to the keystone for the authoritative version.
+Order: **0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5**. Per-phase rollback maps to feature
+flags in `21-FEATURE-FLAGS-AND-ROLLOUT.md`; rollback for build-time env flags is
+redeploy-based (fix-forward), not an instant kill-switch (C-010). Sizes below are
+rough planning estimates for sequencing, not commitments.
 
 ### Phase 0A - Contract Lock
 
@@ -313,3 +327,60 @@ Remove or retire:
 ## Stop Condition
 
 Stop the future implementation loop only when targeted tests pass, the changed route/action behavior is verified, browser-only claims have matching browser proof or are explicitly out of scope, and remaining risks are documented.
+
+> **12-dim:** Owner: Planning lead | Phase: 6 | Flag: library_release_ready | Rollback: redeploy previous build | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §Phase 6 | Telemetry: n/a (gate event) | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: Playwright | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Test Commands
+
+---
+
+# Appendix A — Implementation Control Tables
+
+## A.0 Phase / rollback / flag matrix
+
+| Phase | Owner | Flag (from [21](21-FEATURE-FLAGS-AND-ROLLOUT.md)) | Rollback | Evidence | Telemetry gate |
+| --- | --- | --- | --- | --- | --- |
+| 0A Contract Lock | Backend lead | library_contract_lock_enabled | Revert schema/cache test stubs; keep keystone bindings | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §0A | n/a |
+| 0B Overlay & Route-State Reliability | Frontend lead | library_overlays_v2 | Redeploy with `library_overlays_v2=false` (fix-forward) | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §0B | overlay_opened, overlay_closed |
+| 1 Findability & Applied Filters | Frontend lead | library_findability_v2 | Redeploy with `library_findability_v2=false` | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §1 | component_selected, filter_reset |
+| 2 Source Trust at Decision Points | Backend lead | library_trust_chips | Redeploy with `library_trust_chips=false` | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §2 | trust_chip_exposed, insert_target_confirmed |
+| 3 Quick Add | Frontend lead | library_quick_add | Redeploy with `library_quick_add=false` | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §3 | quick_add_opened, quick_add_submitted |
+| 4 Templates Clarity | Frontend lead | library_templates_clarity | Redeploy with `library_templates_clarity=false` | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §4 | template_insert_target_resolved |
+| 5 Dense Maintenance & Polish | Frontend lead | library_dense_mode | Redeploy with `library_dense_mode=false` | [24](24-EXECUTION-EVIDENCE-LEDGER.md) §5 | view_mode_changed |
+
+## A.1 12-dimension completeness checklist
+
+Every actionable row in this doc satisfies the [34-ROW-LEVEL-COMPLETENESS-MATRIX.md](34-ROW-LEVEL-COMPLETENESS-MATRIX.md) standard under the relaxed scope (implementation tasks, acceptance gates, high-risk contract rows). Delegation shorthand used here:
+
+- **Owner:** named role from [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md) §2.
+- **Phase:** canonical 0A → 5 from [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Canonical Phase Map.
+- **Flag:** from [21-FEATURE-FLAGS-AND-ROLLOUT.md](21-FEATURE-FLAGS-AND-ROLLOUT.md) §registry; `n/a` only when the row is pre-flag scaffolding.
+- **Rollback:** from [17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md](17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md); redeploy-based because flags are build-time env (C-010).
+- **Evidence:** exact row in [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) or the owning phase section.
+- **Telemetry:** event from [20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md](20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md) or `n/a` for non-user rows.
+- **Copy:** key from [22-COPY-DECK-AND-MICROCOPY.md](22-COPY-DECK-AND-MICROCOPY.md) or `n/a` for non-UI rows.
+- **A11y:** criterion from [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) or delegated.
+- **Perf:** budget from [30-PERF-BUDGET-AND-REGRESSION-GATES.md](30-PERF-BUDGET-AND-REGRESSION-GATES.md) or `n/a`.
+- **Browser-proof:** jsdom vs Playwright from [29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md).
+- **i18n:** rule from [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) or `n/a`.
+- **Binding:** file:line from [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md).
+
+## A.2 No-go list — what must never ship without proof
+
+| # | Item | Why | Proof required | Owner | Phase |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `?component=<id>` route-state ambiguity | Loses exact search intent, risks object-existence leak | `vitest run tests/vitest/library-route-state-authz.test.tsx` passes | Frontend lead | 0B |
+| 2 | Un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` | Cross-workspace cache bleed | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` passes | Backend lead | 0A/0B |
+| 3 | Snapshot builder writes protected fields to `snapshot_json` | Leaks `pricing_source`, notes, confidence, price history | `ADV-PUBLIC-REDACTION` passes | Security lead | 0A |
+| 4 | Native `window.prompt`/`window.confirm` in Library-owned files | Breaks overlay consistency and focus control | `rg -n "window\.(prompt\|confirm)"` returns zero in `ComponentLibraryManager.tsx`, `AddComponentModal.tsx` (estimate-page panel is Phase-later residual) | Frontend lead | 0B |
+| 5 | `resolveEstimateTemplateInsertTarget` resolves to stale/cross-workspace estimate | Could mutate wrong estimate | `ADV-INSERT-STALE-TARGET` passes | Backend lead | 4 |
+| 6 | Perf budget claimed without Phase 0A baseline | Numbers would be fabricated | Seed `cost_library_items` + measured browse baseline in [24](24-EXECUTION-EVIDENCE-LEDGER.md) §0A | Perf lead | 0A |
+| 7 | Phase rollback = "manually undo everything" | No safe backout | Each phase has a named flag in [21-FEATURE-FLAGS-AND-ROLLOUT.md](21-FEATURE-FLAGS-AND-ROLLOUT.md) §registry | Release lead | 0A |
+
+## A.3 Critical bindings inline summary
+
+The five contracts most often referenced by implementers:
+
+1. **Route state:** `?component=<id>` is owned by `src/components/workshop/LibraryPageClient.tsx`; there is no segment detail route for components. Template detail uses the shipped segment `/workshop/library/templates/[templateId]` — do NOT add `?template=<id>` (C-008). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Verified File Paths.
+2. **Un-scoped cache key:** `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` at `src/lib/component-library/query-keys.ts:5-6` is the only cache-bleed surface; primary reader is `TemplateEditorClient.tsx:160` via inline literal. Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Query Keys.
+3. **Quick Add requires no schema change:** required fields `name`, `category` (text), `unit`, `unit_cost` already exist on `public.cost_library_items`; `library_folder_id` is optional. Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Canonical Quick Add Contract (C-011).
+4. **Archive vs delete:** "Archive" = soft-delete (`lifecycle_state = archived`, recoverable); "Delete" = hard-delete/permanent. Bulk archive copy must branch on `actionCopy.verb`, not `canExecute` (C-013). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Enums.
+5. **Component-library/index.tsx is Phase-later residual:** the estimate-page panel `src/components/workshop/component-library/index.tsx` carries native `window.confirm` :939 / `window.prompt` :1428; it is tracked, guarded against regression, but not in the 0A–5 critical path (C-003 / C-017). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §In-scope adjacent live file.

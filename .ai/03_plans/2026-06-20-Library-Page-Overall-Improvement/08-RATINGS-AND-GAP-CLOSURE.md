@@ -1,5 +1,14 @@
 # 08 - Ratings And Gap Closure
 
+> **Update 2026-06-21:** The authoritative scores now live in
+> `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md`, which scores all 26 original docs
+> plus 9 new companion docs (25–34). This doc remains as the prior hardening-pass
+> record. Cross-doc conflicts are now logged in
+> `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md`. The 12-dimension row-level
+> completeness standard is defined in
+> `34-ROW-LEVEL-COMPLETENESS-MATRIX.md`. Owner/accountability is defined in
+> `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md`.
+
 ## Purpose
 
 This document records the hardening-pass ratings and the closure criteria that

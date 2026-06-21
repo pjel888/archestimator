@@ -2,6 +2,15 @@
 
 Status: authoritative. Last verified against `main` on 2026-06-21.
 
+> **Cross-references (2026-06-21):** Conflict resolutions for cross-doc
+> inconsistencies involving these bindings are logged in
+> `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md`. The 12-dimension row-level
+> completeness standard (including `Binding:` field requirements) is in
+> `34-ROW-LEVEL-COMPLETENESS-MATRIX.md`. Owner/accountability for these
+> bindings is in `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` (Planning lead owns
+> this keystone). The DB/RLS/migration contract that deepens these bindings is
+> in `33-DB-RLS-AND-MIGRATION-CONTRACT.md`.
+
 ## Purpose
 
 This is the single source of truth for the Library Page Overall Improvement
