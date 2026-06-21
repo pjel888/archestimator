@@ -42,6 +42,22 @@ truly not-applicable dimensions use `n/a` with a one-line justification.
 
 ## Adversarial Scenario Matrix
 
+### Scenario coverage map (closes doc-25 §3 gaps for this doc)
+
+> Doc 25 §3 names five gaps for this doc. Each is closed by an existing row in
+> the matrix below; this map is the auditor's index so the closure does not
+> have to be re-derived per audit pass. Row IDs match the matrix verbatim.
+
+| Doc-25 §3 gap for doc 18 | Closed by matrix row | Evidence ID |
+|---------------------------|----------------------|-------------|
+| Telemetry-verification row per adverse scenario | `ADV-TELEMETRY-EMITS` (every `library_*` event in doc 20 emits to its beta sink with the documented payload; no double-fire; no wrong-surface fire) | EV-18-023 |
+| Visual-regression / proof row for dense-mode + mobile | `ADV-VISUAL-DENSE-MOBILE` (card/dense toggle, chip wrapping, column overflow, touch targets; Safari iOS + Chrome Android at sm/md) + `ADV-VISUAL-GLASS` (glass one-blur-per-region, AA contrast, deferred arming) | EV-18-019, EV-18-022 |
+| Dedicated copy/microcopy verification row | `ADV-COPY-MICROCOPY` (every error/denial/destructive/trust string matches doc 22; no raw hardcoded assertions except where 22 delegates) | EV-18-020 |
+| Owner/phase column per scenario | The inline `Owner: <role> | Phase: <phase> | ...` 12-dim metadata on EVERY matrix row (owner roles from doc 27 §2; phases from the keystone phase map) | every row |
+| Single "all scenarios green" summary criterion tied to a release artifact | `ADV-RELEASE-ARTIFACT` (a single release artifact proves every implemented ADV scenario passed exactly once; P0 rows green; N/FUTURE rows explicitly N/A) | EV-18-021 |
+
+
+
 The `ADV-*` IDs below are the **single source of truth** shared with
 `06-QA-AND-VALIDATION-PLAN.md`; this doc (18) owns the ID set. Doc 06 references
 the same **canonical** IDs (it does not use the alias tokens; it describes each
@@ -66,7 +82,7 @@ defined inline against their canonical row here:
 | ADV-XWS-COMPONENT-PARAM | P0 | 0A | User edits `?component=<id>` to a foreign-workspace `cost_library_items.id`. | Permission-safe not-found/denied via RLS; no object detail leaked. | `vitest run tests/vitest/library-route-state-authz.test.tsx` (net-new) | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-001 \| Telemetry: `route_state_authz_denied` must fire once with `{component_id, workspace_id, outcome: "denied"}` \| Copy: see 22 §permission-denied \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: LibraryPageClient.tsx route state (doc 19) |
 | ADV-XWS-ESTIMATE-ACTION | P0 | 0A | `resolveEstimateTemplateInsertTarget` invoked with a stale/foreign estimate ID. | Server rejects via `rpc("can_edit_estimate",{target_estimate_id})`; no mutation. | `vitest run tests/vitest/estimate-insert-target-authz.test.tsx` (net-new) | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-002 \| Telemetry: `insert_target_authz_denied` must fire once with `{estimate_id, workspace_id, outcome: "denied"}` \| Copy: see 22 §permission-denied \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom (server action) \| i18n: n/a \| Binding: resolveEstimateTemplateInsertTarget + can_edit_estimate (doc 19) |
 | ADV-WS-SWITCH-CACHE | P0 | 0A | User switches workspace with the inspector dock open. | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (today un-scoped `["workspace-component-library"]`) clears/refetches; no prior-workspace detail visible. | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) | Owner: Backend lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-003 \| Telemetry: `workspace_switched` then `cache_invalidated` with `{query_key}` \| Copy: n/a \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY (doc 19) |
-| ADV-PUBLIC-REDACTION | P0 | 0A | Public `/share/[token]` snapshot includes private source metadata. | The snapshot builder (`src/lib/publication/actions.ts`, writes `snapshot_json` at :566/:636, with helper context in `activity-helpers.ts`) field-selects so `pricing_source`, `confidence`, and price history never enter `project_publications.snapshot_json` — redaction is what the builder serializes, NOT a live library endpoint. Folds in "Import/export future path". | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-004 \| Telemetry: `snapshot_redaction_verified` must fire once per snapshot build \| Copy: see 22 §public-snapshot \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: src/lib/publication/actions.ts snapshot_json :566/:636 (doc 19) |
+| ADV-PUBLIC-REDACTION | P0 | 0A | Public `/share/[token]` snapshot includes private source metadata. | The snapshot builder (`src/lib/publication/actions.ts`, writes `snapshot_json` at `:653` and `p_snapshot_json` RPC params at `:577`/`:716`, with helper context in `activity-helpers.ts`) field-selects so `pricing_source`, `confidence`, and price history never enter `project_publications.snapshot_json` — redaction is what the builder serializes, NOT a live library endpoint. Folds in "Import/export future path". | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-004 \| Telemetry: `snapshot_redaction_verified` must fire once per snapshot build \| Copy: see 22 §public-snapshot \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: src/lib/publication/actions.ts snapshot_json :653, p_snapshot_json :577/:716 (doc 19; verified 2026-06-21) |
 | ADV-VIEWER-MUTATION | P0 | 0A/3 | `viewer`-role actor opens Quick Add or submits a mutation action. | UI hidden/disabled; server denies via `rpc("is_workspace_editor",{target_workspace_id})` (role in owner/admin/member; only `viewer` read-only). | `vitest run tests/vitest/library-viewer-authz.test.tsx` (net-new) | Owner: Security lead \| Phase: 0A/3 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-005 \| Telemetry: `mutation_authz_denied` must fire once with `{action, role, workspace_id}` \| Copy: see 22 §permission-denied \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: is_workspace_editor RPC (doc 19) |
 | ADV-DIRTY-ADD-NESTED | P1 | 0B/3 | Dirty Add Component close with a nested listbox open. | Escape closes `z-[1050]` listbox before `z-[1000]` modal; dirty close opens the text-prompt `ConfirmDialog`, NOT `window.confirm` (`AddComponentModal.tsx:963`). | `vitest run tests/vitest/library-add-component-modal-a11y.test.tsx` (net-new) | Owner: QA lead \| Phase: 0B/3 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-006 \| Telemetry: `overlay_opened`, `overlay_closed` must fire for both listbox and modal with correct `z_tier` \| Copy: see 22 §discard-confirm \| A11y: see 31 §4 Quick add form + Overlay/modal \| Perf: n/a \| Browser-proof: jsdom; Playwright for portal focus if changed \| i18n: n/a \| Binding: AddComponentModal.tsx:963 (doc 19) |
 | ADV-FOLDER-DELETE-FAIL | P1 | 0B | `deleteLibraryFolder` server failure (folder still has children — alias `ADV-FOLDER-DELETE-CHILDREN` — or RPC errors). | Error stays visible; folder not silently treated as deleted; confirmation names count and consequences (folder vs category never conflated). | `vitest run tests/vitest/component-library-folder-actions.test.ts` (extend existing) | Owner: QA lead \| Phase: 0B \| Flag: n/a \| Rollback: n/a \| Evidence: EV-18-007 \| Telemetry: `folder_deleted` (attempt) and `folder_delete_failed` with `{folder_id, error_code}` \| Copy: see 22 §folder-delete \| A11y: see 31 §4 Folder management \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: ComponentLibraryManager.tsx:1534 (doc 19) |
@@ -109,7 +125,7 @@ Security-sensitive phases (0A) also include:
   (`ADV-XWS-COMPONENT-PARAM`, `ADV-XWS-ESTIMATE-ACTION`)
 - public/private redaction coverage on `project_publications.snapshot_json`
   (`ADV-PUBLIC-REDACTION`) — the snapshot builder field selection in
-  `src/lib/publication/actions.ts` (writes `snapshot_json` at :566/:636), not a
+  `src/lib/publication/actions.ts` (writes `snapshot_json` at `:653`; `p_snapshot_json` RPC params at `:577`/`:716`; verified 2026-06-21), not a
   live library endpoint
 - workspace-switch/cache coverage on `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY`
   (`ADV-WS-SWITCH-CACHE`)
@@ -233,10 +249,8 @@ Do not release if any P0 scenario fails or any of these remain true:
   `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` not scoped (`ADV-WS-SWITCH-CACHE` fails)
 - `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` remains **un-scoped** (still the bare
   `["workspace-component-library"]` literal) at release — scoping by `workspaceId`
-  with ALL call sites migrated (`TemplateEditorClient.tsx:160` inline literal,
-  `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`,
-  `EstimateSheetContent.tsx:1238/1241`) is a **release prerequisite, not just a
+  with ALL SIX call sites migrated — reader `TemplateEditorClient.tsx:160` (inline literal) + self-invalidate `:166` (inline literal) + writers `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:432`, `EstimateSheetContent.tsx:1299` AND `:1302` (verified 2026-06-21; line numbers drift on host-file edit — re-verify with the doc-19 provenance command #2) — is a **release prerequisite, not just a
   test-pass** (resolves C-007; a cache-scope test can pass on a still-un-scoped
-  key if the test happens to refetch)
+  key if the test happens to refetch, and a test mocking only the four commonly-cited sites misses the `:166` self-invalidate and the `:1302` second writer)
 - performance stalls at beta-scale `cost_library_items` data without the
   `WORKSHOP_VIRTUALIZATION_FLAGS` fallback (`ADV-DENSE-500` fails)

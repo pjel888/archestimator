@@ -215,6 +215,56 @@ ID (from `24-EXECUTION-EVIDENCE-LEDGER.md`). Per the relaxed scope of
 "Visual" rows (9 + the chip render points in 8) also cross-reference
 `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md`.
 
+## Measurable pass/fail criteria per principle (closes the §3 readiness gap)
+
+The Applies-To Matrix above binds each principle to a phase + owner + evidence ID, but
+does not state what **observable behavior** proves the principle landed. This subsection
+turns each principle into pass/fail acceptance criteria, plus the per-principle telemetry
+event, copy key, RTL/i18n rule, and rollback/rollout note. Telemetry events come from doc
+20; copy keys from doc 22; RTL rules from doc 28; flags from doc 21. These are
+**informational delegation rows** (per doc 34 §3) — they do not duplicate the 12-dim gate
+rows in the owning specs; they bind the **principle** to measurable behavior.
+
+| # | Principle | Pass criteria (observable) | Fail criteria | Telemetry | Copy key(s) | RTL/i18n | Rollback |
+|---|---|---|---|---|---|---|---|
+| 1 | Separate exact search from filtering | one primary search input (`ComponentLibraryManager.tsx:383`) finds by name/SKU; facets (`component-facet-filter.tsx`) narrow independently; the two operate on disjoint URL params | search results depend on facet state, or facets duplicate the search axis | `library.search.executed` (doc 20) | `search.placeholder_*` | input `dir="auto"`; placeholder per locale (doc 28 §3) | revert search-input change; facets unaffected |
+| 2 | Facets reveal the content space | facet set = {supplier, brand, lifecycle, confidence, freshness, folder-axis-via-tree}; each facet's options are derived from real data, not hardcoded | a facet presents hardcoded options or duplicates the folder axis | `library.facet.opened`, `library.facet.applied` | `filter.*` | chips mirror; option list right-aligns | drop the facet from the popover |
+| 3 | Applied filter state stays visible | an applied-filter chip strip renders above the catalogue (`countStrip` slot); every active filter has a visible chip with a dismiss `<button>`; clear-all resets to 0 chips | an active filter is hidden inside the popover with no chip | `library.filter.applied`, `library.filter.cleared` (doc 20) | `filter.applied_announcement` (doc 22 §12A) | chips `flex-row-reverse` under RTL; dismiss at reading-start (doc 23 §RTL) | hide the chip strip; popover still works |
+| 4 | Multi-select within categories | supplier/brand/lifecycle/confidence support multiple simultaneous values; freshness stays mutually exclusive (current) OR 4-tier (Phase 2, C-021) | a category silently drops a prior selection, or freshness allows multi-select when spec says single | `library.filter.applied{category,count}` | `filter.*` | `{count, plural, …}` per doc 22 §12 | revert to single-select for the category |
+| 5 | Dense catalog workflows | a card/dense toggle (net-new, Phase 5) switches the catalogue between card grid and dense `<table>`; selected-count wires to `BulkActionToolbar`; dense rows virtualize via `virtualization-flags.ts` | dense mode re-renders all rows (no virtualization), or selection does not propagate to the toolbar | `library.view_mode_changed{mode}` (doc 20) | `view_mode.*`, `selected_count.*` (doc 22 §12) | table columns mirror; row actions right-align | flag-off → card-only view (Phase-later kill-switch per C-010) |
+| 6 | Least intrusive overlay | New Template = short `Modal`; Edit Component = `Drawer`; Add Component = short `Modal` + advanced in drawer/editor; preview = inspector dock (not modal) | a long form lives in a `ConfirmDialog`, or preview is a modal blocking browse | `overlay_opened`/`overlay_closed` (doc 20 §6A) | per-overlay copy (doc 22 §10) | drawer direction mirrors; dialog close/X mirrors (doc 28 §5) | revert to prior surface (e.g. modal→drawer) |
+| 7 | Accessibility semantics match behavior | combobox/dialog/tabs/menu/tree follow W3C APG; `Escape` closes the topmost dismissible overlay only; focus returns to trigger; `aria-activedescendant` stays in sync | a tree view conflates focus and selection, or `Escape` closes a non-topmost overlay | (a11y — no telemetry; verified via doc 31 gate A1–A7) | n/a (semantics) | APG patterns are locale-neutral | revert the primitive swap |
+| 8 | Source trust at decision points | trust chips (freshness/confidence/lifecycle/source/link) render on browse cards, inspector, overview recents, template rows, insert pickers; stale/low-confidence is a decision warning, not just an inspector detail | a trust cue is hidden only in the inspector, or stale pricing renders without a chip | `trust_insert_gate_warned/confirmed/blocked` (doc 11 §Trust Telemetry); `library.card.hover` | `trust.*`, `confirm.*` (doc 22) | chip labels translate; tone does not (doc 23 §RTL) | flag-off → paper cards without chips (Phase 2 `library_trust_chips`) |
+| 9 | Visual direction: liquid glass | the Library speaks the workshop's glass language — Phase 1 ships glass skeleton (well+rail+paper+chrome+CTA+liquid buttons); Phase 2 component cards glass; Phase 5 template rows glass | a Library route renders 100% paper/flat post-Phase-1, or a card adds its own `backdrop-filter` (stacked blur) | `library.surface.rendered{variant}` (doc 20; doc 35 §12.1) | n/a (visual) | glass is locale-neutral; warm CTA label translates (doc 22 §action) | `library_glass_shell` flag-off → provider default `"paper"`, no visual shift (C-010) |
+
+**How this table is used (binding):** each principle's pass/fail criteria are the
+**user-facing acceptance** for the phase that owns the principle. The owning spec doc
+(doc 10 for principles 1–5, doc 03 for principle 6, doc 31 for principle 7, doc 11 for
+principle 8, doc 35 for principle 9) carries the 12-dim gate rows; this table is the
+principle-level rollup an owner reads to confirm the principle landed. A principle is
+"done" when its pass criteria are met AND its fail criteria are absent AND the evidence ID
+in the Applies-To Matrix is captured in doc 24.
+
+### Per-principle rollout + rollback summary
+
+| Principle | Phase | Flag (doc 21) | Rollback shape (C-010) | Owner (doc 27) |
+|---|---|---|---|---|
+| 1 (search vs filter) | 1 | n/a (core) | git revert | Frontend lead |
+| 2 (facets) | 1 | n/a (core) | drop facet from popover | Frontend lead |
+| 3 (applied-filter chips) | 1 | `library_component_deep_link` (applied chips ship with it) | flag-off → chips hidden, popover works | Frontend lead |
+| 4 (multi-select + 4-tier) | 1 (multi) / 2 (4-tier freshness, C-021) | n/a / `library_trust_chips` | revert category; 4-tier is a lockstep helper edit (4 files, doc 23 §180-day) | Frontend lead |
+| 5 (dense mode) | 5 | `library_dense_mode` (doc 10) | flag-off → card-only (Phase-later runtime kill) | Frontend lead |
+| 6 (least intrusive overlay) | 0B / 3 / 4 | `library_folder_dialogs`, `library_quick_add`, `library_trust_chips` | per-overlay flag-off | Frontend lead |
+| 7 (a11y semantics) | 0A–5 | n/a (always-on) | revert primitive swap | A11y lead |
+| 8 (trust at decision points) | 2 | `library_trust_chips` | flag-off → paper cards, no chips | Frontend lead |
+| 9 (liquid glass) | 1 (shell) / 2 (cards) / 5 (rows) | `library_glass_shell`, `library_card_glass`, `library_glass_drawer` | flag-off → provider default `"paper"`, no visual shift | Design lead + Frontend lead |
+
+**Rollout order is the keystone phase map** (`0A → 0B → 1 → 2 → 3 → 4 → 5`, doc 19): no
+principle lands out of order. Principle 6 (least-intrusive overlay) lands first in 0B
+because every later principle assumes reliable overlays; principle 9 (glass) lands last in
+its surface-by-surface phasing because it depends on the trust chips (principle 8) being
+proven on paper first.
+
 | Principle | Owning spec | file:line binding (keystone 19) | Phase | Owner | Test | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Separate exact search from filtering | 10 §Overview, 13 | `ComponentLibraryManager.tsx` search `:383`, `:844-846` | 1 | Frontend lead | `bun run test:dom` (chip/param isolation) | doc 24 |

@@ -277,6 +277,68 @@ Skip browser automation for:
 
 ## UltraQA Scenario Matrix
 
+### Cluster gating and rollback decision rules (closes doc-25 §3 gaps for this doc)
+
+> Doc 25 §3 names five gaps for this doc. The per-row `Flag:` and `Rollback:`
+> values in the matrix below carry `n/a` for many rows; this section is the
+> auditor's justification so those `n/a`s are deliberate, not silent. Owner
+> roles from doc 27 §2; flags from doc 21; rollback mechanics from doc 17.
+
+**Gap 1 — feature-flag/rollout gating per test cluster.** The flag that gates a
+cluster is the flag that gates the phase the cluster belongs to (doc 21 §4 is
+canonical). The map:
+
+| Test cluster (by phase) | Phase flag(s) | Why rows in this cluster carry the `Flag:` values they do |
+|-------------------------|---------------|-----------------------------------------------------------|
+| Phase 0A (contract-lock suites) | n/a (test/contract only — no shipped behavior) | Every 0A row carries `Flag: n/a` because 0A scaffolds invariants; the SUITES ship without a behavior change behind a flag |
+| Phase 0B (overlay + route-state) | `library_folder_dialogs`, `library_component_deep_link` (doc 21 §4) | Folder-action + Add-modal rows carry `Flag: n/a` because the dialog pattern is unconditional once shipped (no user-facing toggle); the deep-link e2e row carries `library_component_deep_link` because the `?component=<id>` param CAN be dropped without stranding the URL |
+| Phase 1 (findability + filters) | `library_component_deep_link`, glass-shell flag per doc 21 §4 (C-022) | Filter + overview rows carry `Flag: n/a` (unconditional); route-navigation e2e carries `library_component_deep_link` |
+| Phase 2 (trust chips) | `library_trust_chips` (doc 21 §4) | Trust-chip rows carry `Flag: n/a` at the test level (the chip renders when `library_trust_chips` is on, but the test does not flip the flag — the e2e row does); the 90-day-guard row is a static `rg`, flag-agnostic |
+| Phase 3 (Quick Add) | `library_quick_add` (doc 21 §4) | Validation rows carry `Flag: n/a`; the `ADV-VIEWER-MUTATION` row carries `Flag: n/a` because `is_workspace_editor` denial is server-side and unconditional |
+| Phase 4 (templates) | reuses `library_trust_chips` (doc 21 §4) | All Phase 4 rows carry `Flag: n/a` (no Phase-4-specific flag) |
+| Phase 5 (dense mode + browser polish) | `library_dense_mode`, `library_virtualization_enabled` (doc 21 §4) | Dense + mobile + visual rows carry the Phase-5 flags explicitly (these rows MUST flip the flag in the test harness) |
+
+**Gap 2 — rollback/fix-forward criterion per ADV row.** Decision rule:
+
+- If the row's owning phase has a flag (table above), rollback = **redeploy
+  flag=false** (fix-forward, ~5 min per C-010). The row carries `Rollback:
+  redeploy flag=false`.
+- If the row's owning phase has no flag (0A test/contract; 0B/3 unconditional
+  dialog/validation; 4 trust-summary reuses 2's flag), rollback = **`git revert`
+  the phase commit + redeploy**. The row carries `Rollback: n/a (no flag —
+  revert the phase commit)` — this is the `n/a` with justification the matrix
+  uses.
+- The cache-bleed stop condition (doc 17) is the canonical re-plan trigger: if
+  `ADV-WS-SWITCH-CACHE` cannot close with the key scoped by `workspaceId`
+  across all 6 call sites, the phase is NO-GO and re-plans, not "rolls back."
+
+**Gap 3 — telemetry/event assertions tied to user-visible flows.** Every row in
+the matrix whose `Telemetry:` value names a `library_*` / `trust_*` /
+`quick_add_*` / `insert_*` / `overlay_*` / `bulk_*` event MUST assert in the test
+that the event fires exactly once with the documented payload (doc 20 is
+canonical for the payload). The spy is on `console.warn` (the closed-beta sink
+per C-009). Rows whose `Telemetry:` value is `n/a` have no user-visible flow to
+instrument (static guards, copy-only assertions, server-action authz denial
+where the event is named on the adjacent `ADV-TELEMETRY-EMITS` row instead).
+
+**Gap 5 — browser-proof evidence versioned per scenario.** Every row whose
+`Browser-proof:` value is `Playwright` or `Playwright for <reason>` MUST capture
+a screenshot + companion `.json` metadata per doc 29 §4 into the doc-24 evidence
+path `_evidence/<phase>/<scenario>/<browser>-<viewport>-<timestamp>.png`. The
+timestamp + harness fields in the `.json` ARE the versioning — a re-run after a
+layout change produces a new timestamped artifact, and the old one is retained
+for regression diffing. Rows whose `Browser-proof:` value is `jsdom` do not
+produce a browser artifact (their evidence is the vitest pass/fail recorded in
+doc 24).
+
+**Gap 4 — copy/a11y/RTL coverage explicit.** Closed by the "Copy / a11y / RTL
+checklist" section below (cross-cutting rows every relevant scenario must
+satisfy) PLUS the per-row `Copy:` / `A11y:` / `i18n:` 12-dim metadata. The two
+are complementary: the checklist is the shared pass condition; the per-row
+metadata is the delegation pointer to the owning companion doc (22/31/28).
+
+
+
 These `ADV-*` IDs are the shared single source of truth across this doc and
 `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md`: each row in doc 18's "Adversarial
 Scenario Matrix" maps onto one of these IDs (crosswalk below), and the
@@ -344,7 +406,7 @@ deliverable.
 | ADV-XWS-COMPONENT-PARAM | Cross-workspace `?component=<id>` param | IDOR / data leak | 0A | `vitest run tests/vitest/library-route-state-authz.test.tsx` (net-new, Phase 0A scaffold) | Permission-safe not-found/denied test, no object detail leaked | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-009 \| Telemetry: `route_state_authz_denied` \| Copy: see 22 §permission-denied \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: LibraryPageClient.tsx route state (doc 19) |
 | ADV-XWS-ESTIMATE-ACTION | Cross-workspace estimate insert target (server) | Wrong estimate mutation | 0A | `vitest run tests/vitest/estimate-insert-target-authz.test.tsx` (net-new) | Server-action test that `resolveEstimateTemplateInsertTarget` rejects stale/foreign target | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-010 \| Telemetry: `insert_target_authz_denied` \| Copy: see 22 §permission-denied \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom (server action) \| i18n: n/a \| Binding: resolveEstimateTemplateInsertTarget + can_edit_estimate (doc 19) |
 | ADV-WS-SWITCH-CACHE | Workspace switch with inspector dock open | Prior-workspace cache bleed | 0A | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` (net-new) | Query/cache test proving `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (currently un-scoped `["workspace-component-library"]`) clears/refetches on switch | Owner: Backend lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-011 \| Telemetry: `workspace_switched`, `cache_invalidated` \| Copy: n/a \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY (doc 19) |
-| ADV-PUBLIC-REDACTION | Public/shared snapshot includes private source metadata | Private data leak | 0A | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | Redaction assertions on the snapshot builder field selection (snapshot builder `src/lib/publication/actions.ts`, writes `snapshot_json` at `:587`/`:664`; a third write at `:727` is the RPC param `p_snapshot_json`; helper context `activity-helpers.ts`) for `pricing_source`, `confidence`, price history into `project_publications.snapshot_json` — NOT a live library endpoint | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-012 \| Telemetry: `snapshot_redaction_verified` (console.warn sink for closed beta per C-009) \| Copy: see 22 §public-snapshot \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: src/lib/publication/actions.ts snapshot_json :587/:664 (doc 19) |
+| ADV-PUBLIC-REDACTION | Public/shared snapshot includes private source metadata | Private data leak | 0A | `vitest run tests/vitest/share-snapshot-redaction.test.tsx` (net-new) | Redaction assertions on the snapshot builder field selection (snapshot builder `src/lib/publication/actions.ts`, writes `snapshot_json` at `:653`; the `p_snapshot_json` RPC params at `:577` and `:716`; helper context `activity-helpers.ts`; verified 2026-06-21) for `pricing_source`, `confidence`, price history into `project_publications.snapshot_json` — NOT a live library endpoint | Owner: Security lead \| Phase: 0A \| Flag: n/a \| Rollback: n/a (no flag — revert the phase commit) \| Evidence: EV-06-012 \| Telemetry: `snapshot_redaction_verified` (console.warn sink for closed beta per C-009) \| Copy: see 22 §public-snapshot \| A11y: see 31 §4 Public snapshot \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: src/lib/publication/actions.ts snapshot_json :653, p_snapshot_json :577/:716 (doc 19) |
 | ADV-VIEWER-MUTATION | Viewer opens Quick Add or submits a mutation | Unauthorized mutation | 0A/3 | `vitest run tests/vitest/library-viewer-authz.test.tsx` (net-new) | UI hidden/disabled assertion + server denial via `is_workspace_editor` (role in owner/admin/member; viewer read-only) | Owner: Security lead \| Phase: 0A/3 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-013 \| Telemetry: `mutation_authz_denied` \| Copy: see 22 §permission-denied \| A11y: n/a \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: is_workspace_editor RPC (doc 19) |
 | ADV-QUICKADD-UNSAFE | Formula-like text or invalid `pricing_source` URL | Unsafe stored source / export data | 3 | `vitest run tests/vitest/library-add-component-modal-a11y.test.tsx` (net-new) | Field validation/sanitization test (app-side URL validation over free-text `pricing_source`) | Owner: QA lead \| Phase: 3 \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-014 \| Telemetry: `quick_add_validation_failed` \| Copy: see 22 §quick-add \| A11y: see 31 §4 Quick add form \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: AddComponentModal.tsx (doc 19) |
 | ADV-CONCURRENT-RENAME | Folder renamed/deleted concurrently | Silent overwrite or wrong route state | 0B | `vitest run tests/vitest/component-library-folder-actions.test.ts` | Conflict/retry test; no silent overwrite | Owner: QA lead \| Phase: 0B \| Flag: n/a \| Rollback: n/a \| Evidence: EV-06-015 \| Telemetry: `folder_renamed`, `folder_rename_failed` \| Copy: see 22 §folder-rename \| A11y: see 31 §4 Folder management \| Perf: n/a \| Browser-proof: jsdom \| i18n: n/a \| Binding: ComponentLibraryManager.tsx:1515 (doc 19) |

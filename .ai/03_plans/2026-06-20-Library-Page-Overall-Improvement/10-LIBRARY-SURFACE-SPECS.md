@@ -498,3 +498,105 @@ contract every state must satisfy. All states should include:
 Avoid generic "Something went wrong" unless paired with a concrete retry or
 support action. Pull the empty-library starter, inspector not-found, and
 permission-denied copy from the copy deck rather than inventing inline strings.
+
+## Cross-Cutting Gates (closes §3 gaps: rollback/flag, dense-mode net-new, perf budget, localization/bidi, browser-proof)
+
+This section binds every surface above to its phase, flag, rollback, perf budget
+link, localization/bidi rule, and browser-proof boundary. Under the relaxed
+scope of `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3, the surface rows above are
+spec paragraphs; the rows here are the **acceptance-gate** rows (per C-018) that
+must carry flag/rollback/perf/i18n/browser-proof pointers inline.
+
+### Phase / flag / rollback summary (one page)
+
+| Surface | Phase | Flag (doc 21) | Rollback (doc 17) |
+| --- | --- | --- | --- |
+| Overview surface | 1 | `library_trust_chips` (trust chips only); `library_search_continuity` (search -> `?component=`) | redeploy `flag=false` (~5 min, C-010) hides trust chips / search continuity; page-level retry unaffected |
+| Component Card | 1-2 | `library_trust_chips` (Phase 2 chips); card itself has no flag (always on) | redeploy `flag=false` hides chips; card renders without chips |
+| Dense Component Row (NET-NEW) | 5 | `library_virtualization_enabled` (build-time env, default false — gates virtualization ONLY, independent of dense mode per C-004) + `library_dense_mode` (runtime, gates the toggle) | remove the toggle, force card view (build-time flag = redeploy previous env per C-010) |
+| Component Inspector | 0B-1 | `library_route_state` (the `?component=<id>` param); `library_trust_chips` (Phase 2 chips) | redeploy `flag=false` falls back to pre-0B click-state; inspector still opens via local state |
+| Quick Add Component | 0B (dirty-discard confirm), 3 (split) | `library_quick_add`; `library_folder_dialogs` is the sibling flag for the `ConfirmDialog` pattern | redeploy `flag=false` -> legacy `window.*` branch (emergency only) |
+| Advanced Component Edit | 3 | `library_quick_add` | redeploy `flag=false` |
+| Folder Management | 0B | `library_folder_dialogs` | redeploy `flag=false` -> legacy `window.*` branch (emergency only) |
+| Template Card/Row | 4 | `library_trust_chips` (summary layer) | redeploy `flag=false` |
+| Template Preview / Insert | 4 | none (`git revert`) | `git revert`; `resolveEstimateTemplateInsertTarget` re-resolves so stale target cannot mutate wrong estimate |
+
+Rollback philosophy (C-010): flag rollback is the runtime kill-switch (~5 min,
+redeploy); `git revert` is the permanent fix. Phase 0B overlay/route-state
+changes keep the legacy `window.*` branch as an emergency fallback until the
+inline `ConfirmDialog` pattern is proven.
+
+### Dense mode is NET-NEW (closes §3 "dense mode net-new + under-specified")
+
+The Dense Component Row surface is **net-new** — no dense/table view, no
+density toggle, and no `viewMode: "dense"` code path exists today (verified:
+`component-library/helpers.ts:664` carries `"compact" | "detailed" | "grid"` —
+no `"dense"` / `"table"` value). Phase 5 ships BOTH:
+
+1. the card/dense **display-mode toggle** (net-new UI), persisting via the
+   existing `viewMode` preference shape (extend the union, do not add a new pref key), AND
+2. the Dense Row surface itself (net-new component), virtualized via the EXISTING
+   `WORKSHOP_VIRTUALIZATION_FLAGS` + `@tanstack/react-virtual`
+   (`src/lib/workshop/virtualization-flags.ts`, already wired for the tree) —
+   NO second virtualizer.
+
+Dense-mode done-when (acceptance gate, C-018): see §"Dense Component Row"
+Done-when list above. Owner: Frontend lead (doc 27). Phase: 5. Evidence:
+`EV-FRONTEND-05` (pre-registered in doc 24). The `library_dense_mode` flag is
+the runtime gate; the `library_virtualization_enabled` build-time flag gates
+virtualization only and is independent of the toggle per C-004.
+
+### Perf / network budget pointers (closes §3 "no perf/network budget here")
+
+This doc does not restate budgets (provisional until Phase 0A baseline per
+C-015; final in `30-PERF-BUDGET-AND-REGRESSION-GATES.md`). It binds each
+perf-sensitive surface to its budget row + the seed-baseline prerequisite.
+
+| Surface | Perf concern | Budget row (doc 30) | Seed-baseline prerequisite (doc 19) |
+| --- | --- | --- | --- |
+| Overview | first render with N recent items | `library_overview_tti` | `scripts/seed-performance-test-data.ts` does NOT seed `cost_library_items` today — Phase 0A must extend it before any budget number is claimed |
+| Components-tab browse | eager nested-detail payload (`loadCurrentWorkspaceComponentRowsLibrary` loads full versions + price history + state history + attachments per item — keystone "Performance Reality") | `library_browse_payload_size` / `library_browse_tti` | same seed extension; the real perf risk is payload shrinkage / lazy detail, not a new virtualizer |
+| Component Card / Dense Row | render N rows without jank | `library_list_render_*` | virtualization engages only past a threshold measured from the Phase-0A seed baseline (C-015) |
+| Component Inspector | open/close latency | `library_inspector_open` | n/a (single-item open) |
+| Quick Add | modal open + duplicate-check latency | `library_quick_add_open` / `library_duplicate_check` | duplicate check is a client filter over already-loaded rows (300 ms debounce, no server action) |
+| Template Insert | `resolveEstimateTemplateInsertTarget` + insert latency | `library_template_insert` | n/a (single resolver call) |
+
+Budgets are PROVISIONAL until the Phase-0A seed extension + baseline measurement
+lands; a claimed number before that baseline is a no-go (C-015).
+
+### Localization / bidi pointers (closes §3 "no localization/bidi refs here")
+
+All user-facing strings in this doc resolve to copy keys in
+`22-COPY-DECK-AND-MICROCOPY.md` and follow the i18n/RTL contract in
+`28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md`. Surface-specific bidi rules:
+
+| Surface | bidi rule (doc 28) |
+| --- | --- |
+| Component Card / Dense Row | card is a flex container; in RTL the thumbnail leads on the right, trust chip + price follow — no surface-specific RTL work (icon flipping is handled by the `dir`-aware icon utility) |
+| Dense Row table | native `<table>`; RTL handled by the browser's `dir=rtl` table layout — no custom work |
+| Component Inspector | inspector dock flips rail side in RTL via the existing `Sheet`/`InspectorDrawer` `side` prop (no surface-specific work) |
+| Quick Add / Folder Management | modal content is `dir`-aware via the existing `Modal` primitive; inline text-prompt dialog input is LTR/RTL safe (no hardcoded direction) |
+| Trust chips | chips are inline-flex soft-fill spans, tone tokens are color-only — RTL-safe by construction (doc 11 §"Localization Strategy for Trust Copy") |
+
+Date/number formatting (`pricing_date`, `unit_cost`, counts) uses the existing
+`Intl.*`-based helpers; copy keys receive formatted values as ICU args, never
+inlined literals.
+
+### Browser-proof boundary pointers (closes §3 "no browser-proof refs here")
+
+Every surface's verification boundary is defined in
+`29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md`; this section binds each surface to
+its boundary so a test author does not need to re-derive it.
+
+| Surface | jsdom OK | Playwright required | Evidence (doc 24) |
+| --- | --- | --- | --- |
+| Overview | render + state transitions + retry CTA | n/a | `EV-FRONTEND-01` |
+| Component Card / Dense Row | chip rendering, selection highlight, permission-aware action hiding | dense-mode virtualization scroll (Phase 5) — geometry-sensitive, jsdom cannot assert | `EV-FRONTEND-05` (Playwright) |
+| Component Inspector | open/close, invalid-id, permission-denied, deleted-after-load, network retry, stale-data | drawer presentation on narrow screens (Phase 5) — media-query-sensitive | `EV-FRONTEND-02` (jsdom) + `EV-FRONTEND-06` (Playwright, Phase 5) |
+| Quick Add / Folder Management | inline validation, duplicate warning, dirty-discard confirm (`ConfirmDialog` + `<input>`), conflict error | n/a | `EV-FRONTEND-03` |
+| Template Card/Row / Insert | resolver call, partial-failure, stale-target recovery | n/a | `EV-FRONTEND-07` |
+| Trust chips on glass (Phase 1-2) | chip rendering + tone | AA-on-glass contrast (Phase 1-2) — pixel-level, jsdom cannot assert; see doc 35 §4.3 + doc 31 | `EV-FRONTEND-04` (Playwright) |
+
+jsdom covers behavior; Playwright covers geometry, media queries, and
+pixel-level contrast (the AA-on-glass assertion is a Playwright + axe run per
+C-014, once `jest-axe` lands in Phase 0A).

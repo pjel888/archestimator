@@ -101,7 +101,7 @@ The stable mental model:
 ## Priority Problems
 
 1. Exact search does not preserve the selected component (no `?component=<id>` route state on `LibraryPageClient.tsx`; Overview search drops the selection).
-2. Native prompt/confirm flows remain in component folder management (`ComponentLibraryManager.tsx` `window.prompt` :1493/:1515, `window.confirm` :1534) and Add Component draft discard (`AddComponentModal.tsx` `window.confirm` :963); the estimate-page panel `component-library/index.tsx` (:939/:1428) carries the same pattern and is Phase-later.
+2. Native prompt/confirm flows remain in component folder management (`ComponentLibraryManager.tsx` `window.prompt` :1493 (create) / :1515 (rename), `window.confirm` :1534 (delete)) and Add Component draft discard (`AddComponentModal.tsx` `window.confirm` :963); the estimate-page panel `component-library/index.tsx` (:941 confirm / :1467 prompt) carries the same pattern and is Phase-later. (Lines verified 2026-06-21 via `rg -n 'window\.(prompt|confirm)'`.)
 3. Trust metadata is strong in some component surfaces but not consistently visible at every reuse decision.
 4. Add Component is a very large modal (`AddComponentModal.tsx`, 2359 ln) and mixes quick capture with advanced catalog stewardship; Quick Add splits out the required four (`name`, `category`, `unit`, `unit_cost`).
 5. Template insertion does not make the final destination group/area explicit enough; `resolveEstimateTemplateInsertTarget` exists but its resolved target is not disclosed before commit.
@@ -126,7 +126,7 @@ implementation-ready rather than open questions.
 A future implementation should be considered successful when:
 
 - From Overview search or recent components, selecting a component sets `?component=<id>` on `LibraryPageClient.tsx` and opens the Components tab with that component selected, highlighted, and visible in the inspector dock.
-- All Library-owned native prompts/confirms are replaced by shared dialogs or modals with clear labels, validation, cancel behavior, and focus return.
+- All Library-owned native prompts/confirms are replaced by shared dialogs or modals with clear labels, validation, cancel behavior, and focus return. (Phase-later residual: `component-library/index.tsx:941` (`window.confirm`) + `:1467` (`window.prompt`) remain allowlisted per LIB-LATER-01.)
 - Component cards, overview cards, template rows, and preview/inspector surfaces expose enough source/trust state to decide whether reuse is safe.
 - Add Component supports a fast path with only required catalog fields and keeps advanced details progressive.
 - Template insert flows disclose the destination target before commit and recover inline from empty/error states.
@@ -168,7 +168,7 @@ path drifts):
 - `src/components/workshop/BulkDestructivePreviewModal.tsx` (`confirmationHint` at :107-108 — the archive-copy fix)
 - `src/components/workshop/library/ComponentInspectorDock.tsx` (315 ln; the "inspector dock")
 - `src/components/workshop/library/component-facet-filter.tsx` (exports `COMPONENT_FACET_STALE_DAYS=90`, `getComponentPricingFreshness`)
-- `src/components/workshop/component-library/index.tsx` (estimate-page component-library panel; still native `window.confirm` :939 / `window.prompt` :1428 — in 00-PLAN scope, treat as Phase-later)
+- `src/components/workshop/component-library/index.tsx` (estimate-page component-library panel; still native `window.confirm` :941 / `window.prompt` :1467 — in 00-PLAN scope, treat as Phase-later)
 - `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx` (already migrated off native prompts; source of the inline `ConfirmDialog`+input pattern at :531-883)
 - `src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx` (already a `Modal`)
 - `src/components/workshop/library/template-editor/TemplateEditorClient.tsx` (already migrated off native prompts)
@@ -229,7 +229,8 @@ Replace the folder native prompts in `ComponentLibraryManager.tsx`
 (`window.prompt` create :1493 / rename :1515, `window.confirm` delete :1534) and
 the Add dirty-discard `window.confirm` in `AddComponentModal.tsx` (:963) with the
 inline `ConfirmDialog`+input "text-prompt dialog" pattern reused from
-`TemplatesBrowseManager.tsx:531-883`; add `?component=<id>` route state owned by
+`TemplatesBrowseManager.tsx:529` (the inline pattern, post the 2026-06-21 line
+verify); add `?component=<id>` route state owned by
 `LibraryPageClient.tsx`; fix the bulk-archive copy in
 `BulkDestructivePreviewModal.tsx:107-108`. Folder-prompt replacement lands HERE
 (early), NOT after Quick Add.
@@ -375,17 +376,19 @@ Every actionable row in this doc satisfies the [34-ROW-LEVEL-COMPLETENESS-MATRIX
 | 1 | `?component=<id>` route-state ambiguity | Loses exact search intent, risks object-existence leak | `vitest run tests/vitest/library-route-state-authz.test.tsx` passes | Frontend lead | 0B |
 | 2 | Un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` | Cross-workspace cache bleed | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` passes | Backend lead | 0A/0B |
 | 3 | Snapshot builder writes protected fields to `snapshot_json` | Leaks `pricing_source`, notes, confidence, price history | `ADV-PUBLIC-REDACTION` passes | Security lead | 0A |
-| 4 | Native `window.prompt`/`window.confirm` in Library-owned files | Breaks overlay consistency and focus control | `rg -n "window\.(prompt\|confirm)"` returns zero in `ComponentLibraryManager.tsx`, `AddComponentModal.tsx` (estimate-page panel is Phase-later residual) | Frontend lead | 0B |
+| 4 | Native `window.prompt`/`window.confirm` in Library-owned files | Breaks overlay consistency and focus control | `rg -n "window\.(prompt\|confirm)"` returns zero in `ComponentLibraryManager.tsx`, `AddComponentModal.tsx` (estimate-page panel `component-library/index.tsx:941`+`:1467` is the Phase-later allowlisted residual per LIB-LATER-01) | Frontend lead | 0B |
 | 5 | `resolveEstimateTemplateInsertTarget` resolves to stale/cross-workspace estimate | Could mutate wrong estimate | `ADV-INSERT-STALE-TARGET` passes | Backend lead | 4 |
 | 6 | Perf budget claimed without Phase 0A baseline | Numbers would be fabricated | Seed `cost_library_items` + measured browse baseline in [24](24-EXECUTION-EVIDENCE-LEDGER.md) §0A | Perf lead | 0A |
 | 7 | Phase rollback = "manually undo everything" | No safe backout | Each phase has a named flag in [21-FEATURE-FLAGS-AND-ROLLOUT.md](21-FEATURE-FLAGS-AND-ROLLOUT.md) §registry | Release lead | 0A |
 
 ## A.3 Critical bindings inline summary
 
-The five contracts most often referenced by implementers:
+The five contracts most often referenced by implementers (lines re-verified 2026-06-21 via `rg -n`; the keystone remains the canonical source — these are the inline shortcuts so an engineer does not have to bounce between docs for the 5 most-cited facts):
 
 1. **Route state:** `?component=<id>` is owned by `src/components/workshop/LibraryPageClient.tsx`; there is no segment detail route for components. Template detail uses the shipped segment `/workshop/library/templates/[templateId]` — do NOT add `?template=<id>` (C-008). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Verified File Paths.
-2. **Un-scoped cache key:** `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` at `src/lib/component-library/query-keys.ts:5-6` is the only cache-bleed surface; primary reader is `TemplateEditorClient.tsx:160` via inline literal. Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Query Keys.
-3. **Quick Add requires no schema change:** required fields `name`, `category` (text), `unit`, `unit_cost` already exist on `public.cost_library_items`; `library_folder_id` is optional. Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Canonical Quick Add Contract (C-011).
-4. **Archive vs delete:** "Archive" = soft-delete (`lifecycle_state = archived`, recoverable); "Delete" = hard-delete/permanent. Bulk archive copy must branch on `actionCopy.verb`, not `canExecute` (C-013). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Enums.
-5. **Component-library/index.tsx is Phase-later residual:** the estimate-page panel `src/components/workshop/component-library/index.tsx` carries native `window.confirm` :939 / `window.prompt` :1428; it is tracked, guarded against regression, but not in the 0A–5 critical path (C-003 / C-017). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §In-scope adjacent live file.
+2. **Un-scoped cache key (6 call sites, re-verified 2026-06-21):** `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` defined at `src/lib/component-library/query-keys.ts:7`; the SIX call sites that must migrate to `workspaceComponentLibraryQueryKey(workspaceId)` in lockstep are — reader via inline literal `src/components/workshop/library/template-editor/TemplateEditorClient.tsx:160`, self-invalidate same-file `:166`, `src/components/workshop/LibraryPageClient.tsx:126`, `src/hooks/use-estimate-row-mutations.ts:413`, and the two EstimateSheetContent writers `src/components/workshop/EstimateSheetContent.tsx:1300` (`refetchType: "none"`) + `:1303` (`refetchType: "active"`). (Note: the keystone doc 19 ledger entry cites `:432`/`:1299`+`:1302`; the verified 2026-06-21 truth is `:413`/`:1300`+`:1303` — flagged in `LOOP_LEDGER.md` §3 for lead reconciliation.) Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Query Keys.
+3. **Quick Add requires no schema change:** required fields `name`, `category` (text), `unit`, `unit_cost` already exist on `public.cost_library_items`; `library_folder_id` is optional. Save path is `createCostLibraryComponent` (`src/lib/component-library/actions.ts:461`) -> RPC `create_cost_library_component`; write guarded by `rpc("is_workspace_editor",{target_workspace_id})` (viewer blocked). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Canonical Quick Add Contract (C-011).
+4. **Archive vs delete:** "Archive" = soft-delete (`lifecycle_state = archived`, recoverable); "Delete" = hard-delete/permanent. Bulk archive copy at `src/components/workshop/BulkDestructivePreviewModal.tsx:107-108` (`confirmationHint = canExecute ? ...`) must branch on `actionCopy.verb` (derived at `:84` from `getActionCopy(executeLabel)` defined `:45`), not on `canExecute` (C-013). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Enums.
+5. **Component-library/index.tsx is Phase-later residual:** the estimate-page panel `src/components/workshop/component-library/index.tsx` carries native `window.confirm` :941 / `window.prompt` :1467; it is tracked, guarded against regression, but not in the 0A–5 critical path (C-003 / C-017). Binding: [19](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §In-scope adjacent live file.
+
+> **Drift caveat (12-dim binding hygiene):** the cache-bleed line drift above is the #1 Quality killer — every Library doc must cite the verified `:413` + `:1300`+`:1303` + component-library `:941`+`:1467` lines, not the older numbers. Doc 19's reconciliation (per `LOOP_LEDGER.md` §1 keystone-bindings-agent entry) is the previous snapshot; this doc carries the re-verified snapshot.

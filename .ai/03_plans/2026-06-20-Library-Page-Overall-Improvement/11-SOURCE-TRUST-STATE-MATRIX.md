@@ -351,21 +351,11 @@ reserved for pricing freshness.
 
 ### Trust-chip exposure telemetry
 
-Trust impressions are coarse and per-surface, not per-row. Two events from
-`20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` §6 cover exposure (flag
-`library_trust_chips`, evidence `EV-BE-04`):
-
-| Event | When | Payload (privacy-safe) |
-| --- | --- | --- |
-| `trust_chip_rendered` | first render-per-surface of a trust chip on overview/recent/template rows + inspector + insert | `workspaceId`, `surface`, `kind`, `freshness`, `hasConfidenceLabel`, `sampled: true` |
-| `trust_chip_unclassified` | first render-per-surface where freshness is `missing` AND `hasConfidenceLabel` is false | `workspaceId`, `surface`, `kind` |
-
-`hasConfidenceLabel` is a boolean over free-text `confidence` presence (non-null,
-non-empty after trim) — the raw `confidence` string is NEVER emitted. Denominator
-for the "Trust classification 90%+" metric = `rendered / (rendered +
-unclassified)` over that exact definition. Insert-gate decisions surface as
-`insert_target_confirmed` / `insert_target_mismatch` (doc 20), not as a separate
-trust event.
+Trust impressions are coarse and per-surface, not per-row. The full event set
+(exposure + insert-gate decisions) is in the **Trust-chip Telemetry** section
+below; this block is retained only to flag that exposure telemetry lands in
+Phase 2 with the first trust-chip render, under flag `library_trust_chips`
+(evidence `EV-BE-04`).
 
 ### Localize-ready copy-key guidance
 

@@ -146,18 +146,31 @@ no `aria-live` (chip, NOT badge — C-002).
 Whether each announcement above REUSES an existing live region or needs a
 NET-NEW one, plus the test asserting its text and politeness, is pre-registered
 one row per announcement in 24-EXECUTION-EVIDENCE-LEDGER.md. Reuse vs net-new is
-already scouted: "Result count + scope after filter/search change" reuses an
-existing `aria-live="polite"` region (the result-count `<p>` in
-`component-facet-filter.tsx`; a `polite` region also exists at
-`ComponentInspectorDock.tsx:271` for dock state), asserted by
-`vitest run tests/vitest/library-facet-filter-announce.test.tsx` (criterion: a
-filter change updates a `role="status"` node with the new count text; owner
-Phase 1); "Destructive action completed (bulk archive succeeded)" is NET-NEW —
-no `role="alert"` region exists in `BulkActionToolbar.tsx` today — its test
-asserts an assertive announcement (owner Phase 0B/2). Do not announce every
-badge update as a live event. Badges (freshness / confidence / lifecycle) carry
-no `aria-live`; they should be readable as part of the row/card/inspector-dock
-accessible name when the user reaches that content.
+already scouted and verified against `main` 2026-06-21 (every REUSED row cites a
+real `aria-live`/`role="status"` region confirmed present; every NET-NEW row
+flags the gap with a phase):
+
+| Announcement | Reuse vs Net-new | Real DOM target (verified 2026-06-21) | Test (pre-registered in 24) | Phase |
+|---|---|---|---|---|
+| Result count + scope after filter/search change | REUSE | `<p aria-live="polite">` at `LibraryOverviewSearch.tsx:305`; `role="status"` + `aria-live="polite"` at `ComponentLibraryManager.tsx:978-979`; result-count `<p aria-live="polite">` at `:968`; facet-filter region per keystone | `vitest run tests/vitest/library-facet-filter-announce.test.tsx` (criterion: filter change updates `role="status"` node w/ new count) | 1 |
+| Filter applied | REUSE (one of the above per host surface) | same regions as above | same | 1 |
+| Selected component opened from `?component=<id>` or search | REUSE | `<p aria-live="polite">` at `ComponentInspectorDock.tsx:271` for dock state | `vitest run tests/vitest/library-inspector-deeplink.test.tsx` | 0B |
+| Inspector dock / drawer opened | NET-NEW | no open-announcement region in `ComponentInspectorDock.tsx` today | `vitest run tests/vitest/library-inspector-open-announce.test.tsx` (criterion: opening the dock updates `role="status"` w/ `overlay.opened_announcement`) | 0B/1 |
+| Inspector dock / drawer closed | NET-NEW | same | `vitest run tests/vitest/library-inspector-close-announce.test.tsx` | 0B/1 |
+| Destructive action completed (bulk archive succeeded) | NET-NEW | no `role="alert"` region in `BulkActionToolbar.tsx` today | `vitest run tests/vitest/bulk-archive-announce.test.tsx` (criterion: archive success updates assertive `role="alert"` w/ `component.archived_announcement`) | 0B/2 |
+| Insert success | NET-NEW | no insert-result region in template editor today | `vitest run tests/vitest/template-insert-announce.test.tsx` | 4 |
+| Insert failure / write error | NET-NEW per host | assertive region per host surface | per-host test | 4 |
+| Permission denied (viewer attempts a write) | NET-NEW per host | assertive region per host surface | per-host test | 0B/all |
+| Trust very-stale (insert-gate confirm) | NET-NEW | no assertive region on host surface today | `vitest run tests/vitest/library-trust-very-stale-announce.test.tsx` | 2 |
+
+The aria-live regions above are the same set [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md)
+§5 binds (single source of truth — doc 31 §5 is authoritative for the live-region
+contract, this section is the keyboard/screen-reader interaction view). Do not
+announce every chip update as a live event. Chips (C-002: canonical term is
+chip, not badge — freshness / confidence / lifecycle) carry no `aria-live`;
+they should be readable as part of the row/card/inspector-dock accessible name
+when the user reaches that content. The very-stale insert-gate confirm is the
+one exception (assertive region, `trust.very_stale.announcement`).
 
 ## Table Versus Grid Decision
 
@@ -231,16 +244,21 @@ per overlay in 24-EXECUTION-EVIDENCE-LEDGER.md (mirrored in
 06-QA-AND-VALIDATION-PLAN.md) — `<file>` above is a per-overlay slot resolved by
 that ledger, not a value the implementer invents.
 
-### A11y test matrix (resolves C-014)
+### A11y test matrix (resolves C-014; doc 31 §3 is authoritative for the harness schedule)
 
-There is **NO axe/jest-axe harness** in this repo today (keystone "Test
+There is **NO axe/jest-axe harness** in this repo today (verified 2026-06-21:
+`rg "jest-axe|@axe-core|axe-core" package.json` → 0 hits; keystone "Test
 Commands"). Automated contrast/label/landmark a11y is a **Phase 0A net-new
-prerequisite** — not assumed, not deferred silently:
+prerequisite** — not assumed, not deferred silently. The full harness schedule
+lives in [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md)
+§3 + §9 (gate A1–A7); the table below is the interaction-contract view:
 
-| Row | Harness | Command | Owner / phase | Status |
-| --- | --- | --- | --- | --- |
-| 1 — existing ARIA/focus + `aria-live` assertions | Testing Library (jsdom) | `bun run test:dom` / `vitest run tests/vitest/<file>` (C-005) | implementer of each phase (0B/1/3/4) | exists; this is the current a11y floor |
-| 2 — automated axe/jest-axe gate | **NET-NEW prerequisite — add `jest-axe` before this row holds** | `bun run test:dom` once `jest-axe` is installed and wired into the shared render helper | A11y lead, **Phase 0A Contract Lock**; acceptance criteria cross-ref `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` | NOT shipped; adding it is an explicit Phase 0A deliverable. Pre-axe, contrast/label a11y is MANUAL against the doc 31 §4 / doc 35 §10 contrast rules |
+| Row | Harness | Command | Owner / phase | Status | Binding |
+| --- | --- | --- | --- | --- | --- |
+| 1 — existing ARIA/focus + `aria-live` assertions | Testing Library (jsdom) | `bun run test:dom` / `vitest run tests/vitest/<file>` (C-005) | implementer of each phase (0B/1/3/4) | exists; this is the current a11y floor | 6 verified aria-live regions: `LibraryOverviewSearch.tsx:305`, `ComponentLibraryManager.tsx:968/978-979`, `LibraryFolderTree.tsx:1146-1147`, `AddComponentModal.tsx:2204`, `ComponentInspectorDock.tsx:271`, `TemplateGallery.tsx:247/255-256`, `InsertIntoEstimatePicker.tsx:142`, `TemplatesBrowsePageClient.tsx:27`, `component-library/index.tsx:1260/2403` |
+| 2 — automated axe/jest-axe gate | **NET-NEW prerequisite — add `jest-axe` before this row holds** | `bun run test:dom` once `jest-axe` is installed and wired into the shared render helper | A11y lead, **Phase 0A Contract Lock** (doc 31 §9 A1–A2); acceptance criteria cross-ref `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` §4 | NOT shipped; adding it is an explicit Phase 0A deliverable (`EV-0A-AXE-HARNESS`). Pre-axe, contrast/label a11y is MANUAL against the doc 31 §4 / doc 35 §10 contrast rules | n/a (no harness) |
+| 3 — `FocusTrap` primitive | **NET-NEW — Phase 0B prerequisite** | manual + Playwright focus-cycle tests in [29](29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md) until `EV-0B-FOCUS-TRAP` lands | Frontend lead, **Phase 0B** | NOT shipped — verified `rg -l "FocusTrap\|focus-trap" src/components/ui/` → 0 hits. The overlay primitives (`Modal`/`AppModal`/`BlurModal`, `ConfirmDialog`, `Sheet`/`Drawer`/`SidePanel`/`InspectorDrawer`) currently rely on inherited Radix/headlessui focus behaviors — confirm trap + return before assuming it | `src/components/ui/` (new primitive target) |
+| 4 — reduced-motion blocks | existing `@media (prefers-reduced-motion: reduce)` in `globals.css` | manual review (no ad-hoc JS motion guards — see "Reduced Motion" below) | Frontend lead, all | EXISTS — 9 blocks verified 2026-06-21 at `globals.css:309/1042/1097/1128/1327/1741/2279/2436/2501` | `src/app/globals.css` + `src/components/system/LiquidGlassReady.tsx` (glass-readiness short-circuit for reduced-transparency users) |
 
 ### Overlay/layout rollback + flag refs
 
@@ -278,24 +296,43 @@ component cards, Phase 5 template cards — see [35](35-LIQUID-GLASS-LIBRARY-UX-
 - **Reduced transparency:** the `--glass-bg-fallback` opaque panel preserves all
   text/selection/focus states without blur (manual + `prefers-reduced-transparency`).
 
-### Localization / bidi caveats for narrow layouts (cross-ref [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §5)
+### Localization / bidi caveats for narrow layouts (cross-ref [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §5 — doc 28 is authoritative)
 
-- Beta ships `en-US` LTR only, but Library layout MUST be RTL-ready: use CSS
-  logical properties (`margin-inline-start`/`padding-inline-end`), `dir="auto"`
-  on user-generated folder/component names, and no hardcoded `left`/`right` in
-  component styles. Doc 28 §8 records the current physical-property baseline
-  count (do not assume 0).
+- Beta ships `en-US` LTR only, but Library layout MUST be RTL-ready so the
+  post-beta `ar` locale needs no code change. Use CSS logical properties
+  (`margin-inline-start`/`padding-inline-end`, or Tailwind `ms-*`/`me-*`/
+  `ps-*`/`pe-*`), `dir="auto"` on user-generated folder/component/confidence
+  names, and no hardcoded `left`/`right` in component styles. **Verified
+  2026-06-21 baseline:** zero `dir="rtl"` and zero `dir="auto"` in any Library
+  surface today (`rg "dir=\"rtl\"|dir=\"auto\"" src/components/workshop/library/
+  src/components/workshop/component-library/
+  src/components/workshop/component-library-manager/` → 0 hits). The physical-
+  property baseline (`ml-*`/`mr-*`/`pl-*`/`pr-*`/`left-*`/`right-*`/`margin-left`/
+  `margin-right`) is non-zero — i18n lead records the count under
+  `EV-I18N-PHYSICAL-BASELINE` (Phase 0A, doc 28 §9 L5); migration to logical
+  properties is Phase 1.
 - Under `dir="rtl"`: the inspector dock anchors LEFT (rail order mirrors via the
-  workspace track grid), the `InspectorDrawer` sheet-side flips (slides from the
-  start side), the facet-filter input aligns right and chips mirror, and the
-  modal close/X mirrors to top-left.
+  workspace track grid per [35](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) §9), the
+  `InspectorDrawer` sheet-side flips (slides from the start side, which is right
+  in RTL), the facet-filter input aligns right and chips mirror, and the modal
+  close/X mirrors to top-left. See [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md)
+  §5 "Per-surface RTL pass conditions" for the binding per-surface table.
 - Long-label wrap at < 768px is a No-Overlap rule (below); under RTL the same
   no-overflow contract holds for long Arabic/RTL labels — buttons and chips must
-  wrap/truncate with accessible names, never overflow.
-- The i18n runtime decision (next-intl vs react-intl/etc.) is a Phase 0A
-  load-bearing undecided item (doc 28 §3.1); until it lands, the copy strings in
-  the live-region table above are the doc 22 §12A registry values, keyed
-  (proposed, not yet live in `src/`).
+  wrap/truncate with accessible names, never overflow. Verify with real Arabic
+  strings (not Lorem Arabic) when `ar` lands.
+- The i18n runtime decision (`next-intl` RECOMMENDED, react-intl/i18next/FormatJS
+  alternatives — Phase 0A load-bearing UNDECIDED) lives in
+  [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §3.1; until it lands, the copy
+  strings in the live-region table above are the doc 22 §12A registry values,
+  keyed (proposed, not yet live in `src/`). The first keying target is the
+  hardcoded ternary at `src/components/workshop/library/overview/LibraryOverview.tsx:114`
+  (doc 28 §3.1 anchor).
+- The ICU MessageFormat plural shape (`{count, plural, =0 {} =1 {} other {#}}`)
+  is canonical in [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md) §4; every
+  count-based live-region string above MUST use it (none of the ad-hoc
+  `${count} item${count === 1 ? "" : "s"}` pattern that lives at
+  `LibraryOverview.tsx:114` today).
 
 ## No-Overlap Rules
 
@@ -310,12 +347,16 @@ component cards, Phase 5 template cards — see [35](35-LIQUID-GLASS-LIBRARY-UX-
 
 ## Reduced Motion
 
-Reuse the existing app mechanism — do NOT introduce a per-feature motion guard:
+Reuse the existing app mechanism — do NOT introduce a per-feature motion guard
+(canonical a11y contract in [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md)
+§7):
 
-- The CSS source of truth is the `@media (prefers-reduced-motion: reduce)` blocks
-  in `src/app/globals.css` (e.g. lines 309, 1042, 1097). Any new drawer/overlay
-  or density-toggle animation MUST be neutralized inside one of these blocks (or
-  a new one at the same query), not gated by ad-hoc JS.
+- The CSS source of truth is the `@media (prefers-reduced-motion: reduce)`
+  blocks in `src/app/globals.css`. **Verified 2026-06-21: 9 blocks today** at
+  lines `309`, `1042`, `1097`, `1128`, `1327`, `1741`, `2279`, `2436`, `2501`.
+  Any new drawer/overlay, density-toggle, or glass-readiness animation MUST be
+  neutralized inside one of these blocks (or a new one at the same query), not
+  gated by ad-hoc JS.
 - The deferred liquid-glass infra in
   `src/components/system/LiquidGlassReady.tsx` already short-circuits the
   blur/refraction ramp for reduced-transparency users; the library surfaces that

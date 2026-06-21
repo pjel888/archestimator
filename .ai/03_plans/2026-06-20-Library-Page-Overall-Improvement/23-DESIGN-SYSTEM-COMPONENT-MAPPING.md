@@ -118,6 +118,35 @@ Overlay primitives are real exports under `src/components/ui/overlays/` and
 menu/popover, `z-[1100]` tooltip). Per doc 03, do not invent local z-index or
 overlay surfaces.
 
+### Prop-level API per primitive (the "which knobs do I actually have" map)
+
+Each row names the **real exported prop signature** the Library consumes — so an
+engineer wiring a chip/dialog/drawer does not need to grep the primitive to discover
+the contract. Prop signatures are verified against the live files (cited inline).
+Library code MUST consume these props as-named; do not re-derive or fork.
+
+| Primitive (file) | Library-relevant props | Library usage |
+| --- | --- | --- |
+| `ConfirmDialog` (`ui/overlays/confirm-dialog.tsx`) | `open`, `onOpenChange`, `title`, `description?`, `confirmLabel?`, `cancelLabel?`, `variant?: "default" \| "destructive"`, `onConfirm: () => void \| Promise<void>`, `children?` (for the inline text-prompt `<input>`), `initialFocusRef?` | folder delete (destructive), Add dirty-discard, bulk-archive (via `BulkDestructivePreviewModal`); the `children` slot is the ONLY supported way to host the inline text-prompt `<input>` (no standalone `PromptDialog`) |
+| `ConfirmDialogMessage` (`ui/overlays/confirm-dialog.tsx`) | `tone?: "default" \| "danger"`, `children` | the dialog body subcomponent; reuse for the folder-consequence line |
+| `Modal` / `AppModal` (`ui/overlays/modal.tsx`) | `open`, `onOpenChange`, `title?`, `description?`, `children`, `size?: "sm" \| "md" \| "lg"`, `initialFocusRef?`, `aria-describedby?` | Quick Add, New Template, Insert picker; paper content panel (§5 of doc 35) — `BlurModal` exists but is NOT used for these |
+| `BlurModal` (`ui/overlays/modal.tsx`) | same as `Modal` + frosted scrim | use sparingly (one blur); NOT used by any Library overlay in the glass rollout |
+| `Sheet` / `Drawer` / `SidePanel` / `InspectorDrawer` (`ui/overlays/sheet-drawer.tsx`) | `open`, `onOpenChange`, `side?: "left" \| "right" \| "top" \| "bottom"`, `children`, `aria-labelledby?`, `aria-describedby?` | Edit Component drawer (glass panel, Phase 3); narrow inspector (glass panel, `<lg`); `InspectorDrawer` is the canonical alias for the right-side inspector drawer |
+| `Popover` / `dropdown-popup.tsx` | `open`, `onOpenChange`, `anchor`, `align?`, `side?`, `children` | facet filter popover; row action menus — paper, NO blur |
+| `CreatableCombobox` (`ui/creatable-combobox.tsx`) | `value`, `onChange`, `options`, `onCreateOption`, `placeholder?`, `aria-label?`, `invalid?`, `aria-describedby?` | template move (Phase 4); replaces the move text-prompt |
+| `Tooltip` (`ui/overlays/tooltip.tsx`) | `content`, `children`, `side?`, `align?` | nonessential help only |
+| `BulkActionToolbar` (`ui/bulk-action-toolbar.tsx`) | `selectedCount`, `onClearSelection`, `actions` (array of `{verb, onRun, disabled?}`) | dense-mode selected-count + bulk-archive entry point (Phase 5) |
+| `DashboardGlassPanel` (`src/components/workshop/dashboard/DashboardGlassPanel.tsx`) | `surface?: "glass" \| "warm" \| "plain"`, `pattern?: boolean`, `role?`, `aria-label?`/`aria-labelledby?`, `className?`, `children` | the overview bento tiles (§3.4 of doc 35) — `warm` for the CTA lane, `glass` for recent lanes, `plain` for counts |
+| `EmptyState` (`src/components/ui/empty-state.tsx`) | `title`, `description?`, `icon?`, `action?` | paper panel centred on the glass well/paper (never nested glass) |
+| Tone → class (`ComponentCard.tsx:69`, `CommandPalette.tsx:28`) | `getStalenessTone(value) -> "success"\|"warning"\|"danger"\|undefined` consumed inline | the chip deriver; **fix the `undefined` branch to `text-secondary`** (per §AA-Safe Foreground Mapping) |
+
+**Why this map exists (closing the §3 prop-level gap):** prior versions named the
+primitives but not the props, leaving engineers to grep before wiring. With the prop
+signatures inline, the wiring decision is one read away. Every prop signature above is the
+**stable public API** the Library consumes — if a primitive's signature changes, the
+Library call sites named in §"Reuse Confirmation" and doc 35 §12.12 must be updated in
+lockstep (logged as a C-0xx conflict in doc 26).
+
 | New element (source doc) | Existing primitive | Verdict | Note |
 | --- | --- | --- | --- |
 | Folder create / rename input (10 Folder Management) | text-prompt dialog = `ConfirmDialog` + child `<input>` + local `textPrompt` state (pattern at `templates-browse/TemplatesBrowseManager.tsx:531-883`) | Reuse pattern | No standalone `PromptDialog`/`InputDialog` exists. Either reuse the inline pattern or scope extracting a shared primitive as separate work; do not assume one exists. |

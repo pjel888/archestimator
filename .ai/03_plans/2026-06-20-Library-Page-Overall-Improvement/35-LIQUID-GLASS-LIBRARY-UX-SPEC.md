@@ -142,6 +142,71 @@ every other slot is either a translucent fill (`ctaTile`, chrome) or transparent
 the shell's single deferred blur (armed via `data-glass="ready"`) is the only one. This
 mirrors the estimate sheet's contract exactly.
 
+### 2.1 Slot mirroring vs the estimate sheet (the provenance contract)
+
+The Library slot catalogue above is a **deliberate superset** of the estimate sheet's
+`EstimateSurfaceSlot` union (`src/components/workshop/estimate-surface-variant.tsx:49-82`).
+Every estimate slot has a 1:1 Library counterpart reusing the **same** `estimate-glass-*`
+class; the Library-only extensions (`inspectorDock`, `catalogueCard`, `galleryRow`,
+`ctaTile`, `countStrip`, `gridSurface`, `stickyHead`) exist because the Library has surfaces
+the estimate sheet does not (an inspector dock vs a component-library rail; content-grade
+cards vs a row grid; a primary CTA tile; a result-count live region). This table is the
+authoritative crosswalk — when the estimate slot system changes, the Library rows marked
+"mirror" MUST be updated in lockstep.
+
+| Estimate slot (`estimate-surface-variant.tsx:49-82`) | `estimateSurfaceClass` glass branch | Library counterpart | Library-only? | Lockstep rule |
+|---|---|---|---|---|
+| `root` | `estimate-glass-well` (`:95`) | `workspaceWell` | mirror | identical class + rationale (cool canvas + warm bloom) |
+| `treeRail` | `estimate-glass-rail rounded-[8px]` (`:103-105`) | `treeRail` | mirror | identical class; both clip rounding via `overflow-hidden` on the container |
+| `libraryRail` | `estimate-glass-rail rounded-[8px] overflow-hidden` (`:109-111`) | `inspectorDock` (right rail) | adapted | same floating-rail family; Library renames because the right rail is an *inspector*, not a component-library |
+| `centerColumn` / `centerColumnFallback` | `estimate-glass-paper rounded-[8px]` (`:113-115`) | `centerColumn` | mirror | identical class |
+| `railPanelHeader` | `bg-transparent estimate-glass-chrome estimate-glass-divider` (`:121`) | `sheetHeader` (sticky catalogue/gallery header) | adapted | same chrome+divider recipe; Library uses it for the browse header, the estimate uses it for the tree panel header |
+| `railToolbar` | `estimate-glass-divider` (`:125`) | `railToolbar` | mirror | identical class |
+| `chromeToolbar` | `bg-transparent` (`:130`) | `chromeToolbar` | mirror | identical class; strips baked `bg-white` so the frost reads |
+| `sheetHeader` | `estimate-glass-chrome estimate-glass-divider` (`:132-134`) | `sheetHeader` (alternative binding) | mirror | identical class |
+| `gridStickyHeader` / `gridTableHead` | `estimate-glass-headchrome` (`:142-146`) | `stickyHead` | mirror | identical class; Library uses it for the Phase-5 dense table |
+| `gridNodeSurface` / `gridSiblingDivider` / `gridTableRoot` | `""` (transparent) (`:135-141`) | `gridSurface` | mirror | identical (transparent so the one paper reads through) |
+| — (no estimate equivalent) | — | `catalogueCard` (`workshop-project-card-glass`) | **Library-only** | content-grade glass card — borrows the **dashboard** family (`globals.css:1336`), not the estimate row model |
+| — | — | `galleryRow` (`workshop-project-card-glass`) | **Library-only** | same dashboard-card family applied to a horizontal template row |
+| — | — | `ctaTile` (`dashboard-glass-warm`) | **Library-only** | brand-orange warm glass for the single primary action (`globals.css:1753`) |
+| — | — | `countStrip` (`bg-transparent`) | **Library-only** | static live region; no fill so it reads on paper/glass beneath |
+
+**Build verification (locks the mirror):** the net-new
+`librarySurfaceClass(variant, slot)` MUST, for every "mirror" row above, return the **exact
+same string** as the cited `estimateSurfaceClass` glass branch. A unit test
+(`library-surface-variant.test.tsx`) asserts this for every mirror row; if the estimate
+class changes, the test fails and forces a lockstep update. The Library-only rows are
+asserted to return the cited `workshop-project-card-glass` / `dashboard-glass-warm` /
+`bg-transparent` literals.
+
+### 2.2 Per-slot blur budget (the one-blur-per-region map)
+
+This is the binding enforcement table for §11 "One blur per region." Every slot is listed
+with its blur source: only the **shell** slots resolve to a class carrying
+`backdrop-filter`; everything else is either translucent fill (no blur) or transparent
+(inherits the shell's blur). This is what makes the material read as **one sheet**, not
+stacked blurs.
+
+| Slot | `backdrop-filter` source | Children carry blur? | Why |
+|---|---|---|---|
+| `workspaceWell` | the well itself (`.estimate-glass-well`, `globals.css:1545`) | n/a (it IS the canvas) | the cool frosted canvas with the warm bloom |
+| `treeRail` | the rail panel (`.estimate-glass-rail`, `globals.css:1568`) | NO — children transparent | floating frosted rail; tree rows go transparent |
+| `inspectorDock` | the rail panel (`.estimate-glass-rail`) | NO — children transparent | one material with the tree rail |
+| `centerColumn` | the paper panel (`.estimate-glass-paper`, `globals.css:1589`) | NO — children transparent (`gridSurface`) | near-opaque paper; trust chips + dense rows stay legible |
+| `catalogueCard` (Phase 2) | the card itself (`.workshop-project-card-glass`, `globals.css:1336`) | NO — chips/fills are flat | content-grade glass card matching the dashboard |
+| `galleryRow` (Phase 5) | the row shell (`.workshop-project-card-glass`) | NO — chips/fills are flat | same family, horizontal orientation |
+| `ctaTile` | the tile (`.dashboard-glass-warm`, `globals.css:1753`) | NO — button is translucent fill | warm-glass CTA, one frost |
+| `sheetHeader` / `railPanelHeader` | `.estimate-glass-chrome` (`globals.css:1610`) — a wash, **not** a second blur | NO | reads on top of the rail/paper frost without stacking |
+| `stickyHead` | `.estimate-glass-headchrome` (`globals.css:1620`) — wash | NO | masks scrolling rows under the dense head |
+| `railToolbar` / `chromeToolbar` | none — `bg-transparent` or `estimate-glass-divider` (a gradient hairline, `globals.css:1711`) | NO | transparent so the rail's frost reads through |
+| `countStrip` / `gridSurface` | none — `bg-transparent` | NO | text reads on the paper beneath; never a stacked white box |
+
+**GPU budget gate:** at most **3 frosted regions** render simultaneously on a Library
+route (workspace well + one rail + paper; OR well + rail + dock; OR well + drawer).
+Phase-2/5 card glass adds one frost per visible card — the Phase-0A perf baseline
+(doc 30) measures whether the card grid can stay glass or must drop to paper under load;
+the decision rule is in §11.
+
 ---
 
 ## 3. Grid system (the "use grids / divide into divs" directive, made concrete)
@@ -304,6 +369,9 @@ Trust/freshness/confidence/lifecycle chips (specs in [23](23-DESIGN-SYSTEM-COMPO
 | Editor work surface | `estimate-glass-well` + floating `estimate-glass-paper` centre; sticky header `estimate-glass-chrome` | `TemplateEditorSheet.tsx :474/:556-561` |
 | Editable rows / fields | **stay paper** (`bg-white`) inside the glass paper so text editing stays crisp; do not frost editable fields | `:422` |
 | Drop zones | translucent `bg-surfaceMuted/50`; no extra blur | `:334`, `:437-452` |
+| Structure tree (left) | `treeRail` glass rail | `TemplateStructureTree.tsx` (consumed by `TemplateEditorSheet`) |
+| Editor grid anatomy | the editor is the same 3-track workspace grid as the browse routes (`§3.1`): tree `\| paper-centre (groups + line rows) \| (no dock — the editor is 2-track at all breakpoints)`. The centre is a nested grid: `[chrome header] [group/line scroll region] [add-line footer strip]`. Each line row is a grid cell (`gridSurface` slot, transparent on the paper). Group headers use `sheetHeader`-family chrome so they stick within the scroll region. | `TemplateEditorSheet.tsx :474` (root), `:556-561` (centre), `:422` (line rows) |
+| Editor at `<lg` | tree collapses to a drawer (`InspectorDrawer` glass panel); centre spans full width | `12` §Tablet |
 
 ### 4.6 Inspector dock / drawer
 | Aspect | Treatment | Binding |
@@ -493,6 +561,74 @@ Owner: Design lead · Phase: 1 · Flag: `library_glass_shell` · Rollback: paper
 ### 12.10 Reduced-transparency / reduced-motion fallback
 Owner: A11y lead · Phase: 1 · Flag: n/a (system) · Rollback: n/a · Evidence: EV-G-007 · Telemetry: n/a · Copy: n/a · A11y: all states readable without blur/motion · Perf: fallback cheaper · Browser-proof: Playwright emulated media queries · i18n: n/a · Binding: `globals.css:1769`, `LiquidGlassReady.tsx:25`.
 
+### 12.11 Phase / flag / rollback / owner summary (one-page gate table)
+
+This is the at-a-glance rollout map for the glass rollout. Every gate row in §12.1–12.10
+rolls up here. Flag names are canonical (doc 21); rollback shapes follow C-010 (build-time
+flag = redeploy prior env, ~5 min; runtime kill-switch is Phase-later); owners are the 12
+roles in doc 27.
+
+| Phase | Work (gate rows) | Owner role | Flag | Rollback (C-010) | Evidence IDs |
+|---|---|---|---|---|---|
+| **0B** | 12.8 (drawer glass + dialogs paper) — narrow-inspector drawer becomes the single glass overlay panel | Frontend lead | `library_glass_drawer` | redeploy flag=false → paper drawer | EV-G-006 |
+| **1** | 12.1 (slot system + provider), 12.2 (workspace grid), 12.3 (well+rail+paper+chrome), 12.4 (overview bento), 12.5 (catalogue grid + chips), 12.9 (CTA + liquid buttons), 12.10 (fallback) | Frontend lead (12.1–12.5, 12.10) + Design lead (12.9) | `library_glass_shell` | redeploy flag=false → provider default `"paper"`, no visual shift | EV-G-001/002/003/007/008/009/010/011/013 |
+| **2** | 12.6 (component cards → content-grade glass) + trust chips on glass (§4.3) | Design lead | `library_card_glass` | redeploy flag=false → paper cards (`rounded-xs border-hairline bg-white`) | EV-G-005 |
+| **5** | 12.7 (template gallery rows → content-grade glass) + dense table on glass paper (`stickyHead`) | Design lead | `library_card_glass` (same flag, Phase-5 scope) | redeploy flag=false → paper rows | EV-G-012 |
+
+**Rollout order is the keystone phase map:** `0A → 0B → 1 → 2 → 3 → 4 → 5` (doc 19). Glass
+never lands out of order: the drawer (12.8) is gated on 0B overlay reliability; the shell
+(12.1–12.5, 12.9, 12.10) is gated on Phase 1; card glass (12.6) is gated on Phase 2 trust
+chips being proven on paper first; row glass (12.7) is gated on Phase 5 dense mode.
+
+### 12.12 Per-Library-file coverage map (every surface accounted for)
+
+This is the binding map between the §4 surface treatments and **every** Library file named
+in the keystone + brief. If a Library file is not listed here, it does not change in the
+glass rollout (it stays paper). Files are grouped by the directory structure in
+`_AGENT-COORDINATION-BRIEF.md` §2; line refs are from the keystone doc 19 (verified
+2026-06-21).
+
+| File | Slot(s) applied (Phase) | §12 row(s) | Notes |
+|---|---|---|---|
+| **`src/components/workshop/library/`** | | | |
+| `ComponentInspectorDock.tsx` (`:1631`) | `inspectorDock` (P1) / drawer glass (P0B at `<lg`) | 12.3 / 12.8 | desktop = floating glass rail; narrow = `InspectorDrawer` glass panel |
+| `EditComponentDrawer.tsx` | (Edit drawer — `Sheet`/`Drawer` glass panel) | 12.8 | editable fields stay paper inside the glass drawer |
+| `LibraryComponentsRoute.tsx` | wraps the workspace grid; provider root | 12.1 / 12.2 | mounts `LibrarySurfaceVariantProvider variant="glass"` |
+| `LibraryTabPanel.tsx` | tab panel wrapper | 12.1 | no slot of its own; children carry slots |
+| `LibraryTabsLayoutClient.tsx` | tab strip chrome | (no slot — chrome stays as-is) | tab strip is not a glass surface; it sits on the paper |
+| `LibraryTitleBarClient.tsx` | title bar chrome | (no slot) | title bar stays paper/chrome; not frosted |
+| `component-facet-filter.tsx` | applied-filter chips (`countStrip`/chip strip) | 12.5 | chips are flat soft-fill spans (§4.3); popover stays paper |
+| `overview/LibraryOverview.tsx` (`:268`) | bento board on `workspaceWell`; tiles = `DashboardGlassPanel` | 12.4 | migrates the existing `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6` onto `.dashboard-root` |
+| `overview/LibraryOverviewSearch.tsx` (`:305` aria-live) | `.workshop-liquid-button` chrome on the warm tile | 12.9 | search popup stays paper (z-[1050]) |
+| `overview/RecentComponentCard.tsx` | paper recent-card inside the glass lane tile | 12.4 | recent cards stay paper in Phase 1; optional glass Phase 5 |
+| `template-editor/TemplateEditorClient.tsx` (`:160` cache-bleed reader) | editor root | 12.2 | reads `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` — no glass change, but the editor surface follows the workspace grid |
+| `template-editor/TemplateEditorSheet.tsx` (`:474`/`:556-561`) | `workspaceWell` + `centerColumn` + `sheetHeader` | 12.3 | editable rows (`:422`) stay paper inside the glass paper; drop zones (`:334`,`:437-452`) translucent |
+| `template-editor/TemplateStructureTree.tsx` | `treeRail` (left rail of the editor) | 12.3 | same floating glass rail family |
+| `templates-browse/TemplatesBrowseManager.tsx` (`:779` root, `:784` section, `:431` tree) | `workspaceWell` + `treeRail` + `centerColumn` + `sheetHeader` | 12.2 / 12.3 | also hosts the inline text-prompt `ConfirmDialog` (`:531-883`) — paper, per §5 |
+| `templates-browse/TemplateGallery.tsx` (`:61` row, `:247`/`:255-256` aria-live) | `centerColumn` paper (P1-4) → `galleryRow` glass (P5) | 12.3 / 12.7 | rows paper until Phase 5 |
+| `templates-browse/TemplatePreviewDock.tsx` | (preview dock — inspector family) | 12.3 | preview dock follows the `inspectorDock` slot |
+| `templates-browse/InsertIntoEstimatePicker.tsx` (`:142` aria-live) | paper Modal (z-[1000]) | (no slot — paper per §5) | insert picker stays a crisp paper modal |
+| `templates-browse/TemplatesBrowsePageClient.tsx` (`:27` aria-live) | page client wrapper | 12.1 | mounts provider |
+| **`src/components/workshop/component-library/`** | | | |
+| `ComponentCard.tsx` (`:323-480` catalogue card) | `catalogueCard` paper (P1) → glass (P2) | 12.6 | the content-grade glass card shell; trust chips sit on it (§4.3) |
+| `NewComponentForm.tsx` | (inside paper Modal) | (no slot — paper) | form fields stay crisp inside the paper modal |
+| `NewTemplateModal.tsx` | (paper Modal, z-[1000]) | (no slot — paper per §5) | short creation modal; stays paper |
+| `CommandPalette.tsx` (`:28` tone mapping) | (palette — paper popover) | (no slot) | command palette stays a paper popover (z-[1050]) |
+| `helpers.ts` (`:667` `getStalenessTone`, `:675` `getStalenessLabel`, `:664` `viewMode`) | (no slot — tone helpers consumed by chips) | 12.5 (chips) | tone → token mapping per §4.3 |
+| `tree/` (folder tree subcomponents) | `treeRail` children (transparent on the rail frost) | 12.3 | tree rows go transparent on the glass rail |
+| **`src/components/workshop/component-library-manager/`** | | | |
+| `ComponentLibraryManager.tsx` (`:1579` root, `:927` centre, `:931` header, `:762` tree, `:383`/`:844-846` search, `:876-882` client filter, `:1493`/`:1515`/`:1534` folder prompts) | `workspaceWell` + `treeRail` + `centerColumn` + `sheetHeader` + `countStrip` | 12.1–12.5 | the primary Components-tab host; also hosts the inline `ConfirmDialog` folder flows (paper) |
+| `AddComponentModal.tsx` (`:963` dirty confirm, `:2204` aria-live) | (paper Modal, z-[1000]) | (no slot — paper per §5) | Quick Add stays a crisp paper modal; warm-glass CTA lives on the catalogue, not the modal |
+| `LibraryFolderTree.tsx` (`:1146-1147` aria-live) | `treeRail` children | 12.3 | folder tree rows go transparent on the glass rail |
+
+**Files NOT changing in the glass rollout (binding — keeps the scope honest):**
+`LibraryTabsLayoutClient.tsx`, `LibraryTitleBarClient.tsx`, `NewComponentForm.tsx`,
+`NewTemplateModal.tsx`, `CommandPalette.tsx`, `InsertIntoEstimatePicker.tsx`,
+`AddComponentModal.tsx`, `BulkDestructivePreviewModal.tsx`, all `Popover`/`Tooltip`/`Menu`
+primitives. These stay paper/chrome per §5 (overlay interiors) or are non-frosted chrome.
+Listing them here prevents scope creep — no engineer should frost these to "match" without
+an explicit change to this table.
+
 ---
 
 ## 13. Cross-references
@@ -528,7 +664,30 @@ rg -n "backdrop-filter|@property --glass" src/components/workshop/library/ --typ
 
 # Radius discipline: no sm/md/lg/xl/full radii introduced on Library glass
 rg -n "rounded-(sm|md|lg|xl|full)" src/components/workshop/library/
+
+# Slot mirror (§2.1): after build, the Library slot system's "mirror" rows return
+# the SAME string as estimateSurfaceClass's glass branch. Run the lockstep test:
+bun run test:dom -- library-surface-variant   # (test file registered in doc 24)
+
+# Per-slot blur budget (§2.2): no Library slot invents a local backdrop-filter.
+# The only backdrop-filter hits in library/ should be on slot-carrying shell components.
+rg -n "backdrop-filter|backdrop-blur" src/components/workshop/library/
+
+# Estimate glass classes exist with deferred arming (§2.1 mirror relies on these):
+rg -n "^\s*\.estimate-glass-(well|rail|paper|chrome|headchrome|divider)\s*\{" src/app/globals.css
+
+# Dashboard / workshop glass classes the Library-only slots reuse:
+rg -n "^\s*\.dashboard-glass(-warm)?\s*\{|^\s*\.workshop-(liquid-button|project-card-glass)\s*\{" src/app/globals.css
 ```
+
+**Slot-mirror lockstep test (the §2.1 contract is machine-enforced):**
+`src/components/workshop/library/library-surface-variant.test.tsx` asserts, for every
+"mirror" row in §2.1, that `librarySurfaceClass("glass", slot) === estimateSurfaceClass("glass", estimateSlot)`
+(using the documented estimate→Library mapping). If the estimate class changes upstream,
+this test fails and forces a lockstep update to this doc + the Library implementation.
+The Library-only rows (`catalogueCard`, `galleryRow`, `ctaTile`, `countStrip`,
+`gridSurface`) assert the exact literals (`workshop-project-card-glass`,
+`dashboard-glass-warm`, `bg-transparent`). Registered as evidence EV-G-008 in doc 24.
 
 ---
 

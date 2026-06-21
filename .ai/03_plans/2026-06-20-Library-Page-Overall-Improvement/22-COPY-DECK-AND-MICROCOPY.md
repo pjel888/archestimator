@@ -313,9 +313,19 @@ Quick Add required fields are `name`, `category`, `unit`, `unit_cost` (CANON Qui
 
 ## 12. Pluralization and i18n rules
 
-Every count-based string MUST use ICU MessageFormat pluralization.
+> **Canonical shape cross-ref.** The authoritative **copy-key naming
+> convention** (`<surface>.<element>.<state>.<variant>` flat dot-path),
+> **locale scope** (`["en-US"]` beta; 9-locale post-beta incl. `ar` RTL),
+> **ICU MessageFormat plural shape**, **RTL-ready rules**, and **runtime
+> decision** (RECOMMENDED `next-intl`, Phase 0A UNDECIDED) live in
+> [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md)
+> §§2–6. This section is the copy-deck view of the same rules — copy lead
+> and i18n lead co-own them, doc 28 is the binding contract, doc 22 is the
+> authoritative key registry. When the two docs' wording differs on i18n
+> shape, **doc 28 wins** and doc 22 reconciles.
 
-### Pattern
+Every count-based string MUST use ICU MessageFormat pluralization. The
+canonical pattern (registered in `LOOP_LEDGER.md` §2):
 
 ```
 <key> = {count, plural,
@@ -325,27 +335,87 @@ Every count-based string MUST use ICU MessageFormat pluralization.
 }
 ```
 
-### Required plural keys
+- `=0` and `=1` are explicit forms (always include both for English so the zero case can differ).
+- `other` is the catch-all (always present).
+- `#` is the number placeholder inside the plural arm.
+- Use `count` for single-count strings, `n`/`m` for multi-count strings (e.g., `folder.delete.body_with_subfolders` uses `{n}` for components and `{m}` for subfolders).
 
-| Key | ICU pattern | Surfaces | Owner | Phase |
-|---|---|---|---|---|
-| `component_card.count` | `{count, plural, =0 {No components} =1 {1 component} other {# components}}` | Components tab, overview | Copy lead | 1 |
-| `folder.item_count` | `{count, plural, =0 {Empty} =1 {1 item} other {# items}}` | Folder tree | Copy lead | 0B |
-| `search.result_count` | `{count, plural, =0 {No results} =1 {1 result} other {# results}}` | Search/filter | Copy lead | 1 |
-| `bulk_archive.title` | `{n, plural, =1 {Archive 1 component?} other {Archive # components?}}` | Bulk archive modal | Copy lead | 0B |
-| `bulk_archive.lead` | `{n, plural, =1 {This will archive 1 component.} other {This will archive # components.}}` | Bulk archive modal | Copy lead | 0B |
-| `folder.delete.body_with_components` | `{n, plural, =1 {Its 1 component stays in the library...} other {Its # components stay in the library...}}` | Folder delete dialog | Copy lead | 0B |
+### Required plural keys (binding — every count-based copy key in this deck)
 
-### Locale-safe interpolation and escaping rules
+| Key | ICU pattern | Surfaces | Owner | Phase | i18n binding |
+|---|---|---|---|---|---|
+| `component_card.count` | `{count, plural, =0 {No components} =1 {1 component} other {# components}}` | Components tab, overview | Copy lead | 1 | `src/components/workshop/library/overview/LibraryOverview.tsx:114` (the hardcoded ternary that keys away first per doc 28 §3.1) |
+| `folder.item_count` | `{count, plural, =0 {Empty} =1 {1 item} other {# items}}` | Folder tree | Copy lead | 0B | `src/components/workshop/component-library-manager/LibraryFolderTree.tsx:1146-1147` (aria-live region present) |
+| `search.result_count` | `{count, plural, =0 {No results} =1 {1 result} other {# results}}` | Search/filter | Copy lead | 1 | `src/components/workshop/library/component-facet-filter.tsx` (region per keystone) |
+| `search.result_announcement` | `{count, plural, =0 {No results} =1 {1 result found} other {# results found}}` | Search aria-live | A11y lead | 1 | `LibraryOverviewSearch.tsx:305`, `ComponentLibraryManager.tsx:978-979`, `TemplateGallery.tsx:247/255-256` |
+| `bulk_archive.title` | `{n, plural, =1 {Archive 1 component?} other {Archive # components?}}` | Bulk archive modal | Copy lead | 0B | `src/components/workshop/BulkDestructivePreviewModal.tsx:107` |
+| `bulk_archive.lead` | `{n, plural, =1 {This will archive 1 component.} other {This will archive # components.}}` | Bulk archive modal | Copy lead | 0B | `src/components/workshop/BulkDestructivePreviewModal.tsx:107` |
+| `bulk_archive.partial_blocker` | `{n, plural, =1 {Only the 1 component marked ready will be archived.} other {Only the # components marked ready will be archived.}}` | Bulk archive modal | Copy lead | 0B | `src/components/workshop/BulkDestructivePreviewModal.tsx:107` |
+| `folder.delete.body_with_components` | `{n, plural, =1 {Its 1 component stays in the library and loses this folder.} other {Its # components stay in the library and lose this folder.}}` | Folder delete dialog | Copy lead | 0B | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1534` |
+| `folder.delete.body_with_subfolders` | `{n, plural, ...} and {m, plural, ...}` (two plural clauses) | Folder delete dialog | Copy lead | 0B | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1534` |
 
-| Rule | Rationale | Owner | Phase |
-|---|---|---|---|
-| Never concatenate strings with variables. | Word order varies by locale. | i18n lead | all |
-| Always use ICU MessageFormat for variables. | `{name}`, `{count}`, `{date}`. | i18n lead | all |
-| Escape user-generated content before interpolation. | Prevents injection and broken markup. | Frontend lead | all |
-| Never interpolate HTML; use JSX interpolation. | No `dangerouslySetInnerHTML`. | Frontend lead | all |
-| URL-encode parameters with `encodeURIComponent`. | Safe links. | Frontend lead | all |
-| Use `Intl.DateTimeFormat`/`Intl.NumberFormat` for dates/numbers. | Locale-aware formatting. | i18n lead | all |
+### Locale-safe interpolation and escaping rules (cross-ref doc 28 §6 — doc 28 is authoritative)
+
+The 7 locale-safe rules live in [28](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md)
+§6; copied here as the copy-deck view so implementers do not have to leave
+this doc:
+
+| Rule | Rationale | Example (safe) | Example (forbidden) | Owner | Phase |
+|---|---|---|---|---|---|
+| Never concatenate strings with variables. | Word order varies by locale. | `t("folder.delete.body_with_components", { name, n })` | `"Delete " + name + "?"` | i18n lead | all |
+| Always use ICU MessageFormat for variables. | `{name}`, `{count}`, `{date}` positional, locale-aware. | `Delete "{name}"?` | `` `Delete "${name}"?` `` outside ICU | i18n lead | all |
+| Escape user-generated content before interpolation. | Prevents injection and broken markup (folder names, component names, confidence free-text, source URLs). | React JSX `{t(..., { name })}` (escapes by default) | `<div dangerouslySetInnerHTML={{__html: name}} />` | Frontend lead | all |
+| Never interpolate HTML; use JSX interpolation. | No XSS. | `<span>{t(...)}</span>` | `dangerouslySetInnerHTML` for user content | Frontend lead | all |
+| URL-encode parameters with `encodeURIComponent`. | Safe links (the `pricing_source` column is free-text). | `encodeURIComponent(url)` before `{sourceUrl}` | bare `{sourceUrl}` in an `href` | Frontend lead | all |
+| Use `Intl.DateTimeFormat`/`Intl.NumberFormat` for dates/numbers/currency. | Locale-aware formatting; Arabic-Indic digits under `ar`. | `new Intl.DateTimeFormat(locale, {dateStyle:"medium"}).format(date)` | `date.toLocaleDateString()` (ignores runtime locale) | i18n lead | all |
+| Never interpolate raw exceptions or PII into `error.announcement = Error: {message}.`. | Stable codes only; raw exceptions leak stack traces + user data. | `{message: "NETWORK_ERROR"}` mapped to a stable label | `{message: err.toString()}` | Copy lead + i18n lead | all |
+
+The runtime locale is supplied by the i18n runtime (doc 28 §3.1 —
+`next-intl` RECOMMENDED, Phase 0A UNDECIDED); never hardcode `"en-US"` in a
+component body.
+
+### 12B. RTL copy policy (cross-ref doc 28 §5)
+
+Beta ships `en-US` LTR only, but copy MUST be RTL-ready so the post-beta
+`ar` locale needs no copy change. Rules (doc 28 §5 is authoritative):
+
+1. **No copy embeds direction.** Never write "the panel on the right" or
+   "click the left arrow" — write "the inspector dock" (named) or "the
+   start-side panel" (logical). This applies to tooltips, helper text, and
+   onboarding copy.
+2. **No copy embeds plural logic via concatenation.** Use ICU plurals (§12)
+   so Arabic's 6 plural forms work — never `` `${count} item${count === 1 ? "" : "s"}` ``.
+3. **Numbers inside copy use ICU `#` or `Intl.NumberFormat`.** Never a
+   template literal. The current `LibraryOverview.tsx:114` ternary is the
+   anti-pattern §3.1 of doc 28 keys away.
+4. **User-generated content is `dir="auto"`.** Folder names, component
+   names, confidence free-text, source URLs — each rendering cell sets
+   `dir="auto"` so a single Arabic folder name renders RTL inside an
+   otherwise-LTR workspace (doc 28 §5 rule 2).
+5. **Date placeholders interpolate via `Intl.DateTimeFormat`.** The
+   `trust.public_snapshot.label = Snapshot verified on {date}` key passes
+   `{date}` through `Intl.DateTimeFormat(locale, {dateStyle:"medium"})` —
+   Arabic-Indic digits under `ar`, Western under `en-US` (doc 28 §6).
+
+### 12C. Screen-reader-only copy policy (Tier 6)
+
+Tier 6 copy (§2 hierarchy: "Accessible name not visible") is for screen
+readers only — it is rendered inside `sr-only` markup (Tailwind `sr-only`
+class) and announces state the sighted user perceives visually. Rules:
+
+| Rule | Rationale | Example |
+|---|---|---|
+| Tier 6 copy is a **separate key**, not a re-used visible label. | Visible label is often terse ("Stale"); sr-only needs full text ("Stale price. Priced more than 90 days ago. Review before reuse.") | `trust.stale.sr_label` ≠ `trust.stale.label` |
+| Tier 6 copy is NOT interpolated into `aria-label` of the host element UNLESS it is the accessible name. | Avoid double-announce (aria-label + visible text both read). | chip's `aria-label` carries the full trust text (Tier 6); visible chip label is separate |
+| Tier 6 copy for icons is mandatory when an icon has no visible text. | WCAG 1.1.1 Non-text Content. | the warm-glass CTA "Add component" icon button needs `aria-label="Add component"` (Tier 6 key `library.add_button.sr_label`) |
+| Tier 6 copy for state is announced via aria-live (§12A), NOT rendered in a visible label. | Sighted users see the chip change; sr users hear the announcement. | `trust.very_stale.announcement` under `assertive`; the visible chip is `trust.very_stale.label` ("Very stale") |
+| Tier 6 copy is keyed like any other copy (no ad-hoc `aria-label="Close"` strings). | Locale-safe + rollback-safe. | `overlay.close_button.sr_label = Close` (NOT a hardcoded `aria-label="Close"`) |
+
+The full list of Tier 6 keys is the §12A live-region table + the per-surface
+`aria-label` requirements in [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md)
+§4 (every "ARIA" column cell). The copy deck registers them under the
+`*.sr_label` or `*.announcement` key suffix; the suffix is the convention
+that signals "Tier 6 / screen-reader-only".
 
 ---
 

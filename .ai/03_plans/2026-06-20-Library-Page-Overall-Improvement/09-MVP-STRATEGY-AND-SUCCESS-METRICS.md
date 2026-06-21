@@ -56,7 +56,7 @@
 
 ### Manual-sampling fallback
 
-If telemetry lands late or the `recordLibraryEvent` seam is not ready:
+If telemetry lands late or the `recordLibraryEvent` seam is not ready (the net-new `src/lib/component-library/library-telemetry.ts` is a Phase-0A prerequisite owned by the Telemetry lead; until it ships, every INSTRUMENTED metric falls back to the manual path below — this is the live measurement path during closed beta):
 
 | Metric | Fallback method | Owner | Evidence |
 |---|---|---|---|
@@ -66,6 +66,22 @@ If telemetry lands late or the `recordLibraryEvent` seam is not ready:
 | Insert accuracy | DOM/e2e assertions on `resolveEstimateTemplateInsertTarget` return remain the primary proof. | QA lead | EV-QA-INSERT-01 |
 | Privacy | Static `rg` + snapshot redaction test remain primary. | Security lead | EV-SEC-02 |
 | Large-list usability | Perf smoke with Playwright + DevTools Performance. | Perf lead | EV-PERF-01 |
+
+### Reporting surface and review cadence (closes §3 gap "no metric dashboard/owner cadence")
+
+There is no production telemetry dashboard in closed beta (the sink is `console.warn` per C-009). The reporting surface is:
+
+| Signal | Sink | Review cadence | Owner | Trigger if threshold breached |
+|---|---|---|---|---|
+| `library_find_*`, `trust_chip_*`, `quick_add_*`, `insert_target_*`, `dense_mode_*` events | browser DevTools console (captured during moderated beta tasks) + recorded screen sessions | weekly beta review | Planning lead | apply the per-metric rollback trigger (table above) + schedule a fix |
+| Manual-sampling fallback results (stopwatch, screen recording, audit spreadsheet) | shared beta-review doc (QA lead owned) | weekly beta review | QA lead | compare against the same thresholds; if breached, applies the same rollback trigger |
+| Snapshot redaction assertion | CI / pre-release `rg` + Playwright | per release | Security lead | hold release (no-go) |
+| `bun run test:dom` suite status | CI | per PR | Release lead | any failure blocks merge |
+| Phase-0A perf baseline + dense-mode steady-state frame | doc 24 §"Perf baseline measurement note" artifact (Playwright `--trace on` median of ≥3 runs) | Phase 0A gate, then re-measured at Phase 5 dense | Perf lead | apply fallback ladder in `30` §6; if exhausted, hold Phase 5 |
+
+### `very stale` tier resolution (closes §3 gap "resolve `very stale` tier scope vs doc 11")
+
+Per `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` C-001/C-021: the 4-tier trust taxonomy (`fresh`/`stale`/`very stale`/`missing`) is the **beta-target state**, but today's code returns only `fresh`/`stale`/`missing` via `getComponentPricingFreshness` (`src/components/workshop/library/component-facet-filter.tsx:61`). The `very stale` 180-day tier is **net-new Phase-2 work** — implementing it requires lockstep edits to `COMPONENT_FACET_STALE_DAYS` (`component-facet-filter.tsx:12`), `LIBRARY_OVERVIEW_STALE_PRICING_DAYS` (`src/lib/repositories/component-library-repository.ts:827`), the hardcoded "90 days" string at `src/components/workshop/library/overview/LibraryOverview.tsx:114`, AND `getComponentPricingFreshness` itself. **Until that Phase-2 work lands, the "Trust classification" metric above is measured against the 3-tier reality** (no `very stale` data exists to classify). The Phase-2 extension is owner = Backend lead, evidence = EV-BE-04, flag = `library_trust_chips`.
 
 ---
 

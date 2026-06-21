@@ -23,6 +23,17 @@
 > [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md),
 > [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md),
 > [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) (§11 — GPU one-blur-per-region budget).
+>
+> **§3 gap closure status (auditor index, 2026-06-21):** all five doc-25 §3 gaps for
+> this doc are closed inline: (1) **per-surface perf budget** — §3 "Per-Library-surface
+> budget" table binds every budget to a real file:line (12 surfaces, incl dense mode +
+> glass shell); (2) **measurement methodology** — §2 (Phase 0A seed tiers, conditions,
+> tools); (3) **regression gates** — §4 pre-merge + phase-exit + no-go, with 12-dim
+> gate-row footers; (4) **artifact schema** — §5 JSON schema + comparison format; (5)
+> **fallback decision tree** — §6 (7-node pagination/virtualization/server-search/escalation
+> ladder). C-015 (provisional vs final budgets) is resolved by the explicit "PROVISIONAL
+> until Phase 0A" marking on every §3 table + the §4 gate-row footer stating the baseline
+> is pre-registered execution evidence (`EV-0A-PERF-BASELINE`), not a measured number.
 
 ---
 
@@ -146,6 +157,35 @@ Cross-ref [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.m
 Measure the GPU budget as part of the Phase 0A baseline (§2); the card-glass
 decision in Phase 2/5 is gated on the 0A measurement, not asserted here.
 
+### Per-Library-surface budget (PROVISIONAL — industry defaults applied to each surface; superseded by Phase 0A measurement)
+
+Each row binds a metric-type budget (above) to one real Library surface. Every
+target is PROVISIONAL until the Phase 0A baseline (§2) replaces it with a
+measured number (C-015). Bindings sourced from
+[19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+§Verified File Paths.
+
+| Surface | Binding (real file:line) | LCP target | INP target | CLS target | Initial JS | Response body | Heap (500 rows) | Phase | Flag | Rollback | Evidence | Browser-proof | i18n |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Library overview | `src/components/workshop/library/overview/LibraryOverview.tsx` | < 2.5s | < 200ms | < 0.1 | < 200KB | < 100KB (500) / < 20KB (50) | n/a (card grid) | 0A | n/a | revert overview changes | EV-PERF-01 | Playwright | key-based |
+| Components browse (card grid) | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:877` (`facetedItems`); `:881-882` (`itemMatchesSheetQuery`) | < 2.5s | < 50ms (client filter) | < 0.1 | < 200KB | < 100KB (500) | < 50MB | 0A | n/a | revert payload change | EV-PERF-01 | Playwright | n/a |
+| Component inspector dock | `src/components/workshop/library/ComponentInspectorDock.tsx:68` | < 2.5s (shared route) | < 16ms (open) | < 0.1 | lazy (< 150KB) | < 30KB (detail graph) | n/a (single item) | 0B | `library_component_deep_link` | redeploy flag=false | EV-BE-05 | Playwright | key-based |
+| Quick add modal | `src/components/workshop/component-library-manager/AddComponentModal.tsx` | < 2.5s (shared route) | < 500ms (submit) | < 0.1 | lazy (< 150KB) | n/a (mutation) | n/a | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 | Playwright | key-based |
+| Folder management | `ComponentLibraryManager.tsx:1493-1534` (native-prompt debt) | < 2.5s (shared route) | < 16ms (action) | < 0.1 | < 200KB | n/a (mutation) | n/a | 0B | `library_folder_dialogs` | redeploy flag=false | EV-FRONTEND-02 | Playwright | key-based |
+| Template preview / insert | `src/components/workshop/library/templates-browse/`; insert `resolveEstimateTemplateInsertTarget` | < 2.5s | < 500ms (insert) | < 0.1 | lazy (< 150KB) | < 40KB (template+components) | n/a | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | Playwright | key-based |
+| Dense mode row (Phase 5) | `src/lib/workshop/virtualization-flags.ts` (reuse) | < 2.5s | < 100ms (keystroke, 500 rows) | < 0.1 | < 200KB + virtualization chunk | < 100KB (500) | < 80MB | 5 | `library_dense_mode` | redeploy flag=false | EV-PERF-01 | Playwright | n/a |
+| Search/filter (client-side) | `ComponentLibraryManager.tsx:881` (`itemMatchesSheetQuery`) | < 2.5s (shared route) | < 50ms (100 results) / < 200ms (5000 results) | < 0.1 | < 200KB | < 50KB (100 results) | n/a | 0A | n/a | n/a (client-side today) | EV-PERF-01 | Playwright | n/a |
+| Public snapshot | `src/app/share/[token]`; `snapshot_json` from `project_publications` | < 2.5s | < 200ms | < 0.1 | < 200KB | < 30KB (single component) | n/a | 0B | n/a (always-on surface) | n/a | EV-SEC-03 | Playwright | key-based |
+| Overlay / modal | `ui/overlays/modal.tsx` (`AppModal`/`BlurModal`), `ui/overlays/sheet-drawer.tsx` | n/a (overlay) | < 16ms (open) | < 0.1 (no layout shift) | lazy (< 150KB) | n/a | n/a | all phases | n/a | revert overlay change | per-feature | Playwright | key-based |
+| Trust chip | `component-facet-filter.tsx:61` (`getComponentPricingFreshness`) | n/a (inline) | < 16ms (render) | < 0.1 | n/a (inline) | n/a | n/a | 2 | `library_trust_chips` | redeploy flag=false | EV-BE-04 | jsdom | n/a |
+| Library glass shell (Phase 1) | `LiquidGlassReady.tsx:25` (deferred arming); `globals.css:110` (`--glass-blur: 18px`) | < 2.5s (glass must not delay first paint — blur armed after `data-glass="ready"`) | < 200ms (blur arming is idle-callback) | < 0.1 (blur ramp is `@property --glass-blur-amount`) | n/a (no extra JS — CSS only) | n/a | n/a (GPU, not heap) | 1 | `library_glass_arming` (distinct from dense/virtualization) | remove `<LiquidGlassReady/>` from layout | EV-FRONTEND-02 | Playwright | n/a |
+
+> **Card-glass posture (Phase 2/5 decision gate):** content-grade card glass (frosted
+> component/template cards) is Phase 2/5 and is **gated on the 0A-measured GPU budget**.
+> If the 0A measurement shows the workspace-shell + one-drawer blur leaves no GPU headroom
+> for per-card translucent fills, cards stay paper-filled and only the shell/drawer carry
+> glass. This is a measurement-gated decision, not an assertion (per C-015 + doc 35 §11).
+
 ---
 
 ## 4. Regression gates
@@ -191,6 +231,28 @@ decision in Phase 2/5 is gated on the 0A measurement, not asserted here.
 | Initial JS > 350KB | No-go — must optimize bundle |
 | Heap > 100MB (500 components) | No-go — must optimize memory |
 | Any ADV scenario fails | No-go — see [18](18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md) |
+
+### Gate-row 12-dim footers (acceptance gates — per doc 34 §3)
+
+The pre-merge and phase-exit gate tables above are **acceptance gate rows** (doc 34 §3).
+Their 12-dim coverage:
+
+| Gate row | Owner | Phase | Flag | Rollback | Evidence | Telemetry | Copy | A11y | Perf | Browser-proof | i18n | Binding |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Pre-merge bundle/Lighthouse/jsdom/Playwright/EXPLAIN gates (§4 pre-merge) | Perf lead | 0A-gated → all | per-feature | revert offending change | EV-0A-PERF-BASELINE (0A) / per-phase EV rows | `library_find_*` (find), `quick_add_*` (quick add) — see doc 20 §6 | `library.error.network` (doc 22) on failure | n/a (perf gate) | THIS table §3 (budgets provisional pre-0A) | Playwright (visual) + jsdom (logic) per doc 29 §5 | n/a (perf gate) | `scripts/seed-performance-test-data.ts` (0A extension); `loadCurrentWorkspaceComponentRowsLibrary` `src/lib/component-library/actions.ts:445` |
+| Phase-exit gates (§4 phase-exit) | Perf lead | per-phase | per-feature | hold phase merge | per-phase EV rows in doc 24 | per-feature events (doc 20 §12) | n/a | see doc 31 (mobile heap-affecting changes must pass a11y gate) | THIS table §3 | Playwright + Lighthouse mobile | n/a | doc 24 per-phase rows |
+| No-go conditions (above) | Perf lead | release | n/a | hold release | ADV rows in doc 18 | n/a | n/a | n/a | THIS table §3 | n/a | n/a | doc 18 ADV rows |
+
+> **Phase 0A baseline is PRE-REGISTERED execution evidence, not a measured number.**
+> Until 0A lands, the §3 budgets and §4 gate thresholds are industry defaults
+> (C-015), and the pre-merge bundle/Lighthouse/EXPLAIN rows are advisory. The 0A
+> task (extend `scripts/seed-performance-test-data.ts` to cover `cost_library_items`,
+> seed 100/500/5,000/10,000 tiers, measure LCP/INP/CLS/TTFB/FCP/TTI/heap/initial-JS/
+> response-body, store under `evidence/perf/0A/_PHASE-0A-PERF-BASELINE.md` per §5
+> schema) is owned by the Perf lead and pre-registered as `EV-0A-PERF-BASELINE` in
+> [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md). No numeric
+> budget in this doc is asserted as measured — they are all provisional until that
+> row turns green.
 
 ---
 

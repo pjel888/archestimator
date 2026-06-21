@@ -12,11 +12,11 @@ long binding lists here — cross-reference doc 19.
 | Area | Why It Is Risky | Mitigation | Owner (doc 27) | Phase | Evidence ID (doc 24) |
 | --- | --- | --- | --- | --- | --- |
 | Route-state changes | `?component=<id>` on `/workshop/library` affects navigation, search, browser history, and deep links. | Land route-state tests (Phase 0A) before visual work; keep params additive; parse must be idempotent (doc 21 cache/route invariants). | Frontend lead | 0A-1 | ADV-DELETED-RESULT / ADV-XWS-COMPONENT-PARAM |
-| Cache invalidation | Mutations can stale `["workspace-component-library"]` (UN-SCOPED — migrating to `workspaceComponentLibraryQueryKey(workspaceId)` per C-007), `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`, and `workspaceEstimateTemplatesQueryKey({userId, workspaceId})`. | Name the EXACT key(s) each mutation invalidates (doc 13); the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` is the only real workspace-switch cache-bleed surface; migrate ALL FIVE call sites (reader `TemplateEditorClient.tsx:160`, self-invalidate `:166`, `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241`). | Backend lead | 0A | ADV-WS-SWITCH-CACHE |
+| Cache invalidation | Mutations can stale `["workspace-component-library"]` (UN-SCOPED — migrating to `workspaceComponentLibraryQueryKey(workspaceId)` per C-007), `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`, and `workspaceEstimateTemplatesQueryKey({userId, workspaceId})`. | Name the EXACT key(s) each mutation invalidates (doc 13); the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (defined `src/lib/component-library/query-keys.ts:7`) is the only real workspace-switch cache-bleed surface; migrate ALL SIX call sites in lockstep — reader `TemplateEditorClient.tsx:160` (inline literal), self-invalidate `:166`, `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:413`, and the two EstimateSheetContent writers `:1300` (`refetchType: "none"`) + `:1303` (`refetchType: "active"`). Lines re-verified 2026-06-21 via `rg`. | Backend lead | 0A | ADV-WS-SWITCH-CACHE |
 | Source-trust metadata | Trust chips bound to `pricing_date`/`pricing_source`/`confidence` (free text) can mislead, and snapshot redaction governs `project_publications.snapshot_json`. | Derive labels via `getComponentPricingFreshness` + `getStalenessTone`/`getStalenessLabel`; keep redaction at the snapshot builder (doc 14), not a live endpoint. | Frontend lead | 2 | Trust chip rendering test / ADV-PUBLIC-REDACTION |
 | Authz/RLS | Cross-workspace IDOR or viewer-write. Authz is ALREADY strong (`is_workspace_editor`/`can_edit_estimate` defense-in-depth over RLS); the real gap is TEST coverage. | Test the actor matrix (`owner`/`admin`/`member`/`viewer`) and IDOR cases against the existing guards; no new policy expected (doc 14). | Security lead | 0A | ADV-VIEWER-MUTATION / ADV-XWS-ESTIMATE-ACTION |
 | Quick Add | Can create bad reusable data in `cost_library_items`. | Enforce required = `name`, `category`, `unit`, `unit_cost` (CANONICAL QUICK ADD CONTRACT); no schema change (all columns exist). | Frontend lead | 3 | ADV-QUICKADD-UNSAFE |
-| Folder destructive actions | Native `window.confirm`/`window.prompt` in `ComponentLibraryManager.tsx` (:1493/:1515/:1534) bypass app confirmation. | Replace with the text-prompt dialog (inline `ConfirmDialog`+input from `TemplatesBrowseManager.tsx:531-883`); `delete_library_folder` RPC returns affected counts. | Frontend lead | 0B | ADV-FOLDER-DELETE-FAIL / ADV-CONCURRENT-RENAME |
+| Folder destructive actions | Native `window.confirm`/`window.prompt` in `ComponentLibraryManager.tsx` (`:1493` create / `:1515` rename / `:1534` delete) bypass app confirmation. | Replace with the text-prompt dialog (inline `ConfirmDialog`+input from `TemplatesBrowseManager.tsx:529`); `delete_library_folder` RPC returns affected counts. | Frontend lead | 0B | ADV-FOLDER-DELETE-FAIL / ADV-CONCURRENT-RENAME |
 | Template insert | Can mutate estimates and nested rows. | Re-resolve target via `resolveEstimateTemplateInsertTarget` (doc 13/02 Flow 7) and check `estimate_row_link_state` health before mutation. | Backend lead | 4 | ADV-XWS-ESTIMATE-TARGET / ADV-TEMPLATE-DEP |
 | Large-list rendering | Browse fetch (`loadCurrentWorkspaceComponentRowsLibrary`) eagerly loads the full nested detail graph per item. | REUSE `WORKSHOP_VIRTUALIZATION_FLAGS` (`src/lib/workshop/virtualization-flags.ts`); reduce browse payload / lazy inspector-scoped detail; measure first (Phase 0A seed extension). | Perf lead | 0A-5 | ADV-DENSE-500 (PROVISIONAL until Phase 0A baseline, C-015) |
 
@@ -40,7 +40,7 @@ its flag (doc 21 Flag Registry) so a PR can merge dark.
    Flags: `library_folder_dialogs`, `library_component_deep_link`.
    **Phase-later residual (resolves C-003/C-017):** the in-estimate component panel
    `src/components/workshop/component-library/index.tsx` native prompts
-   (`window.confirm` `:939`, `window.prompt` `:1428`) are NOT in 0B — they are
+   (`window.confirm` `:941`, `window.prompt` `:1467`) are NOT in 0B — they are
    **Phase-later residual — tracked, not in phases 0A-5 critical path**, allowlisted in
    the 0B grep guard (see doc 05 Phase Gate Matrix). Any sibling doc (e.g. doc 01) calling
    this "Phase-0B-last-item" is wrong; defer to docs 00/05/19.
@@ -97,19 +97,35 @@ remain coherent. Confirm these per phase before declaring a rollback clean:
 | 4 | see genuine `source-changed`/stale dependency warnings (NOT hidden by the summary flag) |
 | 5 | see the card grid; scroll without a stall (virtualization off path still renders) |
 
-### Merge-readiness checklist
+### Merge-readiness checklist (per phase → exact gate result needed)
 
-A phase PR is NOT merge-ready until:
+A phase PR is NOT merge-ready until EVERY line below is satisfied (each line cites the exact gate row that proves it). This closes the §3 gap "final checklist for phase-safe merge beyond flags+tests":
 
-- Its doc 24 Evidence row is populated (command + pass/fail + date + named owner).
-- `bun run validate` is green; narrow suites run via `vitest run tests/vitest/<file>`
-  or `bun run test:dom` (NEVER `bun test` for vitest — C-005).
-- The flag (if any) ships OFF by default; rollback = redeploy `flag=false`
-  (fix-forward, C-010).
-- The UX-state checklist for that phase holds after a simulated flag flip.
-- The Phase-later grep allowlist (see doc 05) still holds — no NEW `window.*`
-  native prompt in the three in-scope trees.
-- Perf numbers are PROVISIONAL until the Phase 0A baseline (C-015).
+| # | Requirement | Exact gate result needed | Where the proof lives |
+| --- | --- | --- | --- |
+| 1 | doc 24 evidence row populated | command + pass/fail + date + named human owner from doc 27 | `24-EXECUTION-EVIDENCE-LEDGER.md` row for the Seq (LIB-Pxx-0Y) |
+| 2 | full validate green | `bun run validate` (= `type-check && lint && lint:design-system && lint:design && test && test:dom`) exit 0 | CI artifact + local run; NEVER `bun test` for vitest (C-005) |
+| 3 | narrow suite green | the Seq's `Validation: Run:` line passes via `vitest run tests/vitest/<file>` or `bun run test:dom` | the Seq item in `05-IMPLEMENTATION-ROADMAP.md` |
+| 4 | flag OFF by default | flag ships OFF in `21-FEATURE-FLAGS-AND-ROLLOUT.md` §registry + the env default | doc 21 §registry row |
+| 5 | rollback rehearsed | simulated `flag=false` redeploy leaves the post-rollback UX-state checklist (above) coherent | the per-phase UX-state row in this doc |
+| 6 | Phase-later grep allowlist intact | `rg -n "window\.(prompt\|confirm)"` over the 3 in-scope trees returns ONLY `component-library/index.tsx:941`+`:1467` | doc 05 §"Phase-later grep allowlist" |
+| 7 | perf claims provisional | any perf number in the PR is tagged PROVISIONAL until Seq 3 (LIB-P0A-03) baseline lands (C-015); final thresholds in doc 30 | doc 30 + doc 24 §"Perf baseline measurement note" |
+| 8 | ADV scenarios for the phase pass | the phase's `ADV-*` rows in doc 18 are pass/skipped-risk (no no-go) | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` §scenario-status |
+| 9 | cross-doc conflicts resolved | the phase's conflicts in doc 26 (C-001..C-022) are all resolved or explicitly accepted-residual | `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` |
+
+### Telemetry / monitoring rollback hooks (closes §3 gap "no per-phase telemetry rollback hooks")
+
+The doc-20 contract (per `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` §12) couples events to flags — a flag flip to off mutes the host feature's events. Beyond muting, these monitoring signals are the post-rollback smoking gun if a flag flip strands state (cache entry, dangling URL param, orphaned listener). The beta sink is `console.warn` (C-009); a production sink is Phase-later.
+
+| Phase | Post-rollback monitoring signal | Expected pattern | Alarm threshold | Owner (doc 27) |
+| --- | --- | --- | --- | --- |
+| 0A | cache-bleed assertion in `library-workspace-switch-cache.test.tsx` | stays green (test runs every CI) | any failure = the un-scoped key leaked back in | Backend lead |
+| 0B | `library_find_*` + `folder_dialog_*` + `overlay_*` events | drop to zero for the deep-link path within one deploy cycle | events still firing post-rollback = flag strand | Frontend lead |
+| 1 | `library_find_started`/`library_find_resolved`/`library_find_abandoned` | drop to zero for the deep-link path | continued firing = `?component=<id>` URLs stranded in the wild | Frontend lead |
+| 2 | `trust_chip_rendered`/`trust_chip_unclassified` | drop to zero | continued firing = chip layer not flag-gated | Frontend lead |
+| 3 | `quick_add_*` events | drop to zero | continued firing = Quick Add trigger not hidden | Frontend lead |
+| 4 | `insert_target_*` events | drop to zero for the summary layer; genuine `insert_target_mismatch` continues (correctness) | summary firing = template summary flag strand | Backend lead |
+| 5 | `dense_mode_rendered`/`view_mode_changed` | drop to zero | continued firing = dense mode not fully flag-gated | Frontend lead |
 
 ## Database / RLS Rollback
 
@@ -177,8 +193,8 @@ Stop implementation and re-plan if:
 - **Cache-bleed fix cannot migrate atomically:** scoping
   `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` to `workspaceComponentLibraryQueryKey(workspaceId)`
   breaks the `TemplateEditorClient.tsx:160` read, the `:166` self-invalidate, or any of the
-  other three writer call sites (`LibraryPageClient.tsx:126`,
-  `use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241`) in a way that
+  other writer call sites (`LibraryPageClient.tsx:126`,
+  `use-estimate-row-mutations.ts:413`, `EstimateSheetContent.tsx:1300`+`:1303`) in a way that
   cannot be migrated in one atomic change — re-plan the key migration as its own slice
   before 0B (this is the highest-blast edit in the pack and needs an explicit abort
   trigger). Fallback: keep the un-scoped key + an invalidate-on-switch listener, but treat

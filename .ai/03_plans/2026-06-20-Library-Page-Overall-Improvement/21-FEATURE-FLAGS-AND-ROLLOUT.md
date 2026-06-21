@@ -86,6 +86,7 @@ posture only).
 | `NEXT_PUBLIC_LIBRARY_FOLDER_DIALOGS` | `isLibraryFolderDialogsEnabled()` | Folder create/rename/delete text-prompt dialogs (replaces native prompts) | 0B | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward; legacy prompts remain behind flag branch) |
 | `NEXT_PUBLIC_LIBRARY_DENSE_MODE` | `isLibraryDenseModeEnabled()` | Card/dense view toggle and dense table/list | 5 | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
 | `NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED` | `isLibraryVirtualizationEnabled()` | List virtualization reuse (`@tanstack/react-virtual`) | 5 | off | on | Frontend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward) |
+| `NEXT_PUBLIC_LIBRARY_CACHE_SCOPE` | `isLibraryCacheScopeEnabled()` | Scope the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` by `workspaceId` (closes the one cache-bleed surface; the scoping migration touches all 6 call sites — reader `TemplateEditorClient.tsx:160`, self-invalidate `:166`, writers `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:432`, `EstimateSheetContent.tsx:1299`+`:1302`) | 0B | off | on | Backend lead | Vercel env + redeploy | redeploy flag=false (~5 min fix-forward; the un-scoped key returns as the bleed surface, documented in doc 13 §251 + doc 32 V-001) |
 
 > **Naming normalization (resolves C-004):** `library_dense_mode` and
 > `library_virtualization_enabled` are **independent** build-time env flags with **separate**
@@ -115,6 +116,46 @@ Notes:
 
 ---
 
+## 4.5 Env readiness, stale-env detection, and local-dev guidance
+
+Closes the §3 gap "no env readiness/stale-env detection automation." Because every Library flag is a build-time `NEXT_PUBLIC_*` env var (§2), a missing or mis-named env var silently defaults `?? false` (beta-safe off) — which is correct for production but masks "the flag was never set" during local dev and CI. The checks below surface stale/missing env vars before they cause "why isn't my flag working?" debugging.
+
+### Vercel env readiness check (pre-deploy)
+
+Owner: Release lead | Phase: 0A | Evidence: EV-RELEASE-01 | Binding: `scripts/check-vercel-env-readiness.ts`
+
+`scripts/check-vercel-env-readiness.ts` (existing, run pre-deploy) MUST be extended in Phase 0A to assert that **every flag in §4** is present in the Vercel project env for the target environment (preview or production), with a value in the §2 normalized set (`1|on|true|yes|enabled` or `0|off|false|no|disabled`). A flag missing from Vercel is a release-blocker: the build inlines `undefined` and the flag silently defaults off.
+
+| Check | Pass condition | Failure action | Owner |
+|---|---|---|---|
+| Flag present in Vercel env | All 7 §4 flags resolved to a normalized value | Block deploy; add the missing var in Vercel; redeploy | Release lead |
+| `.env.example` in sync | Every §4 flag appears in `.env.example` with the beta-safe default `false` and a one-line comment | Add missing rows to `.env.example`; commit | Release lead |
+| No orphan env vars | No `NEXT_PUBLIC_LIBRARY_*` var exists in Vercel/`.env.example` without a row in §4 | Remove the orphan OR add a §4 row for it | Release lead |
+| Flag-deletion verification (post-cleanup) | After step 2 of §9, `rg "NEXT_PUBLIC_LIBRARY_<DELETED_FLAG>" src .env.example scripts/check-vercel-env-readiness.ts` returns zero hits | Re-do step 2; the deletion was incomplete | Release lead |
+
+### Local-dev stale-env detection
+
+Owner: Release lead | Phase: 0A | Evidence: EV-RELEASE-01 | Binding: `src/lib/component-library/feature-flags.ts` (net-new)
+
+The grouped reader `getLibraryFeatureFlags(env?)` (§3) is called once at app boot in dev and surfaces a single `console.warn` if **any** flag env var is missing or carries an unrecognized value. The warn is suppressed in production (noise control) and is a `console.warn` not an error (the build is still correct, just surfaces the drift). This mirrors the C-009 telemetry-sink pattern (console.warn for beta).
+
+```ts
+// dev-only staleness guard (mirrors the §3 grouped reader)
+if (process.env.NODE_ENV !== "production") {
+  const flags = getLibraryFeatureFlags();
+  const missing = Object.entries(flags).filter(([_, v]) => v === null).map(([k]) => k);
+  if (missing.length) console.warn(`[library-feature-flags] unset env vars (defaulting to false): ${missing.join(", ")}`);
+}
+```
+
+### CI guard
+
+Owner: Release lead | Phase: 0A | Evidence: EV-RELEASE-01 | Browser-proof: jsdom | Binding: `scripts/check-vercel-env-readiness.ts`
+
+A new CI step in the `bun run validate` chain (or a dedicated `bun run check:flags`) runs `scripts/check-vercel-env-readiness.ts` against `.env.example` and fails the build if (a) any §4 flag is missing from `.env.example`, or (b) `.env.example` carries an orphan `NEXT_PUBLIC_LIBRARY_*` var. This catches "flag added to §4 but `.env.example` not updated" drift at PR time.
+
+---
+
 ## 5. Per-flag verification rows
 
 Each row names the **on-pass** and **off-pass** (rollback-confirmation) criterion: a flag is
@@ -131,6 +172,7 @@ in either direction, recorded under the flag's EV row in
 | `library_folder_dialogs` | `bun run test:dom` overlay focus tests + `bun run test:e2e` folder CRUD | Text-prompt dialogs used when on | legacy native prompts used as emergency fallback only | Frontend lead | 0B | EV-FRONTEND-02 | n/a | `folder.*` | alertdialog, focus-trap | n/a | Playwright | key-based | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1493` |
 | `library_dense_mode` (`NEXT_PUBLIC_LIBRARY_DENSE_MODE`) | `bun run test:e2e` narrow-viewport browse + perf measurements (all 4 combos from `16` §4) | dense toggle + table render within `30` budget (PROVISIONAL until 0A per C-015) when on | toggle + dense table gone; card grid only; `library_virtualization_enabled` state untouched (independent key) | Frontend lead | 5 | EV-FRONTEND-09 | `dense_mode_rendered` | `dense_mode.*` | see `31` | see `30` | Playwright | key-based | `src/lib/workshop/virtualization-flags.ts` |
 | `library_virtualization_enabled` (`NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`) | `bun run test:e2e` large-list perf (dense-on/virt-off is the riskiest combo) | list virtualizes within `30` budget when on | de-virtualizes to full DOM; `library_dense_mode` state untouched (independent key) | Frontend lead | 5 | EV-FRONTEND-09 | `dense_mode_rendered` | n/a | see `31` | see `30` | Playwright | key-based | `src/lib/workshop/virtualization-flags.ts` |
+| `library_cache_scope` (`NEXT_PUBLIC_LIBRARY_CACHE_SCOPE`) | `bun run test:dom` workspace-switch cache-bleed tests (EV-CACHE-01) + `bun run test:e2e` workspace-switch inspector-dock swap (EV-WS-SWITCH-CACHE) | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` reads scoped to `workspaceId` across all 6 call sites when on; switching workspace refetches (no bleed) | un-scoped key returns (the original bleed surface); inspector dock on workspace switch MAY show the prior workspace's component briefly; `workspace_switch_cache_recovery` telemetry fires | Backend lead | 0B | EV-CACHE-01 (doc 24); EV-WS-SWITCH-CACHE | `workspace_switch_cache_recovery` (doc 20 + doc 13 §"Telemetry hooks") | n/a (no new UI) | n/a | see `31` | n/a | Playwright (workspace-switch behavior) | n/a (no user-visible copy) | `src/lib/component-library/query-keys.ts`; 6 call sites (doc 19 Query Keys section) |
 
 ---
 
@@ -189,6 +231,18 @@ in either direction, recorded under the flag's EV row in
 | Evidence | EV-FRONTEND-09 |
 | Binding | `src/lib/workshop/virtualization-flags.ts` (reuses `@tanstack/react-virtual`; gated by its own Library env var) |
 
+### `library_cache_scope` (`NEXT_PUBLIC_LIBRARY_CACHE_SCOPE`)
+
+| Field | Value |
+|---|---|
+| Gates | Scoping the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` by `workspaceId` to close the one workspace-switch cache-bleed surface (doc 13 §251, doc 32 V-001, doc 19 Query Keys section). The scoping migration MUST touch all 6 verified call sites: reader `TemplateEditorClient.tsx:160`, self-invalidate `:166`, writers `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:432`, `EstimateSheetContent.tsx:1299`+`:1302`. A migration that touches only 4 sites misses the `:166` self-invalidate and the `:1302` second writer — the bleed stays open. |
+| Off behavior | Un-scoped key returns — switching workspace with the inspector dock open may show the prior workspace's component detail until refetch (the documented bleed; doc 14 ADV-WS-SWITCH-CACHE). No new UI; no user-visible copy. |
+| Authz gate | Scoping MUST NOT broaden read access — RLS already denies cross-workspace rows server-side; scoping closes the CLIENT-side stale-cache leak, not a server-side hole. Verified by doc 14 + doc 33 §3.2. |
+| Rollback | redeploy `NEXT_PUBLIC_LIBRARY_CACHE_SCOPE=false` (fix-forward, ~5 min per C-010); the un-scoped key returns as the documented bleed surface. |
+| Evidence | EV-CACHE-01 (doc 24; create/update/lifecycle/bulk-archive invalidation), EV-WS-SWITCH-CACHE (doc 24 / doc 18 ADV row) |
+| Telemetry | `workspace_switch_cache_recovery` (defined in doc 20 §6A; bound to route-state outcomes in doc 13 §"Telemetry hooks") |
+| Binding | `src/lib/component-library/query-keys.ts`; 6 call sites (doc 19 Query Keys section — re-run the keystone Provenance Footer verify-command #2 before relying on line numbers, as they drift on every edit to the host file) |
+
 ### `library_folder_dialogs`
 
 | Field | Value |
@@ -211,6 +265,7 @@ in either direction, recorded under the flag's EV row in
 | 0B | "Re-enable old folder actions only as emergency internal fallback, then immediately schedule replacement." | `library_folder_dialogs` off → legacy native folder prompts | Release lead | EV-RELEASE-03 |
 | 2 / 4 | "Hide new template trust warnings only if they are wrong; do not hide real stale/deleted dependency risk." | `library_trust_chips` off hides only new chip/summary layer; real risk NOT flag-gated | Release lead | EV-RELEASE-03 |
 | 5 | "Revert responsive layout changes by width class; keep focus/a11y fixes when independent." | `library_dense_mode` off → card grid only; independent a11y fixes stay | Release lead | EV-RELEASE-03 |
+| 0B | "Re-enable the un-scoped key as the documented bleed surface; ship a follow-up scoping migration." | `library_cache_scope` off → un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY`; bleed returns | Release lead | EV-CACHE-01 |
 | 0A | "Revert docs/test scaffolding; no UI dependency yet." | no flag (contract/test only; plain git revert) | Release lead | EV-RELEASE-03 |
 | release gate | "Hold release; no rollback claim without passing no-go checklist." | no flag (release hold; see `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md`) | QA lead | EV-QA-06 |
 
@@ -226,6 +281,7 @@ in either direction, recorded under the flag's EV row in
 | `library_quick_add` | off | off | off | off | preview-on, prod-off until gate | on | on | removed (on) |
 | `library_dense_mode` | off | off | off | off | off | off | preview-on, prod-off until perf gate | removed (on) |
 | `library_virtualization_enabled` | off | off | off | off | off | off | preview-on, prod-off until perf gate | removed (on) |
+| `library_cache_scope` | off | preview-on, prod-off until gate | on | on | on | on | on | removed (on) |
 
 Rollout rule: a flag goes prod-on only after its phase gate in `05-IMPLEMENTATION-ROADMAP.md` "Phase Gate Matrix" passes and (for trust/dense) the exposure/perf gates in `14` and `30` pass.
 
@@ -274,6 +330,7 @@ Rollout rule: a flag goes prod-on only after its phase gate in `05-IMPLEMENTATIO
 | `library_trust_chips` | new trust chips/summary disappear | existing card/row hierarchy; safe payload retained; real warnings unaffected |
 | `library_dense_mode` (`NEXT_PUBLIC_LIBRARY_DENSE_MODE`) | dense table/toggle disappears (flipping dense off does NOT touch virtualization — independent keys) | card grid only; virtualization may still run in card mode if its own flag is on; estimate tree/rows virtualization unaffected |
 | `library_virtualization_enabled` (`NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED`) | list de-virtualizes to full DOM render | full-DOM list; dense toggle unaffected (its own key); estimate tree/rows virtualization unaffected |
+| `library_cache_scope` (`NEXT_PUBLIC_LIBRARY_CACHE_SCOPE`) | un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` returns; switching workspace with inspector dock open may briefly show prior workspace's component (the documented bleed, doc 14 ADV-WS-SWITCH-CACHE) | full bleed surface returns; `workspace_switch_cache_recovery` telemetry fires on each workspace switch while off |
 | `library_folder_dialogs` | new folder text-prompt dialogs disappear | legacy native `window.prompt`/`window.confirm` folder actions (emergency only) |
 
 ---

@@ -124,7 +124,7 @@ phases 0A-5 critical path**; see `05-IMPLEMENTATION-ROADMAP.md` §Phase-later):
 
 | File | Native-overlay debt | Disposition |
 |------|---------------------|-------------|
-| `src/components/workshop/component-library/index.tsx` | `window.confirm("Discard component changes?")` :939, `window.prompt("Folder name")` :1428 | estimate-page panel; Phase-later, but list it — do not silently drop |
+| `src/components/workshop/component-library/index.tsx` | `window.confirm("Discard component changes?")` :941, `window.prompt("Folder name")` :1467 | estimate-page panel; Phase-later, but list it — do not silently drop |
 
 ### Reference glass-surface system (binding for doc 35)
 
@@ -283,7 +283,7 @@ Real keys from `src/lib/component-library/query-keys.ts`:
 
 | Key / factory | Scoped? | Notes |
 |---------------|---------|-------|
-| `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` | **NO** | the ONLY real workspace-switch cache-bleed surface. PRIMARY READER (inline literal, so a symbol-name grep misses it): `TemplateEditorClient.tsx:160` (`useQuery`, the template-editor library dock). WRITERS (`invalidateQueries`) — **verified 2026-06-21**: `TemplateEditorClient.tsx:166` (template-editor self-invalidate, inline literal), `LibraryPageClient.tsx:126` (symbol), `use-estimate-row-mutations.ts:406` (symbol), `EstimateSheetContent.tsx:1294` AND `:1297` (symbol, two writers in the in-estimate dock). `query-keys.ts:5-6` documents it as "used by the Library management surfaces (template editor, component manager)." Scoping the key MUST migrate ALL SIX call sites — the reader at `:160`, the self-invalidate at `:166`, and the four writers — or the bleed stays open. A scoping test that mocks only the four commonly-cited sites misses the `:166` self-invalidate and the `:1297` second writer. |
+| `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` | **NO** | the ONLY real workspace-switch cache-bleed surface. PRIMARY READER (inline literal, so a symbol-name grep misses it): `TemplateEditorClient.tsx:160` (`useQuery`, the template-editor library dock). WRITERS (`invalidateQueries`) — **verified 2026-06-21**: `TemplateEditorClient.tsx:166` (template-editor self-invalidate, inline literal), `LibraryPageClient.tsx:126` (symbol), `use-estimate-row-mutations.ts:413` (symbol), `EstimateSheetContent.tsx:1300` AND `:1303` (symbol, two writers in the in-estimate dock). `query-keys.ts:5-6` documents it as "used by the Library management surfaces (template editor, component manager)." Scoping the key MUST migrate ALL SIX call sites — the reader at `:160`, the self-invalidate at `:166`, and the four writers — or the bleed stays open. A scoping test that mocks only the four commonly-cited sites misses the `:166` self-invalidate and the `:1303` second writer. **Line numbers drift on every edit to the host file** — re-run the keystone's "Provenance Footer" verify-command #2 before relying on any specific line; the stable identifier is the symbol `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` + the inline literal `["workspace-component-library"]`, found via `rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY|queryKey: \["workspace-component-library"\]' src/`. |
 | `WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY = ["workspace-component-library","lite"]` | partial | |
 | `workspaceComponentLibraryLiteQueryKey(projectId)` | by project | |
 | `WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY` + `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)` | by workspace | already cross-workspace tested |
@@ -312,9 +312,9 @@ mutation — name this in docs 02/13 Flow 7),
 
 The single-library-COMPONENT-into-ESTIMATE insert action is **NOT** in this
 `component-library/actions.ts` file — it lives in `src/lib/estimates/actions.ts`:
-**`insertEstimateRowItemFromLibrary`** (`:2477`), with siblings
-**`replaceEstimateRowItemWithLibrary`** (`:2572`) and
-**`detachEstimateRowItemFromLibrary`** (`:2608`). This is the action a component
+**`insertEstimateRowItemFromLibrary`** (`:2464`), with siblings
+**`replaceEstimateRowItemWithLibrary`** (`:2559`) and
+**`detachEstimateRowItemFromLibrary`** (`:2595`). This is the action a component
 insert flow (and doc 20's component-path `insert_target_confirmed`) must call.
 
 Insert mutations (resolve ≠ insert): for **template -> ESTIMATE**, the
@@ -324,9 +324,9 @@ insert via **`insertEstimateTemplateIntoEstimate`** (`@/lib/estimates/actions`).
 For **template -> template** (editor dock), the insert is
 **`insertTemplateIntoTemplate`** (`template-editor-actions.ts:484`). For a single
 library **COMPONENT -> ESTIMATE**, the insert action is
-**`insertEstimateRowItemFromLibrary`** (`src/lib/estimates/actions.ts:2477`); the
-related ops are **`replaceEstimateRowItemWithLibrary`** (`:2572`) and
-**`detachEstimateRowItemFromLibrary`** (`:2608`). Do not conflate these with the
+**`insertEstimateRowItemFromLibrary`** (`src/lib/estimates/actions.ts:2464`); the
+related ops are **`replaceEstimateRowItemWithLibrary`** (`:2559`) and
+**`detachEstimateRowItemFromLibrary`** (`:2595`). Do not conflate these with the
 template inserts above, and do not conflate the resolver with any insert action.
 
 Writes guard via `supabase.rpc("is_workspace_editor",{target_workspace_id})` and
@@ -517,7 +517,7 @@ primitive as its own task. Z-index tiers are exact Tailwind classes:
 | 1 Findability & Applied Filters | Frontend lead | `library_component_deep_link`, glass-shell flag per doc 21 §4 (C-022) | Revert + redeploy; glass variant defaults to paper | Route-state ruling (`?component=<id>` vs segment route), estimate-surface-variant.tsx reference |
 | 2 Source Trust at Decision Points | Frontend lead (chips) + Security lead (redaction re-test) | `library_trust_chips` | Revert + redeploy | The THREE 90-day constants + `getComponentPricingFreshness`/`getStalenessTone`/`getStalenessLabel` (Phase-2 "very stale" extension must touch all in lockstep — C-021) |
 | 3 Add/Edit Component Flow Split (Quick Add) | Frontend lead + Security lead (`ADV-VIEWER-MUTATION`) | `library_quick_add` | Revert + redeploy | Canonical Quick Add Contract (column existence), `is_workspace_editor` RPC |
-| 4 Templates Browse/Insert/Editor Clarity | Backend lead (insert) + Frontend lead (combobox) | reuses `library_trust_chips` | Revert + redeploy | `resolveEstimateTemplateInsertTarget` at `actions.ts:1451`; the three estimate-row insert actions at `estimates/actions.ts:2477/2572/2608` |
+| 4 Templates Browse/Insert/Editor Clarity | Backend lead (insert) + Frontend lead (combobox) | reuses `library_trust_chips` | Revert + redeploy | `resolveEstimateTemplateInsertTarget` at `actions.ts:1451`; the three estimate-row insert actions at `estimates/actions.ts:2464/2559/2595` |
 | 5 Dense Maintenance Mode & Browser-Proven Polish | Perf lead (budgets) + QA lead (browser proof) | `library_dense_mode`, `library_virtualization_enabled` | Redeploy flag=false (fix-forward, ~5 min, C-010) | `WORKSHOP_VIRTUALIZATION_FLAGS` reuse; perf budgets PROVISIONAL until Phase 0A baseline (C-015) |
 
 A binding in this keystone is **stale** when an "Appendix — Re-verification
@@ -541,7 +541,7 @@ binds to which section).
 | `/workshop/library/components?component=<foreign-id>` (denied) | A user cannot see another workspace's component detail; RLS returns not-found/denied with no name/cost/source leaked; the `route_state_authz_denied` telemetry event fires once | Security lead | `LibraryPageClient.tsx` (route state, Phase 0B net-new) |
 | `/workshop/library/templates` | A user browses template thumbnails; opening one navigates to `/workshop/library/templates/[templateId]` (the shipped segment route — NOT `?template=<id>`); trust counts render as a computed JOIN over `source_library_item_id`/`link_state`, not a stored column | Frontend lead | `src/app/workshop/library/templates/page.tsx`; `templates-browse/TemplatesBrowsePageClient.tsx` |
 | `/workshop/library/templates/[templateId]` | A user previews a template; insert target is named via `resolveEstimateTemplateInsertTarget`; a `discontinued`/`archived`/missing-source dependency warns/blocks/overrides before insert; a stale/foreign target is rejected server-side via `can_edit_estimate` | Backend lead | `src/app/workshop/library/templates/[templateId]/page.tsx`; `templates-browse/InsertIntoEstimatePicker.tsx:99-118` |
-| Workspace switch with inspector dock open | A user switches workspaces; the inspector dock does NOT show the prior workspace's component detail; the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` is scoped by `workspaceId` and refetches | Backend lead | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (6 call sites, Query Keys section above) |
+| Workspace switch with inspector dock open | A user switches workspaces; the inspector dock does NOT show the prior workspace's component detail; the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` is scoped by `workspaceId` and refetches | Backend lead | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (6 call sites: reader `TemplateEditorClient.tsx:160`, self-invalidate `:166`, writers `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:413`, `EstimateSheetContent.tsx:1300`+`:1303` — verify with the keystone provenance command before relying on line numbers) |
 | Folder create/rename/delete | A user manages folders via the inline `ConfirmDialog`+`<input>` text-prompt pattern (NOT `window.prompt`/`window.confirm`); delete confirmation names affected count and never conflates folder with category; server failure keeps the error visible | Frontend lead | `ComponentLibraryManager.tsx:1493/1515/1534` |
 | Add Component (Quick Add) | A user fills required fields (`name`/`category`/`unit`/`unit_cost`); advanced fields appear progressively; a dirty close opens the text-prompt `ConfirmDialog` (NOT `window.confirm`); a `viewer`-role actor's trigger is hidden/disabled and the server denies via `is_workspace_editor` | Frontend lead | `component-library-manager/AddComponentModal.tsx:963` |
 | Bulk archive | A user selects components and archives; the preview's `confirmationHint` does NOT claim "cannot be undone" for archive (lifecycle `archived` is recoverable); partial-invalid IDs are reported as skipped | Frontend lead | `BulkDestructivePreviewModal.tsx:107-108` |
@@ -629,4 +629,57 @@ rg -n '"test"|"test:dom"|"validate"|"test:e2e"' package.json
 
 # Inline text-prompt pattern to copy
 rg -n "textPrompt" src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx
+```
+
+## Provenance Footer (machine-readable)
+
+> Closes the doc-25 §3 gap "no compact machine-readable provenance block
+> (command output hash/timestamp)." These three commands are the README
+> "verify this pack is current" checks; each must produce the expected output
+> or the keystone is stale and must be reconciled before any phase is built.
+
+```yaml
+last_verified: "2026-06-21"
+against_ref: "main @ 1edcc54c"
+verify_commands:
+  # EXPECT: exactly 4 page.tsx files under src/app/workshop/library/
+  - cmd: "fd -t f 'page.tsx' src/app/workshop/library/"
+    expect_count: 4
+    expect_paths:
+      - "src/app/workshop/library/page.tsx"
+      - "src/app/workshop/library/components/page.tsx"
+      - "src/app/workshop/library/templates/page.tsx"
+      - "src/app/workshop/library/templates/[templateId]/page.tsx"
+  # EXPECT: exactly 6 cache-bleed call SITES (by line, not by file —
+  #  EstimateSheetContent.tsx has TWO writers on one file). Verified
+  #  2026-06-21 against the working tree:
+  #  reader TemplateEditorClient.tsx:160 + self-invalidate :166;
+  #  writers LibraryPageClient.tsx:126, use-estimate-row-mutations.ts:413,
+  #  EstimateSheetContent.tsx:1300 + :1303.
+  #  LINE NUMBERS DRIFT ON EVERY EDIT to the host file — a grep returning
+  #  fewer than 6 LINES means the key was scoped OR a call site was
+  #  added/dropped; reconcile this doc. The stable identifier is the
+  #  symbol + inline literal, not the line number.
+  - cmd: >
+      rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY|queryKey: \["workspace-component-library"\]'
+      src/ | grep -v query-keys.ts
+    expect_line_count: 6
+    expect_sites:
+      - "src/components/workshop/library/template-editor/TemplateEditorClient.tsx:160 (reader, inline literal)"
+      - "src/components/workshop/library/template-editor/TemplateEditorClient.tsx:166 (self-invalidate, inline literal)"
+      - "src/components/workshop/LibraryPageClient.tsx:126 (writer, symbol)"
+      - "src/hooks/use-estimate-row-mutations.ts:413 (writer, symbol)"
+      - "src/components/workshop/EstimateSheetContent.tsx:1300 (writer, symbol)"
+      - "src/components/workshop/EstimateSheetContent.tsx:1303 (writer, symbol)"
+  # EXPECT: 4 native-prompt hits in component-library-manager (the 0B target)
+  #  AddComponentModal.tsx:963 (1) + ComponentLibraryManager.tsx:1493/1515/1534 (3) = 4
+  - cmd: >
+      rg -c 'window\.(prompt|confirm)'
+      src/components/workshop/component-library-manager/ComponentLibraryManager.tsx
+      src/components/workshop/component-library-manager/AddComponentModal.tsx
+    expect_total_count: 4
+    expect_per_file:
+      ComponentLibraryManager.tsx: 3   # :1493 create, :1515 rename, :1534 delete
+      AddComponentModal.tsx: 1         # :963 dirty-discard
+reconcile_rule: "If any command diverges, STOP and reconcile this keystone first (it wins per 'Purpose'); then propagate corrected line numbers to every sibling doc that cites the drifted binding."
 ```

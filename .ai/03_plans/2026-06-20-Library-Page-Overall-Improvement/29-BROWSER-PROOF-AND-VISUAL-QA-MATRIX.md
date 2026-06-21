@@ -21,6 +21,22 @@
 > [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md),
 > [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md),
 > [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) (glass blur/contrast = Playwright; logic = jsdom).
+>
+> **§3 gap closure status (auditor index, 2026-06-21):** all four doc-25 §3 gaps for
+> this doc are closed inline: (1) **jsdom-vs-Playwright boundary per surface** — §2
+> decision rubric + §5 per-surface table (11 surfaces, each with jsdom-tests +
+> Playwright-tests columns bound to real file:line); (2) **browser matrix** — §3
+> (4 desktop browsers + 5 mobile devices with priority + 5 visual-QA breakpoints); (3)
+> **screenshot artifact convention + storage path** — §4 (naming `<phase>/<surface>/<state>-<browser>-<viewport>.png`,
+> storage `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/screenshots/`,
+> companion `.json` metadata schema); (4) **per-surface proof requirements** — §5
+> (11 rows binding each surface to jsdom + Playwright test scope + browser matrix +
+> viewports + states) + §5.1 12-dim gate-row footers + §6 evidence-ledger integration.
+> Test commands verified against `package.json` 2026-06-21: `bun run test:dom`
+> (`vitest run --maxWorkers=1`, all jsdom), `vitest run tests/vitest/<file>` (one
+> jsdom suite), `bun run test:e2e` (`playwright test`). **NEVER `bun test`** for
+> vitest — `package.json:21` binds it to `bun test tests/unit` (unit-only, will not
+> execute vitest suites).
 
 ---
 
@@ -40,6 +56,17 @@ tests), others require a real browser (Playwright). This doc defines:
 ## 2. The jsdom vs Playwright boundary
 
 ### jsdom (vitest, `bun run test:dom`)
+
+> **Test-command ground truth (verified 2026-06-21 against `package.json:21-24`):**
+> `bun run test:dom` → `vitest run --maxWorkers=1` (all jsdom suites). One suite:
+> `vitest run tests/vitest/<file>`. `bun run test:e2e` → `playwright test`.
+> `bun run test:e2e:perf` → `playwright test e2e/route-transition-performance.spec.ts`.
+> **NEVER `bun test`** for vitest — `package.json:21` binds `"test": "bun test tests/unit"`,
+> which runs unit-only and silently skips every vitest suite. Existing Playwright suites
+> in `e2e/` include `workshop-library-routes.spec.ts`, `workshop-library-demo-smoke.spec.ts`,
+> `workshop-template-insert-smoke.spec.ts`, `route-transition-performance.spec.ts` (+ its
+> `route-transition-performance-budgets.json` companion). No axe/jest-axe harness exists
+> today (Phase 0A net-new per doc 31 §3).
 
 jsdom is sufficient for:
 
@@ -215,6 +242,32 @@ Every surface in [10-LIBRARY-SURFACE-SPECS.md](10-LIBRARY-SURFACE-SPECS.md) must
 ```
 Browser-proof: jsdom | Playwright | both | n/a
 ```
+
+### §5 per-surface proof rows — 12-dim gate-row footers (acceptance gates, per doc 34 §3)
+
+The §5 per-surface proof rows are **acceptance gate rows** — each surface must prove
+both its jsdom and Playwright coverage before its phase exits. Their 12-dim coverage:
+
+| Surface | Owner | Phase | Flag | Rollback | Evidence | Telemetry | Copy | A11y | Perf | Browser-proof | i18n | Binding |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Library overview | Frontend lead | 0B | n/a | revert overview changes | EV-HARNESS-SCREENSHOTS (0A) / EV-FRONTEND-10 | `library_find_started`/`library_find_resolved` (doc 20 §6) | `library.error.network` (doc 22) | see doc 31 (overview a11y criterion) | see doc 30 §3 (overview row) | both (jsdom: state/cache; Playwright: layout) | key-based (doc 28 §5) | `src/components/workshop/library/overview/LibraryOverview.tsx` |
+| Component card / grid | Frontend lead | 0A | n/a | revert card/grid changes | EV-PERF-01 / EV-HARNESS-SCREENSHOTS | `library_find_*` / `trust_chip_*` | `components.error.network` | see doc 31 | see doc 30 §3 (card grid row) | both (jsdom: chip logic; Playwright: chip layout/truncation) | n/a | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:877` |
+| Component inspector | Frontend lead | 0B | `library_component_deep_link` | redeploy flag=false | EV-FRONTEND-02 / EV-BE-05 | `library_component_selected` (doc 20 §6B) | `component_inspector.loading_detail` / `.error.network` | see doc 31 | see doc 30 §3 (inspector row) | both (jsdom: fields; Playwright: slide/scroll) | key-based | `src/components/workshop/library/ComponentInspectorDock.tsx:68` |
+| Quick add form | Frontend lead | 3 | `library_quick_add` | redeploy flag=false | EV-FRONTEND-08 | `quick_add_*` / `quick_add_field_invalid` (doc 20 §6C) | `quick_add.error.network` | see doc 31 | see doc 30 §3 (quick add row) | both (jsdom: validation; Playwright: form layout/focus) | key-based | `src/components/workshop/component-library-manager/AddComponentModal.tsx` |
+| Folder management | Frontend lead | 0B | `library_folder_dialogs` | redeploy flag=false | EV-FRONTEND-02 | n/a (no event family) | `folder.error.network` / `.error.concurrent` | see doc 31 (alertdialog) | see doc 30 §3 (folder row) | both (jsdom: tree CRUD; Playwright: drag-drop/context-menu) | key-based | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1493` |
+| Template preview / insert | Frontend lead | 4 | `library_trust_chips` | redeploy flag=false | EV-FRONTEND-07 | `library_template_opened` / `template_route_not_found` (§6B) / `insert_target_*` | `template.error.network` | see doc 31 | see doc 30 §3 (template row) | both (jsdom: preview logic; Playwright: insert flow/route) | key-based | `src/components/workshop/library/templates-browse/`; `resolveEstimateTemplateInsertTarget` |
+| Overlay / modal | Frontend lead | all phases | per-overlay | revert overlay change | per-feature EV row | `overlay_*` (if adopted) | `confirm.*` / `overlay.*` | see doc 31 (focus trap partial jsdom, full Playwright) | see doc 30 §3 (overlay row) | both (jsdom: open/close + partial focus; Playwright: real focus/scroll-lock/stacking) | key-based | `ui/overlays/modal.tsx`; `ui/overlays/sheet-drawer.tsx` |
+| Trust chip | Backend lead | 2 | `library_trust_chips` | redeploy flag=false | EV-BE-04 | `trust_chip_rendered` / `trust_chip_unclassified` / `trust_insert_gate_*` (§6C) | `trust.*` (doc 22) | see doc 31 (chip not badge, C-002) | see doc 30 §3 (trust chip row) | both (jsdom: state logic; Playwright: chip render/tooltip) | n/a | `src/components/workshop/library/component-facet-filter.tsx:61`; helpers `src/components/workshop/component-library/helpers.ts:667` |
+| Search / filter | Frontend lead | 0A | n/a | n/a (client-side today) | EV-PERF-01 | `library_find_started` / `library_find_resolved` | n/a | see doc 31 | see doc 30 §3 (search row) | both (jsdom: debounce/filter; Playwright: input/chips/results layout) | key-based | `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:881` |
+| Dense mode row (Phase 5) | Frontend lead | 5 | `library_dense_mode` | redeploy flag=false | EV-FRONTEND-09 / EV-PERF-01 | n/a (perf, not telemetry) | `dense_mode.loading` | see doc 31 (keyboard/touch ≥44px) | see doc 30 §3 (dense row) | Playwright (geometry-sensitive: row widths/overflow/virtualization reuse `src/lib/workshop/virtualization-flags.ts`) | n/a | `src/lib/workshop/virtualization-flags.ts` (reuse) |
+| Public snapshot | Security lead | 0B | n/a (always-on) | n/a | EV-SEC-03 / EV-HARNESS-SCREENSHOTS | `redaction_regression` (doc 20 §6A) | n/a (frozen label) | see doc 31 (frozen trust label a11y) | see doc 30 §3 (snapshot row) | both (jsdom: redaction logic; Playwright: snapshot layout/frozen label) | key-based | `src/app/share/[token]`; `snapshot_json` from `project_publications` |
+| Library glass shell (Phase 1) | Frontend lead | 1 | `library_glass_arming` | remove `<LiquidGlassReady/>` from layout | EV-FRONTEND-02 | (none — doc 20 §1 non-goal until `library_glass_*` family lands) | n/a | see doc 31 (AA contrast over frosted white) | see doc 30 §3 (glass shell row) | Playwright ONLY (deferred arming, `@property --glass-blur-amount` ramp, AA contrast over frosted white are all paint-time — invisible to jsdom) | n/a | `src/components/system/LiquidGlassReady.tsx:25`; `src/app/globals.css:110` (`--glass-blur: 18px`) |
+
+> **Glass = Playwright-only (binding).** Per doc 35 §10–§11, glass concerns — deferred
+> arming via `<html data-glass="ready">`, the `@property --glass-blur-amount` readiness
+> ramp, one-blur-per-region GPU budget, and AA contrast over frosted white — are all
+> paint-time and invisible to jsdom. jsdom proves *which variant renders* (logic); the
+> *look* is Playwright-only.
 
 ---
 

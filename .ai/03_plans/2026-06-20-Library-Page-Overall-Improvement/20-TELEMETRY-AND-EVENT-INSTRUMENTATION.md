@@ -5,6 +5,22 @@
 > **Scope:** Event names, properties, instrumentation points, schema/version policy, beta-sink rationale, backpressure/sampling budget, i18n-safe label strategy, and code-owner per event family. Resolves `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` C-009 (`console.warn` sufficient for beta) and C-020 (telemetry per row).
 >
 > **Companion docs:** [09-MVP-STRATEGY-AND-SUCCESS-METRICS.md](09-MVP-STRATEGY-AND-SUCCESS-METRICS.md), [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md), [21-FEATURE-FLAGS-AND-ROLLOUT.md](21-FEATURE-FLAGS-AND-ROLLOUT.md), [14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md](14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md), [16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md](16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md), [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md), [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md), [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md).
+>
+> **§3 gap closure status (auditor index, 2026-06-21):** all five doc-25 §3 gaps for
+> this doc are closed inline: (1) **event persistence/sink destination** — §4 names
+> `console.warn` (beta) and a Postgres `events` table / analytics platform (Phase-later
+> prod sink) wired via `setLibraryTelemetrySink`; (2) **event volume/backpressure/sampling
+> budget** — §5 (coarse lifecycle-scoped volume; `console.warn` has no network
+> backpressure; future async sink must swallow failures; deterministic sampling for
+> `trust_chip_*`, probabilistic 1-in-N gated on prod sink); (3) **telemetry
+> versioning/backward-compat policy** — §3 "Backward compatibility" row (additive-only
+> for beta; rename/remove requires new schema version + migration window); (4) **i18n-safe
+> label strategy** — §10 (ASCII snake_case event names + payload keys; localized labels
+> via copy keys in doc 22; `reason` codes are stable action-error codes); (5) **code-owner/
+> phase-owner per event family** — §6 "Code owner" column per event + §12 phase-placement
+> table. New event families registered 2026-06-21: §6A (15 security events, EV-TELEMETRY-SEC),
+> §6B (6 route-state/cache-recovery events, EV-TELEMETRY-ROUTE), §6C (11 input/trust-gate/
+> bulk-action events, EV-TELEMETRY-INPUT).
 
 ---
 
@@ -203,7 +219,95 @@ reading the log + a grep assertion (§11 "Public/share emits nothing" pattern).
 
 ---
 
-## 7. Metric to event mapping
+## 6B. Route-state and cache-recovery telemetry (source: doc 13 §"Telemetry hooks for route-state", EV-TELEMETRY-ROUTE)
+
+Doc 13 §"Telemetry hooks for route-state" defines 6 events for the `?component=<id>` /
+`?template=<templateId>` route-state lifecycle and the workspace-switch cache-bleed
+recovery path. They are REGISTERED HERE so the schema/version, sink, sampling, i18n-label,
+and code-owner rules in §§3-5/10 apply uniformly. These are **net-new** (no call sites
+today; Phase 0B insertion targets, per §6 "Instrumentation status" note). Closed beta
+sink: `console.warn` is sufficient (C-009) — route-state events are coarse, ID-only, and
+verified by DOM/e2e test spies (§11).
+
+| Event | Trigger | Payload (privacy-safe) | Severity | Sink (beta) | Code owner | Phase | Evidence |
+|---|---|---|---|---|---|---|---|
+| `library_component_selected` | user opens component via `?component=<id>` (deep link or click) | `workspaceId`, `surface`, `kind='component'`, `itemId` | Info | `console.warn` | Frontend lead | 0B | EV-TELEMETRY-ROUTE |
+| `component_route_not_found` | `?component=<id>` resolves to not-found / permission-denied | `workspaceId`, `surface`, `reason` (action-error code: `not_found`/`permission_denied`) | Warn | `console.warn` | Frontend lead | 0B | EV-TELEMETRY-ROUTE |
+| `route_state_authz_denied` | route-state load rejected by object-level authz | `workspaceId`, `resourceKind='component'`, `reason` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-ROUTE |
+| `workspace_switch_cache_recovery` | workspace switch clears `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` before stale data renders | `workspaceAId`, `workspaceBId`, `cacheKey` (hashed), `recovered: true` | Info | `console.warn` | Backend lead | 0A | EV-TELEMETRY-ROUTE |
+| `library_template_opened` | user opens template via `?template=<templateId>` | `workspaceId`, `surface='templates'`, `kind='template'`, `itemId` | Info | `console.warn` | Frontend lead | 4 | EV-TELEMETRY-ROUTE |
+| `template_route_not_found` | `?template=<templateId>` resolves to not-found / permission-denied | `workspaceId`, `surface='templates'`, `reason` | Warn | `console.warn` | Frontend lead | 4 | EV-TELEMETRY-ROUTE |
+
+### Route-state event rules
+
+- **Schema/version:** same `v1` schema, same `recordLibraryEvent(event, payload)` twin,
+  additive-only (§3). Route-state events share the `workspaceId`-only scoping rule; the
+  hashed `cacheKey` on `workspace_switch_cache_recovery` is the SHA-256 short-prefix of
+  the literal cache key, never the raw key (which would leak workspace identity into a
+  hashable shape).
+- **i18n-safe labels:** event names are ASCII snake_case; the `reason` enum is a stable
+  action-error code from `action-errors.ts`, never a translated string (§10).
+- **Backpressure/volume:** coarse and lifecycle-scoped (open/not-found/recovery), not
+  per-row; `console.warn` is local so no network backpressure (§5).
+- **PII:** `itemId` is the canonical UUID; no name/category/price. `reason` is an
+  action-error code, never a raw exception message or user-supplied text.
+- **Cross-ref:** route-state UX matrix and cache-invalidation test mapping are owned by
+  doc 13 (§"Route-state UX matrix", §"Cache-invalidation test mapping"); ADV scenarios
+  by doc 18. This doc owns only the telemetry shape.
+
+Owner: Telemetry lead | Phase: 0A | Evidence: EV-TELEMETRY-01 | Binding: `src/lib/component-library/library-telemetry.ts` (net-new twin)
+
+---
+
+## 6C. Input, import/export, trust-gate, and bulk-action telemetry (sources: doc 11 §"Trust-chip Telemetry", doc 15 §File-Upload/Import/Export telemetry, doc 32 §5, EV-TELEMETRY-INPUT)
+
+Docs 11, 15, and 32 define 11 events for the trust-state insert gate, file upload/import
+rejection, export volume, bulk-archive hash-lock, and trust-state tamper. They are
+REGISTERED HERE so the schema/version, sink, sampling, i18n-label, and code-owner rules
+in §§3-5/10 apply uniformly. These are **net-new** (no call sites today; insertion targets
+per the host phase). Closed beta sink: `console.warn` is sufficient (C-009).
+
+| Event | Trigger | Payload (privacy-safe) | Severity | Sink (beta) | Code owner | Phase | Evidence |
+|---|---|---|---|---|---|---|---|
+| `trust_insert_gate_warned` | user attempts to insert a stale/very-stale item and sees the confirmation gate (gate shown) | `workspaceId`, `freshness` (`stale`/`very stale`), `surface` | Warn | `console.warn` | Backend lead | 2 | EV-TELEMETRY-INPUT |
+| `trust_insert_gate_confirmed` | user confirms the stale-insert gate and the insert proceeds | `workspaceId`, `freshness`, `surface` | Info | `console.warn` | Backend lead | 2 | EV-TELEMETRY-INPUT |
+| `trust_insert_gate_blocked` | insert blocked by policy (e.g. very-stale + viewer role) | `workspaceId`, `freshness`, `role`, `reason` | Warn | `console.warn` | Security lead | 2 | EV-TELEMETRY-INPUT |
+| `quick_add_field_invalid` | Quick Add field fails validation (per doc 15 §Current validation) | `workspaceId`, `field` (canonical field name, never the value), `rule` | Info | `console.warn` | Frontend lead | 3 | EV-TELEMETRY-INPUT |
+| `formula_injection_detected` | CSV import cell matches formula-injection pattern (per doc 15 §CSV formula safety + doc 32 §5) | `workspaceId`, `field` (column name), `rowIndex` (1-based, no row data) | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-INPUT |
+| `upload_rejected_type` | file upload rejected by MIME/extension allowlist (per doc 15 §File Upload telemetry) | `workspaceId`, `mimeType`, `extension` | Info | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-INPUT |
+| `import_failed_partial_commit` | import transaction rolled back OR partially committed then aborted (per doc 15 §Import telemetry) | `workspaceId`, `rowCount`, `reason` (action-error code) | Error | `console.warn` | Backend lead | Phase-later | EV-TELEMETRY-INPUT |
+| `export_large_export_logged` | single export exceeds the large-export row threshold (per doc 15 §Export telemetry) | `workspaceId`, `count`, `format` | Info | `console.warn` | Backend lead | Phase-later | EV-TELEMETRY-INPUT |
+| `bulk_export` | >50 templates exported in one session (per doc 15 §Export + doc 32 §5 A-004) | `workspaceId`, `count`, `window` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-INPUT |
+| `bulk_archive_hash_mismatch` | `execute_bulk_archive_library_components` `expected_preview_hash` does not match the re-previewed hash (per doc 32 §3 V-014 + §5) | `workspaceId`, `itemId` (the item that drifted, if known) | Error | `console.warn` | Security lead | 0B | EV-TELEMETRY-INPUT |
+| `trust_state_tamper` | client attempts to set/override trust state (per doc 32 §3 V-013 + §5 A-005; trust is server-derived, never client-set) | `workspaceId`, `attemptedValue` (the rejected value's tier label, never raw input) | Error | `console.warn` | Security lead | 2 | EV-TELEMETRY-INPUT |
+
+### Input/trust-gate event rules
+
+- **Schema/version:** same `v1` schema, same `recordLibraryEvent(event, payload)` twin,
+  additive-only (§3). All events share the `workspaceId`-only scoping rule; no raw user
+  identity in beta payload.
+- **PII discipline (binding):**
+  - `quick_add_field_invalid.field` is the **canonical field name** (`name`/`category`/
+    `unit_cost`/…), NEVER the user-typed value. `rule` is the validation rule id
+    (`required`/`max_length`/`pattern`/…).
+  - `formula_injection_detected` carries the **column name** and **row index** only; the
+    matched cell content is NEVER emitted (per doc 32 §5 "V-012 XSS payload should not
+    store raw script").
+  - `upload_rejected_type` carries MIME type + extension only; never the filename (which
+    could carry PII).
+  - `trust_state_tamper.attemptedValue` is the rejected **tier label**
+    (`fresh`/`stale`/`very stale`/`missing`), never the raw client payload.
+- **i18n-safe labels:** event names + `rule`/`reason` codes are ASCII snake_case; the
+  `freshness` enum mirrors the base payload (§3); localized display maps in doc 22 (§10).
+- **Backpressure/volume:** coarse and event-triggered (validation failure, gate decision,
+  hash mismatch), not per-row; `console.warn` is local so no network backpressure (§5).
+- **Cross-ref:** trust-gate UX is owned by doc 11 (§"Trust-chip Telemetry"); upload/import
+  validation by doc 15; threat vectors V-013/V-014 by doc 32. This doc owns only the
+  telemetry shape.
+
+Owner: Telemetry lead | Phase: 0A | Evidence: EV-TELEMETRY-01 | Binding: `src/lib/component-library/library-telemetry.ts` (net-new twin)
+
+---
 
 | 09 Metric | Instrumentation | Start event | Success event | Verdict | Owner | Phase | Flag | Evidence |
 |---|---|---|---|---|---|---|---|---|
@@ -277,8 +381,11 @@ reading the log + a grep assertion (§11 "Public/share emits nothing" pattern).
 | `quick_add_*` | 3 | `library_quick_add` | Frontend lead | EV-FRONTEND-08 |
 | `insert_target_*` | 4 | `library_trust_chips` | Frontend lead | EV-FRONTEND-07 |
 | `library-telemetry.ts` twin + session-timer util | 0A | n/a | Telemetry lead | EV-TELEMETRY-01 |
+| Security events (`authz_denied`/`idor_attempt`/`cache_bleed_detected`/`redaction_regression`/`snapshot_bypass_attempt` + 10 more, §6A) | 0A/0B/2/3/Phase-later per row | n/a (security is always on) | Security lead | EV-TELEMETRY-SEC |
+| Route-state events (`library_component_selected`/`component_route_not_found`/`route_state_authz_denied`/`workspace_switch_cache_recovery`/`library_template_opened`/`template_route_not_found`, §6B) | 0A/0B/4 per row | `library_component_deep_link` | Frontend lead / Security lead / Backend lead | EV-TELEMETRY-ROUTE |
+| Input/trust-gate events (`trust_insert_gate_*`/`quick_add_field_invalid`/`formula_injection_detected`/`upload_rejected_type`/`import_failed_partial_commit`/`export_large_export_logged`/`bulk_export`/`bulk_archive_hash_mismatch`/`trust_state_tamper`, §6C) | 2/3/0B/Phase-later per row | `library_trust_chips` / `library_quick_add` | Backend lead / Security lead / Frontend lead | EV-TELEMETRY-INPUT |
 
-Rollout/flag coupling: each event group is gated by the same feature flag as its host feature in `21`; disabling a phase flag disables its events with no orphan call sites.
+Rollout/flag coupling: each event group is gated by the same feature flag as its host feature in `21`; disabling a phase flag disables its events with no orphan call sites. Security events (`§6A`) and route-state authz events (`route_state_authz_denied`) are always-on (no feature flag) because they monitor invariants, not features.
 
 ---
 

@@ -5,6 +5,27 @@
 > **Scope:** Scale budgets, browse-payload reduction, future-if-budget server search, failure states, and concurrency behavior. All numeric thresholds are either measured Phase 0A values or explicit links to doc 30. Resolves `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` C-004 (dense/virtualization flags) and C-015 (provisional vs final budgets).
 >
 > **Companion docs:** [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md), [30-PERF-BUDGET-AND-REGRESSION-GATES.md](30-PERF-BUDGET-AND-REGRESSION-GATES.md), [13-DATA-CONTRACTS-ROUTE-CACHE.md](13-DATA-CONTRACTS-ROUTE-CACHE.md), [21-FEATURE-FLAGS-AND-ROLLOUT.md](21-FEATURE-FLAGS-AND-ROLLOUT.md), [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md), [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md), [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md), [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md).
+>
+> **§3 gap closure status (auditor index, 2026-06-21):** all five doc-25 §3 gaps for
+> this doc are closed inline: (1) **finalized baseline thresholds** — §2 "Budget
+> provenance (PROVISIONAL — resolves C-015)" explicitly states no Phase 0A measurement
+> exists yet, ships a provisional-default sub-table for the 100/500/5,000 tiers, and
+> delegates the final budgets to doc 30 §3 (per C-015); (2) **named perf-dashboard/
+> artifact schema** — §12 "Perf artifact schema" binds to the single canonical schema
+> in doc 30 §5 (path, dimensions: phase/surface/flag_combination/row_count/glass/
+> captured_at/git_sha/metrics/environment, comparison format); (3) **concurrency test
+> matrix for mutation races** — §10 "Concurrency test matrix" (5 scenarios) + §10
+> "High-risk mutation-overlap matrix" (5 overlap pairs: bulk-archive-vs-single-lifecycle,
+> quick-add-vs-folder-delete, insert-vs-source-archive, folder-rename-vs-move,
+> workspace-switch-mid-bulk-archive) with owning test file + pass condition + evidence
+> each; (4) **pagination-vs-virtualization-vs-server-search fallback rubric** — §8
+> "Fallback decision tree" (7-node ladder: payload-reduction → caching → server/client
+> split → virtualization → pagination → server-search → no-go escalation), each node
+> owner/phase/flag/rollback/evidence/binding; (5) **browser/a11y coverage for dense mode
+> + mobile** — §4 "Rendering budget and mobile/a11y proof for dense mode" (4 proof rows
+> incl `ADV-MOBILE-BROWSE` at narrow viewport) + §4 "Dense-mode a11y proof" (4 criteria
+> cross-ref doc 31) + §4 "Dense / virtualization flag combinations" (4-combo matrix per
+> C-004) + §4 "One-blur-per-region GPU budget" (glass-on vs glass-off 0A measurement).
 
 ---
 
@@ -242,6 +263,20 @@ never bare `bun test`):
 | Insert-into-estimate (`insertEstimateRowItemFromLibrary`) while the source component is archived mid-picker | `vitest run tests/vitest/library-insert-vs-source-archive.test.tsx` (net-new) + `ADV-XWS-ESTIMATE-TARGET` suite | `estimate_row_link_state` resolves to `source-changed`/`detached` not a silent clean insert; `insert_target_mismatch` fires. | Frontend lead | 4 | EV-FRONTEND-07 |
 | Folder rename (`renameLibraryFolder`) + folder move (`moveCostLibraryComponentToFolder`) on the same folder concurrently | `vitest run tests/vitest/library-folder-rename-vs-move.test.tsx` (net-new) | Tree re-read after both settle; no component lands under a stale folder name; RLS rejects foreign folder id. | Frontend lead | 0B | EV-FRONTEND-02 |
 | Workspace switch mid-bulk-archive | `vitest run tests/vitest/library-workspace-switch-cache.test.tsx` | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` clears before the bulk result lands; no cross-workspace archive applied. | Backend lead | 0A | EV-18-003 |
+
+> **12-dim coverage for the high-risk mutation-overlap rows above (gate rows per doc 34 §3):**
+> each row delegates the missing dimensions cleanly — **Flag**: `library_dense_mode` /
+> `library_virtualization_enabled` only for the dense/virtualization-dependent rows;
+> otherwise `n/a` (concurrency invariant, not feature-gated). **Rollback**: revert the
+> test file + the mutation it guards. **Telemetry**: `insert_target_mismatch` (insert-vs-archive),
+> `bulk_archive_hash_mismatch` (bulk-vs-single), `workspace_switch_cache_recovery`
+> (workspace-switch, doc 20 §6B); others `n/a` (silent invariant). **Copy**: `*.error.concurrent`
+> (doc 22) where a user-visible conflict banner renders. **A11y**: live-region announce
+> for conflict banners (doc 31 §5). **Perf**: n/a (concurrency, not throughput). **Browser-proof**:
+> `vitest run tests/vitest/<file>` (jsdom) for logic; `bun run test:e2e` for real-timing
+> proof where async ordering matters (doc 29 §5). **i18n**: key-based (doc 28 §5). **Binding**:
+> `src/lib/component-library/actions.ts` (mutations); `src/lib/component-library/query-keys.ts:5`
+> (cache key).
 
 ---
 

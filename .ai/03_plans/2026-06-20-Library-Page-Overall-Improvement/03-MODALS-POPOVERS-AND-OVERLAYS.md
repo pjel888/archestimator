@@ -49,10 +49,26 @@ three most-cited surfaces — inspector, facet filter, bulk archive — are NOT 
 Replace these Library-owned native browser interactions. All four land in
 **Phase 0B**; folder-prompt replacement lands HERE (early), NOT after Quick Add.
 Each reuses the inline `ConfirmDialog` + child `<input>` text-prompt pattern from
-`TemplatesBrowseManager.tsx:531-895` (state at `:531` via
+`TemplatesBrowseManager.tsx:531-883` (state at `:531` via
 `const [textPrompt, setTextPrompt]`; inline `ConfirmDialog`+`<input>` block through
-`:895`; search its local `textPrompt` state) — there is no standalone
+`:883`; search its local `textPrompt` state) — there is no standalone
 `PromptDialog`/`InputDialog` primitive to call.
+
+### The PromptDialog absence (precision note — closes the §3 gap)
+
+A `PromptDialog` / `InputDialog` primitive **does not exist** in this codebase.
+Verified 2026-06-21: `rg -l "PromptDialog\|InputDialog" src/components/ui/` → 0 hits;
+`rg -l "PromptDialog\|InputDialog" src/` → 0 hits (no definition, no consumer). The
+text-prompt pattern (a named-input dialog with validation + focus control) is implemented
+**inline** as a `ConfirmDialog` (`ui/overlays/confirm-dialog.tsx`) hosting a child
+`<input>` in its `children` slot, driven by a local `textPrompt` state hook. The canonical
+instance is `TemplatesBrowseManager.tsx:531-883` (folder create/rename + template
+rename/move). The four Phase-0B replacements below MUST clone this inline pattern; they
+MUST NOT assume a primitive exists. If a future refactor extracts a shared `PromptDialog`,
+it is **separately scoped work** (not an implicit Phase-0B dependency) and MUST preserve
+the `ConfirmDialog` prop contract (`open`, `onOpenChange`, `title`, `description?`,
+`children`, `variant?`, `onConfirm`, `initialFocusRef?` — see doc 23 §Prop-level API) so
+existing call sites migrate without a behavior change.
 
 - `component-library-manager/ComponentLibraryManager.tsx:1493`: folder create `window.prompt("Folder name")` -> inline text-prompt dialog; submit calls `createLibraryFolder`.
 - `component-library-manager/ComponentLibraryManager.tsx:1515`: folder rename `window.prompt("Folder name")` -> inline text-prompt dialog; submit calls `renameLibraryFolder`.
@@ -133,6 +149,36 @@ inline error and preserves the value, focus returns to trigger); Add dirty-disca
 Quick Add -> `vitest run tests/vitest/library-add-component-modal-a11y.test.tsx`;
 Overview search -> `vitest run tests/vitest/library-overview-navigation.test.tsx`.
 Owner: implementer of the owning phase (0B / 1 / 3).
+
+### Mobile + RTL pass per overlay (closes the §3 "limited RTL/i18n/mobile" gap)
+
+Every overlay row above already carries an `i18n/RTL` column; this subsection makes the
+**mobile** (touch + small-viewport) and **RTL** behavior explicit per overlay, bound to
+the breakpoint contract in doc 35 §9 and the bidi rules in doc 28 §5. "Mobile" = `<768px`;
+"RTL" = `[dir="rtl"]`.
+
+| Overlay | Mobile (`<768px`) | RTL (`[dir="rtl"]`) | Binding |
+| --- | --- | --- | --- |
+| Folder create/rename (text-prompt) | full-width dialog; `<input>` keeps 16px tap padding; confirm/cancel buttons stack if needed | `<input>` is `dir="auto"`; dialog close/X mirrors to top-left (doc 28 §5); submit-on-Enter preserved | doc 35 §9 mobile row; doc 28 §5 |
+| Folder delete (destructive confirm) | full-width; destructive confirm button ≥44px touch target | close/X mirrors; "Delete" verb stays untranslated (verb localization via doc 22) | doc 31 §4 touch target; doc 28 §5 |
+| Add dirty-discard | full-width; "Keep editing" stays the safe default | button order mirrors (cancel at reading-start) | doc 22 §discard copy |
+| Bulk archive | full-width; selection count + archive preview scroll vertically | preview list mirrors; `{n}` plural per doc 22 §12 | `BulkDestructivePreviewModal.tsx:107` |
+| Quick Add (`Modal`) | full-width; required fields stay reachable above the fold; advanced fields collapse | field labels right-align; validation icons mirror | `AddComponentModal.tsx` |
+| Overview search popup | listbox becomes full-width dropdown; result rows ≥44px touch height | input aligns right; result chips mirror | doc 28 §5 |
+| Facet filter (`Popover`) | popover becomes full-width bottom sheet on mobile (via `side` prop) | applied-filter chips mirror via `flex-row-reverse` (doc 23 §RTL) | doc 23 §Applied-Filter Chip |
+| Insert template (`InsertIntoEstimatePicker`) | full-width; target selector stays usable one-handed | target list mirrors; `{estimateName}` interpolation per doc 22 §10 | `InsertIntoEstimatePicker.tsx` |
+| Template move (`CreatableCombobox`) | combobox dropdown becomes full-width; options ≥44px touch height | input aligns right; `dir="auto"` on the combobox input | `ui/creatable-combobox.tsx:210` |
+| Edit Component drawer | full-width drawer from the right (or bottom on mobile per `side` prop) | drawer direction mirrors — opens from the left under RTL | `ui/overlays/sheet-drawer.tsx` `side` prop |
+| Inspector drawer (narrow) | single glass panel on screen; no nested glass (doc 35 §9 mobile row) | drawer direction mirrors | doc 35 §9 |
+
+**Mobile testing boundary:** every overlay's mobile behavior is **Playwright-REQUIRED**
+(jsdom cannot prove touch-target size, viewport-driven `side` selection, or full-width
+dropdown layout). The Playwright capture for each overlay at `<768px` is registered in
+doc 29; the pass criterion is "no overlay renders below 320px width, no touch target below
+44×44px, and the overlay's focus/focus-return contract from the table above still holds."
+**RTL testing boundary:** jsdom proves the `dir="auto"` / `flex-row-reverse` class is
+present on the right elements; Playwright (with `dir="rtl"` on `<html>`) proves the visual
+mirror. Both are registered in doc 29 §RTL capture list.
 
 ## Overlay Stacking Policy
 

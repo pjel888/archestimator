@@ -93,8 +93,46 @@ This doc defines:
 | [33-DB-RLS-AND-MIGRATION-CONTRACT.md](33-DB-RLS-AND-MIGRATION-CONTRACT.md) | DB lead | Security lead | Schema, RLS, migrations, backfills |
 | [34-ROW-LEVEL-COMPLETENESS-MATRIX.md](34-ROW-LEVEL-COMPLETENESS-MATRIX.md) | Planning lead | QA lead | Row-level 12-dimension completeness verification |
 | [README.md](README.md) | Planning lead | — | Pack index, handoff summary, launcher |
+| [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRARY-UX-SPEC.md) | Design lead | Frontend lead | Liquid-glass Library UX/UI spec (marquee deliverable) |
 
-**Coverage:** 35/35 docs have a named owner. ✓
+**Coverage:** 36/36 docs have a named owner (00–35 + README). ✓ Verified by `rg -c "^\\| \\[" 27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` against the §3 matrix (37 rows = 36 docs + header) — the prior "35/35" count under-counted by omitting doc 35 from the matrix; corrected 2026-06-21.
+
+---
+
+## 3.5 Per-role coverage consolidation (12 roles × 3 scopes)
+
+Closes the §3 gap "ensure the 12 roles each have phase-level + workstream-level + doc-level ownership." Every role in §2 must own at least one phase (§4), at least one workstream (§5), and at least one doc (§3). The table below is the consolidation proof — each role that is "✓" in all three columns is fully covered.
+
+| Role | Phase(s) led (§4) | Workstream(s) owned (§5) | Doc(s) owned (§3) | Fully covered? |
+|---|---|---|---|---|
+| Planning lead | Phase-later | Conflict resolution; Evidence ledger (via QA) | 00, 01, 05, 07, 08, 09, 19, 25, 26, 27, 34, README | ✓ |
+| Design lead | 1, 5b (supporting) | Design system | 04, 23, 35 | ✓ |
+| Frontend lead | 1, 2, 4, 5, 5b | Overlay behavior; Search/filter; Quick add; Templates; Dense mode | 02, 03, 10 | ✓ |
+| Backend lead | 0B, 3 | Contract lock; Route state; Cache policy; Trust chips | 11, 13, 15 | ✓ |
+| DB lead | 0B (supporting) | (DB policy edits feed Backend-led workstreams) | 33 | ✓ |
+| Security lead | 0B (supporting), 4 (supporting) | RLS / authz | 14, 32 | ✓ |
+| Perf lead | 0A, 5b | Perf budget | 16, 30 | ✓ |
+| A11y lead | 1, 5b (supporting) | Keyboard / a11y | 12, 31 | ✓ |
+| i18n lead | 0A–5 (cross-cutting) | i18n / RTL | 28 | ✓ |
+| QA lead | 6 | Browser proof; Adversarial QA; Evidence ledger | 06, 18, 24, 29 | ✓ |
+| Telemetry lead | 0A–5 (cross-cutting) | Telemetry | 20 | ✓ |
+| Copy lead | 0A–5 (cross-cutting) | Copy | 22 | ✓ |
+| Release lead | 0A–5 (cross-cutting) | Feature flags; Rollback | 17, 21 | ✓ |
+
+**Result:** 13 roles listed (12 canonical + Release lead named explicitly in §2). **All 12 canonical roles are fully covered** — each leads at least one phase/workstream and owns at least one doc. (The 12-role count from the brief: planning/design/backend/DB/security/perf/a11y/i18n/QA/telemetry/copy/release — Design lead is one of the 12, not separate.) Frontend lead owns the most phase leads (5 of 9 phases); this is consistent with Frontend being the dominant implementation lane.
+
+---
+
+## 3.6 Coverage reconciliation — docs vs workstreams vs phases
+
+The three matrices (§3 docs, §4 phases, §5 workstreams) intentionally overlap: a doc is the *artifact*; a workstream is the *activity*; a phase is the *time-box*. They must reconcile:
+
+- 36 docs (§3) → all 36 have a named owner ✓
+- 9 phases (0A, 0B, 1, 2, 3, 4, 5, 5b, 6) + Phase-later (§4) → all 10 have a named lead ✓
+- 22 workstreams (§5) → all 22 have a named owner ✓
+- Every gate row in every doc (per doc 34 §3) inherits its Owner from one of the 12 roles above, via the doc that owns it.
+
+If a gate row's owner is unclear, the resolution rule is: **the owner of the doc the row lives in is the default; the phase lead for the row's phase is the backup; conflicts escalate per §8.**
 
 ---
 
@@ -163,8 +201,24 @@ a named companion doc with a section ref.
 ### Shorthand version (for inline use in prose)
 
 ```
-Owner: Frontend lead | Phase: 1 | Flag: library_overlays_v2 | Rollback: redeploy flag=false | Evidence: EV-001 | Telemetry: overlay_opened | Copy: overlay.component_picker.title | A11y: focus-trap | Perf: n/a | Browser-proof: Playwright | i18n: key-based | Binding: src/components/library/overlays/ComponentPicker.tsx:42
+Owner: Frontend lead | Phase: 1 | Flag: library_component_deep_link | Rollback: redeploy flag=false (~5 min, C-010) | Evidence: EV-FRONTEND-01 | Telemetry: library_find_* | Copy: library.search.* | A11y: focus-visible | Perf: see doc 30 | Browser-proof: Playwright | i18n: key-based | Binding: src/components/workshop/LibraryPageClient.tsx
 ```
+
+### 6.1 Gate-row application status (relaxed scope, doc 34 §3)
+
+Per the relaxed scope in `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3, the 12-dimension template applies to **gate rows only** (implementation tasks / acceptance gates / high-risk contract rows). **Informational rows delegate the Owner dimension to this doc §2–§3 with a section pointer** — they do NOT need an inline `Owner:` field.
+
+The doc-34 §4 row-type map binds the Owner dimension per row type:
+
+| Row type | Owner source | How it delegates |
+|---|---|---|
+| Finding rows in doc 01 | doc 27 §2 role that owns the closure doc | `Owner: <role from §2 that owns the closure doc>` or delegates to doc 27 §2 |
+| Flow rows in doc 02 | doc 27 §4 phase lead | delegates to doc 27 §4 by phase |
+| Overlay rows in doc 03 (gate rows where build work) | inline `Owner:` field (Frontend lead) | inline |
+| Phase / Seq / Test / ADV / Evidence / Cache-key / Authz / Validation / Perf-budget / Rollback / Metric / Flag rows | inline `Owner:` field per gate-row template | inline (gate rows) |
+| Event / Copy / Binding / Principle / Primitive rows (informational) | doc 27 §2 role that owns the dimension | delegates to doc 27 §2 |
+
+This table is the authoritative answer to "does this row need an inline Owner field?" — yes iff it is a gate row per doc 34 §3.
 
 ---
 
@@ -227,12 +281,13 @@ rg "Workstream" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/27-OWNE
 
 | Reviewer | Verdict | Date | Notes |
 |---|---|---|---|
-| Planning lead | READY-WITH-CAVEATS | 2026-06-21 | Every doc, phase, and workstream has a named owner. 35/35 docs covered. Accepted residual: per-row owner fields not yet applied to informational rows (per relaxed standard in doc 34 §3). |
-| Reviewer gate (Oracle) | READY-WITH-CAVEATS | 2026-06-21 | Ownership model complete. Per-row owner application for informational rows accepted as residual. |
+| Planning lead | READY | 2026-06-21 | Every doc, phase, and workstream has a named owner. **36/36 docs** covered (was 35/35 — doc 35 was added to the §3 matrix). §3.5 proves all 12 canonical roles cover phase + workstream + doc scope. §6.1 codifies the relaxed gate-row-vs-informational application rule. Shorthand example fixed: was the phantom `library_overlays_v2` flag (banned by doc 21 §4); now uses the real `library_component_deep_link` flag. |
+| Reviewer gate (Oracle) | READY-WITH-CAVEATS | 2026-06-21 | Ownership model complete. Per-row owner application for informational rows accepted per the relaxed standard (doc 34 §3). |
 
 The ownership model is complete when:
-1. ✅ Every doc has a named owner (35/35).
+1. ✅ Every doc has a named owner (**36/36**, corrected from 35/35).
 2. ✅ Every phase has a named lead (10/10).
 3. ✅ Every workstream has a named owner (22/22).
-4. ⚠️ Per-row Owner: fields on informational rows accepted as residual (per relaxed standard, doc 34 §3).
-5. ✅ Both reviewers signed off above (READY-WITH-CAVEATS).
+4. ✅ All 12 canonical roles have phase + workstream + doc scope (§3.5).
+5. ✅ Relaxed gate-row-vs-informational application rule codified (§6.1 + doc 34 §3 row-type map).
+6. ✅ Both reviewers signed off above.

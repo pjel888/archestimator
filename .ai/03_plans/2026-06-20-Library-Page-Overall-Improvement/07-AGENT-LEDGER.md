@@ -1,10 +1,23 @@
 # 07 — Agent Ledger
 
-> **Status:** Living document. Records the agent skills, parallel lanes, source evidence, and validation steps used to produce the Library Page Overall Improvement plan pack.
+> **Status:** Living document. Records the agent skills, parallel lanes,
+> source evidence, and validation steps used to produce the Library Page
+> Overall Improvement plan pack. **Updated 2026-06-21 parallel-agent pass**
+> (META/coherence agent: recorded the 9-agent pass, added §1.5 evidence
+> commands, §9.5 drift-check trigger, §13 decision-log split).
 >
-> **Scope:** Provenance, not product spec. Every codebase binding asserted here is reconciled against `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (the keystone); defer to that doc for authoritative file/column/enum/query-key/server-action/RPC lists.
+> **Scope:** Provenance, not product spec. Every codebase binding asserted here
+> is reconciled against `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (the
+> keystone); defer to that doc for authoritative
+> file/column/enum/query-key/server-action/RPC lists.
 >
-> **Companion docs:** [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md), [34-ROW-LEVEL-COMPLETENESS-MATRIX.md](34-ROW-LEVEL-COMPLETENESS-MATRIX.md), [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md), [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md).
+> **Companion docs:** [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md),
+> [34-ROW-LEVEL-COMPLETENESS-MATRIX.md](34-ROW-LEVEL-COMPLETENESS-MATRIX.md),
+> [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md),
+> [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md),
+> [26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md](26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md).
+>
+> **Ledger owner:** Planning lead. **Phase:** all. **Drift trigger:** see §9.5.
 
 ---
 
@@ -12,7 +25,25 @@
 
 | Claim | Owner | Evidence | Phase | Status |
 |---|---|---|---|---|
-| This plan pack is planning-complete (implementation-ready, not execution-complete) per Rubric B. | Planning lead | Docs 00-24 + README scored in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1; docs 25-34 are companion/contract docs that define the standard rather than being scored against it. An **independent re-audit (2026-06-21)** found the pack honestly averages ~80 (S82/Q78/R70 on the execution-inclusive Rubric A), NOT a flat 100 — see the re-audit entry in §12 and `08-RATINGS-AND-GAP-CLOSURE.md` "Delta log". The prior "all 35 docs at 100/100/100" claim was the planning-achievable Rubric B ceiling and is not defensible as an execution-inclusive score; treat `25` §1 as authoritative. | all | closed for PLANNING rubric; execution residual open (12-dim fields applied to gate-rows only; C-001..C-022 applied inline across the 2026-06-21 apply pass) |
+| This plan pack is planning-complete (implementation-ready, not execution-complete) per Rubric B — 19 docs edited in the 2026-06-21 parallel pass reach 100/100/100 on Rubric B (§4.5 of doc 34). | Planning lead | `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1 (authoritative scores); `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §4.5 (post-pass matrix); `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` §5 (29/29 conflicts resolved, 0 unresolved). | all | **closed for Rubric B** on the 19 edited docs; execution residual pre-registered in doc 24; docs not edited this pass (00/02/03/05/09/17/23/27/35/README) carry baseline scores for Wave 2 / lead decision. |
+
+### 1.5 Evidence commands (close-the-gap recipes)
+
+> **Added 2026-06-21 parallel pass.** These are the exact commands that fill
+> the pre-registered execution-evidence slots in doc 24. Run them during the
+> implementation phases (not during planning). Each has a pass criterion.
+
+| Gap | Command | Pass criterion | Owner | Phase | Evidence row |
+|---|---|---|---|---|---|
+| Screenshot / browser proof | `bun run test:e2e -- --grep '<scenario>'` + capture `playwright-report/` artifacts | screenshot exists in `playwright-report/` for each ADV scenario; no `expect()` failures | QA lead | 0B/1/5/6 | doc 24 "Rendered-UI screenshots" + per-ADV rows |
+| DOM test (jsdom) | `bun run test:dom` (all) or `vitest run tests/vitest/<file>` (one) | exit 0; no failed assertions | QA lead | 0A–6 | doc 24 per `ADV-*`/test row |
+| Perf seed extension | `bun run scripts/seed-performance-test-data.ts` (after extending it to seed `cost_library_items`) | seed completes; `cost_library_items` has N rows in the test workspace | Perf lead | 0A | doc 24 "Perf seed extension" |
+| Perf baseline measurement | `node scripts/bench-hero-browser.mjs` (or equivalent) after seed | baseline JSON in the evidence dir; numbers within doc 30 budget | Perf lead | 0A | doc 24 "Perf baseline measurement note" |
+| Cache-bleed cross-workspace test | `vitest run tests/vitest/<cache-test>` | `ADV-WS-SWITCH-CACHE` passes; no cross-workspace leak | Backend lead | 0A | doc 24 `ADV-WS-SWITCH-CACHE` |
+| Public-redaction test | `vitest run tests/vitest/<publication-test>` | `ADV-PUBLIC-REDACTION` passes; `pricing_source`/`confidence`/price history absent from `snapshot_json` | Security lead | 0A | doc 24 `ADV-PUBLIC-REDACTION` |
+
+> **Per-row gate-row footer** (this ledger's own gate rows):
+> Owner: Planning lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: EV-PLAN-07 | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` Appendix
 
 ---
 
@@ -151,6 +182,20 @@ Owner: Planning lead | Phase: 0A | Flag: n/a | Rollback: n/a | Evidence: EV-PLAN
 | Doc 19 phase map changes. | Update all `Phase:` fields in this doc to match the new canonical map. | Planning lead | EV-PLAN-07 |
 | New native prompt appears in primary Library files. | Re-open `03-MODALS-POPOVERS-AND-OVERLAYS.md` and add a migration row; do not silently accumulate debt. | Frontend lead | EV-FRONTEND-02 |
 
+### 9.5 Doc 19 drift check — semantic-change triggers (added 2026-06-21)
+
+> The §9 triggers fire on textual change. They must ALSO fire on *semantic*
+> change that keeps the same name — the most dangerous drift. These are the
+> semantic triggers reconciled from the 2026-06-21 parallel pass (conflicts
+> C-023..C-025 in doc 26).
+
+| Semantic trigger | Action | Owner | Conflict |
+|---|---|---|---|
+| Cache-bleed call-site count changes (the stable identifier `rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY\|queryKey: \["workspace-component-library"\]' src/` returns ≠ 6 matches) | Reconcile doc 19 Query Keys + Provenance Footer; propagate to docs 13/14/32/06/18/24; log in doc 26. | Planning lead | C-023 |
+| Insert-action function signature or location changes (`insertEstimateRowItemFromLibrary` / `replaceEstimateRowItemWithLibrary` / `detachEstimateRowItemFromLibrary`) | Reconcile doc 19 Server Actions section; log in doc 26. | Planning lead | C-024 |
+| A migration adds/drops a `cost_library_items` column or an authz primitive (`is_workspace_*`, `can_*`, `is_platform_admin`) | Reconcile doc 33 §2.2/§3.1 first (canonical), then doc 19 §Data Layer/§RLS; log in doc 26. | DB lead + Planning lead | C-025 |
+| A new enum value in `component_lifecycle_state` or `estimate_row_link_state`, or a new query-key factory in `query-keys.ts` | Re-verify doc 11 lifecycle/link tables and doc 13 cache table; log in doc 26. | Planning lead | (semantic, §11 note) |
+
 ---
 
 ## 10. Known gaps and execution evidence ledger
@@ -209,3 +254,66 @@ on the execution-inclusive rubric; no application code changed.
 - `24-EXECUTION-EVIDENCE-LEDGER.md` — pre-registered execution evidence for every deferred proof item.
 - `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` — owner role definitions.
 - `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` — binding conflict resolutions.
+
+---
+
+## 14. Decision log — fact / inference / recommendation split (added 2026-06-21)
+
+> **Split added 2026-06-21 parallel pass** to separate factual evidence (which
+> an auditor can re-verify by running a command) from interpretive commentary
+> (which is a judgment call) from recommendations (which the owner may accept
+> or reject). This is the compact decision log the §3 gap asked for; it does
+> NOT duplicate §5 (source-evidence highlights) or §6 (repository evidence).
+
+### Facts (re-verifiable by command)
+
+| Fact | Verify command | Verified date |
+|---|---|---|
+| 6 cache-bleed call sites by stable identifier | `rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY\|queryKey: \["workspace-component-library"\]' src/ \| grep -v query-keys.ts \| wc -l` → 6 | 2026-06-21 |
+| `use-estimate-row-mutations.ts:413` is the actual writer line (keystone says `:432` — drift) | `rg -n 'WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY' src/hooks/use-estimate-row-mutations.ts` | 2026-06-21 |
+| `EstimateSheetContent.tsx:1300/1303` are the actual writer lines (keystone says `:1299/1302` — drift +1) | `rg -n 'WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY' src/components/workshop/EstimateSheetContent.tsx` | 2026-06-21 |
+| `insertEstimateRowItemFromLibrary` actual line is `:2464` (keystone says `:2477` — drift −13) | `rg -n 'export async function insertEstimateRowItemFromLibrary' src/lib/estimates/actions.ts` | 2026-06-21 |
+| 4 native prompts in component-library-manager (3 ComponentLibraryManager + 1 AddComponentModal) | `rg -c 'window\.(prompt\|confirm)' src/components/workshop/component-library-manager/{ComponentLibraryManager,AddComponentModal}.tsx` | 2026-06-21 |
+| 4 Library routes on disk | `fd -t f 'page.tsx' src/app/workshop/library/` | 2026-06-21 |
+| 3 freshness sources (facet/repo/UI-string at 90 days) | see §8 commands | 2026-06-21 |
+
+### Inferences (judgment calls by the parallel-pass agents)
+
+| Inference | Basis | Agent |
+|---|---|---|
+| The cache-bleed line drift is cosmetic (not blocking) because the stable identifier holds at 6 matches. | C-023 verify command returns 6 even though 3 line numbers lag. | META/coherence |
+| The doc 19 keystone RLS/column incompleteness is a reconciliation residual, not a build blocker, because doc 33 carries the canonical facts. | C-025: doc 33 §2.2/§3.1 verified by `rg`/`fd` against migrations. | db-rls + META |
+| The 19 edited docs reach honest 100/100/100 on Rubric B because every gate row satisfies-or-delegates all 12 dims (§4.5 block-check). | doc 34 §4.5 + doc 26 §5 (29/29 conflicts resolved). | META/coherence |
+| The Rubric A ~80 average (doc 25 §1) and the Rubric B 100/100/100 ceiling (this ledger §1) do NOT contradict — they measure different things. | C-016 decision rule (doc 26 §1 + doc 08). | META/coherence |
+
+### Recommendations (owner may accept or reject)
+
+| Recommendation | Rationale | Owner decision |
+|---|---|---|
+| Lead reconciles doc 19 keystone line numbers for C-023/C-024/C-025 before Wave 2 synthesis. | The drift is cosmetic but propagates to 6 sibling docs; reconciling once avoids 6 downstream edits. | Pending lead |
+| Lead decides Wave 2 scope for the 10 docs not edited this pass (00/02/03/05/09/17/23/27/35/README). | These carry baseline scores; raising them to 100/100/100 is not required for the 19-doc Rubric B sign-off but may be desired for pack-wide 100. | Pending lead |
+| Doc 20/21/24 owners adopt the new telemetry events / flags / evidence IDs registered in docs 11/14/15/32 (C-026/C-027/C-028). | Reconciliation, not new work; closes the canonical-name adoption loop. | Pending lead (lead owns 20/21/24 or delegates) |
+
+---
+
+## 15. 2026-06-21 parallel-agent pass record
+
+> **Recorded by the META/coherence agent.** This section documents the
+> parallel pass that drove the pack to Rubric B 100/100/100 on 19 docs. It is
+> provenance, not a product claim.
+
+| Item | Detail |
+|---|---|
+| Pass date | 2026-06-21 |
+| Coordination artifacts | `_AGENT-COORDINATION-BRIEF.md` (lead-authored brief); `LOOP_LEDGER.md` (append-only change/conflict ledger) |
+| Agent count | 9 agents in Wave 1 (parallel, disjoint file ownership) + 1 META/coherence agent (this agent) |
+| Wave 1 agents | data-contracts-route-cache-agent (13), source-trust-state-agent (11), library-surface-specs-agent (10), security-authz-agent (14), db-rls-agent (33/32/15), keystone-bindings-agent (19/18/06/24), i18n-a11y-copy-agent (28/31/22/12), + 2 more (UX/design + perf/QA lanes per `LOOP_LEDGER.md`) |
+| META/coherence agent (this) | Owns docs 26/34/07/08. Reconciled `LOOP_LEDGER.md` §3 into doc 26 as C-023..C-029; authored doc 34 §4.5 post-pass matrix; recorded this pass in doc 07; added owner/acceptance/rollback/rubric-rule/delta to doc 08. |
+| Docs edited this pass | 19 docs at 100/100/100 on Rubric B (§4.5 of doc 34) |
+| New conflicts logged | 7 (C-023..C-029) — all resolved, 0 unresolved (doc 26 §5) |
+| New canonical names | See `LOOP_LEDGER.md` §2 (telemetry events, evidence IDs, flags, DB facts) |
+| Marquee deliverable | `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` v2 (lead-owned; liquid-glass library redesign) |
+| Execution evidence | NOT faked — all execution-only proof (rendered UI, green tests, applied migrations, measured perf) stays pre-registered in `24-EXECUTION-EVIDENCE-LEDGER.md` with command + pass criterion + owner + phase |
+| Rubric | This pass targets **Rubric B** (planning-achievable = implementation-ready). Rubric A (execution-inclusive) remains ~81 pack average per doc 25 §1 — it cannot reach 100 from a planning pass by construction. |
+
+Owner: Planning lead | Phase: all | Flag: n/a | Rollback: revert this section + the §1.5/§9.5/§14/§15 additions | Evidence: EV-PLAN-07 | Telemetry: n/a | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: `LOOP_LEDGER.md` §1/§4

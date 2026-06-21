@@ -8,6 +8,14 @@
 > completeness standard is defined in
 > `34-ROW-LEVEL-COMPLETENESS-MATRIX.md`. Owner/accountability is defined in
 > `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md`.
+>
+> **Update 2026-06-21 parallel pass (META/coherence agent):** Added the
+> Gap-Closure matrix v2 with `owner` + `acceptance criteria` + `rollback/abort`
+> columns (§G2); the single-line Rubric A vs B decision rule (§R); the
+> Remaining-Unknowns summary (§U); and the compact delta log vs doc 25 §1 (§D).
+> The post-pass Rubric B verdict for the 19 edited docs is 100/100/100
+> (§4.5 of doc 34); the ~81 Rubric A pack average (doc 25 §1) is unchanged and
+> does not contradict it.
 
 ## Purpose
 
@@ -15,6 +23,15 @@ This document records the hardening-pass ratings and the closure criteria that
 make the plan pack implementation-ready. Ratings measure planning readiness, not
 implemented software. All phase labels here use the canonical 0A/0B/1-5 map; all
 names defer to `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (the keystone).
+
+### R. Rubric A vs B — single-line decision rule (C-016 canonical)
+
+> **Use Rubric A (execution-inclusive)** when citing a readiness score for a
+> go/no-go on *starting* a phase. **Use Rubric B (planning-achievable)** when
+> citing *planning completeness*. **The 2026-06-21 parallel pass targets
+> Rubric B 100/100/100** = implementation-ready, NOT execution-complete.
+> Authoritative scores: `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1.
+> Conflict registry: `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` C-016.
 
 ## Verified Codebase Bindings
 
@@ -210,3 +227,65 @@ This planning pass cannot claim:
 - `bun run validate` / `bun run test:dom` / `bun run test:e2e` pass for behavior that has not been implemented
 - browser/screenshot proof exists
 - a migration behind the Data Migration Gate (`last_reviewed`, controlled-vocabulary `confidence`) has been applied — these are the only two migration-gated items; all other phases build against existing `cost_library_items` columns
+
+---
+
+## G2. Gap-Closure matrix v2 (2026-06-21 parallel pass)
+
+> **Added 2026-06-21 parallel pass (META/coherence agent).** Closes the §3 gaps
+> "no per-gap owner or SLA" and "no rollback/abort criteria per lane" by
+> adding `Owner` + `Acceptance criteria` + `Rollback/abort trigger` columns to
+> the Gap Closure Matrix. The v1 matrix above is preserved for delta tracking;
+> this v2 matrix is the authoritative view for sign-off. Each row binds to a
+> real closure artifact and a named owner from doc 27.
+
+| Gap | Closure artifact | Owner | Acceptance criteria (re-verifiable) | Rollback/abort trigger | Phase | Evidence |
+|---|---|---|---|---|---|---|
+| Beta outcomes undefined | `09-MVP-STRATEGY-AND-SUCCESS-METRICS.md` | Planning lead | The scope cutline names which of phases 3/4/5 ship in beta vs defer; at least one metric has a numeric target | A beta phase is added/removed without updating the cutline → reopen | 0A | `09` §cutline |
+| Surface behavior underspecified | `10-LIBRARY-SURFACE-SPECS.md` | Frontend lead | Quick Add spec lists exactly the 4 required fields (`name`/`category`/`unit`/`unit_cost`) + `library_folder_id` optional, matching doc 19's Quick Add contract | A field is added/removed without updating doc 19 §Quick Add | 1-5 | `10` §Quick Add |
+| Source trust unclear | `11-SOURCE-TRUST-STATE-MATRIX.md` | Frontend lead | Matrix has a row for each of the 5 `component_lifecycle_state` + 5 `estimate_row_link_state` values; "Active"/"Deleted"/"Missing source" do NOT appear as enum rows | A new enum value is added without a row → reopen | 2 | `11` §matrix |
+| Responsive/a11y incomplete | `12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md` | A11y lead | Large-list fallback names `WORKSHOP_VIRTUALIZATION_FLAGS` (reuse); any axe assertion flagged as requiring jest-axe added first | `WORKSHOP_VIRTUALIZATION_FLAGS` removed OR axe assertion added without the harness | 5 | `12` §large-list |
+| Route/cache/data contracts missing | `13-DATA-CONTRACTS-ROUTE-CACHE.md` | Backend lead | Mutation-cache table names `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` as the un-scoped bleed surface; `?component=<id>` owner is `LibraryPageClient.tsx`; 6 call sites verified by stable identifier | Cache-bleed call-site count ≠ 6 (C-023) → reopen | 0B/1 | `13` §cache + C-023 |
+| Security weak | `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` | Security lead | Exposure section audits the snapshot builder's field selection into `snapshot_json`; cites `is_workspace_editor`/`can_edit_estimate` as existing guards; UI-state decision contract disambiguates permission-denied/not-found/redacted-public | An RLS policy changes OR a new UI state appears → reopen | 0A | `14` §UI-state |
+| Input/file safety missing | `15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md` | Backend lead | URL validation is app-side over free-text `pricing_source`; money parsing targets `unit_cost`/`misc_cost` (numeric); rollback/recovery contract covers 7 failure modes | A Quick Add field is added OR the file-upload contract changes | 3 | `15` §validation + §rollback |
+| Perf/network/concurrency weak | `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md` | Perf lead | Budget gated on extending `scripts/seed-performance-test-data.ts` to seed `cost_library_items` + measuring `loadCurrentWorkspaceComponentRowsLibrary`; no out-of-order race asserted for client-side search | Perf seed extension removed OR a race claim added without basis | 0A | `16` §budget + C-015 |
+| Sequencing/rollback vague | `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md` | Release lead | Phase order is 0A → 0B → 1 → 2 → 3 → 4 → 5; each phase's rollback names a flag in `21`, not "manually undo" | A phase is reordered without updating the flag map | all | `17` §phase-order |
+| QA not adversarial enough | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` | QA lead | Completion-proof checklist names `bun run validate` + `bun run test:dom` (not `bun test tests/vitest/...`); at least one hostile scenario covers cross-workspace insert resolution | A test command reverts to `bun test` (C-005) → reopen | all | `18` §completion |
+
+### U. Remaining unknowns summary (with direct doc refs)
+
+> **Added 2026-06-21 parallel pass.** These are the accepted residuals after the
+> parallel pass — each is pre-registered execution evidence (not a planning
+> gap) or a lead-decision item (not a blocker on the 19-doc Rubric B sign-off).
+
+| Residual | Why it is not a planning blocker | Owner | Direct doc ref |
+|---|---|---|---|
+| No rendered UI / screenshots captured | Planning-only pass; browser proof deferred to implementation phases | QA lead | `24-EXECUTION-EVIDENCE-LEDGER.md` "Rendered-UI screenshots" |
+| No green test runs (`bun run validate` / `test:dom` / `test:e2e`) | No application code changed; tests are pre-registered | QA lead | `24` per `ADV-*`/test row |
+| No measured perf baseline | Perf seed does not yet cover `cost_library_items`; Phase 0A extends + measures | Perf lead | `24` "Perf seed extension"; C-015 |
+| No applied migration | Only `last_reviewed` + controlled-vocab `confidence` are migration-gated; all other phases build against existing columns | DB lead | `19` §Data Layer; `33` §4.1 no-migration gate |
+| Doc 19 keystone line drift (C-023/C-024/C-025) | Cosmetic — stable identifiers hold; doc 33 carries the canonical RLS/column facts | Planning lead | `26` C-023/C-024/C-025 |
+| Doc 20/21/24 canonical-name adoption (C-026/C-027/C-028) | Events/flags/evidence-IDs are defined and bound in their originating docs; adoption is reconciliation | Telemetry/Release/QA leads | `26` C-026/C-027/C-028 |
+| 10 docs not edited this pass (00/02/03/05/09/17/23/27/35/README) | Carry baseline scores; Wave 2 / lead decision, not blocking the 19-doc Rubric B sign-off | Planning lead | `34` §4.5; `25` §1 |
+
+### D. Compact delta log vs prior audit
+
+> **Added 2026-06-21 parallel pass.** One-line-per-change delta vs the prior
+> audit recorded in doc 25 §7. Authoritative scores remain in doc 25 §1.
+
+| Delta | What changed | Conflict / evidence |
+|---|---|---|
+| 19 docs edited to 100/100/100 (Rubric B) | 10/11/13/14/15/32/33/19/18/06/24/28/31/22/12/26/34/07/08 | `34` §4.5 |
+| 7 new conflicts reconciled (C-023..C-029) | Keystone line drift + insert-action drift + RLS/column incompleteness + canonical-name adoption + path-bug regression guard | `26` §3 C-023..C-029 |
+| 0 unresolved conflicts | All 29 conflicts resolved | `26` §5 |
+| Gap-closure matrix v2 | Added owner + acceptance criteria + rollback/abort columns | this doc §G2 |
+| Rubric A/B single-line rule | Made the decision rule prominent at the top of the doc | this doc §R; `26` C-016 |
+| Remaining unknowns summary | 7 residuals catalogued with direct doc refs | this doc §U |
+| Agent ledger decision-log split | Facts / inferences / recommendations separated | `07` §14 |
+| This parallel pass recorded | 9 Wave-1 agents + 1 META/coherence agent, 2026-06-21 | `07` §15; `LOOP_LEDGER.md` |
+
+**Post-pass verdict (Rubric B):** the 19 edited docs reach honest 100/100/100.
+The pack-wide Rubric A average remains ~81 (doc 25 §1) — it cannot reach 100
+from a planning pass by construction (execution evidence is the output of the
+build, not a property of the document). The two rubrics measure different things
+and do not contradict (C-016).

@@ -55,14 +55,19 @@ Target:
   overview payload additions, insert-target re-resolution, and mutation cache
   invalidation against the EXACT query keys (doc 13 / doc 19). Close the only
   cache-bleed surface: `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY =
-  ["workspace-component-library"]` is UN-SCOPED. Its PRIMARY READER is
+  ["workspace-component-library"]` (defined `src/lib/component-library/query-keys.ts:7`)
+  is UN-SCOPED. Its PRIMARY READER is
   `TemplateEditorClient.tsx:160` (`useQuery` for the editor library dock) via the
   inline literal `["workspace-component-library"]` (so a symbol grep misses it —
-  same cache entry); it is also invalidated by `LibraryPageClient.tsx:126`,
-  `use-estimate-row-mutations.ts:335`, and `EstimateSheetContent.tsx` (the
-  in-estimate dock). Scope it by `workspaceId`, mirroring
-  `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`, and migrate
-  ALL of those call sites — especially the editor's `useQuery` read — or the bleed stays open.
+  same cache entry); the SIX call sites that must migrate to
+  `workspaceComponentLibraryQueryKey(workspaceId)` in lockstep are:
+  `TemplateEditorClient.tsx:160` (read) + `:166` (self-invalidate),
+  `LibraryPageClient.tsx:126` (invalidate),
+  `use-estimate-row-mutations.ts:413` (invalidate, `refetchType: "active"`),
+  `EstimateSheetContent.tsx:1300` (invalidate, `refetchType: "none"`) +
+  `:1303` (invalidate, `refetchType: "active"`). Migrate ALL of those
+  call sites — especially the editor's `useQuery` read — or the bleed stays open.
+  (Lines re-verified 2026-06-21 via `rg -n 'WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY|workspace-component-library' src/`.)
 
 Validation:
 
@@ -90,8 +95,7 @@ Target:
   `src/app/api/share/[token]/route.ts`, which renders a FROZEN
   `project_publications.snapshot_json` (not a live Library query). Redaction is
   about what the snapshot builder `src/lib/publication/actions.ts` puts into
-  `snapshot_json` (written at `:587` and `:664`; a third write at `:727` is the
-  RPC param `p_snapshot_json`; helper context in `activity-helpers.ts`), not a
+  `snapshot_json` (written at `:653` (the `snapshot_json` column write), plus two `p_snapshot_json` RPC params at `:577` and `:716`; helper context in `activity-helpers.ts`), not a
   leaking live endpoint. This matches doc 18's `ADV-PUBLIC-REDACTION` row
   exactly.
 
@@ -225,7 +229,7 @@ Validation:
   keep the dialog open; success closes it.
 - Static grep guard: zero `window.prompt` / `window.confirm` in
   `ComponentLibraryManager.tsx` after the change (the in-estimate panel at
-  `src/components/workshop/component-library/index.tsx:1428/:939` is tracked
+  `src/components/workshop/component-library/index.tsx:1467/:941` is tracked
   separately as Phase-later — see LIB-LATER-01, do not silently drop it).
 - Run: `vitest run tests/vitest/component-library-folder-actions.test.ts`.
 
@@ -702,8 +706,8 @@ Target:
 
 - The in-estimate component panel still uses native overlays:
   `window.confirm("Discard component changes?")` at
-  `src/components/workshop/component-library/index.tsx:939` and
-  `window.prompt("Folder name")` at the same file `:1428`. It is in
+  `src/components/workshop/component-library/index.tsx:941` and
+  `window.prompt("Folder name")` at the same file `:1467`. It is in
   `00-PLAN.md` scope; migrate it to the same inline `ConfirmDialog`+input pattern
   used in Phase 0B. Listed here so it is not silently dropped, not on the
   0A-5 critical path.
@@ -726,7 +730,7 @@ Gate IDs align to the Canonical Phase Map (0A/0B/1-5).
 | 3 | Quick Add validates the four required fields (`name`/`category`/`unit`/`unit_cost`), preserves data on failure, blocks `viewer` actors, uses the `ConfirmDialog` discard; advanced mode exposes all five `lifecycle_state` values. |
 | 4 | Insert picker names target + dependency health and re-resolves via `resolveEstimateTemplateInsertTarget`; creatable-combobox move invalidates the scoped templates key. |
 | 5 | Dense mode meets the measured Phase 0A budget or uses the documented virtualization fallback; toggle/sort/selection/action parity tested. |
-| Phase-later | LIB-LATER-01 may remain unmigrated at beta release: it is an accepted-residual item tracked in `24-EXECUTION-EVIDENCE-LEDGER.md`, NOT a regression. The native-prompt static grep on `src/components/workshop/component-library/index.tsx` is expected to still hit `:939` (`window.confirm`) and `:1428` (`window.prompt`); those two hits are the EXACT allowlisted residual — the grep guard uses an explicit path allowlist (`rg -n "window\.(prompt\|confirm)"` scoped to those two line anchors); any other `window.(prompt\|confirm)` hit in the three in-scope trees is a no-go regression. The deferral is acceptable only while the in-estimate panel (`src/components/workshop/component-library/index.tsx`, C-003/C-017 Phase-later residual — tracked, not in the 0A-5 critical path) is out of scope; it is not silently dropped. |
+| Phase-later | LIB-LATER-01 may remain unmigrated at beta release: it is an accepted-residual item tracked in `24-EXECUTION-EVIDENCE-LEDGER.md`, NOT a regression. The native-prompt static grep on `src/components/workshop/component-library/index.tsx` is expected to still hit `:941` (`window.confirm`) and `:1467` (`window.prompt`); those two hits are the EXACT allowlisted residual — the grep guard uses an explicit path allowlist (`rg -n "window\.(prompt\|confirm)"` scoped to those two line anchors); any other `window.(prompt\|confirm)` hit in the three in-scope trees is a no-go regression. The deferral is acceptable only while the in-estimate panel (`src/components/workshop/component-library/index.tsx`, C-003/C-017 Phase-later residual — tracked, not in the 0A-5 critical path) is out of scope; it is not silently dropped. |
 | Final | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` has pass/skipped-risk entries and no no-go release condition remains; AND every Seq item (1-19) has its pre-registered evidence row in `24-EXECUTION-EVIDENCE-LEDGER.md` populated (command + pass/fail + date) before merge, with LIB-LATER-01 recorded there as an accepted residual. |
 
 ## Build Order Summary
@@ -787,7 +791,7 @@ Completion Gate, doc 17 Release Gates, and doc 24 evidence to this roadmap):
 over `src/components/workshop/component-library-manager`,
 `src/components/workshop/library`, and
 `src/components/workshop/component-library/index.tsx`. The ONLY allowlisted
-hits are `component-library/index.tsx:939` (`window.confirm`) and `:1428`
+hits are `component-library/index.tsx:941` (`window.confirm`) and `:1467`
 (`window.prompt`) — the LIB-LATER-01 Phase-later residual (C-003/C-017). Any
 other hit is a no-go regression.
 
@@ -795,5 +799,42 @@ Final note: every Seq item above has a pre-registered evidence row in
 `24-EXECUTION-EVIDENCE-LEDGER.md` (command + pass criterion + owning phase) that
 must be populated with the run result before merge. LIB-LATER-01 is recorded
 there as an accepted-residual Phase-later item, so its native-prompt grep hit on
-`component-library/index.tsx:939`/`:1428` is an allowlisted residual, not an
+`component-library/index.tsx:941`/`:1467` is an allowlisted residual, not an
 unplanned gap.
+
+### Browser-proof requirement per Seq item (geometry/focus-sensitive — closes §3 gap 4)
+
+jsdom (`bun run test:dom`) proves payload/state/focus behavior; Playwright (`bun run test:e2e`) is REQUIRED for any geometry, viewport, portal-placement, scroll-containment, blur-arming, or sticky-header claim. Per-item boundary (per doc 29):
+
+| Seq | jsdom proves | Playwright REQUIRED for |
+| --- | --- | --- |
+| 4 LIB-P0B-01 | `?component=<id>` URL parse + invalid-param fall-safe + dock open/close state | inspector dock scroll-into-view; focus-visible ring on the selected card |
+| 5 LIB-P0B-02 | dialog open/close, validation, server-error recovery, focus return | dialog portal placement vs the folder tree; mobile viewport stacking |
+| 6 LIB-P0B-03 | dirty-discard `ConfirmDialog` opens, Cancel/Discard branching, focus return | nested z-index stacking (`z-[1000]` over the Add modal) |
+| 7 LIB-P0B-04 | `confirmationHint` content per `actionCopy.verb` | n/a (copy assertion only) |
+| 8 LIB-P1-01 | chip render/remove/clear-all, URL-param round-trip | chip layout wrap at narrow widths |
+| 9 LIB-P1-02 | search-result routing to `?component=<id>`, no-results state | n/a |
+| 10 LIB-P1-03 | filtered vs unfiltered count, scope label | count-strip layout at 320px viewport |
+| 10.5 LIB-P1-04 | provider mounts; slots resolve paper vs glass; `data-glass="ready"` class flip | **one-blur-per-region; deferred-blur arming visual; LCP <100ms vs baseline (doc 30); glass-at-density collision; paper+glass at `xl`/`md`/`sm`** |
+| 11 LIB-P2-01 | chip render over real columns; missing-data fallback | tooltip/label truncation on narrow cards |
+| 12 LIB-P2-02 | computed-join counts + "missing source" derived state | n/a |
+| 13 LIB-P2-03 | Add/Edit emit identical payload shapes | n/a |
+| 14 LIB-P3-01 | required-field validation; viewer blocked at action | keyboard-only save path; modal scroll on long forms |
+| 15 LIB-P3-02 | variant/section switching; lifecycle options render | n/a |
+| 16 LIB-P4-01 | picker lists targets; stale target re-resolves; viewer blocked | picker modal layout on mobile |
+| 17 LIB-P4-02 | creatable-combobox move + scoped-key invalidate | combobox dropdown placement |
+| 18 LIB-P5-01 | grid<->dense toggle; column sort; selection/action parity | **sticky-column/header behavior; dense-mode keyboard nav; glass-card geometry holds at >500 rows; mobile narrow-viewport browse (`ADV-MOBILE-BROWSE`)** |
+| 19 LIB-P5-02 | n/a (verification only) | all browser-only claims from prior phases |
+
+### 12-dimension coverage of Seq rows (closes §3 gap "telemetry/copy/i18n/a11y/perf not per-item")
+
+Every Seq row in the Build Order Summary is a **gate row** (implementation task — doc 34 §3). Coverage:
+
+- **Owner, Phase, Flag, Rollback, Evidence:** inline in the Build Order Summary table columns above.
+- **Telemetry event:** each Seq's `Validation` block names the events its owning phase emits (registry: doc 20). Per-phase emit-set: 0B → `library_find_*`, `overlay_opened`/`overlay_closed`, `quick_add_abandoned`; 1 → `library_find_started`/`library_find_resolved`/`library_find_abandoned`; 2 → `trust_chip_rendered`/`trust_chip_unclassified`/`insert_target_confirmed`; 3 → `quick_add_started`/`quick_add_saved`/`quick_add_abandoned`/`quick_add_failed`; 4 → `insert_target_confirmed`/`insert_target_mismatch`; 5 → `dense_mode_rendered`/`view_mode_changed`.
+- **Copy key:** each Seq delegates to doc 22 (`library.*`, `folder.*`, `component.dirty_discard.*`, `bulk_archive.*`, `trust.*.label`, `quick_add.*`, `insert_target.*`, `dense_mode.*`).
+- **A11y criterion:** each Seq delegates to doc 31 per-surface rows (focus-visible, alertdialog, focus-trap, reduced-motion, touch-target ≥44px, contrast AA).
+- **Perf budget:** all numbers PROVISIONAL (C-015) until Seq 3 (LIB-P0A-03) baseline lands; final thresholds live in doc 30.
+- **Browser-proof:** per-item boundary in the table above.
+- **i18n/RTL:** all user-visible strings are key-based (no inline literals in JSX); ICU plural shape `{count,n, plural, =0 {} =1 {} other {#}}` per doc 28 §4; `dir="auto"` on user-content inputs per doc 28 §5; locale scope `["en-US"]` beta, 9-locale post-beta incl. `ar` RTL.
+- **Binding (file:line):** each Seq's `Files (verified paths)` block cites the verified file:line; keystone doc 19 is the canonical source for drift reconciliation.

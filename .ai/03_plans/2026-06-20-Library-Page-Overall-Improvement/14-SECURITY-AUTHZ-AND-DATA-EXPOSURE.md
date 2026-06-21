@@ -167,16 +167,20 @@ allowlist that emits `rowTotal` only. Redaction tests must pin BOTH the builder
 field-selection and this sanitizer allowlist.
 
 > **Sanitizer call-site status (re-verified 2026-06-21):**
-> `rg sanitizeProjectPublicationSnapshotForPublicRead src/` returns only the
-> EXPORT at `snapshot.ts:301` and ZERO call sites today — i.e. the sanitizer is
-> exported but NOT YET wired into any read path, including
-> `src/app/api/share/[token]/route.ts:78` (which passes `publication.snapshot`
-> through as-is, line :78). Earlier drafts claiming "the sanitizer runs at
-> route.ts:78" are WRONG and have been removed. The Phase 0A redaction work must
-> (i) wire `sanitizeProjectPublicationSnapshotForPublicRead` into the
-> public-read path (or confirm the frozen snapshot is already allowlist-built at
-> write time), AND (ii) pin the redaction with a test. This is tracked as a
-> Phase 0A verification item, not an asserted control.
+> `rg -n sanitizeProjectPublicationSnapshotForPublicRead src/` returns the EXPORT
+> at `src/lib/publication/snapshot.ts:301` AND ONE call site at
+> `src/lib/publication/public-repository.ts:771`
+> (`snapshot: sanitizeProjectPublicationSnapshotForPublicRead(data.snapshot_json as ProjectPublicationSnapshot)`
+> inside the publication row resolver consumed by the share route). The share
+> route handler at `src/app/api/share/[token]/route.ts:78` passes
+> `publication.snapshot` through — but `publication` is the resolved access row
+> from `public-repository.ts`, so the sanitizer HAS already run by the time the
+> route sees it. Earlier drafts claiming "the sanitizer runs at route.ts:78" were
+> wrong about the LOCATION (it runs at the repo layer, not the route), but the
+> redaction IS in the live public-read path. The Phase 0A redaction work is
+> therefore (i) pin the existing repo-layer sanitizer call with a test, AND
+> (ii) confirm no code path bypasses the resolver to read `snapshot_json` raw.
+> This is tracked as a Phase 0A verification item (`ADV-PUBLIC-REDACTION`).
 
 Phase 0A snapshot-redaction evidence (pre-registered as `ADV-PUBLIC-REDACTION` in
 `24-EXECUTION-EVIDENCE-LEDGER.md`; command
@@ -255,12 +259,15 @@ Security No-Go Conditions) and emits the `redaction_regression` telemetry event
 The cache-bleed surface is **precisely one key**, not the whole cache. Per the
 keystone, the rows-library and templates keys are already workspace-scoped and
 cross-workspace tested; only `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY =
-["workspace-component-library"]` (`src/lib/component-library/query-keys.ts`) is
-**un-scoped** and can show prior-workspace data after a switch. Its primary READER is
+["workspace-component-library"]` (declared `src/lib/component-library/query-keys.ts:7`)
+is **un-scoped** and can show prior-workspace data after a switch. Its primary READER is
 `TemplateEditorClient.tsx:160` (`useQuery`, via the inline literal
 `["workspace-component-library"]` — same cache entry, so symbol greps miss it); it is also
-invalidated by `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`, and
-`EstimateSheetContent.tsx:1238/1241` (the in-estimate dock).
+self-invalidated at `TemplateEditorClient.tsx:166` (inline literal), and invalidated by
+`LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:406`, and
+`EstimateSheetContent.tsx:1299`+`:1302` (the in-estimate dock — two invalidations).
+Line numbers re-verified 2026-06-21 against `main` (keystone 19 still carries
+the stale `:335` / `:1238/1241` — flagged in `LOOP_LEDGER.md` §3).
 
 | Key | Scoped? | Risk |
 | --- | --- | --- |
@@ -273,11 +280,12 @@ Phase 0A/0B with doc 13):
 
 - **scope `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` by `workspaceId`** (C-007),
   mirroring `workspaceComponentRowsLibraryQueryKey`, so a workspace switch cannot
-  reuse the prior workspace's entry. This migration MUST cover ALL call sites —
-  the symbol AND the `TemplateEditorClient.tsx:160` inline literal
+  reuse the prior workspace's entry. This migration MUST cover ALL FIVE call
+  sites — the symbol AND the `TemplateEditorClient.tsx:160` inline literal
   `["workspace-component-library"]` (the same cache entry; a symbol-name grep
-  misses it), plus the writers at `LibraryPageClient.tsx:126`,
-  `use-estimate-row-mutations.ts:335`, and `EstimateSheetContent.tsx:1238/1241`.
+  misses it), the self-invalidate at `TemplateEditorClient.tsx:166` (inline
+  literal), plus the writers at `LibraryPageClient.tsx:126`,
+  `use-estimate-row-mutations.ts:406`, and `EstimateSheetContent.tsx:1299`+`:1302`.
   Do NOT invent a `library:<workspace_id>:<surface>` key shape — extend the
   existing factory. The scoped ROWS/TEMPLATES keys are already cross-workspace
   tested and are NOT the bleed surface.
@@ -407,3 +415,119 @@ Do not ship implementation if:
 - a stale insert target from `resolveEstimateTemplateInsertTarget` mutates the
   wrong estimate (must re-check `can_edit_estimate(target_estimate_id)`)
 - upload/import route handlers (doc 15) lack server-side authz and validation
+
+## UI-State Decision Contract: permission-denied vs not-found vs redacted-public (closes §3 gap)
+
+The three error/no-access UI states are easy to conflate. This contract
+disambiguates them by the SURFACE the user is on and the ACTOR they are, and
+binds each to its copy key (doc 22) + telemetry event (doc 20). The rule: the
+UI state is chosen by the surface, not inferred from the error.
+
+| Trigger | Surface / actor | UI state rendered | Copy key (doc 22) | Telemetry (doc 20) | Existence leak? |
+| --- | --- | --- | --- | --- | --- |
+| Cross-workspace `?component=<id>` / `templateId` (RLS via `is_workspace_member` migration `20260613201302` returns no row) | Protected library route; authenticated user; foreign-workspace ID | **Permission-safe not-found** (indistinguishable from a real not-found; inspector stays closed, browse context preserved) | `component_inspector.invalid` / `library.template_not_found` | `route_state_authz_denied` `{outcome:"denied"}` | No — copy is generic, never names the object |
+| `viewer` attempts a write action on a workspace they can READ | Protected library; authenticated `viewer` | **Permission-denied (viewer)** — write actions hidden/disabled; if somehow triggered, action throws at the action layer | `library.permission_denied` / `components.permission_denied` / `folder.error.permission` | `authz_denied` `{action, role:"viewer"}` | n/a (user is already in the workspace) |
+| Unauthenticated or foreign-workspace actor hits a protected library route | Protected library route; unauthenticated / foreign-workspace session | **Permission-denied (workspace-level)** — route guard redirects or shows the workspace-denied state | `library.permission_denied` | `authz_denied` / `idor_attempt` | No — generic denial |
+| Public/share-link viewer opens `src/app/share/[token]` | Public share surface; unauthenticated or share-link session | **Redacted-public** — frozen `snapshot_json` only; trust chips REDACTED (C-012); only `trust.public_snapshot.label` "Snapshot verified on {date}" shown | `trust.public_snapshot.label` | (no Library telemetry on public path — `rg "recordLibraryEvent" src/app/share src/app/api/share` must return 0, `EV-SEC-02`) | n/a — public snapshot is allowlist-built |
+| Invalid / expired / revoked share token | Public share surface | **Not-found (share)** — share-route not-found; no enumeration | `share.not_found` (doc 22) | `snapshot_bypass_attempt` if the URL pattern suggests a live-library probe | No |
+
+Decision rule (load-bearing): a **permission-safe not-found** and a **real
+not-found** render IDENTICALLY to the user (same copy, same telemetry
+`outcome:"denied"`/`"not_found"` distinction is server-side only) — this is the
+existence-leak prevention invariant. A **redacted-public** surface is
+structurally different (different route, different actor, different copy key);
+never render trust chips or protected-library copy on it.
+
+## Object-Level Authz Test-File Mapping (closes §3 "no test-file mapping per object-level authz row")
+
+The "Authz/cache/redaction test-file mappings" table above covers the actor +
+cache + redaction rows. This table extends it to every OBJECT row in
+"Object-Level Authorization", so each object's cross-workspace protection is
+pinned by a named test. All run under `bun run test:dom` (C-005); evidence
+`EV-SEC-01` (Phase 0A Contract Lock, owner Security lead per doc 27).
+
+| Object (this doc §"Object-Level Authorization") | Test file | Pass criterion | Evidence |
+| --- | --- | --- | --- |
+| Component (`cost_library_items.id`, `workspace_id`) | `tests/vitest/library-authz-cross-workspace.test.tsx` (Phase 0A net-new) | workspace-A actor cannot read/mutate workspace-B `cost_library_items` via any guarded action; returns permission-safe not-found | EV-SEC-01 |
+| Folder (`library_folder_id`) | `tests/vitest/library-authz-folder-cross-workspace.test.tsx` (Phase 0A net-new) | workspace-A actor cannot create/rename/delete/reorder/move in workspace-B folders; `delete_library_folder` / `reorder_library_folders` RPCs enforce `workspace_id` | EV-SEC-01 |
+| Template (`estimate_templates.id`) | `tests/vitest/library-authz-template-cross-workspace.test.tsx` (Phase 0A net-new) | workspace-A actor cannot read/mutate workspace-B templates; template hardening (`20260615145915`) + `template-editor-actions.ts` enforce | EV-SEC-01 |
+| Estimate insert target (`estimate_row_items` / `estimate_template_row_items`) | `tests/vitest/library-insert-target-stale.test.tsx` (Phase 4) | `resolveEstimateTemplateInsertTarget` re-resolves; wrong-estimate insert blocked by `can_edit_estimate({target_estimate_id})` | EV-FRONTEND-07 |
+| Project (`project_id`) | `tests/vitest/library-authz-project-scoped.test.tsx` (Phase 0A net-new) | `project_id`-scoped reads/mutations are RLS-bounded; cross-project access denied | EV-SEC-01 |
+| Price / source (`cost_library_item_price_history`) | `tests/vitest/library-authz-price-history.test.tsx` (Phase 0A net-new) | workspace-scoped price history table returns no rows for foreign-workspace `workspace_id`; `upsertCostLibraryComponentPriceOption` guard denies | EV-SEC-01 |
+| Attachment / storage (`thumbnail_path` / bucket) | `tests/vitest/library-authz-storage-ownership.test.tsx` (Phase-later, conditional on doc 15 uploads landing) | ownership verified before read/delete; cross-workspace object ID denied before read/delete | EV-SEC-03 |
+
+The first six rows land in Phase 0A; the storage row is Phase-later (conditional
+on doc 15's upload/import handlers landing).
+
+## Telemetry Schema for Security Events (closes §3 "no telemetry schema")
+
+The five security events in "Security telemetry events" above need a pinned
+payload schema so a downstream sink can parse them without re-derivation. Sink
+= `console.warn` for closed beta (C-009); prod sink Phase-later via
+`setLibraryTelemetrySink` (doc 20 §4). All payloads are ID-only and
+workspace-scoped — NO raw user identity in beta.
+
+| Event | Schema (JSON) | Sample |
+| --- | --- | --- |
+| `authz_denied` | `{workspaceId: string, action: string, role: "owner"\|"admin"\|"member"\|"viewer", outcome: "denied", ts: ISO8601}` | `{workspaceId:"w-1", action:"createCostLibraryComponent", role:"viewer", outcome:"denied", ts:"2026-06-21T12:00:00Z"}` |
+| `idor_attempt` | `{workspaceId: string, resourceId: string, resourceType: "component"\|"folder"\|"template"\|"estimate"\|"project", outcome: "not_found", ts: ISO8601}` | `{workspaceId:"w-1", resourceId:"c-foreign", resourceType:"component", outcome:"not_found", ts:"..."}` |
+| `cache_bleed_detected` | `{workspaceAId: string, workspaceBId: string, cacheKey: "workspace-component-library", ts: ISO8601}` | `{workspaceAId:"w-1", workspaceBId:"w-2", cacheKey:"workspace-component-library", ts:"..."}` |
+| `redaction_regression` | `{snapshotId: string, componentId?: string, leakedField: "pricing_source"\|"confidence"\|"unitCost"\|"miscCost"\|"contingencyPercentage"\|string, ts: ISO8601}` | `{snapshotId:"pub-1", leakedField:"pricing_source", ts:"..."}` |
+| `snapshot_bypass_attempt` | `{workspaceId?: string, url: string, pattern: "live_library_probe"\|"token_enumeration", ts: ISO8601}` | `{url:"/workshop/library?component=...", pattern:"live_library_probe", ts:"..."}` |
+
+Schema rules: `ts` is always ISO 8601 UTC; `workspaceId` is the CURRENT
+workspace of the actor (never the target foreign workspace); `resourceId` /
+`snapshotId` are opaque IDs (no names, no URLs except in `snapshot_bypass_attempt.url`
+which is the probe URL itself); `role` is the enum value (never a free label).
+A redaction_regression with `leakedField` set is a no-go (see Security No-Go
+Conditions); the event is the DETECTION, not the fix.
+
+## Storage / File-Upload Authz Appendix (closes §3 "no storage/file-upload authz matrix")
+
+The Library does NOT have upload/import route handlers today (doc 15 owns the
+future surface). When they land, each must satisfy this matrix — the matrix is
+pre-registered here so doc 15 can bind to it rather than re-deriving authz. The
+only storage-adjacent surface today is `thumbnail_path` (a text column on
+`cost_library_items`, not a Storage bucket object); true bucket uploads are
+deferred.
+
+| Future surface | Authz rule | Guard primitive | Test (Phase-later) |
+| --- | --- | --- | --- |
+| Component thumbnail upload | same-workspace ownership + `is_workspace_editor` | `supabase.rpc("is_workspace_editor",{target_workspace_id})` + RLS on `cost_library_items` | `tests/vitest/library-authz-thumbnail-upload.test.tsx` (Phase-later) |
+| Bulk import (CSV/JSON) | same-workspace ownership + `is_workspace_editor` + per-row validation | server action in `src/lib/component-library/actions.ts` + `action-errors.ts` for per-row rejection | `tests/vitest/library-authz-bulk-import.test.tsx` (Phase-later) |
+| Export (CSV/JSON) | `is_workspace_member` (read) + workspace-scoped query | RLS on `cost_library_items` + export action in `actions.ts` | `tests/vitest/library-authz-export.test.tsx` (Phase-later) |
+| Storage bucket object read/delete | ownership verified against `workspace_id` before any read/delete | route-handler authz (doc 15) + RLS | `tests/vitest/library-authz-storage-ownership.test.tsx` (Phase-later, `EV-SEC-03`) |
+
+Rules (bind to doc 15 when it lands): every upload/import/export route handler
+requires authenticated context (no anonymous write path); verifies
+same-workspace object ownership via `is_workspace_editor` (writes) or
+`is_workspace_member` (reads); validates method/content-type/size; checks
+origin/CSRF posture if cookie-authenticated; rate-limits expensive operations
+(rate limiting is Postgres-backed, not Redis); returns permission-safe errors
+from `action-errors.ts`. Do not invent a parallel authz layer — extend the
+existing RPC guards.
+
+## Copy Contract: denial / redaction / safe-not-found (closes §3 "no copy contract")
+
+The "User-Facing Denial Copy" table above is the canonical copy source; this
+section binds it to the UI states in the UI-State Decision Contract so a copy
+change has exactly one home. All copy is owned by `22-COPY-DECK-AND-MICROCOPY.md`
+— this doc never invents inline strings.
+
+| UI state (UI-State Decision Contract) | Copy key (doc 22) | Announcement (doc 22 §12A, assertive) | Token (doc 22 §2) |
+| --- | --- | --- | --- |
+| Permission-safe not-found (component) | `component_inspector.invalid` | `route.not_found_announcement` "The selected component is not available." | `secondary` (never `tertiary` #7F7F7F — fails AA) |
+| Permission-safe not-found (template) | `library.template_not_found` | `route.not_found_announcement` "The selected template is not available." | `secondary` |
+| Permission-denied (viewer) | `library.permission_denied` / `components.permission_denied` / `folder.error.permission` / `folder.delete.error.permission` | `permission.denied_announcement` "You do not have permission to {action}." | `danger` for destructive denials; `secondary` for read-only denials |
+| Permission-denied (workspace-level) | `library.permission_denied` | `permission.denied_announcement` "You do not have access to this workspace's library." | `danger` |
+| Insert target not editable | `insert_target.permission` | `permission.denied_announcement` "You cannot edit {estimateName}. Choose a target you can edit." | `secondary` |
+| Redacted-public snapshot (C-012) | `trust.public_snapshot.label` "Snapshot verified on {date}" | (no announcement — this is a verification line, not an error) | `success` |
+| Share not-found (invalid/expired token) | `share.not_found` | (no announcement — share surface is a full-page state) | `secondary` |
+
+Rules: denial copy is GENERIC (never names the hidden object, workspace, or
+that an object exists); it states the issue then the next step (Switch
+workspace / Clear selection / Reselect target). Denial copy uses the
+`secondary`/`danger` semantic tokens, never `tertiary` (#7F7F7F, fails AA — doc
+22 §2, MEMORY.md "DESIGN.md tertiary fails AA"). The redacted-public
+verification line is the ONLY trust signal on the public path and uses
+`success`, not a denial token.

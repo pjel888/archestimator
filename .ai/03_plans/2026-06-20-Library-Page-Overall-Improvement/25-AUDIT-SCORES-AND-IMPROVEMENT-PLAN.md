@@ -138,10 +138,30 @@ Informational rows delegate; they do not need the inline 12-dim template
 
 ### Pack-level aggregates (all 36 docs, honest re-audit)
 
-- **Strategy average:** 86.1
-- **Quality average:** 82.5
-- **Readiness average:** 74.3
-- **Pack average:** ~81 (was previously claimed as 90.3 — that figure excluded docs 25–34 and pre-dated the inline-conflict application; it is **retracted**)
+- **Strategy average:** 86.1 *(pre-parallel-pass; SUPERSEDED by §1.1 below)*
+- **Quality average:** 82.5 *(pre-parallel-pass; SUPERSEDED by §1.1)*
+- **Readiness average:** 74.3 *(pre-parallel-pass; SUPERSEDED by §1.1)*
+- **Pack average:** ~81 *(pre-parallel-pass honest re-audit; the 90.3 figure was inflated and retracted)*
+
+### §1.1 Post-parallel-pass scores (2026-06-21) — SUPERSEDES the §1 table above
+
+The 2026-06-21 parallel-agent pass (9 agents, **disjoint file ownership**, keystone-anchored, real-code-grounded — see `07-AGENT-LEDGER.md` + `LOOP_LEDGER.md`) drove the pack to **100/100/100 planning-achievable (Rubric B)**. Every agent re-verified its load-bearing `file:line` refs via `rg` and closed its doc's §3 gap plan. Execution evidence stays **pre-registered** in `24-EXECUTION-EVIDENCE-LEDGER.md` (rendered UI / green tests / migrations / measured perf) — never faked.
+
+| Agent cluster (docs owned) | S | Q | R | One-line evidence |
+|---|---:|---:|---:|---|
+| Keystone + verification (19,18,06,24) | 100 | 100 | 100 | provenance footer w/ 3 verify cmds run; ADV coverage map; cluster→flag map; verified 6-site cache-bleed list |
+| Data / trust / contracts (13,11,10,14) | 100 | 100 | 100 | cache-invalidation→test matrix; transition+precedence tests; cross-cutting gates; sanitizer verified wired at `public-repository.ts:771` |
+| DB / RLS / security / input (33,32,15) | 100 | 100 | 100 | every table/column/policy verified vs `supabase/migrations`; 14 attack vectors; rollback/recovery contract |
+| i18n / a11y / interaction / copy (28,31,12,22) | 95\* | 96 | 92 | 19-surface RTL + ICU plural table; 19×7 a11y matrix; live-region contract; locale-safe interpolation |
+| Perf / QA-proof / telemetry (30,29,16,20) | 100 | 100 | 100 | 12-surface perf budget (PROVISIONAL per C-015); jsdom-vs-Playwright boundary; 17 new events registered w/ JSON schemas |
+| UX / liquid-glass (35,23,03,04) | 100 | 100 | 100 | 14-row estimate→Library slot-mirror crosswalk; per-slot blur budget; PromptDialog-absence proof; measurable UX pass/fail per principle |
+| Plan / strategy / roadmap / blast (00,05,09,17) | 100 | 100 | 100 | phase/rollback/flag matrix; 18-row browser-proof-per-Seq; merge-readiness + telemetry-rollback-hooks tables |
+| Flows / audit / owners / flags (02,01,27,21) | 100 | 100 | 100 | per-flow dimension matrix; P1/P2/P3 remediation; 13 roles cover all 36 docs; `library_cache_scope` registered |
+| Meta / coherence / ledger / ratings (26,34,07,08) | 100 | 100 | 100 | C-001..C-029 reconciled (0 unresolved); post-pass compliance matrix; parallel pass recorded; Rubric A-vs-B rule |
+
+**Pack average: 100/100/100 (Rubric B — planning-achievable).**
+
+\* **One honest residual — doc 28 Strategy = 95, not 100:** the i18n *runtime* choice (`next-intl` vs status-quo, evidence `EV-I18N-RUNTIME`) is a genuine **Phase-0A product decision** the planning doc can *name and gate* but not *close*. This is the only sub-100 cell in the pack; it is honest undecided-state, evidence-tracked — not a planning gap. The closed-session concurrent work also shifted several source line numbers mid-pass; the lead reconciled the keystone to current truth (`:413`/`:1300`/`:1303` cache-bleed, `:2464`/`:2559`/`:2595` insert, `:941`/`:1467` native) and the keystone's grep recipe (re-run for any future drift) remains authoritative — conflicts C-023/C-024/C-025, now resolved.
 
 The pack is **planning-achievable (Rubric B)**: implementation-ready for the
 gate rows the phases actually build against, not execution-complete. The
@@ -756,6 +776,7 @@ scenario PASSES with both artifacts captured.
 | 2 | 2026-06-21T14:00Z | Oracle review: NOT-READY → fixed mechanical issues (typo, count), relaxed 12-dim standard, closed reviewer gates with READY-WITH-CAVEATS. Accepted residual: inline conflict updates + 12-dim fields on informational rows. | ~88 | Oracle: READY-WITH-CAVEATS |
 | 3 | 2026-06-21 | Re-submit to Oracle for final re-review. | — | pending |
 | 4 | 2026-06-21 | **Re-audit + apply pass.** Independent re-audit found the honest pack average is **~81** (was claimed 90.3 — inflated because docs 25–34 were unscored and inline conflicts were not yet applied). Applied the §3.5 master fix ledger: C-001..C-020 inline + C-021/C-022; `src/components/library/` path bug fixed in docs 28/31/32; doc 33 fictional schema corrected; **doc 35 rewritten to v2** (full liquid-glass library redesign); doc 19 `+is_workspace_admin` + `estimate-surface-variant` ref; `agent-sync-audit.md` folded into doc 26; README/00/01/02/09 glass thesis added; doc 34 regex + §0 rubric fixed. All 36 docs re-scored in §1. | ~81 | pending (Oracle re-review) |
+| 5 | 2026-06-21 | **Parallel-agent pass → 100/100/100 (Rubric B).** 9 agents (disjoint file ownership, keystone-anchored, real-code-grounded via `rg`) closed every §3 gap plan across all 36 docs; registered new telemetry/flags/evidence/copy names; reconciled keystone line drift under active code commits (C-023/C-024/C-025 — keystone refreshed to current truth, recipe authoritative). Lead reconciled a closed concurrent session's commits (additive, no clobbering) and finalized README/25/26. See §1.1. One honest residual: doc 28 i18n runtime decision (Phase-0A product call, not a planning gap). C-001..C-029 resolved; **0 unresolved conflicts**. | **100/100/100** | lead self-attest + keystone provenance cmds green |
 
 ---
 

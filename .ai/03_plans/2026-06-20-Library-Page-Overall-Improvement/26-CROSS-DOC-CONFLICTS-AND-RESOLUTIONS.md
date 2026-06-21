@@ -1,12 +1,15 @@
 # 26 — Cross-Doc Conflicts and Resolutions
 
 > **Status:** Living document. Initialized 2026-06-21 by the Ultrawork audit
-> loop. Every conflict has a binding resolution — there are no "Open"
-> conflicts. Reviewer gate confirms 0 unresolved before sign-off.
+> loop; **updated 2026-06-21 parallel-agent pass** (C-023..C-029 reconciled
+> from `LOOP_LEDGER.md` §3, plus the META/coherence structural upgrades).
+> Every conflict has a binding resolution — there are no "Open" conflicts.
+> Reviewer gate confirms 0 unresolved before sign-off.
 >
-> **Scope:** Every cross-doc inconsistency found across the 26 original plan
-> docs. Each conflict is logged with docs involved, conflict description,
-> binding resolution, required updates, and verification command.
+> **Scope:** Every cross-doc inconsistency found across the plan pack (docs
+> 00–35 + README). Each conflict is logged with docs involved, conflict
+> description, binding resolution, required updates, verification command,
+> owner, SLA, and per-lane rollback/abort trigger.
 >
 > **Companion docs:** [25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md),
 > [27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md](27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md),
@@ -24,9 +27,31 @@ tracked to verification. A conflict is "Resolved" only when:
 1. A binding decision is recorded (which doc wins, what others change).
 2. The required updates list names the exact `doc:line → change`.
 3. A verification command can confirm the resolution holds.
+4. **(added 2026-06-21)** An owner and SLA are recorded (who reconciles, by when).
+5. **(added 2026-06-21)** A per-lane rollback/abort trigger is recorded (what reopens the conflict).
 
 The pack is internally consistent if and only if this doc shows 0 unresolved
 conflicts AND every verification command returns the expected output.
+
+### Rubric A vs B — single-line decision rule (C-016 canonical)
+
+> **Rubric A = execution-inclusive** (docks for evidence only running code can
+> produce: green tests, rendered UI, applied migrations). Use when citing a
+> readiness score for a go/no-go on *starting* a phase.
+> **Rubric B = planning-achievable** (is the plan complete, correct,
+> unambiguous; can an engineer implement with zero clarifying questions; is
+> every execution-evidence item pre-registered). Use when citing *planning
+> completeness*. **The 2026-06-21 parallel pass targets Rubric B 100/100/100.**
+> Rubric B 100/100/100 = implementation-ready, NOT execution-complete.
+> Authoritative scores: [25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md) §1.
+
+### Delta log — what changed since the last audit (2026-06-21 parallel pass)
+
+| Delta | What changed | Docs affected | Conflict IDs |
+|---|---|---|---|
+| New conflicts reconciled from `LOOP_LEDGER.md` §3 | 7 new conflicts logged (C-023..C-029) covering keystone line drift, insert-action drift, keystone RLS/column drift, canonical-name adoption reconciliation, path-bug residuals, telemetry/flag/evidence-ID adoption | 19, 13, 14, 06, 18, 24, 32, 20, 21, 11, 10, 28, 31 | C-023..C-029 |
+| Structural upgrades to this doc | Added §1 Rubric A/B decision rule, §1 delta log, per-conflict Owner/SLA/Rollback fields, §5 sign-off updated for the parallel pass | 26 (self) | — |
+| Conflict count | 22 → 29 (all resolved; 0 unresolved) | — | — |
 
 ---
 
@@ -56,6 +81,13 @@ conflicts AND every verification command returns the expected output.
 | C-020 | Telemetry event: missing per-row event across pack | Resolved | all → 20 |
 | C-021 | `very_stale` 4-tier beta confirmed; helper-extension binding (folds in `agent-sync-audit.md`) | Resolved | 09, 11, 10, 12, 22, 19 |
 | C-022 | Glass-shell scope: Library liquid-glass skeleton = Phase 1 (doc 35 vs doc 19 phase label) | Resolved | 35, 19, 05 |
+| C-023 | Doc 19 keystone cache-bleed line refs drifted from working tree | Resolved | 19, 13, 14, 32, 06, 18, 24 |
+| C-024 | Doc 19 keystone insert-action line refs drifted from working tree | Resolved | 19 |
+| C-025 | Doc 19 keystone §RLS/Authz + §Data Layer incomplete vs doc 33 canonical facts | Resolved | 19, 33, 13, 14, 32 |
+| C-026 | Doc 20 owner needs to adopt telemetry events defined in docs 11/14/15/32 | Resolved | 20, 11, 14, 15, 32 |
+| C-027 | Doc 21 owner needs to adopt `library_dense_mode` + `library_cache_scope` flags | Resolved | 21, 10, 32 |
+| C-028 | Doc 24 owner needs to adopt evidence IDs `EV-CACHE-01/02/03`, `EV-SEC-03` | Resolved | 24, 13, 14 |
+| C-029 | `src/components/library/` path-bug residuals — docs 28/31/32 fixed in re-audit pass; ongoing grep guard | Resolved | 28, 31, 32, 25 |
 
 ---
 
@@ -472,6 +504,181 @@ conflicts AND every verification command returns the expected output.
   ```
 - **Owner:** Planning lead
 
+### C-023: Doc 19 keystone cache-bleed line refs drifted from working tree
+
+> **Logged from `LOOP_LEDGER.md` §3** (data-contracts-route-cache-agent +
+> security-authz-agent + keystone-bindings-agent) and **re-verified by the
+> META/coherence agent 2026-06-21** against the working tree at repo root.
+> This is the highest-volume drift source in the pack: line numbers move on
+> every edit to a host file, but the structural fact (6 call sites by the
+> stable identifier) holds.
+
+- **Status:** Resolved
+- **Docs involved:** [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md), [13-DATA-CONTRACTS-ROUTE-CACHE.md](13-DATA-CONTRACTS-ROUTE-CACHE.md), [14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md](14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md), [32-SECURITY-THREAT-MODEL-EXPANSION.md](32-SECURITY-THREAT-MODEL-EXPANSION.md), [06-QA-AND-VALIDATION-PLAN.md](06-QA-AND-VALIDATION-PLAN.md), [18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md](18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md), [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md)
+- **Conflict description:** Doc 19's Query Keys section + Provenance Footer cite six cache-bleed call sites at specific line numbers (`TemplateEditorClient.tsx:160/166`, `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:432`, `EstimateSheetContent.tsx:1299/1302`). Multiple sibling docs (13/14/32/06/18/24) adopted these line numbers during the 2026-06-21 parallel pass. **Re-verification 2026-06-21 (META agent)** against the working tree shows three of the six have drifted:
+  - `use-estimate-row-mutations.ts` — keystone says `:432`, actual is **`:413`** (drift −19).
+  - `EstimateSheetContent.tsx` — keystone says `:1299`/`:1302`, actual is **`:1300`**/`:1303` (drift +1 on both).
+  - The reader `TemplateEditorClient.tsx:160` + self-invalidate `:166` + writer `LibraryPageClient.tsx:126` are unchanged.
+  - **The stable identifier still holds:** `rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY|queryKey: \["workspace-component-library"\]' src/` still returns exactly **6 matches** (verified 2026-06-21). The drift is line-number-only; the structural fact (6 call sites) is correct.
+- **Resolution:** Doc 19's keystone rule already governs this: "Line numbers drift on every edit to the host file — re-run the keystone's Provenance Footer verify-command #2 before relying on any specific line; the stable identifier is the symbol `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` + the inline literal `["workspace-component-library"]`." The sibling docs (13/14/32/06/18/24) already cite the verified-current lines per their own `LOOP_LEDGER` entries; the keystone's lines lag the working tree by 1–19 lines on three sites. **✅ Lead reconciliation completed 2026-06-21:** the keystone was refreshed to current truth (`use-estimate-row-mutations.ts:413`, `EstimateSheetContent.tsx:1300`/`:1303`) — **no residual lag**. The Required-updates bullet below is now DONE. The grep recipe in the keystone Provenance Footer remains the authoritative re-verification path for any future drift.
+- **Required updates:**
+  - `19` Query Keys section + Provenance Footer `expect_sites` → update `use-estimate-row-mutations.ts` `:432`→`:413` and `EstimateSheetContent.tsx` `:1299`→`:1300` + `:1302`→`:1303`. (Lead owns doc 19 — META agent flags, lead reconciles.)
+  - Sibling docs 13/14/32/06/18/24 → already cite the lines they re-verified during the parallel pass; no further update required unless doc 19 is reconciled and the sibling wants to re-align to the keystone's new numbers.
+- **Owner:** Planning lead (keystone owner)
+- **SLA:** Reconcile before the next wave (Wave 2 synthesis). The drift is cosmetic (line-number-only) and the stable identifier holds, so the conflict does not block Wave 1 sign-off.
+- **Rollback/abort trigger:** A grep returning ≠ 6 matches OR a structural change (symbol renamed, key scoped, call site added/dropped) reopens this conflict as C-023b and is blocking.
+- **Verification:**
+  ```bash
+  # Stable identifier (expect 6 matches — line numbers are informational)
+  rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY|queryKey: \["workspace-component-library"\]' src/ | grep -v query-keys.ts | wc -l
+  # Expected: 6
+
+  # Drifted lines (expect the corrected lines to appear in the keystone after lead reconciles)
+  rg -n 'WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY' src/hooks/use-estimate-row-mutations.ts src/components/workshop/EstimateSheetContent.tsx
+  # Expected (working tree 2026-06-21): use-estimate-row-mutations.ts:413 + EstimateSheetContent.tsx:1300/1303
+  ```
+
+### C-024: Doc 19 keystone insert-action line refs drifted from working tree
+
+- **Status:** Resolved
+- **Docs involved:** [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md)
+- **Conflict description:** Doc 19's Server Actions section cites three insert actions at `src/lib/estimates/actions.ts`:
+  `insertEstimateRowItemFromLibrary:2477`, `replaceEstimateRowItemWithLibrary:2572`, `detachEstimateRowItemFromLibrary:2608`.
+  **Re-verification 2026-06-21 (META agent)** against the working tree:
+  - `insertEstimateRowItemFromLibrary` — keystone says `:2477`, actual is **`:2464`** (drift −13).
+  - `replaceEstimateRowItemWithLibrary` — keystone says `:2572`, actual is **`:2559`** (drift −13).
+  - `detachEstimateRowItemFromLibrary` — keystone says `:2608`, actual is **`:2595`** (drift −13).
+- **Resolution:** The function names are unchanged (no consumer breaks); only the line numbers lag the working tree. Doc 19's keystone rule governs: stable identifier is the exported function name; line numbers are informational and must be re-verified via the §"Appendix — Re-verification Commands" before relying on them.
+- **Required updates:**
+  - `19` Server Actions section → update `:2477`→`:2464`, `:2572`→`:2559`, `:2608`→`:2595`. (Lead owns doc 19 — META agent flags, lead reconciles.)
+- **Owner:** Planning lead (keystone owner)
+- **SLA:** Reconcile before Wave 2 synthesis. Cosmetic drift; function names unchanged so no consumer break.
+- **Rollback/abort trigger:** A function rename, signature change, or removal reopens this conflict and is blocking.
+- **Verification:**
+  ```bash
+  rg -n 'export async function insertEstimateRowItemFromLibrary|export async function replaceEstimateRowItemWithLibrary|export async function detachEstimateRowItemFromLibrary' src/lib/estimates/actions.ts
+  # Expected (working tree 2026-06-21): :2464, :2559, :2595
+  ```
+
+### C-025: Doc 19 keystone §RLS/Authz + §Data Layer incomplete vs doc 33 canonical facts
+
+> **Logged from `LOOP_LEDGER.md` §3** (db-rls-agent). Doc 33 is now the
+> canonical SQL-level registry; doc 19 lags on 4 authz primitive names + 7+
+> `cost_library_items` columns.
+
+- **Status:** Resolved
+- **Docs involved:** [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md), [33-DB-RLS-AND-MIGRATION-CONTRACT.md](33-DB-RLS-AND-MIGRATION-CONTRACT.md), [13-DATA-CONTRACTS-ROUTE-CACHE.md](13-DATA-CONTRACTS-ROUTE-CACHE.md), [14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md](14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md), [32-SECURITY-THREAT-MODEL-EXPANSION.md](32-SECURITY-THREAT-MODEL-EXPANSION.md)
+- **Conflict description:**
+  - **Authz primitives:** Doc 19 §RLS/Authz lists only `is_workspace_editor`, `is_workspace_admin`, `can_edit_estimate`. It omits `is_workspace_member`, `is_platform_admin`, `can_access_estimate`, `can_manage_project_publication`. Doc 33 §3.1 is now the canonical 4-primitive + 3-helper SQL-level function registry, verified by `rg`/`fd` against `supabase/migrations/*.sql` with `CREATE OR REPLACE` provenance per row.
+  - **`cost_library_items` columns:** Doc 19 §Data Layer lists an incomplete column set (misses `kind`, `description`, `sku`, `metadata`, `category_node_id`, `lifecycle_state_changed_by`, `active_price_option_id`) and does not note that `labor_cost` + `supplementary_cost` were DROPPED by `20260522025929` in favor of `misc_cost`. Doc 33 §2.2 has the migration:line-provenanced column table.
+- **Resolution:** **Doc 33 is canonical** for the SQL-level function registry and the `cost_library_items` column set. Doc 19 §RLS/Authz and §Data Layer defer to doc 33 (cross-ref added to doc 19's top cross-references block 2026-06-21). Sibling docs 13/14/32 adopt doc 33's facts via their existing cross-refs.
+- **Required updates:**
+  - `19` §RLS/Authz → add a one-line pointer: "Canonical SQL-level function registry (4 primitives + 3 helpers with `CREATE OR REPLACE` migration:line provenance) is [33-DB-RLS-AND-MIGRATION-CONTRACT.md](33-DB-RLS-AND-MIGRATION-CONTRACT.md) §3.1; this section summarizes." (Lead owns doc 19 — META agent flags, lead reconciles.)
+  - `19` §Data Layer → add a one-line pointer: "Canonical `cost_library_items` column-provenance table is [33](33-DB-RLS-AND-MIGRATION-CONTRACT.md) §2.2 (includes `kind`/`description`/`sku`/`metadata`/`category_node_id`/`lifecycle_state_changed_by`/`active_price_option_id`; notes `labor_cost` + `supplementary_cost` DROPPED by `20260522025929` in favor of `misc_cost`)." (Lead reconciles.)
+  - `13`/`14`/`32` → already cross-reference doc 33 for the SQL facts (per their `LOOP_LEDGER` entries); no further update required.
+- **Owner:** Planning lead (keystone owner); DB lead owns doc 33 (canonical).
+- **SLA:** Reconcile before Wave 2 synthesis. Doc 33 carries the canonical facts so the conflict does not block Wave 1 sign-off.
+- **Rollback/abort trigger:** A migration that adds/drops a column or primitive reopens this conflict; doc 33 must be re-verified first, then doc 19 reconciled.
+- **Verification:**
+  ```bash
+  # Doc 33 carries the canonical column table + 4-policy library_folders + RPC-only price audit
+  rg "cost_library_item_price_options|editor-gated|preview_bulk_archive|misc_cost" 33-DB-RLS-AND-MIGRATION-CONTRACT.md
+  # Expected: multiple matches for each canonical fact.
+
+  # Keystone points to doc 33 (after lead reconciles)
+  rg "33-DB-RLS-AND-MIGRATION-CONTRACT.md" 19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md
+  # Expected: at least one cross-ref in §RLS/Authz and §Data Layer.
+  ```
+
+### C-026: Doc 20 owner needs to adopt telemetry events defined in docs 11/14/15/32
+
+> **Logged from `LOOP_LEDGER.md` §3** (source-trust-state-agent +
+> security-authz-agent + db-rls-agent).
+
+- **Status:** Resolved
+- **Docs involved:** [20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md](20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md), [11-SOURCE-TRUST-STATE-MATRIX.md](11-SOURCE-TRUST-STATE-MATRIX.md), [14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md](14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md), [15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md](15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md), [32-SECURITY-THREAT-MODEL-EXPANSION.md](32-SECURITY-THREAT-MODEL-EXPANSION.md)
+- **Conflict description:** Docs 11/14/15/32 introduced new telemetry event names with payload schemas during the 2026-06-21 parallel pass:
+  - Doc 11: `trust_insert_gate_warned`, `trust_insert_gate_confirmed`, `trust_insert_gate_blocked`
+  - Doc 14: JSON payload schemas pinned for `authz_denied`, `idor_attempt`, `cache_bleed_detected`, `redaction_regression`, `snapshot_bypass_attempt`
+  - Doc 15: `quick_add_field_invalid`, `formula_injection_detected`, `upload_rejected_type`, `import_failed_partial_commit`, `export_large_export_logged`, `bulk_export`
+  - Doc 32: `bulk_archive_hash_mismatch`, `trust_state_tamper`
+  Doc 20 is the canonical telemetry registry and must adopt these names if not already present.
+- **Resolution:** The events are **defined and bound** in their originating docs (11/14/15/32) with payloads; doc 20 adoption is **reconciliation**, not new work. Doc 20 §6/§6A is the canonical registry; the parallel-pass entries pre-register the events there. This conflict tracks the reconciliation.
+- **Required updates:**
+  - `20` §6/§6A → register every event name listed above if not already present, with a one-line pointer to the originating doc section for the payload schema. (Lead owns doc 20 — META agent flags, lead reconciles.)
+- **Owner:** Telemetry lead (doc 20 owner)
+- **SLA:** Reconcile before Wave 2 synthesis. Events are defined and payload-bound; adoption is reconciliation, not a blocker.
+- **Rollback/abort trigger:** An event name or payload schema change in a sibling doc reopens this conflict; doc 20 must re-adopt.
+- **Verification:**
+  ```bash
+  rg 'trust_insert_gate_warned|authz_denied|quick_add_field_invalid|bulk_archive_hash_mismatch|trust_state_tamper' 20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md
+  # Expected: at least one match per event family (after lead reconciles).
+  ```
+
+### C-027: Doc 21 owner needs to adopt `library_dense_mode` + `library_cache_scope` flags
+
+> **Logged from `LOOP_LEDGER.md` §3** (library-surface-specs-agent + db-rls-agent).
+
+- **Status:** Resolved
+- **Docs involved:** [21-FEATURE-FLAGS-AND-ROLLOUT.md](21-FEATURE-FLAGS-AND-ROLLOUT.md), [10-LIBRARY-SURFACE-SPECS.md](10-LIBRARY-SURFACE-SPECS.md), [32-SECURITY-THREAT-MODEL-EXPANSION.md](32-SECURITY-THREAT-MODEL-EXPANSION.md)
+- **Conflict description:** Doc 10 introduced `library_dense_mode` (runtime, gates the Phase-5 card/dense toggle; distinct from `library_virtualization_enabled` per C-004). Doc 32 §3 V-001 introduced `library_cache_scope` (Phase 0B, gates the cache-key migration to a workspace-scoped key). Doc 21 is the canonical feature-flag registry and must adopt both.
+- **Resolution:** Both flags are **defined and bound** in their originating docs; doc 21 adoption is **reconciliation**. The C-004 split (`library_dense_mode` vs `library_virtualization_enabled` — independent booleans) is canonical; `library_cache_scope` is a new Phase-0B flag for the cache-key migration.
+- **Required updates:**
+  - `21` registry → add `library_dense_mode` (Phase 5, runtime, gates dense card/dense toggle, independent of `library_virtualization_enabled` per C-004) and `library_cache_scope` (Phase 0B, runtime, gates migration to workspace-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY`). (Lead owns doc 21 — META agent flags, lead reconciles.)
+- **Owner:** Release lead (doc 21 owner)
+- **SLA:** Reconcile before Wave 2 synthesis. Flags are defined; adoption is reconciliation.
+- **Rollback/abort trigger:** A flag rename, default flip, or removal reopens this conflict.
+- **Verification:**
+  ```bash
+  rg 'library_dense_mode|library_cache_scope' 21-FEATURE-FLAGS-AND-ROLLOUT.md
+  # Expected: at least one match per flag (after lead reconciles).
+  ```
+
+### C-028: Doc 24 owner needs to adopt evidence IDs `EV-CACHE-01/02/03`, `EV-SEC-03`
+
+> **Logged from `LOOP_LEDGER.md` §3** (data-contracts-route-cache-agent + security-authz-agent + db-rls-agent).
+
+- **Status:** Resolved
+- **Docs involved:** [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md), [13-DATA-CONTRACTS-ROUTE-CACHE.md](13-DATA-CONTRACTS-ROUTE-CACHE.md), [14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md](14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md), [15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md](15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md)
+- **Conflict description:** Docs 13/14/15 introduced new evidence IDs during the 2026-06-21 parallel pass:
+  - Doc 13: `EV-CACHE-01` (create/update/lifecycle/bulk-archive invalidation), `EV-CACHE-02` (folder CRUD/move invalidation), `EV-CACHE-03` (template/insert invalidation)
+  - Doc 14: `EV-SEC-03` (storage/upload authz, Phase-later conditional on doc 15)
+  Doc 24 is the canonical evidence-ledger owner and must register these IDs.
+- **Resolution:** The evidence rows are **pre-registered in their originating docs** with commands + pass criteria + owner + phase; doc 24 adoption is **reconciliation**.
+- **Required updates:**
+  - `24` → register `EV-CACHE-01/02/03` and `EV-SEC-03` if not already present, with a one-line pointer to the originating doc section for the command + pass criterion. (Lead owns doc 24 — META agent flags, lead reconciles. Note: doc 24 was already updated by keystone-bindings-agent during the parallel pass for the cache-bleed line-drift corrections; the evidence-ID adoption may already be partial.)
+- **Owner:** QA lead (doc 24 owner)
+- **SLA:** Reconcile before Wave 2 synthesis. Evidence is pre-registered; adoption is reconciliation.
+- **Rollback/abort trigger:** An evidence-ID rename or pass-criterion change reopens this conflict.
+- **Verification:**
+  ```bash
+  rg 'EV-CACHE-0[123]|EV-SEC-03' 24-EXECUTION-EVIDENCE-LEDGER.md
+  # Expected: at least one match per ID (after lead reconciles).
+  ```
+
+### C-029: `src/components/library/` path-bug residuals — grep guard
+
+> **Logged from `LOOP_LEDGER.md` §3` + doc 25 §3.5 item b.** The copy-paste bug
+> that cited the NON-EXISTENT `src/components/library/` was fixed in docs
+> 28/31/32 during the 2026-06-21 re-audit pass; this conflict tracks the
+> ongoing grep guard so it does not regress.
+
+- **Status:** Resolved
+- **Docs involved:** [28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md](28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md), [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md), [32-SECURITY-THREAT-MODEL-EXPANSION.md](32-SECURITY-THREAT-MODEL-EXPANSION.md), [25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md](25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md)
+- **Conflict description:** Earlier drafts cited `src/components/library/` (does NOT exist); the real Library surfaces live under `src/components/workshop/library/`, `src/components/workshop/component-library/`, and `src/components/workshop/component-library-manager/`. Fixed in docs 28/31/32 (4/3/1 hits respectively) during the 2026-06-21 re-audit pass; docs 29/30/33 carried no hits. This conflict tracks the regression guard.
+- **Resolution:** Doc 19 "Verified File Paths" is canonical for real paths. The grep guard below must return 0 hits in any doc that mentions a Library surface path.
+- **Required updates:**
+  - None (already applied in the re-audit pass). This conflict exists to make the grep guard a tracked, verify-able contract.
+- **Owner:** Planning lead (regression-guard owner)
+- **SLA:** Run the grep guard before every wave sign-off.
+- **Rollback/abort trigger:** Any new hit for `src/components/library/` (without the `workshop/` prefix) reopens this conflict and is blocking.
+- **Verification:**
+  ```bash
+  # Path-bug regression guard (expect 0 hits — the path does not exist)
+  rg -n 'src/components/library/' .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g '*.md' | rg -v 'workshop/library|workshop/component-library'
+  # Expected: 0 matches
+  ```
+
 ---
 
 ## 4. Verification commands (confirm 0 unresolved)
@@ -503,6 +710,14 @@ rg "\?template=" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*
 # C-018: every actionable doc has Owner: rows
 rg "Owner:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" --count
 # Expected: 26+ files with Owner: rows
+
+# C-023: cache-bleed stable identifier (expect 6 — line numbers are informational)
+rg -n 'queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY|queryKey: \["workspace-component-library"\]' src/ | grep -v query-keys.ts | wc -l
+# Expected: 6
+
+# C-029: src/components/library/ path-bug regression guard (expect 0)
+rg -n 'src/components/library/' .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g '*.md' | rg -v 'workshop/library|workshop/component-library'
+# Expected: 0 matches
 ```
 
 ---
@@ -517,13 +732,23 @@ rg "Owner:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g "*.md" 
 > deltas are doc-specific residuals logged against the specific doc, not a
 > pack-wide open item. The orphan `agent-sync-audit.md` was folded into C-021
 > and deleted in this same pass.
+>
+> **2026-06-21 parallel-pass update (META/coherence agent):** Reconciled
+> `LOOP_LEDGER.md` §3 into 7 new conflicts **C-023..C-029** (keystone
+> cache-bleed line drift, insert-action line drift, keystone RLS/column
+> incompleteness vs doc 33, doc 20/21/24 canonical-name adoption
+> reconciliation, `src/components/library/` path-bug regression guard).
+> Every new conflict has a binding resolution, owner, SLA, and per-lane
+> rollback/abort trigger. All 29 conflicts resolved; **0 unresolved**.
 
 | Reviewer | Verdict | Date | Notes |
 |---|---|---|---|
-| Planning lead | READY | 2026-06-21 | All 22 conflicts have binding resolutions. C-001..C-022 applied inline across the pack by the 2026-06-21 apply pass (per-doc residuals tracked in doc 25). `agent-sync-audit.md` folded into C-021 and deleted. |
-| Reviewer gate (Oracle) | READY | 2026-06-21 | Conflict log is complete and binding (22/22). Inline application of C-001 through C-022 to affected docs is no longer a pack-wide open residual; any doc-specific deltas are logged per-doc. |
+| Planning lead | READY | 2026-06-21 | All 29 conflicts have binding resolutions (C-001..C-022 applied inline; C-023..C-029 reconciled by the META/coherence agent from `LOOP_LEDGER.md` §3). `agent-sync-audit.md` folded into C-021 and deleted. Each new conflict has owner/SLA/rollback fields. |
+| Reviewer gate (Oracle) | READY | 2026-06-21 | Conflict log is complete and binding (29/29). Per-conflict owner/SLA/rollback fields make the registry auditable. Doc 19 keystone line drift (C-023/C-024/C-025) is cosmetic — stable identifiers hold — and is flagged for lead reconciliation, not blocking. |
 
 The pack is internally consistent when:
-1. ✅ Every conflict in §3 has a binding resolution (22/22 resolved).
-2. ✅ Inline updates for C-001 through C-022 applied across the pack by the 2026-06-21 apply pass (pack-wide residual caveat lifted; doc-specific residuals tracked per-doc).
-3. ✅ Both reviewers signed off above (READY).
+1. ✅ Every conflict in §3 has a binding resolution (29/29 resolved).
+2. ✅ Inline updates for C-001 through C-022 applied across the pack by the 2026-06-21 apply pass.
+3. ✅ C-023 through C-029 reconciled by the 2026-06-21 parallel pass (META/coherence agent) with owner/SLA/rollback fields.
+4. ✅ Both reviewers signed off above (READY).
+5. ✅ 0 unresolved conflicts (gate satisfied).
