@@ -20,6 +20,21 @@ export type EstimateRowItemPatch = {
   linkState?: EstimateRowItem["linkState"];
 };
 
+type EstimateRowMutationResultPatchInput = {
+  material: string;
+  description: string;
+  supplier: string;
+  unit: string;
+  quantity: number;
+  itemCost: number;
+  contingencyPercentage: number;
+  miscCost: number;
+  sourceSnapshot: Json | null;
+  metadata: Json;
+  linkState: EstimateRowItem["linkState"];
+  rowRevision: number;
+};
+
 export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: string): EstimateRowItem | null {
   for (const node of tree) {
     const item = node.estimateRowItems?.find((rowItem) => rowItem.id === rowId);
@@ -31,7 +46,33 @@ export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: strin
   return null;
 }
 
-function patchEstimateRowItem(item: EstimateRowItem, patch: EstimateRowItemPatch) {
+function readSnapshotString(value: Json | null | undefined, key: "imageUrl" | "sourceUrl") {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const candidate = (value as Record<string, unknown>)[key];
+  if (candidate === null) return null;
+  return typeof candidate === "string" ? candidate : undefined;
+}
+
+export function estimateRowMutationResultToPatch(result: EstimateRowMutationResultPatchInput): EstimateRowItemPatch {
+  return {
+    material: result.material,
+    description: result.description,
+    supplier: result.supplier,
+    unit: result.unit,
+    quantity: result.quantity,
+    itemCost: result.itemCost,
+    contingencyPercentage: result.contingencyPercentage,
+    miscCost: result.miscCost,
+    sourceSnapshot: result.sourceSnapshot,
+    imageUrl: readSnapshotString(result.sourceSnapshot, "imageUrl"),
+    sourceUrl: readSnapshotString(result.sourceSnapshot, "sourceUrl"),
+    metadata: result.metadata as EstimateRowItem["metadata"],
+    linkState: result.linkState,
+    rowRevision: result.rowRevision,
+  };
+}
+
+export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: EstimateRowItemPatch) {
   const quantity = patch.quantity ?? item.quantity;
   const itemCost = patch.itemCost ?? item.itemCost;
   const contingencyPercentage = patch.contingencyPercentage ?? item.contingencyPercentage ?? 0;
@@ -72,7 +113,7 @@ export function patchEstimateRowItemInTree(
   function visit(node: EstimateTreeNode): EstimateTreeNode {
     let nextItems = node.estimateRowItems;
     if (node.estimateRowItems?.some((item) => item.id === rowId)) {
-      nextItems = node.estimateRowItems.map((item) => (item.id === rowId ? patchEstimateRowItem(item, patch) : item));
+      nextItems = node.estimateRowItems.map((item) => (item.id === rowId ? applyEstimateRowItemPatch(item, patch) : item));
       didChange = true;
     }
 

@@ -8,7 +8,8 @@ import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY
 import type { Json } from "@/lib/supabase/types";
 import { deleteEstimateRowItem, detachEstimateRowItemFromLibrary, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
-import { findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 import { estimateQueryKeys } from "./use-estimate-query";
 
 export type EstimateSaveState = "idle" | "dirty" | "saving" | "saved" | "failed";
@@ -20,7 +21,6 @@ export type EstimateRowMutationError = {
   retryable: boolean;
 };
 
-const ESTIMATE_ROW_REVISION_CONFLICT_CODE = "estimate_sheet_row_revision_conflict";
 const ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE = "This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.";
 
 function readMutationErrorCode(error: Error) {
@@ -178,25 +178,6 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
   };
 }
 
-function toCanonicalRowPatch(result: UpdateEstimateRowItemResult): EstimateRowItemPatch {
-  return {
-    material: result.material,
-    description: result.description,
-    supplier: result.supplier,
-    unit: result.unit,
-    quantity: result.quantity,
-    itemCost: result.itemCost,
-    contingencyPercentage: result.contingencyPercentage,
-    miscCost: result.miscCost,
-    sourceSnapshot: result.sourceSnapshot,
-    imageUrl: snapshotStringPatch(result.sourceSnapshot, "imageUrl"),
-    sourceUrl: snapshotStringPatch(result.sourceSnapshot, "sourceUrl"),
-    metadata: result.metadata as EstimateRowItem["metadata"],
-    linkState: result.linkState,
-    rowRevision: result.rowRevision,
-  };
-}
-
 function toDetachedRowPatch(result: UpdateEstimateRowItemResult): EstimateRowItemPatch {
   return {
     source: "project",
@@ -347,7 +328,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
     onSuccess: (result: UpdateEstimateRowItemResult, input) => {
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toCanonicalRowPatch(result)) : currentTree,
+        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, estimateRowMutationResultToPatch(result)) : currentTree,
       );
       markSaved();
       input.onSuccess?.(result);

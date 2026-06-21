@@ -61,9 +61,9 @@ export type EstimateSurfaceSlot =
   | "railPanelHeader"
   /** Secondary toolbar row inside a rail (e.g. the library's filter/view/add row). */
   | "railToolbar"
-  /** Icon-toolbar row INSIDE a chrome header (passed as TreePanelHeader
+  /** Icon-toolbar row inside a glass estimate header (passed as TreePanelHeader
    * `toolbarClassName`). The shared HeaderIconToolbar bakes in `bg-white`; in
-   * glass we strip it so the frosted chrome wash reads through instead of a
+   * glass we strip it so the parent surface reads through instead of a
    * solid-white bar. */
   | "chromeToolbar"
   /** Sheet sticky header inside the centre column. */
@@ -114,21 +114,25 @@ export function estimateSurfaceClass(
       // glass: floating near-opaque paper with a small frost gutter + rounding.
       return glass ? "estimate-glass-paper rounded-[8px]" : "bg-white";
     case "railPanelHeader":
-      // glass: near-opaque masking wash + soft hairline. The leading
-      // `bg-transparent` lets tailwind-merge strip TreePanelHeader's baked-in
-      // `bg-white`; `.estimate-glass-chrome` (unlayered) then paints the wash.
+      // glass: transparent over the rail's own frosted pane + soft hairline, so
+      // the title/tool rows match the tree/library body instead of becoming a
+      // brighter white header band. The leading `bg-transparent` lets
+      // tailwind-merge strip TreePanelHeader's baked-in `bg-white`.
       // paper: no override (TreePanelHeader keeps its sticky/bg-white default).
-      return glass ? "bg-transparent estimate-glass-chrome estimate-glass-divider" : "";
+      return glass ? "bg-transparent estimate-glass-divider" : "";
     case "railToolbar":
       // A non-sticky toolbar row inside a rail: it needs no masking wash, so
       // glass goes transparent (the frost reads through) with a soft hairline.
       return glass ? "estimate-glass-divider" : "border-b border-hairline bg-white";
     case "chromeToolbar":
-      // glass: strip the HeaderIconToolbar's baked-in bg-white so the frosted
-      // chrome wash on the wrapper reads as glass, not a solid-white bar. paper:
-      // leave the toolbar's white intact (today's look is unchanged).
+      // glass: strip the HeaderIconToolbar's baked-in bg-white so the parent
+      // rail/header surface reads through, not a solid-white bar. paper: leave
+      // the toolbar's white intact (today's look is unchanged).
       return glass ? "bg-transparent" : "";
     case "sheetHeader":
+      // glass: near-opaque masking wash + soft hairline for the center sheet,
+      // where dense rows scroll underneath the sticky tab/header stack. Unlike
+      // rail headers, this header still needs its own masking chrome.
       return glass
         ? "estimate-glass-chrome estimate-glass-divider"
         : "border-b border-hairline bg-white/95 backdrop-blur";

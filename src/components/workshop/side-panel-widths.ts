@@ -21,7 +21,7 @@ export const SIDE_PANEL_WIDTH_CONFIGS = [
   {
     storageKey: "estimate_component_library_width_v2",
     cssVariable: "--estimate-library-panel-width",
-    defaultWidth: 380,
+    defaultWidth: 560,
     minWidth: 360,
     maxWidth: 560,
     widthOffset: 0,

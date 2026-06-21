@@ -19,6 +19,7 @@ import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
@@ -204,11 +205,35 @@ function LibraryItemRowContent({
   );
 }
 
+const COMPONENT_IMAGE_ROUTE_PREFIX = "/api/component-library/images";
+const COMPONENT_IMAGE_ROUTE_ORIGIN = "https://component-library-images.local";
+const COMPONENT_IMAGE_ROUTE_PATH_PATTERN = /^[A-Za-z0-9._-]+\.(?:avif|jpe?g|png|webp)$/i;
+
+function normalizeComponentImageRouteUrl(url: string) {
+  if (url.includes("..") || url.includes("\\") || url.includes("#") || /%(?:2e|2f|5c)/i.test(url)) return "";
+
+  try {
+    const parsed = new URL(url, COMPONENT_IMAGE_ROUTE_ORIGIN);
+    const pathParams = parsed.searchParams.getAll("path");
+    const paramNames = Array.from(parsed.searchParams.keys());
+    if (parsed.origin !== COMPONENT_IMAGE_ROUTE_ORIGIN) return "";
+    if (parsed.pathname !== COMPONENT_IMAGE_ROUTE_PREFIX) return "";
+    if (parsed.hash || paramNames.length !== 1 || paramNames[0] !== "path" || pathParams.length !== 1) return "";
+    if (!COMPONENT_IMAGE_ROUTE_PATH_PATTERN.test(pathParams[0] ?? "")) return "";
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return "";
+  }
+}
+
 function readLibraryItemThumbnailUrl(item: EstimateRowItem) {
   const url = typeof item.imageUrl === "string" ? item.imageUrl.trim() : "";
   if (!url) return "";
-  if (url.startsWith("/") || url.startsWith("https://") || url.startsWith("http://")) return url;
-  return "";
+  if (url.startsWith("/") && !url.startsWith("//")) {
+    const routeUrl = normalizeComponentImageRouteUrl(url);
+    if (routeUrl) return routeUrl;
+  }
+  return normalizeEstimateRowImageUrl(url) ?? "";
 }
 
 function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {

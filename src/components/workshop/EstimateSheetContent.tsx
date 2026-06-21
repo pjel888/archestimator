@@ -19,12 +19,13 @@ import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
 import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
 import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
+import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateUiStore } from "@/stores/estimate-ui-store";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
-import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, type EstimateSheetVersionControlData, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
@@ -1135,7 +1136,7 @@ export function EstimateSheetContent({
 }: EstimateSheetContentProps) {
   reportEstimateSheetContentRender();
   const surfaceVariant = useEstimateSurfaceVariant();
-  const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
+  const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : undefined;
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
   const {
     saveState,
@@ -2603,19 +2604,30 @@ export function EstimateSheetContent({
       [sourceRowItemId]: getInitialEditableRow(sourceReplacementItem),
     }));
 
-    const restoreMovedRows = () => {
-      const previousRowsById = new Map<string, EstimateRowItem>([
-        [sourceRowItemId, sourceLocation.item],
-        [targetRowItemId, targetLocation.item],
-      ]);
-      setEstimateTree((current) => replaceEstimateRowItemsInTree(current, previousRowsById));
+    const restoreSourceRow = () => {
+      setEstimateTree((current) => replaceEstimateRowItemsInTree(current, new Map([[sourceRowItemId, sourceLocation.item]])));
       setEditableRows((current) => ({
         ...current,
         [sourceRowItemId]: previousSourceEditableRow,
+      }));
+    };
+    const restoreTargetRow = () => {
+      setEstimateTree((current) => replaceEstimateRowItemsInTree(current, new Map([[targetRowItemId, targetLocation.item]])));
+      setEditableRows((current) => ({
+        ...current,
         [targetRowItemId]: previousTargetEditableRow,
       }));
     };
     const reportMoveError = () => toast({ tone: "error", message: "Couldn't move the component. Try again." });
+    const applyMovedRowSuccess = (baseItem: EstimateRowItem) => (result: UpdateEstimateRowItemResult) => {
+      const patch = estimateRowMutationResultToPatch(result);
+      const nextItem = applyEstimateRowItemPatch(baseItem, patch);
+      // The row mutation hook patches the query cache; the visible sheet also
+      // keeps local tree state so partial move failures can reconcile row-by-row.
+      setEstimateTree((current) => patchEstimateRowItemInTree(current, result.rowId, patch));
+      setEditableRows((current) => ({ ...current, [result.rowId]: getInitialEditableRow(nextItem) }));
+      refetchProjectComponentProjection();
+    };
 
     if (projectId && estimateId) {
       replaceRow({
@@ -2623,8 +2635,8 @@ export function EstimateSheetContent({
         estimateId,
         rowId: targetRowItemId,
         libraryItem: targetLibraryItem,
-        rollback: restoreMovedRows,
-        onSuccess: () => refetchProjectComponentProjection(),
+        rollback: restoreTargetRow,
+        onSuccess: applyMovedRowSuccess(targetReplacementItem),
         onError: reportMoveError,
       });
       replaceRow({
@@ -2632,8 +2644,8 @@ export function EstimateSheetContent({
         estimateId,
         rowId: sourceRowItemId,
         libraryItem: sourceBlankLibraryItem,
-        rollback: restoreMovedRows,
-        onSuccess: () => refetchProjectComponentProjection(),
+        rollback: restoreSourceRow,
+        onSuccess: applyMovedRowSuccess(sourceReplacementItem),
         onError: reportMoveError,
       });
     }

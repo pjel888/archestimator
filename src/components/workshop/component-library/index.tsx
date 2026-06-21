@@ -94,11 +94,11 @@ type SourceErrorScope = "dataset" | "estimates" | "outline" | "search";
 function toUserSourceError(scope: SourceErrorScope): string {
   switch (scope) {
     case "dataset":
-      return "Couldn't load project sources. Try Refresh.";
+      return "Couldn't load project sources. Use Retry in the project sources panel.";
     case "estimates":
-      return "Couldn't load this project's estimates. Try Refresh.";
+      return "Couldn't load this project's estimates. Try again.";
     case "outline":
-      return "Couldn't load this project's outline. Try Refresh.";
+      return "Couldn't load this project's outline. Try again.";
     case "search":
       return "Couldn't search project sources. Try again.";
   }
@@ -842,6 +842,8 @@ function EstimateRightSidebarBase({
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
   const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
+  const [projectSourcesLoadError, setProjectSourcesLoadError] = useState(false);
+  const [projectSourcesUpdated, setProjectSourcesUpdated] = useState(false);
   const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
   const [projectSourceSearchLoading, setProjectSourceSearchLoading] = useState(false);
   const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
@@ -944,16 +946,26 @@ function EstimateRightSidebarBase({
   const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
     if (!canLoadProjectSourcesFromActions) return Promise.resolve();
     setProjectSourcesLoading(true);
+    setProjectSourcesLoadError(false);
+    setProjectSourcesUpdated(false);
     setProjectEstimateLoadedProjectIds([]);
     setProjectEstimateLoadingProjectIds([]);
     setProjectOutlineLoadingEstimateIds([]);
     return listReusableProjectSources()
       .then((result) => {
-        if (!isCancelled?.()) setLoadedProjectSources(result.sources);
+        if (!isCancelled?.()) {
+          setLoadedProjectSources(result.sources);
+          setProjectSourcesLoadError(false);
+          setProjectSourcesUpdated(true);
+        }
       })
       .catch((error: unknown) => {
         console.error("[templates] project sources load failed", error);
-        if (!isCancelled?.()) toast({ tone: "error", message: toUserSourceError("dataset") });
+        if (!isCancelled?.()) {
+          setProjectSourcesLoadError(true);
+          setProjectSourcesUpdated(false);
+          toast({ tone: "error", message: toUserSourceError("dataset") });
+        }
       })
       .finally(() => {
         if (!isCancelled?.()) setProjectSourcesLoading(false);
@@ -1104,6 +1116,8 @@ function EstimateRightSidebarBase({
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       setLoadedProjectSources(projectSources);
+      setProjectSourcesLoadError(false);
+      setProjectSourcesUpdated(false);
       setProjectEstimateLoadedProjectIds([]);
       setProjectEstimateLoadingProjectIds([]);
     }, 0);
@@ -1252,6 +1266,31 @@ function EstimateRightSidebarBase({
     () => findProjectSourceByKey(visibleTemplateProjectSources, previewProjectSourceKey),
     [previewProjectSourceKey, visibleTemplateProjectSources],
   );
+  let templatesProjectSourceLoadStatus = null;
+  if (canLoadProjectSourcesFromActions && projectSourcesLoading) {
+    templatesProjectSourceLoadStatus = (
+      <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary" role="status">
+        Refreshing project sources...
+      </div>
+    );
+  } else if (canLoadProjectSourcesFromActions && projectSourcesLoadError && !hasLoadedProjectSources) {
+    templatesProjectSourceLoadStatus = (
+      <div className="mb-2 rounded-xs border border-dashed border-dangerSoft bg-dangerSoft/30 p-2 text-[10px] leading-4 text-danger" role="alert">
+        <p className="font-medium text-danger">Couldn&apos;t load project sources.</p>
+        <p className="mt-0.5 text-danger">Retry to refresh the project source list.</p>
+        <Button type="button" variant="secondary" size="sm" className="mt-2 h-6 min-h-6 text-[9px]" onClick={() => void loadProjectSources()}>
+          Retry project sources
+        </Button>
+      </div>
+    );
+  } else if (canLoadProjectSourcesFromActions && projectSourcesUpdated) {
+    templatesProjectSourceLoadStatus = (
+      <div className="mb-2 rounded-xs border border-dashed border-successSoft bg-successSoft/30 p-2 text-[10px] leading-4 text-success" role="status">
+        Project sources updated.
+      </div>
+    );
+  }
+
   const templatesProjectSourceEmptyState = useMemo(() => {
     if (projectSourcesLoading) {
       // U23: the first project-source load shows fixed-height skeleton rows in
@@ -1266,7 +1305,7 @@ function EstimateRightSidebarBase({
         </div>
       );
     }
-    // U1b: load failures surface via toast, not an inline banner.
+    // Warm refresh failures surface via toast, not an inline banner.
     return undefined;
   }, [projectSourcesLoading]);
   // U23: expand-time loading no longer shows a layout-shifting banner; the
@@ -2054,7 +2093,7 @@ function EstimateRightSidebarBase({
   );
 
   return (
-    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
+    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={560} minWidth={360} maxWidth={560}>
       {/* group/tree on the panel keeps the tree's drag/select rail space open
           while the pointer or focus is anywhere in this sidebar, matching the
           estimate tree's behavior. */}
@@ -2152,6 +2191,7 @@ function EstimateRightSidebarBase({
             {activeTab === "templates" ? (
               <>
                 {templatesProjectSourceSearchStatus}
+                {templatesProjectSourceLoadStatus}
                 {templatesSourceFilterControls}
                 <TemplatesTree
                   templates={visibleTemplateList}

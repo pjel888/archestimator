@@ -17,6 +17,10 @@ import {
   buildProjectEstimateListRow,
   projectEstimateListRowSource,
 } from "@/lib/estimates/project-estimate-list-row";
+import {
+  EstimateRowRevisionConflictError,
+  isEstimateRowRevisionConflict,
+} from "@/lib/estimates/row-revision-conflict";
 import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
@@ -40,23 +44,6 @@ type CreateEstimateNodeWithHistoryArgs = Omit<
 > & {
   parent_node_id: string | null;
 };
-
-export const ESTIMATE_ROW_REVISION_CONFLICT_CODE = "estimate_sheet_row_revision_conflict";
-
-export class EstimateRowRevisionConflictError extends Error {
-  code = ESTIMATE_ROW_REVISION_CONFLICT_CODE;
-
-  constructor() {
-    super("This row changed elsewhere. Reload the estimate and review the latest row before saving again.");
-    this.name = "EstimateRowRevisionConflictError";
-  }
-}
-
-function isEstimateRowRevisionConflict(error: unknown) {
-  const record = error && typeof error === "object" ? error as { code?: unknown; message?: unknown } : {};
-  return record.code === ESTIMATE_ROW_REVISION_CONFLICT_CODE
-    || (typeof record.message === "string" && record.message.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE));
-}
 
 function throwEstimateRowMutationError(error: unknown): never {
   if (isEstimateRowRevisionConflict(error)) throw new EstimateRowRevisionConflictError();

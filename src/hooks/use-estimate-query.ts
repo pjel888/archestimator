@@ -93,23 +93,24 @@ export function useEstimateTabTreeQuery({
   projectId?: string;
   estimateId?: string;
   tabId?: string;
-  initialNodes: EstimateTreeNode[];
+  initialNodes?: EstimateTreeNode[];
   refetchOnWindowFocus?: boolean;
   enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => estimateQueryKeys.tabTree(estimateId ?? "local-estimate", tabId ?? "local-tab"), [estimateId, tabId]);
   const revisionKey = useMemo(() => [...queryKey, "revision"] as const, [queryKey]);
+  const fallbackInitialNodes = initialNodes ?? [];
   const query = useQuery({
     queryKey,
-    queryFn: () => (projectId && estimateId && tabId ? fetchEstimateTabTree({ projectId, estimateId, tabId }) : Promise.resolve(initialNodes)),
+    queryFn: () => (projectId && estimateId && tabId ? fetchEstimateTabTree({ projectId, estimateId, tabId }) : Promise.resolve(fallbackInitialNodes)),
     initialData: initialNodes,
     enabled: enabled && Boolean(projectId && estimateId && tabId),
     refetchOnMount: false,
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
-  const tree = query.data ?? initialNodes;
+  const tree = query.data ?? fallbackInitialNodes;
   const getTreeRevision = useCallback(() => queryClient.getQueryData<number>(revisionKey) ?? 0, [queryClient, revisionKey]);
   const bumpTreeRevision = useCallback(() => {
     let nextRevision = 0;
