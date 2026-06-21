@@ -1,0 +1,5 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Resolving deployment "archestimator-317zvzlo9-philipjonlewis-projects.vercel.app"
+Fetching project "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E"
+Error: Logs are unavailable because deployment dpl_4jqCjvQV9gvyZz5J6yhAp8LaNAW7 never reached READY and ended in ERROR.
+Run `vercel inspect https://archestimator-317zvzlo9-philipjonlewis-projects.vercel.app` for deployment details.

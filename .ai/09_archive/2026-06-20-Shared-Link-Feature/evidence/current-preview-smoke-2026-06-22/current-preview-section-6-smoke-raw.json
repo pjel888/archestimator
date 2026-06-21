@@ -1,0 +1,83 @@
+{
+  "cleanup": {
+    "openFixture": {
+      "project_publication_events": 0,
+      "project_publications": 0,
+      "projects": 0,
+      "shared_link_comments": 0,
+      "shared_link_events": 0,
+      "shared_link_recipients": 0,
+      "shared_link_responses": 0,
+      "workspaces": 0
+    },
+    "passwordFixture": {
+      "project_publication_events": 0,
+      "project_publications": 0,
+      "projects": 0,
+      "shared_link_comments": 0,
+      "shared_link_events": 0,
+      "shared_link_recipients": 0,
+      "shared_link_responses": 0,
+      "workspaces": 0
+    }
+  },
+  "deploymentUrl": "https://archestimator-qwzc7517y-philipjonlewis-projects.vercel.app",
+  "generatedAt": "2026-06-21T17:02:18.324Z",
+  "gitSha": "704010cb",
+  "mode": "current-preview-section-6-smoke",
+  "passed": true,
+  "checks": {
+    "activity": {
+      "durationMs": 731.74,
+      "expectedStatus": 200,
+      "ok": true,
+      "status": 200
+    },
+    "correctPassword": {
+      "durationMs": 1022.32,
+      "expectedStatus": 204,
+      "ok": true,
+      "status": 204
+    },
+    "openLink": {
+      "durationMs": 1613.69,
+      "expectedStatus": 200,
+      "ok": true,
+      "status": 200,
+      "bodyIncludesExpectedText": true
+    },
+    "sessionStart": {
+      "durationMs": 3127.59,
+      "expectedStatus": 200,
+      "ok": true,
+      "status": 200,
+      "cookieNames": [
+        "shared_link_session_fR4gGXc_z1_jBknSCGnR",
+        "shared_link_session_fR4gGXc_z1_jBknSCGnR_ok"
+      ]
+    },
+    "staleComment": {
+      "durationMs": 445.3,
+      "expectedStatus": 409,
+      "ok": true,
+      "status": 409
+    },
+    "staleDecision": {
+      "durationMs": 499.71,
+      "expectedStatus": 409,
+      "ok": true,
+      "status": 409
+    },
+    "wrongPassword": {
+      "durationMs": 1672.03,
+      "expectedStatus": 401,
+      "ok": true,
+      "status": 401
+    }
+  },
+  "notes": [
+    "6.2 wrong-password ARIA is proven by the targeted component test; this hosted smoke proves wrong/correct route behavior.",
+    "6.5 authenticated owner Activity-tab UI is proven by targeted tests; this hosted smoke proves public activity route health and no public feed mount is covered by tests.",
+    "Raw publication tokens, recipient tokens, passwords, CSRF tokens, cookies, and provider credentials are not written."
+  ]
+}

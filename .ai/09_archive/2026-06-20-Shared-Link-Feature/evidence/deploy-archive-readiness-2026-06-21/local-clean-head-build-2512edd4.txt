@@ -1,0 +1,2226 @@
+$ next build
+▲ Next.js 16.2.6 (Turbopack)
+- Experiments (use with caution):
+  · optimizePackageImports
+  · staleTimes
+
+  Creating an optimized production build ...
+(node:96776) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:96792) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+> Build error occurred
+Error: Turbopack build failed with 69 errors:
+./src/lib/estimates/actions.ts:44:1
+Only async functions are allowed to be exported in a "use server" file.
+  [90m42 |[0m };
+  [90m43 |[0m
+[31m[1m>[0m [90m44 |[0m [36mexport[0m [36mconst[0m [33mESTIMATE_ROW_REVISION_CONFLICT_CODE[0m = [32m"estimate_sheet_row_revision_conflict"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m45 |[0m
+  [90m46 |[0m [36mexport[0m [36mclass[0m [33mEstimateRowRevisionConflictError[0m [36mextends[0m [33mError[0m {
+  [90m47 |[0m   code = [33mESTIMATE_ROW_REVISION_CONFLICT_CODE[0m;
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./src/lib/estimates/actions.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx [Client Component Browser]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Client Component Browser]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Server Component]
+    ./src/components/workshop/WorkshopTitleHeader.tsx [Server Component]
+    ./src/components/workshop/StaticWorkshopLoadingShell.tsx [Server Component]
+    ./src/app/workshop/loading.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/lib/estimates/actions.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx [Client Component SSR]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Client Component SSR]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Server Component]
+    ./src/components/workshop/WorkshopTitleHeader.tsx [Server Component]
+    ./src/components/workshop/StaticWorkshopLoadingShell.tsx [Server Component]
+    ./src/app/workshop/projects/loading.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export createEstimateNode doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export createEstimateNode was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export createEstimateNode doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export createEstimateNode was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/NewProjectForm.tsx:6:1
+Export createEstimateSheetDraft doesn't exist in target module
+  [90m4 |[0m [36mimport[0m { useNavigationRouter } [36mfrom[0m [32m"@/hooks/use-navigation-router"[0m;
+  [90m5 |[0m
+[31m[1m>[0m [90m6 |[0m [36mimport[0m { createEstimateSheetDraft } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m [36mimport[0m {
+  [90m8 |[0m   createProjectRecord,
+  [90m9 |[0m   updateProjectImageMetadata,
+
+The export createEstimateSheetDraft was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/NewProjectForm.tsx [Client Component Browser]
+    ./src/components/workshop/NewProjectModal.tsx [Client Component Browser]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Client Component Browser]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Server Component]
+    ./src/components/workshop/dashboard/WorkshopDashboard.tsx [Server Component]
+    ./src/app/workshop/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/NewProjectForm.tsx [Client Component SSR]
+    ./src/components/workshop/NewProjectModal.tsx [Client Component SSR]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Client Component SSR]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Server Component]
+    ./src/components/workshop/dashboard/WorkshopDashboard.tsx [Server Component]
+    ./src/app/workshop/page.tsx [Server Component]
+
+
+./src/components/workshop/NewProjectForm.tsx:6:1
+Export createEstimateSheetDraft doesn't exist in target module
+  [90m4 |[0m [36mimport[0m { useNavigationRouter } [36mfrom[0m [32m"@/hooks/use-navigation-router"[0m;
+  [90m5 |[0m
+[31m[1m>[0m [90m6 |[0m [36mimport[0m { createEstimateSheetDraft } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m [36mimport[0m {
+  [90m8 |[0m   createProjectRecord,
+  [90m9 |[0m   updateProjectImageMetadata,
+
+The export createEstimateSheetDraft was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/NewProjectForm.tsx [Client Component Browser]
+    ./src/components/workshop/NewProjectModal.tsx [Client Component Browser]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Client Component Browser]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Server Component]
+    ./src/components/workshop/dashboard/WorkshopDashboard.tsx [Server Component]
+    ./src/app/workshop/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/NewProjectForm.tsx [Client Component SSR]
+    ./src/components/workshop/NewProjectModal.tsx [Client Component SSR]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Client Component SSR]
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx [Server Component]
+    ./src/components/workshop/dashboard/WorkshopDashboard.tsx [Server Component]
+    ./src/app/workshop/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesClient.tsx:26:1
+Export createEstimateSheetDraft doesn't exist in target module
+  [90m24 |[0m [36mimport[0m { [33mProjectEstimatesTable[0m, [36mtype[0m [33mProjectEstimateTableRow[0m } [36mfrom[0m [32m"@/components/workshop...[0m
+  [90m25 |[0m [36mimport[0m [36mtype[0m { [33mEstimateFavoriteParentProject[0m, [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/wo...[0m
+[31m[1m>[0m [90m26 |[0m [36mimport[0m { createEstimateSheetDraft } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m [36mimport[0m [36mtype[0m { [33mProjectEstimateListRow[0m } [36mfrom[0m [32m"@/lib/estimates/project-estimate-list-row"[0m;
+  [90m28 |[0m [36mimport[0m { createProjectEstimatesStore } [36mfrom[0m [32m"@/stores/project-estimates-store"[0m;
+  [90m29 |[0m
+
+The export createEstimateSheetDraft was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/workshop/ProjectEstimatesClient.tsx
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx
+
+
+./src/components/workshop/ProjectEstimatesClient.tsx:26:1
+Export createEstimateSheetDraft doesn't exist in target module
+  [90m24 |[0m [36mimport[0m { [33mProjectEstimatesTable[0m, [36mtype[0m [33mProjectEstimateTableRow[0m } [36mfrom[0m [32m"@/components/workshop...[0m
+  [90m25 |[0m [36mimport[0m [36mtype[0m { [33mEstimateFavoriteParentProject[0m, [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/wo...[0m
+[31m[1m>[0m [90m26 |[0m [36mimport[0m { createEstimateSheetDraft } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m [36mimport[0m [36mtype[0m { [33mProjectEstimateListRow[0m } [36mfrom[0m [32m"@/lib/estimates/project-estimate-list-row"[0m;
+  [90m28 |[0m [36mimport[0m { createProjectEstimatesStore } [36mfrom[0m [32m"@/stores/project-estimates-store"[0m;
+  [90m29 |[0m
+
+The export createEstimateSheetDraft was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/workshop/ProjectEstimatesClient.tsx
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx
+
+
+./src/components/workshop/dashboard/LibraryHubCard.tsx:10:1
+Export createEstimateSheetDraft doesn't exist in target module
+  [90m 8 |[0m [36mimport[0m { [33mNewProjectModal[0m } [36mfrom[0m [32m"@/components/workshop/NewProjectModal"[0m;
+  [90m 9 |[0m [36mimport[0m { useNavigationRouter } [36mfrom[0m [32m"@/hooks/use-navigation-router"[0m;
+[31m[1m>[0m [90m10 |[0m [36mimport[0m { createEstimateSheetDraft } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/ui/cn"[0m;
+  [90m12 |[0m
+  [90m13 |[0m [36mimport[0m { [33mContinueCard[0m } [36mfrom[0m [32m"./ContinueCard"[0m;
+
+The export createEstimateSheetDraft was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx
+    ./src/components/workshop/dashboard/WorkshopDashboard.tsx
+    ./src/app/workshop/page.tsx
+
+
+./src/components/workshop/dashboard/LibraryHubCard.tsx:10:1
+Export createEstimateSheetDraft doesn't exist in target module
+  [90m 8 |[0m [36mimport[0m { [33mNewProjectModal[0m } [36mfrom[0m [32m"@/components/workshop/NewProjectModal"[0m;
+  [90m 9 |[0m [36mimport[0m { useNavigationRouter } [36mfrom[0m [32m"@/hooks/use-navigation-router"[0m;
+[31m[1m>[0m [90m10 |[0m [36mimport[0m { createEstimateSheetDraft } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/ui/cn"[0m;
+  [90m12 |[0m
+  [90m13 |[0m [36mimport[0m { [33mContinueCard[0m } [36mfrom[0m [32m"./ContinueCard"[0m;
+
+The export createEstimateSheetDraft was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/components/workshop/dashboard/LibraryHubCard.tsx
+    ./src/components/workshop/dashboard/WorkshopDashboard.tsx
+    ./src/app/workshop/page.tsx
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export createEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export createEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export createEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export createEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export deleteEstimateNode doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export deleteEstimateNode was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export deleteEstimateNode doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export deleteEstimateNode was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export deleteEstimateNodesBulk doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export deleteEstimateNodesBulk was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export deleteEstimateNodesBulk doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export deleteEstimateNodesBulk was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export deleteEstimateRowItem doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export deleteEstimateRowItem was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export deleteEstimateRowItem doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export deleteEstimateRowItem was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export deleteEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export deleteEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export deleteEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export deleteEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export detachEstimateRowItemFromLibrary doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export detachEstimateRowItemFromLibrary was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export detachEstimateRowItemFromLibrary doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export detachEstimateRowItemFromLibrary was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export duplicateEstimateSheet doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export duplicateEstimateSheet was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export duplicateEstimateSheet doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export duplicateEstimateSheet was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export duplicateEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export duplicateEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export duplicateEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export duplicateEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export executeBulkDeleteEstimateSheets doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export executeBulkDeleteEstimateSheets was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export executeBulkDeleteEstimateSheets doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export executeBulkDeleteEstimateSheets was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export fetchEstimateSheetVersionControl doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export fetchEstimateSheetVersionControl was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export fetchEstimateSheetVersionControl doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export fetchEstimateSheetVersionControl was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/activity-history.tsx:12:1
+Export fetchEstimateSheetVersionControl doesn't exist in target module
+  [90m10 |[0m ...[32m@/components/ui/search-input"[0m;
+  [90m11 |[0m ...ity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } [36mfrom[0m [32m"@/lib/a...[0m
+[31m[1m>[0m [90m12 |[0m ...rsionControl, [36mtype[0m [33mEstimateSheetHistoryEvent[0m, [36mtype[0m [33mEstimateSheetVersionControlData[0m } [36mfr..[0m.
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m13 |[0m ...w } [36mfrom[0m [32m"@/lib/estimates/express-components"[0m;
+  [90m14 |[0m ...ImageUrl } [36mfrom[0m [32m"@/lib/estimates/image-url"[0m;
+  [90m15 |[0m ...[33metadata[0m } [36mfrom[0m [32m"@/lib/proposal-export/types"[0m;
+
+The export fetchEstimateSheetVersionControl was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  #1 [Client Component Browser]:
+    ./src/components/workshop/estimate-sheet/activity-history.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  #2 [Client Component Browser]:
+    ./src/components/workshop/estimate-sheet/activity-history.tsx [Client Component Browser]
+    ./src/components/workshop/estimate-sheet/rows/editable-row-model.ts [Client Component Browser]
+    ./src/components/workshop/library/template-editor/template-editor-model.ts [Client Component Browser]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Client Component Browser]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/[templateId]/page.tsx [Server Component]
+
+  #3 [Client Component SSR]:
+    ./src/components/workshop/estimate-sheet/activity-history.tsx [Client Component SSR]
+    ./src/components/workshop/estimate-sheet/rows/editable-row-model.ts [Client Component SSR]
+    ./src/components/workshop/library/template-editor/template-editor-model.ts [Client Component SSR]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Client Component SSR]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/[templateId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/activity-history.tsx:12:1
+Export fetchEstimateSheetVersionControl doesn't exist in target module
+  [90m10 |[0m ...[32m@/components/ui/search-input"[0m;
+  [90m11 |[0m ...ity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } [36mfrom[0m [32m"@/lib/a...[0m
+[31m[1m>[0m [90m12 |[0m ...rsionControl, [36mtype[0m [33mEstimateSheetHistoryEvent[0m, [36mtype[0m [33mEstimateSheetVersionControlData[0m } [36mfr..[0m.
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m13 |[0m ...w } [36mfrom[0m [32m"@/lib/estimates/express-components"[0m;
+  [90m14 |[0m ...ImageUrl } [36mfrom[0m [32m"@/lib/estimates/image-url"[0m;
+  [90m15 |[0m ...[33metadata[0m } [36mfrom[0m [32m"@/lib/proposal-export/types"[0m;
+
+The export fetchEstimateSheetVersionControl was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  #1 [Client Component Browser]:
+    ./src/components/workshop/estimate-sheet/activity-history.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  #2 [Client Component Browser]:
+    ./src/components/workshop/estimate-sheet/activity-history.tsx [Client Component Browser]
+    ./src/components/workshop/estimate-sheet/rows/editable-row-model.ts [Client Component Browser]
+    ./src/components/workshop/library/template-editor/template-editor-model.ts [Client Component Browser]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Client Component Browser]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/[templateId]/page.tsx [Server Component]
+
+  #3 [Client Component SSR]:
+    ./src/components/workshop/estimate-sheet/activity-history.tsx [Client Component SSR]
+    ./src/components/workshop/estimate-sheet/rows/editable-row-model.ts [Client Component SSR]
+    ./src/components/workshop/library/template-editor/template-editor-model.ts [Client Component SSR]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Client Component SSR]
+    ./src/components/workshop/library/template-editor/TemplateEditorClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/[templateId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-query.ts:6:1
+Export fetchEstimateTabTree doesn't exist in target module
+  [90m4 |[0m ... { moveEstimateRowItem, [36mtype[0m [33mMoveEstimateRowItemInput[0m } [36mfrom[0m [32m"@/lib/domain/estimate-muta...[0m
+  [90m5 |[0m ... [36mtype[0m { [33mEstimateTree[0m } [36mfrom[0m [32m"@/lib/domain/estimate-tree"[0m;
+[31m[1m>[0m [90m6 |[0m ... { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } [36mfrom[0m [32m"@/lib/estimates/ac...[0m
+  [90m  |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m ... [36mtype[0m { [33mEstimateTabSummary[0m } [36mfrom[0m [32m"@/lib/estimates/types"[0m;
+  [90m8 |[0m ... { estimateRepository } [36mfrom[0m [32m"@/lib/repositories/estimate-repository"[0m;
+  [90m9 |[0m ...
+
+The export fetchEstimateTabTree was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-query.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-query.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-query.ts:6:1
+Export fetchEstimateTabTree doesn't exist in target module
+  [90m4 |[0m ... { moveEstimateRowItem, [36mtype[0m [33mMoveEstimateRowItemInput[0m } [36mfrom[0m [32m"@/lib/domain/estimate-muta...[0m
+  [90m5 |[0m ... [36mtype[0m { [33mEstimateTree[0m } [36mfrom[0m [32m"@/lib/domain/estimate-tree"[0m;
+[31m[1m>[0m [90m6 |[0m ... { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } [36mfrom[0m [32m"@/lib/estimates/ac...[0m
+  [90m  |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m ... [36mtype[0m { [33mEstimateTabSummary[0m } [36mfrom[0m [32m"@/lib/estimates/types"[0m;
+  [90m8 |[0m ... { estimateRepository } [36mfrom[0m [32m"@/lib/repositories/estimate-repository"[0m;
+  [90m9 |[0m ...
+
+The export fetchEstimateTabTree was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-query.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-query.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-query.ts:6:1
+Export fetchEstimateTabs doesn't exist in target module
+  [90m4 |[0m ... { moveEstimateRowItem, [36mtype[0m [33mMoveEstimateRowItemInput[0m } [36mfrom[0m [32m"@/lib/domain/estimate-muta...[0m
+  [90m5 |[0m ... [36mtype[0m { [33mEstimateTree[0m } [36mfrom[0m [32m"@/lib/domain/estimate-tree"[0m;
+[31m[1m>[0m [90m6 |[0m ... { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } [36mfrom[0m [32m"@/lib/estimates/ac...[0m
+  [90m  |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m ... [36mtype[0m { [33mEstimateTabSummary[0m } [36mfrom[0m [32m"@/lib/estimates/types"[0m;
+  [90m8 |[0m ... { estimateRepository } [36mfrom[0m [32m"@/lib/repositories/estimate-repository"[0m;
+  [90m9 |[0m ...
+
+The export fetchEstimateTabs was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-query.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-query.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-query.ts:6:1
+Export fetchEstimateTabs doesn't exist in target module
+  [90m4 |[0m ... { moveEstimateRowItem, [36mtype[0m [33mMoveEstimateRowItemInput[0m } [36mfrom[0m [32m"@/lib/domain/estimate-muta...[0m
+  [90m5 |[0m ... [36mtype[0m { [33mEstimateTree[0m } [36mfrom[0m [32m"@/lib/domain/estimate-tree"[0m;
+[31m[1m>[0m [90m6 |[0m ... { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } [36mfrom[0m [32m"@/lib/estimates/ac...[0m
+  [90m  |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m ... [36mtype[0m { [33mEstimateTabSummary[0m } [36mfrom[0m [32m"@/lib/estimates/types"[0m;
+  [90m8 |[0m ... { estimateRepository } [36mfrom[0m [32m"@/lib/repositories/estimate-repository"[0m;
+  [90m9 |[0m ...
+
+The export fetchEstimateTabs was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-query.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-query.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-query.ts:6:1
+Export fetchEstimateTree doesn't exist in target module
+  [90m4 |[0m ... { moveEstimateRowItem, [36mtype[0m [33mMoveEstimateRowItemInput[0m } [36mfrom[0m [32m"@/lib/domain/estimate-muta...[0m
+  [90m5 |[0m ... [36mtype[0m { [33mEstimateTree[0m } [36mfrom[0m [32m"@/lib/domain/estimate-tree"[0m;
+[31m[1m>[0m [90m6 |[0m ... { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } [36mfrom[0m [32m"@/lib/estimates/ac...[0m
+  [90m  |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m ... [36mtype[0m { [33mEstimateTabSummary[0m } [36mfrom[0m [32m"@/lib/estimates/types"[0m;
+  [90m8 |[0m ... { estimateRepository } [36mfrom[0m [32m"@/lib/repositories/estimate-repository"[0m;
+  [90m9 |[0m ...
+
+The export fetchEstimateTree was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-query.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-query.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-query.ts:6:1
+Export fetchEstimateTree doesn't exist in target module
+  [90m4 |[0m ... { moveEstimateRowItem, [36mtype[0m [33mMoveEstimateRowItemInput[0m } [36mfrom[0m [32m"@/lib/domain/estimate-muta...[0m
+  [90m5 |[0m ... [36mtype[0m { [33mEstimateTree[0m } [36mfrom[0m [32m"@/lib/domain/estimate-tree"[0m;
+[31m[1m>[0m [90m6 |[0m ... { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } [36mfrom[0m [32m"@/lib/estimates/ac...[0m
+  [90m  |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m ... [36mtype[0m { [33mEstimateTabSummary[0m } [36mfrom[0m [32m"@/lib/estimates/types"[0m;
+  [90m8 |[0m ... { estimateRepository } [36mfrom[0m [32m"@/lib/repositories/estimate-repository"[0m;
+  [90m9 |[0m ...
+
+The export fetchEstimateTree was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-query.ts [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-query.ts [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export fetchEstimateTree doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export fetchEstimateTree was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export fetchEstimateTree doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export fetchEstimateTree was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export insertEstimateRowItemFromLibrary doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export insertEstimateRowItemFromLibrary was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export insertEstimateRowItemFromLibrary doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export insertEstimateRowItemFromLibrary was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export insertEstimateTemplateIntoEstimate doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export insertEstimateTemplateIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export insertEstimateTemplateIntoEstimate doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export insertEstimateTemplateIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx:14:1
+Export insertEstimateTemplateIntoEstimate doesn't exist in target module
+  [90m12 |[0m   [36mtype[0m [33mEstimateInsertTargetProject[0m,
+  [90m13 |[0m } [36mfrom[0m [32m"@/lib/component-library/actions"[0m;
+[31m[1m>[0m [90m14 |[0m [36mimport[0m { insertEstimateTemplateIntoEstimate } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m15 |[0m
+  [90m16 |[0m [36mtype[0m [33mTargetsState[0m =
+  [90m17 |[0m   | { state: [32m"loading"[0m }
+
+The export insertEstimateTemplateIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  #1 [Client Component Browser]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component Browser]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Client Component Browser]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Server Component]
+    ./src/app/workshop/library/layout.tsx [Server Component]
+
+  #2 [Client Component SSR]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component SSR]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Client Component SSR]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Server Component]
+    ./src/app/workshop/library/layout.tsx [Server Component]
+
+  #3 [Client Component Browser]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component Browser]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx [Client Component Browser]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Client Component Browser]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component SSR]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx [Client Component SSR]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Client Component SSR]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/page.tsx [Server Component]
+
+
+./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx:14:1
+Export insertEstimateTemplateIntoEstimate doesn't exist in target module
+  [90m12 |[0m   [36mtype[0m [33mEstimateInsertTargetProject[0m,
+  [90m13 |[0m } [36mfrom[0m [32m"@/lib/component-library/actions"[0m;
+[31m[1m>[0m [90m14 |[0m [36mimport[0m { insertEstimateTemplateIntoEstimate } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m15 |[0m
+  [90m16 |[0m [36mtype[0m [33mTargetsState[0m =
+  [90m17 |[0m   | { state: [32m"loading"[0m }
+
+The export insertEstimateTemplateIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  #1 [Client Component Browser]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component Browser]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Client Component Browser]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Server Component]
+    ./src/app/workshop/library/layout.tsx [Server Component]
+
+  #2 [Client Component SSR]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component SSR]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Client Component SSR]
+    ./src/components/workshop/library/LibraryTitleBarClient.tsx [Server Component]
+    ./src/app/workshop/library/layout.tsx [Server Component]
+
+  #3 [Client Component Browser]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component Browser]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx [Client Component Browser]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Client Component Browser]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx [Client Component SSR]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx [Client Component SSR]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Client Component SSR]
+    ./src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx [Server Component]
+    ./src/app/workshop/library/templates/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export insertEstimateTemplateNodeIntoEstimate doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export insertEstimateTemplateNodeIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export insertEstimateTemplateNodeIntoEstimate doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export insertEstimateTemplateNodeIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export insertEstimateTemplatesIntoEstimate doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export insertEstimateTemplatesIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetContent.tsx:27:1
+Export insertEstimateTemplatesIntoEstimate doesn't exist in target module
+  [90m25 |[0m ...
+  [90m26 |[0m ...[32mctions-store"[0m;
+[31m[1m>[0m [90m27 |[0m ...stimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, [36mt...[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m28 |[0m ...[32mrs"[0m;
+  [90m29 |[0m ...[32momponents-telemetry"[0m;
+  [90m30 |[0m ...[32mproposal-export-model"[0m;
+
+The export insertEstimateTemplatesIntoEstimate was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export previewBulkDeleteEstimateSheets doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export previewBulkDeleteEstimateSheets was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export previewBulkDeleteEstimateSheets doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export previewBulkDeleteEstimateSheets was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export regenerateEstimateSheetCode doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export regenerateEstimateSheetCode was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export regenerateEstimateSheetCode doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export regenerateEstimateSheetCode was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export renameEstimateNode doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export renameEstimateNode was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export renameEstimateNode doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export renameEstimateNode was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export renameEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export renameEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export renameEstimateTab doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export renameEstimateTab was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export reorderEstimateTabs doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export reorderEstimateTabs was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1
+Export reorderEstimateTabs doesn't exist in target module
+  [90m 7 |[0m [36mimport[0m { [33mContextMenu[0m, [33mContextMenuContent[0m, [33mContextMenuTrigger[0m } [36mfrom[0m [32m"@/components/ui/conte...[0m
+  [90m 8 |[0m [36mimport[0m { [33mTabs[0m, [36mtype[0m [33mTabItem[0m } [36mfrom[0m [32m"@/components/ui/tabs"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m {
+  [90m   |[0m [31m[1m^^^^^^^[0m
+[31m[1m>[0m [90m10 |[0m   createEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m11 |[0m   deleteEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m12 |[0m   duplicateEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m13 |[0m   renameEstimateTab,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m14 |[0m   reorderEstimateTabs,
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+[31m[1m>[0m [90m15 |[0m } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m16 |[0m [36mimport[0m {
+  [90m17 |[0m   formatEstimatePageTabName,
+  [90m18 |[0m   getEstimateTabDisplayName,
+
+The export reorderEstimateTabs was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export reorderEstimateTreeNodes doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export reorderEstimateTreeNodes was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/EstimateSheetTree.tsx:26:1
+Export reorderEstimateTreeNodes doesn't exist in target module
+  [90m24 |[0m ...[32mnents/ui/toast"[0m;
+  [90m25 |[0m ...[33mion[0m, [36mtype[0m [33mTreeExternalDropOptions[0m, [36mtype[0m [33mTreeNode[0m [36mas[0m [33mUiTreeNode[0m } [36mfrom[0m [32m"@/components/ui/...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes }.[36m..[0m
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[33mTION[0m } [36mfrom[0m [32m"@/lib/workshop/virtualization-flags"[0m;
+  [90m28 |[0m ...
+  [90m29 |[0m ...
+
+The export reorderEstimateTreeNodes was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/EstimateSheetTree.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export replaceEstimateRowItemWithLibrary doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export replaceEstimateRowItemWithLibrary was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export replaceEstimateRowItemWithLibrary doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export replaceEstimateRowItemWithLibrary was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimateMetadataStrip.tsx:8:1
+Export updateEstimateDetails doesn't exist in target module
+  [90m 6 |[0m [36mimport[0m { dispatchProjectBudgetChange } [36mfrom[0m [32m"@/components/workshop/ProjectTotalHeader"[0m;
+  [90m 7 |[0m [36mimport[0m { useNavigationRouter } [36mfrom[0m [32m"@/hooks/use-navigation-router"[0m;
+[31m[1m>[0m [90m 8 |[0m [36mimport[0m { updateEstimateDetails } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 9 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/ui/cn"[0m;
+  [90m10 |[0m
+  [90m11 |[0m [36mexport[0m [36mconst[0m [33mPROJECT_ESTIMATE_METADATA_CHANGE_EVENT[0m = [32m"archestimator:project-estimate-meta...[0m
+
+The export updateEstimateDetails was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Server Component:
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx
+
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx [Client Component Browser]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Client Component Browser]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Server Component]
+    ./src/components/workshop/WorkshopTitleHeader.tsx [Server Component]
+    ./src/components/workshop/WorkshopPageShell.tsx [Server Component]
+    ./src/app/workshop/settings/workspace/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx [Client Component SSR]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Client Component SSR]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Server Component]
+    ./src/components/workshop/WorkshopTitleHeader.tsx [Server Component]
+    ./src/components/workshop/WorkshopPageShell.tsx [Server Component]
+    ./src/app/workshop/settings/workspace/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimateMetadataStrip.tsx:8:1
+Export updateEstimateDetails doesn't exist in target module
+  [90m 6 |[0m [36mimport[0m { dispatchProjectBudgetChange } [36mfrom[0m [32m"@/components/workshop/ProjectTotalHeader"[0m;
+  [90m 7 |[0m [36mimport[0m { useNavigationRouter } [36mfrom[0m [32m"@/hooks/use-navigation-router"[0m;
+[31m[1m>[0m [90m 8 |[0m [36mimport[0m { updateEstimateDetails } [36mfrom[0m [32m"@/lib/estimates/actions"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 9 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/ui/cn"[0m;
+  [90m10 |[0m
+  [90m11 |[0m [36mexport[0m [36mconst[0m [33mPROJECT_ESTIMATE_METADATA_CHANGE_EVENT[0m = [32m"archestimator:project-estimate-meta...[0m
+
+The export updateEstimateDetails was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Server Component:
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx
+
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx [Client Component Browser]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Client Component Browser]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Server Component]
+    ./src/components/workshop/WorkshopTitleHeader.tsx [Server Component]
+    ./src/components/workshop/WorkshopPageShell.tsx [Server Component]
+    ./src/app/workshop/settings/workspace/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimateMetadataStrip.tsx [Client Component SSR]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Client Component SSR]
+    ./src/components/workshop/WorkshopBreadcrumbs.tsx [Server Component]
+    ./src/components/workshop/WorkshopTitleHeader.tsx [Server Component]
+    ./src/components/workshop/WorkshopPageShell.tsx [Server Component]
+    ./src/app/workshop/settings/workspace/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export updateEstimateDetails doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export updateEstimateDetails was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/components/workshop/ProjectEstimatesTable.tsx:26:1
+Export updateEstimateDetails doesn't exist in target module
+  [90m24 |[0m ...[32momponents/workshop/BulkDestructivePreviewModal"[0m;
+  [90m25 |[0m ...[33mimateFavoriteParentProject[0m, [36mtype[0m [33mEstimateFavoriteScope[0m } [36mfrom[0m [32m"@/components/workshop/Pr...[0m
+[31m[1m>[0m [90m26 |[0m ...teEstimateSheets, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateE...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m27 |[0m ...[32mstimate-query"[0m;
+  [90m28 |[0m ...[33mkActionPreviewResult[0m } [36mfrom[0m [32m"@/lib/mass-deletion/bulk-action"[0m;
+  [90m29 |[0m ...[32mib/estimates/project-estimate-list-row"[0m;
+
+The export updateEstimateDetails was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component Browser]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/workshop/ProjectEstimatesTable.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Client Component SSR]
+    ./src/components/workshop/ProjectEstimatesClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export updateEstimateRowItem doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export updateEstimateRowItem was not found in module [project]/src/lib/estimates/actions.ts [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+./src/hooks/use-estimate-row-mutations.ts:9:1
+Export updateEstimateRowItem doesn't exist in target module
+  [90m 7 |[0m ...[33mRY_QUERY_KEY[0m } [36mfrom[0m [32m"@/lib/component-library/query-keys"[0m;
+  [90m 8 |[0m ...
+[31m[1m>[0m [90m 9 |[0m ...eTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstim...
+  [90m   |[0m    [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m ...[33myComponentResult[0m } [36mfrom[0m [32m"@/lib/estimates/express-promotion-actions"[0m;
+  [90m11 |[0m ...[33mowItemPatch[0m } [36mfrom[0m [32m"@/lib/estimates/estimate-row-tree-patch"[0m;
+  [90m12 |[0m ...
+
+The export updateEstimateRowItem was not found in module [project]/src/lib/estimates/actions.ts [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component Browser]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component Browser]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-estimate-row-mutations.ts [Client Component SSR]
+    ./src/components/workshop/EstimateSheetContent.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Client Component SSR]
+    ./src/components/workshop/EstimateWorkspaceClient.tsx [Server Component]
+    ./src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx [Server Component]
+
+
+    at <unknown> (./src/lib/estimates/actions.ts:44:1)
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    at <unknown> (./src/components/workshop/NewProjectForm.tsx:6:1)
+    at <unknown> (./src/components/workshop/NewProjectForm.tsx:6:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesClient.tsx:26:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesClient.tsx:26:1)
+    at <unknown> (./src/components/workshop/dashboard/LibraryHubCard.tsx:10:1)
+    at <unknown> (./src/components/workshop/dashboard/LibraryHubCard.tsx:10:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    ... collapsed 3 duplicate lines matching above 1 lines 3 times...
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    at <unknown> (./src/components/workshop/EstimateSheetContent.tsx:27:1)
+    at <unknown> (./src/components/workshop/EstimateSheetContent.tsx:27:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/activity-history.tsx:12:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/activity-history.tsx:12:1)
+    at <unknown> (./src/hooks/use-estimate-query.ts:6:1)
+    ... collapsed 5 duplicate lines matching above 1 lines 5 times...
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    ... collapsed 3 duplicate lines matching above 1 lines 3 times...
+    at <unknown> (./src/components/workshop/EstimateSheetContent.tsx:27:1)
+    at <unknown> (./src/components/workshop/EstimateSheetContent.tsx:27:1)
+    at <unknown> (./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx:14:1)
+    at <unknown> (./src/components/workshop/library/templates-browse/InsertIntoEstimatePicker.tsx:14:1)
+    at <unknown> (./src/components/workshop/EstimateSheetContent.tsx:27:1)
+    ... collapsed 3 duplicate lines matching above 1 lines 3 times...
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    ... collapsed 3 duplicate lines matching above 1 lines 3 times...
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    at <unknown> (./src/components/workshop/estimate-sheet/EstimateTabStrip.tsx:9:1)
+    ... collapsed 3 duplicate lines matching above 1 lines 3 times...
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    at <unknown> (./src/components/workshop/EstimateSheetTree.tsx:26:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/components/workshop/ProjectEstimateMetadataStrip.tsx:8:1)
+    at <unknown> (./src/components/workshop/ProjectEstimateMetadataStrip.tsx:8:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    at <unknown> (./src/components/workshop/ProjectEstimatesTable.tsx:26:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+    at <unknown> (./src/hooks/use-estimate-row-mutations.ts:9:1)
+error: script "build" exited with code 1

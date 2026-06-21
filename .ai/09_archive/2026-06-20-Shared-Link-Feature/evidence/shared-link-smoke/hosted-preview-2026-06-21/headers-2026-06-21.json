@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-06-21T13:55:26.928Z",
+  "mode": "shared-link-header-smoke-vercel-curl",
+  "redactedUrl": "https://archestimator-ltenuf4qo-philipjonlewis-projects.vercel.app/share/%3Credacted-token%3E",
+  "method": "HEAD",
+  "headAttempted": true,
+  "headStatus": 200,
+  "status": 200,
+  "ok": true,
+  "durationMs": 0,
+  "headers": {
+    "age": "0",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "content-security-policy": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms",
+    "content-type": "text/html; charset=utf-8",
+    "date": "Sun, 21 Jun 2026 13:55:26 GMT",
+    "link": "</_next/static/media/0e54dc4a88da75bb-s.p.06vkzv72tswuw.woff2?dpl=dpl_2e74kqrkJErWmA5178dvduDmEhct>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/2f13ad8e538108e0-s.p.0o52u8sd-fo14.woff2?dpl=dpl_2e74kqrkJErWmA5178dvduDmEhct>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+    "referrer-policy": "no-referrer",
+    "server": "Vercel",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "x-matched-path": "/share/[token]",
+    "x-powered-by": "Next.js",
+    "x-robots-tag": "noindex, nofollow",
+    "x-vercel-cache": "MISS",
+    "x-vercel-id": "sin1::syd1::w6ff5-1782050126749-4811680d024c"
+  },
+  "checks": [
+    {
+      "key": "content-security-policy",
+      "label": "Content-Security-Policy present",
+      "passed": true
+    },
+    {
+      "key": "cache-control",
+      "label": "Cache-Control includes no-store",
+      "passed": true
+    },
+    {
+      "key": "frame-policy",
+      "label": "Frame policy denies embedding",
+      "passed": true
+    },
+    {
+      "key": "x-content-type-options",
+      "label": "X-Content-Type-Options is nosniff",
+      "passed": true
+    },
+    {
+      "key": "referrer-policy",
+      "label": "Referrer-Policy is no-referrer",
+      "passed": true
+    },
+    {
+      "key": "x-robots-tag",
+      "label": "X-Robots-Tag is noindex/nofollow",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "note": "Hosted preview header smoke executed with vercel curl against Vercel-protected deployment; raw share token is redacted."
+}

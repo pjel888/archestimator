@@ -1,0 +1,1 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)

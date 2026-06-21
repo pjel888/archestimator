@@ -1,0 +1,121 @@
+{
+  "cleanupCounts": {
+    "project_publication_events": 0,
+    "project_publications": 0,
+    "projects": 0,
+    "shared_link_comments": 0,
+    "shared_link_events": 0,
+    "shared_link_recipients": 0,
+    "shared_link_responses": 0,
+    "workspaces": 0
+  },
+  "deploymentUrl": "https://archestimator-qwzc7517y-philipjonlewis-projects.vercel.app",
+  "generatedAt": "2026-06-21T16:47:23.495Z",
+  "gitSha": "704010cb",
+  "hostedActivity": {
+    "p50Ms": 1108.59,
+    "p95Ms": 2555.95,
+    "samples": [
+      {
+        "status": 200,
+        "durationMs": 643.18
+      },
+      {
+        "status": 200,
+        "durationMs": 1033.73
+      },
+      {
+        "status": 200,
+        "durationMs": 1108.59
+      },
+      {
+        "status": 200,
+        "durationMs": 2176.06
+      },
+      {
+        "status": 200,
+        "durationMs": 2555.95
+      }
+    ],
+    "warmupSamples": [
+      {
+        "status": 200,
+        "durationMs": 614.92
+      }
+    ]
+  },
+  "mode": "hosted-recipient-activity-proof",
+  "passed": false,
+  "providerActivity": {
+    "p50Ms": 1400.21,
+    "p95Ms": 2071.54,
+    "samples": [
+      {
+        "comments": 100,
+        "durationMs": 1685.51,
+        "recipients": 1
+      },
+      {
+        "comments": 100,
+        "durationMs": 1350.5,
+        "recipients": 1
+      },
+      {
+        "comments": 100,
+        "durationMs": 1400.21,
+        "recipients": 1
+      },
+      {
+        "comments": 100,
+        "durationMs": 2071.54,
+        "recipients": 1
+      },
+      {
+        "comments": 100,
+        "durationMs": 1088.49,
+        "recipients": 1
+      }
+    ],
+    "warmupSamples": [
+      {
+        "comments": 100,
+        "durationMs": 1831.94,
+        "recipients": 1
+      }
+    ]
+  },
+  "recipient": {
+    "p50Ms": 551.15,
+    "p95Ms": 2278.96,
+    "samples": [
+      {
+        "status": 200,
+        "durationMs": 2278.96
+      },
+      {
+        "status": 200,
+        "durationMs": 551.15
+      },
+      {
+        "status": 200,
+        "durationMs": 532.3
+      },
+      {
+        "status": 200,
+        "durationMs": 949.12
+      },
+      {
+        "status": 200,
+        "durationMs": 381.92
+      }
+    ],
+    "warmupSamples": [
+      {
+        "status": 200,
+        "durationMs": 763.26
+      }
+    ]
+  },
+  "samplesPerRoute": 5,
+  "warmupsPerRoute": 1
+}

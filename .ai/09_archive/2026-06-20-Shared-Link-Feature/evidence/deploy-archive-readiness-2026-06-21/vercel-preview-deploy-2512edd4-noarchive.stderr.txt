@@ -1,0 +1,43 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Retrieving project…
+Deploying philipjonlewis-projects/archestimator
+Uploading [--------------------] (0.0B/2.2MB)
+Uploading [=====---------------] (566.5KB/2.2MB)
+Uploading [==========----------] (1.1MB/2.2MB)
+Uploading [===============-----] (1.6MB/2.2MB)
+Uploading [====================] (2.2MB/2.2MB)
+  Inspect     https://vercel.com/philipjonlewis-projects/archestimator/4jqCjvQV9gvyZz5J6yhAp8LaNAW7
+  Preview     https://archestimator-317zvzlo9-philipjonlewis-projects.vercel.app
+Building…
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 4 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 1089 deployment files...
+Restored build cache from previous deployment (D9mkqaPNkeeMNzreraLnz6uxH254)
+Running "vercel build"
+Vercel CLI 54.14.0
+Installing dependencies...
+bun install v1.3.12 (700fc117)
+Resolving dependencies
+Resolved, downloaded and extracted [1]
++ @storybook/addon-a11y@10.4.2
++ @storybook/addon-docs@10.4.2
++ @storybook/nextjs-vite@10.4.2
++ storybook@10.4.2
++ vite@8.0.16
++ @tanstack/react-virtual@3.14.2
++ @vercel/speed-insights@2.0.0
++ rough-notation@0.5.1
++ roughjs@4.6.6
++ server-only@0.0.1
+115 packages installed [586.00ms]
+Detected Next.js version: 16.2.6
+Running "bun run build"
+$ next build
+Applying modifyConfig from Vercel
+▲ Next.js 16.2.6 (Turbopack)
+- Experiments (use with caution):
+· optimizePackageImports
+· staleTimes
+Creating an optimized production build ...

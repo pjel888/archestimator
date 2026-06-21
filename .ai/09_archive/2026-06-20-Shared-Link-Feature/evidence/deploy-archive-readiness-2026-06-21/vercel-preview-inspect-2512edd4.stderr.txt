@@ -1,0 +1,24 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Fetching deployment "archestimator-317zvzlo9-philipjonlewis-projects.vercel.app" in philipjonlewis-projects
+> Fetched deployment "archestimator-317zvzlo9-philipjonlewis-projects.vercel.app" in philipjonlewis-projects [968ms]
+
+  General
+
+    id		dpl_4jqCjvQV9gvyZz5J6yhAp8LaNAW7
+    name	archestimator
+    target	preview
+    status	● Error
+    url		https://archestimator-317zvzlo9-philipjonlewis-projects.vercel.app
+    created	Sun Jun 21 2026 21:34:04 GMT+0800 (Philippine Standard Time) [58s ago]
+
+
+  Aliases
+
+    ╶ https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app
+    
+
+  Builds
+
+    ╶ .        [0ms]
+    
+

@@ -1,0 +1,12 @@
+{
+  "id": "dpl_4jqCjvQV9gvyZz5J6yhAp8LaNAW7",
+  "url": "https://archestimator-317zvzlo9-philipjonlewis-projects.vercel.app",
+  "inspectorUrl": "https://vercel.com/philipjonlewis-projects/archestimator/4jqCjvQV9gvyZz5J6yhAp8LaNAW7",
+  "readyState": "ERROR",
+  "target": null,
+  "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_4jqCjvQV9gvyZz5J6yhAp8LaNAW7",
+  "error": {
+    "name": "BUILD_ERROR",
+    "message": "Command \"bun run build\" exited with 1"
+  }
+}

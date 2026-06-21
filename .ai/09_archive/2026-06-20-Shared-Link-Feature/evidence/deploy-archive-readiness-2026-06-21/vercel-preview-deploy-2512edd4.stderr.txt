@@ -1,0 +1,5 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Retrieving project…
+Deploying philipjonlewis-projects/archestimator
+Uploading [--------------------] (0.0B/16.7MB)
+Uploading [=====---------------] (4.2MB/16.7MB)

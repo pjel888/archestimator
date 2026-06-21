@@ -1,0 +1,84 @@
+# LOOP_LEDGER — Shared Link Feature
+
+Feature: Shared-link / publication (publish read-only proposal → client reviews & decides)
+Blast-radius classification: **HIGH** — DB schema + RPC migrations, RLS, auth/session, CSRF, public
+unauthenticated surface, client-facing money figures. (Per `AGENT_OPERATING_PROTOCOL` this mandates a
+dated pack + this ledger.)
+Owner: Philip · Lead agent: Claude · Opened: 2026-06-20 · Updated: 2026-06-22
+
+Canonical status: [75](75_FINDING_ID_REGISTRY.md). Backlog/execution: [91](91_FORWARD_EXECUTION_PLAN.md).
+Decisions: [71](71_OPEN_DECISIONS_REGISTER.md). Deploy: [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md).
+
+---
+
+## Iteration log
+
+| # | Date | Goal | Change | Verification | Decision |
+|---|---|---|---|---|---|
+| I-1 | 2026-06-20 | Close audit-found correctness/security/UX/perf gaps | 24 fixes (see [80](80_IMPLEMENTATION_AND_VERIFICATION_LOG.md)): SEC-SHARE-01/02/03/04/09, RUX-01..10/15, MANAGER-F-02, PERF-02/03/04(code)/07/07B/08/10/11/13/14; + 2 migrations | Focused shared-link suite green; `type-check`; `git diff --check`. Browser QA deferred; provider migration apply NOT run. | Proceed; carry validation gaps to backlog. |
+| I-2 | 2026-06-21 | Drive the pack to 100% (strategy/quality/impl-readiness) + redesign the bad UX | 19-agent audit (rate+lenses+source-verify); built canonical [75](75_FINDING_ID_REGISTRY.md); authored 05/12/13/25/35/71/72/85/90/91/92/99 + this ledger; remediated 00/10/20/30/40/50/60/70/80; UX redesign blueprints 25/35 | All 15 authoring agents WRITTEN, bound to 75, no conflicts; 4/4 source verifications CONFIRMED | Proceed to final verification + then-open owner decisions. |
+| I-3 | 2026-06-21 | Close targeted review/test/story/perf-evidence gates without overstating ship readiness | Landed MANAGER-F-04 retry chips, RUX-11 real-component Storybook matrix, QA-G03/G04/G08/G09 tests, perf-budget helper, perf evidence, and native code-review artifact | `type-check` passed; the then-current targeted post-review suite passed; Storybook coverage/provider-boundary passed; activity + snapshot evidence captured; native code-reviewer found 0 blockers | At that time PERF-06 plus deploy/visual/hosted perf gates still blocked archive; superseded by later iterations. |
+| I-4 | 2026-06-21 | Turn PERF-06 from measured fail into a real payload optimization | Added compact snapshot schema v1.3: tab payloads store `rowIds` instead of duplicated row objects; `SharePageTabs` resolves v1.3 row IDs and legacy v1.2 `tab.rows`; perf evidence refreshed | Red-first snapshot/perf tests failed on old shape; after implementation `project-publication-snapshot.test.ts` + `shared-link-perf-budgets-script.test.ts` passed 2 files / 10 tests, the later canonical shared-link suite passed 23 files / 353 tests, `type-check` passed, and `evidence/perf-budgets.md` records 10k rows 2.55 MiB PASS vs 4 MiB | PERF-06 fixed locally; later iterations closed deploy, visual/browser, QA-G06/G10, and hosted/provider perf evidence. |
+| I-5 | 2026-06-21 | Close RUX-12 stale receiver-test typography contract | Updated the estimate-tab test to assert the actual `text-[13px]` class and document the path-scoped `/share` Client Portal type-scale exemption | `bunx vitest run tests/vitest/project-publication-page.test.tsx --maxWorkers=1` passed 1 file / 38 tests; `git diff --check` passed | RUX-12 fixed locally; no product-source behavior changed. |
+| I-6 | 2026-06-21 | Make QA-G10/PERF-09/PERF-12 evidence executable without overstating external proof | Added header-smoke and seed scripts, ignored the bearer-token `url.env`, made perf evidence append rows, and recorded local password-unlock + rotate-cost measurements | `shared-link-header-smoke-script`, `shared-link-smoke-seed-script`, and `shared-link-perf-budgets-script` passed 3 files / 12 tests; `type-check` passed; local perf rows PASS in `evidence/perf-budgets.md` | At that time QA-G10 and PERF-09/12 awaited hosted/provider proof; later iterations closed them for beta. |
+| I-7 | 2026-06-21 | Close MANAGER-F-03 unavailable-link copy parity | Added `SHARED_LINK_UNAVAILABLE_COPY` and reused it from the branded not-found page plus public share API 404 envelopes | Targeted route/page/no-store suite passed 6 files / 155 tests; `type-check` passed | MANAGER-F-03 fixed locally; manager redesign can still improve copy/preview presentation, but page/API parity is no longer open. |
+| I-8 | 2026-06-21 | Close MANAGER-F-05 behavioral action-test gap | Added mocked Supabase/server-action harness coverage for republish, rotate, and owner activity-load success/error branches | `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed 1 file / 24 tests; `type-check` passed | MANAGER-F-05 fixed locally; MANAGER-F-01 role matrix remained separate until I-9. |
+| I-9 | 2026-06-21 | Close MANAGER-F-01 full RBAC role-rejection matrix | Added the 7 publication mutations × 5 actor classes matrix and fixed `member` role ranking below manager rank | `bunx vitest run tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed 1 file / 25 tests; canonical shared-link suite passed 23 files / 353 tests; `type-check` passed | MANAGER-F-01 fixed locally; later iterations closed deploy/browser/live/provider archive gates. |
+| I-10 | 2026-06-21 | Close QA-G07 offline queue hardening | Replaced the soft offline-queue placeholder with assertions for sessionStorage persistence, reconnect flush, queue clearing, posted body/viewToken, and fresh CSRF headers | `bunx vitest run tests/vitest/project-publication-comments.test.tsx --maxWorkers=1` passed 1 file / 33 tests | QA-G07 fixed locally; QA-G06 provider race remains the only P1-class QA test-rigor gate. |
+| I-11 | 2026-06-21 | Close MANAGER-F-06 dashboard quick actions | Added published-row copy/preview plus manager-only rotate/revoke controls in `PublishedProjectQuickActions`, with existing publication actions, tooltip semantics, destructive confirms, `ok:false` error handling, and dashboard refresh only after successful mutations | `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx --maxWorkers=1` passed 3 files / 107 tests; `type-check` passed | MANAGER-F-06 fixed locally; browser/visual/deploy/provider gates were closed later for archive. |
+| I-11R | 2026-06-21 | Resolve dashboard quick-action review findings | Follow-up code review found `ok:false` success handling, viewer destructive controls, and overstated evidence; the source/tests/docs were patched and the resolution artifact was added | Same 3-file / 107-test manager regression passed; targeted ESLint had 0 errors; `type-check` and `git diff --check` passed | Review findings resolved; no archive status change in that iteration. |
+| I-12 | 2026-06-21 | Make QA-G06 provider race executable | Added gated provider/local-Supabase Vitest harness plus evidence notes for the duplicate-decision race | `bunx vitest run tests/vitest/share/duplicate-decision-race.provider.test.ts --maxWorkers=1` passed as 1 skipped file when `SUPABASE_DB_URL` was absent; `bun run lint tests/vitest/share/duplicate-decision-race.provider.test.ts` passed. `supabase status` failed because Docker was not running. | QA-G06 is Partial: harness exists, but real DB proof still must run against local Supabase or linked provider. |
+| I-13 | 2026-06-21 | Sync owner ratification for D1-D11 | Marked `71`/`71-PA` as owner-ratified, recorded the decision in `.ai/10_state/decisions.md`, and updated dependent gate language so implementation was no longer blocked on owner calls | `git diff --check`; stale owner-gate scan | Owner-decision gate closed; local visual, deploy, QA-G06, and hosted/provider perf were closed in later iterations. |
+| I-14 | 2026-06-21 | Close D1-D11 source/provider hardening holes found by verifier/data-integrity review | Replaced first-publish revoke+insert with `replace_project_publication(...)`; changed owner digest throttle to DB-serialized `reserve_security_rate_limit_slot(...)`; deferred route digest work through `after()` with test fallback; added provider migration/readback evidence | Focused 8-file shared-link suite passed 157 tests; one-published/provider-race harness suite passed 8 tests with 1 skipped provider race; `bun run type-check` passed; `git diff --check` passed; Supabase readback confirmed 0 duplicate published projects, unique one-published index, and service-role-only RPCs | D1-D11 source/provider implementation advanced; local visual, deploy smoke, QA-G06 proof, and hosted/provider perf evidence closed later. |
+| I-15 | 2026-06-21 | Close QA-G10 runtime header-smoke half without overstating visual/deploy readiness | Added `/share` no-store response handling through `next.config.ts` and `src/proxy.ts`, tightened proxy/header tests, seeded an ignored local share URL, and ran the header smoke against `next start` | `bunx vitest run tests/vitest/auth-proxy.test.ts tests/vitest/proxy-sensitive-cache-headers.test.ts tests/vitest/project-publication-security-headers.test.ts tests/vitest/landing-security-headers.test.ts tests/vitest/shared-link-header-smoke-script.test.ts --maxWorkers=1` passed 5 files / 30 tests; `bun run build` passed; `smoke-share-headers.mjs` passed 200 HEAD with private/no-store and all required security headers; `curl` GET returned 200 | QA-G10 runtime headers proven here; local visual/print, provider race, and hosted/provider perf evidence closed later. |
+| I-16 | 2026-06-21 | Close QA-G10 local mobile/print visual proof without overstating hosted readiness | Replaced compact receiver donut callouts with a clean ring + readable cost list, loaded `src/app/share/print.css` in Storybook, refreshed visual evidence, and reconciled QA docs | `bunx vitest run tests/vitest/project-publication-page.test.tsx tests/vitest/share/cost-donut-chart-hydration.test.tsx tests/vitest/cost-donut-chart-ui.test.tsx --maxWorkers=1` passed 3 files / 44 tests; `bun run type-check` passed; Storybook Playwright capture passed 320/390/768/1440 no X overflow, zero donut callouts, no cost-list overflow, modal focus/Escape, and print chrome hidden | QA-G10 local visual/print fixed; app deploy/post-deploy smoke, QA-G06 real DB race proof, hosted/provider perf, and observability evidence closed later. |
+| I-17 | 2026-06-22 | Reconcile archive readiness against fresh provider/preview/perf evidence | Promoted PERF-01A and PERF-04 to fixed-for-beta from fresh hosted/provider timing, accepted PERF-05 as closed-beta defense-in-depth deferral, accepted the closed-beta observability waiver, captured current preview inspect and 2026-06-22 provider snapshots, and added a runbook summary artifact | `vercel inspect` confirmed preview `dpl_8tpYp3UeoUfkiezuZYuDp5FhHYKu` Ready; `live-policies.json`/`live-rpc-grants.json`/`migration-list-linked.txt`/`db-lint-linked-warning.txt` captured; perf evidence shows recipient p95 1622.11 ms, activity provider p95 4.47 ms, password p95 2327.11 ms, rotate p95 67.36/68.42/143.29 ms | At that point archive was still blocked; superseded by I-18 after owner signoff, waiver, and current-preview §6 smoke. |
+| I-18 | 2026-06-22 | Close final archive gates after owner signoff | Added current-preview §6 smoke proof, captured scoped owner/DBA waiver for unrelated provider drift/advisor baseline, and reconciled archive status across 00/90/91/99/ledger | `scripts/prove-shared-link-current-preview-smoke.ts` PASS on preview `archestimator-qwzc7517y`; §6 rows 6.1-6.6 passed; cleanup counts all 0; waiver recorded in `evidence/deploy-archive-readiness-2026-06-22/owner-dba-drift-advisor-waiver-2026-06-22.md` | Archive GO for shared-link closed-beta scope; production deploy and GA scale/legal/realtime work remain separate. |
+
+## Landed this pack (cross-ref [75](75_FINDING_ID_REGISTRY.md))
+
+See [70](70_CONSOLIDATED_FINDINGS_AND_BACKLOG.md) "Fixed In This Iteration" for the id → files → test → verified table. Status roll-up in [75](75_FINDING_ID_REGISTRY.md) §8.
+
+## Open loops (each an entry/exit-criteria item in [91](91_FORWARD_EXECUTION_PLAN.md))
+
+- **Security/privacy:** D1-D11 source/provider hardening is currently evidenced; preserve D3 opaque IDs, D5 CSRF/rate hardening, D9 digest logging, D10 manager-read RLS, and D11 signer audit during deploy.
+- **Test rigor (P1-class):** QA-G06 provider-backed duplicate-decision race proof is green; QA-G10 local headers, hosted preview header smoke, local mobile/print visual proof, and full current-preview §6 smoke are proven.
+- **Manager:** all MANAGER-F source/test gaps are fixed locally; broader manager redesign polish remains in [35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md).
+- **Perf (measure/scale):** PERF-01A, PERF-04, PERF-06, PERF-09, and PERF-12 are beta-green; PERF-05 is deferred as a GA optimization/security-review item with current defense-in-depth preserved.
+- **Architecture:** SHF-01 realtime remains GA backlog (D7); D4 beta digest durability is provider-backed, with multi-node proof still GA/scale evidence.
+- **UX redesign:** receiver phases A–D ([25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)), manager phases A–D ([35](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md)), gated by [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
+- **Deploy:** D8 shared-link migration reconciliation is green for the four core shared-link migrations; [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) archive signoff is closed by current-preview §6 smoke and the scoped owner/DBA waiver for unrelated global migration drift/advisor baseline.
+
+## Validation gates
+
+| Gate | I-1 | Notes |
+|---|---|---|
+| Focused Vitest (shared-link suite) | ✅ | **Canonical 23-file suite re-run 2026-06-21 → 23 files / 353 tests passed (exit 0).** Includes shared-link page/manager/API/schema tests plus compact snapshot, perf-helper, header-smoke-helper, and smoke-seed-helper tests; reconciled command + verbatim summary in [80](80_IMPLEMENTATION_AND_VERIFICATION_LOG.md). |
+| `bun run type-check` | ✅ | |
+| `git diff --check` | ✅ | |
+| Focused ESLint (changed files) | ✅ | |
+| Targeted post-review suite | ✅ | Superseded by the canonical 23-file shared-link suite above. |
+| Perf helper/evidence | ✅ beta-green | PERF-06 10k snapshot bytes = **2.55 MiB PASS** vs 4 MiB; PERF-01A hosted recipient p95 `1622.11 ms` PASS; PERF-04 provider activity p95 `4.47 ms` PASS; PERF-09 hosted password p95 `2327.11 ms` PASS; PERF-12 provider rotate p95 `67.36/68.42/143.29 ms` PASS at 10/100/1000 recipients. |
+| Browser / visual QA | ✅ local receiver + hosted header/current-preview proof | Local Storybook receiver proof captured in `evidence/shared-link-v2/qa-g10-visual-browser-evidence-2026-06-21.md`; hosted preview header smoke passed; current-preview §6 smoke passed in `evidence/current-preview-smoke-2026-06-22/current-preview-section-6-smoke-summary.md`. |
+| Provider migration apply + readback | ✅ shared-link slice | `20260620064601`, `20260620142000`, `20260621042221`, and `20260621051701` are Local+Remote on `ebxxqidacheyapmmzavr`; D1-D11 hardening and atomic publish/digest-slot RPCs are applied/read back; label maps complete, row-target mismatches 0/0, target columns/RPC grants verified. Unrelated provider drift/advisor baseline is owner/DBA-waived for archive. |
+| Full `bun run validate` | ⛔ skipped | Dirty worktree (unrelated files). |
+
+## Codex review-gate (HIGH-BLAST-RADIUS → required before declaring the *implementation* done)
+
+**Status: SATISFIED for the current scoped shared-link code-review gate.** Native `code-reviewer`
+subagent `019ee8bd-10a5-7641-81ee-f6a600cc9e63` reviewed 30 scoped shared-link files/docs and reported
+0 blocking findings. Artifact: [`evidence/review/codex-review-shared-link-2026-06-21.md`](evidence/review/codex-review-shared-link-2026-06-21.md).
+This is not a production launch sign-off; final archive `90` runbook evidence is closed, while production deploy and GA live-scale/legal/realtime work remain separate gates.
+
+## Stop conditions (mirror [00](00_INDEX.md))
+
+- [x] Canonical registry exists; all docs bound to it.
+- [x] Strategy, decisions, deploy runbook, forward plan, observability, scorecard authored.
+- [x] UX redesign blueprints authored (owner mandate).
+- [x] Final verification pass confirms no residual cross-doc contradiction (I-2). Evidence: `git diff --check`
+  passed; stale-claim scan for old D10 beta-gate drift, the old PERF-01A status contradiction, unverified
+  harness/tool placeholders, and old "not 100" wording returned no hits.
+- [x] Decisions D1-D11 resolved by owner.
+- [x] D1-D11 source/provider implementation evidence captured.
+- [x] Codex review-gate satisfied for the current scoped shared-link code diff.
+- [x] [90](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go executed for archive / closed-beta shared-link readiness.

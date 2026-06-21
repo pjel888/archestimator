@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-06-21T13:32:36.752Z",
+  "mode": "qa-g06-provider-http-race-proof",
+  "passed": true,
+  "fixture": {
+    "workspaceId": "14768016-dcc1-4fa9-8473-567e6bbb6767",
+    "projectId": "007067df-5b3a-4fb2-8b27-081750963bad",
+    "publicationId": "b597d4a0-4e63-4b2b-9418-d23c66e1d298",
+    "recipientId": "21852e62-d113-4382-8730-fd2a15c8ef6e"
+  },
+  "assertions": {
+    "successCount": 1,
+    "duplicateCount": 1,
+    "responseCountBeforeCleanup": 1,
+    "cleanupCounts": {
+      "responses": 0,
+      "recipients": 0,
+      "publications": 0,
+      "projects": 0,
+      "workspaces": 0
+    }
+  },
+  "outcomes": [
+    {
+      "ok": false,
+      "responseId": null,
+      "errorMessage": "Decision already submitted.",
+      "status": 400,
+      "durationMs": 989.2
+    },
+    {
+      "ok": true,
+      "responseId": "d1765285-c39c-40b6-8fca-6e7c63767662",
+      "errorMessage": null,
+      "status": 200,
+      "durationMs": 650.47
+    }
+  ],
+  "note": "Provider-safe service-role HTTP/RPC proof. It mutates only temporary qa-g06-* rows, verifies one accepted decision plus one duplicate rejection, and verifies cleanup counts are zero."
+}

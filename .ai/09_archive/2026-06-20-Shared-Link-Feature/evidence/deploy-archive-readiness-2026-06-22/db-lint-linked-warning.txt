@@ -1,0 +1,148 @@
+[
+  {
+    "function": "public.insert_estimate_template_into_estimate",
+    "issues": [
+      {
+        "level": "error",
+        "message": "relation \"estimate_template_copy_map\" does not exist",
+        "statement": {
+          "lineNumber": "79",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "13",
+          "text": "insert into estimate_template_copy_map (source_node_id, target_node_id, source_parent_id, kind, source_sort_order, root_rank)\n  select\n    node.id,\n    gen_random_uuid(),\n    node.parent_id,\n    node.kind,\n    node.sort_order,\n    case\n      when node.parent_id is null then row_number() over (partition by node.parent_id order by node.sort_order, node.id)\n      else null\n    end\n  from public.estimate_template_nodes node\n  where node.template_id = source_template_id"
+        },
+        "sqlState": "42P01"
+      }
+    ]
+  },
+  {
+    "function": "public.restore_estimate_sheet_version_as_copy",
+    "issues": [
+      {
+        "level": "error",
+        "message": "column reference \"correlation_id\" is ambiguous",
+        "statement": {
+          "lineNumber": "32",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "391",
+          "text": "select jsonb_build_object(\n    'idempotent', true,\n    'eventId', event.id,\n    'estimateId', event.payload-\u003e\u003e'newEstimateId',\n    'firstNodeId', nullif(event.payload-\u003e\u003e'firstNodeId', ''),\n    'sheetCode', event.payload-\u003e\u003e'newSheetCode'\n  )\n                          from public.estimate_sheet_events event\n  where event.event_type = 'sheet_restored_as_copy'\n    and event.correlation_id = correlation_id\n    and event.payload-\u003e\u003e'sourceEstimateId' = source_estimate.id::text\n    and event.payload-\u003e\u003e'sourceVersionId' = source_version.id::text\n  order by event.created_at desc, event.id desc\n  limit 1"
+        },
+        "detail": "It could refer to either a PL/pgSQL variable or a table column.",
+        "sqlState": "42702"
+      }
+    ]
+  },
+  {
+    "function": "public.delete_estimate_node_with_history",
+    "issues": [
+      {
+        "level": "error",
+        "message": "relation \"estimate_sheet_deleted_node_ids\" does not exist",
+        "statement": {
+          "lineNumber": "33",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "376",
+          "text": "with recursive deleted_nodes(id) as (\n    select node.id\n    from public.estimate_nodes node\n    where node.id = target_node_id\n      and node.estimate_id = target_estimate_id\n    union all\n    select child.id\n    from public.estimate_nodes child\n    join deleted_nodes parent on parent.id = child.parent_id\n    where child.estimate_id = target_estimate_id\n  )\n  insert into estimate_sheet_deleted_node_ids(id)\n  select id from deleted_nodes"
+        },
+        "sqlState": "42P01"
+      }
+    ]
+  },
+  {
+    "function": "public.apply_pending_collaboration_invitations",
+    "issues": [
+      {
+        "level": "warning extra",
+        "message": "unused parameter \"target_user_id\"",
+        "sqlState": "00000"
+      },
+      {
+        "level": "warning extra",
+        "message": "unused parameter \"target_email\"",
+        "sqlState": "00000"
+      }
+    ]
+  },
+  {
+    "function": "public.preview_bulk_delete_estimate_sheets",
+    "issues": [
+      {
+        "level": "warning extra",
+        "message": "unused parameter \"acting_user_id\"",
+        "sqlState": "00000"
+      }
+    ]
+  },
+  {
+    "function": "public.preview_bulk_archive_library_components",
+    "issues": [
+      {
+        "level": "warning extra",
+        "message": "unused parameter \"acting_user_id\"",
+        "sqlState": "00000"
+      }
+    ]
+  },
+  {
+    "function": "public.preview_bulk_delete_projects",
+    "issues": [
+      {
+        "level": "warning extra",
+        "message": "unused parameter \"acting_user_id\"",
+        "sqlState": "00000"
+      }
+    ]
+  },
+  {
+    "function": "public.duplicate_estimate_tab_with_history",
+    "issues": [
+      {
+        "level": "error",
+        "message": "relation \"estimate_tab_copy_map\" does not exist",
+        "statement": {
+          "lineNumber": "52",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "13",
+          "text": "insert into estimate_tab_copy_map (source_node_id, target_node_id, source_parent_id)\n  select node.id, gen_random_uuid(), node.parent_id\n  from public.estimate_nodes node\n  where node.estimate_id = target_estimate_id\n    and node.estimate_tab_id = source_tab.id"
+        },
+        "sqlState": "42P01"
+      }
+    ]
+  },
+  {
+    "function": "public.insert_estimate_subtree_into_estimate",
+    "issues": [
+      {
+        "level": "error",
+        "message": "relation \"estimate_subtree_copy_map\" does not exist",
+        "statement": {
+          "lineNumber": "82",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "13",
+          "text": "insert into estimate_subtree_copy_map (source_node_id, target_node_id, is_root, root_rank)\n  with recursive subtree as (\n    select node.id, node.sort_order, true as is_root\n    from public.estimate_nodes node\n    where node.estimate_id = source_estimate_id\n      and node.estimate_tab_id = source_tab_id\n      and (\n        (source_root_node_id is null and node.parent_id is null)\n        or (source_root_node_id is not null and node.id = source_root_node_id)\n      )\n    union all\n    select child.id, child.sort_order, false as is_root\n    from public.estimate_nodes child\n    join subtree parent on child.parent_id = parent.id\n    where child.estimate_id = source_estimate_id\n      and child.estimate_tab_id = source_tab_id\n  )\n  select\n    subtree.id,\n    gen_random_uuid(),\n    subtree.is_root,\n    case when subtree.is_root then row_number() over (partition by subtree.is_root order by subtree.sort_order, subtree.id) else null end\n  from subtree"
+        },
+        "sqlState": "42P01"
+      }
+    ]
+  },
+  {
+    "function": "public.submit_client_response",
+    "issues": [
+      {
+        "level": "warning extra",
+        "message": "unused parameter \"p_signature_intent_hash\"",
+        "sqlState": "00000"
+      }
+    ]
+  }
+]

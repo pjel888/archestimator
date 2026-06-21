@@ -1,0 +1,30 @@
+Vercel CLI 54.9.1 (Node.js 26.0.0)
+Fetching deployment "archestimator-qwzc7517y-philipjonlewis-projects.vercel.app" in philipjonlewis-projects
+> Fetched deployment "archestimator-qwzc7517y-philipjonlewis-projects.vercel.app" in philipjonlewis-projects [900ms]
+
+  General
+
+    id		dpl_8tpYp3UeoUfkiezuZYuDp5FhHYKu
+    name	archestimator
+    target	preview
+    status	● Ready
+    url		https://archestimator-qwzc7517y-philipjonlewis-projects.vercel.app
+    created	Sun Jun 21 2026 23:45:00 GMT+0800 (Philippine Standard Time) [52m ago]
+
+
+  Aliases
+
+    ╶ https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app
+    
+
+  Builds
+
+    ┌ .        [0ms]
+    ├── λ index (17.73MB) [syd1]
+    ├── λ _not-found (17.73MB) [syd1]
+    ├── λ _not-found.rsc (17.73MB) [syd1]
+    ├── λ about (17.73MB) [syd1]
+    ├── λ about.rsc (17.73MB) [syd1]
+    └── 112 output items hidden
+    
+
