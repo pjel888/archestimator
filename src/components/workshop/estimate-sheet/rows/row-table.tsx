@@ -239,7 +239,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }, [editableRow, isInlineEditableComponentRow, item]);
   const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
   const computedItemLabel = isInlineEditableComponentRow
-    ? computedItem.editableName || "Express component"
+    ? computedItem.editableName || "Project Component"
     : computedItem.material || "component";
 
   function updateExpressEditableRow(values: Partial<EditableRowValue>) {

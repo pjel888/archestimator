@@ -107,13 +107,13 @@ function getComponentSourceTone(item: EstimateRowItem): ComponentSourceTone {
 function getComponentSourceLabel(source: ComponentSourceTone) {
   switch (source) {
     case "library":
-      return "Library component";
+      return "Library Component";
     case "express":
-      return "Express component";
+      return "Project Component";
     case "project":
-      return "Project-specific component";
+      return "Project Component";
     case "manual":
-      return "Manual row";
+      return "Project Component";
   }
 }
 
@@ -239,7 +239,7 @@ function ExpressMaterialEditor({
   onDeleteDraft: () => void;
 }) {
   const commitField = (field: ExpressEditableField) => onCommit({ [field]: editableRow[field] });
-  const editorLabel = editableRow.name || item.material || "Express component";
+  const editorLabel = editableRow.name || item.material || "Project Component";
   const imageUrl = editableRow.imageUrl.trim();
   const imageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
   const cardInputClass = "h-4 border-transparent bg-transparent px-0 py-0 shadow-none hover:border-hairline focus:border-accent focus:bg-white focus:px-1 focus:ring-1 focus:ring-accent";
@@ -501,7 +501,7 @@ export function EstimateMaterialCell({
   const showProjectSpecificAction = canMakeProjectSpecific(item);
   const showPromoteAction = canPromoteEstimateRowToLibrary(item);
   const showInlineComponentEditor = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
-  const componentLabel = showInlineComponentEditor ? (editableRow.name || "Express component") : (item.material || "component");
+  const componentLabel = showInlineComponentEditor ? (editableRow.name || "Project Component") : (item.material || "component");
   const sourceTone = getComponentSourceTone(item);
   const sourceLabel = getComponentSourceLabel(sourceTone);
 
@@ -532,8 +532,8 @@ export function EstimateMaterialCell({
             variant="ghost"
             size="icon-sm"
             className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-            aria-label={`Make ${componentLabel} project-specific`}
-            title="Make project-specific"
+            aria-label={`Make ${componentLabel} a Project Component`}
+            title="Make Project Component"
             onClick={(event: MouseEvent<HTMLButtonElement>) => {
               event.stopPropagation();
               onRequestProjectSpecific();

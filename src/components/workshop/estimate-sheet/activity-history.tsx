@@ -1015,14 +1015,14 @@ function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, i
 
   if (!item) {
     return {
-      label: "Manual component",
+      label: "Project Component",
       description: "Component source details are not available for this row.",
     };
   }
 
   if (isExpressComponentRow(item)) {
     return {
-      label: "Express component",
+      label: "Project Component",
       description: "This project component is authored directly in the estimate row. Edit its fields inline in the sheet, or promote it to the shared library when it is ready.",
     };
   }
@@ -1030,39 +1030,59 @@ function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, i
   switch (item.linkState) {
     case "detached":
       return {
-        label: "Project-specific component",
+        label: "Project Component",
         description: "This component keeps the current row values and no longer follows library updates.",
       };
     case "linked-clean":
       return {
-        label: "Synced library component",
+        label: "Library Component",
         description: "This row is following the current library component values.",
       };
     case "linked-overridden":
       return {
-        label: "Customized library component",
-        description: "This row is linked to the library, but one or more estimate values have project-specific overrides.",
+        label: "Library Component",
+        description: "This row is linked to the library, but one or more estimate values have project-level overrides.",
       };
     case "source-changed":
       return {
-        label: "Library source changed",
+        label: "Library Component",
         description: "The source library component changed after this row was added. Review before replacing or detaching it.",
       };
     case "unlinked":
       return {
-        label: "Manual component",
+        label: "Project Component",
         description: "This row is not linked to a library component.",
       };
     default:
       return item.sourceLibraryItemId
         ? {
-            label: "Library component",
+            label: "Library Component",
             description: "This row has a saved library source but no explicit sync state.",
           }
         : {
-            label: "Manual component",
+            label: "Project Component",
             description: "This row is not linked to a library component.",
           };
+  }
+}
+
+function getRowDetailPricingSourceLabel(item: EstimateRowItem | null | undefined, componentSourceLabel: string) {
+  const value = item?.pricingSource?.trim();
+  if (!value) return value;
+
+  switch (value.toLowerCase()) {
+    case "express component":
+    case "manual component":
+    case "manual estimate row":
+    case "project-specific component":
+      return componentSourceLabel;
+    case "library component":
+    case "synced library component":
+    case "customized library component":
+    case "library source changed":
+      return "Library Component";
+    default:
+      return value;
   }
 }
 
@@ -1203,7 +1223,7 @@ export function RowDetailsModal({
                 </div>
               )}
               <div className="mt-2 min-w-0">
-                <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Express component" : "Row not found")}</p>
+                <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Project Component" : "Row not found")}</p>
                 <p className="truncate text-[9px] font-medium text-tertiary">{item?.supplier ?? "No supplier"}</p>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-x-3 border-t border-hairline">
@@ -1219,7 +1239,7 @@ export function RowDetailsModal({
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="min-w-0">
                   <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{componentStatus.label}</p>
-                  <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Express component" : "Row item")}</p>
+                  <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Project Component" : "Row item")}</p>
                   <p className="mt-0.5 truncate text-[9px] text-tertiary">{row?.nodePath.join(" › ") ?? "Current estimate row"}</p>
                 </div>
                 <div className="text-right">
@@ -1262,7 +1282,7 @@ export function RowDetailsModal({
                     <RowDetailField label="Lifecycle" value={item?.lifecycleState} />
                     <RowDetailField label="Discipline" value={item?.discipline} />
                     <RowDetailField label="Designation" value={item?.designation} />
-                    <RowDetailField label="Pricing source" value={item?.pricingSource} />
+                    <RowDetailField label="Pricing source" value={getRowDetailPricingSourceLabel(item, componentStatus.label)} />
                     <RowDetailField label="Pricing date" value={item?.pricingDate} />
                     <RowDetailField label="Brand" value={item?.brand} />
                     <RowDetailField label="SKU / reference" value={item?.sku} />

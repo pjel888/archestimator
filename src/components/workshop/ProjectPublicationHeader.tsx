@@ -23,7 +23,12 @@ import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
 import { WorkshopTreeTabs, getTabStripPanelId, getTabStripTabId } from "./workshop-tree";
-import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
+import type {
+  ProjectEstimateSheet,
+  ProjectPublicationLocationVisibility,
+  ProjectPublicationStatus,
+  ProjectPublicationSummary,
+} from "@/lib/publication/types";
 
 type ProjectPublicationHeaderProps = {
   summary: ProjectPublicationSummary | null;
@@ -44,6 +49,11 @@ type ExpiryDraft = {
   summaryKey: string;
 };
 
+type LocationVisibilityDraft = {
+  value: ProjectPublicationLocationVisibility;
+  summaryKey: string;
+};
+
 type PublicationLocalResult = {
   clientLinkPath: string | null;
   passwordRequired: boolean;
@@ -59,6 +69,27 @@ type DestructivePublicationAction = "clear-password" | "revoke" | "rotate" | "re
 type ActionFeedback = { text: string; tone: "success" | "error" };
 const EMPTY_ESTIMATE_IDS: string[] = [];
 const SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX = "archestimator_shared_link_last_seen";
+const LOCATION_VISIBILITY_OPTIONS: Array<{
+  value: ProjectPublicationLocationVisibility;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "locality",
+    label: "City/locality",
+    description: "Show a coarse location only.",
+  },
+  {
+    value: "exact",
+    label: "Exact address",
+    description: "Show the saved project location.",
+  },
+  {
+    value: "hidden",
+    label: "Hidden",
+    description: "Do not show location on the client page.",
+  },
+];
 
 function formatDate(value: string | null) {
   if (!value) return "Not recorded";
@@ -104,6 +135,17 @@ function readPublicationStatusLabel(status: ProjectPublicationStatus | null | un
   if (status === "expired") return "Expired";
   if (status === "revoked") return "Turned off";
   return "Link live";
+}
+
+function readLocationVisibility(value: ProjectPublicationLocationVisibility | null | undefined): ProjectPublicationLocationVisibility {
+  if (value === "exact" || value === "hidden") return value;
+  return "locality";
+}
+
+function readLocationVisibilityLabel(value: ProjectPublicationLocationVisibility) {
+  if (value === "exact") return "Exact address";
+  if (value === "hidden") return "Hidden";
+  return "City/locality";
 }
 
 function readSummaryKey(summary: ProjectPublicationSummary | null) {
@@ -263,6 +305,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     value: isoToDateTimeLocalValue(summary?.expiresAt),
     summaryKey,
   }));
+  const [locationVisibilityDraft, setLocationVisibilityDraft] = useState<LocationVisibilityDraft>(() => ({
+    value: readLocationVisibility(summary?.locationVisibility),
+    summaryKey,
+  }));
   const [isPending, startTransition] = useTransition();
   // AC-MOD-21: synchronous in-flight latch so a rapid double-click on the destructive confirm
   // dispatches at most one action (the `isPending` transition flag updates a tick too late to
@@ -314,6 +360,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const hasExpiryDraft = expiryDraft.summaryKey === summaryKey;
   const expiryInputValue = hasExpiryDraft ? expiryDraft.value : isoToDateTimeLocalValue(summary?.expiresAt);
   const expiresAtForAction = dateTimeLocalValueToIso(expiryInputValue);
+  const expiryDraftDirty = hasExpiryDraft && expiryInputValue !== isoToDateTimeLocalValue(summary?.expiresAt);
+  const hasLocationVisibilityDraft = locationVisibilityDraft.summaryKey === summaryKey;
+  const savedLocationVisibility = readLocationVisibility(summary?.locationVisibility);
+  const locationVisibility = hasLocationVisibilityDraft ? locationVisibilityDraft.value : savedLocationVisibility;
+  const locationVisibilityDirty = hasLocationVisibilityDraft && locationVisibility !== savedLocationVisibility;
   const clientLinkPath = hasLocalResult ? localResult?.clientLinkPath ?? "" : summary?.clientLinkPath ?? "";
   const canManagePublication = summary?.canManagePublication ?? false;
   const effectiveStatus = hasLocalResult ? localResult?.status ?? "unpublished" : summary?.status ?? "unpublished";
@@ -357,6 +408,9 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
       Date.parse(latestRecipientOpen.openedAt) >= Date.parse(latestAnonymousOpenedAt));
   const statusLabel = readPublicationStatusLabel(effectiveStatus);
   const absoluteClientLink = clientLinkPath && browserOrigin ? `${browserOrigin}${clientLinkPath}` : clientLinkPath;
+  const shareTriggerStateLabel = hasLiveClientLink
+    ? `Live, ${metadataSource?.openCount ?? 0} opened`
+    : "Draft";
   // AC-MOD-16 (MOD-PW-03): the chip reflects the SAVED server state, never the optimistic draft, so
   // it does not flip to "Open access" the instant the box is unchecked. Source of truth is the actual
   // server value — `summary?.passwordRequired` — which equals the reconciled effective value when no
@@ -371,6 +425,19 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     hasPasswordDraft &&
     (requirePassword !== serverPasswordRequired || (requirePassword && password.trim().length > 0));
   const passwordRequiredForSubmit = requirePassword && !effectivePasswordRequired && !password.trim();
+  const managerPendingChangeCount = [estimateSelectionDirty, passwordDraftDirty, expiryDraftDirty, locationVisibilityDirty].filter(Boolean).length;
+  const selectedEstimateStatusLabel = projectEstimateSheets.length > 0
+    ? `${selectedEstimateIds.length} of ${projectEstimateSheets.length} estimates`
+    : `${selectedEstimateIds.length} estimates`;
+  const accessOverviewLabel = serverPasswordRequired ? "Password required" : "Open access";
+  const locationOverviewLabel = readLocationVisibilityLabel(savedLocationVisibility);
+  const expiryOverviewLabel = summary?.expiresAt ? formatDate(summary.expiresAt) : "No expiry";
+  const latestActivityOverviewLabel = latestActivityAt ? formatDate(latestActivityAt) : "No recipient activity";
+  const overviewStatusMessage = managerPendingChangeCount > 0
+    ? `${managerPendingChangeCount} pending change${managerPendingChangeCount === 1 ? "" : "s"} — use ${hasLiveClientLink ? "Update shared page" : "Generate shared link"} to apply.`
+    : hasLiveClientLink
+      ? "Shared page matches saved settings."
+      : "Set estimates and access, then generate the shared link.";
 
   function markSharedLinkActivitySeen() {
     const nextSeenAt = latestActivityAt ?? new Date().toISOString();
@@ -444,6 +511,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     startTransition(async () => {
       try {
         const result = await action();
+        if (!result.ok) {
+          setActionFeedback({ text: result.message, tone: "error" });
+          return;
+        }
         if (result.clientLinkPath !== undefined) {
           setLocalResult({
             clientLinkPath: result.clientLinkPath,
@@ -463,6 +534,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         // AC-MOD-10: drop the expiry draft on success so the input re-syncs to the freshly
         // revalidated summary's stored expiry (mirrors the password-draft reset).
         setExpiryDraft({ value: "", summaryKey: "" });
+        setLocationVisibilityDraft({ value: "locality", summaryKey: "" });
         // Clear the Estimates-picker override so it re-syncs to the freshly
         // revalidated summary's selection instead of showing stale pre-publish
         // edits (MOD-SHEET-01). Success path only — never in catch.
@@ -498,6 +570,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           selectedEstimateIds,
           password: undefined,
           clearPassword: true,
+          locationVisibility,
         }),
       );
       return;
@@ -534,6 +607,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           selectedEstimateIds,
           password: requirePassword ? password.trim() : undefined,
           expiresAt: freshExpiresAt,
+          locationVisibility,
         }),
       );
       return;
@@ -555,7 +629,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
       <button
         type="button"
         className={cn(
-          "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          "relative inline-flex h-10 shrink-0 items-center gap-2 rounded-xs border border-hairline bg-white px-3 text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
           open ? "bg-surfaceMuted text-ink" : null,
         )}
         aria-label="Open shared link"
@@ -569,6 +643,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         }}
       >
         <LinkSimple size={14} weight="regular" aria-hidden="true" />
+        <span className="text-[12px] font-medium leading-none tracking-normal">Share</span>
+        <span className="hidden text-[10px] leading-none tracking-normal text-tertiary sm:inline">
+          {shareTriggerStateLabel}
+        </span>
         {hasHeaderActivity ? (
           <span
             aria-hidden="true"
@@ -654,6 +732,43 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
           {/* Content */}
           <div className="min-w-0 flex flex-col bg-white">
+            <div className="border-b border-hairline p-4 sm:p-6" data-testid="publication-manager-overview">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Publishing overview</h3>
+                  <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
+                  <p className="mt-1 text-[10px] leading-4 text-secondary">{overviewStatusMessage}</p>
+                </div>
+                {managerPendingChangeCount > 0 ? (
+                  <span className="w-fit rounded-xs border border-warning/40 bg-warning/10 px-2 py-1 text-[9px] font-medium leading-3 text-warning">
+                    Pending changes
+                  </span>
+                ) : null}
+              </div>
+              <dl className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="min-w-0 border-l border-hairline pl-2">
+                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Estimates</dt>
+                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{selectedEstimateStatusLabel}</dd>
+                </div>
+                <div className="min-w-0 border-l border-hairline pl-2">
+                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Access</dt>
+                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{accessOverviewLabel}</dd>
+                </div>
+                <div className="min-w-0 border-l border-hairline pl-2">
+                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Location</dt>
+                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{locationOverviewLabel}</dd>
+                </div>
+                <div className="min-w-0 border-l border-hairline pl-2">
+                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Expiry</dt>
+                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{expiryOverviewLabel}</dd>
+                </div>
+                <div className="min-w-0 border-l border-hairline pl-2">
+                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Latest activity</dt>
+                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{latestActivityOverviewLabel}</dd>
+                </div>
+              </dl>
+            </div>
+
             <WorkshopTreeTabs
               tabs={(
                 [
@@ -799,7 +914,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                     <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Access</h3>
                     {/* AC-MOD-16 (MOD-PWDRAFT-CHECK-02): same unsaved-hint styling as the Estimates tab
                         (AC-MOD-14) — surfaces a pending password change before Update is pressed. */}
-                    {passwordDraftDirty && (
+                    {(passwordDraftDirty || expiryDraftDirty || locationVisibilityDirty) && (
                       <span className="text-[9px] font-medium leading-3 text-warning" role="status">
                         Unsaved — Update to apply
                       </span>
@@ -845,6 +960,44 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                       />
                     </ControlField>
                   ) : null}
+                  <div className="max-w-xl">
+                    <p className="text-[10px] font-medium leading-3 text-ink">Project location</p>
+                    <p className="mt-0.5 text-[9px] leading-3 text-secondary">
+                      Controls how much of the saved project location appears on the shared page.
+                    </p>
+                    <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
+                      {LOCATION_VISIBILITY_OPTIONS.map((option) => (
+                        <label
+                          key={option.value}
+                          className={cn(
+                            "flex min-h-16 cursor-pointer flex-col gap-1 rounded-xs border bg-white p-2 text-[10px] leading-3 transition",
+                            locationVisibility === option.value
+                              ? "border-ink text-ink"
+                              : "border-hairline text-secondary hover:border-tertiary",
+                          )}
+                        >
+                          <span className="flex items-center gap-2 font-medium">
+                            <input
+                              type="radio"
+                              className="size-3 accent-ink"
+                              name="project-publication-location-visibility"
+                              value={option.value}
+                              checked={locationVisibility === option.value}
+                              disabled={isPending}
+                              onChange={() =>
+                                setLocationVisibilityDraft({
+                                  value: option.value,
+                                  summaryKey,
+                                })
+                              }
+                            />
+                            {option.label}
+                          </span>
+                          <span className="pl-5 text-[9px] leading-3 text-secondary">{option.description}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                   {/* AC-MOD-10: owner-set expiry. Empty = no expiry. Applied on Generate/Update. */}
                   <ControlField
                     label="Link expiry"
@@ -927,6 +1080,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                             projectId: summary.projectId,
                             selectedEstimateIds,
                             expiresAt: null,
+                            locationVisibility,
                           }),
                         );
                       }}
@@ -972,12 +1126,14 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                               password: requirePassword && password.trim() ? password.trim() : undefined,
                               clearPassword: !requirePassword,
                               expiresAt: expiresAtForAction,
+                              locationVisibility,
                             })
                           : createProjectPublication({
                               projectId: summary.projectId,
                               selectedEstimateIds,
                               password: requirePassword ? password.trim() : undefined,
                               expiresAt: expiresAtForAction,
+                              locationVisibility,
                             }),
                       );
                     }}

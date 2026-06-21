@@ -47,6 +47,8 @@ type LocalRecipient = {
   // persisted delivery status, so it rides on a separate flag instead of widening the
   // delivery_status union. The chip renders neutrally (not green "sent") when this is set.
   isDuplicate?: boolean;
+  sendStatus?: "failed";
+  sendError?: string;
 };
 
 type SharedLinkRecipient = Awaited<ReturnType<typeof listSharedLinkRecipients>>[number];
@@ -64,6 +66,50 @@ function readSelfInviteBlockedMessage() {
 // when their token rotates on resend, so only those require a confirm. pending/sent resend directly.
 function resendNeedsConfirm(rec: LocalRecipient) {
   return rec.delivery_status === "opened" || rec.delivery_status === "responded";
+}
+
+function isFailedRecipient(rec: LocalRecipient) {
+  return rec.sendStatus === "failed" || rec.delivery_status === "bounced";
+}
+
+function applyRecipientEmailResults(
+  recipients: LocalRecipient[],
+  emailResults: RecipientEmailResult[],
+) {
+  const updated = recipients.map((chip) => {
+    const match = emailResults.find((emailResult) => emailResult.email.toLowerCase() === chip.email.toLowerCase());
+    if (match) {
+      const isDuplicate = match.status === "duplicate";
+      const isFailed = !isDuplicate && !match.ok;
+      return {
+        ...chip,
+        id: match.id ?? chip.id,
+        isDuplicate,
+        sendStatus: isFailed ? "failed" : undefined,
+        sendError: isFailed ? match.error : undefined,
+        delivery_status: isDuplicate ? chip.delivery_status : match.ok ? "sent" : "pending",
+      } as LocalRecipient;
+    }
+    return chip;
+  });
+
+  const existingEmails = new Set(updated.map((c) => c.email.toLowerCase()));
+  for (const er of emailResults) {
+    if (!existingEmails.has(er.email.toLowerCase())) {
+      const isDuplicate = er.status === "duplicate";
+      const isFailed = !isDuplicate && !er.ok;
+      updated.push({
+        id: er.id,
+        email: er.email,
+        isDuplicate,
+        sendStatus: isFailed ? "failed" : undefined,
+        sendError: isFailed ? er.error : undefined,
+        delivery_status: isDuplicate ? "pending" : er.ok ? "sent" : "pending",
+      });
+    }
+  }
+
+  return updated;
 }
 
 export function RecipientEmailComposer({ publicationId, baseClientLink, currentUserEmail, projectName, onMessage }: RecipientEmailComposerProps) {
@@ -184,33 +230,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       // map by `match.status` first so a duplicate renders neutrally (never as a green "sent"),
       // and adopt `match.id` so a just-added chip immediately supports Resend/Remove (both require
       // an id) without waiting for a modal remount.
-      const updated = chips.map((chip) => {
-        const match = result.emailResults.find((emailResult: RecipientEmailResult) => emailResult.email.toLowerCase() === chip.email.toLowerCase());
-        if (match) {
-          const isDuplicate = match.status === "duplicate";
-          return {
-            ...chip,
-            id: match.id ?? chip.id,
-            isDuplicate,
-            delivery_status: isDuplicate ? chip.delivery_status : match.ok ? "sent" : "pending",
-          } as LocalRecipient;
-        }
-        return chip;
-      });
-
-      // Include any brand new that weren't in prior list
-      const existingEmails = new Set(updated.map((c) => c.email.toLowerCase()));
-      for (const er of result.emailResults) {
-        if (!existingEmails.has(er.email.toLowerCase())) {
-          const isDuplicate = er.status === "duplicate";
-          updated.push({
-            id: er.id,
-            email: er.email,
-            isDuplicate,
-            delivery_status: isDuplicate ? "pending" : er.ok ? "sent" : "pending",
-          });
-        }
-      }
+      const updated = applyRecipientEmailResults(chips, result.emailResults);
 
       setChips(updated);
       const msg = result.message || (result.ok ? "Recipients added." : "Some recipients could not be added.");
@@ -241,8 +261,9 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   }
 
   async function handleResend(rec: LocalRecipient) {
+    const retryKey = rec.id ?? rec.email;
     if (!rec.id || resendingRecipientId || emailDeliveryConfigured !== true) return;
-    setResendingRecipientId(rec.id);
+    setResendingRecipientId(retryKey);
     clearRecipientMessage();
 
     try {
@@ -254,13 +275,52 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       setChips((prev) =>
         prev.map((chip) =>
           chip.id === rec.id
-            ? { ...chip, delivery_status: result.ok ? "sent" : "pending" }
+            ? {
+                ...chip,
+                delivery_status: result.ok ? "sent" : "pending",
+                sendStatus: result.ok ? undefined : "failed",
+                sendError: result.ok ? undefined : result.message,
+              }
             : chip,
         ),
       );
       setRecipientMessage(result.message, result.ok ? "success" : "error");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Recipient resend failed.";
+      setRecipientMessage(msg, "error");
+    } finally {
+      setResendingRecipientId(null);
+    }
+  }
+
+  async function handleRetryFailed(rec: LocalRecipient) {
+    if (rec.id) {
+      void handleResend(rec);
+      return;
+    }
+    if (resendingRecipientId || emailDeliveryConfigured !== true) return;
+    const retryKey = rec.email;
+    setResendingRecipientId(retryKey);
+    clearRecipientMessage();
+
+    try {
+      const result = await addSharedLinkRecipients({
+        publicationId,
+        recipients: [{ email: rec.email, displayName: rec.displayName || undefined }],
+        baseClientLink,
+      });
+      setChips((prev) => applyRecipientEmailResults(prev, result.emailResults));
+      const msg = result.message || (result.ok ? "Recipient sent." : "Recipient retry failed.");
+      setRecipientMessage(msg, result.ok ? "success" : "error");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Recipient retry failed.";
+      setChips((prev) =>
+        prev.map((chip) =>
+          chip.email.toLowerCase() === rec.email.toLowerCase()
+            ? { ...chip, sendStatus: "failed", sendError: msg }
+            : chip,
+        ),
+      );
       setRecipientMessage(msg, "error");
     } finally {
       setResendingRecipientId(null);
@@ -284,23 +344,37 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       <div className="flex flex-wrap items-center gap-1 rounded-xs border border-hairline bg-white p-1 min-h-7">
         {chips.map((chip) => {
           const status = chip.delivery_status;
+          const isFailed = isFailedRecipient(chip);
           // AC-MOD-17 (MOD-REC-05): a duplicate is a neutral, already-invited treatment — never
           // the green "sent" style — so it takes precedence in both the label and the class map.
           const statusLabel = chip.isDuplicate
             ? "already invited"
-            : chip.email_unsubscribed_at ? "unsubscribed" : status === "bounced" ? "failed" : status;
+            : chip.email_unsubscribed_at ? "unsubscribed" : isFailed ? "failed" : status;
           const statusClass =
             chip.isDuplicate ? "bg-surfaceMuted text-tertiary" :
             chip.email_unsubscribed_at ? "bg-surfaceMuted text-tertiary" :
             status === "sent" ? "bg-successSoft text-success" :
-            status === "bounced" ? "bg-dangerSoft text-danger" :
+            isFailed ? "bg-dangerSoft text-danger" :
             status === "opened" ? "bg-accentSoft text-ink" :
             "bg-warningSoft text-warning";
           return (
             <span key={chip.id || chip.email} className="inline-flex items-center gap-1 rounded-xs border border-hairline bg-surfaceMuted pl-1.5 pr-0.5 py-0 text-[9px] leading-4">
               <span className="truncate max-w-[140px]">{chip.displayName ? `${chip.displayName} <${chip.email}>` : chip.email}</span>
               <span className={`rounded-xs px-1 py-0 text-[8px] font-medium ${statusClass}`}>{statusLabel}</span>
-              {chip.id ? (
+              {isFailed ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Retry ${chip.email}`}
+                  className="h-5 px-1 py-0 text-[9px] font-medium text-danger hover:text-ink"
+                  onClick={() => void handleRetryFailed(chip)}
+                  disabled={emailDisabled || isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}
+                  title={chip.sendError || "Retry recipient email"}
+                >
+                  Retry
+                </Button>
+              ) : chip.id ? (
                 <Button
                   type="button"
                   variant="ghost"

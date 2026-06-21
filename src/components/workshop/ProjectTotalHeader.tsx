@@ -99,16 +99,20 @@ const BUDGET_HEALTH_OVERBUDGET_RED_TEXT_CLASS = "text-[#C86161]";
 const BUDGET_HEALTH_SEGMENT_COUNT = 144;
 const BUDGET_HEALTH_SEGMENT_CLASSES = {
   inactive: "bg-[#E7E9EC]",
-  blue: "bg-[#6FA6E8]",
-  cyan: "bg-[#69D4D7]",
-  green: "bg-[#78D98A]",
-  yellow: "bg-[#D9DC6C]",
-  amber: "bg-[#E3BD62]",
-  orange: "bg-[#E8915F]",
-  red: "bg-[#D96A68]",
 } as const;
 
-type BudgetHealthSegmentTone = keyof typeof BUDGET_HEALTH_SEGMENT_CLASSES;
+const BUDGET_HEALTH_GRADIENT_STOPS = [
+  { at: 0, color: "#5A95E8", tone: "blue" },
+  { at: 0.12, color: "#55ACEF", tone: "sky" },
+  { at: 0.24, color: "#4EC6E8", tone: "cyan" },
+  { at: 0.36, color: "#57D5C0", tone: "teal" },
+  { at: 0.48, color: "#73D98C", tone: "green" },
+  { at: 0.6, color: "#B8DC6E", tone: "lime" },
+  { at: 0.72, color: "#E1CD66", tone: "yellow" },
+  { at: 0.82, color: "#E8AA5F", tone: "amber" },
+  { at: 0.92, color: "#E77F60", tone: "orange" },
+  { at: 1, color: "#D96565", tone: "red" },
+] as const;
 
 function getBudgetHealthState(usagePercent: number, hasBudget: boolean, total: number): BudgetHealthState {
   if (!hasBudget) return "missing";
@@ -131,14 +135,49 @@ function budgetHealthTotalValueClass(state: BudgetHealthState) {
   return "text-ink";
 }
 
-function getBudgetHealthSegmentTone(ratioToBudget: number): BudgetHealthSegmentTone {
-  if (ratioToBudget >= 0.98) return "red";
-  if (ratioToBudget >= 0.86) return "orange";
-  if (ratioToBudget >= 0.74) return "amber";
-  if (ratioToBudget >= 0.62) return "yellow";
-  if (ratioToBudget >= 0.4) return "green";
-  if (ratioToBudget >= 0.18) return "cyan";
-  return "blue";
+function hexToRgb(hex: string) {
+  const normalized = hex.replace("#", "");
+  const value = Number.parseInt(normalized, 16);
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function rgbToHex({ r, g, b }: { r: number; g: number; b: number }) {
+  return `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function interpolateHexColor(from: string, to: string, amount: number) {
+  const start = hexToRgb(from);
+  const end = hexToRgb(to);
+
+  return rgbToHex({
+    r: Math.round(start.r + (end.r - start.r) * amount),
+    g: Math.round(start.g + (end.g - start.g) * amount),
+    b: Math.round(start.b + (end.b - start.b) * amount),
+  });
+}
+
+function getBudgetHealthGradientStop(ratioToBudget: number) {
+  const clampedRatio = Math.min(1, Math.max(0, ratioToBudget));
+
+  for (let index = 1; index < BUDGET_HEALTH_GRADIENT_STOPS.length; index += 1) {
+    const previousStop = BUDGET_HEALTH_GRADIENT_STOPS[index - 1];
+    const nextStop = BUDGET_HEALTH_GRADIENT_STOPS[index];
+
+    if (clampedRatio <= nextStop.at) {
+      const localAmount = (clampedRatio - previousStop.at) / (nextStop.at - previousStop.at);
+      return {
+        color: interpolateHexColor(previousStop.color, nextStop.color, localAmount),
+        tone: nextStop.tone,
+      };
+    }
+  }
+
+  return BUDGET_HEALTH_GRADIENT_STOPS[BUDGET_HEALTH_GRADIENT_STOPS.length - 1];
 }
 
 function BudgetHealthMeter({ budget, total }: { budget: number; total: number }) {
@@ -172,8 +211,8 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
       : 0;
   const segments = Array.from({ length: BUDGET_HEALTH_SEGMENT_COUNT }, (_, index) => {
     const isActive = index < activeSegmentCount;
-    const tone = isActive ? getBudgetHealthSegmentTone((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT) : "inactive";
-    return { index, isActive, tone };
+    const gradientStop = isActive ? getBudgetHealthGradientStop((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT) : null;
+    return { index, isActive, color: gradientStop?.color, tone: gradientStop?.tone ?? "inactive" };
   });
 
   return (
@@ -195,10 +234,14 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         {segments.map((segment) => (
           <span
             key={segment.index}
-            className={`block aspect-square h-1.5 min-h-1.5 w-1.5 min-w-1.5 shrink-0 rounded-[1px] ${BUDGET_HEALTH_SEGMENT_CLASSES[segment.tone]}`}
+            className={`block aspect-square h-1.5 min-h-1.5 w-1.5 min-w-1.5 shrink-0 rounded-[1px] ${
+              segment.isActive ? "" : BUDGET_HEALTH_SEGMENT_CLASSES.inactive
+            }`}
+            style={segment.color ? { backgroundColor: segment.color } : undefined}
             data-budget-health-segment
             data-budget-health-segment-active={segment.isActive ? "true" : "false"}
             data-budget-health-segment-tone={segment.tone}
+            data-budget-health-segment-color={segment.color}
             aria-hidden="true"
           />
         ))}

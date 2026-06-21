@@ -5,6 +5,7 @@ import { DashboardEmptyState } from "./DashboardEmptyState";
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
 import { LibraryCardLink, LibraryHubCard } from "./LibraryHubCard";
+import { PublishedProjectQuickActions } from "./PublishedProjectQuickActions";
 import { RecentProjectsList } from "./RecentProjectsList";
 import { RecentSheetsList } from "./RecentSheetsList";
 import {
@@ -52,14 +53,22 @@ function PublishedProjectLinks({ projects }: { projects: WorkshopProjectSummary[
 
         return (
           <li key={project.id} className="dashboard-published-list-item">
-            <Link href={href} className="dashboard-published-link">
-              <span className="min-w-0 flex-1 truncate" title={project.name}>
-                {project.name}
-              </span>
-              <span className="shrink-0 font-numeric text-[9px] text-secondary">
-                {meta}
-              </span>
-            </Link>
+            <div className="dashboard-published-row">
+              <Link href={href} className="dashboard-published-link">
+                <span className="min-w-0 flex-1 truncate" title={project.name}>
+                  {project.name}
+                </span>
+                <span className="shrink-0 font-numeric text-[9px] text-secondary">
+                  {meta}
+                </span>
+              </Link>
+              <PublishedProjectQuickActions
+                projectId={project.id}
+                projectName={project.name}
+                clientLinkPath={href}
+                canManagePublication={project.canManagePublication}
+              />
+            </div>
           </li>
         );
       })}

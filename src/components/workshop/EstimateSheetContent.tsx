@@ -2669,23 +2669,23 @@ export function EstimateSheetContent({
           <section
             role="dialog"
             aria-modal="true"
-            aria-label="Make component project-specific"
+            aria-label="Make Project Component"
             className="w-[min(360px,calc(100vw-32px))] border border-hairline bg-white p-3 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-ink">Make component project-specific</p>
+                <p className="text-[11px] font-medium text-ink">Make Project Component</p>
                 <p className="mt-1 text-[10px] leading-4 text-tertiary">
                   {projectSpecificRow.item.material} will keep its current row values and stop following library updates.
                 </p>
               </div>
-              <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close project-specific dialog" onClick={() => setProjectSpecificRowId("")}>
+              <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Project Component dialog" onClick={() => setProjectSpecificRowId("")}>
                 <X size={13} weight="regular" aria-hidden="true" />
               </Button>
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => setProjectSpecificRowId("")}>Cancel</Button>
-              <Button type="button" variant="primary" size="sm" onClick={confirmProjectSpecific}>Make project-specific</Button>
+              <Button type="button" variant="primary" size="sm" onClick={confirmProjectSpecific}>Make Project Component</Button>
             </div>
           </section>
         </div>

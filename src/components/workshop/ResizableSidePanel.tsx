@@ -153,12 +153,12 @@ export function ResizableSidePanel({
         collapsed
           ? "w-0 cursor-default"
           : isDragging
-            ? "w-2 cursor-col-resize border-x border-hairline bg-brand-orange-soft"
+            ? "w-2 cursor-col-resize border-x border-hairline bg-[#E5E5E5]"
             // glass: a transparent grab strip (the grip dots still signal it) so
             // it reads as the float gutter, not a white seam at the pane edge.
             : glass
-              ? "w-2 cursor-col-resize bg-transparent hover:bg-brand-orange-soft"
-              : "w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-brand-orange-soft",
+              ? "w-2 cursor-col-resize bg-transparent hover:bg-[#E5E5E5]"
+              : "w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-[#E5E5E5]",
       )}
       onMouseDown={startResize}
       title="Drag to resize"
@@ -169,7 +169,7 @@ export function ResizableSidePanel({
             key={index}
             className={[
               "size-[3px] rounded-xs transition-colors",
-              isDragging ? "bg-brand-orange" : "bg-divider group-hover/resizer:bg-brand-orange",
+              isDragging ? "bg-[#7F7F7F]" : "bg-divider group-hover/resizer:bg-[#7F7F7F]",
             ].join(" ")}
           />
         ))}
@@ -185,7 +185,7 @@ export function ResizableSidePanel({
       aria-expanded={!collapsed}
       style={{ width: collapsedWidth }}
       className={cn(
-        "h-full rounded-xs text-secondary transition-colors hover:bg-brand-orange-soft hover:text-brand-orange",
+        "h-full rounded-xs text-secondary transition-colors hover:bg-[#E5E5E5] hover:text-ink focus-visible:bg-[#E5E5E5] focus-visible:text-ink",
         // glass: a faint frosted chip (kept discoverable) instead of a solid
         // white slab on the pane's inner edge.
         glass ? "border-[color:var(--glass-border)] bg-white/35" : "border-hairline bg-white",

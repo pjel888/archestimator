@@ -2155,6 +2155,12 @@ input[type="number"] {
 .dashboard-published-list-item:last-child {
   border-bottom: 0;
 }
+.dashboard-published-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  min-width: 0;
+}
 .dashboard-published-link {
   display: flex;
   min-width: 0;
@@ -2177,8 +2183,38 @@ input[type="number"] {
   background: rgba(255, 255, 255, 0.28);
   color: var(--brand-orange-dark);
 }
+.dashboard-published-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+}
+.dashboard-published-action {
+  display: inline-grid;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  color: var(--destination-inner-muted);
+  transition:
+    background-color 180ms ease-out,
+    color 180ms ease-out,
+    opacity 180ms ease-out;
+}
+.dashboard-published-action:hover,
+.dashboard-published-action:focus-visible {
+  background: rgba(255, 255, 255, 0.34);
+  color: var(--brand-orange-dark);
+}
+.dashboard-published-action--danger:hover,
+.dashboard-published-action--danger:focus-visible {
+  color: var(--danger);
+}
 .dashboard-published-link:focus-visible,
-.dashboard-project-card-arrow:focus-visible {
+.dashboard-project-card-arrow:focus-visible,
+.dashboard-published-action:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
