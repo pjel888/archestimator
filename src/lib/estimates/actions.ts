@@ -2674,9 +2674,6 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
 
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput) {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
-  if (isExpressComponentRow({ metadata: row.metadata })) {
-    throw new Error("Express component rows cannot be replaced with library components yet. Delete the express row or promote it before replacing.");
-  }
   const currentUser = await requireCurrentUserContext();
   const quantity = libraryItem.quantity || 1;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);

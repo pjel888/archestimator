@@ -57,10 +57,6 @@ function formatPercent(value: number) {
   return `${Math.round(value)}%`;
 }
 
-function formatTrackPercent(value: number) {
-  return `${Math.max(0, Math.min(100, value)).toFixed(2)}%`;
-}
-
 function getActiveEstimateProjectBudget(fallback: number) {
   if (typeof window === "undefined") return fallback;
 
@@ -97,10 +93,22 @@ function useProjectBudget(plannedBudget: number, isEstimateSheetRoute: boolean) 
 type BudgetHealthState = "missing" | "empty" | "success" | "warning" | "danger";
 
 const BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS = "text-[#3F7FBF]";
-const BUDGET_HEALTH_BUDGET_BLUE_FILL_CLASS = "bg-[#A7C7F2]";
-const BUDGET_HEALTH_BUDGET_BLUE_TICK_CLASS = "bg-[#5D93CF]";
+const BUDGET_HEALTH_SUCCESS_TEXT_CLASS = "text-[#3F7FBF]";
+const BUDGET_HEALTH_WARNING_TEXT_CLASS = "text-[#9A6A1F]";
 const BUDGET_HEALTH_OVERBUDGET_RED_TEXT_CLASS = "text-[#C86161]";
-const BUDGET_HEALTH_OVERBUDGET_RED_FILL_CLASS = "bg-[#F1A7A7]";
+const BUDGET_HEALTH_SEGMENT_COUNT = 144;
+const BUDGET_HEALTH_SEGMENT_CLASSES = {
+  inactive: "bg-[#E7E9EC]",
+  blue: "bg-[#6FA6E8]",
+  cyan: "bg-[#69D4D7]",
+  green: "bg-[#78D98A]",
+  yellow: "bg-[#D9DC6C]",
+  amber: "bg-[#E3BD62]",
+  orange: "bg-[#E8915F]",
+  red: "bg-[#D96A68]",
+} as const;
+
+type BudgetHealthSegmentTone = keyof typeof BUDGET_HEALTH_SEGMENT_CLASSES;
 
 function getBudgetHealthState(usagePercent: number, hasBudget: boolean, total: number): BudgetHealthState {
   if (!hasBudget) return "missing";
@@ -112,19 +120,25 @@ function getBudgetHealthState(usagePercent: number, hasBudget: boolean, total: n
 
 function budgetHealthTextClass(state: BudgetHealthState) {
   if (state === "danger") return BUDGET_HEALTH_OVERBUDGET_RED_TEXT_CLASS;
-  if (state === "warning" || state === "success") return BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS;
+  if (state === "warning") return BUDGET_HEALTH_WARNING_TEXT_CLASS;
+  if (state === "success") return BUDGET_HEALTH_SUCCESS_TEXT_CLASS;
   return "text-tertiary";
-}
-
-function budgetHealthFillClass(state: BudgetHealthState) {
-  if (state === "success" || state === "warning" || state === "danger") return BUDGET_HEALTH_BUDGET_BLUE_FILL_CLASS;
-  return "bg-divider";
 }
 
 function budgetHealthTotalValueClass(state: BudgetHealthState) {
   if (state === "danger") return BUDGET_HEALTH_OVERBUDGET_RED_TEXT_CLASS;
-  if (state === "warning") return BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS;
+  if (state === "warning") return BUDGET_HEALTH_WARNING_TEXT_CLASS;
   return "text-ink";
+}
+
+function getBudgetHealthSegmentTone(ratioToBudget: number): BudgetHealthSegmentTone {
+  if (ratioToBudget >= 0.98) return "red";
+  if (ratioToBudget >= 0.86) return "orange";
+  if (ratioToBudget >= 0.74) return "amber";
+  if (ratioToBudget >= 0.62) return "yellow";
+  if (ratioToBudget >= 0.4) return "green";
+  if (ratioToBudget >= 0.18) return "cyan";
+  return "blue";
 }
 
 function BudgetHealthMeter({ budget, total }: { budget: number; total: number }) {
@@ -133,10 +147,6 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
   const hasBudget = safeBudget > 0;
   const usagePercent = hasBudget ? (safeTotal / safeBudget) * 100 : 0;
   const state = getBudgetHealthState(usagePercent, hasBudget, safeTotal);
-  const scaleMax = hasBudget ? Math.max(safeBudget, safeTotal, 1) : Math.max(safeTotal, 1);
-  const budgetTickPercent = hasBudget ? (safeBudget / scaleMax) * 100 : 100;
-  const inBudgetFillPercent = hasBudget ? (Math.min(safeTotal, safeBudget) / scaleMax) * 100 : 0;
-  const overBudgetFillPercent = hasBudget && safeTotal > safeBudget ? ((safeTotal - safeBudget) / scaleMax) * 100 : 0;
   const remaining = safeBudget - safeTotal;
   const fullStatusText = !hasBudget
     ? "Add planned budget to track variance"
@@ -154,9 +164,17 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         : `${formatCompactPeso(remaining)} remaining · ${formatPercent(usagePercent)} used`;
   const shortStatusText = !hasBudget ? "No budget" : `${formatPercent(usagePercent)} used`;
   const textClassName = budgetHealthTextClass(state);
-  const fillClassName = budgetHealthFillClass(state);
   const meterValue = Math.round(usagePercent);
   const meterMax = Math.max(100, meterValue);
+  const activeSegmentCount =
+    hasBudget && safeTotal > 0
+      ? Math.min(BUDGET_HEALTH_SEGMENT_COUNT, Math.ceil((usagePercent / 100) * BUDGET_HEALTH_SEGMENT_COUNT))
+      : 0;
+  const segments = Array.from({ length: BUDGET_HEALTH_SEGMENT_COUNT }, (_, index) => {
+    const isActive = index < activeSegmentCount;
+    const tone = isActive ? getBudgetHealthSegmentTone((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT) : "inactive";
+    return { index, isActive, tone };
+  });
 
   return (
     <div className="flex min-w-[112px] flex-1 flex-col justify-center" data-budget-health-state={state}>
@@ -165,7 +183,7 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         <span className={textClassName}>{shortStatusText}</span>
       </div>
       <div
-        className="relative h-1.5 overflow-hidden rounded-xs bg-surfaceMuted"
+        className="flex h-1.5 items-center gap-px overflow-hidden"
         role="meter"
         aria-label="Budget health"
         aria-valuemin={0}
@@ -174,26 +192,16 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         aria-valuetext={fullStatusText}
         data-budget-health-meter
       >
-        <span
-          className={`absolute inset-y-0 left-0 rounded-xs ${fillClassName}`}
-          style={{ width: formatTrackPercent(inBudgetFillPercent) }}
-          data-budget-health-fill
-        />
-        {overBudgetFillPercent > 0 ? (
+        {segments.map((segment) => (
           <span
-            className={`absolute inset-y-0 rounded-xs ${BUDGET_HEALTH_OVERBUDGET_RED_FILL_CLASS}`}
-            style={{ left: formatTrackPercent(budgetTickPercent), width: formatTrackPercent(overBudgetFillPercent) }}
-            data-budget-health-overflow
-          />
-        ) : null}
-        {hasBudget ? (
-          <span
-            className={`absolute -top-0.5 h-2.5 w-px ${BUDGET_HEALTH_BUDGET_BLUE_TICK_CLASS} shadow-[0_0_0_1px_rgba(255,255,255,0.8)]`}
-            style={{ left: formatTrackPercent(budgetTickPercent) }}
-            data-budget-health-budget-tick
+            key={segment.index}
+            className={`block aspect-square h-1.5 min-h-1.5 w-1.5 min-w-1.5 shrink-0 rounded-[1px] ${BUDGET_HEALTH_SEGMENT_CLASSES[segment.tone]}`}
+            data-budget-health-segment
+            data-budget-health-segment-active={segment.isActive ? "true" : "false"}
+            data-budget-health-segment-tone={segment.tone}
             aria-hidden="true"
           />
-        ) : null}
+        ))}
       </div>
       <p className={`mt-0.5 truncate text-center text-[8px] font-medium leading-[10px] ${textClassName}`} data-budget-health-summary>
         {summaryText}

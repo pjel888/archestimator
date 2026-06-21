@@ -2,7 +2,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import type { AiRequestUserContext } from "@/lib/ai/auth";
-import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -968,34 +967,6 @@ function toRowUpdatePatch(update: PackageBuilderRowUpdateDraft) {
   return Object.fromEntries(Object.entries(update.patch).filter(([, value]) => value !== undefined));
 }
 
-async function assertPackageBuilderCanReplaceRows({
-  supabase,
-  estimateId,
-  replacements,
-}: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
-  estimateId: string;
-  replacements: PackageBuilderRowReplacementDraft[];
-}) {
-  if (replacements.length === 0) return;
-
-  const targetRowIds = Array.from(new Set(replacements.map((replacement) => replacement.targetRowId).filter(Boolean)));
-  if (targetRowIds.length === 0) return;
-
-  const { data, error } = await supabase
-    .from("estimate_row_items")
-    .select("id, metadata")
-    .eq("estimate_id", estimateId)
-    .in("id", targetRowIds);
-
-  if (error) throw new Error(`Package Apply failed: ${error.message}`);
-
-  const expressRow = (data ?? []).find((row) => isExpressComponentRow({ metadata: readRecord((row as { metadata?: unknown }).metadata) }));
-  if (expressRow) {
-    throw new Error("Package Apply cannot replace Express component rows yet. Promote or delete the express row before applying a library replacement.");
-  }
-}
-
 async function applyFillCurrentEstimateDraft({
   input,
   target,
@@ -1081,12 +1052,6 @@ async function applyFillCurrentEstimateDraft({
   let insertedTemplateRowCount = 0;
   const updatedNodeIds = new Set<string>();
   let total = 0;
-  await assertPackageBuilderCanReplaceRows({
-    supabase,
-    estimateId: target.estimateId,
-    replacements: input.draft.rowReplacementDraft ?? [],
-  });
-
   for (const templateInsert of input.draft.templateInsertDraft ?? []) {
     const targetParentNodeId = nodeIdsByClientDraftId.get(templateInsert.targetParentClientDraftId);
     if (!targetParentNodeId) throw new Error(`Template insert ${templateInsert.clientDraftId} must target an existing estimate Group Node.`);

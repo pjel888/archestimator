@@ -358,7 +358,10 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
               It is contextual-on-arrival and scrolls away. */}
           {showBreadcrumbs && (
             <div
-              className="flex items-center gap-1 truncate border-x border-b border-hairline bg-surfaceMuted/40 pb-2 text-[8px] text-muted"
+              className={cn(
+                estimateSurfaceClass(surfaceVariant, "gridStickyHeader"),
+                "flex items-center gap-1 truncate border-x border-b border-hairline bg-surfaceMuted/40 pb-2 text-[8px] text-muted",
+              )}
               aria-label={`${node.name} breadcrumbs`}
               style={{ paddingLeft: `${headerTextOffset}px` }}
             >

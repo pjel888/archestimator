@@ -164,7 +164,7 @@ describe("D3 — Estimate tree structured filter", () => {
     expect(screen.queryByRole("button", { name: "Group tree" })).not.toBeInTheDocument();
   });
 
-  it("toolbar button order is: Show search → Filter tree → Expand all → Collapse all → Add Area", () => {
+  it("toolbar button order is: Show search → Filter tree → Expand all → Collapse all → Add Branch", () => {
     renderTree();
 
     const toolbarButtons = Array.from(
@@ -176,7 +176,7 @@ describe("D3 — Estimate tree structured filter", () => {
       "Filter tree",
       "Expand all tree",
       "Collapse all tree",
-      "Add Area",
+      "Add Branch",
     ]);
   });
 

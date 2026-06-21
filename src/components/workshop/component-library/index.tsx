@@ -2053,7 +2053,7 @@ function EstimateRightSidebarBase({
   );
 
   return (
-    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560} collapsedWidth={24}>
+    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
       {/* group/tree on the panel keeps the tree's drag/select rail space open
           while the pointer or focus is anywhere in this sidebar, matching the
           estimate tree's behavior. */}

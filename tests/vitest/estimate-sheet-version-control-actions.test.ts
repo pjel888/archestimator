@@ -95,11 +95,13 @@ function getRpcArgs(supabase: { rpc: { mock: { calls: [string, Record<string, un
 function makeSupabase({
   rowRevision = 7,
   sourceLibraryItemId = "33333333-3333-4333-8333-333333333333",
+  rowMetadata = {},
   canEditEstimate = true,
   rpcData,
 }: {
   rowRevision?: number;
   sourceLibraryItemId?: string | null;
+  rowMetadata?: Record<string, unknown>;
   canEditEstimate?: boolean;
   rpcData?: unknown;
 } = {}) {
@@ -109,6 +111,7 @@ function makeSupabase({
       node_id: "node-1",
       estimate_id: "estimate-1",
       source_library_item_id: sourceLibraryItemId,
+      metadata: rowMetadata,
       link_state: sourceLibraryItemId ? "linked-clean" : "unlinked",
       row_revision: rowRevision,
       estimate_nodes: { id: "node-1", kind: "area", estimates: { project_id: "project-1" } },
@@ -324,6 +327,41 @@ describe("estimate sheet version control server actions", () => {
       contingencyPercentage: 0,
       linkState: "linked-clean",
     });
+  });
+
+  it("replaces express row source through the history RPC with the existing row revision", async () => {
+    const supabase = makeSupabase({
+      sourceLibraryItemId: null,
+      rowMetadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
+
+    await replaceEstimateRowItemWithLibrary({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowId: "row-1",
+      libraryItem: makeLibraryItem(),
+      mutationId: "66666666-6666-4666-8666-666666666666",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_row_id: "row-1",
+      expected_row_revision: 7,
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: "66666666-6666-4666-8666-666666666666",
+    }));
+    expect(getRpcArgs(supabase, "replace_estimate_row_item_with_history").replacement_payload).toMatchObject({
+      material: "Porcelain Tile",
+      sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+      metadata: expect.objectContaining({
+        sourceComponentId: "11111111-1111-4111-8111-111111111111",
+      }),
+      linkState: "linked-clean",
+    });
+    expect(getRpcArgs(supabase, "replace_estimate_row_item_with_history").replacement_payload.metadata).not.toHaveProperty("expressComponent");
   });
 
   it("deletes row items through the history RPC before removing data", async () => {

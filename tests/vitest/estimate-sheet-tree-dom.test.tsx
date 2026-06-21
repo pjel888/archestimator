@@ -228,12 +228,12 @@ describe("estimate sheet tree DOM integration", () => {
     ).toBeTruthy();
   });
 
-  it("renders the estimate tree under the shared Sheet Tree tab", () => {
+  it("renders the estimate tree under the shared Estimate Tree tab", () => {
     renderTree();
 
     expect(screen.getByRole("tablist", { name: "Estimate sheets" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Sheet Tree" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("navigation", { name: "Modern Bungalow estimate areas" }).parentElement).toHaveClass("px-2", "pb-2", "pt-2");
+    expect(screen.getByRole("tab", { name: "Estimate Tree" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("navigation", { name: "Modern Bungalow estimate areas" }).parentElement).toHaveClass("px-2", "pb-1", "pt-0");
 
     const headerRoot = screen.getByLabelText("Tree tools").closest(".sticky");
     expect(headerRoot).toBeInstanceOf(HTMLElement);

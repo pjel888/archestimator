@@ -69,7 +69,7 @@ type EstimateSheetTreeProps = {
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
-const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheet Tree" }] as const;
+const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Estimate Tree" }] as const;
 
 type ReorderStatus =
   | { state: "idle" }
@@ -1415,7 +1415,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           }
           addActions={[
             {
-              label: "Add Area",
+              label: "Add Branch",
               icon: <AddTreeActionIcon />,
               onClick: () => handleAddArea(),
               className: ADD_BUTTON_CLASSNAME,

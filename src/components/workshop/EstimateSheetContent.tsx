@@ -2345,11 +2345,6 @@ export function EstimateSheetContent({
   }, [insertProjectSourceIntoParentById]);
 
   const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
-    const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
-    if (currentRowItem && (isExpressComponentRow(currentRowItem) || isExpressComponentRow(libraryItem))) {
-      toast({ tone: "error", message: "Express component rows cannot be replaced yet. Delete the express row or promote it first." });
-      return;
-    }
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const editableReplacement = previousRows[rowItemId];
@@ -2369,9 +2364,10 @@ export function EstimateSheetContent({
         return visit(node);
       }),
     );
+    const shouldResetInlineEditor = isBlankEstimateRowItem(replacementItem) || isExpressComponentRow(replacementItem);
     setEditableRows((current) => ({
       ...current,
-      [rowItemId]: isBlankEstimateRowItem(replacementItem)
+      [rowItemId]: shouldResetInlineEditor
         ? getInitialEditableRow(replacementItem)
         : current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
     }));
@@ -2383,6 +2379,7 @@ export function EstimateSheetContent({
         libraryItem: replacementLibraryItem,
         rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
         onSuccess: () => refetchProjectComponentProjection(),
+        onError: () => toast({ tone: "error", message: "Couldn't replace the component. Try again." }),
       });
     }
   });
@@ -2524,9 +2521,8 @@ export function EstimateSheetContent({
 
   const moveRowComponent = useStableCallback((sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => {
     if (sourceRowItemId === targetRowItemId) return;
-    const targetRowItem = findEstimateRowItem(estimateTree, targetRowItemId);
-    if (isExpressComponentRow(movedItem) || (targetRowItem && isExpressComponentRow(targetRowItem))) {
-      toast({ tone: "error", message: "Express component rows cannot be moved into another row yet. Delete or promote the express row first." });
+    if (isExpressComponentRow(movedItem)) {
+      toast({ tone: "error", message: "Replace express components directly before moving them between rows." });
       return;
     }
     replaceRowItem(targetRowItemId, movedItem);

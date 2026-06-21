@@ -35,6 +35,7 @@ type ReplaceEstimateRowInput = SharedMutationInput & {
   expectedRowRevision?: number;
   rollback?: () => void;
   onSuccess?: () => void;
+  onError?: (error: Error) => void;
 };
 
 type DeleteEstimateRowInput = SharedMutationInput & {
@@ -86,6 +87,7 @@ type RollbackInput = {
   rowId: string;
   rollback?: () => void;
   onSuccess?: () => void;
+  onError?: (error: Error) => void;
 };
 
 type UpdateMutationContext = {
@@ -212,8 +214,9 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
         void queryClient.invalidateQueries({ queryKey: estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
         if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       },
-      onError: (_error: Error, input: RollbackInput) => {
+      onError: (error: Error, input: RollbackInput) => {
         input.rollback?.();
+        input.onError?.(error);
         markFailed();
         if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "none" });
       },

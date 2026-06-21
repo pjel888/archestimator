@@ -1303,30 +1303,38 @@ describe("package-builder Apply", () => {
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
   });
 
-  it("blocks package-builder replacement of express component rows before the replace RPC", async () => {
+  it("replaces package-builder express target rows through the row-history RPC", async () => {
     const draft = makeFillCurrentEstimateRowReplacementDraft();
     const libraryQuery = makeQueryResult(makeLibraryValidationRows());
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "cost_library_items") return libraryQuery;
-        if (table === "estimate_row_items") {
-          return makeQueryResult([
-            {
-              id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-              metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
-            },
-          ]);
-        }
+        if (table === "estimate_row_items") return makeQueryResult([]);
         throw new Error(`Unexpected table ${table}`);
       }),
       rpc: vi.fn(async (fn: string) => {
+        if (fn === "replace_estimate_row_item_with_history") {
+          return {
+            data: {
+              idempotent: false,
+              rowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
+              row: {
+                id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
+                nodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+                material: "Queen bed frame",
+                rowRevision: 4,
+              },
+            },
+            error: null,
+          };
+        }
         throw new Error(`Unexpected RPC ${fn}`);
       }),
     };
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    await expect(applyPackageBuilderDraft({
+    const result = await applyPackageBuilderDraft({
       mode: "apply",
       draft,
       draftHash: buildPackageDraftHash(draft),
@@ -1340,9 +1348,25 @@ describe("package-builder Apply", () => {
         authMode: "supabase",
       },
       authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    })).rejects.toThrow(/cannot replace express component rows/i);
+    });
 
-    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
+    expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
+      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
+      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
+      target_row_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
+      expected_row_revision: 3,
+      replacement_payload: expect.objectContaining({
+        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+        material: "Queen bed frame",
+        linkState: "linked-clean",
+        metadata: expect.objectContaining({
+          aiPackageBuilder: expect.objectContaining({ replacement: true }),
+        }),
+      }),
+    }));
+    const replaceCall = supabase.rpc.mock.calls.find(([fn]) => fn === "replace_estimate_row_item_with_history");
+    expect(replaceCall?.[1].replacement_payload.metadata).not.toHaveProperty("expressComponent");
+    expect(result.replacedRowIds).toEqual(["eeeeeeee-5555-4eee-8eee-eeeeeeee5555"]);
   });
 
   it("deletes existing fill-current-estimate rows through the row-history RPC", async () => {
