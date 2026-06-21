@@ -79,6 +79,9 @@ yarn-error.log*
 
 # local agent/runtime state is machine-specific
 
+# shared-link smoke URL contains a bearer token; keep redacted reports tracked, not this env file
+/.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-smoke/url.env
+
 # temporary one-off screenshot/capture harnesses
 scripts/.tmp-*.mjs
 /.omx/

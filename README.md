@@ -1,6 +1,27 @@
 # Archestimator
 
-Contractor-first construction estimating, proposal, and collaboration workspace for teams that build itemized commercial offers. Rebuilt as a full-browser SaaS workspace from a post-reset workshop slice.
+**Your cost intelligence layer.** The more you estimate, the more it knows your clients, your project types, and your prices, so every new proposal starts ahead.
+
+_A construction cost estimating platform — a cost proposal workspace for teams that build, send, revise, approve, and track commercial estimates._
+
+> **From cost proposal to client approval.**
+
+## What Archestimator is
+
+Estimates contain reusable commercial knowledge: supplier choices, product assumptions, pricing logic, proposal revisions, and client decisions. Today, for most AEC teams, that intelligence dies inside spreadsheets.
+
+Archestimator turns it into reusable commercial infrastructure.
+
+**Brand promise:** _You never start from zero again. Your numbers hold up._
+
+## Who it is for
+
+Archestimator is AEC-committed. It serves the people who build and approve cost estimates and cost proposals across a project:
+
+- **Builders of estimates:** architects, engineers, contractors, cost estimators / quantity surveyors, specialty and fit-out firms, interior designers, and suppliers.
+- **Approvers of proposals:** clients, project owners, developers, project managers, and procurement.
+
+Primary market is the Philippines and Southeast Asia, where these teams still run on spreadsheets and enterprise tools do not reach.
 
 ## Stack
 
@@ -89,8 +110,8 @@ src/
 │   │   ├── templates/             # Estimate templates
 │   │   └── pending-invite/        # Pending invite bridge handler
 │   └── api/
-│       ├── ai/ask/                # "Ask Flip" AI assistant
-│       ├── ai/package-builder/    # AI package builder (draft/apply)
+│       ├── ai/ask/                # "Ask Flip" AI assistant (deferred; hidden unless enabled)
+│       ├── ai/package-builder/    # AI package builder (deferred; hidden unless enabled)
 │       ├── component-library/attachments/  # PDF/XLS uploads
 │       ├── component-library/images/       # Component images
 │       ├── projects/images/                # Project cover images
@@ -123,7 +144,7 @@ src/
 │   ├── repositories/              # Data access layer (estimate, library, charts, workspace)
 │   ├── supabase/                  # Browser + server clients, generated types
 │   ├── auth/                      # Auth gates, account management, dev bypass
-│   ├── ai/                        # DeepSeek integration, ask/package-builder
+│   ├── ai/                        # DeepSeek integration, ask/package-builder (deferred)
 │   ├── collaboration/             # Invites, access control, Realtime presence
 │   ├── component-library/         # CRUD actions, taxonomy, templates
 │   ├── project-charts/            # Chart aggregation
@@ -174,19 +195,38 @@ The app shell uses `WorkshopPageShell` and `PublicPageShell` React components ra
 
 | Feature | Status |
 |---------|--------|
-| Hierarchical estimate tree (group/area nodes, drag-and-drop reorder) | Available |
-| Reusable cost component library (brands, suppliers, variants, pricing, images, attachments) | Available |
-| Inline sheet editing with optimistic local-state mutations | Available |
-| Estimate templates | Available |
-| Project comparison charts (D3 donut + bubble, grouped by space/category/supplier) | Available |
-| Immutable project publication snapshots with shared links | Available |
-| Shared link commenting, decisions, password protection (P10 brute-force lockout) | Available |
-| Collaboration invitations (email invite, role-based access, Realtime cursors) | Available |
-| AI Copilot "Ask Flip" (read-only workspace Q&A) | Deferred for closed beta; hidden unless `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=true` |
-| AI Package Builder (draft + apply estimates from natural language) | Deferred for closed beta; routes disabled unless `ARCHESTIMATOR_AI_ENABLED=true` |
-| Excel proposal export (.xlsx workbook from estimate tree) | Available |
+| Hierarchical estimate tree (group/area nodes, drag-and-drop reorder) | Live |
+| Reusable cost component library (brands, suppliers, variants, pricing, images, attachments) | Live |
+| Inline sheet editing with optimistic local-state mutations | Live |
+| Estimate templates | Live |
+| Project comparison charts (D3 donut + bubble, grouped by space/category/supplier) | Live |
+| Shared proposal snapshots (publication links with comments, decisions, password protection) | Live |
+| Collaboration invitations (email invite, role-based access, Realtime cursors) | Live |
+| Activity + Node Activity + row version history | Live |
+| Excel proposal export (.xlsx workbook from estimate tree) | Live |
+| Proposal snapshots / issued export policy | Partial / planned |
+| Archiving and trash | Planned |
+| Proposal open tracking | Planned |
+| Beta onboarding flow | Planned |
 | Revision intelligence | Planned |
 | Proposal comparisons | Planned |
+| Surfacing accumulated cost intelligence by client, project type, and supplier | Planned |
+| AI Copilot "Ask Flip" | Deferred to roadmap; hidden unless `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=true` |
+| AI Package Builder (draft + apply estimates from natural language) | Deferred to roadmap; hidden unless `ARCHESTIMATOR_AI_ENABLED=true` |
+
+### Claims discipline
+
+- Exports are **working documents**, not immutable issued records, legal documents, or purchase orders. The immutable/issued-record policy is a future decision.
+- AI is **not a launch capability**. It remains on the roadmap and, when it ships, will enter at Pro and up.
+- The cost intelligence layer is the direction; the Live foundation (reusable library, structured estimates, version/Activity history, proposal handoff) is the proof.
+
+## Business model
+
+**Proposer-side SaaS wedge** today: architects, engineers, contractors, estimators, specialty/fit-out firms, interior designers, and suppliers pay for estimate creation, reusable components, proposal sharing, comments, approvals, and version/Activity history.
+
+**Future layers:** client-side proposal-record subscriptions, enterprise portfolio plans, supplier catalogs and quote-request fees, and transaction-linked revenue.
+
+**Pricing:** exploratory hypothesis. The working plan is freemium, seat-based, priced in pesos, with a Solo tier anchored at ₱239/month (the "cement anchor"). Prices are pre-publication hypotheses to validate; do not treat them as final.
 
 ## Design system
 
@@ -215,7 +255,7 @@ Some mutating E2E specs require environment variables:
 
 ```bash
 ARCHESTIMATOR_E2E_MUTATING_DND=1       # Tree drag-and-drop
-ARCHESTIMATOR_E2E_AI_PACKAGE_BUILDER=1 # AI package builder
+ARCHESTIMATOR_E2E_AI_PACKAGE_BUILDER=1 # AI package builder (deferred feature)
 ARCHESTIMATOR_E2E_INVITE_ENTRY=1       # Collaboration invites
 ARCHESTIMATOR_E2E_COLLABORATION=1      # Teamspace collaboration
 ARCHESTIMATOR_E2E_SHARED_LINK=1        # Shared link receiver
