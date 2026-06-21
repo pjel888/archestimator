@@ -271,6 +271,7 @@ type ReorderEstimateTreeNodeUpdate = {
 
 type ReorderEstimateTreeNodesInput = {
   updates: ReorderEstimateTreeNodeUpdate[];
+  targetTabId?: string;
 };
 
 type ReorderEstimateTreeNodesResult = {
@@ -1505,7 +1506,7 @@ export async function reorderEstimateTreeNodes(
   const { error: rpcError } = await supabase.rpc("reorder_estimate_nodes_with_history", rpcPayload);
   if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, input.targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after reordering the tree.");
   return { tree };
 }
@@ -2188,10 +2189,11 @@ export async function deleteEstimateNode(
   projectId: string,
   estimateId: string,
   nodeId: string,
+  targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
   const { project, estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
   const currentUser = await requireCurrentUserContext();
-  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the tree node.");
 
   const deletePlan = planEstimateTreeDelete(currentTree, node.id, node.id);
@@ -2205,7 +2207,7 @@ export async function deleteEstimateNode(
 
   if (error) throw new Error(`Could not delete estimate tree node: ${error.message}`);
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
 
   return {
@@ -2219,6 +2221,7 @@ export async function deleteEstimateNodesBulk(
   projectId: string,
   estimateId: string,
   nodeIds: string[],
+  targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
   const requestedNodeIds = [...new Set(nodeIds.map((nodeId) => nodeId.trim()).filter(Boolean))];
   if (requestedNodeIds.length === 0) throw new Error("At least one estimate tree node is required for bulk delete.");
@@ -2250,7 +2253,7 @@ export async function deleteEstimateNodesBulk(
   if (missingNodeId) throw new Error(`Estimate tree node not found in the current project: ${missingNodeId}.`);
 
   const currentUser = await requireCurrentUserContext();
-  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the selected tree nodes.");
 
   const rootNodeIds = dedupeSelectedRoots(currentTree as TreeSelectionNode[], new Set(requestedNodeIds));
@@ -2278,7 +2281,7 @@ export async function deleteEstimateNodesBulk(
     if (error) throw new Error(`Could not delete selected estimate tree nodes: ${error.message}`);
   }
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
 
   return {
@@ -2672,12 +2675,12 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
   return updatedRow;
 }
 
-export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput) {
+export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   const quantity = libraryItem.quantity || 1;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
-  const { error } = await supabase.rpc("replace_estimate_row_item_with_history", {
+  const { data, error } = await supabase.rpc("replace_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -2705,6 +2708,7 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   });
 
   if (error) throw error;
+  return readHistoryRowResult(data);
 }
 
 export async function detachEstimateRowItemFromLibrary({

@@ -1091,7 +1091,18 @@ export function EstimateSheetContent({
   const surfaceVariant = useEstimateSurfaceVariant();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
-  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, promoteRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
+  const {
+    saveState,
+    rowMutationError,
+    clearRowMutationError,
+    markRowDirty: markRowDirtyNow,
+    insertRow,
+    replaceRow,
+    detachRow,
+    promoteRow,
+    deleteRow,
+    updateRow,
+  } = useEstimateRowMutations(estimateId, dataTabId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1108,12 +1119,13 @@ export function EstimateSheetContent({
     initialNodes: tabInitialNodes,
     enabled: Boolean(dataTabId),
   });
+  const activeTreeQuery = dataTabId ? tabTreeQuery : legacyTreeQuery;
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
     restore: restoreEstimateTree,
     getTreeRevision: getEstimateTreeRevision,
-  } = dataTabId ? tabTreeQuery : legacyTreeQuery;
+  } = activeTreeQuery;
   const estimatePointerSurfaceRef = useRef<HTMLDivElement | null>(null);
   const skipEditableRowsSyncRef = useRef(0);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
@@ -2565,6 +2577,11 @@ export function EstimateSheetContent({
     setBulkSelectedRowIds(new Set());
   }
   const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
+  const activeTreeErrorMessage = activeTreeQuery.isError
+    ? activeTreeQuery.error instanceof Error
+      ? activeTreeQuery.error.message
+      : "Could not load the estimate tree."
+    : "";
   const canPreviewCurrentExport = Boolean(resolvedProposalExportMetadata);
 
   // Req 1 / D2: lift the "Activity" + "Preview Excel Export" triggers up to the
@@ -2816,7 +2833,33 @@ export function EstimateSheetContent({
             onCreateTabStateChange={setCreateTabState}
           />
         ) : null}
-        {isActiveTabTreeLoading ? (
+        {rowMutationError ? (
+          <div className="mx-2 mt-2 flex items-start gap-2 rounded-xs border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] leading-4 text-red-700" role="alert">
+            <span className="min-w-0 flex-1">
+              {rowMutationError.message}
+            </span>
+            <button
+              type="button"
+              className="shrink-0 rounded-xs p-0.5 text-red-700 hover:bg-red-100"
+              aria-label="Dismiss row save error"
+              onClick={clearRowMutationError}
+            >
+              <X size={12} weight="regular" aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
+        {activeTreeErrorMessage ? (
+          <div className="m-2 flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-xs border border-dashed border-red-200 bg-red-50/60 p-3 text-center" role="alert">
+            <div className="max-w-md">
+              <p className="text-[8px] font-medium uppercase tracking-normal text-red-700">Tree load failed</p>
+              <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">Could not load this estimate view</h2>
+              <p className="mt-1 text-[10px] leading-4 text-red-700">{activeTreeErrorMessage}</p>
+              <Button type="button" variant="secondary" size="xs" className="mt-3" onClick={() => void activeTreeQuery.refetch()}>
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : isActiveTabTreeLoading ? (
           <>
             <div role="status" aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
               {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="h-7 w-full" />)}

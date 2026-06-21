@@ -608,7 +608,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         stalePropSignatureToIgnoreRef.current = lastAcceptedPropSignatureRef.current;
         setLocalNodes(freshResult.plan.nextNodes);
         optimisticRevision = getLocalTreeRevision();
-        const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: freshResult.plan.updates });
+        const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: freshResult.plan.updates, targetTabId: activeTabId });
         if (getLocalTreeRevision() === optimisticRevision) {
           setLocalNodes((currentNodes) =>
             mergeEstimateTreeStructureWithCachedNodes({
@@ -630,6 +630,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       }
     })();
   }, [
+    activeTabId,
     canReorderNow,
     editingNodeId,
     estimateId,
@@ -980,7 +981,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         if (routeWasDeleted) replaceEstimateRoute(deletePlan.fallbackNodeId);
 
         const serverTargetNodeId = await resolveServerNodeId(targetNode.id);
-        const confirmed = await deleteEstimateNode(projectId, estimateId, serverTargetNodeId);
+        const confirmed = await deleteEstimateNode(projectId, estimateId, serverTargetNodeId, activeTabId);
         const confirmedDeletedNodeIds = new Set(confirmed.deletedNodeIds);
         const confirmedFallbackNodeId = resolveConfirmedDeleteFallbackNodeId(confirmed.tree, confirmed.fallbackNodeId);
         const confirmedActiveNodeStillExists = activeSelectedNodeId ? Boolean(findEstimateNode(confirmed.tree, activeSelectedNodeId)) : true;
@@ -1020,6 +1021,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     })();
   }, [
     activeSelectedNodeId,
+    activeTabId,
     currentRouteNodeId,
     deleteTargetNode,
     estimateId,
@@ -1081,7 +1083,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         if (routeWasDeleted) replaceEstimateRoute(fallbackNodeId);
 
         const serverRootNodeIds = await Promise.all(bulkDeleteRootNodeIds.map(resolveServerNodeId));
-        const confirmed = await deleteEstimateNodesBulk(projectId, estimateId, serverRootNodeIds);
+        const confirmed = await deleteEstimateNodesBulk(projectId, estimateId, serverRootNodeIds, activeTabId);
         const confirmedDeletedNodeIds = new Set(confirmed.deletedNodeIds);
         const confirmedFallbackNodeId = resolveConfirmedDeleteFallbackNodeId(confirmed.tree, confirmed.fallbackNodeId);
         const confirmedActiveNodeStillExists = activeSelectedNodeId ? Boolean(findEstimateNode(confirmed.tree, activeSelectedNodeId)) : true;
@@ -1122,6 +1124,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     })();
   }, [
     activeSelectedNodeId,
+    activeTabId,
     bulkDeletePending,
     bulkDeleteRootNodeIds,
     bulkSelectedNodeIds,
