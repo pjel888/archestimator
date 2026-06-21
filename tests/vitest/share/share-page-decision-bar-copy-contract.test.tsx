@@ -24,19 +24,20 @@ describe("share page decision bar copy contract", () => {
 
     const decisionBar = screen.getByRole("group", { name: /your response|decision/i });
     expect(decisionBar).toHaveAttribute("data-share-decision-bar", "true");
-    expect(within(decisionBar).getByRole("button", { name: /accept proposal/i })).toBeInTheDocument();
+    expect(within(decisionBar).getByRole("button", { name: /approve proposal/i })).toBeInTheDocument();
     expect(within(decisionBar).getByRole("button", { name: /decline proposal/i })).toBeInTheDocument();
-    expect(within(decisionBar).getByRole("button", { name: /request revision/i })).toBeInTheDocument();
+    expect(within(decisionBar).getByRole("button", { name: /request changes/i })).toBeInTheDocument();
   });
 
   it("uses client-friendly finality copy that still allows comments after a decision", async () => {
     const user = userEvent.setup();
     render(<SharePageDecision token="client-token" viewToken="view-token" />);
 
-    await user.click(screen.getByRole("button", { name: /accept proposal/i }));
+    await user.click(screen.getByRole("button", { name: /approve proposal/i }));
 
-    const dialog = await screen.findByRole("dialog", { name: /accept this proposal\?/i });
-    expect(dialog).toHaveTextContent("Your decision will be final. You can still add comments afterward.");
+    const dialog = await screen.findByRole("dialog", { name: /approve this proposal\?/i });
+    expect(dialog).toHaveTextContent("We'll notify the project team and keep comments open for follow-up.");
     expect(dialog).not.toHaveTextContent(/This action is final and cannot be changed/i);
+    expect(dialog).not.toHaveTextContent(/Your decision will be final/i);
   });
 });

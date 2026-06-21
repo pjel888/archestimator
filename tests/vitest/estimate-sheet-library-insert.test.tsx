@@ -363,7 +363,7 @@ describe("estimate sheet library insertion persistence", () => {
 
     await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
 
-    expect(await screen.findByLabelText("Express component replaceable estimate component")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
     expect(screen.getByLabelText("Image URL")).toBeInTheDocument();
     const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
     expect(nameInput.value).toBe("");
@@ -419,7 +419,7 @@ describe("estimate sheet library insertion persistence", () => {
       discipline: "Unspecified",
       designation: "",
     });
-    expect(await screen.findByLabelText("Express component replaceable estimate component")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
     expect(screen.getByLabelText("Image URL")).toBeInTheDocument();
     const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
     expect(nameInput.value).toBe("");
@@ -444,11 +444,11 @@ describe("estimate sheet library insertion persistence", () => {
     await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    expect(await within(kitchenSection).findByLabelText("Express component replaceable estimate component")).toBeInTheDocument();
-    await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Express component" }));
+    expect(await within(kitchenSection).findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
+    await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Project Component" }));
 
     const dialog = screen.getByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getAllByText("Express component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText(/authored directly in the estimate row/i).length).toBeGreaterThan(0);
     expect(within(dialog).getByText("No image yet")).toBeInTheDocument();
     expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
@@ -802,14 +802,14 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
 
-    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet project-specific" }));
-    const firstDialog = screen.getByRole("dialog", { name: "Make component project-specific" });
+    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet a Project Component" }));
+    const firstDialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(firstDialog).getByRole("button", { name: "Cancel" }));
     expect(actionMocks.detachEstimateRowItemFromLibrary).not.toHaveBeenCalled();
 
-    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet project-specific" }));
-    const dialog = screen.getByRole("dialog", { name: "Make component project-specific" });
-    await user.click(within(dialog).getByRole("button", { name: "Make project-specific" }));
+    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet a Project Component" }));
+    const dialog = screen.getByRole("dialog", { name: "Make Project Component" });
+    await user.click(within(dialog).getByRole("button", { name: "Make Project Component" }));
 
     await waitFor(() => expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
     expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
@@ -819,9 +819,9 @@ describe("estimate sheet library insertion persistence", () => {
       expectedRowRevision: 7,
       mutationId: expect.any(String),
     }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make component project-specific" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make Project Component" })).not.toBeInTheDocument());
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
-    expect(within(kitchenSection).getByText("Project-specific component")).toBeInTheDocument();
+    expect(within(kitchenSection).getByText("Project Component")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
   });
 
@@ -848,20 +848,20 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithDuplicateLinkedRows);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })).toHaveLength(2);
+    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })).toHaveLength(2);
 
-    await user.click(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })[0]);
-    const dialog = screen.getByRole("dialog", { name: "Make component project-specific" });
-    await user.click(within(dialog).getByRole("button", { name: "Make project-specific" }));
+    await user.click(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })[0]);
+    const dialog = screen.getByRole("dialog", { name: "Make Project Component" });
+    await user.click(within(dialog).getByRole("button", { name: "Make Project Component" }));
 
     await waitFor(() => expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
     expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
       rowId: cabinetRowId,
       expectedRowRevision: 7,
     }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make component project-specific" })).not.toBeInTheDocument());
-    expect(within(kitchenSection).getByText("Project-specific component")).toBeInTheDocument();
-    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })).toHaveLength(1);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make Project Component" })).not.toBeInTheDocument());
+    expect(within(kitchenSection).getByText("Project Component")).toBeInTheDocument();
+    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })).toHaveLength(1);
   });
 
   it("shows exact library sync state in row component details", async () => {
@@ -872,8 +872,8 @@ describe("estimate sheet library insertion persistence", () => {
     await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Kitchen Cabinet" }));
 
     const dialog = screen.getByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getAllByText("Customized library component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("This row is linked to the library, but one or more estimate values have project-specific overrides.").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("This row is linked to the library, but one or more estimate values have project-level overrides.").length).toBeGreaterThan(0);
     expect(within(dialog).getByText("Source library id")).toBeInTheDocument();
   });
 

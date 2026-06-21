@@ -44,6 +44,7 @@ const publicationSummary: ProjectPublicationSummary = {
   publishedAt: "2026-05-27T00:00:00.000Z",
   expiresAt: null,
   passwordRequired: true,
+  locationVisibility: "locality",
   selectedEstimateCount: 2,
   selectedEstimateIds: ["est-1", "est-2"],
   snapshotVersion: 3,
@@ -98,7 +99,9 @@ describe("ProjectPublicationHeader publication control", () => {
     );
 
     const sharedLinkButton = screen.getByRole("button", { name: "Open shared link" });
-    expect(sharedLinkButton).toHaveClass("size-10", "border", "bg-white");
+    expect(sharedLinkButton).toHaveClass("h-10", "border", "bg-white");
+    expect(within(sharedLinkButton).getByText("Share")).toBeInTheDocument();
+    expect(within(sharedLinkButton).getByText("Live, 4 opened")).toBeInTheDocument();
     expect(sharedLinkButton).toHaveAttribute("aria-haspopup", "dialog");
     expect(sharedLinkButton).toHaveAttribute("aria-expanded", "false");
 
@@ -107,12 +110,43 @@ describe("ProjectPublicationHeader publication control", () => {
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     expect(sharedLinkButton).toHaveAttribute("aria-expanded", "true");
     expect(within(dialog).getAllByText("Shared link").length).toBeGreaterThan(0);
+    const overview = within(dialog).getByTestId("publication-manager-overview");
+    expect(within(overview).getByText("Publishing overview")).toBeInTheDocument();
+    expect(within(overview).getByText("2 of 2 estimates")).toBeInTheDocument();
+    expect(within(overview).getByText("Password required")).toBeInTheDocument();
+    expect(within(overview).getByText("No expiry")).toBeInTheDocument();
+    expect(within(overview).getByText("Shared page matches saved settings.")).toBeInTheDocument();
     expect(within(dialog).getByRole("textbox", { name: "Shared link" })).toHaveValue("http://localhost:3000/share/client-token");
     expect(within(dialog).getByText("Password on")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Update shared page" })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
     expect(within(dialog).queryByText("Project share link")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Client publication snapshot")).not.toBeInTheDocument();
+  });
+
+  it("keeps manager pending settings visible in the overview while switching tabs", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectPublicationHeader
+        summary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    await user.click(within(dialog).getByRole("button", { name: "Clear" }));
+
+    const overview = within(dialog).getByTestId("publication-manager-overview");
+    expect(within(overview).getByText("0 of 2 estimates")).toBeInTheDocument();
+    expect(within(overview).getByText("Pending changes")).toBeInTheDocument();
+    expect(within(overview).getByText("1 pending change — use Update shared page to apply.")).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    expect(within(overview).getByText("0 of 2 estimates")).toBeInTheDocument();
+    expect(within(overview).getByText("Pending changes")).toBeInTheDocument();
   });
 
   it("keeps the shared-link modal responsive instead of forcing a desktop grid on mobile", () => {
@@ -123,7 +157,7 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(headerSource).not.toContain('className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]"');
   });
 
-  it("marks shared-link activity from the icon-only header entry", async () => {
+  it("marks shared-link activity from the labeled header entry", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -138,7 +172,8 @@ describe("ProjectPublicationHeader publication control", () => {
     );
 
     const sharedLinkButton = screen.getByRole("button", { name: "Open shared link" });
-    expect(sharedLinkButton).toHaveClass("size-10", "border", "bg-white");
+    expect(sharedLinkButton).toHaveClass("h-10", "border", "bg-white");
+    expect(within(sharedLinkButton).getByText("Share")).toBeInTheDocument();
     expect(sharedLinkButton).toHaveAttribute("aria-haspopup", "dialog");
     expect(sharedLinkButton).toHaveAttribute("aria-expanded", "false");
     expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
@@ -230,7 +265,7 @@ describe("ProjectPublicationHeader publication control", () => {
       expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument(),
     );
     // Status display still comes from the prop summary (published → "Link live").
-    expect(within(dialog).getByText("Link live")).toBeInTheDocument();
+    expect(within(within(dialog).getByTestId("publication-manager-overview")).getByText("Link live")).toBeInTheDocument();
   });
 
   it("generates a public view-only link with an optional password and shows it immediately", async () => {
@@ -275,6 +310,7 @@ describe("ProjectPublicationHeader publication control", () => {
       password: "client-pass-1",
       // AC-MOD-10: Generate threads the owner expiry; this summary has no expiry so it stays null.
       expiresAt: null,
+      locationVisibility: "locality",
     });
     // Switch back to Link tab to see the populated input (generate works from any tab)
     await user.click(within(dialog).getByRole("tab", { name: "Link" }));
@@ -315,6 +351,35 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
   });
 
+  it("renders stale rotate action results as errors without replacing the current link", async () => {
+    publicationActions.rotateProjectPublicationLink.mockResolvedValueOnce({
+      ok: false,
+      message: "Shared link changed while rotating. Refresh and try again.",
+      clientLinkPath: null,
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ProjectPublicationHeader
+        summary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
+    await user.click(screen.getByRole("button", { name: "Create new link" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Shared link changed while rotating. Refresh and try again.",
+    );
+    expect(within(dialog).getByRole("textbox", { name: "Shared link" })).toHaveValue(
+      "http://localhost:3000/share/client-token",
+    );
+    expect(within(dialog).queryByDisplayValue("http://localhost:3000/share/rotated-token")).toBeNull();
+  });
+
   it("does not widen an existing shared link to every sheet when updating without changing sheet selection", async () => {
     publicationActions.republishProjectPublication.mockResolvedValueOnce({
       ok: true,
@@ -346,6 +411,7 @@ describe("ProjectPublicationHeader publication control", () => {
       clearPassword: false,
       // AC-MOD-10: Update now threads the owner expiry; this summary has no expiry so it stays null.
       expiresAt: null,
+      locationVisibility: "locality",
     });
   });
 
@@ -390,6 +456,7 @@ describe("ProjectPublicationHeader publication control", () => {
       selectedEstimateIds: ["est-1"],
       password: undefined,
       expiresAt: null,
+      locationVisibility: "locality",
     });
   });
 
@@ -452,6 +519,7 @@ describe("ProjectPublicationHeader publication control", () => {
       selectedEstimateIds: ["est-1", "est-2"],
       password: undefined,
       clearPassword: true,
+      locationVisibility: "locality",
     });
   });
 
@@ -486,6 +554,7 @@ describe("ProjectPublicationHeader publication control", () => {
       projectId: "project-1",
       selectedEstimateIds: ["est-1", "est-2"],
       expiresAt: null,
+      locationVisibility: "locality",
     });
     // Reactivation never mints a new token via the create path.
     expect(publicationActions.createProjectPublication).not.toHaveBeenCalled();
@@ -532,6 +601,7 @@ describe("ProjectPublicationHeader publication control", () => {
       selectedEstimateIds: ["est-1", "est-2"],
       password: "replacement-pass",
       expiresAt: null,
+      locationVisibility: "locality",
     });
   });
 
@@ -570,6 +640,7 @@ describe("ProjectPublicationHeader publication control", () => {
       selectedEstimateIds: ["est-1", "est-2"],
       password: undefined,
       expiresAt: null,
+      locationVisibility: "locality",
     });
   });
 
@@ -791,7 +862,7 @@ describe("ProjectPublicationHeader publication control", () => {
     // Drive an owner action so the optimistic localResult is set ("Link live").
     await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
     expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared page updated.");
-    expect(within(dialog).getByText("Link live")).toBeInTheDocument();
+    expect(within(within(dialog).getByTestId("publication-manager-overview")).getByText("Link live")).toBeInTheDocument();
 
     // The layout later passes a fresh summary whose link was revoked elsewhere
     // (same projectId, status now "revoked"). The optimistic signature no longer
@@ -805,7 +876,7 @@ describe("ProjectPublicationHeader publication control", () => {
       <ProjectPublicationHeader summary={revokedSummary} projectEstimateSheets={sampleEstimateSheets} />,
     );
 
-    expect(within(dialog).getByText("Turned off")).toBeInTheDocument();
+    expect(within(within(dialog).getByTestId("publication-manager-overview")).getByText("Turned off")).toBeInTheDocument();
     expect(within(dialog).queryByText("Link live")).not.toBeInTheDocument();
     // hasLiveClientLink is false → live-link controls disabled, Generate flips to create.
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeDisabled();
@@ -824,7 +895,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    expect(within(dialog).getByText("Turned off")).toBeInTheDocument();
+    expect(within(within(dialog).getByTestId("publication-manager-overview")).getByText("Turned off")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Turn off shared link" })).toBeDisabled();
   });
 
@@ -874,6 +945,7 @@ describe("optimistic publication-result reconciliation (AC-MOD-05)", () => {
     publishedAt: "2026-05-27T00:00:00.000Z",
     expiresAt: null,
     passwordRequired: true,
+    locationVisibility: "locality",
     selectedEstimateCount: 2,
     selectedEstimateIds: ["est-1", "est-2"],
     snapshotVersion: 3,
@@ -1418,7 +1490,7 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    expect(within(dialog).getByText("Open access")).toBeInTheDocument();
+    expect(within(dialog).getByText("Open access", { selector: "span" })).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole("tab", { name: "Access" }));
     await user.click(within(dialog).getByLabelText("Require password"));
@@ -1426,7 +1498,7 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
 
     await user.click(within(dialog).getByRole("tab", { name: "Link" }));
     // The saved state is still open → chip unchanged until Update.
-    expect(within(dialog).getByText("Open access")).toBeInTheDocument();
+    expect(within(dialog).getByText("Open access", { selector: "span" })).toBeInTheDocument();
     expect(within(dialog).queryByText("Password on")).not.toBeInTheDocument();
   });
 

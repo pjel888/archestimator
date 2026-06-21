@@ -28,17 +28,18 @@ describe("project dashboard side-panel UI governance", () => {
     expect(projectEstimateMetadataStrip).toContain('workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px")');
   });
 
-  it("keeps the side-panel rail borders and warms the handle to orange on hover and drag", () => {
+  it("keeps the side-panel rail borders and uses neutral gray hover/drag feedback", () => {
     // Hairline edge chrome stays.
     expect(resizableSidePanel).toContain('side === "right" ? "border-l" : "border-r"');
-    // Resizer: white at rest, light orange while hovered or dragging.
-    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-brand-orange-soft"');
-    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-brand-orange-soft"');
-    // Grip dots track the same feedback, orange on hover/drag and grey at rest.
-    expect(resizableSidePanel).toContain("group-hover/resizer:bg-brand-orange");
-    expect(resizableSidePanel).toContain('isDragging ? "bg-brand-orange" : "bg-divider group-hover/resizer:bg-brand-orange"');
-    // Collapse toggle shares the orange hover language.
-    expect(resizableSidePanel).toContain("hover:bg-brand-orange-soft hover:text-brand-orange");
+    // Resizer: white/transparent at rest, soft neutral gray while hovered or dragging.
+    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-[#E5E5E5]"');
+    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-[#E5E5E5]"');
+    // Grip dots track the same feedback with neutral gray on hover/drag and pale grey at rest.
+    expect(resizableSidePanel).toContain("group-hover/resizer:bg-[#7F7F7F]");
+    expect(resizableSidePanel).toContain('isDragging ? "bg-[#7F7F7F]" : "bg-divider group-hover/resizer:bg-[#7F7F7F]"');
+    // Collapse toggle uses the same neutral workshop control hover, not the orange action accent.
+    expect(resizableSidePanel).toContain("hover:bg-[#E5E5E5] hover:text-ink focus-visible:bg-[#E5E5E5] focus-visible:text-ink");
+    expect(resizableSidePanel).not.toContain("hover:bg-brand-orange-soft hover:text-brand-orange");
   });
 
   it("keeps shared search and icon toolbar rows at 38px with no component borders", () => {

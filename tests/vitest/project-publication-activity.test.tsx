@@ -80,6 +80,7 @@ vi.mock("@/lib/publication/actions", async () => {
 
 // Modules under test (will fail to import or execute until P8 impl — intentionally red first)
 import { GET } from "@/app/api/share/[token]/activity/route";
+import { composeSharedLinkActivity } from "@/lib/activity";
 import { deriveCredentialVersion } from "@/lib/publication/security";
 import { loadSharedLinkActivity, maybeTriggerSharedLinkActivityDigest } from "@/lib/publication/actions";
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
@@ -152,6 +153,10 @@ function createActivityRouteSupabaseMock(queryRecords: QueryRecord[] = []) {
             recipient_id: "recipient-1",
             estimate_id: "est-1",
             row_id: "row-1",
+            target_kind: "row",
+            target_label: "Living Area",
+            target_secondary_label: "Main Estimate",
+            snapshot_version_at_comment: 7,
           },
           {
             id: "11111111-1111-4111-8111-111111111110",
@@ -162,6 +167,10 @@ function createActivityRouteSupabaseMock(queryRecords: QueryRecord[] = []) {
             recipient_id: "recipient-1",
             estimate_id: "est-1",
             row_id: "row-1",
+            target_kind: "row",
+            target_label: "Living Area",
+            target_secondary_label: "Main Estimate",
+            snapshot_version_at_comment: 7,
           },
         ]);
         queryRecords.push({ table, query });
@@ -172,9 +181,14 @@ function createActivityRouteSupabaseMock(queryRecords: QueryRecord[] = []) {
           {
             id: "22222222-2222-4222-8222-222222222222",
             created_at: "2026-05-28T11:00:00Z",
-            decision: "accepted",
-            note: null,
+            decision: "revision_requested",
+            note: "Please revise this item.",
             recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
+            target_kind: "row",
+            target_label: "Concrete works",
+            target_secondary_label: "Main Estimate",
           },
         ]);
         queryRecords.push({ table, query });
@@ -291,6 +305,10 @@ function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) 
             recipient_id: "recipient-1",
             estimate_id: "est-1",
             row_id: "row-1",
+            target_kind: "row",
+            target_label: "Living Area",
+            target_secondary_label: "Main Estimate",
+            snapshot_version_at_comment: 7,
           },
           {
             id: "c0",
@@ -302,6 +320,10 @@ function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) 
             recipient_id: "recipient-1",
             estimate_id: "est-1",
             row_id: "row-1",
+            target_kind: "row",
+            target_label: "Living Area",
+            target_secondary_label: "Main Estimate",
+            snapshot_version_at_comment: 7,
           },
           {
             id: "c2",
@@ -313,6 +335,10 @@ function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) 
             recipient_id: null,
             estimate_id: "est-1",
             row_id: "row-1",
+            target_kind: "row",
+            target_label: "Living Area",
+            target_secondary_label: "Main Estimate",
+            snapshot_version_at_comment: 7,
           },
         ]);
         queryRecords.push({ table, query });
@@ -326,6 +352,11 @@ function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) 
             decision: "accepted",
             note: null,
             recipient_id: "recipient-1",
+            estimate_id: null,
+            row_id: null,
+            target_kind: "proposal",
+            target_label: "the proposal",
+            target_secondary_label: null,
           },
         ]);
         queryRecords.push({ table, query });
@@ -467,6 +498,37 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(json.activities?.some((activity) => activity.title === "Maria commented on Living Area.")).toBe(true);
     });
 
+    it("selects stored target context for comments and responses before composing public activity", async () => {
+      const queryRecords: QueryRecord[] = [];
+      mocks.createPublicationServiceClient.mockReturnValueOnce(createActivityRouteSupabaseMock(queryRecords));
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValueOnce(true);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwaWVudC0xIn0:dummy";
+
+      const res = await GET(
+        makeRequest({
+          origin: "http://localhost",
+          cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
+        }),
+        params(),
+      );
+
+      expect(res.status).toBe(200);
+      const commentSelect = queryRecords.find((record) => record.table === "shared_link_comments")?.query.select.mock.calls[0]?.[0];
+      const responseSelect = queryRecords.find((record) => record.table === "shared_link_responses")?.query.select.mock.calls[0]?.[0];
+      expect(commentSelect).toContain("target_kind");
+      expect(commentSelect).toContain("target_label");
+      expect(commentSelect).toContain("target_secondary_label");
+      expect(commentSelect).toContain("snapshot_version_at_comment");
+      expect(responseSelect).toContain("estimate_id");
+      expect(responseSelect).toContain("row_id");
+      expect(responseSelect).toContain("target_kind");
+      expect(responseSelect).toContain("target_label");
+      expect(responseSelect).toContain("target_secondary_label");
+      const json = (await res.json()) as { activities?: Array<{ title?: string; target?: { kind?: string; label?: string } }> };
+      expect(json.activities?.some((activity) => activity.title === "Maria requested revisions for Concrete works.")).toBe(true);
+      expect(json.activities?.some((activity) => activity.target?.kind === "row" && activity.target.label === "Concrete works")).toBe(true);
+    });
+
     it("rejects cross-origin GET requests", async () => {
       mocks.assertSameOrigin.mockReturnValue({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
 
@@ -480,20 +542,22 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     it("rejects missing or invalid CSRF for POST-like but allows safe GET (reuses assert pattern from P5/P6)", async () => {
       // GET is read, but security boundary still applies for token validation
       const res = await GET(new Request("http://localhost/api/share/client-pub-token-123/activity"), params());
-      // Red until impl: either 200 with filtered or proper error shape
-      expect([200, 400, 401, 404]).toContain(res.status);
+      expect(res.status).toBe(200);
+      await expect(res.json()).resolves.toEqual(
+        expect.objectContaining({
+          recipientSession: false,
+          activities: expect.any(Array),
+        }),
+      );
     });
 
     it("filters is_internal comments for unauthenticated / public recipient views (decisions may be recipient-scoped)", async () => {
       mocks.assertSameOriginPublicPost?.mockReturnValue?.({ ok: true }); // if used
       const req = makeRequest({ cookie: "" });
       const res = await GET(req, params());
-      expect([200, 503]).toContain(res.status);
-      if (res.status === 200) {
-        const json = (await res.json()) as { activities?: Array<{ type?: string; is_internal?: boolean }> };
-        // Red expectation: public sees only !is_internal
-        expect(json.activities?.every((activity) => activity.type !== "comment" || activity.is_internal === false)).toBe(true);
-      }
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { activities?: Array<{ type?: string; is_internal?: boolean }> };
+      expect(json.activities?.every((activity) => activity.type !== "comment" || activity.is_internal === false)).toBe(true);
     });
 
     it("requires the publication access cookie before exposing password-protected activity", async () => {
@@ -654,7 +718,13 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest({ cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}` });
       const res = await GET(req, params());
-      expect([200, 401, 503]).toContain(res.status);
+      expect(res.status).toBe(200);
+      await expect(res.json()).resolves.toEqual(
+        expect.objectContaining({
+          recipientSession: true,
+          activities: expect.any(Array),
+        }),
+      );
     });
   });
 
@@ -721,6 +791,34 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
         { accessStage: "page_visit", bot: true },
       ]);
       expect(metrics).toEqual({ total: 2, bot: 1, human: 1, byStage: { page_visit: 2 } });
+    });
+  });
+
+  describe("shared-link activity target composition", () => {
+    it("renders targeted decisions against the stored line item context instead of only the proposal", () => {
+      const activity = composeSharedLinkActivity(
+        {
+          id: "decision-row-context",
+          type: "decision",
+          created_at: "2026-05-28T11:00:00Z",
+          recipientDisplayName: "Maria",
+          decision: "revision_requested",
+          metadata: {
+            targetKind: "row",
+            targetLabel: "Concrete works",
+            targetSecondaryLabel: "Main Estimate",
+          },
+        },
+        { audience: "client", visibility: "public" },
+      );
+
+      expect(activity.title).toBe("Maria requested revisions for Concrete works.");
+      expect(activity.target).toEqual({
+        kind: "row",
+        label: "Concrete works",
+        secondaryLabel: "Main Estimate",
+      });
+      expect(activity.raw).toBeUndefined();
     });
   });
 
@@ -959,26 +1057,13 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(res.ok).toBe(true);
     });
 
-    it("resolves the real owner email and sender label for activity digests", async () => {
+    it("resolves the real owner email and sender label for public-route activity digests", async () => {
       mocks.sendEmail.mockClear();
 
       mocks.requireCurrentUserContext.mockRejectedValueOnce(new Error("auth required"));
-      await expect(maybeTriggerSharedLinkActivityDigest("pub-real-owner", "client-pub-token-123", "comment")).resolves.toEqual({
-        ok: false,
-        error: "digest-auth-required",
-      });
-      expect(mocks.sendEmail).not.toHaveBeenCalled();
+      await maybeTriggerSharedLinkActivityDigest("pub-real-owner-public-route", "client-pub-token-123", "comment");
 
-      mocks.requireCurrentUserContext.mockResolvedValueOnce({
-        userId: "manager-user",
-        email: "manager@example.com",
-        displayName: "Manager",
-        role: "admin",
-        profile: {},
-        avatarUrl: null,
-      });
-      await maybeTriggerSharedLinkActivityDigest("pub-real-owner", "client-pub-token-123", "comment");
-
+      expect(mocks.requireCurrentUserContext).not.toHaveBeenCalled();
       expect(mocks.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "owner@example.com",

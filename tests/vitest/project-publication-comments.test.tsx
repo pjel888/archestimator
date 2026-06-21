@@ -58,6 +58,8 @@ function makeRequest(body: unknown, headers: Record<string, string> = {}) {
 }
 
 const validSharedLinkSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+const TARGET_ESTIMATE_ID = "11111111-1111-4111-8111-111111111111";
+const TARGET_ROW_ID = "22222222-2222-4222-8222-222222222222";
 
 function validSessionCookie() {
   return `shared_link_session_abc123=${encodeURIComponent(validSharedLinkSession)}`;
@@ -66,6 +68,8 @@ function validSessionCookie() {
 describe("P6 — Shared Link Comments (red tests written FIRST before any impl)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.readPublicationViewSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
@@ -106,7 +110,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         { cookie: "shared_link_session_abc123=bad", "x-archestimator-csrf": "t" }
       );
       const res = await POST(req, params());
-      expect([401, 503]).toContain(res.status); // 503 possible in some envs without full mocks; core guard path exercised
+      expect(res.status).toBe(401);
       const json = await res.json();
       expect(json.error).toMatch(/session|unauthorized/i);
     });
@@ -216,8 +220,8 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       });
 
       const invalidTargetCases: Array<["estimateId" | "rowId", RegExp]> = [
-        ["estimateId", /estimate id.*uuid/i],
-        ["rowId", /row id.*uuid/i],
+        ["estimateId", /estimate id.*review target id/i],
+        ["rowId", /row id.*review target id/i],
       ];
 
       for (const [field, messagePattern] of invalidTargetCases) {
@@ -281,10 +285,21 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     it("calls insert_client_comment RPC (P3) with hashed token + recipient context on valid input", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
-      const req = makeRequest({ body: "Valid comment here", estimateId: "est-1" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" });
+      const req = makeRequest(
+        { body: "Valid comment here", estimateId: TARGET_ESTIMATE_ID, rowId: TARGET_ROW_ID },
+        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+      );
       const res = await POST(req, params());
-      // red: will fail until route does the RPC call via service client and returns success
-      expect([201, 400, 503]).toContain(res.status);
+      expect(res.status).toBe(201);
+      expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicationToken: "client-pub-token-123",
+          recipientId: "recip-123",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+          expectedSnapshotVersion: 1,
+        }),
+      );
     });
 
     it("returns the canonical inserted comment so the client does not need to reload after POST", async () => {
@@ -298,11 +313,20 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
           authorName: "Client",
           authorType: "recipient",
           createdAt: "2026-06-03T01:10:00.000Z",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+          targetKind: "row",
+          targetLabel: "Concrete works",
+          targetSecondaryLabel: "Main Estimate",
+          snapshotVersionAtComment: 1,
         },
       });
 
       const response = await POST(
-        makeRequest({ body: "Canonical comment body" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" }),
+        makeRequest(
+          { body: "Canonical comment body", estimateId: TARGET_ESTIMATE_ID, rowId: TARGET_ROW_ID },
+          { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+        ),
         params(),
       );
 
@@ -316,8 +340,42 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
           authorName: "Client",
           authorType: "recipient",
           createdAt: "2026-06-03T01:10:00.000Z",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+          targetKind: "row",
+          targetLabel: "Concrete works",
+          targetSecondaryLabel: "Main Estimate",
+          snapshotVersionAtComment: 1,
         },
       });
+    });
+
+    it("returns 400 when a syntactically valid comment target is not part of the published snapshot", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.insertSharedLinkComment.mockRejectedValueOnce(
+        new Error("Invalid review target: selected line item is not part of this publication."),
+      );
+
+      const response = await POST(
+        makeRequest(
+          { body: "This row is not in the publication.", estimateId: TARGET_ESTIMATE_ID, rowId: TARGET_ROW_ID },
+          { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+        ),
+        params(),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "Invalid review target: selected line item is not part of this publication.",
+      });
+      expect(mocks.checkSharedLinkCommentRateLimit).toHaveBeenCalledTimes(1);
+      expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+        }),
+      );
     });
 
     it("rejects a stale signed rendered-view snapshot after content-only republish", async () => {
@@ -341,8 +399,33 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(res.status).toBe(409);
       await expect(res.json()).resolves.toEqual({
         error: "Publication snapshot changed. Please reload before posting a comment.",
+        currentSnapshotVersion: 2,
       });
       expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("signed-view-token-v1", {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+      });
+      expect(mocks.checkSharedLinkCommentRateLimit).not.toHaveBeenCalled();
+      expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
+    });
+
+    it("rejects a tampered rendered-view token before rate limit or insert", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(undefined);
+
+      const req = makeRequest(
+        { body: "Comment from a tampered rendered view", viewToken: "tampered-view-token" },
+        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+      );
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(409);
+      await expect(res.json()).resolves.toEqual({
+        error: "Publication snapshot changed. Please reload before posting a comment.",
+        currentSnapshotVersion: 1,
+      });
+      expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("tampered-view-token", {
         token: "client-pub-token-123",
         publicationId: "pub1",
       });
@@ -537,6 +620,67 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       ).toHaveLength(1);
     });
 
+    it("posts selected line-item context and labels the composer plus submitted comment", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      // @ts-expect-error fetch mock
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ comments: [] }) })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 201,
+          json: async () => ({
+            id: "comment-targeted",
+            comment: {
+              id: "comment-targeted",
+              content: "Please review this item.",
+              authorName: "You",
+              authorType: "recipient",
+              createdAt: "2026-06-03T01:05:00.000Z",
+              estimateId: TARGET_ESTIMATE_ID,
+              rowId: TARGET_ROW_ID,
+              targetKind: "row",
+              targetLabel: "Concrete works",
+              targetSecondaryLabel: "Main Estimate",
+              snapshotVersionAtComment: 1,
+            },
+          }),
+        });
+
+      render(
+        <SharePageComments
+          token="t1"
+          viewToken="view-token"
+          reviewTarget={{
+            kind: "row",
+            label: "Concrete works",
+            secondaryLabel: "Main Estimate",
+            estimateId: TARGET_ESTIMATE_ID,
+            rowId: TARGET_ROW_ID,
+          }}
+        />,
+      );
+
+      expect(screen.getAllByText("Applies to Concrete works").length).toBeGreaterThan(0);
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "Please review this item.");
+      await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
+
+      await waitFor(() => expect(screen.getByText("Please review this item.")).toBeInTheDocument());
+      expect(screen.getAllByText("Concrete works").length).toBeGreaterThan(0);
+      const postCall = vi
+        .mocked(global.fetch)
+        .mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "POST");
+      expect(JSON.parse(String((postCall?.[1] as RequestInit).body))).toEqual(
+        expect.objectContaining({
+          body: "Please review this item.",
+          viewToken: "view-token",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+        }),
+      );
+    });
+
 
     it("is disabled / shows session error when !useSharedLinkSession().isValid (P5)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
@@ -654,26 +798,65 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     describe("offline queue (sessionStorage + reconnect)", () => {
       it("stores pending comments in sessionStorage when offline, auto-retries + flushes on 'online' event", async () => {
         const origOnLine = navigator.onLine;
-        Object.defineProperty(navigator, "onLine", { writable: true, value: false });
-
         const origFetch = global.fetch;
-        global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
+        const queueKey = "shared-link-pending-comments-t1";
+        let allowFlush = false;
+        const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+          if (init?.method === "GET") {
+            return { ok: true, status: 200, json: async () => ({ comments: [] }) };
+          }
+          if (allowFlush) {
+            return { ok: true, status: 201, json: async () => ({ id: "flushed-comment" }) };
+          }
+          throw new Error("offline");
+        });
 
-        render(<SharePageComments token="t1" viewToken="view-token" />);
-        const ta = screen.getByPlaceholderText(/add a comment/i);
-        // type + post while offline should queue (no crash, error shows queued hint after impl)
-        await userEvent.type(ta, "queued while offline");
-        await userEvent.click(screen.getByRole("button", { name: /post|send/i }));
+        Object.defineProperty(navigator, "onLine", { configurable: true, writable: true, value: false });
+        // @ts-expect-error fetch mock
+        global.fetch = fetchMock;
 
-        // After impl: queue + reconnect listener present (storage + 'online' flush exercised in component); jsdom timing makes hard assert flaky, soft for green suite while covering the P12 requirement.
-        expect(true).toBe(true);
+        try {
+          render(<SharePageComments token="t1" viewToken="view-token" />);
+          const ta = screen.getByPlaceholderText(/add a comment/i);
+          await userEvent.type(ta, "queued while offline");
+          await userEvent.click(screen.getByRole("button", { name: /post|send/i }));
 
-        // simulate reconnect (listener attached in impl)
-        Object.defineProperty(navigator, "onLine", { writable: true, value: true });
-        window.dispatchEvent(new Event("online"));
+          await waitFor(() => {
+            const queued = JSON.parse(sessionStorage.getItem(queueKey) ?? "[]") as Array<{ body?: string }>;
+            expect(queued).toEqual([expect.objectContaining({ body: "queued while offline" })]);
+          });
+          expect(screen.getByRole("alert")).toHaveTextContent(/offline.*queued/i);
+          expect(screen.getByRole("status")).toHaveTextContent(/1 comment queued/i);
 
-        global.fetch = origFetch;
-        Object.defineProperty(navigator, "onLine", { writable: true, value: origOnLine });
+          const failedPostCalls = fetchMock.mock.calls.filter(
+            ([, init]) => (init as RequestInit | undefined)?.method === "POST",
+          );
+          expect(failedPostCalls).toHaveLength(3);
+
+          allowFlush = true;
+          Object.defineProperty(navigator, "onLine", { configurable: true, writable: true, value: true });
+          window.dispatchEvent(new Event("online"));
+
+          await waitFor(() => {
+            expect(JSON.parse(sessionStorage.getItem(queueKey) ?? "[]")).toEqual([]);
+          });
+
+          const postCalls = fetchMock.mock.calls.filter(
+            ([, init]) => (init as RequestInit | undefined)?.method === "POST",
+          );
+          expect(postCalls).toHaveLength(4);
+          const flushInit = postCalls.at(-1)?.[1] as RequestInit;
+          expect(JSON.parse(String(flushInit.body))).toMatchObject({
+            body: "queued while offline",
+            viewToken: "view-token",
+          });
+          const headers = flushInit.headers as Record<string, string>;
+          expect(headers["x-archestimator-csrf"]).toEqual(expect.any(String));
+          expect(headers["x-archestimator-csrf"]).not.toBe(["client", "post"].join("-"));
+        } finally {
+          global.fetch = origFetch;
+          Object.defineProperty(navigator, "onLine", { configurable: true, writable: true, value: origOnLine });
+        }
       }, 5000);
     });
 
@@ -683,18 +866,21 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         // Simulate sequence of failing inserts -> breaker trips -> 503
         mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
         mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+        mocks.checkSharedLinkCommentRateLimit.mockResolvedValue({ allowed: true });
         mocks.insertSharedLinkComment.mockRejectedValue(new Error("db 500"));
 
         const csrf = { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" };
-        let lastStatus = 0;
-        // Limit to <5 to hit 5xx path before P6 rate limit (5/min) kicks in; 5 attempts all 500 -> breaker trips
+        let lastResponse: Response | null = null;
         for (let i = 0; i < 6; i++) {
           const r = await POST(makeRequest({ body: `c${i}` }, csrf), params());
-          lastStatus = r.status;
-          if (lastStatus === 503) break;
+          lastResponse = r;
+          if (r.status === 503) break;
         }
-        // After impl: breaker or rate/validation paths may return 4xx/5xx; 503 or 500 confirms circuit/record5xx exercised in P12 path
-        expect([400, 429, 500, 503]).toContain(lastStatus);
+        expect(lastResponse?.status).toBe(503);
+        expect(lastResponse?.headers.get("retry-after")).toBe("120");
+        await expect(lastResponse?.json()).resolves.toEqual({
+          error: "Service temporarily unavailable due to high error rate. Please retry shortly.",
+        });
       });
 
       it("email dispatch circuit pauses (>50% failure) for 10min (protects P4/P8 digests + recipient sends)", async () => {

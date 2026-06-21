@@ -237,6 +237,7 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
         p_activity_target_labels_json: {
           estimateLabels: { "est-1": "Proposal" },
           rowLabels: {},
+          rowEstimateIds: {},
         },
         p_token_hash: expect.any(String),
         p_encrypted_token: expect.any(String),

@@ -50,6 +50,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       projectCode: "VR-001",
       clientName: "Client Family",
       location: "Quezon City",
+      locationVisibility: "locality",
       currencyCode: "PHP",
     });
     expect(snapshot.estimates[0]?.rows[0]).toEqual({
@@ -178,7 +179,47 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     });
   });
 
-  it("builds v1.2 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
+  it("applies manager-selected location privacy before public reads", () => {
+    const exact = buildProjectPublicationSnapshot({
+      generatedAt: "2026-06-21T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "123 Scout Rallos Street, Diliman, Quezon City, Metro Manila",
+        locationVisibility: "exact",
+        currencyCode: "PHP",
+      },
+      estimates: [],
+    });
+    const hidden = buildProjectPublicationSnapshot({
+      generatedAt: "2026-06-21T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "14.650123, 121.049456",
+        locationVisibility: "hidden",
+        currencyCode: "PHP",
+      },
+      estimates: [],
+    });
+
+    expect(exact.project.location).toBe("123 Scout Rallos Street, Diliman, Quezon City, Metro Manila");
+    expect(exact.project.locationVisibility).toBe("exact");
+    expect(
+      sanitizeProjectPublicationSnapshotForPublicRead({
+        ...exact,
+        project: { ...exact.project, locationVisibility: "locality" },
+      }).project.location,
+    ).toBe("Quezon City, Metro Manila");
+    expect(hidden.project.location).toBeNull();
+    expect(hidden.project.locationVisibility).toBe("hidden");
+  });
+
+  it("builds compact v1.3 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-06-13T00:00:00.000Z",
       project: {
@@ -237,7 +278,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
 
     const estimate = snapshot.estimates[0];
 
-    expect(snapshot.schemaVersion).toBe(1.2);
+    expect(snapshot.schemaVersion).toBe(1.3);
     expect(estimate?.rowCount).toBe(2);
     expect(estimate?.rows.map((row) => row.id)).toEqual(["row-base", "row-alt"]);
     expect(estimate?.rows.map((row) => row.tabId)).toEqual(["tab-base", "tab-alt"]);
@@ -249,7 +290,9 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       ["tab-base", 1, 2000],
       ["tab-alt", 1, 5750],
     ]);
-    expect(estimate?.tabs?.[0]?.rows.map((row) => row.id)).toEqual(["row-base"]);
+    expect(estimate?.tabs?.[0]?.rowIds).toEqual(["row-base"]);
+    expect(estimate?.tabs?.[1]?.rowIds).toEqual(["row-alt"]);
+    expect(Object.hasOwn(estimate?.tabs?.[0] ?? {}, "rows")).toBe(false);
     expect(estimate?.tabs?.[1]?.treeNodes?.map((node) => node.id)).toEqual(["node-alt"]);
     expect(snapshot.totalCost).toBe(7750);
   });
@@ -314,11 +357,101 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(estimate?.totalCost).toBe(2000);
     expect(estimate?.rows.map((row) => row.id)).toEqual(["row-base"]);
     expect(estimate?.treeNodes?.map((node) => node.id)).toEqual(["node-base"]);
-    expect(estimate?.tabs?.[0]?.rows.map((row) => row.id)).toEqual(["row-base"]);
+    expect(estimate?.tabs?.[0]?.rowIds).toEqual(["row-base"]);
+    expect(Object.hasOwn(estimate?.tabs?.[0] ?? {}, "rows")).toBe(false);
     expect(estimate?.tabs?.[0]?.treeNodes?.map((node) => node.id)).toEqual(["node-base"]);
     expect(JSON.stringify(snapshot)).not.toContain("row-archived");
     expect(JSON.stringify(snapshot)).not.toContain("node-archived");
     expect(snapshot.totalCost).toBe(2000);
+  });
+
+  it("still sanitizes legacy v1.2 tab row payloads read from stored snapshots", () => {
+    const sanitized = sanitizeProjectPublicationSnapshotForPublicRead({
+      schemaVersion: 1.2,
+      generatedAt: "2026-06-13T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "Quezon City",
+        currencyCode: "PHP",
+      },
+      estimateCount: 1,
+      rowCount: 1,
+      totalCost: 2300,
+      estimates: [
+        {
+          id: "estimate-1",
+          name: "Main Estimate",
+          sheetCode: "ES-001",
+          updatedAt: "2026-06-13T00:00:00.000Z",
+          rowCount: 1,
+          totalCost: 2300,
+          rows: [
+            {
+              id: "row-legacy",
+              description: "Legacy tab row",
+              designation: "LEG-01",
+              discipline: "Structural",
+              material: "Concrete",
+              quantity: 2,
+              unit: "cu.m",
+              rowTotal: 2300,
+              imageUrl: null,
+              nodeId: "node-legacy",
+              tabId: "tab-base",
+            },
+          ],
+          tabs: [
+            {
+              id: "tab-base",
+              name: "Base",
+              sortOrder: 0,
+              isDefault: true,
+              rowCount: 1,
+              totalCost: 2300,
+              rows: [
+                {
+                  id: "row-legacy",
+                  description: "Legacy tab row",
+                  designation: "LEG-01",
+                  discipline: "Structural",
+                  material: "Concrete",
+                  quantity: 2,
+                  unit: "cu.m",
+                  unitCost: 1000,
+                  miscCost: 100,
+                  contingencyPercentage: 10,
+                  rowTotal: 2300,
+                  imageUrl: null,
+                  nodeId: "node-legacy",
+                  tabId: "tab-base",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as Parameters<typeof sanitizeProjectPublicationSnapshotForPublicRead>[0]);
+
+    expect(sanitized.schemaVersion).toBe(1.2);
+    expect(sanitized.estimates[0]?.tabs?.[0]?.rows?.[0]).toEqual({
+      id: "row-legacy",
+      description: "Legacy tab row",
+      designation: "LEG-01",
+      discipline: "Structural",
+      material: "Concrete",
+      quantity: 2,
+      unit: "cu.m",
+      rowTotal: 2300,
+      imageUrl: null,
+      nodeId: "node-legacy",
+      tabId: "tab-base",
+    });
+    expect(JSON.stringify(sanitized)).not.toContain("unitCost");
+    expect(JSON.stringify(sanitized)).not.toContain("miscCost");
+    expect(JSON.stringify(sanitized)).not.toContain("contingencyPercentage");
   });
 
   it("keeps only safe public share image URLs in snapshots", () => {

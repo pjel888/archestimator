@@ -38,10 +38,11 @@ describe("Codex publication and public-surface hardening contracts", () => {
     const publicRepository = read("src/lib/publication/public-repository.ts");
     const latestSubmitClientResponse = latestFunction("submit_client_response");
 
-    expect(migrationText).toContain("drop function if exists public.submit_client_response(text, text, text, text)");
+    expect(migrationText).toContain("drop function if exists public.submit_client_response(text, text, text, text, integer)");
     expect(latestSubmitClientResponse).toContain("p_expected_snapshot_version integer");
     expect(latestSubmitClientResponse).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
-    expect(latestSubmitClientResponse).toContain("p_decision, left(p_note, 2000), p_expected_snapshot_version");
+    expect(latestSubmitClientResponse).toContain("left(p_note, 2000)");
+    expect(latestSubmitClientResponse).toMatch(/snapshot_version_at_decision[\s\S]*p_expected_snapshot_version/);
     expect(decisionRoute).toContain("resolveProjectPublicationAccessByToken(token)");
     expect(decisionRoute).toContain("readPublicationViewSnapshotVersion");
     expect(decisionRoute).toContain("viewedSnapshotVersion !== access.snapshotVersion");
@@ -55,7 +56,7 @@ describe("Codex publication and public-surface hardening contracts", () => {
     const publicRepository = read("src/lib/publication/public-repository.ts");
     const latestInsertClientComment = latestFunction("insert_client_comment");
 
-    expect(migrationText).toContain("drop function if exists public.insert_client_comment(text, text, uuid, uuid, text)");
+    expect(migrationText).toContain("drop function if exists public.insert_client_comment(text, text, uuid, uuid, text, integer)");
     expect(latestInsertClientComment).toContain("p_expected_snapshot_version integer");
     expect(latestInsertClientComment).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
     expect(commentRoute).toContain("resolveProjectPublicationAccessByToken(token)");
@@ -94,17 +95,17 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(rotationMigration).toContain("v_next_snapshot_version := coalesce(v_snapshot_version, 0) + 1");
   });
 
-  it("keeps password-protected share metadata generic before snapshot resolution", () => {
+  it("keeps public share metadata generic without resolving the proposal snapshot", () => {
     const sharePage = read("src/app/share/[token]/page.tsx");
     const metadataFn = sharePage.slice(sharePage.indexOf("export async function generateMetadata"));
 
     expect(sharePage).toContain("protectedPublicationMetadata");
+    expect(sharePage).toContain("publicPublicationMetadata");
     expect(metadataFn.indexOf("if (access.passwordRequired)")).toBeGreaterThanOrEqual(0);
-    expect(metadataFn.indexOf("if (access.passwordRequired)")).toBeLessThan(
-      metadataFn.indexOf("resolveProjectPublicationSnapshotByToken(token)"),
-    );
+    expect(metadataFn).not.toContain("resolveProjectPublicationSnapshotByToken(token)");
     expect(sharePage).toContain('title: "Proposal Review | Archestimator"');
     expect(sharePage).toContain('description: "This proposal is password protected."');
+    expect(sharePage).toContain('description: "A client proposal is available for review."');
   });
 
   it("keeps project images out of public Supabase Storage surfaces", () => {

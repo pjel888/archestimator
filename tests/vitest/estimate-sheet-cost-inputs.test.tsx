@@ -715,7 +715,7 @@ describe("estimate sheet cost inputs", () => {
     await user.click(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" }));
 
     expect(within(row as HTMLElement).getByLabelText("Component name")).toHaveValue("");
-    expect(within(row as HTMLElement).getByLabelText("Express component quantity")).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByLabelText("Project Component quantity")).toBeInTheDocument();
     expect(screen.queryByLabelText("Hardwood Oak Flooring quantity")).not.toBeInTheDocument();
   });
 

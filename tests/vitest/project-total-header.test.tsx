@@ -81,6 +81,22 @@ describe("ProjectTotalHeader", () => {
     expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-tone", "amber");
   });
 
+  it("uses a smooth multi-stop color ramp across active budget health segments", () => {
+    renderProjectTotalHeader();
+
+    act(() => dispatchProjectTotalChange(750_000));
+
+    const header = screen.getByLabelText("Estimate running totals");
+    const activeSegments = Array.from(header.querySelectorAll('[data-budget-health-segment-active="true"]'));
+    const activeColors = activeSegments.map((segment) => segment.getAttribute("data-budget-health-segment-color"));
+    const uniqueActiveColors = new Set(activeColors);
+
+    expect(activeColors[0]).toMatch(/^#[0-9a-f]{6}$/);
+    expect(uniqueActiveColors.size).toBeGreaterThan(24);
+    expect(activeColors[0]).not.toBe(activeColors[Math.floor(activeColors.length / 2)]);
+    expect(activeColors[Math.floor(activeColors.length / 2)]).not.toBe(activeColors[activeColors.length - 1]);
+  });
+
   it("turns over-budget cost red and fills the heatmap through the red zone", () => {
     renderProjectTotalHeader();
 

@@ -37,6 +37,7 @@ import { GET } from "@/app/api/share/[token]/route";
 import { POST } from "@/app/api/share/[token]/events/route";
 import { POST as POST_PASSWORD } from "@/app/api/share/[token]/password/route";
 import { createPublicationAccessCookie } from "@/lib/publication/security";
+import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
 
 const snapshot = {
   schemaVersion: 1,
@@ -233,7 +234,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     const response = await GET(new Request("https://archestimator.test/api/share/missing-token"), params("missing-token"));
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: "Publication not found." });
+    expect(await response.json()).toEqual(sharedLinkUnavailableErrorBody());
     expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
   });
 

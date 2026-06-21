@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   resolveProjectPublicationSnapshotByToken: vi.fn(),
   resolveSharedLinkRecipientIdentity: vi.fn(),
   unsubscribeSharedLinkRecipientByToken: vi.fn(),
+  checkSharedLinkUnsubscribeRateLimit: vi.fn(),
   verifySharedLinkRecipientToken: vi.fn(),
   checkSharedLinkSessionStartRateLimit: vi.fn(),
   checkProjectPublicationEventRateLimit: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("@/lib/publication/public-repository", () => ({
   resolveProjectPublicationSnapshotByToken: mocks.resolveProjectPublicationSnapshotByToken,
   resolveSharedLinkRecipientIdentity: mocks.resolveSharedLinkRecipientIdentity,
   unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
+  checkSharedLinkUnsubscribeRateLimit: mocks.checkSharedLinkUnsubscribeRateLimit,
   verifySharedLinkRecipientToken: mocks.verifySharedLinkRecipientToken,
   checkSharedLinkSessionStartRateLimit: mocks.checkSharedLinkSessionStartRateLimit,
   checkProjectPublicationEventRateLimit: mocks.checkProjectPublicationEventRateLimit,
@@ -89,6 +91,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     mocks.resolveSharedLinkRecipientIdentity.mockResolvedValue(null);
     mocks.recordProjectPublicationAnalyticsEvent.mockResolvedValue({ recorded: true });
     mocks.verifySharedLinkRecipientToken.mockResolvedValue(null);
+    mocks.checkSharedLinkUnsubscribeRateLimit.mockResolvedValue({ allowed: true });
     mocks.checkSharedLinkSessionStartRateLimit.mockResolvedValue({ allowed: true });
     mocks.checkProjectPublicationEventRateLimit.mockResolvedValue({ allowed: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
@@ -185,17 +188,13 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     });
   });
 
-  it("mounts the public-safe receiver activity feed", async () => {
+  it("does not mount the owner activity feed on the public receiver page", async () => {
     render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
-    const feed = await screen.findByTestId("activity-feed");
-    expect(within(feed).getByText("No activity yet.")).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(screen.queryByTestId("activity-feed")).not.toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalledWith(
       "/api/share/client-token/activity",
-      expect.objectContaining({
-        cache: "no-store",
-        headers: { "Cache-Control": "no-store" },
-      }),
+      expect.anything(),
     );
   });
 
@@ -446,9 +445,19 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   it("expires recipient session cookies without exposing the raw share token", async () => {
     const { DELETE } = await import("@/app/api/share/[token]/session/route");
 
-    const response = await DELETE(new Request("https://archestimator.test/api/share/client-token/session"), {
-      params: Promise.resolve({ token: "client-token" }),
-    });
+    const response = await DELETE(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "DELETE",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+      }),
+      {
+        params: Promise.resolve({ token: "client-token" }),
+      },
+    );
     const setCookieHeader = response.headers.get("set-cookie") ?? "";
 
     expect(response.status).toBe(200);
@@ -476,15 +485,22 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       routeParams,
     );
     expect(getResponse.status).toBe(200);
-    expect(await getResponse.text()).toContain("Confirm unsubscribe");
+    const getBody = await getResponse.text();
+    const csrf = /ae_publication_csrf=([^;]+)/.exec(getResponse.headers.get("set-cookie") ?? "")?.[1] ?? "";
+    expect(getBody).toContain("Confirm unsubscribe");
+    expect(csrf).toHaveLength(43);
     expect(mocks.unsubscribeSharedLinkRecipientByToken).not.toHaveBeenCalled();
 
     // The explicit same-origin POST performs the suppression.
     const postResponse = await POST(
       new Request("https://archestimator.test/api/share/client-token/unsubscribe", {
         method: "POST",
-        headers: { origin: "https://archestimator.test", "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ recipient: "raw-recipient-token" }).toString(),
+        headers: {
+          origin: "https://archestimator.test",
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: `ae_publication_csrf=${csrf}`,
+        },
+        body: new URLSearchParams({ recipient: "raw-recipient-token", csrf }).toString(),
       }),
       routeParams,
     );
@@ -634,6 +650,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
     beforeEach(() => {
       vi.clearAllMocks();
+      document.cookie = "shared_link_session_clientworkspace_ok=; Max-Age=0; path=/";
     });
 
     it("renders a tablist with role=tablist, aria-label, and role=tab buttons (one per estimate) with aria-selected and aria-controls", async () => {
@@ -655,10 +672,10 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(tabs[0]).toHaveAttribute("aria-selected", "true");
       expect(tabs[0]).toHaveAttribute("aria-controls");
       expect(tabs[1]).toHaveAttribute("aria-selected", "false");
-      // design system: rounded-xs + ≤12px text
+      // The public /share client-portal scale allows 13px estimate-tab labels; keep the exemption
+      // path-scoped in design-enforcer-share-allowlist.test.ts.
       expect(tabs[0].className).toMatch(/rounded-xs/);
-      // text size is explicit text-[10px] on button (or inherited from tablist container)
-      expect(tabs[0].className + " " + (tabs[0].parentElement?.className ?? "")).toMatch(/text-\[10px\]|text-\[9px\]|text-\[11px\]/);
+      expect(tabs[0].className).toContain("text-[13px]");
     });
 
     it("switches active tab on click and renders only the active estimate's table content in the tabpanel (encapsulates card + table)", async () => {
@@ -711,7 +728,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(document.querySelector("[data-share-print-package]")).not.toBeInTheDocument();
     });
 
-    it("filters grid preview rows by text and shows an empty state", async () => {
+    it("filters the collated bid-form rows by text and shows an empty state", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
       const filterEstimate: PublicationSnapshotEstimate = {
@@ -732,7 +749,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
       render(<SharePageTabs estimates={[filterEstimate]} currencyCode="PHP" token="client-token-filter" />);
 
-      await user.click(screen.getByRole("tab", { name: "Grid Preview" }));
+      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      expect(screen.getAllByText("Line item table").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Qty 2 · cu.m").length).toBeGreaterThan(0);
       const search = screen.getByRole("searchbox", { name: "Filter estimate rows" });
       await user.type(search, "oak");
@@ -746,7 +764,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(screen.getByText('No rows match "zzz"')).toBeInTheDocument();
     });
 
-    it("caps grid preview rows for large snapshots and asks the recipient to refine the filter", async () => {
+    it("caps rendered collated rows and invites filtering for large estimate tables", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
       const largeEstimate: PublicationSnapshotEstimate = {
@@ -761,16 +779,217 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
       render(<SharePageTabs estimates={[largeEstimate]} currencyCode="PHP" token="client-token-large-grid" />);
 
-      await user.click(screen.getByRole("tab", { name: "Grid Preview" }));
+      await user.click(screen.getByRole("tab", { name: "Line item table" }));
 
       expect(within(screen.getByRole("tabpanel")).getByText("Large item 250")).toBeInTheDocument();
       expect(within(screen.getByRole("tabpanel")).queryByText("Large item 251")).not.toBeInTheDocument();
-      expect(screen.getByText("Showing first 250 of 260 matching rows. Refine the filter to narrow the list.")).toBeInTheDocument();
+      expect(screen.getByText(/Showing first 250 of 260 line items/i)).toBeInTheDocument();
+
+      await user.type(screen.getByRole("searchbox", { name: "Filter estimate rows" }), "Large item 251");
+      expect(within(screen.getByRole("tabpanel")).getByText("Large item 251")).toBeInTheDocument();
+      expect(screen.queryByText(/Showing first 250/)).not.toBeInTheDocument();
     });
 
-    it("renders v1.2 estimate tabs inside the selected estimate and preserves legacy snapshots without nested tabs", async () => {
+    it("offers row-level review actions in the collated view and emits the selected target", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
+      const onReviewTargetChange = vi.fn();
+
+      render(
+        <SharePageTabs
+          estimates={[baseEstimate]}
+          currencyCode="PHP"
+          token="client-token-review-target"
+          onReviewTargetChange={onReviewTargetChange}
+        />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      await user.click(screen.getByRole("button", { name: /ask about item: concrete works/i }));
+
+      expect(onReviewTargetChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: "row",
+          estimateId: "estimate-1",
+          rowId: "row-1",
+          label: "Concrete works",
+          secondaryLabel: "Main Estimate",
+        }),
+      );
+      expect(screen.getByRole("button", { name: /ask about item: concrete works/i })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("threads the selected collated-row target through workspace comments and clears back to proposal scope", async () => {
+      const ShareReviewWorkspace = (await import("@/components/share/ShareReviewWorkspace")).default;
+      const user = userEvent.setup();
+      document.cookie = "shared_link_session_clientworkspace_ok=1";
+      const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        if (method === "POST" && url.includes("/comment")) {
+          const payload = JSON.parse(String(init?.body));
+          return {
+            ok: true,
+            status: 201,
+            json: async () => ({
+              id: `comment-${fetchMock.mock.calls.length}`,
+              comment: {
+                id: `comment-${fetchMock.mock.calls.length}`,
+                content: payload.body,
+                authorName: "You",
+                authorType: "recipient",
+                createdAt: "2026-06-03T01:05:00.000Z",
+                estimateId: payload.estimateId,
+                rowId: payload.rowId,
+                targetKind: payload.rowId ? "row" : "proposal",
+                targetLabel: payload.rowId ? "Concrete works" : "the proposal",
+                targetSecondaryLabel: payload.rowId ? "Main Estimate" : null,
+                snapshotVersionAtComment: 7,
+              },
+            }),
+          };
+        }
+        if (url.includes("/comment")) return { ok: true, status: 200, json: async () => ({ comments: [] }) };
+        if (url.includes("/decision")) return { ok: true, status: 200, json: async () => ({ decision: null }) };
+        return { ok: true, status: 200, json: async () => ({ activities: [], hasMore: false, recipientSession: true }) };
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      render(
+        <ShareReviewWorkspace
+          estimates={[baseEstimate]}
+          currencyCode="PHP"
+          token="clientworkspace"
+          viewToken="view-token"
+        />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      await user.click(screen.getByRole("button", { name: /ask about item: concrete works/i }));
+      expect(screen.getAllByText("Applies to Concrete works").length).toBeGreaterThan(0);
+
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "Please revise this item.");
+      await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
+
+      await waitFor(() => expect(screen.getByText("Please revise this item.")).toBeInTheDocument());
+      const postBodies = () =>
+        fetchMock.mock.calls
+          .filter(([, init]) => (init as RequestInit | undefined)?.method === "POST")
+          .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
+      expect(postBodies()[0]).toEqual(
+        expect.objectContaining({
+          body: "Please revise this item.",
+          estimateId: "estimate-1",
+          rowId: "row-1",
+        }),
+      );
+
+      await user.click(screen.getByRole("button", { name: "Clear" }));
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "Overall proposal is fine.");
+      await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
+
+      await waitFor(() => expect(screen.getByText("Overall proposal is fine.")).toBeInTheDocument());
+      expect(postBodies()[1]).toEqual(
+        expect.objectContaining({
+          body: "Overall proposal is fine.",
+          estimateId: null,
+          rowId: null,
+        }),
+      );
+    });
+
+    it("threads the selected collated-row target through workspace decisions", async () => {
+      const ShareReviewWorkspace = (await import("@/components/share/ShareReviewWorkspace")).default;
+      const user = userEvent.setup();
+      document.cookie = "shared_link_session_clientworkspace_decision_ok=1";
+      const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        if (method === "POST" && url.includes("/decision")) {
+          return { ok: true, status: 201, json: async () => ({ id: "decision-row" }) };
+        }
+        if (url.includes("/comment")) return { ok: true, status: 200, json: async () => ({ comments: [] }) };
+        if (url.includes("/decision")) return { ok: true, status: 200, json: async () => ({ decision: null }) };
+        return { ok: true, status: 200, json: async () => ({}) };
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      render(
+        <ShareReviewWorkspace
+          estimates={[baseEstimate]}
+          currencyCode="PHP"
+          token="clientworkspace-decision"
+          viewToken="view-token"
+        />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      await user.click(screen.getByRole("button", { name: /ask about item: concrete works/i }));
+      await user.click(screen.getByRole("button", { name: /request changes/i }));
+      expect(await screen.findByRole("dialog", { name: /request changes/i })).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /^Confirm$/i }));
+
+      await waitFor(() => expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument());
+      const decisionPost = fetchMock.mock.calls.find(
+        ([input, init]) => String(input).includes("/decision") && (init as RequestInit | undefined)?.method === "POST",
+      );
+      expect(JSON.parse(String((decisionPost?.[1] as RequestInit).body))).toEqual(
+        expect.objectContaining({
+          decision: "revision_requested",
+          viewToken: "view-token",
+          estimateId: "estimate-1",
+          rowId: "row-1",
+        }),
+      );
+      expect(screen.getByText(/Applies to Concrete works · Main Estimate/)).toBeInTheDocument();
+    });
+
+    it("renders compact v1.3 estimate tabs, legacy v1.2 tab rows, and legacy snapshots without nested tabs", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const user = userEvent.setup();
+      const renovationRow = {
+        ...baseEstimate.rows[0],
+        id: "row-renovation",
+        description: "Renovation millwork",
+        designation: "REN-01",
+        discipline: "Joinery",
+        material: "Oak",
+        rowTotal: 6400,
+        tabId: "tab-renovation",
+      };
+      const v13Estimate: PublicationSnapshotEstimate = {
+        ...baseEstimate,
+        rows: [
+          {
+            ...baseEstimate.rows[0],
+            tabId: "tab-base",
+          },
+          renovationRow,
+        ],
+        tabs: [
+          {
+            id: "tab-base",
+            name: "Base",
+            sortOrder: 0,
+            isDefault: true,
+            rowCount: 1,
+            totalCost: 2300,
+            rowIds: [baseEstimate.rows[0].id],
+            rows: [],
+            treeNodes: [{ id: "node-base", name: "Base Area", kind: "area", tabId: "tab-base", children: [] }],
+          },
+          {
+            id: "tab-renovation",
+            name: "Renovation",
+            sortOrder: 1,
+            isDefault: false,
+            rowCount: 1,
+            totalCost: 6400,
+            rowIds: ["row-renovation"],
+            treeNodes: [{ id: "node-renovation", name: "Renovation Area", kind: "area", tabId: "tab-renovation", children: [] }],
+          },
+        ],
+      };
       const v12Estimate: PublicationSnapshotEstimate = {
         ...baseEstimate,
         tabs: [
@@ -791,29 +1010,21 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
             isDefault: false,
             rowCount: 1,
             totalCost: 6400,
-            rows: [
-              {
-                ...baseEstimate.rows[0],
-                id: "row-renovation",
-                description: "Renovation millwork",
-                designation: "REN-01",
-                discipline: "Joinery",
-                material: "Oak",
-                rowTotal: 6400,
-                tabId: "tab-renovation",
-              },
-            ],
+            rows: [renovationRow],
             treeNodes: [{ id: "node-renovation", name: "Renovation Area", kind: "area", tabId: "tab-renovation", children: [] }],
           },
         ],
       };
 
-      const { rerender } = render(<SharePageTabs estimates={[v12Estimate]} currencyCode="PHP" token="client-token-v12-tabs" />);
+      const { rerender } = render(<SharePageTabs estimates={[v13Estimate]} currencyCode="PHP" token="client-token-v13-tabs" />);
 
       const nestedTablist = screen.getByRole("tablist", { name: /main estimate tabs/i });
       expect(within(nestedTablist).getByRole("tab", { name: "Base" })).toHaveAttribute("aria-selected", "true");
       expect(screen.getAllByText("Base Area").length).toBeGreaterThan(0);
       expect(within(screen.getByRole("tabpanel")).queryByText("Renovation millwork")).not.toBeInTheDocument();
+      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      expect(within(screen.getByRole("tabpanel")).getByText("Concrete works")).toBeInTheDocument();
+      await user.click(screen.getByRole("tab", { name: "Scope outline" }));
 
       await user.click(within(nestedTablist).getByRole("tab", { name: "Renovation" }));
 
@@ -821,6 +1032,13 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(screen.getAllByText("Renovation Area").length).toBeGreaterThan(0);
       expect(screen.queryByText("Base Area")).not.toBeInTheDocument();
       expect(screen.getAllByText(/PHP 6,400.00/).length).toBeGreaterThan(0);
+
+      rerender(<SharePageTabs estimates={[v12Estimate]} currencyCode="PHP" token="client-token-v12-tabs" />);
+      expect(screen.getAllByText("Renovation Area").length).toBeGreaterThan(0);
+      await user.click(within(screen.getByRole("tablist", { name: /main estimate tabs/i })).getByRole("tab", { name: "Base" }));
+      expect(screen.getAllByText("Base Area").length).toBeGreaterThan(0);
+      await user.click(within(screen.getByRole("tablist", { name: /main estimate tabs/i })).getByRole("tab", { name: "Renovation" }));
+      expect(screen.getAllByText("Renovation Area").length).toBeGreaterThan(0);
 
       rerender(<SharePageTabs estimates={[baseEstimate]} currencyCode="PHP" token="client-token-legacy-tabs" />);
 
@@ -982,20 +1200,26 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   });
 
   describe("OpenGraph metadata on /share/[token] (P2)", () => {
-    it("generateMetadata returns title with project name, description containing estimate count, and handles image from projects.metadata (inline query path)", async () => {
-      // Real exercise now that generateMetadata + inline getProjectImageUrl + service client is in page
+    it("keeps unprotected share metadata generic so link previews do not leak proposal details", async () => {
       const pageMod = await import("@/app/share/[token]/page");
       const { generateMetadata } = pageMod;
 
-      // Ensure the hoisted repo mocks return the snapshot (they already do from beforeEach)
       const meta = await generateMetadata({ params: Promise.resolve({ token: "client-token" }) });
+      const serialized = JSON.stringify(meta);
 
-      expect(meta.title).toContain("Valencia Residence");
-      expect(meta.description).toContain("1 estimate");
-      expect(meta.description).toContain("1 rows");
-      // image may be undefined (no real supabase in this env) — contract is graceful
-      expect(meta.openGraph?.title).toContain("Valencia Residence");
-      expect(meta.openGraph?.description).toContain("Prepared for client review");
+      expect(mocks.resolveProjectPublicationAccessByToken).toHaveBeenCalledWith("client-token");
+      expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
+      expect(meta.title).toBe("Proposal Review | Archestimator");
+      expect(meta.description).toBe("A client proposal is available for review.");
+      expect(meta.openGraph).toEqual({
+        title: "Proposal Review | Archestimator",
+        description: "A client proposal is available for review.",
+      });
+      expect(serialized).not.toContain("Valencia Residence");
+      expect(serialized).not.toContain("VR-001");
+      expect(serialized).not.toContain("Client Family");
+      expect(serialized).not.toContain("PHP");
+      expect(serialized).not.toContain("168500");
     });
 
     it("keeps password-protected share metadata generic before resolving the snapshot", async () => {
@@ -1103,7 +1327,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
           token="p9-token"
         />
       );
-      await userEvent.click(screen.getByRole("tab", { name: /grid preview/i }));
+      await userEvent.click(screen.getByRole("tab", { name: /line item table/i }));
 
       // 32px thumbnail present for row with imageUrl
       const thumbs = container.querySelectorAll('img[width="32"], img[height="32"], img[width="32px"]');
@@ -1148,7 +1372,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const { container } = render(
         <SharePageTabs estimates={[unsafeEstimate]} currencyCode="PHP" token="unsafe-image-token" />,
       );
-      await userEvent.click(screen.getByRole("tab", { name: /grid preview/i }));
+      await userEvent.click(screen.getByRole("tab", { name: /line item table/i }));
 
       expect(container.querySelector('img[src*="tracker.example"]')).toBeNull();
       expect(container.querySelector('img[src^="data:"]')).toBeNull();

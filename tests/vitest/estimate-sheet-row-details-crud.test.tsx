@@ -29,6 +29,8 @@ const estimateId = "77777777-7777-4777-8777-777777777719";
 const targetNodeId = "55555555-5555-4555-8555-555555555561";
 const projectSpecificRowId = "66666666-6666-4666-8666-666666666671";
 const expressRowId = "66666666-6666-4666-8666-666666666672";
+const sourceLessRowId = "66666666-6666-4666-8666-666666666673";
+const sourceChangedRowId = "66666666-6666-4666-8666-666666666674";
 
 const projectSpecificRow: EstimateRowItem = {
   id: projectSpecificRowId,
@@ -79,6 +81,50 @@ const emptyExpressRow: EstimateRowItem = {
     createdFrom: "estimate-sheet-add-row",
     sourceLabel: "Express component",
   }),
+};
+
+const sourceLessProjectRow: EstimateRowItem = {
+  id: sourceLessRowId,
+  material: "Owner-Supplied Pendant",
+  description: "Project-only allowance row",
+  supplier: "",
+  source: "project",
+  unit: "pc",
+  itemCost: 2500,
+  quantity: 1,
+  subTotal: 2500,
+  contingencyPercentage: 0,
+  contingencyValue: 0,
+  miscCost: 0,
+  totalItemCosts: 2500,
+  rowRevision: 2,
+  category: "Lighting",
+  pricingSource: "Manual estimate row",
+  pricingDate: "2026-06-15",
+  sourceLibraryItemId: null,
+  linkState: "unlinked",
+};
+
+const sourceChangedLibraryRow: EstimateRowItem = {
+  id: sourceChangedRowId,
+  material: "Library Faucet",
+  description: "Library source changed after insertion",
+  supplier: "Fixture House",
+  source: "library",
+  unit: "pc",
+  itemCost: 4500,
+  quantity: 1,
+  subTotal: 4500,
+  contingencyPercentage: 0,
+  contingencyValue: 0,
+  miscCost: 0,
+  totalItemCosts: 4500,
+  rowRevision: 5,
+  category: "Plumbing",
+  pricingSource: "Library snapshot",
+  pricingDate: "2026-06-15",
+  sourceLibraryItemId: "library-faucet-source",
+  linkState: "source-changed",
 };
 
 function treeWithRows(rows: EstimateRowItem[]): EstimateTreeNode[] {
@@ -155,7 +201,7 @@ describe("estimate sheet row details and CRUD entry points", () => {
     expect(within(dialog).getByText("Current component")).toBeInTheDocument();
     expect(within(dialog).getAllByText("Custom Built-in Cabinet").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("Local millwork shop").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("Project-specific component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("This component keeps the current row values and no longer follows library updates.").length).toBeGreaterThan(0);
     expect(within(dialog).getByText("2 lm")).toBeInTheDocument();
     expect(within(dialog).getAllByText("₱ 3,400.00").length).toBeGreaterThan(0);
@@ -166,19 +212,49 @@ describe("estimate sheet row details and CRUD entry points", () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet([emptyExpressRow]);
 
-    const componentCard = screen.getByLabelText("Express component replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Express component" }));
+    const componentCard = screen.getByLabelText("Project Component replaceable estimate component");
+    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Project Component" }));
 
     const dialog = screen.getByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getByText("1")).toBeInTheDocument();
     expect(within(dialog).getByText("Current component")).toBeInTheDocument();
-    expect(within(dialog).getAllByText("Express component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText(/authored directly in the estimate row/i).length).toBeGreaterThan(0);
     expect(within(dialog).getByText("No image yet")).toBeInTheDocument();
     expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Express component")).not.toBeInTheDocument();
     expect(within(dialog).getAllByText("₱ 0.00").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("opens source-less row details as a Project Component", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet([sourceLessProjectRow]);
+
+    const componentCard = screen.getByLabelText("Owner-Supplied Pendant replaceable estimate component");
+    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Owner-Supplied Pendant" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("This row is not linked to a library component.").length).toBeGreaterThan(0);
+    expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Manual estimate row")).not.toBeInTheDocument();
+  });
+
+  it("opens source-changed row details as a Library Component", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet([sourceChangedLibraryRow]);
+
+    const componentCard = screen.getByLabelText("Library Faucet replaceable estimate component");
+    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Library Faucet" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("The source library component changed after this row was added. Review before replacing or detaching it.").length).toBeGreaterThan(0);
+    expect(within(dialog).queryByText("Library source changed")).not.toBeInTheDocument();
   });
 
   it("keeps express saves, project-specific scalar edits, and row delete actions usable", async () => {

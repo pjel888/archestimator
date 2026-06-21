@@ -357,4 +357,61 @@ describe("RecipientEmailComposer — recipient-result merge (AC-MOD-17)", () => 
       });
     });
   });
+
+  it("preserves successful recipient sends and exposes retry for a per-recipient failure", async () => {
+    publicationActions.addSharedLinkRecipients
+      .mockResolvedValueOnce({
+        ok: true,
+        message: "Added 2 recipient(s). 1 email(s) dispatched (failures are non-fatal).",
+        added: 2,
+        failedEmails: [],
+        emailResults: [
+          { email: "sent@example.com", ok: true, id: "recipient-sent", status: "sent" },
+          {
+            email: "failed@example.com",
+            ok: false,
+            id: "recipient-failed",
+            error: "Email provider unavailable.",
+            status: "pending",
+          },
+        ],
+      });
+    publicationActions.resendSharedLinkRecipientEmail.mockResolvedValue({
+      ok: true,
+      message: "Recipient email resent.",
+    });
+    const user = userEvent.setup();
+    renderComposer();
+
+    const emailInput = await screen.findByPlaceholderText("name@company.com, another@...");
+    await waitFor(() => expect(emailInput).not.toBeDisabled());
+    await user.type(emailInput, "sent@example.com,failed@example.com,");
+    await user.click(screen.getByRole("button", { name: /Send to 2 recipients/ }));
+
+    const sentRow = await screen.findByText("sent@example.com");
+    const failedRow = await screen.findByText("failed@example.com");
+    expect(sentRow).toBeInTheDocument();
+    expect(failedRow).toBeInTheDocument();
+
+    const sentBadge = screen.getByText(/^sent$/);
+    expect(sentBadge).toHaveClass("bg-successSoft", "text-success");
+    const failedBadge = screen.getByText(/^failed$/);
+    expect(failedBadge).toHaveClass("bg-dangerSoft", "text-danger");
+    expect(screen.getByRole("button", { name: "Resend sent@example.com" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Retry failed@example.com" }));
+
+    await waitFor(() =>
+      expect(publicationActions.resendSharedLinkRecipientEmail).toHaveBeenCalledWith({
+        publicationId: PUBLICATION_ID,
+        recipientId: "recipient-failed",
+        baseClientLink: undefined,
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getAllByText(/^sent$/)).toHaveLength(2);
+    });
+    expect(screen.queryByRole("button", { name: "Retry failed@example.com" })).not.toBeInTheDocument();
+    expect(screen.getByText("sent@example.com")).toBeInTheDocument();
+  });
 });

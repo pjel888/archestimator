@@ -29,9 +29,9 @@ describe("SharePageDecision — anonymous (isValid:false) state", () => {
     expect(screen.getByText(/personalized review link sent to your email/i)).toBeInTheDocument();
 
     // No actionable decision controls for an anonymous visitor.
-    expect(screen.queryByRole("button", { name: /accept proposal/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /approve proposal/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /decline proposal/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /request revision/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /request changes/i })).toBeNull();
   });
 
   it("shows the response actions when a recipient session IS valid", () => {
@@ -39,6 +39,6 @@ describe("SharePageDecision — anonymous (isValid:false) state", () => {
     render(<SharePageDecision token="tok-recipient" viewToken="view-token" />);
 
     expect(screen.queryByTestId("decision-anonymous-state")).toBeNull();
-    expect(screen.getByRole("button", { name: /accept proposal/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /approve proposal/i })).toBeInTheDocument();
   });
 });

@@ -237,6 +237,12 @@ describe("project publication public repository (Shared Link V2 context)", () =>
           body: "Can we confirm this line item?",
           author_name: null,
           recipient_id: "recipient-id",
+          estimate_id: null,
+          row_id: null,
+          target_kind: "proposal",
+          target_label: "the proposal",
+          target_secondary_label: null,
+          snapshot_version_at_comment: 4,
         },
         error: null,
       }),
@@ -272,6 +278,12 @@ describe("project publication public repository (Shared Link V2 context)", () =>
         createdAt: "2026-06-03T01:10:00.000Z",
         authorName: "Client",
         authorType: "recipient",
+        estimateId: null,
+        rowId: null,
+        targetKind: "proposal",
+        targetLabel: "the proposal",
+        targetSecondaryLabel: null,
+        snapshotVersionAtComment: 4,
       },
     });
 
@@ -279,10 +291,303 @@ describe("project publication public repository (Shared Link V2 context)", () =>
       "insert_client_comment",
       expect.objectContaining({ p_body: "Can we confirm this line item?", p_expected_snapshot_version: 4 }),
     );
-    expect(commentQuery.select).toHaveBeenCalledWith("id, created_at, body, author_name, recipient_id");
+    expect(commentQuery.select).toHaveBeenCalledWith("id, created_at, body, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment");
     expect(commentQuery.eq).toHaveBeenCalledWith("publication_id", "publication-1");
     expect(commentQuery.eq).toHaveBeenCalledWith("id", "comment-id");
     expect(commentQuery.eq).toHaveBeenCalledWith("is_internal", false);
+  });
+
+  it("rejects comment review targets that are absent from the publication target map before RPC", async () => {
+    vi.resetModules();
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://archestimator.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+    process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
+
+    const validEstimateId = "11111111-1111-4111-8111-111111111111";
+    const invalidRowId = "22222222-2222-4222-8222-222222222222";
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "publication-1",
+          activity_target_labels_json: {
+            estimateLabels: { [validEstimateId]: "Main Estimate" },
+            rowLabels: {},
+            rowEstimateIds: {},
+          },
+          snapshot_version: 4,
+        },
+        error: null,
+      }),
+    };
+    const recipientQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { recipient_token_hash: "recipient-token-hash" },
+        error: null,
+      }),
+    };
+    const rpc = vi.fn();
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
+          if (table === "shared_link_recipients") return recipientQuery;
+          throw new Error(`Unexpected table: ${table}`);
+        }),
+        rpc,
+      })),
+    }));
+
+    const { insertSharedLinkComment } = await import("@/lib/publication/public-repository");
+
+    await expect(
+      insertSharedLinkComment({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        body: "Can we review this?",
+        estimateId: validEstimateId,
+        rowId: invalidRowId,
+      }),
+    ).rejects.toThrow("Invalid review target: selected line item is not part of this publication.");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects decision review targets when the row does not belong to the submitted estimate", async () => {
+    vi.resetModules();
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://archestimator.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+    process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
+
+    const estimateA = "11111111-1111-4111-8111-111111111111";
+    const estimateB = "33333333-3333-4333-8333-333333333333";
+    const rowId = "22222222-2222-4222-8222-222222222222";
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "publication-1",
+          activity_target_labels_json: {
+            estimateLabels: { [estimateA]: "Main Estimate", [estimateB]: "Alternate Estimate" },
+            rowLabels: { [rowId]: "Concrete works" },
+            rowEstimateIds: { [rowId]: estimateA },
+          },
+          snapshot_version: 4,
+        },
+        error: null,
+      }),
+    };
+    const recipientQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { recipient_token_hash: "recipient-token-hash" },
+        error: null,
+      }),
+    };
+    const rpc = vi.fn();
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
+          if (table === "shared_link_recipients") return recipientQuery;
+          throw new Error(`Unexpected table: ${table}`);
+        }),
+        rpc,
+      })),
+    }));
+
+    const { submitSharedLinkDecision } = await import("@/lib/publication/public-repository");
+
+    await expect(
+      submitSharedLinkDecision({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        decision: "revision_requested",
+        estimateId: estimateB,
+        rowId,
+      }),
+    ).rejects.toThrow("Invalid review target: selected line item does not belong to the selected estimate.");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("normalizes row-only comment targets to the owning estimate before RPC", async () => {
+    vi.resetModules();
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://archestimator.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+    process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
+
+    const estimateA = "11111111-1111-4111-8111-111111111111";
+    const rowId = "22222222-2222-4222-8222-222222222222";
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "publication-1",
+          activity_target_labels_json: {
+            estimateLabels: { [estimateA]: "Main Estimate" },
+            rowLabels: { [rowId]: "Concrete works" },
+            rowEstimateIds: { [rowId]: estimateA },
+          },
+          snapshot_version: 4,
+        },
+        error: null,
+      }),
+    };
+    const recipientQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { recipient_token_hash: "recipient-token-hash" },
+        error: null,
+      }),
+    };
+    const commentQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "comment-id",
+          created_at: "2026-06-03T01:10:00.000Z",
+          body: "Can we confirm this line item?",
+          author_name: null,
+          recipient_id: "recipient-id",
+          estimate_id: estimateA,
+          row_id: rowId,
+          target_kind: "row",
+          target_label: "Concrete works",
+          target_secondary_label: "Main Estimate",
+          snapshot_version_at_comment: 4,
+        },
+        error: null,
+      }),
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: "comment-id", error: null });
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
+          if (table === "shared_link_recipients") return recipientQuery;
+          if (table === "shared_link_comments") return commentQuery;
+          throw new Error(`Unexpected table: ${table}`);
+        }),
+        rpc,
+      })),
+    }));
+
+    const { insertSharedLinkComment } = await import("@/lib/publication/public-repository");
+
+    await expect(
+      insertSharedLinkComment({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        body: "Can we confirm this line item?",
+        rowId,
+      }),
+    ).resolves.toEqual({
+      id: "comment-id",
+      comment: expect.objectContaining({
+        estimateId: estimateA,
+        rowId,
+        targetKind: "row",
+        targetLabel: "Concrete works",
+        targetSecondaryLabel: "Main Estimate",
+      }),
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "insert_client_comment",
+      expect.objectContaining({
+        p_estimate_id: estimateA,
+        p_row_id: rowId,
+        p_target_kind: "row",
+        p_target_label: "Concrete works",
+        p_target_secondary_label: "Main Estimate",
+      }),
+    );
+  });
+
+  it("normalizes row-only decision targets to the owning estimate before RPC", async () => {
+    vi.resetModules();
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://archestimator.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+    process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
+
+    const estimateA = "11111111-1111-4111-8111-111111111111";
+    const rowId = "22222222-2222-4222-8222-222222222222";
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: "publication-1",
+          activity_target_labels_json: {
+            estimateLabels: { [estimateA]: "Main Estimate" },
+            rowLabels: { [rowId]: "Concrete works" },
+            rowEstimateIds: { [rowId]: estimateA },
+          },
+          snapshot_version: 4,
+        },
+        error: null,
+      }),
+    };
+    const recipientQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { recipient_token_hash: "recipient-token-hash" },
+        error: null,
+      }),
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: "response-id", error: null });
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
+          if (table === "shared_link_recipients") return recipientQuery;
+          throw new Error(`Unexpected table: ${table}`);
+        }),
+        rpc,
+      })),
+    }));
+
+    const { submitSharedLinkDecision } = await import("@/lib/publication/public-repository");
+
+    await expect(
+      submitSharedLinkDecision({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        decision: "revision_requested",
+        rowId,
+      }),
+    ).resolves.toEqual({ id: "response-id" });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "submit_client_response",
+      expect.objectContaining({
+        p_estimate_id: estimateA,
+        p_row_id: rowId,
+        p_target_kind: "row",
+        p_target_label: "Concrete works",
+        p_target_secondary_label: "Main Estimate",
+      }),
+    );
   });
 
   it("wraps submit_client_response RPC error objects so duplicate decisions stay mappable to 409", async () => {

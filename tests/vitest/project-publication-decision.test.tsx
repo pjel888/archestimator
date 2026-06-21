@@ -41,6 +41,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
 
 // Modules under test (will fail to import or execute until P7 impl — intentionally red first)
 import { POST } from "@/app/api/share/[token]/decision/route";
+import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
 import { composeSharedLinkActivity } from "@/lib/activity";
 
@@ -55,6 +56,9 @@ function makeRequest(body: unknown, headers: Record<string, string> = {}) {
     body: JSON.stringify(body),
   });
 }
+
+const TARGET_ESTIMATE_ID = "11111111-1111-4111-8111-111111111111";
+const TARGET_ROW_ID = "22222222-2222-4222-8222-222222222222";
 
 describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before any route/component impl)", () => {
   beforeEach(() => {
@@ -118,7 +122,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
         { cookie: "shared_link_session_abc123=bad", "x-archestimator-csrf": "t" }
       );
       const res = await POST(req, params());
-      expect([401, 503]).toContain(res.status);
+      expect(res.status).toBe(401);
       const json = await res.json();
       expect(json.error).toMatch(/session|recipient|unauthorized|valid recipient/i);
     });
@@ -130,7 +134,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // Cookie value parsable by route's lightweight session parse (sets recipientIdFromCookie before verify mock)
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
-        { decision: "accepted", note: "Looks good" },
+        { decision: "accepted", note: "Looks good", signerName: "Client Receiver" },
         { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" }
       );
       const res = await POST(req, params());
@@ -184,7 +188,12 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       mocks.submitSharedLinkDecision.mockResolvedValue({ id: "resp-uuid-xyz" });
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
-        { decision: "revision_requested", note: "Please revise pricing on line 3" },
+        {
+          decision: "revision_requested",
+          note: "Please revise pricing on line 3",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+        },
         { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" }
       );
       const res = await POST(req, params());
@@ -198,8 +207,81 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
           expectedSnapshotVersion: 1,
           decision: "revision_requested",
           note: "Please revise pricing on line 3",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
         })
       );
+    });
+
+    it("returns 400 when the decision row belongs to a different selected estimate", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.submitSharedLinkDecision.mockRejectedValueOnce(
+        new Error("Invalid review target: selected line item does not belong to the selected estimate."),
+      );
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const response = await POST(
+        makeRequest(
+          {
+            decision: "revision_requested",
+            estimateId: TARGET_ESTIMATE_ID,
+            rowId: TARGET_ROW_ID,
+          },
+          { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+        ),
+        params(),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "Invalid review target: selected line item does not belong to the selected estimate.",
+      });
+      expect(mocks.checkSharedLinkDecisionRateLimit).toHaveBeenCalledTimes(1);
+      expect(mocks.submitSharedLinkDecision).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+        }),
+      );
+    });
+
+    it("rejects malformed optional target UUIDs before rate limit or RPC work", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const res = await POST(
+        makeRequest(
+          { decision: "revision_requested", estimateId: "not-a-uuid" },
+          { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+        ),
+        params(),
+      );
+
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toEqual({ error: expect.stringMatching(/estimate id.*review target id/i) });
+      expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
+    });
+
+    it("rejects malformed optional row UUIDs before rate limit or RPC work", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const res = await POST(
+        makeRequest(
+          { decision: "revision_requested", rowId: "not-a-uuid" },
+          { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+        ),
+        params(),
+      );
+
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toEqual({ error: expect.stringMatching(/row id.*review target id/i) });
+      expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
     });
 
     it("sanitizes and truncates direct API decision notes before RPC", async () => {
@@ -252,8 +334,34 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(res.status).toBe(409);
       await expect(res.json()).resolves.toEqual({
         error: "Publication snapshot changed. Please reload before submitting a decision.",
+        currentSnapshotVersion: 2,
       });
       expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("signed-view-token-v1", {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+      });
+      expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
+    });
+
+    it("rejects a tampered rendered-view token before rate limit or RPC work", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(undefined);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted", note: "Looks good", viewToken: "tampered-view-token" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(409);
+      await expect(res.json()).resolves.toEqual({
+        error: "Publication snapshot changed. Please reload before submitting a decision.",
+        currentSnapshotVersion: 1,
+      });
+      expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("tampered-view-token", {
         token: "client-pub-token-123",
         publicationId: "pub1",
       });
@@ -275,7 +383,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(2);
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
-        { decision: "accepted", note: "Looks good", viewToken: "signed-view-token-v2" },
+        { decision: "accepted", note: "Looks good", signerName: "Client Receiver", viewToken: "signed-view-token-v2" },
         { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
       );
 
@@ -285,6 +393,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(mocks.submitSharedLinkDecision).toHaveBeenCalledWith(
         expect.objectContaining({
           expectedSnapshotVersion: 2,
+          signerName: "Client Receiver",
         }),
       );
     });
@@ -299,7 +408,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       });
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
-        { decision: "accepted" },
+        { decision: "accepted", signerName: "Client Receiver" },
         {
           cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
           "x-archestimator-csrf": "csrf-token-xyz",
@@ -319,7 +428,10 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       mocks.submitSharedLinkDecision.mockRejectedValue(new Error("Recipient not found."));
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
-      const req = makeRequest({ decision: "accepted" }, { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "t" });
+      const req = makeRequest(
+        { decision: "accepted", signerName: "Client Receiver" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "t" },
+      );
       const res = await POST(req, params());
       expect(res.status).toBe(403);
       const json = await res.json();
@@ -337,7 +449,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       mocks.submitSharedLinkDecision.mockRejectedValue(new Error(rawDbError));
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
-        { decision: "accepted" },
+        { decision: "accepted", signerName: "Client Receiver" },
         { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf" },
       );
 
@@ -366,10 +478,23 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       const accepted = composeSharedLinkActivity({ id: "decision-a", type: "decision", created_at: "2026-06-02T00:00:00.000Z", recipientDisplayName: "Maria", decision: "accepted" }, { audience: "client", visibility: "public" });
       const declined = composeSharedLinkActivity({ id: "decision-d", type: "decision", created_at: "2026-06-02T00:01:00.000Z", recipientDisplayName: "Maria", decision: "declined" }, { audience: "client", visibility: "public" });
       const revision = composeSharedLinkActivity({ id: "decision-r", type: "decision", created_at: "2026-06-02T00:02:00.000Z", recipientDisplayName: "Maria", decision: "revision_requested" }, { audience: "client", visibility: "public" });
+      const rowRevision = composeSharedLinkActivity(
+        {
+          id: "decision-row",
+          type: "decision",
+          created_at: "2026-06-02T00:03:00.000Z",
+          recipientDisplayName: "Maria",
+          decision: "revision_requested",
+          metadata: { targetKind: "row", targetLabel: "Concrete works", targetSecondaryLabel: "Main Estimate" },
+        },
+        { audience: "client", visibility: "public" },
+      );
 
       expect(accepted.title).toBe("Maria approved the proposal.");
       expect(declined.title).toBe("Maria declined the proposal.");
       expect(revision.title).toBe("Maria requested revisions.");
+      expect(rowRevision.title).toBe("Maria requested revisions for Concrete works.");
+      expect(rowRevision.target).toEqual({ kind: "row", label: "Concrete works", secondaryLabel: "Main Estimate" });
       expect([accepted, declined, revision].map((activity) => activity.raw)).toEqual([undefined, undefined, undefined]);
     });
   });
@@ -382,17 +507,58 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // mentions how to accept/decline/request a revision), but it must NOT render any
       // interactive decision controls.
       expect(container.querySelector('[data-testid="decision-anonymous-state"]')).not.toBeNull();
-      expect(container.querySelector('[aria-label="Accept proposal"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Approve proposal"]')).toBeNull();
       expect(container.querySelector('[aria-label="Decline proposal"]')).toBeNull();
-      expect(container.querySelector('[aria-label="Request revision"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Request changes"]')).toBeNull();
     });
 
     it("renders the three decision buttons when session valid and undecided", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
       render(<SharePageDecision token="t1" viewToken="view-token" />);
-      expect(screen.getByRole("button", { name: /accept/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /approve proposal/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /decline/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /request revision|revision/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /request changes/i })).toBeInTheDocument();
+    });
+
+    it("POSTs selected line-item context from the confirmation modal and shows the scope in the locked badge", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      // @ts-expect-error fetch mock
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ id: "d1" }) });
+      const user = userEvent.setup();
+
+      render(
+        <SharePageDecision
+          token="t1"
+          viewToken="view-token"
+          reviewTarget={{
+            kind: "row",
+            label: "Concrete works",
+            secondaryLabel: "Main Estimate",
+            estimateId: TARGET_ESTIMATE_ID,
+            rowId: TARGET_ROW_ID,
+          }}
+        />,
+      );
+
+      expect(screen.getByText("Applies to Concrete works")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /request changes/i }));
+      expect(await screen.findByRole("dialog", { name: /request changes/i })).toBeInTheDocument();
+      expect(screen.getAllByText(/Concrete works/).length).toBeGreaterThan(0);
+      await user.click(screen.getByRole("button", { name: /^Confirm$/i }));
+
+      await waitFor(() => expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument());
+      const postCall = vi
+        .mocked(global.fetch)
+        .mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "POST");
+      expect(JSON.parse(String((postCall?.[1] as RequestInit).body))).toEqual(
+        expect.objectContaining({
+          decision: "revision_requested",
+          viewToken: "view-token",
+          estimateId: TARGET_ESTIMATE_ID,
+          rowId: TARGET_ROW_ID,
+        }),
+      );
+      expect(screen.getByText(/Applies to Concrete works/)).toBeInTheDocument();
     });
     it("loads a prior recipient decision on mount and keeps the response locked after reload", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
@@ -405,6 +571,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
             type: "accepted",
             note: "Looks good.",
             submittedAt: "2026-06-03T01:00:00.000Z",
+            signerName: "Client Receiver",
           },
         }),
       });
@@ -414,7 +581,8 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(await screen.findByTestId("decision-locked-badge")).toBeInTheDocument();
       expect(screen.getByText("Accepted")).toBeInTheDocument();
       expect(screen.getByText("Note: Looks good.")).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
+      expect(screen.getByText(/Approved by Client Receiver on/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /approve proposal/i })).not.toBeInTheDocument();
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/share/t1/decision",
         expect.objectContaining({ method: "GET", headers: { Accept: "application/json" } }),
@@ -426,11 +594,11 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
       const user = userEvent.setup();
       render(<SharePageDecision token="t1" viewToken="view-token" />);
-      await user.click(screen.getByRole("button", { name: /accept/i }));
+      await user.click(screen.getByRole("button", { name: /approve proposal/i }));
       // Modal should appear (implementation uses role=dialog or visible confirm UI)
       await waitFor(() => {
         // Use getAllBy + first to tolerate any transient duplicates in test env; core contract is modal appears with tailored copy
-        const matches = screen.getAllByText(/Accept this proposal\?|Your decision will be final/i);
+        const matches = screen.getAllByText(/Approve this proposal\?|We'll notify the project team/i);
         expect(matches.length).toBeGreaterThan(0);
       });
       // Cancel does not POST
@@ -445,19 +613,19 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       const user = userEvent.setup();
       render(<SharePageDecision token="t1" viewToken="view-token" />);
 
-      const acceptButton = screen.getByRole("button", { name: /accept/i });
+      const acceptButton = screen.getByRole("button", { name: /approve proposal/i });
       acceptButton.focus();
       await user.click(acceptButton);
 
-      const dialog = await screen.findByRole("dialog", { name: /accept this proposal/i });
+      const dialog = await screen.findByRole("dialog", { name: /approve this proposal/i });
       expect(dialog).toHaveAttribute("aria-modal", "true");
       expect(dialog).toHaveAttribute("aria-labelledby", "decision-confirm-title");
-      await waitFor(() => expect(screen.getByLabelText(/note \(optional\)/i)).toHaveFocus());
+      await waitFor(() => expect(screen.getByLabelText(/your name/i)).toHaveFocus());
 
       await user.tab({ shift: true });
-      expect(screen.getByRole("button", { name: /^Confirm$/i })).toHaveFocus();
+      expect(screen.getByRole("button", { name: /cancel/i })).toHaveFocus();
       await user.tab();
-      expect(screen.getByLabelText(/note \(optional\)/i)).toHaveFocus();
+      expect(screen.getByLabelText(/your name/i)).toHaveFocus();
 
       await user.keyboard("{Escape}");
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -494,25 +662,65 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // After success, shows read-only badge/lock (not the 3 buttons)
       await waitFor(() => {
         expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /approve proposal/i })).not.toBeInTheDocument();
       });
     });
 
-    it("handles 409 from POST by locking UI to read-only badge with duplicate message (no crash)", async () => {
+    it("handles duplicate decisions by reloading the persisted target before locking the UI", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      let getCount = 0;
       // @ts-expect-error fetch mock
-      global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: "Decision already submitted." }) });
+      global.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return { ok: false, status: 409, json: async () => ({ error: "Decision already submitted." }) };
+        }
+        getCount += 1;
+        if (getCount === 1) {
+          return { ok: true, status: 200, json: async () => ({ decision: null }) };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            decision: {
+              type: "revision_requested",
+              note: "Already submitted from another tab.",
+              submittedAt: "2026-06-03T01:00:00.000Z",
+              estimateId: TARGET_ESTIMATE_ID,
+              rowId: TARGET_ROW_ID,
+              targetKind: "row",
+              targetLabel: "Concrete works",
+              targetSecondaryLabel: "Main Estimate",
+            },
+          }),
+        };
+      });
       const user = userEvent.setup();
-      render(<SharePageDecision token="t1" viewToken="view-token" />);
-      await user.click(screen.getByRole("button", { name: /accept/i }));
+      render(
+        <SharePageDecision
+          token="t1"
+          viewToken="view-token"
+          reviewTarget={{
+            kind: "estimate",
+            label: "Wrong attempted estimate",
+            estimateId: "33333333-3333-4333-8333-333333333333",
+            rowId: null,
+          }}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: /approve proposal/i }));
       await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
+      await user.type(screen.getByLabelText(/your name/i), "Client Receiver");
       const confirmBtn = screen.getByRole("button", { name: /^Confirm$/i });
       await user.click(confirmBtn);
 
       await waitFor(() => {
         expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /approve proposal/i })).not.toBeInTheDocument();
       });
+      expect(screen.getByText("Revision requested")).toBeInTheDocument();
+      expect(screen.getByText(/Applies to Concrete works · Main Estimate/)).toBeInTheDocument();
+      expect(screen.queryByText(/Wrong attempted estimate/)).not.toBeInTheDocument();
     });
 
     it("announces decision submission failures as alerts", async () => {
@@ -522,8 +730,9 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       const user = userEvent.setup();
 
       render(<SharePageDecision token="t1" viewToken="view-token" />);
-      await user.click(screen.getByRole("button", { name: /accept/i }));
+      await user.click(screen.getByRole("button", { name: /approve proposal/i }));
       await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
+      await user.type(screen.getByLabelText(/your name/i), "Client Receiver");
       await user.click(screen.getByRole("button", { name: /^Confirm$/i }));
 
       await waitFor(() => {
@@ -533,18 +742,60 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       });
     });
 
-    it("keeps SharePageComments (or post-decision comments) usable/rendered after decision lock (per owner decision allowance)", () => {
+    it("keeps the comment composer usable after the decision component locks", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
-      // After internal lock simulation (component manages its decided state)
+      const user = userEvent.setup();
+      // @ts-expect-error fetch mock
+      global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/decision") && init?.method === "POST") {
+          return { ok: true, status: 201, json: async () => ({ id: "decision-1" }) };
+        }
+        if (url.includes("/comment") && init?.method === "POST") {
+          return {
+            ok: true,
+            status: 201,
+            json: async () => ({
+              id: "comment-after-decision",
+              comment: {
+                id: "comment-after-decision",
+                content: "Follow-up after approval.",
+                authorName: "You",
+                authorType: "recipient",
+                createdAt: "2026-06-03T01:05:00.000Z",
+              },
+            }),
+          };
+        }
+        return { ok: true, status: 200, json: async () => (url.includes("/comment") ? { comments: [] } : { decision: null }) };
+      });
+
       render(
         <>
           <SharePageDecision token="t1" viewToken="view-token" />
-          {/* Comments remain independently usable post-decision */}
-          <div data-testid="comments-stub">Comments composer still here</div>
+          <SharePageComments token="t1" viewToken="view-token" />
         </>
       );
-      // Decision may lock buttons, but comments stub (real integration) remains
-      expect(screen.getByTestId("comments-stub")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /approve proposal/i }));
+      await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
+      await user.type(screen.getByLabelText(/your name/i), "Client Receiver");
+      await user.click(screen.getByRole("button", { name: /^Confirm$/i }));
+      await waitFor(() => expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument());
+
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "Follow-up after approval.");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => expect(screen.getByText("Follow-up after approval.")).toBeInTheDocument());
+      const commentPost = vi
+        .mocked(global.fetch)
+        .mock.calls.find(([input, init]) => String(input).includes("/comment") && (init as RequestInit | undefined)?.method === "POST");
+      expect(JSON.parse(String((commentPost?.[1] as RequestInit).body))).toEqual(
+        expect.objectContaining({
+          body: "Follow-up after approval.",
+          viewToken: "view-token",
+        }),
+      );
     });
   });
 });

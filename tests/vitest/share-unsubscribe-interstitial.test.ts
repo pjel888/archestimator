@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  checkSharedLinkUnsubscribeRateLimit: vi.fn(),
   unsubscribeSharedLinkRecipientByToken: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
+  checkSharedLinkUnsubscribeRateLimit: mocks.checkSharedLinkUnsubscribeRateLimit,
   unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
 }));
 
@@ -14,6 +16,7 @@ const params = (token = "pub-token") => ({ params: Promise.resolve({ token }) })
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.checkSharedLinkUnsubscribeRateLimit.mockResolvedValue({ allowed: true });
   mocks.unsubscribeSharedLinkRecipientByToken.mockResolvedValue({ recipientEmail: "client@example.com" });
 });
 
@@ -42,16 +45,28 @@ describe("share unsubscribe — read-only GET interstitial + POST mutation (SEC-
   });
 
   it("POST (same-origin) performs the unsubscribe", async () => {
-    const form = new URLSearchParams({ recipient: "rt-123" });
+    const getRes = await GET(new Request("https://app.test/api/share/pub-token/unsubscribe?recipient=rt-123"), params());
+    const csrf = /ae_publication_csrf=([^;]+)/.exec(getRes.headers.get("set-cookie") ?? "")?.[1] ?? "";
+    expect(csrf).toHaveLength(22);
+
+    const form = new URLSearchParams({ recipient: "rt-123", csrf });
     const res = await POST(
       new Request("https://app.test/api/share/pub-token/unsubscribe", {
         method: "POST",
-        headers: { origin: "https://app.test", "content-type": "application/x-www-form-urlencoded" },
+        headers: {
+          origin: "https://app.test",
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: `ae_publication_csrf=${csrf}`,
+        },
         body: form.toString(),
       }),
       params(),
     );
     expect(res.status).toBe(200);
+    expect(mocks.checkSharedLinkUnsubscribeRateLimit).toHaveBeenCalledWith({
+      token: "pub-token",
+      request: expect.any(Request),
+    });
     expect(mocks.unsubscribeSharedLinkRecipientByToken).toHaveBeenCalledWith("pub-token", "rt-123");
     expect(await res.text()).toContain("client@example.com");
   });

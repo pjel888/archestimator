@@ -101,7 +101,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const { container } = renderCell();
     const componentShell = container.querySelector("[data-component-source]");
     expect(componentShell).toHaveAttribute("data-component-source", "library");
-    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Library component"));
+    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Library Component"));
   });
 
   it("marks supplier-sourced catalog components with the library source rail", () => {
@@ -115,7 +115,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
 
     const componentShell = screen.getByLabelText(`${supplierCatalogItem.material} replaceable estimate component`);
     expect(componentShell).toHaveAttribute("data-component-source", "library");
-    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Library component"));
+    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Library Component"));
     expectNeutralRailWithInteractiveSourceColor(getComponentSourceRail(componentShell), "bg-[#E8B99D]");
   });
 
@@ -164,7 +164,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
 
     const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
     expect(componentShell).toHaveAttribute("data-component-source", "express");
-    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Express component"));
+    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project Component"));
     fireEvent.click(screen.getByRole("button", { name: `Promote ${item.material} to library` }));
     expect(onPromoteToLibrary).toHaveBeenCalledTimes(1);
   });
@@ -279,7 +279,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
 
     const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
     expect(componentShell).toHaveAttribute("data-component-source", "project");
-    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project-specific component"));
+    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project Component"));
     fireEvent.click(screen.getByRole("button", { name: `Promote ${item.material} to library` }));
     expect(onPromoteToLibrary).toHaveBeenCalledTimes(1);
   });
@@ -314,7 +314,24 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
 
     const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
     expect(componentShell).toHaveAttribute("data-component-source", "project");
-    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project-specific component"));
+    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project Component"));
     expectNeutralRailWithInteractiveSourceColor(getComponentSourceRail(componentShell), "bg-[#A6B27B]");
+  });
+
+  it("labels source-less row components as Project Components", () => {
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "source-less-row-1",
+      source: "project" as const,
+      sourceLibraryItemId: null,
+      sourceSnapshot: undefined,
+      linkState: "unlinked" as const,
+      metadata: {},
+    };
+    renderCell({ item });
+
+    const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
+    expect(componentShell).toHaveAttribute("data-component-source", "manual");
+    expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project Component"));
   });
 });

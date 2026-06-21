@@ -44,4 +44,10 @@ describe("design-system enforcer — /share px allowlist", () => {
     // and named text sizes are still forbidden in /share (must use explicit arbitrary px)
     expect(collectFileViolations("src/components/share/Example.tsx", '<div className="text-2xl">x</div>').length).toBeGreaterThan(0);
   });
+
+  it("forbids hard-coded proposal-paper hex outside the design token", () => {
+    const violations = collectFileViolations("src/components/share/Example.tsx", '<div className="bg-[#FFFDF8]">x</div>');
+    expect(violations.some((v) => v.includes("#FFFDF8"))).toBe(true);
+    expect(collectFileViolations("src/app/globals.css", "--proposal-paper: #fffdf8;")).toEqual([]);
+  });
 });

@@ -1,9 +1,276 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const actions = readFileSync("src/lib/publication/actions.ts", "utf8");
 const emailLinks = readFileSync("src/lib/publication/email-links.ts", "utf8");
 const header = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
+
+const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
+const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
+const USER_ID = "33333333-3333-4333-8333-333333333333";
+const PUBLICATION_ID = "44444444-4444-4444-8444-444444444444";
+const ESTIMATE_ID = "55555555-5555-4555-8555-555555555555";
+
+type PublicationHarnessState = {
+  estimates: Array<{ id: string; name: string; sheet_code: string; updated_at: string }>;
+  latest: {
+    encrypted_token: string;
+    expires_at: string | null;
+    id: string;
+    location_visibility: "exact" | "locality" | "hidden";
+    password_hash: string | null;
+    selected_estimate_ids: string[];
+    snapshot_version: number;
+  } | null;
+  publicationLookup: {
+    activity_target_labels_json: Record<string, unknown>;
+    expires_at: string | null;
+    id: string;
+    project_id: string;
+    revoked_at: string | null;
+    status: string;
+  } | null;
+  publicationUpdates: Array<{ filters: Record<string, unknown>; payload: Record<string, unknown>; table: string }>;
+  revalidatedPaths: string[];
+  rpcCalls: Array<{ args: Record<string, unknown>; functionName: string }>;
+  rpcData: number | null;
+  currentUserRole: string | null;
+  projectRole: string | null;
+  snapshot: {
+    estimates: Array<{ id: string; name: string; nodes: unknown[]; rows: unknown[]; sheetCode: string; tabs: unknown[]; updatedAt: string }>;
+    project: Record<string, unknown>;
+    schemaVersion: 1.3;
+  };
+  workspaceRole: string | null;
+};
+
+type FakeQuery = {
+  filters: Record<string, unknown>;
+  op: "insert" | "select" | "update";
+  payload?: Record<string, unknown>;
+  selectValue?: string;
+};
+
+function resolveMaybeSingle(table: string, query: FakeQuery, state: PublicationHarnessState) {
+  if (table === "projects") {
+    return {
+      data: {
+        client_name: "Client",
+        currency_code: "USD",
+        id: PROJECT_ID,
+        location: "Austin",
+        metadata: {},
+        name: "Kitchen Renovation",
+        project_code: "KR-1",
+        workspace_id: WORKSPACE_ID,
+      },
+      error: null,
+    };
+  }
+
+  if (table === "project_publications") {
+    if (query.selectValue?.includes("workspace_id")) {
+      return {
+        data: {
+          encrypted_token: state.latest?.encrypted_token ?? null,
+          id: PUBLICATION_ID,
+          project_id: PROJECT_ID,
+          workspace_id: WORKSPACE_ID,
+        },
+        error: null,
+      };
+    }
+    if (query.selectValue?.includes("project_id, status")) {
+      return { data: state.publicationLookup, error: null };
+    }
+    return { data: state.latest, error: null };
+  }
+
+  if (table === "workspace_members") {
+    return { data: state.workspaceRole ? { role: state.workspaceRole } : null, error: null };
+  }
+
+  if (table === "project_members") {
+    return { data: state.projectRole ? { role: state.projectRole } : null, error: null };
+  }
+
+  return { data: null, error: null };
+}
+
+function resolveQuery(table: string, query: FakeQuery, state: PublicationHarnessState) {
+  if (query.op === "update" || query.op === "insert") {
+    state.publicationUpdates.push({
+      filters: { ...query.filters },
+      payload: { ...(query.payload ?? {}) },
+      table,
+    });
+    return { data: null, error: null };
+  }
+
+  if (table === "estimates") return { data: state.estimates, error: null };
+  if (table === "estimate_row_items") return { data: [], error: null };
+  if (table === "estimate_nodes") return { data: [], error: null };
+  if (table === "estimate_tabs") return { data: [], error: null };
+  if (table === "shared_link_comments") return { data: [], error: null };
+  if (table === "shared_link_responses") return { data: [], error: null };
+  if (table === "shared_link_events") return { data: [], error: null };
+  if (table === "project_publication_events") return { data: [], error: null };
+  if (table === "shared_link_recipients") return { data: [], error: null };
+
+  return { data: [], error: null };
+}
+
+function createQuery(table: string, state: PublicationHarnessState) {
+  const query: FakeQuery = {
+    filters: {},
+    op: "select",
+  };
+  const builder = {
+    eq(key: string, value: unknown) {
+      query.filters[key] = value;
+      return builder;
+    },
+    in(key: string, value: unknown) {
+      query.filters[key] = value;
+      return builder;
+    },
+    insert(payload: Record<string, unknown>) {
+      query.op = "insert";
+      query.payload = payload;
+      return builder;
+    },
+    is(key: string, value: unknown) {
+      query.filters[key] = value;
+      return builder;
+    },
+    limit() {
+      return builder;
+    },
+    maybeSingle() {
+      return Promise.resolve(resolveMaybeSingle(table, query, state));
+    },
+    or() {
+      return builder;
+    },
+    order() {
+      return builder;
+    },
+    select(value: string) {
+      query.selectValue = value;
+      return builder;
+    },
+    then(resolve: (value: unknown) => unknown, reject: (reason?: unknown) => unknown) {
+      return Promise.resolve(resolveQuery(table, query, state)).then(resolve, reject);
+    },
+    update(payload: Record<string, unknown>) {
+      query.op = "update";
+      query.payload = payload;
+      return builder;
+    },
+  };
+
+  return builder;
+}
+
+async function loadPublicationActionsWithHarness(overrides: Partial<PublicationHarnessState> = {}) {
+  vi.resetModules();
+
+  const state: PublicationHarnessState = {
+    estimates: [{ id: ESTIMATE_ID, name: "Base Estimate", sheet_code: "E-1", updated_at: "2026-06-21T00:00:00.000Z" }],
+    latest: {
+      encrypted_token: "encrypted-old-token",
+      expires_at: "2026-07-01T00:00:00.000Z",
+      id: PUBLICATION_ID,
+      location_visibility: "locality",
+      password_hash: "existing-password-hash",
+      selected_estimate_ids: [ESTIMATE_ID],
+      snapshot_version: 2,
+    },
+    publicationLookup: {
+      activity_target_labels_json: {},
+      expires_at: null,
+      id: PUBLICATION_ID,
+      project_id: PROJECT_ID,
+      revoked_at: null,
+      status: "published",
+    },
+    publicationUpdates: [],
+    revalidatedPaths: [],
+    rpcCalls: [],
+    rpcData: 3,
+    currentUserRole: "admin",
+    projectRole: null,
+    snapshot: {
+      estimates: [{ id: ESTIMATE_ID, name: "Base Estimate", nodes: [], rows: [], sheetCode: "E-1", tabs: [], updatedAt: "2026-06-21T00:00:00.000Z" }],
+      project: { id: PROJECT_ID, name: "Kitchen Renovation" },
+      schemaVersion: 1.3,
+    },
+    workspaceRole: null,
+    ...overrides,
+  };
+
+  const admin = {
+    from(table: string) {
+      return createQuery(table, state);
+    },
+    rpc(functionName: string, args: Record<string, unknown>) {
+      state.rpcCalls.push({ args, functionName });
+      return Promise.resolve({ data: state.rpcData, error: null });
+    },
+  };
+
+  vi.doMock("@supabase/supabase-js", () => ({ createClient: vi.fn(() => admin) }));
+  vi.doMock("next/cache", () => ({
+    revalidatePath: vi.fn((path: string) => {
+      state.revalidatedPaths.push(path);
+    }),
+  }));
+  vi.doMock("next/headers", () => ({ headers: vi.fn(async () => ({ get: () => null })) }));
+  vi.doMock("@/lib/auth/session", () => ({
+    requireCurrentUserContext: vi.fn(async () => {
+      if (!state.currentUserRole) throw new Error("NEXT_REDIRECT:/login");
+      return {
+        displayName: "Philip",
+        email: "philip@example.com",
+        role: state.currentUserRole,
+        userId: USER_ID,
+      };
+    }),
+  }));
+  vi.doMock("@/lib/publication/security", () => ({
+    createPublicationToken: vi.fn(() => "new-token"),
+    decryptPublicationToken: vi.fn((value: string) => value.replace(/^encrypted-/, "")),
+    encryptPublicationToken: vi.fn((value: string) => `encrypted-${value}`),
+    hashPublicationPassword: vi.fn(async (value: string) => `password-hash-${value}`),
+    hashPublicationToken: vi.fn((value: string) => `token-hash-${value}`),
+    readPublicationTokenEncryptionSecret: vi.fn(() => "encryption-secret"),
+    readPublicationTokenHashSecret: vi.fn(() => "hash-secret"),
+    validatePublicationPassword: vi.fn((value: string) =>
+      value.length >= 8 ? { ok: true as const } : { ok: false as const, message: "Password must be at least 8 characters." },
+    ),
+  }));
+  vi.doMock("@/lib/publication/snapshot", () => ({
+    buildProjectPublicationSnapshot: vi.fn(() => state.snapshot),
+    normalizeProjectPublicationLocationVisibility: vi.fn((value: unknown) =>
+      value === "exact" || value === "hidden" ? value : "locality",
+    ),
+  }));
+  vi.doMock("@/lib/email/resend-client", () => ({
+    readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
+    sendEmail: vi.fn(async () => ({ mocked: true, ok: true })),
+  }));
+
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const module = await import("@/lib/publication/actions");
+  return { module, state };
+}
+
+afterEach(() => {
+  vi.resetModules();
+  vi.clearAllMocks();
+});
 
 describe("project publication manager actions (Shared Link Overhaul V2)", () => {
   it("creates, republishes, and revokes client links behind server-side manager checks", () => {
@@ -54,6 +321,181 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     }
   });
 
+  it("rejects every publication mutation for non-manager roles without writes", async () => {
+    const actors = [
+      { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "authenticated user without project access", projectRole: null, workspaceRole: null },
+      { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "workspace member", projectRole: null, workspaceRole: "member" },
+      { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "project member", projectRole: "member", workspaceRole: null },
+      { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "project viewer", projectRole: "viewer", workspaceRole: null },
+      { currentUserRole: null, expectedError: "NEXT_REDIRECT:/login", label: "public recipient-token visitor", projectRole: null, workspaceRole: null },
+    ];
+    const mutationCases: Array<{
+      label: string;
+      run: (module: Awaited<ReturnType<typeof loadPublicationActionsWithHarness>>["module"]) => Promise<unknown>;
+    }> = [
+      {
+        label: "createProjectPublication",
+        run: (module) => module.createProjectPublication({ projectId: PROJECT_ID }),
+      },
+      {
+        label: "republishProjectPublication",
+        run: (module) => module.republishProjectPublication({ projectId: PROJECT_ID }),
+      },
+      {
+        label: "rotateProjectPublicationLink",
+        run: (module) => module.rotateProjectPublicationLink({ projectId: PROJECT_ID }),
+      },
+      {
+        label: "revokeProjectPublication",
+        run: (module) => module.revokeProjectPublication({ projectId: PROJECT_ID }),
+      },
+      {
+        label: "addSharedLinkRecipients",
+        run: (module) =>
+          module.addSharedLinkRecipients({
+            publicationId: PUBLICATION_ID,
+            recipients: [{ email: "client@example.com" }],
+          }),
+      },
+      {
+        label: "resendSharedLinkRecipientEmail",
+        run: (module) =>
+          module.resendSharedLinkRecipientEmail({
+            publicationId: PUBLICATION_ID,
+            recipientId: USER_ID,
+          }),
+      },
+      {
+        label: "removeSharedLinkRecipient",
+        run: (module) =>
+          module.removeSharedLinkRecipient({
+            publicationId: PUBLICATION_ID,
+            recipientId: USER_ID,
+          }),
+      },
+    ];
+
+    for (const actor of actors) {
+      for (const mutation of mutationCases) {
+        const { module, state } = await loadPublicationActionsWithHarness({
+          currentUserRole: actor.currentUserRole,
+          projectRole: actor.projectRole,
+          workspaceRole: actor.workspaceRole,
+        });
+
+        await expect(mutation.run(module), `${actor.label} should not run ${mutation.label}`).rejects.toThrow(actor.expectedError);
+        expect(state.publicationUpdates, `${actor.label} ${mutation.label} should not write rows`).toEqual([]);
+        expect(state.rpcCalls, `${actor.label} ${mutation.label} should not call RPCs`).toEqual([]);
+        expect(state.revalidatedPaths, `${actor.label} ${mutation.label} should not revalidate`).toEqual([]);
+      }
+    }
+  });
+
+  it("asserts behavioral return contracts for republish success and invalid-password failure", async () => {
+    const { module, state } = await loadPublicationActionsWithHarness();
+
+    const invalid = await module.republishProjectPublication({
+      projectId: PROJECT_ID,
+      password: "short",
+    });
+
+    expect(invalid).toEqual({
+      ok: false,
+      message: "Password must be at least 8 characters.",
+    });
+    expect(state.publicationUpdates).toHaveLength(0);
+
+    const result = await module.republishProjectPublication({
+      clearPassword: true,
+      expiresAt: null,
+      projectId: PROJECT_ID,
+    });
+
+    expect(result).toEqual({
+      clientLinkPath: "/share/old-token",
+      message: "Shared page updated.",
+      ok: true,
+    });
+    expect(state.publicationUpdates).toHaveLength(1);
+    expect(state.publicationUpdates[0]).toMatchObject({
+      filters: { id: PUBLICATION_ID },
+      table: "project_publications",
+    });
+    expect(state.publicationUpdates[0]?.payload).toMatchObject({
+      expires_at: null,
+      password_hash: null,
+      selected_estimate_ids: [ESTIMATE_ID],
+      snapshot_json: state.snapshot,
+      snapshot_version: 3,
+    });
+    expect(state.revalidatedPaths).toEqual([`/workshop/projects/${PROJECT_ID}`, "/share/old-token"]);
+  });
+
+  it("asserts behavioral return contracts for rotate success and stale-token conflict", async () => {
+    const successHarness = await loadPublicationActionsWithHarness();
+
+    const result = await successHarness.module.rotateProjectPublicationLink({ projectId: PROJECT_ID });
+
+    expect(result).toEqual({
+      clientLinkPath: "/share/new-token",
+      message: "New shared link ready.",
+      ok: true,
+    });
+    expect(successHarness.state.rpcCalls).toEqual([
+      {
+        functionName: "rotate_project_publication_credentials",
+        args: expect.objectContaining({
+          expected_encrypted_token: "encrypted-old-token",
+          p_encrypted_token: "encrypted-new-token",
+          p_password_hash: "existing-password-hash",
+          p_selected_estimate_ids: [ESTIMATE_ID],
+          p_token_hash: "token-hash-new-token",
+          target_publication_id: PUBLICATION_ID,
+        }),
+      },
+    ]);
+    expect(successHarness.state.revalidatedPaths).toEqual([
+      `/workshop/projects/${PROJECT_ID}`,
+      "/share/old-token",
+      "/share/new-token",
+    ]);
+
+    const conflictHarness = await loadPublicationActionsWithHarness({ rpcData: -1 });
+
+    const conflict = await conflictHarness.module.rotateProjectPublicationLink({ projectId: PROJECT_ID });
+
+    expect(conflict).toEqual({
+      message: "Shared link changed while rotating. Refresh and try again.",
+      ok: false,
+    });
+    expect(conflictHarness.state.rpcCalls).toHaveLength(1);
+    expect(conflictHarness.state.revalidatedPaths).toEqual([]);
+  });
+
+  it("asserts behavioral return contracts for owner activity load and inactive tokens", async () => {
+    const successHarness = await loadPublicationActionsWithHarness();
+
+    await expect(successHarness.module.loadSharedLinkActivity("public-token", { limit: 500 })).resolves.toEqual({
+      activities: [],
+      hasMore: false,
+    });
+
+    const inactiveHarness = await loadPublicationActionsWithHarness({
+      publicationLookup: {
+        activity_target_labels_json: {},
+        expires_at: null,
+        id: PUBLICATION_ID,
+        project_id: PROJECT_ID,
+        revoked_at: "2026-06-21T00:00:00.000Z",
+        status: "revoked",
+      },
+    });
+
+    await expect(inactiveHarness.module.loadSharedLinkActivity("public-token")).rejects.toThrow(
+      "Publication not found or inactive.",
+    );
+  });
+
   it("wires the publication modal controls to server actions", () => {
     expect(header).toContain("createProjectPublication");
     expect(header).toContain("republishProjectPublication");
@@ -72,7 +514,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("createProjectPublication accepts selectedEstimateIds array and normalizes for snapshot filtering", () => {
     expect(actions).toContain("selectedEstimateIds");
     expect(actions).toContain("normalizeSelectedEstimateIds");
-    expect(actions).toContain("buildSnapshotForProject(context, estimateIds)");
+    expect(actions).toContain("buildSnapshotForProject(context, estimateIds, normalizedLocationVisibility)");
     // Explicit filter path present (red until P1 threads from SheetPickerList)
     expect(actions).toMatch(/if \(selectedEstimateIds\.length\)|\.in\("id", selectedEstimateIds\)/);
   });

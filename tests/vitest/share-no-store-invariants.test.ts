@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { SHARED_LINK_UNAVAILABLE_COPY } from "@/lib/publication/share-copy";
+
 const shareApiRoutes = [
   "src/app/api/share/[token]/route.ts",
   "src/app/api/share/[token]/activity/route.ts",
@@ -43,8 +45,10 @@ describe("share/publication no-store invariants", () => {
     const source = readFileSync("src/app/share/[token]/not-found.tsx", "utf8");
 
     expect(source).toContain('aria-label="Shared proposal unavailable"');
-    expect(source).toContain("This link is unavailable.");
-    expect(source).toContain("fresh link");
+    expect(source).toContain("SHARED_LINK_UNAVAILABLE_COPY.title");
+    expect(source).toContain("SHARED_LINK_UNAVAILABLE_COPY.body");
+    expect(SHARED_LINK_UNAVAILABLE_COPY.title).toBe("This shared proposal is unavailable");
+    expect(SHARED_LINK_UNAVAILABLE_COPY.body).toContain("fresh link");
     expect(source).not.toContain("projectCode");
     expect(source).not.toContain("clientName");
     expect(source).not.toContain("snapshot");
