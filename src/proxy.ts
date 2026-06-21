@@ -24,13 +24,17 @@ function isMarketingPage(pathname: string) {
   return MARKETING_PAGE_PATHS.has(pathname);
 }
 
-function createRequestPathResponse(request: NextRequest) {
+function isShareRoute(pathname: string) {
+  return pathname === "/share" || pathname.startsWith("/share/");
+}
+
+function createRequestPathResponse(request: NextRequest, responseHeaders?: HeadersInit) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(
     AUTH_REQUEST_PATH_HEADER,
     sanitizeNextPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
   );
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  return NextResponse.next({ request: { headers: requestHeaders }, headers: responseHeaders });
 }
 
 function withSensitiveRouteCacheControl(response: NextResponse) {
@@ -75,6 +79,8 @@ export async function proxy(request: NextRequest) {
   if (isPublicRoute(pathname)) {
     if (isMarketingPage(pathname)) {
       response.headers.set("Cache-Control", MARKETING_PAGE_CACHE_CONTROL);
+    } else if (isShareRoute(pathname)) {
+      return createRequestPathResponse(request, { "Cache-Control": SENSITIVE_ROUTE_CACHE_CONTROL });
     }
     return response;
   }

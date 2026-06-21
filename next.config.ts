@@ -139,11 +139,17 @@ const nextConfig: NextConfig = {
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ];
 
-    // P11: /share/:path* now enforced CSP (upgrade from Report-Only) + the shared hardening headers.
+    // P11: /share/:path* now enforced CSP (upgrade from Report-Only), no-store cache policy,
+    // and the shared hardening headers. The page carries client proposal data in the HTML shell,
+    // so it must not rely only on dynamic rendering to prevent intermediary/browser storage.
     const sharePageEnforced = [
       {
         source: sharePageSource,
         headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
           {
             key: "Content-Security-Policy",
             value: landingReportOnlyCsp,
