@@ -18,7 +18,7 @@ import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import { estimateQueryKeys, useEstimateTabsQuery } from "@/hooks/use-estimate-query";
 import { useEstimateActiveTab } from "@/hooks/use-estimate-workspace-state";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
-import type { EstimateTabSummary } from "@/lib/estimates/types";
+import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
@@ -45,6 +45,7 @@ type EstimateWorkspaceClientProps = {
   nodes: EstimateTreeNode[];
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string | null;
+  loadLimitState?: EstimateTreeLoadLimitState;
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
   canEditEstimate?: boolean;
   collaborationUserId?: string | null;
@@ -72,6 +73,7 @@ export function EstimateWorkspaceClient({
   nodes,
   estimateTabs = [],
   activeTabId = null,
+  loadLimitState,
   canEditEstimate = false,
   collaborationUserId,
   collaborationDisplayName,
@@ -144,6 +146,7 @@ export function EstimateWorkspaceClient({
         estimateTabs={fallbackTabs}
         activeTabId={displayActiveTabId}
         dataTabId={resolvedActiveTabId}
+        loadLimitState={loadLimitState}
         canEditEstimate={canEditEstimate}
         initialTabId={activeTabId ?? undefined}
         onActiveTabChange={setActiveTabId}

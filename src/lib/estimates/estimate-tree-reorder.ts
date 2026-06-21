@@ -25,7 +25,7 @@ export type EstimateNodeReorderPlan = {
   updates: EstimateNodeReorderUpdate[];
 };
 
-type ReorderFailureCode =
+export type ReorderFailureCode =
   | "unknown-dragged-node"
   | "unknown-target-parent"
   | "multi-drag-unsupported"
@@ -35,6 +35,15 @@ type ReorderFailureCode =
 
 export type EstimateNodeReorderResult =
   | { ok: true; plan: EstimateNodeReorderPlan }
+  | { ok: false; code: ReorderFailureCode; message: string };
+
+export type EstimateTreeDropValidationResult =
+  | {
+      ok: true;
+      draggedNodeId: string;
+      targetParentId: string | null;
+      targetIndex: number;
+    }
   | { ok: false; code: ReorderFailureCode; message: string };
 
 type NodeLocation = {
@@ -48,7 +57,7 @@ type RemoveNodeResult = {
   nodes: EstimateTreeNode[];
 };
 
-function fail(code: ReorderFailureCode, message: string): EstimateNodeReorderResult {
+function fail(code: ReorderFailureCode, message: string): { ok: false; code: ReorderFailureCode; message: string } {
   return { ok: false, code, message };
 }
 
@@ -75,6 +84,50 @@ function getChildCount(nodes: EstimateTreeNode[], parentId: string | null): numb
   const parent = findNodeLocation(nodes, parentId)?.node;
   if (!parent) return null;
   return parent.children?.length ?? 0;
+}
+
+function containsNodeId(node: EstimateTreeNode, id: string): boolean {
+  if (node.id === id) return true;
+  return (node.children ?? []).some((child) => containsNodeId(child, id));
+}
+
+function validateReorderPlacement({
+  nodes,
+  draggedNodeId,
+  targetParentId,
+  targetIndex,
+}: {
+  nodes: EstimateTreeNode[];
+  draggedNodeId: string;
+  targetParentId: string | null;
+  targetIndex: number;
+}): EstimateTreeDropValidationResult {
+  const sourceLocation = findNodeLocation(nodes, draggedNodeId);
+  if (!sourceLocation) return fail("unknown-dragged-node", "Dragged estimate tree node was not found.");
+  if (targetParentId === draggedNodeId) return fail("self-drop", "An estimate tree node cannot be dropped inside itself.");
+
+  const targetChildCount = getChildCount(nodes, targetParentId);
+  if (targetChildCount === null) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
+
+  if (targetParentId && containsNodeId(sourceLocation.node, targetParentId)) {
+    return fail("cycle", "An estimate tree node cannot be dropped inside one of its descendants.");
+  }
+
+  const boundedTargetIndex = Math.max(0, Math.min(targetIndex, targetChildCount));
+  const adjustedTargetIndex = sourceLocation.parentId === targetParentId && sourceLocation.index < boundedTargetIndex
+    ? boundedTargetIndex - 1
+    : boundedTargetIndex;
+
+  if (sourceLocation.parentId === targetParentId && sourceLocation.index === adjustedTargetIndex) {
+    return fail("no-op", "Estimate tree node is already in that position.");
+  }
+
+  return {
+    ok: true,
+    draggedNodeId,
+    targetParentId,
+    targetIndex: boundedTargetIndex,
+  };
 }
 
 function removeNode(nodes: EstimateTreeNode[], id: string): RemoveNodeResult {
@@ -324,20 +377,48 @@ export function evaluateEstimateTreeDrop({
   draggedNodeIds: string[];
   target: EstimateTreeDropTarget;
 }): EstimateNodeReorderResult {
+  const validation = validateEstimateTreeDrop({
+    nodes,
+    draggedNodeIds,
+    target,
+  });
+  if (!validation.ok) return validation;
+  return buildEstimateNodeReorderPlan({
+    nodes,
+    draggedNodeId: validation.draggedNodeId,
+    targetParentId: validation.targetParentId,
+    targetIndex: validation.targetIndex,
+  });
+}
+
+export function validateEstimateTreeDrop({
+  nodes,
+  draggedNodeIds,
+  target,
+}: {
+  nodes: EstimateTreeNode[];
+  draggedNodeIds: string[];
+  target: EstimateTreeDropTarget;
+}): EstimateTreeDropValidationResult {
   if (draggedNodeIds.length !== 1) return fail("multi-drag-unsupported", "Only one estimate tree node can be moved at a time.");
 
   const draggedNodeId = draggedNodeIds[0];
 
   if (target.position === "inside") {
-    const childCount = getChildCount(nodes, target.targetNodeId);
-    if (childCount === null) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
-    return buildEstimateNodeReorderPlan({ nodes, draggedNodeId, targetParentId: target.targetNodeId, targetIndex: childCount });
+    const targetLocation = findNodeLocation(nodes, target.targetNodeId);
+    if (!targetLocation) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
+    return validateReorderPlacement({
+      nodes,
+      draggedNodeId,
+      targetParentId: target.targetNodeId,
+      targetIndex: targetLocation.node.children?.length ?? 0,
+    });
   }
 
   const targetLocation = findNodeLocation(nodes, target.targetNodeId);
   if (!targetLocation) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
 
-  return buildEstimateNodeReorderPlan({
+  return validateReorderPlacement({
     nodes,
     draggedNodeId,
     targetParentId: targetLocation.parentId,

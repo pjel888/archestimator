@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getEstimateTabs, resolveEstimateEditCapability, resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
@@ -34,11 +35,11 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
   // not gated on library queries.
   const [estimateTreeResult, currentUser] = await withPerfTraceRequest("workshop.estimate-sheet", () =>
     Promise.all([
-      traced("estimate-sheet.route-context", () => resolveEstimateTabRouteContext(projectId, nodeId)),
+      traced("estimate-sheet.route-context", () => resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)),
       traced("estimate-sheet.current-user", () => requireCurrentUserContext()),
     ]),
   );
-  const { project, estimate, selectedNodeId, tree, tab, tabs } = estimateTreeResult;
+  const { project, estimate, selectedNodeId, tree, tab, tabs, loadLimitState } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
 
@@ -89,6 +90,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
         nodes={tree}
         estimateTabs={estimateTabs}
         activeTabId={tab?.id ?? null}
+        loadLimitState={loadLimitState}
         canEditEstimate={canEditEstimate}
         collaborationUserId={currentUser.userId}
         collaborationDisplayName={currentUser.displayName}

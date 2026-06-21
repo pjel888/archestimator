@@ -157,17 +157,19 @@ export type EstimateTabSummary = {
   totalCost?: number;
 };
 
+export type EstimateTreeLoadLimitState = {
+  maxNodeCount: number | null;
+  maxRowItemCount: number | null;
+  fetchedNodeCount: number;
+  fetchedRowItemCount: number;
+  didExceedNodeLimit: boolean;
+  didExceedRowItemLimit: boolean;
+};
+
 export type EstimateTabTree = {
   tab: EstimateTabSummary;
   tree: EstimateTreeNode[];
-  loadLimitState?: {
-    maxNodeCount: number | null;
-    maxRowItemCount: number | null;
-    fetchedNodeCount: number;
-    fetchedRowItemCount: number;
-    didExceedNodeLimit: boolean;
-    didExceedRowItemLimit: boolean;
-  };
+  loadLimitState?: EstimateTreeLoadLimitState;
 };
 
 export type EstimateWithTabs<TEstimate = unknown> = {

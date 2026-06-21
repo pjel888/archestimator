@@ -2076,11 +2076,11 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
  * Used by ProjectPublicationHeader (Estimates tab picker) for selection without loading heavy node/row aggregates.
  * Additive for Shared Link Overhaul V2 (P1).
  */
-export async function listProjectEstimateSheets(projectId: string): Promise<ProjectEstimateSheetSummary[]> {
+export async function listProjectEstimateSheets(projectId: string, options: { limit?: number } = {}): Promise<ProjectEstimateSheetSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 
-  return listProjectEstimateSheetsForProject(project.id);
+  return listProjectEstimateSheetsForProject(project.id, options);
 }
 
 type EstimateNodeKind = Tables<"estimate_nodes">["kind"];

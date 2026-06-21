@@ -21,12 +21,13 @@ const DROP_SLOT_CONTENT_CLASS = "flex items-center gap-1.5 text-[10px] font-norm
  * Dashed drop surface, rendered only while a compatible drag is in flight
  * (drag suppresses CSS hover, so the highlight is driven by `isDragOver`).
  */
-export function EstimateDropZone({ label, isDragOver = false }: { label: string; isDragOver?: boolean }) {
+export function EstimateDropZone({ label, isDragOver = false, empty = false }: { label: string; isDragOver?: boolean; empty?: boolean }) {
   return (
     <div
       className={cn(
         DROP_SLOT_SURFACE_CLASS,
-        isDragOver ? "opacity-100" : "opacity-60",
+        empty ? "h-20 border-brand-orange/40 bg-brand-orange/5 text-ink" : null,
+        isDragOver ? "border-brand-orange bg-brand-orange/10 opacity-100 shadow-inner" : "opacity-60",
       )}
     >
       <div className={DROP_SLOT_CONTENT_CLASS}>
@@ -90,9 +91,8 @@ export function ComponentDropTarget({
   if (!componentDragActive && dragCount !== 0) setDragCount(0);
 
   if (!componentDragActive) {
-    void empty;
     return (
-      <div className="py-1">
+      <div className={cn("py-1", empty ? "py-1.5" : null)}>
         <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
       </div>
     );
@@ -120,6 +120,7 @@ export function ComponentDropTarget({
       <EstimateDropZone
         label={`Drag and drop estimate component into ${nodeName}`}
         isDragOver={isDragOver}
+        empty={empty}
       />
     </div>
   );

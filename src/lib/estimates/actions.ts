@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
-import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata, withCopiedExpressComponentMetadata } from "@/lib/estimates/express-components";
+import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata } from "@/lib/estimates/express-components";
+import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   normalizeEstimateTreeNodeKind,
@@ -39,6 +40,29 @@ type CreateEstimateNodeWithHistoryArgs = Omit<
 > & {
   parent_node_id: string | null;
 };
+
+export const ESTIMATE_ROW_REVISION_CONFLICT_CODE = "estimate_sheet_row_revision_conflict";
+
+export class EstimateRowRevisionConflictError extends Error {
+  code = ESTIMATE_ROW_REVISION_CONFLICT_CODE;
+
+  constructor() {
+    super("This row changed elsewhere. Reload the estimate and review the latest row before saving again.");
+    this.name = "EstimateRowRevisionConflictError";
+  }
+}
+
+function isEstimateRowRevisionConflict(error: unknown) {
+  const record = error && typeof error === "object" ? error as { code?: unknown; message?: unknown } : {};
+  return record.code === ESTIMATE_ROW_REVISION_CONFLICT_CODE
+    || (typeof record.message === "string" && record.message.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE));
+}
+
+function throwEstimateRowMutationError(error: unknown): never {
+  if (isEstimateRowRevisionConflict(error)) throw new EstimateRowRevisionConflictError();
+  if (error instanceof Error) throw error;
+  throw new Error("Could not save the estimate row.");
+}
 
 function readRequiredText(formData: FormData, key: string) {
   const value = String(formData.get(key) ?? "").trim();
@@ -1226,7 +1250,7 @@ function revalidateProjectEstimatePaths(projectId: string) {
 }
 
 export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {
-  const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(projectId, estimateId);
+  const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(projectId, estimateId, ESTIMATE_SHEET_TREE_LOAD_LIMITS);
   if (!project || !estimate) throw new Error("Estimate not found in the current project.");
   return tree;
 }
@@ -1236,7 +1260,7 @@ export async function fetchEstimateTabs({ projectId, estimateId }: FetchEstimate
 }
 
 export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: FetchEstimateTabTreeInput) {
-  const { project, estimate, tab, tree } = await getEstimateTabTree(projectId, estimateId, tabId);
+  const { project, estimate, tab, tree } = await getEstimateTabTree(projectId, estimateId, tabId, ESTIMATE_SHEET_TREE_LOAD_LIMITS);
   if (!project || !estimate || !tab) throw new Error("Estimate tab not found in the current project.");
   return tree;
 }
@@ -2269,17 +2293,15 @@ export async function deleteEstimateNodesBulk(
     fallbackNodeId = deletePlan.fallbackNodeId;
   }
 
-  for (const rootNodeId of rootNodeIds) {
-    const { error } = await supabase.rpc("delete_estimate_node_with_history", {
-      target_project_id: project.id,
-      target_estimate_id: estimate.id,
-      target_node_id: rootNodeId,
-      acting_user_id: currentUser.userId,
-      correlation_id: randomUUID(),
-    });
+  const { error } = await supabase.rpc("delete_estimate_nodes_bulk_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    target_node_ids: rootNodeIds,
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+  });
 
-    if (error) throw new Error(`Could not delete selected estimate tree nodes: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not delete selected estimate tree nodes: ${error.message}`);
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
@@ -2402,20 +2424,11 @@ type InsertEstimateTemplateNodeIntoEstimateResult = {
   insertedRootNodeId: string;
 };
 
-type TemplateSubtreeNodeRow = {
-  id: string;
-  parent_id: string | null;
-  kind: "group" | "area";
-  name: string;
-  sort_order: number;
-};
-
 /**
  * Inserts one node of a template — a group or area inside it — and its whole
- * subtree under a target node. Unlike whole-template insertion (a single
- * RPC), this loops the history-aware node/row RPCs so every created node and
- * row lands in the estimate's event history; a mid-way failure leaves the
- * already-created nodes visible and deletable rather than rolling back.
+ * subtree under a target node. The history-aware RPC performs the copy inside
+ * one database transaction so subtree inserts do not leave partial node/row
+ * fragments if a later row fails.
  */
 export async function insertEstimateTemplateNodeIntoEstimate({
   projectId,
@@ -2435,143 +2448,24 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   // — otherwise a workspace-member viewer could insert a template-node subtree.
   await assertCanEditEstimate(supabase, estimateId);
 
-  const { data: targetParent, error: parentError } = await supabase
-    .from("estimate_nodes")
-    .select("id, kind, estimates!inner(project_id)")
-    .eq("id", targetParentNodeId)
-    .eq("estimate_id", estimateId)
-    .eq("estimates.project_id", project.id)
-    .maybeSingle();
-  if (parentError) throw parentError;
-  if (!targetParent) throw new Error("Target node not found in the current project.");
+  const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_node_into_estimate_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_parent_node_id: targetParentNodeId,
+    source_template_id: templateId,
+    source_template_node_id: templateNodeId,
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+    ...(targetTabId ? { target_tab_id: targetTabId } : {}),
+  });
+  if (copyError) throw new Error(`Could not insert the template node: ${copyError.message}`);
 
-  const { data: template, error: templateError } = await supabase
-    .from("estimate_templates")
-    .select("id")
-    .eq("id", templateId)
-    .eq("workspace_id", project.workspace_id)
-    .maybeSingle();
-  if (templateError) throw templateError;
-  if (!template) throw new Error("Estimate template not found in the current workspace.");
-
-  const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_template_nodes")
-      .select("id, parent_id, kind, name, sort_order")
-      .eq("template_id", templateId)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("estimate_template_row_items")
-      .select(
-        "id, template_node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, discipline, designation, link_state, metadata",
-      )
-      .eq("template_id", templateId)
-      .order("sort_order", { ascending: true }),
-  ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
-
-  const allTemplateNodes = (nodesResult.data ?? []) as TemplateSubtreeNodeRow[];
-  const sourceNode = allTemplateNodes.find((node) => node.id === templateNodeId);
-  if (!sourceNode) throw new Error("Template node not found in the current workspace.");
-
-  // Collect the subtree breadth-first so parents are created before children.
-  const childrenByParentId = new Map<string | null, TemplateSubtreeNodeRow[]>();
-  for (const node of allTemplateNodes) {
-    const siblings = childrenByParentId.get(node.parent_id) ?? [];
-    siblings.push(node);
-    childrenByParentId.set(node.parent_id, siblings);
-  }
-  const subtreeNodes: TemplateSubtreeNodeRow[] = [];
-  const queue: TemplateSubtreeNodeRow[] = [sourceNode];
-  while (queue.length > 0) {
-    const node = queue.shift();
-    if (!node) break;
-    subtreeNodes.push(node);
-    queue.push(...(childrenByParentId.get(node.id) ?? []));
-  }
-
-  const { data: siblingRows, error: siblingError } = await supabase
-    .from("estimate_nodes")
-    .select("sort_order")
-    .eq("estimate_id", estimateId)
-    .eq("parent_id", targetParentNodeId)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  if (siblingError) throw siblingError;
-  const rootSortOrder = (siblingRows?.[0]?.sort_order ?? -1) + 1;
-
-  const createdNodeIdByTemplateNodeId = new Map<string, string>();
-  for (const node of subtreeNodes) {
-    const parentEstimateNodeId =
-      node.id === sourceNode.id ? targetParentNodeId : createdNodeIdByTemplateNodeId.get(node.parent_id ?? "");
-    if (!parentEstimateNodeId) throw new Error("Template node structure is inconsistent.");
-
-    const { data: createResult, error: createError } = await supabase.rpc("create_estimate_node_with_history", {
-      target_project_id: project.id,
-      target_estimate_id: estimateId,
-      parent_node_id: parentEstimateNodeId,
-      node_kind: node.kind,
-      node_name: node.name,
-      initial_sort_order: node.id === sourceNode.id ? rootSortOrder : node.sort_order,
-      acting_user_id: currentUser.userId,
-      correlation_id: randomUUID(),
-    });
-    if (createError) throw new Error(`Could not copy the template node: ${createError.message}`);
-    const createRecord = readJsonRecord(createResult);
-    const createPayload = readJsonRecord(createRecord.payload);
-    const createdNodeId = typeof createRecord.nodeId === "string"
-      ? createRecord.nodeId
-      : typeof createPayload.nodeId === "string"
-        ? createPayload.nodeId
-        : "";
-    if (!createdNodeId) throw new Error("Estimate node history RPC did not return the created node id.");
-    createdNodeIdByTemplateNodeId.set(node.id, createdNodeId);
-  }
-
-  const subtreeNodeIds = new Set(subtreeNodes.map((node) => node.id));
-  const subtreeRows = (rowsResult.data ?? []).filter((row) => subtreeNodeIds.has(row.template_node_id));
-  for (const row of subtreeRows) {
-    const targetNodeId = createdNodeIdByTemplateNodeId.get(row.template_node_id);
-    if (!targetNodeId) continue;
-    const copyProvenance = {
-      sourceTemplateId: templateId,
-      sourceTemplateNodeId: row.template_node_id,
-      sourceTemplateRowId: row.id,
-      sourceKind: "template",
-    } satisfies Record<string, Json>;
-
-    const { error: rowInsertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
-      target_project_id: project.id,
-      target_estimate_id: estimateId,
-      target_node_id: targetNodeId,
-      row_payload: {
-        id: randomUUID(),
-        sortOrder: row.sort_order,
-        sourceLibraryItemId: row.source_library_item_id,
-        sourceSnapshot: mergeJsonObject(row.source_snapshot, copyProvenance),
-        categoryNodeId: row.category_node_id,
-        supplierId: row.supplier_id,
-        material: row.material,
-        description: row.description,
-        supplier: row.supplier,
-        unit: row.unit,
-        quantity: Number(row.quantity),
-        unitCost: Number(row.unit_cost),
-        contingencyPercentage: Number(row.contingency_percentage ?? 0),
-        miscCost: Number(row.misc_cost),
-        discipline: row.discipline,
-        designation: row.designation,
-        metadata: withCopiedExpressComponentMetadata(row.metadata, copyProvenance, randomUUID),
-        linkState: row.link_state ?? (row.source_library_item_id ? "linked-clean" : "unlinked"),
-      },
-      acting_user_id: currentUser.userId,
-      correlation_id: randomUUID(),
-    });
-    if (rowInsertError) throw new Error(`Could not copy the template rows: ${rowInsertError.message}`);
-  }
-
-  const insertedRootNodeId = createdNodeIdByTemplateNodeId.get(sourceNode.id);
+  const copyRecord = readJsonRecord(copyResult);
+  const insertedRootNodeId = typeof copyRecord.insertedRootNodeId === "string"
+    ? copyRecord.insertedRootNodeId
+    : typeof copyRecord.inserted_root_node_id === "string"
+      ? copyRecord.inserted_root_node_id
+      : "";
   if (!insertedRootNodeId) throw new Error("Template node insertion did not produce a root node.");
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
@@ -2669,7 +2563,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
-  if (error) throw error;
+  if (error) throwEstimateRowMutationError(error);
 
   const updatedRow = readHistoryRowResult(data);
   return updatedRow;
@@ -2707,7 +2601,7 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
 
-  if (error) throw error;
+  if (error) throwEstimateRowMutationError(error);
   return readHistoryRowResult(data);
 }
 
@@ -2733,7 +2627,7 @@ export async function detachEstimateRowItemFromLibrary({
     correlation_id: getMutationCorrelationId(mutationId),
   });
 
-  if (error) throw error;
+  if (error) throwEstimateRowMutationError(error);
 
   const detachedRow = readHistoryRowResult(data);
   return detachedRow;
@@ -2750,5 +2644,5 @@ export async function deleteEstimateRowItem({ projectId, estimateId, rowId, muta
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
-  if (error) throw error;
+  if (error) throwEstimateRowMutationError(error);
 }

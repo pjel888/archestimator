@@ -22,13 +22,28 @@ export type ProjectRecentEstimateSheetSummary = {
 const RECENT_ESTIMATE_SHEET_DEFAULT_LIMIT = 5;
 const RECENT_ESTIMATE_SHEET_MAX_LIMIT = 10;
 
-export async function listProjectEstimateSheetsForProject(projectId: string): Promise<ProjectEstimateSheetSummary[]> {
+type ListProjectEstimateSheetsForProjectOptions = {
+  limit?: number;
+};
+
+function normalizeProjectEstimateSheetLimit(limit: number | undefined): number | null {
+  if (typeof limit !== "number" || !Number.isFinite(limit)) return null;
+  const normalized = Math.trunc(limit);
+  return normalized > 0 ? normalized : null;
+}
+
+export async function listProjectEstimateSheetsForProject(
+  projectId: string,
+  options: ListProjectEstimateSheetsForProjectOptions = {},
+): Promise<ProjectEstimateSheetSummary[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  const safeLimit = normalizeProjectEstimateSheetLimit(options.limit);
+  const query = supabase
     .from("estimates")
     .select("id, name, sheet_code, updated_at")
     .eq("project_id", projectId)
     .order("sheet_code", { ascending: true });
+  const { data, error } = await (safeLimit ? query.limit(safeLimit) : query);
 
   if (error) throw error;
 

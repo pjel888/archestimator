@@ -39,6 +39,7 @@ import {
   evaluateEstimateTreeDrop,
   getEstimateTreeContentSignature,
   mergeEstimateTreeStructureWithCachedNodes,
+  validateEstimateTreeDrop,
 } from "@/lib/estimates/estimate-tree-reorder";
 import { planEstimateTreeDelete, renameEstimateTreeNode } from "@/lib/estimates/estimate-tree-edit";
 import {
@@ -556,7 +557,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const handleTreeCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
     if (!canReorderNow || editingNodeId || treeSearchActive) return false;
     if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return false;
-    return evaluateEstimateTreeDrop({
+    return validateEstimateTreeDrop({
       nodes: localNodes,
       draggedNodeIds: [draggedId],
       target: { targetNodeId: targetId, position },

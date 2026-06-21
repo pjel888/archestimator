@@ -3884,6 +3884,16 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_estimate_nodes_bulk_with_history: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          target_estimate_id: string
+          target_node_ids: string[]
+          target_project_id: string
+        }
+        Returns: Json
+      }
       delete_estimate_row_item_with_history: {
         Args: {
           acting_user_id?: string
@@ -4117,6 +4127,19 @@ export type Database = {
           target_estimate_id: string
           target_parent_node_id: string
           target_project_id: string
+        }
+        Returns: Json
+      }
+      insert_estimate_template_node_into_estimate_with_history: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          source_template_id: string
+          source_template_node_id: string
+          target_estimate_id: string
+          target_parent_node_id: string
+          target_project_id: string
+          target_tab_id?: string
         }
         Returns: Json
       }

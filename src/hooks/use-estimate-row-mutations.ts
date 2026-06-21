@@ -20,6 +20,30 @@ export type EstimateRowMutationError = {
   retryable: boolean;
 };
 
+const ESTIMATE_ROW_REVISION_CONFLICT_CODE = "estimate_sheet_row_revision_conflict";
+const ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE = "This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.";
+
+function readMutationErrorCode(error: Error) {
+  const code = (error as Error & { code?: unknown }).code;
+  if (typeof code === "string") return code;
+  return error.message.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE) ? ESTIMATE_ROW_REVISION_CONFLICT_CODE : undefined;
+}
+
+function isRowRevisionConflictError(error: Error) {
+  return readMutationErrorCode(error) === ESTIMATE_ROW_REVISION_CONFLICT_CODE;
+}
+
+function toEstimateRowMutationError(error: Error, input?: { rowId?: string }): EstimateRowMutationError {
+  const code = readMutationErrorCode(error);
+  const staleDataConflict = code === ESTIMATE_ROW_REVISION_CONFLICT_CODE;
+  return {
+    rowId: input?.rowId,
+    message: staleDataConflict ? ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE : error.message || "Could not save the row change.",
+    code,
+    retryable: true,
+  };
+}
+
 type SharedMutationInput = {
   projectId: string;
   estimateId: string;
@@ -226,12 +250,7 @@ function useSaveState() {
       return nextCount;
     });
     if (error) {
-      setRowMutationError({
-        rowId: input?.rowId,
-        message: error.message || "Could not save the row change.",
-        code: typeof (error as Error & { code?: unknown }).code === "string" ? (error as Error & { code?: string }).code : undefined,
-        retryable: true,
-      });
+      setRowMutationError(toEstimateRowMutationError(error, input));
     }
   }, []);
 
@@ -255,6 +274,13 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
   const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
   const treeQueryKey = estimateId ? (estimateTabId ? estimateQueryKeys.tabTree(estimateId, estimateTabId) : estimateQueryKeys.areaTree(estimateId)) : undefined;
+  const invalidateTreeAfterMutationError = useCallback((error: Error) => {
+    if (!treeQueryKey) return;
+    void queryClient.invalidateQueries({
+      queryKey: treeQueryKey,
+      refetchType: isRowRevisionConflictError(error) ? "active" : "none",
+    });
+  }, [queryClient, treeQueryKey]);
 
   const mutationOptions = useMemo(
     () => ({
@@ -269,10 +295,10 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
         input.rollback?.();
         input.onError?.(error);
         markFailed(error, input);
-        if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "none" });
+        invalidateTreeAfterMutationError(error);
       },
     }),
-    [detailQueryKey, estimateTabId, markFailed, markSaved, markSaving, queryClient, treeQueryKey],
+    [detailQueryKey, estimateTabId, invalidateTreeAfterMutationError, markFailed, markSaved, markSaving, queryClient],
   );
 
   const insertMutation = useMutation({
@@ -311,7 +337,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       input.rollback?.();
       input.onError?.(error);
       markFailed(error, input);
-      if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "none" });
+      invalidateTreeAfterMutationError(error);
     },
   });
 
@@ -332,7 +358,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       input.rollback?.();
       input.onError?.(error);
       markFailed(error, input);
-      if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "none" });
+      invalidateTreeAfterMutationError(error);
     },
   });
 
@@ -388,7 +414,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       } else input.rollback?.();
       input.onError?.(_error);
       markFailed(_error, input);
-      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      void queryClient.invalidateQueries({ queryKey, refetchType: isRowRevisionConflictError(_error) ? "active" : "none" });
     },
   });
 
@@ -470,7 +496,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       } else input.rollback?.();
       input.onError?.(_error);
       markFailed(_error, input);
-      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      void queryClient.invalidateQueries({ queryKey, refetchType: isRowRevisionConflictError(_error) ? "active" : "none" });
     },
   });
 

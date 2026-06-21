@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
 
 import {
   DEFAULT_ESTIMATE_COLUMN_WIDTHS,
@@ -92,7 +93,7 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
               title="Reset column widths"
               onClick={resetAllWidths}
             >
-              <span aria-hidden="true">R</span>
+              <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
             </button>
           ) : (
             <span className="truncate">{column.label}</span>

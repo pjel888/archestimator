@@ -70,7 +70,7 @@ const ProposalExportPreviewDialog = dynamic(
   () => import("./ProposalExportPreviewDialog").then((mod) => mod.ProposalExportPreviewDialog),
   { ssr: false },
 );
-import type { EstimateTabSummary } from "@/lib/estimates/types";
+import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import {
   BLANK_ESTIMATE_ROW_AUDIT_LABEL,
   BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
@@ -171,6 +171,7 @@ type EstimateSheetContentProps = {
   estimateId?: string;
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string;
+  loadLimitState?: EstimateTreeLoadLimitState;
   /** Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17. */
   dataTabId?: string;
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
@@ -466,6 +467,50 @@ function removeEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): Es
     ...node,
     estimateRowItems: node.estimateRowItems?.filter((item) => item.id !== rowItemId),
     children: node.children ? removeEstimateRowItem(node.children, rowItemId) : node.children,
+  }));
+}
+
+type EstimateRowItemLocation = {
+  nodeId: string;
+  index: number;
+  item: EstimateRowItem;
+};
+
+function findEstimateRowItemLocation(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItemLocation | null {
+  for (const node of nodes) {
+    const rowIndex = node.estimateRowItems?.findIndex((item) => item.id === rowItemId) ?? -1;
+    if (rowIndex >= 0 && node.estimateRowItems) {
+      return { nodeId: node.id, index: rowIndex, item: node.estimateRowItems[rowIndex] };
+    }
+    if (node.children) {
+      const childLocation = findEstimateRowItemLocation(node.children, rowItemId);
+      if (childLocation) return childLocation;
+    }
+  }
+  return null;
+}
+
+function restoreEstimateRowItemAtLocation(nodes: EstimateTreeNode[], location: EstimateRowItemLocation): EstimateTreeNode[] {
+  return nodes.map((node) => {
+    if (node.id === location.nodeId) {
+      const currentItems = node.estimateRowItems ?? [];
+      if (currentItems.some((item) => item.id === location.item.id)) return node;
+      const nextItems = [...currentItems];
+      nextItems.splice(Math.min(location.index, nextItems.length), 0, location.item);
+      return { ...node, estimateRowItems: nextItems };
+    }
+    return {
+      ...node,
+      children: node.children ? restoreEstimateRowItemAtLocation(node.children, location) : node.children,
+    };
+  });
+}
+
+function replaceEstimateRowItemsInTree(nodes: EstimateTreeNode[], replacements: Map<string, EstimateRowItem>): EstimateTreeNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    estimateRowItems: node.estimateRowItems?.map((item) => replacements.get(item.id) ?? item),
+    children: node.children ? replaceEstimateRowItemsInTree(node.children, replacements) : node.children,
   }));
 }
 
@@ -1071,6 +1116,7 @@ export function EstimateSheetContent({
   estimateId,
   estimateTabs = [],
   activeTabId,
+  loadLimitState,
   dataTabId,
   canEditEstimate = false,
   initialTabId,
@@ -1120,6 +1166,9 @@ export function EstimateSheetContent({
     enabled: Boolean(dataTabId),
   });
   const activeTreeQuery = dataTabId ? tabTreeQuery : legacyTreeQuery;
+  const activeInitialLoadLimitState = dataTabId === initialTabId ? loadLimitState : undefined;
+  const didTruncateInitialTree =
+    Boolean(activeInitialLoadLimitState?.didExceedNodeLimit || activeInitialLoadLimitState?.didExceedRowItemLimit);
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
@@ -2171,36 +2220,32 @@ export function EstimateSheetContent({
   // hardened RPC and returns the refreshed tree. P6: any node is a valid target
   // (no group gate); the relaxed insert_estimate_subtree RPC accepts it.
   const insertProjectSourceIntoParentById = useStableCallback(
-    (targetParentNodeId: string, source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null }) => {
+    async (targetParentNodeId: string, source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null }) => {
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
       if (!projectId || !estimateId) return false;
 
-      insertProjectSourceIntoEstimate({
-        targetProjectId: projectId,
-        targetEstimateId: estimateId,
-        targetParentNodeId,
-        source,
-        targetTabId: dataTabId,
-      })
-        .then((result) => {
-          // This insert is NON-optimistic: nothing is added to the tree before
-          // the RPC, so the server tree is authoritative and applied directly.
-          // We deliberately do NOT add the template inserts' revision guard here
-          // — those keep their optimistic tree when the guard skips, but here a
-          // skip would drop the inserted source entirely. INS-4: setEstimateTree
-          // bumps the editable-rows skip ref so applying the tree doesn't clobber
-          // an in-flight cell edit. (Concurrent BULK source inserts clobbering
-          // one another is tracked separately as RS-6 — the fix there is to
-          // serialize the bulk loop, not to guard this single insert.)
-          setEstimateTree(() => result.tree);
-        })
-        .catch((error: unknown) => {
-          console.error("[estimate] project source insert failed", error);
-          toast({ tone: "error", message: "Couldn't insert the project source. Try again." });
+      try {
+        const result = await insertProjectSourceIntoEstimate({
+          targetProjectId: projectId,
+          targetEstimateId: estimateId,
+          targetParentNodeId,
+          source,
+          targetTabId: dataTabId,
         });
-
-      return true;
+        // This insert is NON-optimistic: nothing is added to the tree before
+        // the RPC, so the server tree is authoritative and applied directly.
+        // INS-4: setEstimateTree bumps the editable-rows skip ref so applying
+        // the tree doesn't clobber an in-flight cell edit. Bulk source inserts
+        // are serialized by the sidebar, so every returned tree builds on the
+        // previous confirmed insert.
+        setEstimateTree(() => result.tree);
+        return true;
+      } catch (error: unknown) {
+        console.error("[estimate] project source insert failed", error);
+        toast({ tone: "error", message: "Couldn't insert the project source. Try again." });
+        return false;
+      }
     },
   );
 
@@ -2537,25 +2582,67 @@ export function EstimateSheetContent({
       toast({ tone: "error", message: "Replace express components directly before moving them between rows." });
       return;
     }
-    replaceRowItem(targetRowItemId, movedItem);
-    clearRowComponent(sourceRowItemId);
+    const sourceLocation = findEstimateRowItemLocation(estimateTree, sourceRowItemId);
+    const targetLocation = findEstimateRowItemLocation(estimateTree, targetRowItemId);
+    if (!sourceLocation || !targetLocation) return;
+
+    const previousSourceEditableRow = editableRows[sourceRowItemId] ?? getInitialEditableRow(sourceLocation.item);
+    const previousTargetEditableRow = editableRows[targetRowItemId] ?? getInitialEditableRow(targetLocation.item);
+    const targetLibraryItem = applyEditableValuesToLibraryItem(movedItem, previousTargetEditableRow);
+    const sourceBlankLibraryItem = applyEditableValuesToLibraryItem(createBlankEstimateRowTemplate(), previousSourceEditableRow);
+    const targetReplacementItem = replaceRowItemWithLibraryItem(targetRowItemId, targetLibraryItem);
+    const sourceReplacementItem = replaceRowItemWithLibraryItem(sourceRowItemId, sourceBlankLibraryItem);
+    const replacements = new Map<string, EstimateRowItem>([
+      [targetRowItemId, targetReplacementItem],
+      [sourceRowItemId, sourceReplacementItem],
+    ]);
+    setEstimateTree((current) => replaceEstimateRowItemsInTree(current, replacements));
+    setEditableRows((current) => ({
+      ...current,
+      [targetRowItemId]: current[targetRowItemId] ?? previousTargetEditableRow,
+      [sourceRowItemId]: getInitialEditableRow(sourceReplacementItem),
+    }));
+
+    const restoreMovedRows = () => {
+      const previousRowsById = new Map<string, EstimateRowItem>([
+        [sourceRowItemId, sourceLocation.item],
+        [targetRowItemId, targetLocation.item],
+      ]);
+      setEstimateTree((current) => replaceEstimateRowItemsInTree(current, previousRowsById));
+      setEditableRows((current) => ({
+        ...current,
+        [sourceRowItemId]: previousSourceEditableRow,
+        [targetRowItemId]: previousTargetEditableRow,
+      }));
+    };
+    const reportMoveError = () => toast({ tone: "error", message: "Couldn't move the component. Try again." });
+
+    if (projectId && estimateId) {
+      replaceRow({
+        projectId,
+        estimateId,
+        rowId: targetRowItemId,
+        libraryItem: targetLibraryItem,
+        rollback: restoreMovedRows,
+        onSuccess: () => refetchProjectComponentProjection(),
+        onError: reportMoveError,
+      });
+      replaceRow({
+        projectId,
+        estimateId,
+        rowId: sourceRowItemId,
+        libraryItem: sourceBlankLibraryItem,
+        rollback: restoreMovedRows,
+        onSuccess: () => refetchProjectComponentProjection(),
+        onError: reportMoveError,
+      });
+    }
   });
 
   const deleteRowItem = useStableCallback((rowItemId: string) => {
-    const previousTree = estimateTree;
-    const previousRows = editableRows;
-    const rollbackRevision = setEstimateTree((current) =>
-      current.map((node) => {
-        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
-          return {
-            ...areaNode,
-            estimateRowItems: areaNode.estimateRowItems?.filter((item) => item.id !== rowItemId),
-            children: areaNode.children?.map(visit),
-          };
-        }
-        return visit(node);
-      }),
-    );
+    const previousRowLocation = findEstimateRowItemLocation(estimateTree, rowItemId);
+    const previousEditableRow = editableRows[rowItemId];
+    setEstimateTree((current) => removeEstimateRowItem(current, rowItemId));
     setEditableRows((current) => {
       const remainingRows = { ...current };
       delete remainingRows[rowItemId];
@@ -2566,8 +2653,14 @@ export function EstimateSheetContent({
         projectId,
         estimateId,
         rowId: rowItemId,
-        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        rollback: () => {
+          if (previousRowLocation) {
+            setEstimateTree((current) => restoreEstimateRowItemAtLocation(current, previousRowLocation));
+            setEditableRows((current) => ({ ...current, [rowItemId]: previousEditableRow ?? getInitialEditableRow(previousRowLocation.item) }));
+          }
+        },
         onSuccess: () => refetchProjectComponentProjection(),
+        onError: () => toast({ tone: "error", message: "Couldn't delete the row. Try again." }),
       });
     }
   });
@@ -2846,6 +2939,11 @@ export function EstimateSheetContent({
             >
               <X size={12} weight="regular" aria-hidden="true" />
             </button>
+          </div>
+        ) : null}
+        {didTruncateInitialTree ? (
+          <div className="mx-2 mt-2 rounded-xs border border-warningSoft bg-warningSoft/40 px-2 py-1.5 text-[10px] leading-4 text-warning" role="status">
+            This sheet view loaded the first {activeInitialLoadLimitState?.maxNodeCount?.toLocaleString() ?? "available"} nodes and {activeInitialLoadLimitState?.maxRowItemCount?.toLocaleString() ?? "available"} rows. Proposal exports use separate full-data limits.
           </div>
         ) : null}
         {activeTreeErrorMessage ? (
