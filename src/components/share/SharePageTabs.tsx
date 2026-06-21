@@ -33,6 +33,13 @@ function formatMoney(value: number, currencyCode: string) {
   }).format(value)}`;
 }
 
+function formatSharePercent(share: number) {
+  return new Intl.NumberFormat("en-PH", {
+    style: "percent",
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(share) ? share : 0);
+}
+
 function readStoredActiveEstimateId(storageKey: string, estimates: PublicationSnapshotEstimate[]) {
   if (typeof window === "undefined" || estimates.length === 0) return null;
   try {
@@ -460,6 +467,7 @@ export default function SharePageTabs({
   const activeEstimateMetaText = [activeEstimate?.sheetCode, activeEstimateTab ? `Tab ${activeEstimateTab.name}` : null]
     .filter(Boolean)
     .join(" · ");
+  const costBreakdownId = `share-cost-breakdown-${activeEstimate.id}`;
 
   return (
     <div className="space-y-3">
@@ -507,19 +515,40 @@ export default function SharePageTabs({
         </div>
       </div>
 
-      {/* P1/P5 polish: Per-sheet donut chart. compact variant ensures full callout visibility
-          (520×400 internal, scaled D3 logic + DESIGN ≤12px text). T1-C MVP: the compact donut
-          has a fixed ~520-wide viewBox, so in the wider single-column ShareContainer it is
-          constrained at this call-site (mx-auto max-w-[560px]) instead of floating meet-centered
-          in a wide band. CostDonutChart itself is untouched (project Data route out of blast radius). */}
-      <div className="mx-auto w-full max-w-[560px]">
+      {/* The receiver surface is often 320-390px wide inside email/browser chrome. The full
+          callout donut is kept for workshop charts; here the ring stays clean and this adjacent
+          list carries the readable client-facing labels. */}
+      <div className="mx-auto grid w-full max-w-[560px] gap-3 sm:grid-cols-[190px_minmax(0,1fr)] sm:items-center" data-share-cost-breakdown>
         <CostDonutChart
           buckets={donutBuckets}
           total={activeContentTotal}
           currencyCode={currencyCode}
           label={`${activeContentLabel} cost breakdown`}
           compact
+          hideCallouts
+          describedById={costBreakdownId}
         />
+        <ul
+          id={costBreakdownId}
+          aria-label={`${activeContentLabel} cost breakdown`}
+          className="grid gap-1 rounded-xs border border-hairline bg-white p-2 text-[12px] leading-[16px] tracking-normal"
+          data-share-cost-breakdown-list
+        >
+          {donutBuckets.map((bucket) => (
+            <li key={bucket.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-0.5">
+              <span className="flex min-w-0 items-center gap-1.5 text-ink">
+                <span
+                  aria-hidden="true"
+                  className="size-2 flex-none rounded-full"
+                  style={{ backgroundColor: bucket.color }}
+                />
+                <span className="truncate">{bucket.label}</span>
+              </span>
+              <span className="text-right tabular-nums text-secondary">{formatSharePercent(bucket.share)}</span>
+              <span className="col-start-2 text-right tabular-nums text-ink">{formatMoney(bucket.total, currencyCode)}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Tablist — horizontal scroll + fade masks for mobile, design-system compliant */}
