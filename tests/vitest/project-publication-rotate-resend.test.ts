@@ -159,6 +159,9 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
         generatedAt: "2026-06-13T00:00:00.000Z",
         estimates: [{ id: "est-1" }],
       })),
+      normalizeProjectPublicationLocationVisibility: vi.fn((value: unknown) =>
+        value === "exact" || value === "hidden" ? value : "locality",
+      ),
     }));
 
     vi.doMock("@supabase/supabase-js", () => ({
@@ -271,6 +274,9 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
         generatedAt: "2026-06-13T00:00:00.000Z",
         estimates: [{ id: "est-1" }],
       })),
+      normalizeProjectPublicationLocationVisibility: vi.fn((value: unknown) =>
+        value === "exact" || value === "hidden" ? value : "locality",
+      ),
     }));
 
     vi.doMock("@supabase/supabase-js", () => ({
@@ -373,6 +379,9 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
         generatedAt: "2026-06-13T00:00:00.000Z",
         estimates: [{ id: "est-1" }],
       })),
+      normalizeProjectPublicationLocationVisibility: vi.fn((value: unknown) =>
+        value === "exact" || value === "hidden" ? value : "locality",
+      ),
     }));
 
     vi.doMock("@supabase/supabase-js", () => ({
@@ -518,7 +527,10 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
 });
 
 describe("AC-MOD-15 setting a too-short password is rejected and never persisted", () => {
-  function mockManagerEnv(recorded: RecordedQuery[], { hasLatest }: { hasLatest: boolean }) {
+  function mockManagerEnv(
+    recorded: RecordedQuery[],
+    { hasLatest, recordedRpc = [] }: { hasLatest: boolean; recordedRpc?: RecordedRpc[] },
+  ) {
     vi.doMock("@/lib/auth/session", () => ({
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
@@ -536,6 +548,9 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
         generatedAt: "2026-06-13T00:00:00.000Z",
         estimates: [{ id: "est-1" }],
       })),
+      normalizeProjectPublicationLocationVisibility: vi.fn((value: unknown) =>
+        value === "exact" || value === "hidden" ? value : "locality",
+      ),
     }));
     vi.doMock("@/lib/publication/security", async () => {
       const actual = await vi.importActual<typeof import("@/lib/publication/security")>(
@@ -550,6 +565,7 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
       createClient: vi.fn(() =>
         makeAdminClient({
           recorded,
+          recordedRpc,
           resolveResult: (query) => {
             if (query.table === "projects") {
               return {
@@ -645,20 +661,22 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
 
   it("createProjectPublication accepts a >= 4-char password and DOES persist (guards the reject tests)", async () => {
     const recorded: RecordedQuery[] = [];
-    mockManagerEnv(recorded, { hasLatest: false });
+    const recordedRpc: RecordedRpc[] = [];
+    mockManagerEnv(recorded, { hasLatest: false, recordedRpc });
 
     const { createProjectPublication } = await import("@/lib/publication/actions");
     const result = await createProjectPublication({ projectId: PROJECT_ID, password: "abcd" });
 
     expect(result.ok).toBe(true);
-    // A valid password persists exactly one INSERT carrying a non-null password_hash.
+    // A valid password persists through the atomic replacement RPC carrying a non-null password_hash.
     const inserts = recorded.filter(
       (query) => query.table === "project_publications" && query.operation === "insert",
     );
-    expect(inserts).toHaveLength(1);
-    const payload = inserts[0].payload as Record<string, unknown>;
-    expect(typeof payload.password_hash).toBe("string");
-    expect(payload.password_hash).not.toBeNull();
+    expect(inserts).toHaveLength(0);
+    expect(recordedRpc).toHaveLength(1);
+    expect(recordedRpc[0].functionName).toBe("replace_project_publication");
+    expect(typeof recordedRpc[0].args.p_password_hash).toBe("string");
+    expect(recordedRpc[0].args.p_password_hash).not.toBeNull();
   });
 });
 

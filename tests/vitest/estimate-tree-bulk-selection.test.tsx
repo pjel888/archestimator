@@ -17,6 +17,7 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   deleteEstimateNodesBulk: vi.fn(),
+  fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
@@ -53,11 +54,23 @@ function fixtureTree(): EstimateTreeNode[] {
   ];
 }
 
-function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitchen") {
+function renderTree(
+  nodes = fixtureTree(),
+  selectedNodeId: string | null = "kitchen",
+  options: { activeTabId?: string; initialTabId?: string } = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetTree projectId="project-1" estimateId="estimate-1" projectName="Modern Bungalow" selectedNodeId={selectedNodeId} nodes={nodes} />
+      <EstimateSheetTree
+        projectId="project-1"
+        estimateId="estimate-1"
+        activeTabId={options.activeTabId}
+        initialTabId={options.initialTabId}
+        projectName="Modern Bungalow"
+        selectedNodeId={selectedNodeId}
+        nodes={nodes}
+      />
     </QueryClientProvider>,
   );
 }
@@ -77,9 +90,11 @@ describe("estimate tree bulk selection", () => {
     actionMocks.createEstimateNode.mockReset();
     actionMocks.deleteEstimateNode.mockReset();
     actionMocks.deleteEstimateNodesBulk.mockReset();
+    actionMocks.fetchEstimateTabTree.mockReset();
     actionMocks.fetchEstimateTree.mockReset();
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
+    actionMocks.fetchEstimateTabTree.mockResolvedValue(fixtureTree());
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
   });
 
@@ -139,7 +154,7 @@ describe("estimate tree bulk selection", () => {
       deletedNodeIds: ["living"],
       fallbackNodeId: "kitchen",
     });
-    renderTree();
+    renderTree(fixtureTree(), "kitchen", { activeTabId: "tab-2", initialTabId: "tab-2" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Living Area" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete selected" }));
@@ -147,7 +162,7 @@ describe("estimate tree bulk selection", () => {
     const dialog = screen.getByRole("dialog", { name: "Delete 1 selected Area" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["living"]));
+    await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["living"], "tab-2"));
     await waitFor(() => expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument());
     expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
   });
@@ -175,6 +190,6 @@ describe("estimate tree bulk selection", () => {
     const dialog = screen.getByRole("dialog", { name: "Delete 3 selected Areas" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["ground-floor"]));
+    await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["ground-floor"], undefined));
   });
 });

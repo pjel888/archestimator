@@ -64,6 +64,7 @@ type Update = Record<string, unknown>;
 
 type CapturedWrites = {
   inserts: Insert[];
+  rpcs: Array<{ args: Record<string, unknown>; functionName: string }>;
   updates: Update[];
 };
 
@@ -163,6 +164,10 @@ function createAdminMock({
 
   let publicationCall = 0;
   return {
+    rpc: vi.fn((functionName: string, args: Record<string, unknown>) => {
+      captured.rpcs.push({ args, functionName });
+      return Promise.resolve({ data: "publication-id", error: null });
+    }),
     from: vi.fn((table: string) => {
       if (table === "projects") return projectsBuilder();
       if (table === "estimates") return estimatesReadBuilder();
@@ -196,7 +201,7 @@ beforeEach(() => {
 
 describe("createProjectPublication — resolved selected_estimate_ids (MOD-SHEET-06 / MOD-SHEET-05)", () => {
   it("persists only the estimate ids that actually resolved into the snapshot, dropping deleted sheets", async () => {
-    const captured: CapturedWrites = { inserts: [], updates: [] };
+    const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
     // Requested A, B, and a since-deleted sheet — but the snapshot read only resolves A and B.
     mocks.createClient.mockReturnValue(
       createAdminMock({
@@ -215,17 +220,19 @@ describe("createProjectPublication — resolved selected_estimate_ids (MOD-SHEET
     });
 
     expect(result.ok).toBe(true);
-    expect(captured.inserts).toHaveLength(1);
-    const inserted = captured.inserts[0] as { selected_estimate_ids: string[] };
+    expect(captured.inserts).toHaveLength(0);
+    expect(captured.rpcs).toHaveLength(1);
+    expect(captured.rpcs[0]?.functionName).toBe("replace_project_publication");
+    const rpcArgs = captured.rpcs[0]?.args as { p_selected_estimate_ids: string[] };
     // Non-vacuous: the requested array had 3 ids incl. a deleted one; the stored set is exactly the
     // 2 ids present in the snapshot (no EST_DELETED), so count can't exceed the snapshot's estimates.
-    expect(inserted.selected_estimate_ids).toEqual([EST_A, EST_B]);
-    expect(inserted.selected_estimate_ids).not.toContain(EST_DELETED);
-    expect(inserted.selected_estimate_ids).toHaveLength(2);
+    expect(rpcArgs.p_selected_estimate_ids).toEqual([EST_A, EST_B]);
+    expect(rpcArgs.p_selected_estimate_ids).not.toContain(EST_DELETED);
+    expect(rpcArgs.p_selected_estimate_ids).toHaveLength(2);
   });
 
   it("rejects publishing a project that resolves to zero estimates and writes nothing", async () => {
-    const captured: CapturedWrites = { inserts: [], updates: [] };
+    const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
     mocks.createClient.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [], // nothing resolves — e.g. all requested sheets were deleted
@@ -243,13 +250,14 @@ describe("createProjectPublication — resolved selected_estimate_ids (MOD-SHEET
     expect(result.message).toBe("Select at least one estimate to publish.");
     // Nothing persisted: no insert AND no revoke-update of the prior live link.
     expect(captured.inserts).toHaveLength(0);
+    expect(captured.rpcs).toHaveLength(0);
     expect(captured.updates).toHaveLength(0);
   });
 });
 
 describe("republishProjectPublication — resolved selected_estimate_ids (MOD-SHEET-06 / MOD-SHEET-05)", () => {
   it("persists the resolved ids present in the rebuilt snapshot, not the requested array", async () => {
-    const captured: CapturedWrites = { inserts: [], updates: [] };
+    const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
     mocks.createClient.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [
@@ -282,7 +290,7 @@ describe("republishProjectPublication — resolved selected_estimate_ids (MOD-SH
   });
 
   it("rejects republishing into a zero-estimate snapshot and writes nothing", async () => {
-    const captured: CapturedWrites = { inserts: [], updates: [] };
+    const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
     mocks.createClient.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [],

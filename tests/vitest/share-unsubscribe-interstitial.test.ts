@@ -65,6 +65,7 @@ describe("share unsubscribe — read-only GET interstitial + POST mutation (SEC-
     expect(res.status).toBe(200);
     expect(mocks.checkSharedLinkUnsubscribeRateLimit).toHaveBeenCalledWith({
       token: "pub-token",
+      recipientToken: "rt-123",
       request: expect.any(Request),
     });
     expect(mocks.unsubscribeSharedLinkRecipientByToken).toHaveBeenCalledWith("pub-token", "rt-123");

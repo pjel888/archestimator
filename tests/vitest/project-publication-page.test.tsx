@@ -488,7 +488,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     const getBody = await getResponse.text();
     const csrf = /ae_publication_csrf=([^;]+)/.exec(getResponse.headers.get("set-cookie") ?? "")?.[1] ?? "";
     expect(getBody).toContain("Confirm unsubscribe");
-    expect(csrf).toHaveLength(43);
+    expect(csrf).toHaveLength(22);
     expect(mocks.unsubscribeSharedLinkRecipientByToken).not.toHaveBeenCalled();
 
     // The explicit same-origin POST performs the suppression.

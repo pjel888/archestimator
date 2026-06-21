@@ -16,6 +16,7 @@ describe("project publication security headers (Shared Link V2)", () => {
     expect(csp).toContain("img-src 'self' data: blob: https://*.supabase.co");
     expect(csp).not.toContain("img-src *");
     expect(csp).not.toContain("img-src https:");
+    expect(shareHeaders?.headers).toContainEqual({ key: "Cache-Control", value: "no-store" });
 
     // SEC-01/SEC-05: hardening headers on BOTH the share page and the share API.
     const expectedHardening = [

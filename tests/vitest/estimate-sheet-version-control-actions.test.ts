@@ -300,7 +300,7 @@ describe("estimate sheet version control server actions", () => {
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
-    await replaceEstimateRowItemWithLibrary({
+    const result = await replaceEstimateRowItemWithLibrary({
       projectId: "project-1",
       estimateId: "estimate-1",
       rowId: "row-1",
@@ -308,6 +308,7 @@ describe("estimate sheet version control server actions", () => {
       mutationId: "66666666-6666-4666-8666-666666666666",
     });
 
+    expect(result).toMatchObject({ rowId: "row-1", rowRevision: 8 });
     expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -337,7 +338,7 @@ describe("estimate sheet version control server actions", () => {
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
-    await replaceEstimateRowItemWithLibrary({
+    const result = await replaceEstimateRowItemWithLibrary({
       projectId: "project-1",
       estimateId: "estimate-1",
       rowId: "row-1",
@@ -345,6 +346,7 @@ describe("estimate sheet version control server actions", () => {
       mutationId: "66666666-6666-4666-8666-666666666666",
     });
 
+    expect(result).toMatchObject({ rowId: "row-1", rowRevision: 8 });
     expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",

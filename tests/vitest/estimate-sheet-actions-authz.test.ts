@@ -269,11 +269,21 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
     rpcSpy.mockImplementation((fn: string) => {
       if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "replace_estimate_row_item_with_history") return Promise.resolve({ data: null, error: null });
+      if (fn === "replace_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({
+        material: libraryItem.material,
+        sourceSnapshot: { sourceType: "library_component", sourceComponentId: libraryItem.id },
+        linkState: "linked-clean",
+        rowRevision: 2,
+      }), error: null });
       return Promise.resolve({ data: null, error: null });
     });
 
-    await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).resolves.toBeUndefined();
+    await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).resolves.toMatchObject({
+      rowId: ROW_ID,
+      material: libraryItem.material,
+      linkState: "linked-clean",
+      rowRevision: 2,
+    });
 
     const replaceCall = rpcSpy.mock.calls.find(([fn]) => fn === "replace_estimate_row_item_with_history") as [string, { replacement_payload: Record<string, unknown> }] | undefined;
     expect(replaceCall?.[1]).toMatchObject({

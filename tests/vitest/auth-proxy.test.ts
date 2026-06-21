@@ -181,16 +181,22 @@ describe("auth proxy", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-cache, max-age=0, must-revalidate");
   });
 
-  it.each([
-    ["invite", "http://localhost:3000/invite/invite-token"],
-    ["share", "http://localhost:3000/share/share-token"],
-  ])("does not add marketing cache headers to %s public routes", async (_label, url) => {
+  it("does not add marketing cache headers to invite public routes", async () => {
     mockUser({ id: "user-1" });
     const { proxy } = await import("@/proxy");
 
-    const response = await proxy(request(url));
+    const response = await proxy(request("http://localhost:3000/invite/invite-token"));
 
     expect(response.headers.get("Cache-Control")).toBeNull();
+  });
+
+  it("marks share public routes private and no-store", async () => {
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/share/share-token"));
+
+    expect(response.headers.get("Cache-Control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
   });
 
   it("does not early-return login because signed-in users still need redirect behavior", async () => {

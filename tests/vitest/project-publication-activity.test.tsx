@@ -105,6 +105,8 @@ type QueryResultMock = {
   maybeSingle: ReturnType<typeof vi.fn>;
   in: ReturnType<typeof vi.fn>;
   or: ReturnType<typeof vi.fn>;
+  gte: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
 };
 type QueryRecord = { table: string; query: QueryResultMock };
 
@@ -115,6 +117,8 @@ function createQueryResult(data: unknown, error: Error | null = null) {
   query.order = vi.fn(() => query);
   query.in = vi.fn(() => query);
   query.or = vi.fn(() => query);
+  query.gte = vi.fn(async () => ({ count: 0, error: null }));
+  query.insert = vi.fn(async () => ({ error: null }));
   query.limit = vi.fn(async () => ({ data, error }));
   query.maybeSingle = vi.fn(async () => ({ data, error }));
   return query;
@@ -253,6 +257,12 @@ function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) 
   return {
     channel: mocks.channel,
     removeChannel: vi.fn(),
+    rpc: vi.fn(async (functionName: string) => {
+      if (functionName === "reserve_security_rate_limit_slot") {
+        return { data: true, error: null };
+      }
+      return { data: null, error: null };
+    }),
     from: vi.fn((table: string) => {
       let query: QueryResultMock;
       if (table === "project_publications") {
