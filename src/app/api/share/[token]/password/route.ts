@@ -14,6 +14,7 @@ import {
   recordPasswordFailure,
   recordPasswordSuccess,
 } from "@/lib/publication/security";
+import { after } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,20 @@ function rateLimitedResponse(message: string, retryAfter: number) {
       headers: { ...noStoreHeaders, "Retry-After": String(retryAfter) },
     },
   );
+}
+
+function schedulePasswordSuccessAnalytics({ token, request }: { token: string; request: Request }) {
+  after(async () => {
+    try {
+      await recordProjectPublicationAnalyticsEvent({
+        token,
+        eventType: "password_attempt",
+        accessStage: "password_unlocked",
+        passwordSuccess: true,
+        request,
+      });
+    } catch {}
+  });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -75,15 +90,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     request,
     metadata: { success },
   });
-  await recordProjectPublicationAnalyticsEvent({
-    token,
-    eventType: "password_attempt",
-    accessStage: "password_unlocked",
-    passwordSuccess: success,
-    request,
-  });
 
   if (!success) {
+    await recordProjectPublicationAnalyticsEvent({
+      token,
+      eventType: "password_attempt",
+      accessStage: "password_unlocked",
+      passwordSuccess: false,
+      request,
+    });
     const durableFailure = await recordProjectPublicationPasswordFailure({ token, request });
     const delayMs = Math.max(durableFailure.delayMs, recordPasswordFailure(ip, token));
     if (delayMs > 0) {
@@ -93,7 +108,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   recordPasswordSuccess(ip, token);
-  await clearProjectPublicationPasswordFailures({ token, request });
+  try {
+    await clearProjectPublicationPasswordFailures({ token, request });
+  } catch (error) {
+    console.error("[share] failed to clear password failure lockout state after successful unlock", error);
+    return Response.json({ error: "Unable to unlock publication." }, { status: 500, headers: noStoreHeaders });
+  }
+  schedulePasswordSuccessAnalytics({ token, request });
 
   return new Response(null, {
     status: 204,

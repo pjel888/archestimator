@@ -187,11 +187,19 @@ function measureSnapshotBytes(rowCount: number) {
   return Buffer.byteLength(JSON.stringify(snapshot), "utf8");
 }
 
+export function readShareRequestHeaders(env: NodeJS.ProcessEnv = process.env) {
+  const cookie = env.SHARE_COOKIE?.trim();
+  return cookie ? { cookie } : undefined;
+}
+
 async function measureRecipientSessionTti() {
   const shareUrl = process.env.SHARE_URL;
   if (!shareUrl) throw new Error("SHARE_URL is required for --mode recipient-session-tti.");
   const startedAt = performance.now();
-  const response = await fetch(shareUrl, { redirect: "follow" });
+  const requestHeaders = readShareRequestHeaders();
+  const requestInit: RequestInit = { redirect: "follow" };
+  if (requestHeaders) requestInit.headers = requestHeaders;
+  const response = await fetch(shareUrl, requestInit);
   await response.arrayBuffer();
   if (!response.ok) throw new Error(`SHARE_URL returned HTTP ${response.status}`);
   return performance.now() - startedAt;

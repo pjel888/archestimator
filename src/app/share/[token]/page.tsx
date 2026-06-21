@@ -1,12 +1,11 @@
 import { cookies, headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
-import { ShareContainer } from "@/components/share/ShareContainer";
+import { SHARE_CONTAINER_WIDTH, ShareContainer } from "@/components/share/ShareContainer";
 import SharePageHero from "@/components/share/SharePageHero";
 import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
-import { SharePageRecipientSessionInitializer } from "@/components/share/SharePageRecipientSessionInitializer";
 import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
 import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
@@ -41,20 +40,20 @@ type SharePageProps = {
 
 function ProjectPublicationView({
   recipientEmail,
-  recipientToken,
+  recipientSessionStatus,
   snapshot,
   token,
   viewToken,
 }: {
   recipientEmail?: string | null;
-  recipientToken?: string;
+  recipientSessionStatus?: "invalid";
   snapshot: ProjectPublicationSnapshot;
   token: string;
   viewToken: string;
 }) {
   return (
     <main aria-label="Proposal review" className="min-h-dvh bg-white text-ink">
-      {recipientToken ? <SharePageRecipientSessionInitializer recipientToken={recipientToken} token={token} /> : null}
+      {recipientSessionStatus === "invalid" ? <SharePageRecipientSessionAlert /> : null}
       <SharePageSessionBanner recipientEmail={recipientEmail} token={token} />
       {/* T1-C MVP: single-column ShareContainer replaces the 960px cap (UX-14). Width
           ladder lives once in ShareContainer; share-print-content stays on this wrapper. */}
@@ -79,6 +78,21 @@ function ProjectPublicationView({
         </footer>
       </ShareContainer>
     </main>
+  );
+}
+
+function SharePageRecipientSessionAlert() {
+  return (
+    <div className="share-print-hidden border-b border-amber-200 bg-amber-50" role="alert">
+      <div className={`${SHARE_CONTAINER_WIDTH} py-2.5`}>
+        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-amber-900">
+          We could not verify this personalized review link.
+        </p>
+        <p className="mt-1 text-[12px] leading-[16px] tracking-normal text-amber-900/80">
+          You can still read the proposal, but commenting and response actions need a fresh link from the project team.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -118,6 +132,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
     typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : "";
   const legacyRecipientToken = typeof searchParamsData.rt === "string" ? searchParamsData.rt.trim() : "";
   const recipientToken = canonicalRecipientToken || legacyRecipientToken || undefined;
+  const recipientSessionStatus = searchParamsData.recipientSession === "invalid" ? "invalid" : undefined;
 
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
   if (!publicationAccess) notFound();
@@ -152,29 +167,31 @@ export default async function SharePage({ params, searchParams }: SharePageProps
     }
   }
 
-  // P5: Recipient session & security cookie (additive only; password + view-only flows unchanged)
-  // - On ?recipient= / legacy ?rt= param: client initializer posts to the route-handler session boundary.
+  // P5/PERF-01A: Recipient session & security cookie (additive only; password + view-only flows unchanged)
+  // - On ?recipient= / legacy ?rt= param: redirect to the route-handler session boundary before rendering.
   // - On subsequent loads: validate existing session cookie
-  // - Session route sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod) per spec
+  // - Session route sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod), then redirects to the clean URL.
   // - Enables useSharedLinkSession hook + future interactive blocking (P6+)
+  if (recipientToken) {
+    redirect(`/api/share/${encodeURIComponent(token)}/session?recipient=${encodeURIComponent(recipientToken)}`);
+  }
+
   let recipientIdForOpenEvent: string | undefined;
-  if (!recipientToken) {
-    // Subsequent load: validate existing session cookie (additive to password cookie).
-    // Only the cookie verification gates whether a recipient is "known"; the identity
-    // SELECT itself is independent of the snapshot read and is parallelized below (OPT-4).
-    const cookieStore = await cookies();
-    const sessionValue = decodeCookieValue(cookieStore.get(createSharedLinkSessionCookieName(token))?.value);
-    const recipientIdFromCookie = readSharedLinkSessionCookieRecipientId(sessionValue);
-    if (
-      verifySharedLinkSessionCookieValue(sessionValue, {
-        token,
-        publicationId: publicationAccess.publicationId,
-        credentialVersion: publicationAccess.credentialVersion,
-        recipientId: recipientIdFromCookie,
-      })
-    ) {
-      recipientIdForOpenEvent = recipientIdFromCookie;
-    }
+  // Subsequent load: validate existing session cookie (additive to password cookie).
+  // Only the cookie verification gates whether a recipient is "known"; the identity
+  // SELECT itself is independent of the snapshot read and is parallelized below (OPT-4).
+  const cookieStore = await cookies();
+  const sessionValue = decodeCookieValue(cookieStore.get(createSharedLinkSessionCookieName(token))?.value);
+  const recipientIdFromCookie = readSharedLinkSessionCookieRecipientId(sessionValue);
+  if (
+    verifySharedLinkSessionCookieValue(sessionValue, {
+      token,
+      publicationId: publicationAccess.publicationId,
+      credentialVersion: publicationAccess.credentialVersion,
+      recipientId: recipientIdFromCookie,
+    })
+  ) {
+    recipientIdForOpenEvent = recipientIdFromCookie;
   }
 
   // OPT-4 (PERF-02/03 tail): the snapshot read and the (conditional) recipient-identity
@@ -243,7 +260,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   return (
     <ProjectPublicationView
       recipientEmail={recipientEmailForBanner}
-      recipientToken={recipientToken}
+      recipientSessionStatus={recipientSessionStatus}
       snapshot={publication.snapshot}
       token={token}
       viewToken={viewToken}

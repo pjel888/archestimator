@@ -28,7 +28,10 @@ export function redactShareUrl(value) {
   redacted.pathname = segments.join("/") || "/";
   for (const [key, rawValue] of url.searchParams.entries()) {
     const lower = key.toLowerCase();
-    redacted.searchParams.set(key, lower === "recipient" || lower === "rt" || lower.includes("token") ? REDACTED_VALUE : rawValue);
+    redacted.searchParams.set(
+      key,
+      lower === "recipient" || lower === "rt" || lower.includes("token") || lower === "_vercel_share" ? REDACTED_VALUE : rawValue,
+    );
   }
   return redacted.toString();
 }
@@ -113,9 +116,16 @@ function needsGetFallback(result) {
   return result.status === 405 || !result.evaluation.passed;
 }
 
-async function sample(url, method, fetchImpl) {
+function requestHeadersFromEnv(env = process.env) {
+  const cookie = env.SHARE_COOKIE?.trim();
+  return cookie ? { cookie } : undefined;
+}
+
+async function sample(url, method, fetchImpl, requestHeaders) {
   const startedAt = performance.now();
-  const response = await fetchImpl(url, { method, redirect: "manual" });
+  const requestInit = { method, redirect: "manual" };
+  if (requestHeaders) requestInit.headers = requestHeaders;
+  const response = await fetchImpl(url, requestInit);
   const durationMs = Math.round((performance.now() - startedAt) * 100) / 100;
   const headers = pickHeaders(response);
   return {
@@ -128,11 +138,11 @@ async function sample(url, method, fetchImpl) {
   };
 }
 
-export async function smokeShareHeaders({ shareUrl, fetchImpl = fetch } = {}) {
+export async function smokeShareHeaders({ shareUrl, fetchImpl = fetch, requestHeaders } = {}) {
   if (!shareUrl) throw new Error("SHARE_URL is required.");
   const normalized = new URL(shareUrl).toString();
-  const headResult = await sample(normalized, "HEAD", fetchImpl);
-  const finalResult = needsGetFallback(headResult) ? await sample(normalized, "GET", fetchImpl) : headResult;
+  const headResult = await sample(normalized, "HEAD", fetchImpl, requestHeaders);
+  const finalResult = needsGetFallback(headResult) ? await sample(normalized, "GET", fetchImpl, requestHeaders) : headResult;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -170,7 +180,7 @@ export function writeReports(report, outDir = DEFAULT_OUT_DIR, date = today()) {
 async function main() {
   const shareUrl = readEnv("SHARE_URL");
   const outDir = readEnv("OUT_DIR") ?? DEFAULT_OUT_DIR;
-  const report = await smokeShareHeaders({ shareUrl });
+  const report = await smokeShareHeaders({ shareUrl, requestHeaders: requestHeadersFromEnv() });
   const files = writeReports(report, outDir);
   console.log(`shared-link header smoke: ${report.passed ? "PASS" : "FAIL"} ${report.status} ${report.method}`);
   console.log(`Wrote ${files.markdownFile}`);

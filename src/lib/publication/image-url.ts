@@ -28,6 +28,8 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
     return rawUrl;
   }
 
+  if (/%(?:2e|2f|5c)/i.test(rawUrl)) return null;
+
   const supabaseOrigin = getConfiguredSupabaseOrigin();
   if (!supabaseOrigin) return null;
 
@@ -36,7 +38,6 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
     if (imageUrl.origin !== supabaseOrigin) return null;
     if (imageUrl.username || imageUrl.password) return null;
     if (imageUrl.search || imageUrl.hash) return null;
-    if (/%(?:2e|2f|5c)/i.test(imageUrl.pathname)) return null;
     if (imageUrl.pathname.includes("..") || imageUrl.pathname.includes("\\")) return null;
     if (!SUPABASE_PUBLIC_IMAGE_PREFIXES.some((prefix) => imageUrl.pathname.startsWith(prefix))) return null;
     if (imageUrl.pathname.includes("/project-images/")) return null;

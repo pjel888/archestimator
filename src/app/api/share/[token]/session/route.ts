@@ -27,19 +27,43 @@ function createExpiredCookie(name: string, { httpOnly }: { httpOnly: boolean }) 
   return `${name}=; Path=/; SameSite=Lax; Max-Age=0${httpOnlyCookie}${secureCookie}`;
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const sameOrigin = assertSameOriginPublicPost(request);
-  if (!sameOrigin.ok) {
-    return NextResponse.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
-  }
+type RecipientSessionMode = "json" | "redirect";
 
-  const { token } = await params;
-  const body = (await request.json().catch(() => ({}))) as { recipientToken?: unknown };
-  const recipientToken = typeof body.recipientToken === "string" ? body.recipientToken.trim() : "";
-  if (!recipientToken) {
-    return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });
-  }
+function createCleanShareUrl(request: Request, token: string, sessionStatus?: "invalid") {
+  const url = new URL(`/share/${encodeURIComponent(token)}`, request.url);
+  if (sessionStatus) url.searchParams.set("recipientSession", sessionStatus);
+  return url;
+}
 
+function redirectToCleanShare(request: Request, token: string, sessionStatus?: "invalid") {
+  const response = NextResponse.redirect(createCleanShareUrl(request, token, sessionStatus));
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
+
+function createSessionSuccessResponse(request: Request, token: string, mode: RecipientSessionMode) {
+  return mode === "redirect"
+    ? redirectToCleanShare(request, token)
+    : NextResponse.json({ ok: true }, { headers: noStoreHeaders });
+}
+
+function createInvalidRecipientResponse(request: Request, token: string, mode: RecipientSessionMode) {
+  return mode === "redirect"
+    ? redirectToCleanShare(request, token, "invalid")
+    : NextResponse.json({ error: "Recipient token is invalid." }, { status: 404, headers: noStoreHeaders });
+}
+
+async function createRecipientSessionResponse({
+  mode,
+  recipientToken,
+  request,
+  token,
+}: {
+  mode: RecipientSessionMode;
+  recipientToken: string;
+  request: Request;
+  token: string;
+}) {
   const rateLimit = await checkSharedLinkSessionStartRateLimit({ token, request });
   if (!rateLimit.allowed) {
     return NextResponse.json(
@@ -72,7 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const verified = await verifySharedLinkRecipientToken(token, recipientToken);
   if (!verified || verified.publicationId !== publicationAccess.publicationId) {
-    return NextResponse.json({ error: "Recipient token is invalid." }, { status: 404, headers: noStoreHeaders });
+    return createInvalidRecipientResponse(request, token, mode);
   }
 
   const parts = getSharedLinkSessionCookieParts({
@@ -81,7 +105,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     credentialVersion: verified.credentialVersion,
     recipientId: verified.recipientId,
   });
-  const response = NextResponse.json({ ok: true }, { headers: noStoreHeaders });
+  const response = createSessionSuccessResponse(request, token, mode);
 
   response.cookies.set(parts.name, parts.value, parts.cookieOptions);
   response.cookies.set(`${parts.name}_ok`, "1", {
@@ -106,6 +130,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   });
 
   return response;
+}
+
+export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const recipientToken = new URL(request.url).searchParams.get("recipient")?.trim() ?? "";
+  if (!recipientToken) {
+    return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });
+  }
+
+  return createRecipientSessionResponse({ mode: "redirect", recipientToken, request, token });
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const sameOrigin = assertSameOriginPublicPost(request);
+  if (!sameOrigin.ok) {
+    return NextResponse.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
+  }
+
+  const { token } = await params;
+  const body = (await request.json().catch(() => ({}))) as { recipientToken?: unknown };
+  const recipientToken = typeof body.recipientToken === "string" ? body.recipientToken.trim() : "";
+  if (!recipientToken) {
+    return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });
+  }
+
+  return createRecipientSessionResponse({ mode: "json", recipientToken, request, token });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ token: string }> }) {
