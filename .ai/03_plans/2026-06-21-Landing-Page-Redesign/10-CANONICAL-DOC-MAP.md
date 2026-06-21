@@ -1,6 +1,6 @@
 # 10 — Canonical Doc Map (the cross-link source of truth)
 
-> **STATUS: PLANNING · 2026-06-21 · not code.**
+> **STATUS: PLANNING · 2026-06-21 · revised 2026-06-22 · not code.**
 > **Purpose:** Be the single source of truth for every doc's canonical filename in this pack.
 > Every cross-doc link in every doc must resolve to a name in this table. If a doc references
 > a sibling by a name not in this table, the link is broken and must be patched.
@@ -9,38 +9,48 @@ This doc exists because the pack was authored in parallel and the eight original
 invented their own naming convention (see `MASTER-AUDIT-AND-SCORECARD.md` §2 for the
 forensic detail). This is the fix.
 
+> **2026-06-22 update.** All 27 docs now `exist` on disk (the prior "missing (M-x)" flags were
+> the 2026-06-21 baseline state and are all cleared). `23-AUTH-EXPERIENCE.md` was added
+> 2026-06-22 (D-2) and owns the **Auth experience** dimension. The type-pairing for doc 03 was
+> corrected from "Source Serif 4" to the Glass Brand pairing (Doto / Roboto Mono / SF Pro;
+> Source Serif 4 DEFERRED per D-1).
+
 ---
 
 ## 1. The canonical filenames
 
 | # | Canonical filename | One-line purpose | Status |
 |---|---|---|---|
-| 00 | `00-OVERVIEW.md` | Front door: locked decisions, pillars, scope, doc map, success criteria, sign-off items. | exists |
-| 01 | `01-DESIGN-DIRECTION.md` | Direction rationale + Intercom/Amigo peg study + Hallmark diversification notes. | exists |
-| 02 | `02-SECTION-TAXONOMY-AND-NARRATIVE-ARC.md` | Canonical homepage DOM-order section taxonomy + per-route inventories + nav/footer archetypes + funnel logic. | exists |
-| 03 | `03-VISUAL-LANGUAGE-AND-TOKENS.md` | Additive token layer for `globals.css` + 2+1 type pairing (Source Serif 4 / SF Pro / Roboto Mono) + motion. | exists |
-| 04 | `04-COMMERCIAL-GRAPH-ARCHITECTURE-PLATE.md` | Named, claims-tagged SVG architecture plate spec (the moat move). | exists |
-| 05 | `05-COPY-SKELETON.md` | Voice-locked, claims-tagged copy per section per route. | exists |
+| 00 | `00-OVERVIEW.md` | Front door: the five ratified decisions (D-1..D-5), pillars, scope, doc map, success criteria, sign-off items. | exists |
+| 01 | `01-DESIGN-DIRECTION.md` | Direction rationale — **The Glass Brand** (D-1) primary, "The Document" demoted to Direction D — + Intercom/Amigo peg study + Hallmark notes. | exists |
+| 02 | `02-SECTION-TAXONOMY-AND-NARRATIVE-ARC.md` | Canonical homepage DOM-order section taxonomy + per-route inventories + nav/footer archetypes + funnel logic + the gated auth entry (D-2). | exists |
+| 03 | `03-VISUAL-LANGUAGE-AND-TOKENS.md` | Additive token layer for `globals.css` + Glass Brand type pairing (**Doto `--font-display` / Roboto Mono `--font-numeric` / SF Pro `--font-sf-pro`**; Source Serif 4 DEFERRED per D-1) + the glass-application + motion contract. | exists |
+| 04 | `04-COMMERCIAL-GRAPH-ARCHITECTURE-PLATE.md` | Named, claims-tagged SVG architecture plate spec (the moat move); re-skinned as a glass surface. | exists |
+| 05 | `05-COPY-SKELETON.md` | Voice-locked, claims-tagged copy per section per route (+ auth microcopy cross-linked to 23). | exists |
 | 06 | `06-PROOF-AND-CLAIMS-DISCIPLINE.md` | Honesty-as-proof system: `<ClaimsLedger>` component, CLAIMS MATRIX, private-by-design block, `/trust` content, claims-status update process. | exists |
-| 07 | `07-ENGINEERING-CONSTRAINTS.md` | RSC-first build, responsive floor 320/375/414/768, perf/a11y budget, the "Start free" funnel + its co-dependency gates. | exists |
-| 08 | `08-ROLLOUT-AND-ANALYTICS.md` | `/newdesign` preview route, A/B old vs new, claims sign-off gate, analytics events per route. | **missing (M-1)** |
-| 09 | `09-CLAIMS-LEDGER-SIGN-OFF.md` | The public claims-sign-off gate; the §7.5 "public claims matrix complete" launch gate, operationalized. | **missing (M-2)** |
+| 07 | `07-ENGINEERING-CONSTRAINTS.md` | RSC-first build, responsive floor 320/375/414/768, glass perf model, the "Start free" funnel + its co-dependency gates. | exists |
+| 08 | `08-ROLLOUT-AND-ANALYTICS.md` | `/newdesign` preview route, A/B old vs new, claims sign-off gate, analytics events per route. | exists |
+| 09 | `09-CLAIMS-LEDGER-SIGN-OFF.md` | The public claims-sign-off gate; the §7.5 "public claims matrix complete" launch gate, operationalized. | exists |
 | 10 | `10-CANONICAL-DOC-MAP.md` | This doc. | exists |
-| 11 | `11-COMPONENT-INVENTORY-AND-CONTENT-MAP.md` | React/RSC component inventory: file paths, props, copy → component map, nav/header/footer anatomy. | **missing (M-3)** |
-| 12 | `12-ACCESSIBILITY-AUDIT.md` | Consolidated WCAG 2.1 AA audit + test plan + compliance evidence. | **missing (M-7)** |
-| 13 | `13-SEO-AND-DISCOVERY.md` | Keyword strategy, meta copy, sitemap, robots, structured data, internal linking, PH/SEA validation. | **missing (M-8)** |
-| 14 | `14-PERFORMANCE-AND-CORE-WEB-VITALS.md` | CWV targets, field-vs-lab methodology, PH+SEA device class, CI regression gate, remediation playbook. | **missing (M-9)** |
-| 15 | `15-FORMS-AND-ABUSE-GUARDRAILS.md` | `/contact` + `/signup` form-spam defense, rate-limit config, honeypot, CAPTCHA decision, abuse monitoring. | **missing (M-10)** |
-| 16 | `16-TEST-AND-VERIFICATION-PLAN.md` | Unit / component / e2e / visual / a11y test plan. | **missing (M-11)** |
-| 17 | `17-ANALYTICS-AND-OBSERVABILITY.md` | Event schema, tool decision, consent model, retention, dashboard, moat-metric instrumentation. | **missing (M-12)** |
-| 18 | `18-I18N-AND-LOCALIZATION.md` | Locale strategy (EN-only at launch? EN+FIL?), hreflang, sitemap localization, validation plan. | **missing (M-13)** |
-| 19 | `19-ASSET-PIPELINE-AND-IMAGERY.md` | Favicons, OG images, founder photo, wordmark SVG, asset pipeline, "what we will not ship" rail. | **missing (M-14)** |
-| 20 | `20-CONTENT-WORKFLOW-AND-GOVERNANCE.md` | Who writes/reviews/signs off, where copy lives, update cadence, bilingual workflow. | **missing (M-15)** |
-| 21 | `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` | File-level change inventory, deletion rail, migration order, risk register. | **missing (M-16)** |
-| 22 | `22-PEG-STUDY-DEEP-DIVE.md` | Full DNA extraction from Intercom + Amigo with screenshots / URLs / dates for evidence. | **missing (M-17)** |
+| 11 | `11-COMPONENT-INVENTORY-AND-CONTENT-MAP.md` | React/RSC component inventory: file paths, props, copy → component map, nav/header/footer anatomy, the auth component set (cross-linked to 23). | exists |
+| 12 | `12-ACCESSIBILITY-AUDIT.md` | Consolidated WCAG 2.1 AA audit + test plan + compliance evidence (+ auth-surface a11y). | exists |
+| 13 | `13-SEO-AND-DISCOVERY.md` | Keyword strategy, meta copy, sitemap, robots, structured data, internal linking, auth-page noindex policy, PH/SEA validation. | exists |
+| 14 | `14-PERFORMANCE-AND-CORE-WEB-VITALS.md` | CWV targets, field-vs-lab methodology, glass/`backdrop-filter` perf model + deferred-glass arming, PH+SEA device class, CI gate, remediation. | exists |
+| 15 | `15-FORMS-AND-ABUSE-GUARDRAILS.md` | `/contact` + `/signup` form-spam defense, Postgres `security_rate_limit_events` rate-limit config, honeypot, CAPTCHA decision, abuse monitoring. | exists |
+| 16 | `16-TEST-AND-VERIFICATION-PLAN.md` | Unit / component / e2e / visual / a11y / perf / claims test plan (+ auth-flow e2e + glass visual regression). | exists |
+| 17 | `17-ANALYTICS-AND-OBSERVABILITY.md` | Event schema, tool decision, consent model, retention, anonymous→authenticated session merge, dashboard, moat-metric instrumentation. | exists |
+| 18 | `18-I18N-AND-LOCALIZATION.md` | Locale strategy (EN-only at launch, gated `L-I18N-1`), hreflang, sitemap localization, validation plan. | exists |
+| 19 | `19-ASSET-PIPELINE-AND-IMAGERY.md` | Wordmark, favicons, OG images, founder photo, the brand-composition assets for the glass surfaces, "what we will not ship" rail. | exists |
+| 20 | `20-CONTENT-WORKFLOW-AND-GOVERNANCE.md` | Who writes/reviews/signs off (owner-only at launch, honestly stated), where copy lives, update cadence, bilingual workflow. | exists |
+| 21 | `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` | File-level change inventory, deletion rail, migration order, risk register (rated LOW blast radius), rollback playbook. | exists |
+| 22 | `22-PEG-STUDY-DEEP-DIVE.md` | Full DNA extraction from Intercom + Amigo + the Workshop Dashboard as an in-house peg, with URLs / dates for evidence. | exists |
+| 23 | `23-AUTH-EXPERIENCE.md` | **D-2** — the full-page 2-column auth surface (`/login` + `/signup`): brand glass panel left, fields right, Google OAuth + magic link (no password), closed-beta gate, mobile collapse, noindex. | exists |
 | — | `MASTER-AUDIT-AND-SCORECARD.md` | The audit + scorecard (this pack's quality gate). | exists |
-| — | `LOOP_LEDGER.md` | Plan-pack loop ledger: open decisions, iteration state, owner-decision queue. | **missing (M-4)** |
-| — | `README.md` | Pack entry point: doc-order, dimensions, definition of 100 %. | **missing (M-5)** |
+| — | `LOOP_LEDGER.md` | Plan-pack loop ledger: open decisions, iteration state, owner-decision queue, sign-off log. | exists |
+| — | `README.md` | Pack entry point: doc-order, dimensions, the honesty-aware Definition of 100 %. | exists |
+
+**Pack inventory: 27 docs on disk** (8 original `00`–`07` + 16 additional `08`–`23` + 3 meta:
+`MASTER-AUDIT-AND-SCORECARD`, `LOOP_LEDGER`, `README`). Verified by `ls -1`.
 
 ---
 
@@ -57,7 +67,7 @@ When patching cross-links, replace any name in the **Alias** column with the can
 | `06-COMPONENT-INVENTORY-AND-CONTENT-MAP` (when cited as a sibling of `06-PROOF`) | `11-COMPONENT-INVENTORY-AND-CONTENT-MAP.md` (the real component-inventory doc, number 11) |
 | `07-ENGINEERING-SPEC` · `07-ENGINEERING-AND-A11Y` · `07-ENGINEERING-AND-RSC` · `07-ENGINEERING-AND-RSC-PLAN` · `07-ENGINEERING` | `07-ENGINEERING-CONSTRAINTS.md` |
 | `08-ROLLOUT-AND-METRICS` · `08-ROLLOUT-AND-CLAIMS-SIGN-OFF` | `08-ROLLOUT-AND-ANALYTICS.md` |
-| `07-CLAIMS-LEDGER-SIGN-OFF` · `09-CLAIMS-LEDGER-SIGN-OFF.md` | `09-CLAIMS-LEDGER-SIGN-OFF.md` |
+| `07-CLAIMS-LEDGER-SIGN-OFF` · `09-CLAIMS-LEDER-SIGN-OFF` | `09-CLAIMS-LEDGER-SIGN-OFF.md` |
 | `06-RESPONSIVE-AND-A11Y` (responsive+a11y doc) | `12-ACCESSIBILITY-AUDIT.md` (owns a11y; responsive-collapse lives in `02` §1 + `07` §2) |
 
 ---
@@ -67,18 +77,18 @@ When patching cross-links, replace any name in the **Alias** column with the can
 The pack's original 0–7 numbering was authored before the missing-doc inventory
 (`MASTER-AUDIT-AND-SCORECARD.md` §4) surfaced 17 gaps. Rather than renumber the existing
 docs (which would break every citation in MASTER, Notion, and chat history), the new docs
-take numbers 08–22, with `08` and `09` reserved for the two missing docs the pack already
-references by those numbers (rollout + claims-sign-off). The audit (`09-MASTER-AUDIT-AND-
-SCORECARD.md`) and this map (`10-CANONICAL-DOC-MAP.md`) are unnumbered-suffix docs because
-they are meta — they measure and map the pack, they are not part of the implementation
-sequence.
+take numbers 08–23, with `08` and `09` reserved for the two docs the pack already references
+by those numbers (rollout + claims-sign-off). `23-AUTH-EXPERIENCE.md` was added 2026-06-22
+when the auth surface (D-2) became explicit scope. The audit (`MASTER-AUDIT-AND-SCORECARD.md`)
+and this map (`10-CANONICAL-DOC-MAP.md`) are unnumbered-suffix docs because they are meta —
+they measure and map the pack, they are not part of the implementation sequence.
 
 **Implementation entry order** (what to read first, for a new dev):
 
 ```
 README.md  →  00-OVERVIEW  →  01-DESIGN-DIRECTION  →  10-CANONICAL-DOC-MAP (this doc)
-           →  02-SECTION-TAXONOMY  →  03-VISUAL-LANGUAGE-AND-TOKENS
-           →  04-COMMERCIAL-GRAPH-PLATE  →  05-COPY-SKELETON
+           →  03-VISUAL-LANGUAGE-AND-TOKENS  →  23-AUTH-EXPERIENCE
+           →  02-SECTION-TAXONOMY  →  04-COMMERCIAL-GRAPH-PLATE  →  05-COPY-SKELETON
            →  06-PROOF-AND-CLAIMS-DISCIPLINE  →  07-ENGINEERING-CONSTRAINTS
            →  08-ROLLOUT-AND-ANALYTICS  →  09-CLAIMS-LEDGER-SIGN-OFF
            →  11-COMPONENT-INVENTORY  →  dimension docs (12–22) on demand
@@ -89,15 +99,22 @@ README.md  →  00-OVERVIEW  →  01-DESIGN-DIRECTION  →  10-CANONICAL-DOC-MAP
 
 ## 4. Cross-link patch procedure (one mechanical pass per doc)
 
-For each existing doc (00, 01, 02, 03, 04, 05, 06, 07):
+For each doc:
 
 1. Open the doc.
 2. For every reference to a sibling doc, replace any alias in §2 with the canonical name.
-3. For every reference to a doc that does not exist yet (08, 09, 11–22, LOOP_LEDGER, README),
-   keep the reference but mark it `(to be created — see 10-CANONICAL-DOC-MAP.md §1)` until
-   the doc lands, then strip the marker.
-4. Verify with: `rg -n "01-COMPETITIVE|01-PEG-STUDY|02-HERO-AND-VOICE|02-SECTION-TAXONOMY-AND-IA|02-SECTION-TAXONOMY-AND-REMOVALS|03-VISUAL-AND-TOKEN|03-VISUAL-TOKENS|05-COPY-LEDGER|05-SECTION-MARKUP|06-COMPONENT-INVENTORY-AND-CONTENT|07-ENGINEERING-SPEC|07-ENGINEERING-AND-|07-CLAIMS-LEDGER|08-ROLLOUT-AND-METRICS|08-ROLLOUT-AND-CLAIMS" .ai/03_plans/2026-06-21-Landing-Page-Redesign/`
-   — the command returns zero matches when the patch is complete.
+3. Verify with:
+
+```bash
+# (a) stale aliases — must return ZERO matches
+rg -n "01-COMPETITIVE|01-PEG-STUDY-AND|02-HERO-AND-VOICE|02-SECTION-TAXONOMY-AND-IA|02-SECTION-TAXONOMY-AND-REMOVALS|03-VISUAL-AND-TOKEN|03-VISUAL-TOKENS|05-COPY-LEDGER|05-SECTION-MARKUP|06-COMPONENT-INVENTORY-AND-CONTENT|07-ENGINEERING-SPEC|07-ENGINEERING-AND-|07-CLAIMS-LEDGER|08-ROLLOUT-AND-METRICS|08-ROLLOUT-AND-CLAIMS|09-CLAIMS-LEDER" .ai/03_plans/2026-06-21-Landing-Page-Redesign/
+
+# (b) wrong rate-limit table name — must return ZERO matches (the real table is security_rate_limit_events)
+rg -n "\brate_limit\b" .ai/03_plans/2026-06-21-Landing-Page-Redesign/   # expect 0 (doc 15 may keep an intentional shorthand)
+
+# (c) the recalled dishonest score — must return ZERO matches outside the audit/history context
+rg -n "100 / 100 / 100 across|Pack-weighted score.*Strategy 100" .ai/03_plans/2026-06-21-Landing-Page-Redesign/
+```
 
 The patch is tracked as gaps Q-CL-1 through Q-CL-9 in `MASTER-AUDIT-AND-SCORECARD.md`.
 
@@ -117,21 +134,22 @@ without an owner is a gap.
 | Copy / voice | `05-COPY-SKELETON.md` | ✓ |
 | Claims discipline / proof model | `06-PROOF-AND-CLAIMS-DISCIPLINE.md` | ✓ |
 | Engineering / RSC / responsive / funnel | `07-ENGINEERING-CONSTRAINTS.md` | ✓ |
-| Rollout / A/B / analytics events | `08-ROLLOUT-AND-ANALYTICS.md` | ✗ missing |
-| Claims-sign-off gate | `09-CLAIMS-LEDGER-SIGN-OFF.md` | ✗ missing |
-| Component inventory / anatomy | `11-COMPONENT-INVENTORY-AND-CONTENT-MAP.md` | ✗ missing |
-| Accessibility (WCAG 2.1 AA) | `12-ACCESSIBILITY-AUDIT.md` | ✗ missing |
-| SEO / discovery | `13-SEO-AND-DISCOVERY.md` | ✗ missing |
-| Performance / Core Web Vitals | `14-PERFORMANCE-AND-CORE-WEB-VITALS.md` | ✗ missing |
-| Forms / abuse guardrails | `15-FORMS-AND-ABUSE-GUARDRAILS.md` | ✗ missing |
-| Test / verification | `16-TEST-AND-VERIFICATION-PLAN.md` | ✗ missing |
-| Analytics / observability | `17-ANALYTICS-AND-OBSERVABILITY.md` | ✗ missing |
-| i18n / localization (PH + SEA) | `18-I18N-AND-LOCALIZATION.md` | ✗ missing |
-| Asset pipeline / imagery | `19-ASSET-PIPELINE-AND-IMAGERY.md` | ✗ missing |
-| Content workflow / governance | `20-CONTENT-WORKFLOW-AND-GOVERNANCE.md` | ✗ missing |
-| Blast radius / migration | `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` | ✗ missing |
-| Peg-study deep dive (evidence) | `22-PEG-STUDY-DEEP-DIVE.md` | ✗ missing |
+| Rollout / A/B / analytics events | `08-ROLLOUT-AND-ANALYTICS.md` | ✓ |
+| Claims-sign-off gate | `09-CLAIMS-LEDGER-SIGN-OFF.md` | ✓ |
+| Component inventory / anatomy | `11-COMPONENT-INVENTORY-AND-CONTENT-MAP.md` | ✓ |
+| **Auth experience (D-2)** | **`23-AUTH-EXPERIENCE.md`** | ✓ |
+| Accessibility (WCAG 2.1 AA) | `12-ACCESSIBILITY-AUDIT.md` | ✓ |
+| SEO / discovery | `13-SEO-AND-DISCOVERY.md` | ✓ |
+| Performance / Core Web Vitals | `14-PERFORMANCE-AND-CORE-WEB-VITALS.md` | ✓ |
+| Forms / abuse guardrails | `15-FORMS-AND-ABUSE-GUARDRAILS.md` | ✓ |
+| Test / verification | `16-TEST-AND-VERIFICATION-PLAN.md` | ✓ |
+| Analytics / observability | `17-ANALYTICS-AND-OBSERVABILITY.md` | ✓ |
+| i18n / localization (PH + SEA) | `18-I18N-AND-LOCALIZATION.md` | ✓ |
+| Asset pipeline / imagery | `19-ASSET-PIPELINE-AND-IMAGERY.md` | ✓ |
+| Content workflow / governance | `20-CONTENT-WORKFLOW-AND-GOVERNANCE.md` | ✓ |
+| Blast radius / migration | `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` | ✓ |
+| Peg-study deep dive (evidence) | `22-PEG-STUDY-DEEP-DIVE.md` | ✓ |
 | Cross-link integrity | `10-CANONICAL-DOC-MAP.md` (this doc) | ✓ |
 | Audit / scorecard | `MASTER-AUDIT-AND-SCORECARD.md` | ✓ |
-| Loop state / open decisions | `LOOP_LEDGER.md` | ✗ missing |
-| Pack navigation | `README.md` | ✗ missing |
+| Loop state / open decisions | `LOOP_LEDGER.md` | ✓ |
+| Pack navigation | `README.md` | ✓ |

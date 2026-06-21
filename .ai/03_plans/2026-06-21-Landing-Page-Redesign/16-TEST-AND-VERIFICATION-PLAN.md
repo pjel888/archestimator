@@ -73,7 +73,7 @@ no claim, no component, no route, no auth flow ships unverified.
 |---|---|---|
 | Claims-matrix parser (parses `06-PROOF` §3 into `ClaimRowData[]`) | `tests/unit/claims-matrix-parser.test.ts` | Every row has a valid `ClaimStatus` (D-4: `"Live" \| "Building" \| "Planned" \| "NotUs"`); every source is a real § ref; the taxonomy is exhaustive. |
 | Plate data model (parses `04-COMMERCIAL-GRAPH-ARCHITECTURE-PLATE` §3 + §4.8 into `PlateNode[]`) | `tests/unit/plate-data-model.test.ts` | Every node's status matches the matrix; every node status is in the **plate subset** (`Live \| Building \| Planned` — no `NotUs`); every edge maps to a real §8.3 relationship; the collapse logic produces a legible vertical stack at ≤414px. |
-| Rate-limit helpers (composite-key, Retry-After; Postgres `rate_limit` table, NOT Redis) | `tests/unit/rate-limit-helpers.test.ts` | The IP/email/global caps hold; the composite key is correct; `Retry-After` is computed correctly. |
+| Rate-limit helpers (composite-key, Retry-After; Postgres `security_rate_limit_events` table, NOT Redis) | `tests/unit/rate-limit-helpers.test.ts` | The IP/email/global caps hold; the composite key is correct; `Retry-After` is computed correctly. |
 | Consent parser (existing `parseLandingConsentValue`) | (existing tests, regression-only) | The three-tier consent state parses correctly. |
 | A/B variant assigner (existing `getVariant`) | (existing tests, regression-only) | Assignment is stable per-visitor; consent-gated. |
 | Honeypot + input validation (the `/contact` + `/signup` server actions) | `tests/unit/contact-action-validation.test.ts` | Every field's validation rule (`15-FORMS-AND-ABUSE-GUARDRAILS.md` §2.4) holds; the honeypot triggers a silent drop; invalid input returns field-level errors. |
@@ -154,7 +154,7 @@ server actions / callback / RPC (verified in `23-AUTH-EXPERIENCE.md` §0), with 
 | Test | Spec | What it proves |
 |---|---|---|
 | Honeypot drop | `e2e/auth-honeypot.spec.ts` | A submission with the hidden `company_url` field populated is silently rejected (server action returns the error-shape without invoking `signInWithOtp`). |
-| Rate-limit (Postgres, NOT Redis) | `e2e/auth-rate-limit.spec.ts` | N+1 rapid `signInWithEmail` calls from one IP/email exceed the `rate_limit` table cap and receive a `Retry-After` 429-style response. Proves the limit covers the new `/signup` path (same actions). |
+| Rate-limit (Postgres, NOT Redis) | `e2e/auth-rate-limit.spec.ts` | N+1 rapid `signInWithEmail` calls from one IP/email exceed the `security_rate_limit_events` table cap and receive a `Retry-After` 429-style response. Proves the limit covers the new `/signup` path (same actions). |
 
 ### 5.4 Moat-metric e2e proof (NEW — closes gap 1)
 
@@ -441,7 +441,7 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
 - **D-5 (honest scoring)** — every CI gate that depends on a not-yet-existing script/config is
   **honestly conditional** (§9.3, §10), not silently enforced; the manual SR pass and the manual
   claims checklist are carried as binding gates (L-A11Y-1, L-CLM-1/2). No self-congratulation.
-- **Rate-limiting = Postgres** — the rate-limit e2e (§5.3) targets the `rate_limit` table, not Redis.
+- **Rate-limiting = Postgres** — the rate-limit e2e (§5.3) targets the `security_rate_limit_events` table, not Redis.
 - **Turnstile NOT yet built** — no e2e references a CAPTCHA; escalation-only per `15`.
 - **Radical honesty** — the `AuthGlassPanel` component test (§4) asserts no fake screenshots / stock
   photos in the DOM; the moat-metric proof (§5.4) makes the "reusable commercial knowledge" claim

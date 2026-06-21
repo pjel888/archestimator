@@ -266,7 +266,7 @@ All new components live under **`src/components/auth/`** (a new directory; today
 
 The auth surface is the highest-abuse-risk surface on the landing. Guardrails:
 
-1. **Postgres rate-limiting, NOT Redis** (project position — memory, README). The `rate_limit` table throttles magic-link and OAuth-start attempts per email + per IP. Both `/login` and `/signup` server actions (`signInWithEmail`, `signInWithGoogle`) are rate-limited server-side. The redesign adds **no new rate-limit code**; it ensures the existing limit covers the new `/signup` path (same actions, so it does).
+1. **Postgres rate-limiting, NOT Redis** (project position — memory, README). The `security_rate_limit_events` table throttles magic-link and OAuth-start attempts per email + per IP. Both `/login` and `/signup` server actions (`signInWithEmail`, `signInWithGoogle`) are rate-limited server-side. The redesign adds **no new rate-limit code**; it ensures the existing limit covers the new `/signup` path (same actions, so it does).
 2. **Honeypot field.** Each client form (`LoginForm`, `SignupForm`) carries a visually-hidden, `aria-hidden`, `tabindex=-1` honeypot input (e.g. `name="company_url"`). Server actions reject submissions where the honeypot is non-empty. Cheap, accessible, no CAPTCHA friction.
 3. **Validation.** Email is validated server-side (format + length + lowercase normalization — already done in `signInWithEmail`). The redesign preserves this; client-side validation is progressive-enhancement only.
 4. **Fail-closed closed-beta.** `getClosedBetaAccessForEmail` returns `status:"error"` → `allowed:false` on any RPC error (§3.1). The redesign does not weaken this.

@@ -657,6 +657,6 @@ Per D-5, no gate is silently marked closed. Each has a row in `LOOP_LEDGER.md`.
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.**
 Voice throughout = Controlled Confidence (§10). Pricing framing stays hypothesis-labeled per §9.3
-(no locked price). Rate-limiting is Postgres (`rate_limit` table), NOT Redis (project position).
+(no locked price). Rate-limiting is Postgres (`security_rate_limit_events` table), NOT Redis (project position).
 Turnstile is NOT yet built (planned); auth-form abuse = honeypot + Postgres rate-limit +
 validation; CAPTCHA escalation-only.

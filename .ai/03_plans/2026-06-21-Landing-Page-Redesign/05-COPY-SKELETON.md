@@ -558,7 +558,7 @@ image spec per route.
 **CTA:** **Book a walkthrough** (primary) · **Start free** (secondary, build while you wait).
 
 > ⚠️ **GATED ON (L-FUN-4):** abuse guardrails for any form submission (durable rate limiting via
-> Postgres `rate_limit` table — NOT Redis; honeypot; server validation — the P1 items, §8.6,
+> Postgres `security_rate_limit_events` table — NOT Redis; honeypot; server validation — the P1 items, §8.6,
 > §18.1). See `15-FORMS-AND-ABUSE-GUARDRAILS.md`. Turnstile is NOT yet built (escalation-only).
 > The form itself is Live; the inbox behind it must be ready before public launch.
 
@@ -692,7 +692,7 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
 - **D-5 (Honest scoring):** the gated items are carried in `LOOP_LEDGER`, never silently closed.
 - **Cross-links:** all resolve to canonical filenames per `10-CANONICAL-DOC-MAP.md`. The prior
   `07-CLAIMS-LEDER-SIGN-OFF.md` typo is corrected to `09-CLAIMS-LEDGER-SIGN-OFF.md`.
-- **Rate-limiting:** Postgres (`rate_limit` table), NOT Redis. Turnstile NOT yet built
+- **Rate-limiting:** Postgres (`security_rate_limit_events` table), NOT Redis. Turnstile NOT yet built
   (escalation-only). Stated on `/contact` and `/signup`.
 
 ---

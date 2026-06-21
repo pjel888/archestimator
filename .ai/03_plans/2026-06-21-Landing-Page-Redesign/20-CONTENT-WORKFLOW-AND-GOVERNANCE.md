@@ -337,7 +337,7 @@ log + the discovery-call tally.
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.**
 Voice throughout = Controlled Confidence (MASTER §10; `00-OVERVIEW` §10.2). Pricing framing
-stays hypothesis-labeled per §9.3 (no locked price). Rate-limiting is Postgres (`rate_limit`
+stays hypothesis-labeled per §9.3 (no locked price). Rate-limiting is Postgres (`security_rate_limit_events`
 table), NOT Redis (project position). Every visual-surface reference matches the Glass Brand
 vocabulary (D-1): glass-on-warm-canvas, signal orange `--brand-orange #F24405` /
 `--brand-orange-dark #C63804` (D-3), Doto + Roboto Mono + SF Pro type. **Clay `#AA412A` is not

@@ -212,9 +212,10 @@ subset. Two safe options:
   to the system stack for that single glyph. The `adjustFontFallback` metrics (§5.1.2) hold the
   box dimensions so the fallback does not shift. Verify in Lighthouse CLS breakdown that the
   peso glyph produces no layout shift (O-1 below).
-- **Option B (if Option A shifts):** add `₱` to the `unicodeRanges` for the LCP-critical Doto
-  config only. `next/font/google` accepts a `unicodeRanges` array; add `["U+20B1"]` (or the
-  `latin-ext` block, which contains ₱) to the `doto` config. This adds < 1 KB per weight.
+- **Option B (if Option A shifts):** add `subsets: ["latin", "latin-ext"]` to the LCP-critical
+  `doto` config. ₱ (U+20B1) lives in the `latin-ext` block; `next/font/google` loads it as a
+  subset — a single codepoint is **not** a valid `unicodeRanges` entry, so use the subset, not
+  `unicodeRanges: ["U+20B1"]`. This adds < 1 KB per weight. Cross-link `18-I18N-AND-LOCALIZATION.md` (peso rendering).
 
 ⚠️ **O-1 (carried from `07-ENGINEERING-CONSTRAINTS.md`):** verify ₱ renders without CLS before
 ship; choose Option A or B based on the measurement.
@@ -507,7 +508,7 @@ Two third-party scripts are planned but NOT yet shipped; both must be budgeted w
 | Third-party | Status | Perf impact | Budget |
 |---|---|---|---|
 | **Analytics SDK** (Vercel Web Analytics is shipped and first-party — no third-party cost; the L-ENG-3 A/B provider is the open decision) | Vercel WA: shipped, first-party. PostHog/other: gated L-ENG-3. | Vercel WA: ~1 KB, no CWV impact. A third-party SDK (PostHog, etc.) loads async + defers; can still cost LCP if not `fetchpriority="low"` + `async`. | **< 5 KB gzipped initial, async/deferred, never on the LCP critical path.** The §7.1 bundle gate covers first-party; the third-party SDK gets a separate `<script async>` budget. |
-| **Cloudflare Turnstile** (CAPTCHA escalation on `/contact` + `/signup`) | **NOT yet built** (planned, escalation-only — `15-FORMS-AND-ABUSE-GUARDRAILS.md`, `23-AUTH-EXPERIENCE.md` §6). | Turnstile loads a `challenges.cloudflare.com` script (~30 KB uncompressed, ~10 KB gzipped) + runs a worker. On `/contact` + `/signup` only — NOT on marketing routes. | **Load Turnstile ONLY on `/contact` + `/signup`, never on `/`.** It is gated behind the abuse-escalation decision (L-FUN-4); until it ships, `/contact` + `/signup` use honeypot + Postgres rate-limit (project position: **Postgres `rate_limit`, NOT Redis**). |
+| **Cloudflare Turnstile** (CAPTCHA escalation on `/contact` + `/signup`) | **NOT yet built** (planned, escalation-only — `15-FORMS-AND-ABUSE-GUARDRAILS.md`, `23-AUTH-EXPERIENCE.md` §6). | Turnstile loads a `challenges.cloudflare.com` script (~30 KB uncompressed, ~10 KB gzipped) + runs a worker. On `/contact` + `/signup` only — NOT on marketing routes. | **Load Turnstile ONLY on `/contact` + `/signup`, never on `/`.** It is gated behind the abuse-escalation decision (L-FUN-4); until it ships, `/contact` + `/signup` use honeypot + Postgres rate-limit (project position: **Postgres `security_rate_limit_events`, NOT Redis**). |
 | **Google OAuth** (the `accounts.google.com` redirect) | shipped (D-2). | No script payload on the landing — it's a redirect, not a tag. The Google "G" mark is a static inline SVG. | Zero CWV impact. |
 
 **The rule:** no third-party script loads on the marketing routes except Vercel's first-party
@@ -591,6 +592,6 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 Every numeric target is either an industry-standard CWV threshold (Google's
 [Good CVW thresholds](https://web.dev/articles/vitals)) or a project-budget recommendation
 awaiting ratification (L-ENG-1). Voice throughout = Controlled Confidence (`00-OVERVIEW.md` §10).
-Rate-limiting is Postgres (`rate_limit` table), NOT Redis (project position). Turnstile is NOT
+Rate-limiting is Postgres (`security_rate_limit_events` table), NOT Redis (project position). Turnstile is NOT
 yet built (planned); `/contact` + `/signup` abuse = honeypot + Postgres rate-limit + validation;
 CAPTCHA escalation-only.

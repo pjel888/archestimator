@@ -228,7 +228,7 @@ site.** This is the canonical ledger; `05-COPY-SKELETON.md` consumes it row-for-
 | "From estimate to approval" (shared links + comments + decisions + password + `.xlsx`) | Live | §11.2 | — |
 | Deterministic arithmetic; no AI-generated pricing, no probabilistic ranges, no takeoff | Live (as a limitation/proof point) | §8.4 | Honesty point: numbers come from the user's library and inputs. |
 | Private by design — your data is yours, never pooled or anonymized across customers | Live (positioning) | §4.4 #4, R10, §3.3 | The deliberate opposite of Zebel's cross-customer benchmark (§2). |
-| Security posture as shipped (bearer-secret tokens ≥32 bytes, HMAC-SHA256 + server pepper, expiry/revocation, POST-only mutations, HttpOnly/Secure/SameSite cookies, durable rate limiting with `Retry-After`, audit logging, RLS on every table) | Live (as shipped) | §8.6 | State only what exists. ⚠️ P1 items (durable rate limiting, POST-only invite acceptance, token hashing w/ pepper) are the co-dependency for the "Start free" funnel — see `07`. Rate limiting is **Postgres** (`rate_limit` table), NOT Redis. |
+| Security posture as shipped (bearer-secret tokens ≥32 bytes, HMAC-SHA256 + server pepper, expiry/revocation, POST-only mutations, HttpOnly/Secure/SameSite cookies, durable rate limiting with `Retry-After`, audit logging, RLS on every table) | Live (as shipped) | §8.6 | State only what exists. ⚠️ P1 items (durable rate limiting, POST-only invite acceptance, token hashing w/ pepper) are the co-dependency for the "Start free" funnel — see `07`. Rate limiting is **Postgres** (`security_rate_limit_events` table), NOT Redis. |
 | Pre-launch MVP / MVP preview (maturity disclosure) | Live (as disclosure) | §7.4, §15 | Mandatory wherever maturity matters. |
 | Free tier exists (self-serve signup) | Live | §9.2 | The "Start free" CTA gates on co-dependencies in `07`, not on pricing validation. |
 
@@ -523,7 +523,7 @@ honest limitations.
 |---|---|---|---|
 | **A. The claims ledger** | The full CLAIMS MATRIX (§3 above), rendered via `<ClaimsLedger>` with `enableFilter`. | Live + Building + Planned + NotUs | §2, §3 |
 | **B. Privacy by design** | The §5.1 block verbatim. | Live (posture) | §5 |
-| **C. Security posture (as shipped)** | State only what exists: bearer-secret invite/share tokens (≥32 bytes, base64url, HMAC-SHA256 + server pepper, never logged raw), expiry + revocation, POST-only mutations, HttpOnly/Secure/SameSite cookies, no localStorage tokens, durable composite-key rate limiting (`rate_limit` table — Postgres, NOT Redis) with `Retry-After`, audit logging + metrics/alerts, indexes on high-traffic collaboration tables, `Cache-Control: no-store` for tokenized pages, fail-closed on missing config, RLS on every table. | Live (as shipped) | §8.6 |
+| **C. Security posture (as shipped)** | State only what exists: bearer-secret invite/share tokens (≥32 bytes, base64url, HMAC-SHA256 + server pepper, never logged raw), expiry + revocation, POST-only mutations, HttpOnly/Secure/SameSite cookies, no localStorage tokens, durable composite-key rate limiting (`security_rate_limit_events` table — Postgres, NOT Redis) with `Retry-After`, audit logging + metrics/alerts, indexes on high-traffic collaboration tables, `Cache-Control: no-store` for tokenized pages, fail-closed on missing config, RLS on every table. | Live (as shipped) | §8.6 |
 | **D. Maturity & limitations** | The §7.4 honest list: pre-launch MVP, not production-hardened; AI deferred; exports are working documents; no procurement/ERP/payment execution; no BIM/takeoff ingestion yet; English UI, no localization yet. | Live (honest limitations) | §7.4 |
 | **E. Data residency & cross-border** | Plain statement: workspace data sits on Supabase in `ap-southeast-2` (Australia); a cross-border transfer. **BUILD-TIME CONDITIONAL — ships only when the DPA safeguards are in place** (§6.5). | Live (fact) / GATED on DPA | §8.2, §18.2 |
 | **F. What's next (roadmap, honestly)** | The Planned rows from §3.3, restated as direction. Includes the deferred AI copilot with the privacy note. | Planned | §3.3 |
@@ -780,6 +780,6 @@ each has a row in `LOOP_LEDGER.md`.
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.**
 Every public-word implication is grounded in MASTER §X.Y citations; pricing framing stays
-hypothesis-labeled per §9.3 (no locked price). Rate-limiting is Postgres (`rate_limit` table),
+hypothesis-labeled per §9.3 (no locked price). Rate-limiting is Postgres (`security_rate_limit_events` table),
 NOT Redis (project position). Turnstile is NOT yet built (planned); `/contact` + `/signup` abuse
 = honeypot + Postgres rate-limit + validation; CAPTCHA escalation-only.

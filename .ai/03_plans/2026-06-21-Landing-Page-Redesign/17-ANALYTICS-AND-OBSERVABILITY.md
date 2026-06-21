@@ -301,7 +301,7 @@ The redesign reuses the **existing** `CookieConsentBanner` (`src/components/land
 Three tiers (per `15-FORMS-AND-ABUSE-GUARDRAILS.md` §5):
 
 1. **Necessary** (always on) — security logging (`recordAccountSecurityEvent`),
-   rate-limit accounting (Postgres `rate_limit`), the closed-beta gate. No consent needed.
+   rate-limit accounting (Postgres `security_rate_limit_events`), the closed-beta gate. No consent needed.
 2. **Analytics** (opt-in via the banner) — all events in §2.1 with the user's consent.
 3. **Marketing/ads** (not applicable at launch — no ad scripts).
 
@@ -335,7 +335,7 @@ surface** — a bot hitting `/` 10,000×/minute inflates `route_view`; a click-f
 | Layer | Mechanism | Applied to | Cost |
 |---|---|---|---|
 | **L1 — Client hint** | `navigator.webdriver` check + a `requestAnimationFrame`-gated "real interaction" flag on `hero_cta_click` / `plate_node_focus` (headless browsers skip rAF). Not authoritative (spoofable), just a cheap signal. | `hero_cta_click`, `plate_node_focus`, `secondary_cta_click` | Free, client-side |
-| **L2 — Rate-limit by `anon_id` + IP** | The **same Postgres `rate_limit` table** the forms use (`15-FORMS-AND-ABUSE-GUARDRAILS.md`, project position: **Postgres, NOT Redis**) rate-limits `route_view` to ~60/min/anon_id and `hero_cta_click` to ~10/min/anon_id. Over the limit, the event is **dropped client-side** (the rate-limit check is a server action called on a debounce; over-limit → the client `trackLandingEvent` skips). | `route_view`, `hero_cta_click`, every event | Postgres, already-deployed infra |
+| **L2 — Rate-limit by `anon_id` + IP** | The **same Postgres `security_rate_limit_events` table** the forms use (`15-FORMS-AND-ABUSE-GUARDRAILS.md`, project position: **Postgres, NOT Redis**) rate-limits `route_view` to ~60/min/anon_id and `hero_cta_click` to ~10/min/anon_id. Over the limit, the event is **dropped client-side** (the rate-limit check is a server action called on a debounce; over-limit → the client `trackLandingEvent` skips). | `route_view`, `hero_cta_click`, every event | Postgres, already-deployed infra |
 | **L3 — Honeypot on forms** | The existing honeypot field (`15` §3, `23-AUTH-EXPERIENCE.md` §6.2) — applied to `contact_form_submit`, `signup_attempt`. Non-empty honeypot → event is dropped + the submission is rejected. | `contact_form_submit`, `signup_attempt`, `login_attempt` | Free |
 | **L4 — Server-side bot signature** | The analytics ingest (once PostHog is live) gets a server-side filter: events with a known bot user-agent ([list sourced from `ua-parser/uap-core`], a non-browser `Sec-CH-UA`, or an impossible `route_view` rate from one IP are flagged `bot=true` and **excluded from the funnel dashboard by default**, viewable in a separate "bot-filtered" panel. | All events at ingest | Server-side, PostHog-native |
 | **L5 — Turnstile (escalation-only, NOT yet built)** | If the L2 rate-limit signals a sustained bot attack on `/signup` or `/contact`, Turnstile is added per the `15-FORMS-AND-ABUSE-GUARDRAILS.md` escalation criteria. **Turnstile is not built today**; CAPTCHA is escalation-only, never default. | `contact_form_submit`, `signup_attempt` (escalation only) | Cloudflare, when warranted |
@@ -391,7 +391,7 @@ the consent copy references "analytics" generically.
 | Anonymous → authenticated merge rate (what % of signups have a recoverable `anon_id`?) | PostHog + server log | Founder + eng | Yes |
 | CWV field data (LCP / CLS / INP per route, PH + SEA) | Vercel Speed Insights (`layout.tsx:42`) + CrUX | Founder + eng | n/a (perf) |
 | SEO performance (impressions, clicks, average position, geo) | Google Search Console | Founder + (eventually) growth | n/a (SEO) |
-| Abuse signals (submission rate, honeypot hits, rate-limit hits, bot-flagged events) | PostHog + Postgres `rate_limit` + server logs | Founder + eng | No (the bot signal IS the panel) |
+| Abuse signals (submission rate, honeypot hits, rate-limit hits, bot-flagged events) | PostHog + Postgres `security_rate_limit_events` + server logs | Founder + eng | No (the bot signal IS the panel) |
 
 The dashboard is built in PostHog (funnels + experiments + activation + merge rate) + Vercel
 (CWV) + Search Console (SEO). No separate BI tool at pre-launch volume.
@@ -431,7 +431,7 @@ not blocking. Tracked in `LOOP_LEDGER.md` as **L-OBS-1** (new ID this doc introd
   the analytics-SDK JS budget (the SDK is one of the hydrating leaves; §7's RSC-first
   boundary keeps it off the LCP path).
 - `15-FORMS-AND-ABUSE-GUARDRAILS.md` — the consent model (§5) + the form-spam defense + the
-  Postgres `rate_limit` table reused by §7's bot filter.
+  Postgres `security_rate_limit_events` table reused by §7's bot filter.
 - `16-TEST-AND-VERIFICATION-PLAN.md` — the analytics-event tests (regression: every event
   fires with the right props; the bot filter drops over-limit events; the merge fires once per
   signup).
@@ -469,7 +469,7 @@ not blocking. Tracked in `LOOP_LEDGER.md` as **L-OBS-1** (new ID this doc introd
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.**
 The moat metric (`component_reused`) is **never public** (§2.2). Pricing framing stays
-hypothesis-labeled per §9.3 (no locked price). Rate-limiting is Postgres (`rate_limit` table),
+hypothesis-labeled per §9.3 (no locked price). Rate-limiting is Postgres (`security_rate_limit_events` table),
 NOT Redis (project position). Turnstile is NOT yet built (planned); `/contact` + `/signup`
 abuse = honeypot + Postgres rate-limit + validation (§7); CAPTCHA escalation-only.
 

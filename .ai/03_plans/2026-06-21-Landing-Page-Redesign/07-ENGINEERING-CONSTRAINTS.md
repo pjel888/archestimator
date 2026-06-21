@@ -244,7 +244,7 @@ the deploy target (Vercel in-region SIN), not against local dev hitting hosted S
 | LCP | < 2.0s on cold cache, fast 4G, Moto G-class | Text headline on glass; achievable for static HTML. ⚠️ Needs L-ENG-1 ratification before treating as a hard gate. |
 | CLS | < 0.05 | Reserve space for the architecture plate, any figure, and the deferred-glass ramp; no late-loading fonts causing reflow (§3.3, §3.5). Doto + Roboto Mono are already in `<body>` — zero new font requests (doc 03 §7.1). |
 | INP | < 200ms | Near-zero JS; the few leaves are tiny. Scroll-reveal must not jank; the deferred-glass ramp snaps, never animates, under reduced motion (doc 03 §4.3). |
-| **JS shipped (initial, marketing routes)** | **< 40 KB gzipped per route** (target) / **> 60 KB gzipped fails CI** | RSC-first; only the hydrating leaves in §1.2 ship. **Enforced by `@next/bundle-analyzer` in CI** (`@next/bundle-analyzer@16.2.6` is already a devDep; `next.config.ts` already imports `createBundleAnalyzer` — verified). Mechanism in §3.6. |
+| **JS shipped (initial, marketing routes)** | **< 40 KB gzipped per route** (target) / **> 60 KB gzipped fails CI** | RSC-first; only the hydrating leaves in §1.2 ship. **Target-enforced by `@next/bundle-analyzer`** (`@next/bundle-analyzer@16.2.6` is a devDep; the `withBundleAnalyzer` wrapper is wired in `next.config.ts:223` gated on `ANALYZE=true` — verified; the `analyze` script + CI step + budget file are the open **L-ENG-3** deliverable, so the budget is a **target, not yet a gate**). Mechanism in §3.6. |
 | Font payload | **Zero new requests.** Doto (`--font-doto`) + Roboto Mono (`--font-roboto-mono`) already loaded globally (`src/app/layout.tsx:2/9/12-17`); SF Pro is a system stack (`--font-sf-pro`, `globals.css:99`). Source Serif 4 DEFERRED (D-1; doc 03 §7.4). | Self-hosted via `next/font/google`, `display: swap`, already attached to `<body>`. Doto `adjustFontFallback` CLS verification is a doc-14 lab task (doc 03 §7.2). |
 
 These are the Core Web Vitals targets to validate against on Vercel in-region SIN (the
@@ -567,7 +567,7 @@ does not go public until the gate is closed, or the owner explicitly accepts the
 | # | Gate | Status / source | Blocks |
 |---|---|---|---|
 | G1 | **Beta onboarding + demo-data/reset rules** | §7.5 launch gate; §18.3. Demo data with reset rules is a launch gate. ⚠️ NEEDS INPUT: design the first-run flow; build a demo project (a simple CHB or residential BOQ) — §18.3. | Signup → activation path; the moat metric (§7.1) depends on a working first-run. |
-| G2 | **Abuse guardrails (P1)** | §18.1 near-term engineering blockers: **durable rate limiting (Postgres `rate_limit` table, NOT Redis — project position)**, **POST-only invite acceptance**, **token hashing with a server pepper**. | Any public self-serve signup surface. Without rate limiting, "Start free" is an abuse magnet; without POST-only invites + peppered token hashing, the invite path is exploitable. These are P1, ahead of public launch. |
+| G2 | **Abuse guardrails (P1)** | §18.1 near-term engineering blockers: **durable rate limiting (Postgres `security_rate_limit_events` table, NOT Redis — project position)**, **POST-only invite acceptance**, **token hashing with a server pepper**. | Any public self-serve signup surface. Without rate limiting, "Start free" is an abuse magnet; without POST-only invites + peppered token hashing, the invite path is exploitable. These are P1, ahead of public launch. |
 | G3 | **First-run flow** | §18.3 ⚠️ NEEDS INPUT (NEEDS-INPUT register #7). The path: signup → sample/demo project → guided first estimate → first reuse → first client share. | Activation (the moat metric). Without a designed first-run, free users bounce before first reuse. |
 | G4 | **Legal docs (ToS, Privacy Policy, Acceptable Use, Refund/Cancellation)** | §17 #3, §18.2. Required before **any** signup (free or paid). | Any signup. |
 | G5 | **Data Privacy Act posture (DPO, PIA, breach plan, cross-border safeguards)** | §17 #4, §18.2. Data sits on Supabase in `ap-southeast-2` (Australia) — a cross-border transfer needing model contractual clauses or equivalent. Applies regardless of entity size. | Any signup handling personal data. |
@@ -714,7 +714,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc 
   §3.2).
 - **L-FUN-3 — First-run flow (§8 G3).** ⚠️ NEEDS INPUT register #7. Signup → demo project →
   first estimate → first reuse → first share. Activation-critical.
-- **L-FUN-4 — Abuse guardrails P1 (§8 G2).** Postgres `rate_limit` (NOT Redis), POST-only
+- **L-FUN-4 — Abuse guardrails P1 (§8 G2).** Postgres `security_rate_limit_events` (NOT Redis), POST-only
   invite acceptance, token hashing + server pepper. Blocks any public self-serve surface.
 - **L-ENG-1 — Performance targets ratification (§3.2).** ⚠️ NEEDS INPUT register #16 asks
   for explicit perf targets + admin controls. The §3.2 numbers are a planning
@@ -764,7 +764,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc 
   (§3.2) uses the single shared type from `06-PROOF-AND-CLAIMS-DISCIPLINE.md`. ✅
 - **D-5 (honest scoring)** — owner-gated items are carried in `LOOP_LEDGER.md`, never
   silently closed (§12 above). ✅
-- **Rate-limiting = Postgres** (`rate_limit` table), NOT Redis; **Turnstile NOT yet built**
+- **Rate-limiting = Postgres** (`security_rate_limit_events` table), NOT Redis; **Turnstile NOT yet built**
   (escalation-only). ✅ (§8 G2).
 - **Radical honesty** — no invented features/metrics/testimonials/prices/partner names on
   any public surface (§9 #12). ✅

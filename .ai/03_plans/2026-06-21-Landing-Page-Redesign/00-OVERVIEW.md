@@ -191,7 +191,7 @@ is corrected here).
 | **`12-ACCESSIBILITY-AUDIT.md`** | Consolidated WCAG 2.1 AA audit + contrast table + keyboard contract + semantics + motion + forms a11y + SR critical paths + test plan. |
 | **`13-SEO-AND-DISCOVERY.md`** | Keyword strategy, per-route meta copy, sitemap + robots + canonical, structured data, internal linking, PH/SEA search-volume validation, measurement. Owns `/login` + `/signup` `noindex,nofollow`. |
 | **`14-PERFORMANCE-AND-CORE-WEB-VITALS.md`** | CWV targets, field-vs-lab methodology, PH+SEA device class, JS/font budgets, CI regression gate, remediation playbook. |
-| **`15-FORMS-AND-ABUSE-GUARDRAILS.md`** | `/contact` + `/signup` form-spam defense, durable rate limiting (**Postgres `rate_limit` table, NOT Redis**), honeypot, CAPTCHA decision (Turnstile NOT yet built — escalation-only), abuse monitoring. |
+| **`15-FORMS-AND-ABUSE-GUARDRAILS.md`** | `/contact` + `/signup` form-spam defense, durable rate limiting (**Postgres `security_rate_limit_events` table, NOT Redis**), honeypot, CAPTCHA decision (Turnstile NOT yet built — escalation-only), abuse monitoring. |
 | **`16-TEST-AND-VERIFICATION-PLAN.md`** | Unit / component / e2e / visual (Storybook) / a11y / perf / claims test plan; the CI shape. |
 | **`17-ANALYTICS-AND-OBSERVABILITY.md`** | Event schema, tool decision (PostHog recommended), consent model, retention + privacy, dashboard, moat-metric instrumentation. |
 | **`18-I18N-AND-LOCALIZATION.md`** | Locale strategy (EN-only at launch with documented FIL+ID roadmap), hreflang, sitemap localization, copy-idiom discipline, validation plan. |
@@ -267,7 +267,7 @@ owner sign-off and mapped to the docs/routes it blocks. Items marked ⚠️ NEED
 | **G-2 "Start free" routing** | Auth route for "Start free" (`/signup` vs `/auth/signup` vs `/start`). | Hero CTA href; footer sitemap href (`05`); `23` sign-off. | L-FUN-1 | ⚠️ GATED ON — recommend `/signup` |
 | **G-3 Beta onboarding + reset** | Demo-data/reset rules before self-serve signup. | Self-serve `/signup` activation; moat metric; `23` self-serve readiness. | L-FUN-2 | ⚠️ GATED ON |
 | **G-4 First-run flow** | Signup → demo project → first estimate → first reuse → first share. | Activation quality; `23` post-signup path. | L-FUN-3 | ⚠️ NEEDS INPUT |
-| **G-5 Abuse guardrails (P1)** | Durable rate limiting (**Postgres `rate_limit`, NOT Redis**), POST-only invite acceptance, token hashing + server pepper. | Any public self-serve `/signup`; `/contact` form; `15`; `23`. | L-FUN-4 | ⚠️ GATED ON |
+| **G-5 Abuse guardrails (P1)** | Durable rate limiting (**Postgres `security_rate_limit_events`, NOT Redis**), POST-only invite acceptance, token hashing + server pepper. | Any public self-serve `/signup`; `/contact` form; `15`; `23`. | L-FUN-4 | ⚠️ GATED ON |
 | **G-6 Founder bio assets** | Credentials, photo, links. | Homepage §9 founder section; `/about` richness (`05`). | L-FND-1 | ⚠️ NEEDS INPUT — ship §11.5 paragraph without it meanwhile |
 | **G-7 Pricing validation** | ≥5 discovery calls + ≥2 beta users building a real estimate + Van Westendorp before any peso number. | `/pricing` numeric content; homepage §10 (`05`). | L-PRC-1 | ⚠️ GATED ON — `/pricing` ships philosophy only until then |
 | **G-8 Removals (Hallmark rail)** | Owner OK to delete: 3 fabricated testimonials; hype hero; construction-photo slideshow + 2.3MB hero PNG; logo-only footer. | Removal rail execution (`06` §4; `02`; `08`; `21`). | L-REM-1…4 | ⚠️ GATED ON owner OK |
@@ -427,6 +427,6 @@ gates for THIS doc are:
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.**
 Voice throughout = Controlled Confidence (§10). Pricing framing stays hypothesis-labeled per
-§9.3 (do not publish a locked price). Rate-limiting is Postgres (`rate_limit` table), NOT Redis
+§9.3 (do not publish a locked price). Rate-limiting is Postgres (`security_rate_limit_events` table), NOT Redis
 (project position). Turnstile is NOT yet built (planned); `/contact` + `/signup` abuse = honeypot
 + Postgres rate-limit + validation; CAPTCHA escalation-only.

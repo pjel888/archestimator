@@ -489,6 +489,6 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.** Voice
 throughout = Controlled Confidence (§10). Pricing framing stays hypothesis-labeled per §9.3 (do not
-publish a locked price). Rate-limiting is Postgres (`rate_limit` table), NOT Redis (project position).
+publish a locked price). Rate-limiting is Postgres (`security_rate_limit_events` table), NOT Redis (project position).
 Turnstile is NOT yet built (planned); `/contact` + `/signup` abuse = honeypot + Postgres rate-limit +
 validation; CAPTCHA escalation-only.

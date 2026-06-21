@@ -188,7 +188,7 @@ Conversion, "request access").
 | 1 | **Hero (compact)** | above-fold | Server | Route title + the line that this is for design partners and people who estimate/quote/propose today. |
 | 2 | **What we are looking for** | mid-fold | Server | The §12.5 posture: a few design partners who create estimates, quotes, or proposals today; no payment or commitment; 20 minutes of feedback and permission to test the MVP. |
 | 3 | **The discovery questions (optional)** | mid-fold | Server | The §14.2 script surfaced as "what we'd love to learn" — how you quote today, where it breaks, what wastes time, how you reuse items/suppliers/brands/templates. Framed as curiosity, not a form-wall. |
-| 4 | **The form** | below-fold | **Server shell + client form leaf** (per `15`) | Name, role, current method (spreadsheet / tool / other), the one thing that breaks. Both CTAs present (Start free for the self-serve path, gated L-FUN-1/L-FUN-2; "Book a walkthrough" for the design-partner path). **Abuse = Postgres `rate_limit` + honeypot + validation; Turnstile escalation-only, NOT yet built** (per `15`). |
+| 4 | **The form** | below-fold | **Server shell + client form leaf** (per `15`) | Name, role, current method (spreadsheet / tool / other), the one thing that breaks. Both CTAs present (Start free for the self-serve path, gated L-FUN-1/L-FUN-2; "Book a walkthrough" for the design-partner path). **Abuse = Postgres `security_rate_limit_events` + honeypot + validation; Turnstile escalation-only, NOT yet built** (per `15`). |
 | 5 | **Email-pitch tone note (for outbound reuse)** | below-fold | Server | The §12.5 email is the canonical outbound voice; this page is its inbound mirror. |
 
 ### 2.5 `/trust` — Trust · the honesty-as-proof home (NEW ROUTE)
@@ -350,7 +350,7 @@ planned, because we told them plainly.
 **The two conversion paths (brief locked decision #2):**
 - **Self-serve (Start free):** Free-tier signup → `/signup` (gated L-FUN-1/L-FUN-2; until then
   `/login` or `/contact`). `⚠️ GATED ON` the CO-DEPENDENCIES in **07**: beta onboarding +
-  demo-data/reset (§7.5 launch gate, L-FUN-2), abuse guardrails (Postgres `rate_limit`, NOT
+  demo-data/reset (§7.5 launch gate, L-FUN-2), abuse guardrails (Postgres `security_rate_limit_events`, NOT
   Redis; POST-only invite acceptance; token hashing w/ pepper — the P1 items, L-FUN-4), and
   first-run flow (§18.3, L-FUN-3 `⚠️ NEEDS INPUT`). Free-tier signup does **not** require
   validated pricing or the billing mechanism.
@@ -468,7 +468,7 @@ Restated so `05`/`11` inherit them without re-reading §15:
 - **`14-PERFORMANCE-AND-CORE-WEB-VITALS.md`** — owns the ≤4-simultaneous-blur cap that constrains
   how many sections in §1 can carry a live glass blur in one viewport.
 - **`15-FORMS-AND-ABUSE-GUARDRAILS.md`** — owns the `/contact` form (§2.4 #4) and the `/signup`
-  form-spam defense (Postgres `rate_limit`, NOT Redis; honeypot; Turnstile escalation-only).
+  form-spam defense (Postgres `security_rate_limit_events`, NOT Redis; honeypot; Turnstile escalation-only).
 - **`17-ANALYTICS-AND-OBSERVABILITY.md`** — owns the event schema that instruments the funnel
   (§5) and the moat metric.
 - **`23-AUTH-EXPERIENCE.md`** — owns the auth surface the primary CTA routes to (§2.6, §5.1):
@@ -495,7 +495,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 - **L-FUN-3 — First-run flow** (§18.3 `⚠️ NEEDS INPUT`). Gates the self-serve "Start free"
   conversion path's activation quality. The taxonomy assumes it exists; `07` flags it as a
   CO-DEPENDENCY.
-- **L-FUN-4 — Abuse guardrails (P1).** Postgres `rate_limit` (NOT Redis), POST-only invite
+- **L-FUN-4 — Abuse guardrails (P1).** Postgres `security_rate_limit_events` (NOT Redis), POST-only invite
   acceptance, token hashing + server pepper. Gates any public self-serve `/signup`; gates the
   `/contact` form (§2.4 #4). Owned by `15`.
 - **L-FND-1 — Founder bio assets** (§17 #17). Gates homepage §9 and `/about` §3 richness. Until

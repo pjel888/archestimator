@@ -23,7 +23,37 @@ weighted mean; the goal is 100 / 100 / 100 on every doc.
 
 ---
 
-## 1. Current scores (the gap snapshot)
+## 0.5 Ratified keystone decisions (2026-06-22) + the D-5 recall
+
+> **Read this before §1–§5.** Sections 1–5 below are the **2026-06-21 baseline snapshot** (the
+> first audit of the original 8 docs). They are preserved unchanged as the historical record of
+> what was wrong. The **current** state lives in §7 (honest re-score, 2026-06-22). Do not treat
+> §1–§5 as current — they predate the pivot and the recall.
+
+**The five decisions every doc now obeys** (ratified by the owner 2026-06-22; see `00-OVERVIEW.md`
+§2 for the full text):
+
+- **D-1 — "The Glass Brand"** supersedes the prior "The Document" direction (paper `#FFFDF8` +
+  Source Serif 4). The landing now reuses the Workshop Dashboard + Estimate Sheet vocabulary:
+  liquid glass over warm canvas, signal orange `#F24405` / `#C63804`, Doto + Roboto Mono + SF Pro.
+  "The Document" is preserved as **Direction D (alternative)** in `01-DESIGN-DIRECTION.md` §3.4.
+  Source Serif 4 is **DEFERRED** (the proposal export is `.xlsx`; the "same serif" continuity
+  claim cannot yet be made).
+- **D-2 — Full-page 2-column auth** (`/login` + `/signup`), owned by the new `23-AUTH-EXPERIENCE.md`.
+- **D-3 — Orange token discipline** (`#F24405` presence / `#C63804` AA text / clay `#AA412A` never used).
+- **D-4 — Single shared `ClaimStatus` type** (`"Live" | "Building" | "Planned" | "NotUs"`); the plate narrows.
+- **D-5 — Honest scoring.** **The prior "100/100/100 across all docs" claim (this doc's old §7.1/§7.2)
+> is RECALLED.** It was self-assessed, not independently verified; a 2026-06-22 independent 28-agent
+> pass + 5-agent adversarial panel found the substance docs in the **91–96 band**, never 100, with
+> every residual owner gate carried openly in `LOOP_LEDGER.md`. The honest verdict is **Rubric A
+> (planning-achievable) = 100 %; Rubric B (execution-inclusive) ≈ 91 %** — see §7.3.
+
+---
+
+## 1. Current scores (the gap snapshot) — 2026-06-21 BASELINE SNAPSHOT
+
+> ⚠️ **This is the historical baseline**, frozen 2026-06-21. The current scores are in §7.1. This
+> section is kept so the gap-closure trail is auditable; it is **not** the live state.
 
 Read this table with §3 below. Scores reflect the **post-improvement target** in the third
 line of each cell, set after the gap analysis. The first audit (this doc) is the baseline;
@@ -253,59 +283,75 @@ The pack is at 100 % when **all** of the following hold:
 
 ## 7. Re-score log (appended after each gap-closure pass)
 
-| Date | Doc | Strategy | Quality | Impl-Ready | Note |
-|---|---|---|---|---|---|
-| 2026-06-21 | (baseline) | per §1 | per §1 | per §1 | Baseline audit; gaps open. |
-| 2026-06-21 | **pack-wide (post-improvement pass)** | **100** | **100** | **100** | Improvement pass complete. See §7.1 below for the per-doc re-score + the evidence per doc. |
+| Date | Iteration | Action | Result |
+|---|---|---|---|
+| 2026-06-21 | baseline | First audit of the 8 original docs; baseline ~88/83/81; 17 missing docs + 10 cross-cutting gaps identified. | Gaps open. |
+| 2026-06-21 | iter 2–5 | Created the 17 missing docs; patched cross-links; closed the 8-original-doc per-doc gaps. **⚠️ Self-scored 100/100/100 — but that score was self-assessed, not independently verified (the D-5 defect).** | (Recalled — see next row.) |
+| **2026-06-22** | **iter 6 (D-1..D-5 pivot + recall)** | Owner directed the redesign to the **Glass Brand** (D-1) + **full-page 2-col auth** (D-2); ratified D-3 (orange), D-4 (ClaimStatus), D-5 (honest scoring). A 28-agent pass rewrote the 3 keystone docs + upgraded the 20 substance docs against the new contract; a 5-agent independent adversarial panel re-audited the pack; the pack-wide `rate_limit`→`security_rate_limit_events` error was corrected across 14 docs; the 4 meta docs were reconciled (this row). | **Honest re-score recorded below (§7.1). The prior "100/100/100 across all docs" claim is RECALLED (D-5).** |
 
-### 7.1 Post-improvement per-doc re-score (2026-06-21)
+### 7.1 Honest per-doc re-score (2026-06-22, independent adversarial panel)
 
-Every doc's three axes are 100 / 100 / 100 after the improvement pass. Evidence per doc:
+Per D-5, **no doc is scored 100/100/100**: each is at its honest verifiable level, and the
+genuinely-open owner gates (carried in `LOOP_LEDGER.md`) cap Implementation-Readiness below 100 by
+**design**. S/Q/I = Strategy / Quality / Implementation-Readiness (1–100).
 
-| Doc | Strategy | Quality | Impl-Ready | Evidence |
+| Doc | S | Q | I | Evidence + what caps it |
 |---|---|---|---|---|
-| **00-OVERVIEW** | 100 | 100 | 100 | Doc map (§5) repointed to canonical filenames + the 9 new docs added (00-Q-1/Q-2/Q-3); routes table owner-doc column corrected (00-Q-2); success criteria #9 + #10 added (00-S-2); §9 implementation entry order added (00-I-1). `/trust` rationale is grounded in §4.4#6 + §15 across doc 06. |
-| **01-DESIGN-DIRECTION** | 100 | 100 | 100 | §4.1 Intercom DNA corrected (verified 2026-06-21: theme-color `#050505`, tabbed 4-tab hero, photographic backgrounds — 01-S-2); §4.2 Amigo DNA corrected (two-layer pyramid, not the outdated 5-node list — 01-S-1); §4.3 transferability table extended (transparent pricing + photographic backgrounds rows — 01-S-3); §2.1 O-3 disclaimer added (01-Q-1); §5.3 clay-token confusion resolved (01-I-1); §7 wedge-fit forward-pointers added (01-Q-3); cross-links patched. Full evidence in `22-PEG-STUDY-DEEP-DIVE.md`. |
-| **02-SECTION-TAXONOMY-AND-NARRATIVE-ARC** | 100 | 100 | 100 | Scroll-depth intent + mobile funnel compression are owned by doc 02 §1 + §5.2 (forward-added); RSC/client designation per section is owned by doc 07 §1.2 (cross-linked); header/footer component anatomy is owned by doc 11; per-section a11y is owned by doc 12; per-section SEO is owned by doc 13. The taxonomy points to each; cross-links patched (02-Q-1). |
-| **03-VISUAL-LANGUAGE-AND-TOKENS** | 100 | 100 | 100 | SF Pro licensing note added (03-S-1 → L-DES-4); OKLCH stance documented (03-S-2 → L-DES-5); line-number anchors replaced with anchor strings (03-I-1); type scale §3.4 added (03-I-2); spacing scale §3.5 added (03-I-3); z-index scale §3.6 added (03-I-4); radius scale §3.7 added (03-I-5); Source Serif 4 `adjustFontFallback` values pinned in §6.1 (03-I-6). Cross-links patched. |
-| **04-COMMERCIAL-GRAPH-ARCHITECTURE-PLATE** | 100 | 100 | 100 | §4.7 status-transition plate re-render added (04-S-1); §4.8 plate data model (TS schema) added (04-I-1); the `<PlateCaption>` component is specified in doc 11 §2.3 (04-I-2); the ≤360px sub-label rule pinned (04-I-3); memory-ref replaced with verbatim citation (04-Q-2); cross-links patched (04-Q-1). |
-| **05-COPY-SKELETON** | 100 | 100 | 100 | Meta + social copy owned by doc 13 §3 + a forward-pointer added to doc 05 §12-equivalent (05-S-1, deferred to doc 13); form spam/consent/privacy copy owned by doc 15 §2.6 (05-S-2); copy → component map owned by doc 11 §3 (05-I-1); footer `href` column decision owned by L-FUN-1 (05-I-2); segment-route decision owned by doc 13 §2.2 (05-I-3); cross-links patched (05-Q-1); Building/Partial terminology unified (05-Q-2). |
-| **06-PROOF-AND-CLAIMS-DISCIPLINE** | 100 | 100 | 100 | §3.0 reconciliation header implicit in §3 + the §7 process (06-S-1); §3.6 AI disclosure reserve copy added (06-S-2); §2.5 file layout + TS interfaces added (06-I-1); the sign-off gate doc created (`09-CLAIMS-LEDGER-SIGN-OFF.md` — 06-I-2); the automation script is the open dependency tracked in `LOOP_LEDGER.md` (06-I-3); cross-links patched (06-Q-1); line-number refs in §4 converted to anchor strings (06-Q-2). |
-| **07-ENGINEERING-CONSTRAINTS** | 100 | 100 | 100 | §1.4 A/B provider under the RSC shell added (07-S-1); §3.2 JS budget pinned (< 40 KB target / > 60 KB fails CI — 07-I-2); §6.1 `/signup` recommendation with rationale added (07-I-1); §10 test plan cross-link added (07-I-3); §11 rollback cross-link added (07-I-4); perf measurement methodology owned by doc 14 §3 (07-S-2); memory-ref replaced (07-Q-2); cross-links patched (07-Q-1). |
-| **08-ROLLOUT-AND-ANALYTICS** (new) | 100 | 100 | 100 | Created. Preview route, A/B mechanics, claims sign-off gate, analytics events, success metrics, rollback window. |
-| **09-CLAIMS-LEDGER-SIGN-OFF** (new) | 100 | 100 | 100 | Created. The §7.5 launch gate operationalized; reconciliation pair, sign-off procedure, cadence, automation gate. |
-| **10-CANONICAL-DOC-MAP** (new) | 100 | 100 | 100 | Created. The single source of truth for canonical filenames + the alias table + the dimension-ownership contract. |
-| **11-COMPONENT-INVENTORY-AND-CONTENT-MAP** (new) | 100 | 100 | 100 | Created. File layout, every component's props, RSC/client designation, the copy → component map, removals. |
-| **12-ACCESSIBILITY-AUDIT** (new) | 100 | 100 | 100 | Created. Contrast table with computed ratios, keyboard contract, semantics, motion, forms a11y, SR critical paths, test plan. |
-| **13-SEO-AND-DISCOVERY** (new) | 100 | 100 | 100 | Created. Keyword strategy, per-route meta copy, sitemap + robots + canonical, structured data, internal linking, PH/SEA validation, measurement. |
-| **14-PERFORMANCE-AND-CORE-WEB-VITALS** (new) | 100 | 100 | 100 | Created. CWV targets, field-vs-lab methodology, PH+SEA device class, JS/font budgets, CI gate, remediation playbook. |
-| **15-FORMS-AND-ABUSE-GUARDRAILS** (new) | 100 | 100 | 100 | Created. Threat model, `/contact` + `/signup` defense, rate limiting, honeypot, CAPTCHA decision, monitoring. |
-| **16-TEST-AND-VERIFICATION-PLAN** (new) | 100 | 100 | 100 | Created. Unit / component / e2e / visual / a11y / perf / claims test plan + the CI shape. |
-| **17-ANALYTICS-AND-OBSERVABILITY** (new) | 100 | 100 | 100 | Created. Event schema, PostHog recommendation, consent model, retention + privacy, dashboard, moat-metric instrumentation. |
-| **18-I18N-AND-LOCALIZATION** (new) | 100 | 100 | 100 | Created. EN-only launch decision + rationale, copy-idiom discipline, hreflang strategy, FIL/ID roadmap, validation plan. |
-| **19-ASSET-PIPELINE-AND-IMAGERY** (new) | 100 | 100 | 100 | Created. Wordmark SVG, favicon set, OG images per route, founder photo gate, the "what we will NOT ship" rail. |
-| **20-CONTENT-WORKFLOW-AND-GOVERNANCE** (new) | 100 | 100 | 100 | Created. Source-of-truth decision, roles, lifecycle, voice/claims review checklist, bilingual workflow, content roadmap. |
-| **21-BLAST-RADIUS-AND-MIGRATION-PLAN** (new) | 100 | 100 | 100 | Created. File-level change inventory, 7-phase migration order, risk register, rollback playbook. |
-| **22-PEG-STUDY-DEEP-DIVE** (new) | 100 | 100 | 100 | Created. Full DNA extraction from Intercom + Amigo with URLs + fetch dates; backs doc 01 §4. |
-| **README** (new) | 100 | 100 | 100 | Created. Pack entry point, read order, dimension ownership contract, Definition of 100 %. |
-| **LOOP_LEDGER** (new) | 100 | 100 | 100 | Created. Open-decision queue (the ⚠️ GATED ON items consolidated), iteration state, owner-decision queue, improvement-pass work queue. |
-| **MASTER-AUDIT-AND-SCORECARD** (this doc) | 100 | 100 | 100 | This doc + the §7.1 re-score log + the gap-closure evidence. |
+| 00-OVERVIEW | 96 | 95 | 92 | Encodes D-1..D-5 verbatim + dependency graph + gate table. Capped by: `23-AUTH` is a sibling deliverable; L-FUN-1/2 + L-DES-* genuinely open. |
+| 01-DESIGN-DIRECTION | 96 | 95 | 92 | Glass Brand primary + Direction D demoted; peg study corrected (Intercom #050505/tabbed; Amigo 2-layer pyramid). Capped by: archived-peg-URLs deferred to doc 22; L-DES-1/6 owner look. |
+| 02-SECTION-TAXONOMY | 95 | 95 | 92 | Glass re-skin + scroll-depth + RSC + a11y/SEO columns + mobile funnel + gated auth entry. Capped by: L-FUN-1/2; mobile breakpoints pixel-unverified (deferred to 12/14). |
+| 03-VISUAL-LANGUAGE-AND-TOKENS | 96 | 96 | 94 | Best token binding — every `--landing-*` aliases a grep-verified `globals.css` token; full glass-application section; D-3/D-4 tables. Capped by: L-DES-6 (Doto `adjustFontFallback` CLS unmeasured); warm-hairline contrast unverified (→ doc 12). |
+| 04-COMMERCIAL-GRAPH-PLATE | 95 | 95 | 90 | D-3/D-4 honored (clay→#C63804; shared type narrowed via `Exclude`); §4.2/§4.3/§4.8 reconciled. Capped by: SVG geometry is a brief (viewBox/coordinates deferred to owner look) — the moat deserves a sign-off; SVG+backdrop-filter interaction renderer-flaky. |
+| 05-COPY-SKELETON | 94 | 93 | 90 | Voice-locked, §-anchored, auth microcopy cross-linked to 23. Capped by: auth copy re-verification at build time; meta copy deferred to 13. |
+| 06-PROOF-AND-CLAIMS | 96 | 95 | 92 | ClaimStatus 4-variant; matrix clean; removals rail concrete; §2.5 file layout. Capped by: matrix shape vs 09 parser contract unverified at build time; automation scripts (L-CLM-1) open. |
+| 07-ENGINEERING-CONSTRAINTS | 94 | 94 | 88 | RSC + glass perf model + CWV + funnel gates. **Bundle-gate claim corrected** (the `withBundleAnalyzer` wrapper is wired in `next.config.ts:223`, but the `analyze` script + CI step + budget file are the open L-ENG-3 deliverable — the budget is a target, not yet a gate). Capped by: L-ENG-1/3, L-FUN-1/2. |
+| 08-ROLLOUT-AND-ANALYTICS | 94 | 94 | 90 | Preview→A/B→cutover + `/legacy` rollback. Capped by: no power-calc/MDE for the signup primary; SR/SEA traffic split + ramp rule unspecified; event schema deferred to 17. |
+| 09-CLAIMS-LEDGER-SIGN-OFF | 95 | 95 | 90 | Gate design + the L-CLM-1/2/3 honestly-conditional pattern. Capped by: the two scripts (L-CLM-1) don't exist yet → the gate is a manual checklist until they ship; `.mjs` parser validates against the ClaimStatus *string values* (not a `.tsx` runtime import — the trap is mitigated). |
+| 10-CANONICAL-DOC-MAP | 95 | 95 | 95 | All 27 docs `exists`; `23-AUTH` added; type-pairing corrected; entry order + verify grep updated. Clean. |
+| 11-COMPONENT-INVENTORY | 95 | 95 | 92 | Real props + D-4 narrowing + the 7-component auth set (cross-linked to 23). Capped by: L-FUN-1/2 + L-FND-1 honestly block; HeroSection RSC designation is a build-time call. |
+| 12-ACCESSIBILITY-AUDIT | 95 | 95 | 92 | Contrast + keyboard + semantics + auth-surface a11y; #7F7F7F rail kept; serif-legibility gate retired for D-1. Capped by: text-on-glass AA worst-case unmeasured on the target device (L-A11Y-1); plate SVG tabindex seq asserted. |
+| 13-SEO-AND-DISCOVERY | 95 | 94 | 93 | Per-route meta + auth `noindex,nofollow` + canonical-self + sitemap exclusion; SearchAction schema removed. Capped by: L-SEO-1 keyword volumes; sitemap tool chosen (app/sitemap.ts); `/trust` indexability pre-launch ambiguous. |
+| 14-PERFORMANCE-AND-CORE-WEB-VITALS | 95 | 95 | 91 | Best-in-class glass-perf model verified against `LiquidGlassReady.tsx` + `globals.css:287-313`. Capped by: L-ENG-1 targets unratified; §5.1.1 `unicodeRanges:["U+20B1"]` is malformed (→ use `subsets:['latin-ext']`); `adjustFontFallback` numbers are guesses (L-ENG-5); LHCI budget path to reconcile with 16 (`.lighthouseci/budget.json`). |
+| 15-FORMS-AND-ABUSE-GUARDRAILS | 96 | 95 | 92 | **Gold standard** — names the real table (`security_rate_limit_events`), RPC (`reserve_security_rate_limit_slot`), lib (`src/lib/ai/rate-limit.ts`); splits scope cleanly with 23. Capped by: L-FUN-4 abuse P1 + Turnstile-not-built honestly open. |
+| 16-TEST-AND-VERIFICATION-PLAN | 95 | 94 | 91 | 7-layer model + auth e2e + glass visual regression + honestly-conditional CI. Capped by: LHCI budget path differs from 14 (reconcile); the two claims scripts (L-CLM-1) gate `test:claims`; the "callback, gate OFF, new email → /workshop" case not pinned (cross-link 23 §11). |
+| 17-ANALYTICS-AND-OBSERVABILITY | 94 | 93 | 90 | Canonical event set + anon→auth merge + consent reuse. Capped by: L-ENG-2 tool unratified; anon→auth merge mechanism unspecified; analytics/security rate-limit isolation rule. |
+| 18-I18N-AND-LOCALIZATION | 92 | 91 | 88 | EN-only + copy-idiom discipline + hreflang + FIL/ID roadmap. Capped by: L-I18N-1 locale decision; next.config i18n contract for `/fil/` not pinned; ₱ rendering not cross-linked to 14. |
+| 19-ASSET-PIPELINE-AND-IMAGERY | 94 | 93 | 90 | D-1 pivot (wordmark = Doto, no flat #F24405); brand-composition assets for glass surfaces; no-stock-photo rail kept. Capped by: dark-mode story; OG generator method (next/og vs static) unpinned; founder-photo fallback (L-FND-1). |
+| 20-CONTENT-WORKFLOW-AND-GOVERNANCE | 93 | 92 | 88 | Governance made realistic (owner-only at launch, honestly stated). Capped by: Notion automation unspecified; emergency copy hotfix path; `/blog`/`/changelog`/`/for` phase triggers vague. |
+| 21-BLAST-RADIUS-AND-MIGRATION-PLAN | 94 | 94 | 90 | 7-phase migration + URL-swap rollback + 301-redirect map + `/legacy` noindex. Capped by: risk correctly characterized LOW (per proportional policy) — the 26-doc breadth is owner-directed comprehensiveness, not proportional necessity; day-31 `/legacy` action unpinned. |
+| 22-PEG-STUDY-DEEP-DIVE | 95 | 95 | 92 | Intercom + Amigo + **Workshop Dashboard as a third peg**; full transfer verdicts; vapor-risk warning. Capped by: L-PEG-1..4 referenced 13× but now registered in LOOP_LEDGER; Amigo homepage confidence; motion + mobile analysis added. |
+| 23-AUTH-EXPERIENCE (new) | 96 | 95 | 93 | Best-in-class — recon-verified (no password, magic link = signup, closed-beta gate as content variant), 2-col full-page contract, threads through 11/12/13/14/15/16/17. Capped by: L-FUN-1/2 + L-A11Y-1; `/signup` + `src/components/auth/` are the deliverable; `shouldCreateUser:true`→`/workshop`-when-gate-off needs build-time confirm. |
+| README | 96 | 95 | 93 | Rewritten 2026-06-22 to D-1..D-5 + the honest two-rubric Definition of 100 % + Auth dimension. |
+| LOOP_LEDGER | 95 | 95 | 92 | Rewritten 2026-06-22 — recall recorded, baseline reconciled, all referenced gates registered, sign-off log template added. |
+| MASTER-AUDIT-AND-SCORECARD (this doc) | 95 | 95 | 93 | §7 honestly re-scored (this section); §0.5 ratified decisions added; §1–§5 marked as the baseline snapshot. |
 
-### 7.2 Completion-gate verification (per §6)
+**Pack-weighted honest score: Strategy ~95 · Quality ~94 · Impl-Ready ~91.** (The delta vs the
+recalled 100/100/100 is the D-5 correction: the substance docs land in the 91–96 band, and the
+~9-point Impl-Ready gap is the carried owner gates, not a quality deficit.)
+
+### 7.2 Completion-gate verification (per §6 — honesty-aware)
 
 | Gate | Status | Evidence |
 |---|---|---|
-| 1. Every doc scores 100 / 100 / 100 | ✅ PASS | §7.1 above. |
-| 2. Cross-link integrity = 100 % | ✅ PASS | The grep in `10-CANONICAL-DOC-MAP.md` §4 returns zero stale live aliases (verified 2026-06-21). The 8 original docs are patched; the 2 docs that document aliases by design (`10-CANONICAL-DOC-MAP.md`, this doc) are excluded. |
-| 3. Every dimension has an owning doc | ✅ PASS | `10-CANONICAL-DOC-MAP.md` §5 lists 24 dimensions, all owned by an existing doc. |
-| 4. Every ⚠️ GATED ON item is resolved or carried in LOOP_LEDGER | ✅ PASS | `LOOP_LEDGER.md` §2 consolidates 30+ gated items across 9 categories; none silently dropped. |
-| 5. The 17 missing docs exist and score 100 / 100 / 100 | ✅ PASS | All 17 created (M-1 → M-17); each scores 100 / 100 / 100 per §7.1. |
-| 6. The 10 cross-cutting strategic gaps are closed | ✅ PASS | `MASTER-AUDIT-AND-SCORECARD.md` §5 X-1 → X-10 each have an owning doc + a documented decision or owner-carried status in `LOOP_LEDGER.md`. |
+| 1. Every doc is at its **honest verifiable** level (D-5) | ✅ PASS | §7.1 — every doc scored honestly; no doc claims 100/100/100; every residual is named + carried. |
+| 2. Cross-link integrity = 100 % | ✅ PASS | The grep in `10-CANONICAL-DOC-MAP.md` §4 returns zero stale aliases; zero standalone `\brate_limit\b`; the recalled "100/100/100" string survives only in this §7 history. |
+| 3. Every dimension has an owning doc | ✅ PASS | `10-CANONICAL-DOC-MAP.md` §5 lists 26 dimensions (incl. **Auth experience → 23**), all owned by an existing doc. |
+| 4. Every ⚠️ GATED ON item is carried in LOOP_LEDGER | ✅ PASS | `LOOP_LEDGER.md` §2 consolidates every gated item — incl. the newly-registered L-DES-6/7, L-REM-6, L-A11Y-1, L-CRM-1, L-PEG-1..4, L-CLM-1/2/3; none silently dropped, none silently closed. |
+| 5. The originally-missing docs exist + `23-AUTH` exists | ✅ PASS | All 27 docs on disk (8 + 16 + 3 meta); `23-AUTH-EXPERIENCE.md` created 2026-06-22. |
+| 6. The 10 cross-cutting strategic gaps are closed | ✅ PASS | §5 X-1..X-10 each have an owning doc + a decision/owner-carried status. |
 
-**Pack-weighted score (post-improvement): Strategy 100 · Quality 100 · Impl-Ready 100.**
+### 7.3 Two-rubric verdict (the honest "is it 100 %?" answer)
 
-The pack is implementation-ready: a competent implementer can pick up any doc and build
-exactly what it says without a clarifying conversation, and the owner can sign off knowing
-every public word obeys MASTER §15.
+- **Rubric A — Planning-achievable: 100 %.** Every gap is closed OR explicitly owner-carried; every
+  dimension owned; cross-links resolve; the five decisions ratified. **The pack is planning-complete
+  and implementation-ready.**
+- **Rubric B — Execution-inclusive: ~91 %.** Implementation-Readiness is capped below 100 by the
+  carried owner gates (L-FUN-1/2, L-FND-1, L-ENG-1/2, L-A11Y-1, L-PEG-1, L-PRC-1, L-LEG-2/3, L-I18N-1).
+  Per D-5 this is a **PASS** (carried openly), not a fail — a planning pack cannot close owner
+  decisions, and pretending it could was the recalled defect.
+
+**Bottom line: a competent implementer can pick up any doc and build exactly what it says, with
+every open owner decision surfaced (not buried) in `LOOP_LEDGER.md`, and the owner can sign off
+knowing every public word obeys MASTER §15.**
 
 <!-- Future re-score rows append here as further iterations close new gaps. -->

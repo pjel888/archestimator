@@ -341,7 +341,7 @@ Per D-5, no gate is silently marked closed.
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.** Voice
 throughout = Controlled Confidence (`00-OVERVIEW.md` §10). Pricing framing stays hypothesis-labeled
-per §9.3 (do not publish a locked price). Rate-limiting is Postgres (`rate_limit` table), NOT Redis
+per §9.3 (do not publish a locked price). Rate-limiting is Postgres (`security_rate_limit_events` table), NOT Redis
 (project position); Turnstile is NOT yet built (planned) — neither is in scope for the claims gate,
 but both are noted for coherence.
 

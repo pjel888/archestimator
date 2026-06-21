@@ -371,7 +371,7 @@ swap + the deferred-glass arming ramp. All respect `prefers-reduced-motion: redu
 | Submit | `<form action={server-action}>` — no client JS round-trip; native browser submit. | Same (`23` §4.1 — the perf-critical + abuse-resilient choice). |
 | Validation | Server-side validation primary; client-side progressive-enhancement only. | Same. |
 
-Cross-link: `15-FORMS-AND-ABUSE-GUARDRAILS.md` owns the rate-limiting (Postgres `rate_limit` table,
+Cross-link: `15-FORMS-AND-ABUSE-GUARDRAILS.md` owns the rate-limiting (Postgres `security_rate_limit_events` table,
 NOT Redis), honeypot spec, and Turnstile escalation criteria (NOT yet built).
 
 ---
@@ -535,7 +535,7 @@ These are verification items inside the existing §8 test plan, not new gates.
   verification is honestly L-A11Y-1.
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.** Voice
-throughout = Controlled Confidence. Rate-limiting is Postgres (`rate_limit` table), NOT Redis
+throughout = Controlled Confidence. Rate-limiting is Postgres (`security_rate_limit_events` table), NOT Redis
 (project position). Turnstile is NOT yet built (planned). Every token cited was grepped against the
 real `src/app/globals.css` on 2026-06-22.
 
