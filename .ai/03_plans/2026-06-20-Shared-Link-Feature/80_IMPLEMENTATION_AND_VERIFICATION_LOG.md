@@ -1,6 +1,8 @@
 # Implementation And Verification Log
 
-Date: 2026-06-20
+Date: 2026-06-20 · **As-of remediation: 2026-06-21**
+
+Status: **Landed (code + focused tests) — pre-deploy DB reconciliation + Codex gate OUTSTANDING.** Finding IDs/severities/statuses are bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) (canonical; 75 wins on any disagreement). Deploy ordering, drift reconciliation, and rollback live in [`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). Open decisions in [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_REGISTER.md). Codex review-gate status belongs in [`LOOP_LEDGER.md`](LOOP_LEDGER.md) (see §Codex Review-Gate Status below).
 
 ## Files Changed
 
@@ -26,6 +28,7 @@ Source:
 - `src/components/share/SharePageTabs.tsx`
 - `src/components/workshop/ProjectPublicationHeader.tsx`
 - `src/components/workshop/publication/RecipientEmailComposer.tsx`
+- `src/lib/publication/actions.ts` (owner server actions — implements items 15/18/20: `activity_target_labels_json` persist on publish/republish/rotate at `actions.ts:567,637,698`, compact-label read in `loadSharedLinkActivity` at `actions.ts:1392,1458`, bounded-concurrency recipient sends at `actions.ts:786-791,1038`, and `imageUrl:source_snapshot->>imageUrl` row projection at `actions.ts:399`)
 - `src/lib/publication/activity-helpers.ts`
 - `src/lib/publication/public-repository.ts`
 - `src/lib/share/sanitize-recipient-text.ts`
@@ -326,15 +329,22 @@ Change:
 
 ## Verification Evidence
 
-Final focused shared-link suite:
+Final focused shared-link suite (CANONICAL run — covers all 16 test files in the Files Changed > Tests list; `project-publication-security-hardening.test.ts` was missing from the prior 15-file command and is now included so the enumerated file set and the Tests list agree):
 
 ```bash
-bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-route.test.ts tests/vitest/share-no-store-invariants.test.ts tests/vitest/share-estimate-tree-panel-a11y.test.tsx tests/vitest/share-estimate-tree-view-performance.test.tsx tests/vitest/share-recipient-session-initializer.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/recipient-email-composer.test.tsx tests/vitest/security-findings-publication-contracts.test.ts --maxWorkers=1
+bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-route.test.ts tests/vitest/share-no-store-invariants.test.ts tests/vitest/share-estimate-tree-panel-a11y.test.tsx tests/vitest/share-estimate-tree-view-performance.test.tsx tests/vitest/share-recipient-session-initializer.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/recipient-email-composer.test.tsx tests/vitest/security-findings-publication-contracts.test.ts tests/vitest/project-publication-security-hardening.test.ts --maxWorkers=1
 ```
 
-Result:
-- 15 test files passed.
-- 295 tests passed.
+Result — **CANONICAL run re-executed 2026-06-21** (verbatim vitest summary):
+
+```
+ Test Files  16 passed (16)
+      Tests  302 passed (302)
+   Duration  22.82s
+```
+
+- **VERIFIED:** the 16-file canonical command exits `0`, `Test Files 16 passed (16)` / `Tests 302 passed (302)`, zero failed/skipped. Binary gate: **PASS**.
+- The historical `15 files / 295 tests` figure was the earlier 15-file command (which omitted `project-publication-security-hardening.test.ts`); the canonical 16-file superset now reads **302 tests**. Both are reconciled — the file enumeration, the command, and the count agree.
 
 Additional checks:
 - Focused ESLint passed for `SharePageRecipientSessionInitializer`, `SharePageTabs`, `SharePageComments`, `SharePageSessionBanner`, public comment/session/activity routes, public repository, publication actions, and the touched shared-link tests.
@@ -352,11 +362,159 @@ Earlier incremental runs:
 - `bunx vitest run tests/vitest/project-publication-page.test.tsx --maxWorkers=1` passed: 32 tests.
 - `bunx vitest run tests/vitest/project-publication-rotate-resend.test.ts --maxWorkers=1` passed: 20 tests.
 - `bunx vitest run tests/vitest/recipient-email-composer.test.tsx --maxWorkers=1` passed: 14 tests.
-- `bunx vitest run tests/vitest/share-estimate-tree-view-performance.test.ts --maxWorkers=1` passed: 1 test.
+- `bunx vitest run tests/vitest/share-estimate-tree-view-performance.test.tsx --maxWorkers=1` passed: 1 test. (Corrected from a `.test.ts` typo; the file on disk is `.test.tsx`.)
 - `bunx vitest run tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/share-recipient-session-initializer.test.tsx tests/vitest/project-publication-page.test.tsx --maxWorkers=1` passed: 4 files / 78 tests after the review-discovered fixes.
 - `bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-rotate-resend.test.ts --maxWorkers=1` passed: 2 files / 41 tests after the row-image JSON-path query narrowing.
 - `bunx vitest run tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-security-hardening.test.ts --maxWorkers=1` passed: 4 files / 83 tests after canonical comment POST reconciliation and session-banner touch fixes.
 - `bunx vitest run tests/vitest/project-publication-page.test.tsx --maxWorkers=1` passed: 1 file / 35 tests after recipient session analytics deferral.
+
+## Per-Item Severity And Canonical 75 Cross-Link
+
+Each implementation item above maps to one or more canonical finding ids in
+[`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md). **75 is canonical** for id/severity/status;
+the Sev/Status columns here are copied from 75 and corrected to match if they ever drift.
+
+| § | Implementation item | Canonical 75 id(s) | Sev | Status (per 75) |
+|---|---|---|:--:|---|
+| 1 | Stale snapshot write rejection (route 409 + RPC equality) | SEC-SHARE-01 | P1 | Fixed (gated by **D1**) |
+| 2 | Public recipient text sanitization | QA-G01 / QA-G02 | P2 | QA-G01 Stale-invalid · QA-G02 Stale-invalid→Fixed |
+| 3 | Snapshot API telemetry off response path | PERF-02 | P1 | Fixed |
+| 4 | Share loading boundary | PERF-11 | P3 | Fixed |
+| 5 | Branded unavailable link state | RUX-03 | P1 | Fixed |
+| 6 | Receiver tree keyboard access | RUX-01 | P1 | Fixed |
+| 7 | Recipient session failure state | RUX-02 | P1 | Fixed |
+| 8 | Full-package print output | RUX-04 / PERF-14 | P1/P2 | Fixed |
+| 9 | Recipient session POST hardening | SEC-SHARE-02 | **P2** | Fixed (70 listed P1 — canonical P2) |
+| 10 | Public open-event write limiting | SEC-SHARE-03 | **P2** | Fixed (70 listed P1 — canonical P2) |
+| 11 | Manager regression coverage | MANAGER-F-01 / MANAGER-F-02 | P1 | **MANAGER-F-01 Partial** · MANAGER-F-02 Fixed |
+| 12 | HMAC-peppered structured log hashes | SEC-SHARE-04 | P2 | Fixed |
+| 13 | Receiver form a11y + comment ergonomics | RUX-08 / RUX-09 | P2 | Fixed |
+| 14 | Rate-limit cleanup throttle | PERF-03 | P1 | Fixed |
+| 15 | Compact activity target labels | PERF-04 | P2 | Fixed (code) / measure-open |
+| 16 | Large tree row guard | PERF-07 | P2 | Fixed |
+| 17 | Mobile review context + contrast | RUX-05 / RUX-07 | P1/P2 | Fixed |
+| 18 | Recipient failure tone + bounded sends | MANAGER-F-04 (UX) / PERF-08 | P2 | **MANAGER-F-04 Open (UX retry surface)** · PERF-08 Fixed |
+| 19 | Receiver activity feed | RUX-10 / SEC-SHARE-09 / RUX-15 | P2/P1/P3 | Fixed (RUX-10 distinct from **SHF-01 Open**) |
+| 20 | Review-discovered perf + privacy fixes | SEC-SHARE-09 / PERF-07B / PERF-13 / PERF-14 | P1/P2 | Fixed |
+| 21 | Recipient session initializer lint fix | — (review hygiene) | P3 | Fixed |
+| 22 | Canonical comment POST reconciliation | PERF-10 | P3 | Fixed |
+| 23 | Receiver session banner touch targets | RUX-06 | P2 | Fixed |
+| 24 | Recipient session analytics deferral | PERF-01A (partial) | P2 | PERF-01A Open (analytics deferral only; server-redirect gated on **D2**) |
+
+Notes binding to 75 (do not contradict):
+- §9 and §10 are **canonical P2** (origin-audit severity); doc 70 listed them P1. This is register-accuracy, both are Fixed — no open risk. See [75 §1](75_FINDING_ID_REGISTRY.md) and [_COORDINATION §4.9](_COORDINATION.md).
+- §11 closes only assertion-ordering + rotate double-click; the full owner/member/viewer/recipient × every-mutation **RBAC matrix (MANAGER-F-01) remains Partial/Open**. Do not mark this item "done" against MANAGER-F-01.
+- §18 lands bounded sends (PERF-08 Fixed) but the **per-recipient partial-send retry UX (MANAGER-F-04) is Open**, spec'd in [`35`](35_MANAGER_MODAL_UX_REDESIGN_BLUEPRINT.md).
+- §19 mounts the public-safe feed (RUX-10 Fixed) and closes the comment-body leak (**SEC-SHARE-09**, the review-discovered id — NOT the unsubscribe SEC-SHARE-05). **Owner-feed realtime (SHF-01) is Open** → **D7**.
+
+## Iteration Definition-of-Done
+
+This implementation iteration is **DONE** only when every box is green; until then it is **Landed-pending**:
+
+1. **Tests green.** The 16-file canonical command (see Verification Evidence) exits `0` with `Test Files 16 passed (16)`, verbatim summary pasted. Gate: PASS/FAIL on exit code.
+   - Verify: `bunx vitest run <16 files> --maxWorkers=1`
+2. **Type-check green.** Gate: `bun run type-check` exits `0`.
+3. **Diff hygiene.** Gate: `git diff --check` exits `0`.
+4. **DB reconciled pre-deploy.** `activity_target_labels_json` migration applied (or ledger-repaired) BEFORE the app revision ships; RPC equality contract verified live. Gate: see [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) Go/No-Go. Owner-lane: DB/release.
+5. **Codex review-gate satisfied.** HIGH-BLAST-RADIUS (DB/RPC/security) → `/codex:review` PASS on the shared-link diff, OR an explicit recorded waiver. Gate: status logged in [`LOOP_LEDGER.md`](LOOP_LEDGER.md). Owner-lane: Claude lead.
+6. **No canonical-P1 source-fix finding regressed.** Gate: 75 §8 roll-up still shows "No P1 source-fix finding is open" after this diff.
+
+Open P1-class **test-rigor** gaps (QA-G03..G08) and **SHF-01** are tracked separately in
+[`91_FORWARD_EXECUTION_PLAN.md`](91_FORWARD_EXECUTION_PLAN.md) and are NOT part of this iteration's DoD —
+"ready" is therefore conditional (see [`99_QUALITY_SCORECARD_AND_SIGNOFF.md`](99_QUALITY_SCORECARD_AND_SIGNOFF.md)).
+
+## Rollback
+
+Rollback is **per-layer** and must respect deploy ordering (app reads/writes the new column and
+expects route-409 + RPC-equality behavior). Authoritative deploy/Go-No-Go in
+[`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md); this section records the
+exact prior bodies to restore and the blast radius of each.
+
+### A. Snapshot-equality lock (SEC-SHARE-01) — RPC-revertible
+
+- **Forward (current):** `supabase/migrations/20260620142000_restore_shared_link_snapshot_equality_lock.sql`
+  redefines `public.insert_client_comment` and `public.submit_client_response` with
+  `if p_expected_snapshot_version is null or v_snapshot_version is distinct from p_expected_snapshot_version` (rejects stale AND null) — `:38` / `:101`.
+- **Prior bodies to restore on rollback:** the immediately preceding definitions of both functions in
+  `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql`
+  (`insert_client_comment` at `:114`, `submit_client_response` at `:178`), which used the looser
+  `<= ` / non-equality guard. Restore by authoring a new forward migration that re-creates those prior
+  bodies (do NOT delete the 142000 migration row; reconcile the ledger per `90`).
+- **App-side rollback:** also revert the route 409s — `comment/route.ts:228-234` and
+  `decision/route.ts:186-192` (`viewedSnapshotVersion !== access.snapshotVersion`). Belt-and-suspenders:
+  reverting only one layer leaves the other enforcing; revert both to fully roll back D1 behavior.
+- **Blast radius (callers):** `insert_client_comment` ← public comment route (`api/share/[token]/comment/route.ts`); `submit_client_response` ← public decision route (`api/share/[token]/decision/route.ts`). No owner/manager caller. Rolling back re-opens the stale-snapshot write window (SEC-SHARE-01) — owner decision **D1**.
+
+### B. Rotate credentials RPC (`rotate_project_publication_credentials`) — RPC-revertible
+
+- **Forward (current):** redefined in
+  `supabase/migrations/20260620064601_project_publication_activity_target_labels.sql:96` to accept the
+  new `p_activity_target_labels_json jsonb` parameter and persist it (`:136`).
+- **Prior body to restore on rollback:** the definition in
+  `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:3` (signature
+  without `p_activity_target_labels_json`). NOTE the signature change — the new function adds a
+  parameter, so a clean revert must `drop function` the new overload and re-create the prior signature.
+- **App-side coupling:** `src/lib/publication/actions.ts:698` passes
+  `p_activity_target_labels_json` to the rotate RPC; reverting the RPC signature REQUIRES reverting this
+  call (and the publish/republish writes at `actions.ts:567,637`) first, or rotate fails. **Revert app before changing the RPC signature.**
+- **Blast radius (callers):** rotate RPC ← `rotateSharedLinkCredentials` in `src/lib/publication/actions.ts` (manager modal "Access" tab rotate action, surfaced via `ProjectPublicationHeader.tsx`). No public-route caller.
+
+### C. `activity_target_labels_json` column — FORWARD-ONLY (data, not RPC)
+
+- **Forward-only:** the column add + backfill in
+  `supabase/migrations/20260620064601_project_publication_activity_target_labels.sql:2` (NOT NULL with a
+  default) is **not** safely droppable while the deployed app selects/writes it
+  (`actions.ts:567,637,698,1392,1458`; public activity route).
+- **Rollback rule:** **revert the app revision FIRST, then** (only if truly necessary) drop the column in
+  a later migration. Dropping the column under a live app that selects it will 500 the owner activity
+  read and publish/republish/rotate writes. Treat as forward-only for beta; do not include a column-drop
+  in any hot rollback.
+- **Blast radius (readers/writers):** owner `loadSharedLinkActivity` (`actions.ts:1392,1458`), public
+  activity route (`api/share/[token]/activity/route.ts`), and publish/republish/rotate writers
+  (`actions.ts:567,637,698`).
+
+Rollback gate (binary): a rollback is **complete** iff (a) the app revision deployed matches the schema
+state (no live caller references a reverted RPC signature or dropped column), and (b)
+`bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-rotate-resend.test.ts tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx --maxWorkers=1`
+passes against the rolled-back code. Else FAIL.
+
+## Pre-Deploy Checklist (pointer to 90)
+
+The authoritative, runnable pre-deploy sequence — migration `repair`/`apply` commands, the
+local↔remote `schema_migrations` drift reconciliation, the duplicate-named-migration flags, and the
+**RPC equality-contract test** — lives in
+[`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md). Minimum gates before
+shipping this app revision:
+
+1. **Migration ledger reconciled** (drift is REAL per [_COORDINATION §4.5](_COORDINATION.md)). Use
+   `supabase migration repair --status applied <version>` for already-applied-but-unlogged rows —
+   **do NOT** re-`apply` them. Confirm with `supabase migration list`. Gate: local and remote ledgers agree; see `90`.
+2. **`activity_target_labels_json` present remotely BEFORE app deploy** (new code selects/writes it).
+   Gate: column exists on `project_publications` (verify via `list_tables` / `supabase migration list`). FAIL-CLOSED: do not deploy app first.
+3. **RPC equality contract verified live** — `insert_client_comment` / `submit_client_response` reject a
+   stale `p_expected_snapshot_version` (the SEC-SHARE-01 lock). Gate: the equality contract test in `90`
+   passes against the live/branch DB. UNVERIFIED here — exact command in `90`.
+4. **Duplicate-named migration pairs flagged** (`allow_project_deletion_with_active_publications`,
+   `project_groups`) per [_COORDINATION §4.5](_COORDINATION.md) — confirm the intended one is applied; see `90`.
+
+Owner-lane: DB/release. Binary go/no-go is owned by [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md) and
+the launch verdict in [`99`](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
+
+## Codex Review-Gate Status
+
+This shared-link diff is **HIGH-BLAST-RADIUS** (public-facing routes, RPC redefinitions, security/privacy
+fixes), so the Codex review gate applies per `CLAUDE.md` / `.ai/12_agents/payloads/claude.md`.
+
+- **Status: NOT YET SATISFIED (UNVERIFIED).** No `/codex:review` PASS or explicit waiver is recorded for
+  this diff in this pass.
+- **Required action (one of):**
+  - Run `/codex:review` on the shared-link diff and adopt fixes on the merits; OR
+  - Record an explicit owner waiver (rationale + who) if the gate is intentionally skipped for beta.
+- **Where it is recorded:** the gate outcome (PASS / fixes-adopted / waiver) belongs in
+  [`LOOP_LEDGER.md`](LOOP_LEDGER.md), not here — this section only flags the outstanding gate. This log
+  is updated with a back-reference once the ledger entry lands.
+- **Binary gate:** PASS iff a Codex-review PASS (or recorded waiver) exists in `LOOP_LEDGER.md` for this
+  diff; else FAIL (blocks the Iteration Definition-of-Done above).
 
 ## Validation Not Run
 

@@ -1,8 +1,16 @@
 # Receiver UX/UI/Accessibility Audit - Shared Link/Public Publication
 
-Date: 2026-06-20
+Date: 2026-06-20 · Reconciled: 2026-06-21
 Auditor: Designer lane
 Mode: static/source/story/test/spec inspection only. No browser, Playwright, screenshots, staging, provider, or source edits performed.
+
+> **As-of status (2026-06-21):** This doc was reconciled post-implementation and carries
+> "Fixed" stamps from the implementation pass. **The canonical status, severity, and IDs for every
+> RUX finding live in [75](75_FINDING_ID_REGISTRY.md) §2 — if this doc disagrees, 75 wins.** As of
+> 2026-06-21 the open RUX backlog per 75 is **RUX-11/12/13/14**; RUX-01..10 and RUX-15 are Fixed.
+> Cross-refs: receiver redesign blueprint [25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md), UX-acceptance +
+> visual-QA gate [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md), open decisions
+> [71](71_OPEN_DECISIONS_REGISTER.md), coordination [_COORDINATION.md](_COORDINATION.md).
 
 ## 1. Audit Scope And Exact Files Inspected
 
@@ -94,8 +102,9 @@ Worktree note: `git status --short` showed many unrelated dirty files in dashboa
 
 7. Activity
    - `SharedLinkActivityFeed` supports owner/public fetch branches, loading/error/empty/feed states, focus/visibility refresh, keyboard-focusable feed articles, details disclosure, pagination, and honest refresh copy: `SharedLinkActivityFeed.tsx:25-95`, `SharedLinkActivityFeed.tsx:97-176`.
-   - Current public `/share/[token]` page does not import or mount `SharedLinkActivityFeed`; it is mounted in the workshop publication manager activity tab for owners: `page.tsx:5-14`, `page.tsx:75-95`, `ProjectPublicationHeader.tsx:683-699`.
-   - This conflicts with older walkthrough copy that lists receiver Link/Sheets/Access/Recipients/Activity tabs and receiver activity: `.ai/06_specs/walkthrough-shared-link-overhaul.md:82-86`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:117-120`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:186-187`.
+   - **CORRECTED 2026-06-21 (RUX-10 Fixed — see [75](75_FINDING_ID_REGISTRY.md) §2):** the original narrative here claimed the public `/share/[token]` page "does not import or mount `SharedLinkActivityFeed`". That is now stale. The receiver page **does** import it (`page.tsx:11`) and mounts it with `isOwner={false}` through the public-safe filtered activity route (`page.tsx:97`: `<SharedLinkActivityFeed publicationToken={token} isOwner={false} />`). It is also still mounted for owners in the workshop publication manager activity tab (`ProjectPublicationHeader.tsx:683-699`).
+   - **Scope guard:** RUX-10 = receiver page now mounts the feed. It does **NOT** add realtime/live updates — the feed still refreshes only on focus/visibility (`SharedLinkActivityFeed.tsx:81-95`). The missing-realtime gap is the **distinct, still-Open** finding **SHF-01** (75 §6, [60](60_SPEC_TRACEABILITY_ARCHITECTURE_AUDIT.md)); do not conflate the two.
+   - This resolves the older walkthrough drift that lists receiver activity: `.ai/06_specs/walkthrough-shared-link-overhaul.md:82-86`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:117-120`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:186-187` (the receiver still uses a single-column layout, not the full Link/Sheets/Access/Recipients/Activity tabbed dashboard — see SHF-02, 75 §6).
 
 8. Print/mobile/error states
    - Print CSS hides receiver-only chrome, removes backgrounds/shadows, and targets `.share-print-estimate` blocks for page breaks: `print.css:1-48`.
@@ -107,21 +116,91 @@ Worktree note: `git status --short` showed many unrelated dirty files in dashboa
 
 | ID | Severity | Evidence | Impact | Recommendation | Verification Needed |
 |---|---:|---|---|---|---|
-| RUX-01 | P1 | Fixed in this implementation pass. Navigable leaf rows in the receiver tree panel are keyboard-focusable and support keyboard activation. | Keyboard users can now use the side tree to jump to leaf sections. | Preserve distinct expand/collapse and navigation behavior when future tree work lands. | `tests/vitest/share-estimate-tree-panel-a11y.test.tsx` covers leaf keyboard access. |
-| RUX-02 | P1 | Fixed in this implementation pass. Personalized recipient-session setup failures now show a non-secret alert instead of silently falling through to anonymous mode. | Clients with expired/bad personalized links get clear recovery copy. | Keep raw share/recipient tokens out of all failure copy. | `tests/vitest/share-recipient-session-initializer.test.tsx` covers failed POST alert copy and token non-disclosure. |
-| RUX-03 | P1 | Fixed in this implementation pass. `share/[token]/not-found.tsx` provides a branded unavailable-link state behind the existing fail-closed `notFound()` calls. | Revoked, expired, malformed, and unavailable links no longer rely on a generic route 404 view. | Preserve no sensitive project/client details in unavailable-link copy. | `tests/vitest/share-no-store-invariants.test.ts` covers the branded 404 file. |
-| RUX-04 | P1 | Fixed. `SharePageTabs` now renders the full all-estimates print package only on browser print intent. | Normal browsing avoids the hidden all-row print DOM cost while print output includes the full shared package. | Keep manual print/PDF proof for a later visual QA lane if desired. | `project-publication-page.test.tsx` proves `beforeprint` renders all estimates and `afterprint` removes the package. |
-| RUX-05 | P1 | Fixed in this implementation pass. Informative small receiver copy was moved from `text-tertiary` to `text-secondary` across summary/decision/comments/tabs/activity surfaces. | Low-vision/mobile readability improved for client-facing metadata and helper copy. | Keep future tertiary usage limited to nonessential/decorative copy. | Static grep and focused component tests passed; browser visual QA remains optional. |
-| RUX-06 | P2 | Fixed in this implementation pass. The remaining compact session-banner recovery/dismiss actions now use `min-h-11`/`min-w-11` hit areas and secondary contrast. | Recipient recovery and dismiss controls are less error-prone on phones without changing the dense proposal review layout. | Keep future receiver action buttons at 44px-class hit areas when practical. | `tests/vitest/project-publication-page.test.tsx` pins the session-banner touch/contrast contract; browser proof remains optional. |
-| RUX-07 | P2 | Fixed in this implementation pass. Mobile grid/tree rows now show `Qty ... · unit` as secondary inline metadata. | Mobile reviewers can verify basic quantity/unit math without switching to desktop. | Keep discipline hidden on compact mobile unless product asks for denser row details. | `project-publication-page.test.tsx` and `share-estimate-tree-panel-a11y.test.tsx` cover quantity/unit visibility. |
-| RUX-08 | P2 | Fixed in this implementation pass. Plain Enter now inserts a newline, while Ctrl/Command+Enter submits. | Multi-line review notes are less likely to be sent accidentally. | Keep client-facing compose controls button-first unless a shortcut is visibly explained. | `tests/vitest/project-publication-comments.test.tsx` covers newline and keyboard submit behavior. |
-| RUX-09 | P2 | Fixed in this implementation pass. Password feedback now has a stable alert id and the input receives `aria-invalid`/`aria-describedby` when feedback is present. | Screen-reader users get a programmatic relationship between the password field and invalid/locked feedback. | Keep future password-gate feedback tied to the input. | `tests/vitest/project-publication-page.test.tsx` covers invalid/locked ARIA state. |
-| RUX-10 | P2 | Fixed in this implementation pass. `/share/[token]` now mounts `SharedLinkActivityFeed` through the existing public-safe filtered activity route. | Receiver activity is no longer only an owner/workshop concept, and the implementation now matches the spec direction without leaking internal activity. | Keep public activity copy restrained and monitor whether clients need a separate Activity tab later. | `project-publication-page.test.tsx` proves the receiver page fetches `/api/share/:token/activity`; `project-publication-activity.test.tsx` covers public filtering. |
+| RUX-01 | P1 | Fixed in this implementation pass. Navigable leaf rows in the receiver tree panel are keyboard-focusable and support keyboard activation. **Fix:** `ShareEstimateTreePanel.tsx` (leaf rows focusable + keyboard-activatable). | Keyboard users can now use the side tree to jump to leaf sections. | Preserve distinct expand/collapse and navigation behavior when future tree work lands. | `tests/vitest/share-estimate-tree-panel-a11y.test.tsx` covers leaf keyboard access. |
+| RUX-02 | P1 | Fixed in this implementation pass. Personalized recipient-session setup failures now show a non-secret alert instead of silently falling through to anonymous mode. **Fix:** `SharePageRecipientSessionInitializer.tsx`. | Clients with expired/bad personalized links get clear recovery copy. | Keep raw share/recipient tokens out of all failure copy. | `tests/vitest/share-recipient-session-initializer.test.tsx` covers failed POST alert copy and token non-disclosure. |
+| RUX-03 | P1 | Fixed in this implementation pass. `share/[token]/not-found.tsx` provides a branded unavailable-link state behind the existing fail-closed `notFound()` calls. **Fix:** `src/app/share/[token]/not-found.tsx`. | Revoked, expired, malformed, and unavailable links no longer rely on a generic route 404 view. | Preserve no sensitive project/client details in unavailable-link copy. | `tests/vitest/share-no-store-invariants.test.ts` covers the branded 404 file. |
+| RUX-04 | P1 | Fixed. `SharePageTabs` now renders the full all-estimates print package only on browser print intent. **Fix:** deferred print package on `beforeprint` (`SharePageTabs.tsx`); see also PERF-14 (75 §5). | Normal browsing avoids the hidden all-row print DOM cost while print output includes the full shared package. | Keep manual print/PDF proof for a later visual QA lane if desired. | `project-publication-page.test.tsx` proves `beforeprint` renders all estimates and `afterprint` removes the package. |
+| RUX-05 | P1 | Fixed in this implementation pass. Informative small receiver copy was moved from `text-tertiary` to `text-secondary` across summary/decision/comments/tabs/activity surfaces. **Fix:** `text-tertiary` → `text-secondary` on load-bearing meta (memory `designmd-tertiary-fails-aa`). | Low-vision/mobile readability improved for client-facing metadata and helper copy. | Keep future tertiary usage limited to nonessential/decorative copy. | Static grep and focused component tests passed; browser visual QA remains optional. |
+| RUX-06 | P2 | Fixed in this implementation pass. The remaining compact session-banner recovery/dismiss actions now use `min-h-11`/`min-w-11` hit areas and secondary contrast. **Fix:** `SharePageSessionBanner.tsx`. | Recipient recovery and dismiss controls are less error-prone on phones without changing the dense proposal review layout. | Keep future receiver action buttons at 44px-class hit areas when practical. | `tests/vitest/project-publication-page.test.tsx` pins the session-banner touch/contrast contract; browser proof remains optional. |
+| RUX-07 | P2 | Fixed in this implementation pass. Mobile grid/tree rows now show `Qty ... · unit` as secondary inline metadata. **Fix:** Grid/tree mobile rows render `Qty … · unit` (`SharePageTabs.tsx`, `ShareEstimateTreeView.tsx`). | Mobile reviewers can verify basic quantity/unit math without switching to desktop. | Keep discipline hidden on compact mobile unless product asks for denser row details. | `project-publication-page.test.tsx` and `share-estimate-tree-panel-a11y.test.tsx` cover quantity/unit visibility. |
+| RUX-08 | P2 | Fixed in this implementation pass. Plain Enter now inserts a newline, while Ctrl/Command+Enter submits. **Fix:** `SharePageComments.tsx` (Enter = newline; Ctrl/⌘+Enter submits). | Multi-line review notes are less likely to be sent accidentally. | Keep client-facing compose controls button-first unless a shortcut is visibly explained. | `tests/vitest/project-publication-comments.test.tsx` covers newline and keyboard submit behavior. |
+| RUX-09 | P2 | Fixed in this implementation pass. Password feedback now has a stable alert id and the input receives `aria-invalid`/`aria-describedby` when feedback is present. **Fix:** `ProjectPublicationPasswordForm.tsx` (`aria-invalid`/`aria-describedby`). | Screen-reader users get a programmatic relationship between the password field and invalid/locked feedback. | Keep future password-gate feedback tied to the input. | `tests/vitest/project-publication-page.test.tsx` covers invalid/locked ARIA state. |
+| RUX-10 | P2 | Fixed in this implementation pass. `/share/[token]` now mounts `SharedLinkActivityFeed` through the existing public-safe filtered activity route. **Fix:** `src/app/share/[token]/page.tsx:11` (import) + `page.tsx:97` (`<SharedLinkActivityFeed publicationToken={token} isOwner={false} />`) via `/api/share/[token]/activity`. **Distinct from SHF-01 (realtime, still Open — 75 §6); RUX-10 does NOT add live updates.** | Receiver activity is no longer only an owner/workshop concept, and the implementation now matches the spec direction without leaking internal activity. | Keep public activity copy restrained and monitor whether clients need a separate Activity tab later. | `project-publication-page.test.tsx` proves the receiver page fetches `/api/share/:token/activity`; `project-publication-activity.test.tsx` covers public filtering. |
 | RUX-11 | P2 | Storybook share receiver coverage is fixture-only and explicitly avoids public share routes/session/comments/password: `share-review.stories.tsx:21-32`, `share-review-panel.stories.tsx:32-43`. | Designers cannot inspect the real receiver state matrix in Storybook: password gate, anonymous read-only, recipient session, decision modal, comments/offline, mobile table/tree, and print states are not represented. | Add integrated static stories for the actual share components with mocked hooks/fetches, not token routes. Include state matrix and mobile viewport docs. | Storybook story audit or static story tests, no browser automation required unless later requested. |
-| RUX-12 | P2 | `tests/vitest/project-publication-page.test.tsx:476-479` still says tab buttons use `text-[10px]`/`[9px]`/`[11px]`, while implementation uses `text-[13px]` at `SharePageTabs.tsx:393`. The design enforcer allowlist intentionally exempts `/share` px caps: `design-enforcer-share-allowlist.test.ts:8-18`, `design-enforcer-share-allowlist.test.ts:30-46`. | Test comments and historical contracts are stale. Future agents may "fix" receiver typography toward the old app cap and hurt client readability. | Update stale test comments/expectation language to reference the Client Portal type-scale exemption and current 13px tabs. | Docs/test-only check; no product behavior change. |
-| RUX-13 | P2 | Hard-coded proposal paper appears as `bg-[#FFFDF8]` in decision states: `SharePageDecision.tsx:138`, `SharePageDecision.tsx:242`, `SharePageDecision.tsx:261`, `SharePageDecision.tsx:317`; tree panel has `bg-[#FFFDF8]` at `ShareEstimateTreePanel.tsx:239`. The token exists in `DESIGN.md:369`. | Theming is mostly disciplined, but hard-coded proposal paper makes future theme adjustments harder and creates token drift risk. | Add/use a `bg-proposalPaper`/CSS variable utility and replace literals in share components. | Design lint/token grep for no `#FFFDF8` literals outside tokens/tests. |
-| RUX-14 | P3 | Cover image overlay uses `from-black/35` with `text-white/90` on arbitrary project images: `SharePageHero.tsx:42-43`. | Contrast over light/complex cover images is indirect and image-dependent; label may be illegible. It is not critical content, but it can look unpolished. | Increase scrim strength or move the label outside the image if the label remains useful. | Visual/static contrast review with representative light cover image. |
-| RUX-15 | P3 | Fixed in this implementation pass. `SharedLinkActivityFeed` now uses existing accent/secondary tokens instead of one-off orange notice classes. | Activity notices better match the restrained receiver surface. | Keep orange reserved for warning semantics. | Static source review and activity tests passed. |
+| RUX-12 | P3 | `tests/vitest/project-publication-page.test.tsx:476-479` still says tab buttons use `text-[10px]`/`[9px]`/`[11px]`, while implementation uses `text-[13px]` at `SharePageTabs.tsx:393`. The design enforcer allowlist intentionally exempts `/share` px caps: `design-enforcer-share-allowlist.test.ts:8-18`, `design-enforcer-share-allowlist.test.ts:30-46`. | Test comments and historical contracts are stale. Future agents may "fix" receiver typography toward the old app cap and hurt client readability. | Update stale test comments/expectation language to reference the Client Portal type-scale exemption and current 13px tabs. | Docs/test-only check; no product behavior change. |
+| RUX-13 | P2 | **CORRECTED 2026-06-21 (per [75](75_FINDING_ID_REGISTRY.md) §2): full set is 8 `#FFFDF8` literals across 4 files, not 5/2.** `SharePageDecision.tsx:138`, `:242`, `:261`, `:317`; `ShareEstimateTreePanel.tsx:256` (was stale `:239`); `src/app/share/[token]/not-found.tsx:5`; `src/app/share/[token]/loading.tsx:9`, `:47`. Token exists in `DESIGN.md:369`. **Source-verified 2026-06-21** via `grep -rn "FFFDF8" src/ \| grep -v test`. | Theming is mostly disciplined, but hard-coded proposal paper makes future theme adjustments harder and creates token drift risk. | **Fix:** add a `bg-proposalPaper` utility (Tailwind token / CSS var) and replace all 8 literals; add a "no `#FFFDF8` outside tokens" lint guard. | Design lint/token grep proves zero `#FFFDF8` literals outside tokens/tests. See acceptance criteria below. |
+| RUX-14 | P3 | Cover image overlay uses `from-black/35` with `text-white/90` on arbitrary project images: `SharePageHero.tsx:42-43`. **Source-verified 2026-06-21.** | Contrast over light/complex cover images is indirect and image-dependent; label may be illegible. It is not critical content, but it can look unpolished. | **Fix:** strengthen the scrim (or move the "Project cover" label off the image) so the label meets **WCAG AA 4.5:1** over a worst-case light cover. | Visual contrast proof over a representative light cover image lives in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md). See acceptance criteria below. |
+| RUX-15 | P3 | Fixed in this implementation pass. `SharedLinkActivityFeed` now uses existing accent/secondary tokens instead of one-off orange notice classes. **Fix:** `SharedLinkActivityFeed.tsx` (accent/secondary tokens). | Activity notices better match the restrained receiver surface. | Keep orange reserved for warning semantics. | Static source review and activity tests passed. |
+
+### 3a. Acceptance criteria for the open RUX backlog (RUX-11/12/13/14)
+
+Status/severity for all four are bound to [75](75_FINDING_ID_REGISTRY.md) §2 (all **Open**). Owner-lane and
+binary pass/fail gates below; sequencing in [91](91_FORWARD_EXECUTION_PLAN.md).
+
+- **RUX-11** (P2, Open) — **Owner lane:** Test/Story lane.
+  - Given a designer opens Storybook, When they view the share-receiver stories, Then the real share
+    components (password gate, anonymous read-only, recipient session, decision modal, comments +
+    offline/queued, mobile table/tree, print) render with mocked hooks/fetches — **not** token routes.
+  - Target file(s): `src/stories/domain/share/*.stories.tsx` (extend `share-review.stories.tsx`,
+    `share-review-panel.stories.tsx`); spec lives in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
+  - Verify: `bunx vitest run src/stories/domain/share --maxWorkers=1` (or the static story test that
+    asserts the state matrix is present).
+  - **Gate (binary):** PASS only if every state in the 85 matrix has a corresponding story and the
+    suite is green; otherwise FAIL.
+
+- **RUX-12** (P3, Open, docs-only) — **Owner lane:** Test/QA lane.
+  - Given the receiver tab font is `text-[13px]` (`SharePageTabs.tsx:393`), When a reader inspects the
+    test, Then the stale `text-[10px]`/`[9px]`/`[11px]` comment language at
+    `tests/vitest/project-publication-page.test.tsx:476-479` is updated to reference the current 13px
+    tabs and the Client Portal type-scale exemption (`design-enforcer-share-allowlist.test.ts:8-18`).
+  - Target file(s): `tests/vitest/project-publication-page.test.tsx`.
+  - Verify: `bunx vitest run tests/vitest/project-publication-page.test.tsx --maxWorkers=1`.
+  - **Gate (binary):** PASS only if no stale `text-[10/9/11px]` comment remains and the suite is green.
+
+- **RUX-13** (P2, Open) — **Owner lane:** Design-system lane.
+  - Given 8 `#FFFDF8` literals across 4 files (enumerated above), When the fix lands, Then all 8 are
+    replaced by a `bg-proposalPaper` utility and a lint/test guard fails on any new `#FFFDF8` outside
+    tokens/tests.
+  - Target file(s): `SharePageDecision.tsx`, `ShareEstimateTreePanel.tsx`,
+    `src/app/share/[token]/not-found.tsx`, `src/app/share/[token]/loading.tsx`; token definition +
+    a `design-enforcer`-style guard test.
+  - Verify: `grep -rn "FFFDF8" src/ | grep -v test` returns **zero** lines, and
+    `bunx vitest run tests/vitest/design-enforcer-share-allowlist.test.ts --maxWorkers=1` is green.
+  - **Gate (binary):** PASS only if the grep is empty AND the guard test is green; otherwise FAIL.
+
+- **RUX-14** (P3, Open) — **Owner lane:** Design / Visual-QA lane.
+  - Given the "Project cover" label over an arbitrary cover image, When rendered over a worst-case
+    light/complex cover, Then the label text meets **WCAG AA 4.5:1** contrast (stronger scrim or the
+    label moved off-image).
+  - Target file(s): `src/components/share/SharePageHero.tsx:42-43`.
+  - Verify: visual contrast proof captured in [85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md) against a
+    representative light cover; record measured ratio in the 85 evidence index.
+  - **Gate (binary):** PASS only if the recorded contrast ratio is ≥ 4.5:1 (or the label no longer
+    sits over the image); otherwise FAIL.
+
+### 3b. Verification commands
+
+Run from repo root:
+
+```bash
+# RUX-13 — no proposal-paper literals outside tokens/tests (expect ZERO lines):
+grep -rn "FFFDF8" src/ | grep -v test
+
+# RUX-11/12/13 focused suites:
+bunx vitest run \
+  tests/vitest/project-publication-page.test.tsx \
+  tests/vitest/design-enforcer-share-allowlist.test.ts \
+  --maxWorkers=1
+
+# Receiver a11y / activity-mount regression (RUX-01/07/10):
+bunx vitest run \
+  tests/vitest/share-estimate-tree-panel-a11y.test.tsx \
+  tests/vitest/project-publication-activity.test.tsx \
+  --maxWorkers=1
+
+# Types:
+bun run type-check
+```
 
 ## 4. Product/Design Health Score
 
@@ -133,6 +212,15 @@ Worktree note: `git status --short` showed many unrelated dirty files in dashboa
 | Theming | 3/4 | Mostly tokenized, restrained, and proposal-paper aligned. Low-contrast tertiary usage and orange activity notice were cleaned up; hard-coded `#FFFDF8` token drift remains. |
 | Anti-pattern risk | 3/4 | The surface avoids obvious AI-slop patterns: no purple gradients, no over-rounded cards, no hero-metric template, no heavy decorative depth. Main risk is raw admin/dashboard feel in dense tree/grid sections and stale specs that describe a different tabbed dashboard. |
 | Total | 12/20 | Acceptable after the implementation pass, with remaining polish centered on Storybook state coverage, token cleanup, and visual proof. |
+
+**Target threshold:** the launch acceptance bar for this surface is **≥ 16/20 (4/5 dimensions at 3/4 or
+better, none below 3/4)**, with the four open RUX items (RUX-11/12/13/14) closed. The authoritative
+acceptance bar, state/viewport matrix, and visual-QA gate live in
+[85](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md); the receiver-redesign direction is in
+[25](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md). The 12/20 here is the **post-pass baseline**, not the
+ship bar — closing RUX-11/12/13/14 lifts Accessibility/Theming/Anti-pattern dimensions toward the
+threshold. Binary gate: PASS only when total ≥ 16/20 **and** RUX-11..14 are Fixed per
+[75](75_FINDING_ID_REGISTRY.md) §2.
 
 ## 5. Non-Working Or Missing States To Fix
 

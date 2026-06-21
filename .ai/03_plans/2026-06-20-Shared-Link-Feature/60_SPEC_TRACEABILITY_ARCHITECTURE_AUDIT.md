@@ -1,6 +1,18 @@
 # Shared Link / Publication Feature Architecture Audit
 
-Date: 2026-06-20
+Date: 2026-06-20 · Remediated: 2026-06-21 · Status: **REMEDIATED — anchors re-verified against committed source; finding IDs/severities/statuses bound to [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) (75 wins on any disagreement).**
+
+> **Currency check (as of 2026-06-21).** Re-verified against committed source on the remediation date.
+> Sizes at verification: `ProjectPublicationHeader.tsx` = 1172 lines, `src/lib/publication/actions.ts` = 1538 lines,
+> `SharePageTabs.tsx` = 677 lines, `SharedLinkActivityFeed.tsx` = 178 lines, `share/[token]/page.tsx` = 333 lines.
+> Drift corrected in this pass: the §1 project-memory citations (the original audit cited the same `:793-794` range
+> against two different files — `current-state.md` and `decisions.md` — which two files must never legitimately share;
+> `current-state.md:793-794` is unrelated `ProjectWorkspaceHeaderRow` content, the real shared-link block is `current-state.md:~111-129`,
+> and `decisions.md` keeps its own distinct anchors), the SHF-02 "missing file" strawman (re-framed as a deliberate single-column deferral), the
+> SHF-01↔RUX-10 conflation (un-merged per 75), and the loose 200-300-line spans in §2. Re-run the currency check by
+> diffing the cited anchors against `HEAD` before relying on this doc:
+> `bun run type-check && rg -n "id: \"sheets\", label: \"Estimates\"" src/components/workshop/ProjectPublicationHeader.tsx`.
+> Canonical IDs here: **SHF-01 (P2, Open/Decision)**, **SHF-02 (P3, Decision — deferral not debt)**, **SHF-03 (P3, Decision)** — see [`75` §6](75_FINDING_ID_REGISTRY.md).
 
 Scope:
 - `.ai/06_specs/walkthrough-shared-link-overhaul.md`
@@ -47,7 +59,11 @@ Security intent in the archive:
 - enforced CSP on `/share/:path*`,
 - and three hardening headers on share routes (`.ai/06_specs/walkthrough-shared-link-overhaul.md:169-188`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/05-security-privacy-auth-plan.md:29-68`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/05-security-privacy-auth-plan.md:72-110`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/05-security-privacy-auth-plan.md:126-161`).
 
-Project memory also records the V1 baseline as a simple public link and the V2 completion as a separate shared-link surface (`.ai/10_state/current-state.md:793-794`, `.ai/10_state/current-state.md:865-868`, `.ai/10_state/decisions.md:793-794`, `.ai/10_state/decisions.md:865-868`).
+Project memory also records the V1 baseline as a simple public link and the V2 completion as a separate shared-link surface. Each anchor below was re-derived independently against committed source on 2026-06-21. The original audit's collision was an anchor copy-paste: it cited the **same** line range — `:793-794` — against **two different files** (`current-state.md:793-794` *and* `decisions.md:793-794`). Two distinct files do not legitimately share a finding's line numbers, which is the tell that the citation was fabricated. Verified on re-derivation: `current-state.md:793-794` is unrelated `ProjectWorkspaceHeaderRow` layout-test content, and the real shared-link record in `current-state.md` lives at **~`:111-129`** (the "Shared-link/publication receiver surface audited and hardened (2026-06-20)" block); `decisions.md` has its own *distinct* anchors (`:793-794`/`:865`/`:867`, below). The corrected, per-file anchors are:
+- **V1 baseline (public link), 2026-05-27:** `.ai/10_state/decisions.md:793-794` — "Project client publication is active as a separate public sharing surface … managers publish a token-scoped `/share/[token]` snapshot from the project header's `Public link` control … PDF/download artifacts are not part of this V1".
+- **V2 completion (Shared Link Overhaul V2, P14), 2026-05-28:** `.ai/10_state/decisions.md:865` — "Shared Link Overhaul V2 Complete. P0–P13 delivered terminology ('Shared link'), 5-tab manager (Link/Sheets/Access/Recipients/Activity), recipient + Resend email …" (note: the decision text says "Sheets"; the shipped manager tab **label** is "Estimates" — see §2 and the rename task).
+- **Receiver enhancement incl. floating nav, 2026-05-29:** `.ai/10_state/decisions.md:867` — "Share Page Estimate View Enhancement … Added per-sheet D3 donut … sub-tab Tree|Grid … **floating nav (scroll + IO)**. Client-side only." The floating rail was **delivered** here, then later collapsed to a single-column container (see SHF-02 below).
+- **Current-state record of the audited surface:** `.ai/10_state/current-state.md:~111-129` (the "Shared-link/publication receiver surface audited and hardened (2026-06-20)" block; the adjacent "Shared-link upgrade second pass" block sits just above it). This is the correct shared-link anchor in `current-state.md` — explicitly **not** `:793-794` (unrelated `ProjectWorkspaceHeaderRow` content) and not co-numbered with any `decisions.md` anchor.
 
 ## 2. Current architecture summary from source
 
@@ -62,13 +78,13 @@ The current receiver route is `src/app/share/[token]/page.tsx`. It renders a sin
 - comments,
 - and a footer (`src/app/share/[token]/page.tsx:74-97`, `src/app/share/[token]/page.tsx:131-260`).
 
-The manager-facing publication modal lives in `src/components/workshop/ProjectPublicationHeader.tsx`. It currently implements a five-tab modal:
-- Link,
-- Estimates,
-- Access,
-- Recipients,
-- Activity,
-- plus link controls, expiry/password controls, and the recipient composer (`src/components/workshop/ProjectPublicationHeader.tsx:305-307`, `src/components/workshop/ProjectPublicationHeader.tsx:605-900`).
+The manager-facing publication modal lives in `src/components/workshop/ProjectPublicationHeader.tsx`. It currently implements a five-tab modal — internal tab ids are `link / sheets / access / recipients / activity`, but the rendered **labels** are **Link / Estimates / Access / Recipients / Activity** (`ProjectPublicationHeader.tsx:660-664`, where `{ id: "sheets", label: "Estimates" }`). Tab state and the active-tab switch are at `ProjectPublicationHeader.tsx:305-306` and `:382`. Supporting controls:
+- Estimates picker panel (`ProjectPublicationHeader.tsx:771-795`),
+- expiry/password (Access) controls (`ProjectPublicationHeader.tsx:796-885`),
+- recipient composer mount (`ProjectPublicationHeader.tsx:885-900`),
+- and always-visible link/generate controls below the tabs (`ProjectPublicationHeader.tsx:901-945`).
+
+> **Terminology note (binds to [`75`](75_FINDING_ID_REGISTRY.md) / `_COORDINATION.md` §4.11):** source standard is **"Estimates"** (the visible label). The spec/archive (`walkthrough-shared-link-overhaul.md`, decisions.md:865) still say **"Sheets"**, and the internal tab id is `"sheets"`. **Spec-rename task:** update the spec/archive copy to "Estimates" (see SHF-D in §4). The internal `id: "sheets"` is an implementation detail and is out of scope for the rename.
 
 The receiver-side estimate navigator is `src/components/share/SharePageTabs.tsx`. It currently implements:
 - per-sheet donut aggregation,
@@ -84,7 +100,7 @@ Comments and decisions are implemented as client-side gated interactions:
 
 Activity is split into two paths:
 - a public-safe filtered activity route for recipient/public views (`src/app/api/share/[token]/activity/route.ts:27-29`, `src/app/api/share/[token]/activity/route.ts:80-265`), and
-- an owner-only server action that loads the full feed including internal items (`src/lib/publication/actions.ts:1270-1483`, `src/components/share/SharedLinkActivityFeed.tsx:14-95`).
+- an owner-only server action that loads the full feed including internal items (`src/lib/publication/actions.ts:1381-1386` `loadSharedLinkActivity` (gated by `requireCurrentUserContext()`), consumed in `src/components/share/SharedLinkActivityFeed.tsx:31-43`; the focus/visibility-only refresh wiring is `SharedLinkActivityFeed.tsx:74-95`).
 
 Snapshot and security plumbing are in place:
 - publication snapshot types include schema version 1 / 1.2, tree nodes, tabs, cover image, and row metadata (`src/lib/publication/types.ts:10-44`, `src/lib/publication/types.ts:51-117`),
@@ -94,7 +110,7 @@ Snapshot and security plumbing are in place:
 Recipient management is implemented end-to-end in the manager lane:
 - list/add/resend/remove recipient actions,
 - best-effort Resend dispatch,
-- and owner digest triggering (`src/lib/publication/actions.ts:967-1483`, `src/components/workshop/publication/RecipientEmailComposer.tsx:16-25`, `src/components/workshop/publication/RecipientEmailComposer.tsx:81-117`, `src/components/workshop/publication/RecipientEmailComposer.tsx:146-260`).
+- and owner digest triggering (`src/lib/publication/actions.ts:967-1267` recipient list/add/resend/remove; `:1339-1346` in-memory digest rate limiter; `:1526-1538` `maybeTriggerSharedLinkActivityDigest` gate; `src/components/workshop/publication/RecipientEmailComposer.tsx:16-25`, `:81-117`, `:146-260`).
 
 ## 3. Traceability matrix
 
@@ -104,25 +120,57 @@ Recipient management is implemented end-to-end in the manager lane:
 | Recipient session bootstrap for `?recipient=` links and subsequent session reuse | `src/app/share/[token]/page.tsx:172-209`, `src/app/api/share/[token]/session/route.ts:38-113`, `src/lib/publication/security.ts:375-510` | No functional gap found. Session cookie is additive to password access and is cleared by DELETE. | OK |
 | Commenting and decision workflows bound to recipient identity, CSRF, snapshot version, and rate limits | `src/app/api/share/[token]/comment/route.ts:185-334`, `src/app/api/share/[token]/decision/route.ts:124-241`, `src/components/share/SharePageComments.tsx:57-280`, `src/components/share/SharePageDecision.tsx:82-280` | No functional gap found. Routes reject invalid session/view tokens and sanitize/truncate input. | OK |
 | Manager recipient email management and resend flow | `src/components/workshop/ProjectPublicationHeader.tsx:885-900`, `src/components/workshop/publication/RecipientEmailComposer.tsx:81-117`, `src/components/workshop/publication/RecipientEmailComposer.tsx:146-260`, `src/lib/publication/actions.ts:967-1267` | No functional gap found. Recipient rows, resend rotation, and removal are present. | OK |
-| Owner activity feed with internal comments plus notifications/digest | `src/lib/publication/actions.ts:1270-1483`, `src/app/api/share/[token]/activity/route.ts:27-29`, `src/components/share/SharedLinkActivityFeed.tsx:14-95` | Feed exists, but current client refresh is focus/visibility based rather than push/live. Digest trigger is present. | P2 |
-| Receiver-side floating navigation rail / sticky section nav from archive | Spec: `.ai/06_specs/proposal-package-system.md:38-46`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:152-157`; current: `src/components/share/SharePageTabs.tsx:310-551`, `src/components/share/SharePageTabs.tsx:533-549` | Indirect evidence: repo-wide source scan did not return `src/components/share/ShareFloatingTreeNav.tsx`. Current UI uses tree/grid sub-tabs and a tree panel, not a sticky floating rail. | P3 |
-| Share route and share API security headers / CSP hardening | `next.config.ts:108-152`, `next.config.ts:168-205` | No functional gap found in current source. Share routes have enforced CSP and the expected hardening headers. | OK |
-| Notification / rate-limit durability | `src/lib/publication/actions.ts:1284-1294`, `src/lib/publication/actions.ts:1471-1483`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/COMPLETION-REPORT.md:48-48`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/COMPLETION-REPORT.md:119-119` | In-memory only; resets on restart and is per-process. Fine for a single-node beta, but not durable for scale-out. | P3 |
+| Owner activity feed mounted (RUX-10) + realtime/live updates (SHF-01) | mount: `SharedLinkActivityFeed.tsx:31-43`, owner action `actions.ts:1381-1386`; refresh wiring `SharedLinkActivityFeed.tsx:74-95,175` | **RUX-10 (mount the feed) = Fixed** per [`75` §2](75_FINDING_ID_REGISTRY.md). **SHF-01 (realtime) = Open** — refresh is focus/visibility only; no WebSocket/SSE/polling/Supabase-realtime. **The two are distinct; SHF-01 is NOT closed by RUX-10's mount** (`_COORDINATION.md` §4.2). Digest trigger present but auth-gated (SEC-SHARE-06, separate). | SHF-01 = P2 (per 75 §6) |
+| Receiver-side floating navigation rail / sticky section nav (SHF-02) | spec: `.ai/06_specs/proposal-package-system.md:38-46`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:152-157`; **delivered:** decisions.md:867 ("floating nav (scroll + IO)"); **then collapsed:** `src/components/share/ShareContainer.tsx:8` | **Not a missing file.** The rail was delivered 2026-05-29 then intentionally collapsed to a single-column container ("Single column only (no xl sticky-rail / grid split — that is a deferred follow-up)" — `ShareContainer.tsx:8`). This is a **deliberate deferral (decision D6)**, not architecture debt and not a fabricated `ShareFloatingTreeNav` gap. | SHF-02 = P3, Decision |
+| Share route and share API security headers / CSP hardening | enforced CSP `next.config.ts:148`; hardening headers `next.config.ts:135-137`, `:142` | No functional gap found in current source. Share routes have enforced CSP and the expected hardening headers (X-Content-Type-Options, X-Frame-Options DENY, Referrer-Policy no-referrer). | OK |
+| Notification / digest-throttle durability (SHF-03) | in-memory limiter `src/lib/publication/actions.ts:1339-1346` (`const digestRateLimit = new Map<string, number>()`); `:1353` skip path; source comment `:1339` already names the target ("production would use **DB row or Redis**") | In-memory only; resets on restart and is per-process. Fine for a single-node beta, but not durable for horizontal scale-out. **Durable-store target = a DB row (preferred for one-source-of-truth with the snapshot/recipient tables) or Redis** behind the existing `shouldSendDigest()` helper. | SHF-03 = P3, Decision |
 
 ## 4. Architectural findings
 
-| ID | Severity | Evidence | Impact | Recommendation | Verification needed |
-|---|---|---|---|---|---|
-| SHF-01 | P2 | `src/components/share/SharedLinkActivityFeed.tsx:25-95`, `src/components/share/SharedLinkActivityFeed.tsx:81-95`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:117-121` | The feed only refreshes on mount, focus, and visibility changes. The intended architecture called for live/realtime updates, so owners can miss new comments/decisions until they switch tabs or refocus the window. | Add a live update mechanism on top of the existing owner server action, or explicitly update the spec/archive to state that focus-triggered refresh is the intended V2 behavior. Keep the public filtered route unchanged. | Browser-level proof that new activity appears without manual refresh; unit/integration coverage for the owner feed update path. |
-| SHF-02 | P3 | `.ai/06_specs/walkthrough-shared-link-overhaul.md:29-32`, `.ai/06_specs/walkthrough-shared-link-overhaul.md:152-157`, `.ai/06_specs/proposal-package-system.md:38-46`, `src/components/share/SharePageTabs.tsx:321-351`, `src/components/share/SharePageTabs.tsx:533-549` | The archived V2 receiver UX includes a sticky floating navigation rail. Current source instead ships tree/grid sub-tabs and a hidden desktop tree panel. That is a real architecture mismatch, and the repo scan did not find a `ShareFloatingTreeNav` implementation file. | Decide whether the floating rail is still required. If yes, implement it on the current receiver dashboard. If not, update the spec/archive so future work does not treat the missing rail as debt. | Desktop browser QA for large viewports and a component test that asserts section navigation / active-section highlighting. |
-| SHF-03 | P3 | `src/lib/publication/actions.ts:1284-1294`, `src/lib/publication/actions.ts:1471-1483`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/05-security-privacy-auth-plan.md:72-110`, `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/COMPLETION-REPORT.md:48-48` | Digest throttling and related in-memory rate limiting reset on process restart and do not coordinate across workers/instances. That is acceptable for a closed-beta single-node deployment, but it will duplicate or under-throttle once the app scales horizontally. | Keep for beta only if single-process deployment is guaranteed. If scale-out is planned, move the throttling state to a durable store (DB row or Redis) behind the existing helper API. | Restart test plus a multi-worker / multi-instance simulation that proves a digest is not emitted twice inside the rate window. |
+Severity/status here are bound to [`75_FINDING_ID_REGISTRY.md` §6](75_FINDING_ID_REGISTRY.md); the owner-decision IDs (D6/D7/D4) are in [`71_OPEN_DECISIONS_REGISTER.md`](71_OPEN_DECISIONS_REGISTER.md). Every finding below carries acceptance criteria, an exact target/test path, a runnable verification command, an owner-lane, and a binary pass/fail gate.
+
+| ID | Severity (75) | Status (75) | Evidence | Impact | Recommendation | Owner-lane |
+|---|---|---|---|---|---|---|
+| SHF-01 | P2 | **Open / Decision (D7)** | `SharedLinkActivityFeed.tsx:74-95` (mount + focus/visibility refresh), `:175` ("Activity refreshes when you reopen this tab"); owner action `actions.ts:1381-1386`; spec intent `.ai/06_specs/walkthrough-shared-link-overhaul.md:117-121` | The owner feed refreshes on mount, focus, and visibility only — no realtime (WebSocket/SSE/polling/Supabase-realtime). Owners can miss new comments/decisions until they refocus the tab. **Source-verified Open per `_COORDINATION.md` §4.2; NOT closed by RUX-10 (mount).** | **D7 first:** either (a) add live updates on top of the existing owner action and public route, or (b) spec-ratify focus-refresh as intended V2. Keep the public filtered route privacy-rules unchanged either way. | Backend + owner decision |
+| SHF-02 | P3 | **Decision (D6) — deferral, not debt** | delivered: decisions.md:867; collapsed: `ShareContainer.tsx:8`; receiver sub-tab UX `SharePageTabs.tsx:171` (Tree/Grid sub-tabs) | The floating rail was **built then intentionally collapsed to single column** ("no xl sticky-rail / grid split — that is a deferred follow-up"). The earlier "missing `ShareFloatingTreeNav` file" framing was a strawman and is retired. No action required unless D6 reinstates the rail. | **D6:** ratify single-column as canonical (update spec/archive to drop the rail from the contract), or schedule the rail re-introduction as a receiver-redesign item (see [`25_RECEIVER_UX_REDESIGN_BLUEPRINT.md`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)). | UI + owner decision |
+| SHF-03 | P3 | **Decision (D4)** | in-memory limiter `actions.ts:1339-1346` (`const digestRateLimit = new Map<string, number>()`), skip path `:1353`; target named in source comment `:1339` | Digest throttle is in-process; resets on restart and does not coordinate across workers/instances. Acceptable for single-node beta; duplicates/under-throttles on scale-out. | **D4:** keep in-memory for single-process beta, OR move throttle state to a **durable store — a DB row (preferred: one source of truth alongside `project_publication_events`) or Redis** — behind the existing `shouldSendDigest()`/`triggerOwnerDigestIfAllowed()` helpers. | Infra + owner decision |
+| SHF-D | P3 | **Open (docs)** | source label `ProjectPublicationHeader.tsx:661` (`label: "Estimates"`); spec/archive still "Sheets" (decisions.md:865, `walkthrough-shared-link-overhaul.md`) | Spec/archive name the 2nd manager tab "Sheets"; shipped label is "Estimates". Future audits keep misrouting against the stale name. | Rename the spec/archive copy "Sheets" → "Estimates" (internal `id:"sheets"` stays). Docs-only. | Docs |
+
+### Acceptance criteria + verification per finding
+
+**SHF-01 — owner-feed realtime (gated on D7)**
+- Acceptance (if D7 = implement realtime): *Given* an owner has the manager activity panel open, *When* a recipient posts a new comment/decision, *Then* the new item appears in the owner feed without a manual focus/refocus or Refresh click, *And* `is_internal` visibility rules are preserved (no internal item leaks to the public `/api/share/[token]/activity` route).
+- Acceptance (if D7 = ratify focus-refresh): *Given* the spec/archive, *When* read, *Then* it explicitly states focus/visibility refresh is the intended V2 behavior and removes any "realtime/live" wording; SHF-01 then moves to **Deferred** in 75.
+- Target file(s): `src/components/share/SharedLinkActivityFeed.tsx`; new/updated test `src/components/share/__tests__/SharedLinkActivityFeed.test.tsx` (or the existing shared-link feed test if present).
+- Verification command: `bunx vitest run src/components/share/__tests__/SharedLinkActivityFeed.test.tsx --maxWorkers=1 && bun run type-check`. Browser proof tracked in [`85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md`](85_UX_ACCEPTANCE_AND_VISUAL_QA_PLAN.md).
+- **Gate (binary):** PASS = D7 recorded in [`71`](71_OPEN_DECISIONS_REGISTER.md) AND the chosen branch's acceptance test is green AND `type-check` passes; FAIL otherwise. UNVERIFIED until D7 is taken — verify the current behavior with `rg -n "WebSocket|EventSource|supabase.*channel|setInterval" src/components/share/SharedLinkActivityFeed.tsx` (expect **no matches**, confirming Open).
+
+**SHF-02 — floating-nav contract (gated on D6)**
+- Acceptance (if D6 = ratify single-column): *Given* the spec/archive, *When* read, *Then* the floating-rail requirement is struck and `ShareContainer.tsx:8`'s single-column model is named canonical; SHF-02 closes as **Deferred/ratified** in 75.
+- Acceptance (if D6 = reinstate rail): the rail re-intro is scheduled as a `25` redesign item with its own acceptance criteria; this finding stays a Decision pointer.
+- Target file(s): docs (`.ai/06_specs/walkthrough-shared-link-overhaul.md`, `.ai/06_specs/proposal-package-system.md`) for ratify; `src/components/share/ShareContainer.tsx` + `SharePageTabs.tsx` for reinstate.
+- Verification command: `rg -n "sticky-rail|grid split|deferred follow-up" src/components/share/ShareContainer.tsx` (confirms the deliberate-deferral evidence is still present at the cited anchor).
+- **Gate (binary):** PASS = D6 recorded and the spec/archive reflects the decision; FAIL = the doc still treats the rail as silent debt.
+
+**SHF-03 — durable digest throttle (gated on D4)**
+- Acceptance (if D4 = durable): *Given* two worker processes/instances behind the same publication, *When* a digest-eligible event fires twice inside the 15-minute window, *Then* exactly one digest email is dispatched (throttle state shared via the DB row/Redis); *And* a process restart inside the window does not reset the throttle.
+- Acceptance (if D4 = keep in-memory for beta): *Given* the beta deploy, *When* documented, *Then* the runbook ([`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md)) records single-process deployment as a hard constraint for the throttle to hold.
+- Target file(s): `src/lib/publication/actions.ts` (`digestRateLimit`/`shouldSendDigest`/`triggerOwnerDigestIfAllowed`); test `src/lib/publication/__tests__/digest-throttle.test.ts`.
+- Verification command: `bunx vitest run src/lib/publication/__tests__/digest-throttle.test.ts --maxWorkers=1 && bun run type-check`.
+- **Gate (binary):** PASS = D4 recorded AND (durable: the multi-instance + restart test is green) OR (beta: the single-process constraint is in `90`); FAIL otherwise.
+
+**SHF-D — spec rename "Sheets" → "Estimates" (docs-only)**
+- Acceptance: *Given* the spec/archive, *When* read, *Then* the 2nd manager tab is named "Estimates" to match the shipped label (`ProjectPublicationHeader.tsx:661`), with a one-line note that the internal id remains `"sheets"`.
+- Target file(s): `.ai/06_specs/walkthrough-shared-link-overhaul.md` (+ archive references); no source change.
+- Verification command: `rg -n "Sheets" .ai/06_specs/walkthrough-shared-link-overhaul.md` (expect no manager-tab "Sheets" label remaining) and `rg -n 'label: "Estimates"' src/components/workshop/ProjectPublicationHeader.tsx` (confirms source label).
+- **Gate (binary):** PASS = spec label reads "Estimates" and source label unchanged; FAIL = spec still says "Sheets".
 
 ## 5. Proposed upgrade sequencing
 
-1. Resolve the receiver-navigation contract first.
-   - Decide whether the floating rail is still part of the intended V2 surface or whether the current tree/grid pattern is the new canonical design.
+1. Resolve the receiver-navigation contract first (decision **D6**).
+   - The floating rail was delivered (decisions.md:867) then intentionally collapsed to single column (`ShareContainer.tsx:8`). Decide whether to ratify single-column as canonical (spec/archive moves) or reinstate the rail as a `25` redesign item (code moves). This is a deliberate-deferral call, not debt recovery.
    - Dependency: this choice controls whether the spec/archive or the code should move.
-   - Conflict risk: any parallel UI lane touching `src/components/share/SharePageTabs.tsx` or the receiver dashboard can easily reintroduce the wrong navigation model.
+   - Conflict risk: any parallel UI lane touching `src/components/share/SharePageTabs.tsx`, `ShareContainer.tsx`, or the receiver dashboard can reintroduce the wrong navigation model.
 
 2. Add realtime activity updates on top of the existing owner/public split.
    - Keep the public filtered route and the owner-only server action separate.
@@ -140,7 +188,7 @@ Recipient management is implemented end-to-end in the manager lane:
 
 ## 6. Handoffs / conflicts for other lanes
 
-- UI lane: confirm whether the missing floating nav is a real product gap or an obsolete archive requirement. If it is still required, this is a direct implementation task in the receiver dashboard.
+- UI lane: the floating nav is **not** a missing file — it was built then deliberately collapsed to single column (`ShareContainer.tsx:8`). Resolve **D6** (ratify single-column vs reinstate rail); only on a reinstate call is this a receiver-dashboard implementation task (route via [`25`](25_RECEIVER_UX_REDESIGN_BLUEPRINT.md)).
 - Backend lane: implement or reject realtime activity updates. The current feed and notification logic are already split cleanly enough to extend without a schema rewrite.
 - Infrastructure lane: decide whether digest/rate-limit state remains in-memory for beta or moves to a durable store before scale-out.
 - Docs lane: update the spec/archive to reflect the current file ownership split (`ProjectPublicationHeader` for manager modal, `SharePageTabs` for receiver estimate views) if that split is intentional.

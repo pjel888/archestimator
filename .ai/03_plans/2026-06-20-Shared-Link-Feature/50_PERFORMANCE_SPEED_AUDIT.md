@@ -1,10 +1,33 @@
 # Shared Link Feature Performance/Speed Audit
 
-Date: 2026-06-20
+Date: 2026-06-20 · **As-of remediation: 2026-06-21**
+
+> **Status banner (as of 2026-06-21).** IDs, severities, and statuses below are bound to the
+> canonical registry [`75_FINDING_ID_REGISTRY.md`](75_FINDING_ID_REGISTRY.md) §5 — **75 wins** on any
+> disagreement. **Critical distinction:** every item this doc previously labeled *"Fixed in this
+> implementation pass"* is **code-shape addressed only**. **No latency, byte-size, query-count, or
+> `EXPLAIN` numbers were captured.** Therefore each such item is **Status: Code-shape addressed; perf
+> UNVERIFIED** until the §5 benchmark + §5 `EXPLAIN` queries are run and their output committed under
+> [`evidence/`](evidence/) (see the [evidence pointer](#evidence-pointer) below and the perf-budget
+> gates in §3a). Cross-links: migration ordering for PERF-04 in
+> [`90_DEPLOY_AND_MIGRATION_RUNBOOK.md`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md); production signals/
+> thresholds in [`92_OBSERVABILITY_AND_ALERTING.md`](92_OBSERVABILITY_AND_ALERTING.md).
+>
+> Anchor note (per [`_COORDINATION.md` §4.12](_COORDINATION.md)): `actions.ts` is 1538 lines,
+> `public-repository.ts` is 1124 lines. Drifted citations in this doc were re-anchored against current
+> source on 2026-06-21.
 
 Dedicated sub-goal: comprehensive performance/speed audit for public shared links and manager publication actions.
 
 This is a read-only audit of the current worktree. Multiple agents are active; this report does not stage, commit, revert, or edit source. Existing unrelated dirty files were present while inspecting, so findings describe the current checked-out state and note uncertainty where evidence is indirect.
+
+<a id="evidence-pointer"></a>
+**Evidence pointer.** Deferred measurements land in [`evidence/`](evidence/):
+- `evidence/shared-link-activity-benchmark.md` — output of the §5 `scripts/benchmark-shared-link-activity.ts` run.
+- `evidence/perf-explain-queries.md` — output of the four §5 `EXPLAIN (ANALYZE, BUFFERS)` queries against realistic rows.
+- `evidence/perf-budgets.md` — captured p95 / byte / duration numbers vs the §3a budget table.
+
+Until these files exist with real numbers, every "code-shape addressed" status in §3 stays **perf UNVERIFIED** and the §3a budget gates are **UNVERIFIED (binary: FAIL)**.
 
 ## 1. Audit scope and exact files inspected
 
@@ -125,8 +148,8 @@ Activity:
 Publish:
 
 - Manager authorization reads project/workspace state at `src/lib/publication/actions.ts:149` through `src/lib/publication/actions.ts:196`.
-- Latest publication lookup runs at `src/lib/publication/actions.ts:351` through `src/lib/publication/actions.ts:360`.
-- Snapshot build loads estimates first at `src/lib/publication/actions.ts:365` through `src/lib/publication/actions.ts:374`.
+- Latest publication lookup runs in `readLatestProjectPublication` at `src/lib/publication/actions.ts:362` through `src/lib/publication/actions.ts:373`, ordered by `published_at` descending (`actions.ts:368`). (Re-anchored 2026-06-21; prior `:351-360` was inside an unrelated publisher-profile read.)
+- Snapshot build loads estimates first in `buildSnapshotForProject` at `src/lib/publication/actions.ts:376` through `src/lib/publication/actions.ts:389`.
 - Rows, tree nodes, and tabs load in parallel at `src/lib/publication/actions.ts:384` through `src/lib/publication/actions.ts:402`.
 - Post-fix: row thumbnail extraction selects `source_snapshot->>imageUrl` instead of full `source_snapshot` JSON.
 - Existing publications are revoked at `src/lib/publication/actions.ts:540` through `src/lib/publication/actions.ts:548`.
@@ -152,21 +175,28 @@ Recipients:
 
 ## 3. Findings table
 
-| ID | Severity | Evidence | Impact | Recommendation | Verification needed |
-| --- | --- | --- | --- | --- | --- |
-| PERF-01 | P2 | `src/components/share/SharePageRecipientSessionInitializer.tsx`, `src/app/api/share/[token]/session/route.ts` | Partially reduced: recipient-specific links still require an initial page render, a client POST, and a full reload to the clean URL, but recipient session-start analytics no longer blocks the POST response. | Evaluate a server route/redirect flow that sets cookies before rendering the share page only after token-leakage and cookie-setting review. Keep this as a high-blast-radius change. | Measure recipient link p50/p95 from first request to interactive recipient view. Count server renders and `/session` latency after analytics deferral. |
-| PERF-02 | P1 | `src/app/api/share/[token]/route.ts`, `tests/vitest/project-publication-route.test.ts` | Fixed in this implementation pass: the public snapshot API schedules view telemetry with `after()` and preserves response/failure isolation. | Keep non-essential telemetry off the response path. | Route contract test proves the JSON response remains valid if event write rejects. |
-| PERF-03 | P1 | `src/lib/publication/public-repository.ts` | Fixed in this implementation pass: expired-row cleanup is throttled and single-flight in-process instead of run on every protected attempt. | Keep DB-side index/cardinality measurement on the beta-readiness checklist. | Provider `EXPLAIN` still useful once realistic rows exist. |
-| PERF-04 | P2 | `src/app/api/share/[token]/activity/route.ts`, `src/lib/publication/actions.ts`, `supabase/migrations/20260620064601_project_publication_activity_target_labels.sql` | Fixed in this implementation pass: activity reads use compact target-label metadata instead of full `snapshot_json`. | Apply/reconcile the local migration safely in provider history, then measure p95 with large snapshots. | Provider migration proof and hosted p95 measurement remain open. |
-| PERF-05 | P2 | `src/app/api/share/[token]/comment/route.ts:215`, `src/lib/publication/public-repository.ts:941`, `src/lib/publication/public-repository.ts:954`, `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:133`, `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:148`; analogous decision path at `src/app/api/share/[token]/decision/route.ts:154`, `src/lib/publication/public-repository.ts:1011`, `src/lib/publication/public-repository.ts:1024` | Comment and decision writes perform app-layer access/session lookups, then helper publication/recipient lookups, then RPC-side publication/recipient lookups. This is secure but adds serial DB round trips to the interaction path. | Consolidate write validation into one RPC call or pass already-validated publication/recipient identifiers to an RPC variant that still enforces snapshot/version constraints. Treat as security-sensitive. | Query-count test for comment/decision POST. p95 comparison of current path vs one-RPC prototype. Security review that rejected/revoked/password-gated sessions still fail. |
-| PERF-06 | P2 | `src/lib/publication/actions.ts:365`, `src/lib/publication/actions.ts:384`, `src/lib/publication/actions.ts:402`, `src/lib/publication/snapshot.ts:212`, `src/lib/publication/snapshot.ts:241`, `src/lib/publication/snapshot.ts:260` | Partially reduced: snapshot generation now selects only `source_snapshot->>imageUrl` for thumbnails, but publish/republish remains O(estimates + rows + nodes + tabs) and stores row data both at estimate level and inside tab payloads. | First add measurement and byte-size budgets. For vNext, store a normalized snapshot shape where rows are referenced by tab/node instead of duplicated, or materialize only the public shapes needed by the UI. | Snapshot byte-size histogram for small/median/large projects. Publish/republish duration with 1k/10k/50k rows. Public page payload and hydration time before/after normalized snapshot prototype. |
-| PERF-07 | P2 | `src/components/share/ShareEstimateTreeView.tsx`, `src/components/share/ShareEstimateTreePanel.tsx` | Fixed in this implementation pass: inline tree rows are capped for desktop/mobile views with a status summary for hidden rows. | Consider full virtualization only if hosted/mobile INP still shows a problem. | DOM node count/hydration measurement remains useful for very large snapshots. |
-| PERF-07B | P2 | `src/components/share/SharePageTabs.tsx` | Fixed in this implementation pass: Grid Preview renders only the first 250 matching rows with an explicit refine-filter summary. | Consider virtualization only if recipients need full unfiltered tables in-browser at larger row counts. | DOM node count/hydration measurement remains useful for very large snapshots. |
-| PERF-08 | P2 | `src/lib/publication/actions.ts` | Fixed in this implementation pass: recipient insert/send/status pipelines run with bounded concurrency and preserve per-recipient partial failure reporting. | Batch insert/background queue remains a later scale optimization, not beta-blocking. | Benchmark 1/10/50 recipients once provider/email mocks are available. |
-| PERF-09 | P3 | `src/app/api/share/[token]/password/route.ts:68`, `src/lib/publication/security.ts:150`, `src/lib/publication/security.ts:157`, `src/app/api/share/[token]/password/route.ts:71`, `src/app/api/share/[token]/password/route.ts:84` | Password unlock intentionally pays `scrypt` plus synchronous attempt/event writes. This is appropriate for security, but successful unlock latency may be noticeable on low-power/serverless instances. | Do not weaken password hashing. Move non-security analytics off-path where possible and measure `scrypt` cost under production runtime. | p50/p95 unlock latency for correct and incorrect password, separated into hash time, DB time, and intentional backoff. |
-| PERF-10 | P3 | `src/components/share/SharePageComments.tsx`, `src/app/api/share/[token]/comment/route.ts`, `src/lib/publication/public-repository.ts` | Fixed in this implementation pass: successful comment POST returns the canonical inserted comment, and the client replaces the optimistic row without a second comments GET. | Add pagination if comment volume exceeds 50-100 per link. | `tests/vitest/project-publication-comments.test.tsx` covers the route response and one-GET client submit path. |
-| PERF-11 | P3 | `src/app/share/[token]/loading.tsx`, `tests/vitest/share-no-store-invariants.test.ts` | Fixed in this implementation pass: the dynamic share page now has a proposal-shaped route loading boundary. | Keep manual/browser proof optional for a future UI lane; static route coverage is enough for this pass. | Static invariant test covers the boundary file. |
-| PERF-12 | P3 | `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:26`, `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:56` | Link rotation locks the publication and updates all recipient tokens for that publication. This is correct for security, but recipient-heavy publications make rotate cost O(recipient count). | Accept for MVP if recipient counts are low; otherwise measure and consider chunked recipient invalidation or a credential-version model that avoids rewriting every recipient token on rotate. | Rotation duration at 10/100/1,000 recipients and lock wait metrics under concurrent recipient actions. |
+Status vocabulary in this table is bound to [`75` §5](75_FINDING_ID_REGISTRY.md): **Open**, **Fixed**
+(code landed + a test), and the perf-specific qualifier **Code-shape addressed; perf UNVERIFIED**
+(code shape changed but no latency/byte/query/`EXPLAIN` evidence captured yet — see the banner). Where
+75 records a status, **75 wins**.
+
+| ID | Severity | Status (bound to 75) | Evidence | Impact | Recommendation | Verification gate (binary pass/fail) |
+| --- | --- | --- | --- | --- | --- | --- |
+| PERF-01A | P2 | Open | `src/components/share/SharePageRecipientSessionInitializer.tsx`, `src/app/api/share/[token]/session/route.ts` | Partially reduced: recipient-specific links still require an initial page render, a client POST, and a full reload to the clean URL, but recipient session-start analytics no longer blocks the POST response. (Renamed PERF-01→**PERF-01A** to match 75/70 on 2026-06-21.) | Evaluate a server route/redirect flow that sets cookies before rendering the share page only after token-leakage and cookie-setting review. Gated on D2/security ([`71`](71_OPEN_DECISIONS_REGISTER.md)). High-blast-radius. | PASS = `evidence/perf-budgets.md` records recipient-link p95 vs the §3a budget. UNVERIFIED ⇒ FAIL. |
+| PERF-02 | P1 | Fixed | `src/app/api/share/[token]/route.ts`, `tests/vitest/project-publication-route.test.ts` | Code-shape: the public snapshot API schedules view telemetry with `after()` and preserves response/failure isolation. Prior-plan id **DB08** ([75 §5](75_FINDING_ID_REGISTRY.md)). | Keep non-essential telemetry off the response path. | PASS = route contract test proves the JSON response stays valid if the event write rejects: `bunx vitest run tests/vitest/project-publication-route.test.ts --maxWorkers=1`. |
+| PERF-03 | P1 | Fixed (code) / measure-open | `src/lib/publication/public-repository.ts:292`–`:298` (cleanup delete), `:305`–`:319` (single-flight throttle) | Code-shape: expired-row cleanup is throttled and single-flight in-process instead of run on every protected attempt. Latency/`EXPLAIN` UNVERIFIED. | Keep DB-side index/cardinality measurement on the beta-readiness checklist. | PASS = `evidence/perf-explain-queries.md` holds the `delete … where expires_at <= now()` `EXPLAIN` against realistic rows. UNVERIFIED ⇒ FAIL. |
+| PERF-04 | P2 | Fixed (code) / measure-open (≡ Code-shape addressed; perf UNVERIFIED) | `src/app/api/share/[token]/activity/route.ts`, `src/lib/publication/actions.ts`, `supabase/migrations/20260620064601_project_publication_activity_target_labels.sql` | Code-shape: activity reads use compact `activity_target_labels_json` instead of full `snapshot_json`. **Provider migration + hosted p95 UNVERIFIED.** | Reconcile the local migration safely in provider history (ledger order in [`90`](90_DEPLOY_AND_MIGRATION_RUNBOOK.md)), then measure p95 with large snapshots. | PASS = migration confirmed applied in `90` + activity p95 recorded in `evidence/perf-budgets.md`. UNVERIFIED ⇒ FAIL. |
+| PERF-05 | P2 | Open | comment view-snapshot/RPC path at `src/app/api/share/[token]/comment/route.ts:216`–`:236` (the `viewedSnapshotVersion` block; **`:215` re-anchored** — it was a `SESSION_INVALID` log + return, not the RPC path), `src/lib/publication/public-repository.ts:941`, `:954`, `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:133`, `:148`; analogous decision path at `src/app/api/share/[token]/decision/route.ts:154`, `public-repository.ts:1011`, `:1024` | Comment and decision writes perform app-layer access/session lookups, then helper publication/recipient lookups, then RPC-side publication/recipient lookups — secure but serial round trips on the interaction path. | Consolidate write validation into one RPC, or pass already-validated identifiers to an RPC variant that still enforces snapshot/version constraints. Security-sensitive (after review). | PASS = query-count test for comment/decision POST + p95 of current vs one-RPC prototype in `evidence/perf-budgets.md` + security review confirms rejected/revoked/password-gated sessions still fail. UNVERIFIED ⇒ FAIL. |
+| PERF-06 | P2 | Open (measure first) | `src/lib/publication/actions.ts:376` (estimates), `:`-bounded row/node/tab loads in `buildSnapshotForProject`, `src/lib/publication/snapshot.ts:212`, `:241`, `:260` | Publish/republish remains O(estimates + rows + nodes + tabs) and stores row data both at estimate level and inside tab payloads. (Thumbnail-only select is now **PERF-13**, a distinct row.) | First add byte-size budgets (§3a). For vNext, normalize the snapshot so rows are referenced by tab/node instead of duplicated. | PASS = snapshot byte histogram for small/median/large projects in `evidence/perf-budgets.md` vs the §3a budget. UNVERIFIED ⇒ FAIL. |
+| PERF-07 | P2 | Fixed | `src/components/share/ShareEstimateTreeView.tsx`, `src/components/share/ShareEstimateTreePanel.tsx` | Code-shape: inline tree rows capped for desktop/mobile with a hidden-row status summary. | Consider full virtualization only if hosted/mobile INP still shows a problem. | PASS = a test asserts the desktop/mobile row cap; DOM node-count measurement at large snapshots stays optional. |
+| PERF-07B | P2 | Fixed | `src/components/share/SharePageTabs.tsx` | Code-shape: Grid Preview renders only the first 250 matching rows with a refine-filter summary. | Consider virtualization only if recipients need full unfiltered tables at larger row counts. | PASS = a test asserts the 250-row cap + refine copy. |
+| PERF-08 | P2 | Fixed | `src/lib/publication/actions.ts` (`SHARED_LINK_RECIPIENT_ADD_CONCURRENCY = 4`) | Code-shape: recipient insert/send/status pipelines run with bounded concurrency and preserve per-recipient partial-failure reporting. | Batch insert/background queue remains a later scale optimization, not beta-blocking. | PASS = a test asserts bounded concurrency + per-recipient failure isolation; 1/10/50 recipient timing in `evidence/perf-budgets.md` is the §3a budget check. |
+| PERF-09 | P3 | Open (measure) | `src/app/api/share/[token]/password/route.ts:68`, `src/lib/publication/security.ts:150`, `:157`, `password/route.ts:71`, `:84` | Password unlock intentionally pays `scrypt` plus synchronous attempt/event writes — appropriate for security, but successful-unlock latency may be noticeable on low-power/serverless instances. | Do not weaken password hashing. Move non-security analytics off-path where possible; measure `scrypt` cost under production runtime. | PASS = `evidence/perf-budgets.md` records p50/p95 unlock latency (correct + incorrect), split into hash / DB / intentional-backoff time. UNVERIFIED ⇒ FAIL. |
+| PERF-10 | P3 | Fixed | `src/components/share/SharePageComments.tsx`, `src/app/api/share/[token]/comment/route.ts`, `src/lib/publication/public-repository.ts` | Code-shape: successful comment POST returns the canonical inserted comment; the client replaces the optimistic row without a second comments GET. | Add pagination if comment volume exceeds 50–100 per link. | PASS = `bunx vitest run tests/vitest/project-publication-comments.test.tsx --maxWorkers=1` covers the route response + one-GET client submit path. |
+| PERF-11 | P3 | Fixed | `src/app/share/[token]/loading.tsx`, `tests/vitest/share-no-store-invariants.test.ts` | Code-shape: the dynamic share page now has a proposal-shaped route loading boundary. Prior-plan id **RT03** ([75 §5](75_FINDING_ID_REGISTRY.md)). | Keep manual/browser proof optional for a future UI lane; static route coverage is enough for this pass. | PASS = `bunx vitest run tests/vitest/share-no-store-invariants.test.ts --maxWorkers=1` covers the boundary file. |
+| PERF-12 | P3 | Open (measure) | `supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql:26`, `:56` | Rotation locks the publication and updates all recipient tokens for that publication — correct for security, but recipient-heavy publications make rotate O(recipient count). | Accept for MVP if recipient counts are low; otherwise chunked invalidation or a credential-version model that avoids rewriting every recipient token. | PASS = `evidence/perf-budgets.md` records rotation duration at 10/100/1,000 recipients + lock-wait metrics vs §3a budget. UNVERIFIED ⇒ FAIL. |
+| PERF-13 | P2 | Fixed | `src/lib/publication/actions.ts` row-thumbnail extraction (`source_snapshot->>imageUrl` projection) | Code-shape: snapshot row-thumbnail extraction selects `source_snapshot->>imageUrl` instead of pulling full `source_snapshot` JSON, cutting per-row transfer/parse. (Promoted to a first-class id per [75 §5](75_FINDING_ID_REGISTRY.md); 50 previously folded this into PERF-06.) | None beyond keeping the narrow projection; do not re-introduce a full `source_snapshot` select. | PASS = a test (or grep guard) asserts the snapshot builder selects `source_snapshot->>imageUrl` and not the full column. Byte delta vs full-column baseline is the §3a budget check in `evidence/perf-budgets.md`. |
+| PERF-14 | P2 | Fixed | `src/app/share/[token]/` print-package component, mounted on `beforeprint` (deferred print package; ties to RUX-04) | Code-shape: the full proposal print package is deferred to `beforeprint` instead of mounting on first render, so the normal receiver DOM is not inflated by all-row print output. (Promoted to a first-class id per [75 §5](75_FINDING_ID_REGISTRY.md); 50 previously listed this only as a positive note.) | Keep the deferred-print pattern; do not eagerly mount the print DOM. | PASS = a test asserts the print package is absent from first-render DOM and arms on `beforeprint`; receiver DOM node-count delta is the §3a budget check. |
 
 Positive performance notes:
 
@@ -174,6 +204,41 @@ Positive performance notes:
 - Snapshot and recipient identity are fetched in parallel on page load at `src/app/share/[token]/page.tsx:197` through `src/app/share/[token]/page.tsx:209`.
 - Activity route fanout is bounded by page limit and benchmarked at the query-count level in `tests/vitest/shared-link-activity-benchmark.test.ts:13` through `tests/vitest/shared-link-activity-benchmark.test.ts:19`.
 - Comment reads are capped at 200 rows in `src/lib/publication/public-repository.ts:859` through `src/lib/publication/public-repository.ts:875`.
+
+(Two items previously listed here — deferred print package and `source_snapshot->>imageUrl` thumbnail
+selection — are now first-class findings **PERF-14** and **PERF-13** in §3 per [75 §5](75_FINDING_ID_REGISTRY.md).)
+
+## 3a. Performance budget table (beta gates)
+
+Each budget is **UNVERIFIED** until its number is captured in [`evidence/perf-budgets.md`](evidence/).
+A row whose number is missing or breaches the target is a binary **FAIL**. Production thresholds/alerts
+for these signals live in [`92_OBSERVABILITY_AND_ALERTING.md`](92_OBSERVABILITY_AND_ALERTING.md).
+
+| Budget | Dimension | Target | Beta-blocking? | Bound finding | Capture method |
+| --- | --- | --- | :--: | --- | --- |
+| Public page p95 | open (no-password) link, hosted in-region | ≤ 1200 ms TTFB-to-interactive p95 | **Yes** | PERF-01A, PERF-04 | hosted RUM / synthetic; record in `evidence/perf-budgets.md` |
+| Public page p95 | recipient link (render + `/session` + reload) | ≤ 2500 ms first-request-to-interactive p95 | **Yes** | PERF-01A | hosted synthetic |
+| Snapshot bytes | small project (≤ 100 rows) | ≤ 64 KB `snapshot_json` | No | PERF-06, PERF-13 | DB `octet_length(snapshot_json)`; `evidence/perf-budgets.md` |
+| Snapshot bytes | median project (~1k rows) | ≤ 512 KB `snapshot_json` | **Yes** | PERF-06, PERF-13 | DB `octet_length` |
+| Snapshot bytes | large project (≥ 10k rows) | ≤ 4 MB `snapshot_json` (else normalize) | **Yes** | PERF-06 | DB `octet_length` |
+| Publish/republish duration | by row count | ≤ 1.5 s @ 1k rows · ≤ 6 s @ 10k · ≤ 20 s @ 50k | **Yes** (10k tier) | PERF-06, PERF-13 | server timing around `createProjectPublication`/republish |
+| Rotate duration | by recipient count | ≤ 500 ms @ 10 · ≤ 2 s @ 100 · ≤ 8 s @ 1k recipients | **Yes** (100 tier) | PERF-12 | server timing around the rotate RPC + lock-wait metric |
+
+Gate command for the test-backed budgets (run before claiming any PERF row PASS):
+
+```bash
+bunx vitest run \
+  tests/vitest/project-publication-public-repository.test.ts \
+  tests/vitest/share/share-page-get-routes-contract.test.ts \
+  tests/vitest/shared-link-activity-benchmark.test.ts \
+  tests/vitest/project-publication-comments.test.tsx \
+  --maxWorkers=1
+bun run type-check
+```
+
+Owner-lane: **Performance lane** owns capturing every budget number; **Database lane** owns the snapshot/
+rotate-cost numbers and the §5 `EXPLAIN` output; **Release lane** flips the beta-blocking gates in
+[`99_QUALITY_SCORECARD_AND_SIGNOFF.md`](99_QUALITY_SCORECARD_AND_SIGNOFF.md).
 
 ## 4. Quick wins vs high-blast-radius optimizations
 
@@ -183,7 +248,7 @@ Quick wins:
 - Preserve non-blocking recipient session-start analytics on the `/session` response path.
 - Keep the canonical comment response path so successful comment submits do not reload the bounded comments list.
 - Add measurement around snapshot byte size and publish/republish duration before changing data shape. Evidence: snapshot build at `src/lib/publication/actions.ts:365` through `src/lib/publication/actions.ts:481`.
-- Add or confirm DB indexes for rate-limit cleanup/count paths before traffic increases. Evidence: `src/lib/publication/public-repository.ts:282` through `src/lib/publication/public-repository.ts:309`.
+- Add or confirm DB indexes for rate-limit cleanup/count paths before traffic increases. Evidence (re-anchored 2026-06-21): cleanup `delete` in `cleanupExpiredRateLimitEvents` at `src/lib/publication/public-repository.ts:292` through `src/lib/publication/public-repository.ts:298`, and the count query in `countRateLimitEvents` at `src/lib/publication/public-repository.ts:323` through `src/lib/publication/public-repository.ts:341`. (Prior `:282` pointed at `genericRateLimitMessage`, a string helper, not the DB path.) `EXPLAIN` output goes in `evidence/perf-explain-queries.md`.
 - Run the existing activity benchmark with larger synthetic counts and record its output in the plan evidence directory.
 - Keep the deferred print-package pattern so full proposal print output does not inflate the normal receiver DOM.
 - Keep public activity comment bodies out of the unauthenticated receiver feed; the comments API remains the session-gated body surface.
