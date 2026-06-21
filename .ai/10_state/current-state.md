@@ -42,6 +42,26 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Shared-Link implementation/header-smoke advanced; archive remains NO-GO (2026-06-21):**
+
+- Phase: D1-D11 source/provider hardening plus archive-readiness audit.
+- Files changed/evidenced: shared-link plan folder under
+  `.ai/03_plans/2026-06-20-Shared-Link-Feature/`, share API/source hardening, targeted
+  shared-link/proxy tests, and
+  `supabase/migrations/20260621133000_shared_link_atomic_publish_and_digest_slot.sql`.
+- Evidence: targeted shared-link suites, `bun run type-check`, `bun run build`, provider readback
+  for the atomic publish/digest-slot RPCs and one-published partial unique index, linked-provider
+  DB inventory in
+  `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/live-db-performance-2026-06-21/`, and
+  production-mode local `/share` security-header smoke in
+  `.ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/shared-link-smoke/headers-2026-06-21.md`.
+- Result: D1-D11 implementation work has materially advanced and QA-G10 header-smoke evidence is
+  partially closed.
+- Blockers: do **not** archive the plan folder yet. Remaining archive gates are QA-G06 real-DB
+  duplicate-decision race proof or explicit beta acceptance, QA-G10 mobile/print/browser visual proof,
+  hosted deploy/post-deploy smoke, hosted/provider route performance evidence, and live observability
+  evidence or a documented waiver.
+
 ## 2026-06-21 Estimate Sheet Implementation — Phase -1
 
 - Phase: Canonical component taxonomy verification.

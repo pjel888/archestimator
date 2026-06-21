@@ -283,7 +283,7 @@ Real keys from `src/lib/component-library/query-keys.ts`:
 
 | Key / factory | Scoped? | Notes |
 |---------------|---------|-------|
-| `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` | **NO** | the ONLY real workspace-switch cache-bleed surface. PRIMARY READER: `TemplateEditorClient.tsx:160` (`useQuery`, the template-editor library dock) — it uses the inline literal `["workspace-component-library"]`, so a symbol-name grep misses it; it is the same cache entry. WRITERS (`invalidateQueries`): `LibraryPageClient.tsx:126`, `src/hooks/use-estimate-row-mutations.ts:335`, `EstimateSheetContent.tsx:1238/1241` (the in-estimate dock). query-keys.ts:5-6 documents it as "used by the Library management surfaces (template editor, component manager)." Scoping the key MUST migrate ALL these call sites — especially the editor's read at :160 — or the bleed stays open |
+| `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` | **NO** | the ONLY real workspace-switch cache-bleed surface. PRIMARY READER (inline literal, so a symbol-name grep misses it): `TemplateEditorClient.tsx:160` (`useQuery`, the template-editor library dock). WRITERS (`invalidateQueries`) — **verified 2026-06-21**: `TemplateEditorClient.tsx:166` (template-editor self-invalidate, inline literal), `LibraryPageClient.tsx:126` (symbol), `use-estimate-row-mutations.ts:406` (symbol), `EstimateSheetContent.tsx:1294` AND `:1297` (symbol, two writers in the in-estimate dock). `query-keys.ts:5-6` documents it as "used by the Library management surfaces (template editor, component manager)." Scoping the key MUST migrate ALL SIX call sites — the reader at `:160`, the self-invalidate at `:166`, and the four writers — or the bleed stays open. A scoping test that mocks only the four commonly-cited sites misses the `:166` self-invalidate and the `:1297` second writer. |
 | `WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY = ["workspace-component-library","lite"]` | partial | |
 | `workspaceComponentLibraryLiteQueryKey(projectId)` | by project | |
 | `WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY` + `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)` | by workspace | already cross-workspace tested |
@@ -312,9 +312,9 @@ mutation — name this in docs 02/13 Flow 7),
 
 The single-library-COMPONENT-into-ESTIMATE insert action is **NOT** in this
 `component-library/actions.ts` file — it lives in `src/lib/estimates/actions.ts`:
-**`insertEstimateRowItemFromLibrary`** (`:2580`), with siblings
-**`replaceEstimateRowItemWithLibrary`** (`:2675`) and
-**`detachEstimateRowItemFromLibrary`** (`:2713`). This is the action a component
+**`insertEstimateRowItemFromLibrary`** (`:2477`), with siblings
+**`replaceEstimateRowItemWithLibrary`** (`:2572`) and
+**`detachEstimateRowItemFromLibrary`** (`:2608`). This is the action a component
 insert flow (and doc 20's component-path `insert_target_confirmed`) must call.
 
 Insert mutations (resolve ≠ insert): for **template -> ESTIMATE**, the
@@ -324,9 +324,9 @@ insert via **`insertEstimateTemplateIntoEstimate`** (`@/lib/estimates/actions`).
 For **template -> template** (editor dock), the insert is
 **`insertTemplateIntoTemplate`** (`template-editor-actions.ts:484`). For a single
 library **COMPONENT -> ESTIMATE**, the insert action is
-**`insertEstimateRowItemFromLibrary`** (`src/lib/estimates/actions.ts:2580`); the
-related ops are **`replaceEstimateRowItemWithLibrary`** (`:2675`) and
-**`detachEstimateRowItemFromLibrary`** (`:2713`). Do not conflate these with the
+**`insertEstimateRowItemFromLibrary`** (`src/lib/estimates/actions.ts:2477`); the
+related ops are **`replaceEstimateRowItemWithLibrary`** (`:2572`) and
+**`detachEstimateRowItemFromLibrary`** (`:2608`). Do not conflate these with the
 template inserts above, and do not conflate the resolver with any insert action.
 
 Writes guard via `supabase.rpc("is_workspace_editor",{target_workspace_id})` and
@@ -499,6 +499,78 @@ Folder create/rename must reuse the inline `ConfirmDialog`+`<input>` pattern fro
 `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx:531-883`, or explicitly scope extracting a new
 primitive as its own task. Z-index tiers are exact Tailwind classes:
 `z-[1000]` (modal) / `z-[1050]` (menu/popover) / `z-[1100]` (tooltip).
+
+## Per-Phase Owner/Role and Rollback (bindings that change most often)
+
+> Closes the doc-25 §3 gap "no per-phase owner/role matrix inside keystone" and
+> "no rollback mapping in keystone itself." Owner roles come from
+> `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` §2; flags from `21-FEATURE-FLAGS-AND-ROLLOUT.md`;
+> rollback mechanics from `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md`. These are the
+> bindings that drift most when the underlying code changes — scoping the key or
+> moving a native prompt shifts the line numbers cited above; re-run the
+> "Appendix — Re-verification Commands" before each phase to catch the drift.
+
+| Phase | Lead role (doc 27) | Flag (doc 21) | Rollback (one-line) | Bindings most likely to drift |
+|-------|--------------------|---------------|---------------------|-------------------------------|
+| 0A Contract Lock | Security lead (authz/cache/redaction suites) + Perf lead (seed+baseline) | n/a (test/contract only) | Revert the scaffold commit; no shipped behavior | Query Keys section (6 cache-bleed call sites), snapshot-redaction line refs in publication/actions.ts |
+| 0B Overlay & Route-State Reliability | Frontend lead | `library_folder_dialogs`, `library_component_deep_link` | `git revert` the 0B commit + redeploy; flags flip off (~5 min, C-010) | Native-overlay-debt table (`ComponentLibraryManager.tsx:1493/1515/1534`, `AddComponentModal.tsx:963`), `confirmationHint` at `BulkDestructivePreviewModal.tsx:107-108` |
+| 1 Findability & Applied Filters | Frontend lead | `library_component_deep_link`, glass-shell flag per doc 21 §4 (C-022) | Revert + redeploy; glass variant defaults to paper | Route-state ruling (`?component=<id>` vs segment route), estimate-surface-variant.tsx reference |
+| 2 Source Trust at Decision Points | Frontend lead (chips) + Security lead (redaction re-test) | `library_trust_chips` | Revert + redeploy | The THREE 90-day constants + `getComponentPricingFreshness`/`getStalenessTone`/`getStalenessLabel` (Phase-2 "very stale" extension must touch all in lockstep — C-021) |
+| 3 Add/Edit Component Flow Split (Quick Add) | Frontend lead + Security lead (`ADV-VIEWER-MUTATION`) | `library_quick_add` | Revert + redeploy | Canonical Quick Add Contract (column existence), `is_workspace_editor` RPC |
+| 4 Templates Browse/Insert/Editor Clarity | Backend lead (insert) + Frontend lead (combobox) | reuses `library_trust_chips` | Revert + redeploy | `resolveEstimateTemplateInsertTarget` at `actions.ts:1451`; the three estimate-row insert actions at `estimates/actions.ts:2477/2572/2608` |
+| 5 Dense Maintenance Mode & Browser-Proven Polish | Perf lead (budgets) + QA lead (browser proof) | `library_dense_mode`, `library_virtualization_enabled` | Redeploy flag=false (fix-forward, ~5 min, C-010) | `WORKSHOP_VIRTUALIZATION_FLAGS` reuse; perf budgets PROVISIONAL until Phase 0A baseline (C-015) |
+
+A binding in this keystone is **stale** when an "Appendix — Re-verification
+Commands" run diverges from the cited line. Stop and reconcile this doc first
+(keystone wins — see "Purpose"); then propagate the corrected line to every
+sibling doc that cites it (the sibling-doc list in "Purpose" maps which doc
+binds to which section).
+
+## End-User Acceptance Criteria per Route/State
+
+> Closes the doc-25 §3 gap "no direct end-user acceptance criteria per
+> route/state." These are the **end-user-visible** pass conditions an
+> acceptance tester checks per route and state — not the per-ADV adversarial
+> cases (those live in `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md`). The
+> binding column points at the route owner file. Owner roles from doc 27.
+
+| Route / state | End-user acceptance criterion (observable, no test runner) | Owner role | Binding (file) |
+|---------------|------------------------------------------------------------|------------|----------------|
+| `/workshop/library` (overview) | A user lands on the Library overview; recent components and search are visible; clicking a recent component opens it in the Components tab with `?component=<id>`; the active tab + panel ARIA semantics are correct; selection + result count announced once | Frontend lead | `src/app/workshop/library/page.tsx`; `overview/LibraryOverview.tsx`; `overview/LibraryOverviewSearch.tsx:258` |
+| `/workshop/library/components` | A user browses, filters (supplier/brand/lifecycle/confidence/freshness), and selects a component; applied-filter chips are visible, individually removable, and clear-all resets them; the inspector dock shows the selected component's detail; a foreign-workspace `?component=<id>` shows permission-safe not-found (no object detail leaked) | Frontend lead | `src/app/workshop/library/components/page.tsx`; `ComponentLibraryManager.tsx`; `ComponentInspectorDock.tsx` |
+| `/workshop/library/components?component=<foreign-id>` (denied) | A user cannot see another workspace's component detail; RLS returns not-found/denied with no name/cost/source leaked; the `route_state_authz_denied` telemetry event fires once | Security lead | `LibraryPageClient.tsx` (route state, Phase 0B net-new) |
+| `/workshop/library/templates` | A user browses template thumbnails; opening one navigates to `/workshop/library/templates/[templateId]` (the shipped segment route — NOT `?template=<id>`); trust counts render as a computed JOIN over `source_library_item_id`/`link_state`, not a stored column | Frontend lead | `src/app/workshop/library/templates/page.tsx`; `templates-browse/TemplatesBrowsePageClient.tsx` |
+| `/workshop/library/templates/[templateId]` | A user previews a template; insert target is named via `resolveEstimateTemplateInsertTarget`; a `discontinued`/`archived`/missing-source dependency warns/blocks/overrides before insert; a stale/foreign target is rejected server-side via `can_edit_estimate` | Backend lead | `src/app/workshop/library/templates/[templateId]/page.tsx`; `templates-browse/InsertIntoEstimatePicker.tsx:99-118` |
+| Workspace switch with inspector dock open | A user switches workspaces; the inspector dock does NOT show the prior workspace's component detail; the un-scoped `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` is scoped by `workspaceId` and refetches | Backend lead | `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` (6 call sites, Query Keys section above) |
+| Folder create/rename/delete | A user manages folders via the inline `ConfirmDialog`+`<input>` text-prompt pattern (NOT `window.prompt`/`window.confirm`); delete confirmation names affected count and never conflates folder with category; server failure keeps the error visible | Frontend lead | `ComponentLibraryManager.tsx:1493/1515/1534` |
+| Add Component (Quick Add) | A user fills required fields (`name`/`category`/`unit`/`unit_cost`); advanced fields appear progressively; a dirty close opens the text-prompt `ConfirmDialog` (NOT `window.confirm`); a `viewer`-role actor's trigger is hidden/disabled and the server denies via `is_workspace_editor` | Frontend lead | `component-library-manager/AddComponentModal.tsx:963` |
+| Bulk archive | A user selects components and archives; the preview's `confirmationHint` does NOT claim "cannot be undone" for archive (lifecycle `archived` is recoverable); partial-invalid IDs are reported as skipped | Frontend lead | `BulkDestructivePreviewModal.tsx:107-108` |
+| Public `/share/[token]` snapshot | A recipient opens a shared link; the frozen snapshot from `project_publications.snapshot_json` renders; `pricing_source`, free-text `confidence`, and price history are NEVER in the snapshot (redaction is what the builder serializes, not a live endpoint) | Security lead | `src/lib/publication/actions.ts` (snapshot writes at `:577`/`:653`/`:716`); `src/app/share/[token]` |
+
+## Browser-Proof Requirement per Route
+
+> Closes the doc-25 §3 gap "no browser/screenshot proof requirements in this
+> file." The jsdom-vs-Playwright boundary is canonical in
+> `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md`; this section names which Library
+> routes REQUIRE a real browser screenshot before the phase can be called done,
+> and which jsdom can prove. Screenshot storage + browser matrix live in
+> `24-EXECUTION-EVIDENCE-LEDGER.md` ("Artifact storage, naming, and measurement
+> rules") and doc 29 §4.
+
+| Route / surface | jsdom proves | Playwright/manual browser REQUIRED for | Evidence row in doc 24 |
+|-----------------|--------------|----------------------------------------|------------------------|
+| `/workshop/library` overview + search | route-state DOM into `?component=<id>`; ARIA semantics; result-count announcement | real route navigation/back-forward across tabs; mobile overview layout | EV-06-019 |
+| `/workshop/library/components?component=<id>` deep link | recoverable not-found state (RLS-driven) | back/forward behavior; mobile inspector-dock drawer overlap at narrow viewport | EV-06-019, EV-06-020 |
+| Folder drag/drop reorder | (n/a — pointer behavior) | drop-target highlighting; order persistence after drop | EV-06-022 |
+| `AddComponentModal` + nested listbox | Escape closes `z-[1050]` listbox before `z-[1000]` modal; `aria-invalid` on required fields | cross-portal focus trap if a portal/trap changes | EV-06-023 |
+| Overlay z-index stack | (n/a — visual stacking) | menu above modal; tooltip above menu (`z-[1000]`/`z-[1050]`/`z-[1100]`) | EV-06-021 |
+| Dense-mode 500-row render + scroll | ARIA/focus assertions | no visible stall within perf budget; chip-wrap on mobile; touch targets ≥44×44px | EV-06-024, EV-06-025 |
+| Glass-surface render (doc 35) | (n/a — real `backdrop-filter` + `data-glass` arming) | one-blur-per-region; AA contrast on glass; deferred arming via `<html data-glass="ready">` | ADV-VISUAL-GLASS (doc 18) |
+
+A phase that touches a "Playwright REQUIRED" surface is NOT done until the
+matching doc-24 evidence row has a captured screenshot + `.json` metadata per
+doc 29 §4. jsdom-only phases (e.g. a pure copy change) cite this table to
+justify skipping browser proof.
 
 ## Appendix — Re-verification Commands
 

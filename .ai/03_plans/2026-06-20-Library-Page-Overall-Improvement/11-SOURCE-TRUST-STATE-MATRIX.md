@@ -210,6 +210,90 @@ stale price (rank 5) renders the discontinued chip inline, not a competing
 freshness chip; a `source-changed` link (rank 3) on a `draft` item (rank 4)
 renders source-changed. Flag: `library_trust_chips`.
 
+### Transition + precedence test matrix (closes §3 "no test matrix for transitions + precedence")
+
+Every transition row in §"State transitions" and every precedence rank pair in
+§Precedence maps to a named jsdom test (run under `bun run test:dom` /
+`vitest run tests/vitest/<file>` per C-005). Pass criteria pin the asserted
+`link_state` / rendered-chip outcome so a regression that breaks the transition
+or renders a competing chip fails the test. Flag: `library_trust_chips`.
+Rollback: redeploy `flag=false` (~5 min, fix-forward per C-010).
+
+| Suite | Test file | Rows covered | Pass criterion | Evidence |
+| --- | --- | --- | --- | --- |
+| Link-state transitions | `tests/vitest/library-trust-link-transitions.test.tsx` (Phase 0A net-new) | all 7 transition rows in §"State transitions" | each trigger produces the asserted `link_state`; "missing source" stays derived (no stored enum change); `detached` recoverable from "missing source" | EV-BE-03 |
+| Precedence single-winner | `tests/vitest/library-trust-precedence.test.tsx` (Phase 0A net-new) | all 7 ranks in §Precedence | a row satisfying multiple ranks renders exactly ONE primary inline chip (highest rank wins); secondary states appear only in `ComponentInspectorDock.tsx` detail; the concrete `discontinued`+stale and `source-changed`+`draft` pairs pass | EV-BE-03 |
+| Very-stale tier (Phase 2) | `tests/vitest/library-trust-very-stale.test.tsx` (Phase 2 net-new) | the `very_stale` row + its precedence rank-5 slot | `getComponentPricingFreshness` returns `"very_stale"` past 180 days (helper-layer extension); tone is `danger`; rank-5 precedence still resolves Very stale -> Stale -> Missing date correctly | EV-BE-04 |
+| Confidence passthrough | `tests/vitest/library-trust-confidence-passthrough.test.tsx` (Phase 2 net-new) | confidence "Free text" + "Missing" rows | any unrecognized non-empty `confidence` renders a neutral "Confidence: \<value\>" chip (not discarded); `null`/empty renders the missing treatment | EV-BE-04 |
+| Sanitizer on public snapshot (cross-ref doc 14) | `tests/vitest/share-snapshot-redaction.test.tsx` (Phase 0A net-new) | Public Exposure Rule field list | generated `snapshot_json` fixture contains none of `pricing_source` / `supplier` / `brand` / `confidence` / the derived trust label | ADV-PUBLIC-REDACTION |
+
+## Threshold-change Flag and Rollback (closes §3 "no flag/rollback for threshold changes")
+
+A threshold change (the 90-day `stale` window, the 180-day `very stale` window,
+or any future long-window constant) is gated by the `library_trust_chips` flag
+and carries an explicit rollback so a misjudged threshold cannot ship without a
+fix-forward path. The flag gates the RENDER of trust chips (and therefore the
+visible effect of any threshold change); the constants themselves are not
+independently flag-gated, but their lockstep edit rule below is the safety rail.
+
+| Threshold | Location | Phase | Flag | Rollback |
+| --- | --- | --- | --- | --- |
+| 90-day `stale` window | `COMPONENT_FACET_STALE_DAYS = 90` (`component-facet-filter.tsx:12`) + `LIBRARY_OVERVIEW_STALE_PRICING_DAYS = 90` (`component-library-repository.ts:827`) + `"prices older than 90 days"` string (`LibraryOverview.tsx:114`) | 2 | `library_trust_chips` | redeploy `flag=false` (~5 min, C-010) hides ALL trust chips; revert the three constants in lockstep if the window itself was misjudged |
+| 180-day `very stale` window (net-new) | new `COMPONENT_FACET_VERY_STALE_DAYS = 180` sibling constant + `getComponentPricingFreshness` branch (`component-facet-filter.tsx:61`) + `getStalenessTone` (`helpers.ts:667`, already returns `danger` past 180 at `:670`) | 2 | `library_trust_chips` | redeploy `flag=false` (hides the new tier); the existing 3-tier `fresh/stale/missing` helper return stays valid as the fallback |
+
+**Lockstep rule:** any threshold edit MUST update all THREE 90-day sources (or
+both 90+180 sources for `very stale`) plus their tests and copy keys in one
+atomic change; a partial edit is a build-time break, not a silent regression.
+The flag rollback is the runtime kill-switch; the constant revert is the
+permanent fix.
+
+## Localization Strategy for Trust Copy (closes §3 "no localization strategy")
+
+Trust copy is **i18n-key-based**, not hardcoded. Every chip label, tooltip, and
+assertive announcement resolves to a copy key in
+`22-COPY-DECK-AND-MICROCOPY.md` (`trust.*`, `lifecycle.*`, `link.*`) and a tone
+token in `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md`; this matrix never hardcodes a
+user-facing string, so a locale switch needs no schema change. The full
+i18n/RTL contract lives in `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md`; this
+section binds it to trust chips specifically.
+
+| i18n concern (doc 28) | Trust-chip rule | Phase |
+| --- | --- | --- |
+| ICU MessageFormat interpolation | trust copy uses ICU only for the `trust.freshness.stale` recency label (`"{days}d ago"`, doc 22) and the public-snapshot verification line (`trust.public_snapshot.label` = "Snapshot verified on {date}", C-012); all other trust keys are static literals | 2 |
+| Pluralization | the singular/plural "price older than 90 days" / "prices older than 90 days" form is already ICU-pluralized at `LibraryOverview.tsx:114`; the `very_stale` tier inherits the same plural form via its copy key | 2 |
+| RTL chip layout | trust chips render as inline-flex soft-fill spans (no `backdrop-filter`, per doc 35 §4.3); in RTL locales the chip's leading icon flips via the existing `dir`-aware icon utility — no chip-specific RTL work | 2 |
+| Tone token RTL safety | tone tokens (`success`/`warning`/`danger`/`neutral`) are color-only, not directional; they are RTL-safe by construction | 2 |
+| Date/number formatting | `pricing_date` recency is formatted via the existing `Intl.RelativeTimeFormat`-based helper; trust copy keys never inline a formatted date/number — they receive it as an ICU arg | 2 |
+
+Trust copy is locale-safe by construction: a future locale addition needs only
+new entries in the copy catalog (doc 22) under the existing `trust.*` keys — no
+schema change, no helper change, no tone-token change.
+
+## Trust-chip Telemetry (closes §3 "no telemetry for trust impressions/decisions")
+
+Trust telemetry is **coarse and per-surface, not per-row**, to avoid per-row
+event volume and to stay privacy-safe. Two exposure events are already defined
+in `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` §6; this section adds the
+insert-gate DECISION events (Phase 2) and the very-stale confirmation event.
+Sink = `console.warn` for closed beta (C-009); prod sink Phase-later.
+
+| Event (doc 20) | Trigger | Payload (privacy-safe) | Phase | Evidence |
+| --- | --- | --- | --- | --- |
+| `trust_chip_rendered` | first render-per-surface of a trust chip on overview/recent/template rows + inspector + insert | `workspaceId`, `surface`, `kind`, `freshness`, `hasConfidenceLabel`, `sampled: true` | 2 | EV-BE-04 |
+| `trust_chip_unclassified` | first render-per-surface where freshness is `missing` AND `hasConfidenceLabel` is false | `workspaceId`, `surface`, `kind` | 2 | EV-BE-04 |
+| `trust_insert_gate_warned` | an insert action surfaces a rank-2/3/4/5/6 warning chip before confirmation | `workspaceId`, `surface`, `kind`, `freshness`, `lifecycleState`, `linkState` | 2 | EV-BE-04 |
+| `trust_insert_gate_confirmed` | user proceeds with insert despite a warning chip (e.g. `discontinued` override, `very stale` confirmation) | `workspaceId`, `surface`, `kind`, `freshness`, `lifecycleState`, `linkState` | 2 | EV-BE-04 |
+| `trust_insert_gate_blocked` | insert is hard-blocked (rank-1 "missing source", rank-2 `archived`) and the action is disabled | `workspaceId`, `surface`, `kind`, `blockReason` | 2 | EV-BE-04 |
+
+`hasConfidenceLabel` is a boolean over free-text `confidence` presence
+(non-null, non-empty after trim) — the raw `confidence` string is NEVER emitted.
+Denominator for the "Trust classification 90%+" metric =
+`rendered / (rendered + unclassified)` over that exact definition (Phase 2).
+Insert-gate DECISIONS surface as `trust_insert_gate_*` events here, distinct
+from the resolver-level `insert_target_confirmed` / `insert_target_mismatch`
+events in doc 20 (those fire on the insert-target resolver, not the trust
+gate).
+
 Permission is enforced upstream by RLS / `is_workspace_editor`, not as a trust
 chip: a `viewer` simply does not see editor-only browse rows or insert actions,
 so "permission denied" is a route/empty-state concern, not a precedence rank.

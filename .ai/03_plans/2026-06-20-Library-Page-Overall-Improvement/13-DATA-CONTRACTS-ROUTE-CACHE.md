@@ -245,23 +245,35 @@ rollback = redeploy `flag=false`, fix-forward ~5 min per C-010):
 | Create/rename/delete/reorder folder (`createLibraryFolder` / `renameLibraryFolder` / `deleteLibraryFolder` / `reorderLibraryFolders`) | `LIBRARY`, `ROWS` (folder sidebar + per-folder counts) | Frontend lead | 0B | `library_folder_dialogs` | redeploy `flag=false` -> legacy `window.*` branch (emergency only) |
 | Move component to folder (`moveCostLibraryComponentToFolder`) | `LIBRARY`, `ROWS` | Frontend lead | 0B | `library_folder_dialogs` | redeploy `flag=false` |
 | Create/update template (template-editor actions) | `TEMPLATES` | Frontend lead | 4 | `library_trust_chips` (summary layer) | redeploy `flag=false` |
-| Insert component/template into estimate (insert via `insertEstimateTemplateIntoEstimate` (`src/lib/estimates/actions.ts:2309`, template -> estimate) / `insertTemplateIntoTemplate` (`template-editor-actions.ts:484`, template -> template); `resolveEstimateTemplateInsertTarget` only RESOLVES the target, it is not the mutation — keystone 19 lines 269-275) | the target estimate's tree key invalidated in `use-estimate-row-mutations.ts` (`estimateQueryKeys.tabTree(estimateId, tabId)` / `estimateQueryKeys.areaTree(estimateId)`, see `:333`), plus `ROWS` (`workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`) and `LIBRARY` for recent/reuse (the same two keys `use-estimate-row-mutations.ts:335` invalidates); usage recompute reads `getCostLibraryComponentUsage` (`actions.ts:1495`) | Backend lead | 4 | none (`git revert`) | `git revert`; the resolver re-resolves so a stale target cannot mutate the wrong estimate |
+| Insert component/template into estimate (insert via `insertEstimateTemplateIntoEstimate` (`src/lib/estimates/actions.ts:2309`, template -> estimate) / `insertTemplateIntoTemplate` (`template-editor-actions.ts:484`, template -> template); `resolveEstimateTemplateInsertTarget` only RESOLVES the target, it is not the mutation — keystone 19 lines 269-275) | the target estimate's tree key invalidated in `use-estimate-row-mutations.ts` (`estimateQueryKeys.tabTree(estimateId, tabId)` / `estimateQueryKeys.areaTree(estimateId)`, see `:333`), plus `ROWS` (`workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`) and `LIBRARY` for recent/reuse (the same two keys `use-estimate-row-mutations.ts:406` invalidates — `void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "active" })`); usage recompute reads `getCostLibraryComponentUsage` (`actions.ts:1495`) | Backend lead | 4 | none (`git revert`) | `git revert`; the resolver re-resolves so a stale target cannot mutate the wrong estimate |
 | Update source/trust metadata (`updateCostLibraryComponent`) | `LIBRARY`, `ROWS`, `LITE`; `TEMPLATES` if dependency health surfaced | Frontend lead | 2 | `library_trust_chips` | redeploy `flag=false` |
 
 ### Workspace-switch cache-bleed surface (BLOCKER)
 
-`WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` is
-**UN-SCOPED** — it carries no `workspaceId`. Its primary READER is
+`WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"]` (declared `src/lib/component-library/query-keys.ts:7`)
+is **UN-SCOPED** — it carries no `workspaceId`. Its primary READER is
 `TemplateEditorClient.tsx:160` (`useQuery` for the template-editor library dock), which
 uses the inline literal `["workspace-component-library"]` — the same cache entry, so a
 symbol-name grep misses it. The template editor ALSO self-invalidates that same
 literal at `TemplateEditorClient.tsx:166` (`void queryClient.invalidateQueries({
 queryKey: ["workspace-component-library"] })`), so there are FIVE call sites to
-migrate, not four. Other invalidators: `LibraryPageClient.tsx:126`,
-`use-estimate-row-mutations.ts:335`, and `EstimateSheetContent.tsx:1238/1241`
-(the in-estimate dock). This is the ONE real workspace-switch cache-bleed
-surface: on workspace switch its cached entry can show the previous workspace's
-data.
+migrate, not four. Other invalidators: `LibraryPageClient.tsx:126`
+(`void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY })`),
+`use-estimate-row-mutations.ts:406`
+(`void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "active" })`),
+and `EstimateSheetContent.tsx:1299` + `:1302` (the in-estimate dock —
+two `invalidateQueries` calls, `refetchType: "none"` and `"active"`). This is the
+ONE real workspace-switch cache-bleed surface: on workspace switch its cached
+entry can show the previous workspace's data.
+
+> **Line-number re-verification (2026-06-21):** the five call sites above were
+> re-verified with `rg -n` against `main`. The prior cites of
+> `use-estimate-row-mutations.ts:335` and `EstimateSheetContent.tsx:1238/1241`
+> were STALE — the invalidations have drifted to `:406` and `:1299/:1302`
+> respectively. The keystone (`19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md`)
+> still carries the old `:335` / `:1238/1241` numbers; this doc cites the
+> verified-current lines and flags the keystone drift in
+> `LOOP_LEDGER.md` §3 (lead owns the keystone).
 
 **Decision (Phase 0A, resolves C-007):** migrate `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY`
 to a workspace-scoped factory mirroring `workspaceComponentRowsLibraryQueryKey(workspaceId, projectId?)`
@@ -271,8 +283,8 @@ call sites in one atomic change:
 1. the reader `useQuery` at `TemplateEditorClient.tsx:160` (inline literal -> factory call),
 2. the self-invalidate at `TemplateEditorClient.tsx:166` (inline literal -> factory call),
 3. `LibraryPageClient.tsx:126`,
-4. `use-estimate-row-mutations.ts:335`,
-5. `EstimateSheetContent.tsx:1238/1241`.
+4. `use-estimate-row-mutations.ts:406`,
+5. `EstimateSheetContent.tsx:1299` + `:1302` (TWO invalidations on the same surface).
 
 Because the editor reads via the inline literal (not the symbol), a symbol-name
 grep is NOT sufficient — grep BOTH the symbol AND the literal `["workspace-component-library"]`
@@ -287,6 +299,46 @@ NOT the chosen path.
   already encode workspace identity and are cross-workspace tested; do NOT
   re-flag those as the bleed surface.
 
+### Cache-invalidation test mapping (closes §3 "no test-file mapping per case")
+
+Every mutation row in the Mutation Cache Contract above maps to a named jsdom
+test (run under `bun run test:dom` / `vitest run tests/vitest/<file>` per C-005).
+Each pass criterion pins the EXACT keys the mutation must invalidate — so a
+regression that drops an invalidation fails the test. Flag = `library_quick_add`
+or `library_folder_dialogs` or `library_trust_chips` per the row; rollback =
+redeploy `flag=false` (C-010, ~5 min) or `git revert` for the bulk-archive /
+insert rows.
+
+| Mutation row | Test file | Pass criterion | Evidence |
+| --- | --- | --- | --- |
+| Create/update component | `tests/vitest/library-mutation-invalidate-create-update.test.tsx` (Phase 0A net-new) | after `createCostLibraryComponent`/`updateCostLibraryComponent`, `LIBRARY` + `ROWS` + `LITE` are invalidated (assert each key's query is marked stale and refetched); `TEMPLATES` invalidated ONLY when dependency health is surfaced | EV-CACHE-01 |
+| Price option upsert | `tests/vitest/library-mutation-invalidate-price-option.test.tsx` (Phase 0A net-new) | after `upsertCostLibraryComponentPriceOption`, `LIBRARY` + `ROWS` + `LITE` invalidated (price/freshness recompute) | EV-CACHE-01 |
+| Lifecycle / archive | `tests/vitest/library-mutation-invalidate-lifecycle.test.tsx` (Phase 0A net-new) | after `changeCostLibraryComponentLifecycleState`, `LIBRARY` + `ROWS` + `LITE` + `TEMPLATES` (archived/discontinued dependency counts) invalidated | EV-CACHE-01 |
+| Bulk archive | `tests/vitest/library-mutation-invalidate-bulk-archive.test.tsx` (Phase 0A net-new) | after `executeBulkArchiveLibraryComponents`, `LIBRARY` + `ROWS` + `LITE` + `TEMPLATES` invalidated AND inspector selection cleared | EV-CACHE-01 |
+| Folder CRUD | `tests/vitest/library-mutation-invalidate-folder.test.tsx` (Phase 0B net-new) | after `createLibraryFolder` / `renameLibraryFolder` / `deleteLibraryFolder` / `reorderLibraryFolders`, `LIBRARY` + `ROWS` (folder sidebar + per-folder counts) invalidated | EV-CACHE-02 |
+| Move to folder | `tests/vitest/library-mutation-invalidate-move-folder.test.tsx` (Phase 0B net-new) | after `moveCostLibraryComponentToFolder`, `LIBRARY` + `ROWS` invalidated | EV-CACHE-02 |
+| Template create/update | `tests/vitest/library-mutation-invalidate-template.test.tsx` (Phase 4 net-new) | after template-editor actions, `TEMPLATES` invalidated | EV-CACHE-03 |
+| Insert into estimate | `tests/vitest/library-mutation-invalidate-insert.test.tsx` (Phase 4 net-new) | after insert, target estimate's tree key (`estimateQueryKeys.tabTree` / `.areaTree`) + `ROWS` + `LIBRARY` invalidated; resolver re-resolves so stale target cannot mutate wrong estimate | EV-CACHE-03 |
+
+### Telemetry hooks for route-state, cache-bleed recovery, stale-target recovery
+
+Route-state opens, invalid-id hits, stale-target recovery, and cache-bleed
+recovery are named in `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md`; for closed
+beta the sufficient sink is `console.warn` (C-009; prod sink is Phase-later via
+`setLibraryTelemetrySink`). Payloads are ID-only and workspace-scoped — no raw
+user identity in beta.
+
+| Event (doc 20) | Trigger (this doc) | Payload (privacy-safe) | Sink | Phase |
+| --- | --- | --- | --- | --- |
+| `library_component_selected` | valid `?component=<id>` resolves in current workspace | `workspaceId`, `componentId`, `surface` | `console.warn` | 0B-1 |
+| `component_route_not_found` | `?component=<id>` does not exist / not in workspace | `workspaceId`, `outcome:"not_found"` | `console.warn` | 0B |
+| `route_state_authz_denied` | permission-denied `?component=<id>` (viewer / foreign-workspace; RLS via `is_workspace_member` migration `20260613201302` returns no row) | `workspaceId`, `componentId`, `outcome:"denied"` | `console.warn` | 0A |
+| `workspace_switch_cache_recovery` | stale-after-workspace-switch recovery | `fromWorkspaceId`, `toWorkspaceId` | `console.warn` | 0A |
+| `library_template_opened` | valid `/workshop/library/templates/[templateId]` segment route open | `workspaceId`, `templateId` | `console.warn` | 4 |
+| `template_route_not_found` | invalid / foreign-workspace templateId | `workspaceId`, `outcome` | `console.warn` | 4 |
+| `cache_bleed_detected` (cross-ref doc 14 §"Security telemetry events") | cross-workspace data detected in cache (the C-007 migration is the mitigation) | `workspaceAId`, `workspaceBId`, `cacheKey` | `console.warn` | 0A |
+| `insert_target_mismatch` (doc 20) | stale insert target re-resolved by `resolveEstimateTemplateInsertTarget` to a recovery state | `workspaceId`, `targetEstimateId`, `outcome` | `console.warn` | 4 |
+
 Phase 0A must scaffold a cache test that asserts the workspace-scoped factory
 entry does not leak across a simulated workspace switch. This is pre-registered
 as evidence `ADV-WS-SWITCH-CACHE` in `24-EXECUTION-EVIDENCE-LEDGER.md`:
@@ -294,11 +346,29 @@ command `vitest run tests/vitest/library-workspace-switch-cache.test.tsx`
 (net-new); pass criterion — after a simulated workspace A -> B switch with the
 inspector/editor dock open, the scoped cache entry clears/refetches and the
 assertion covers ALL FIVE migrated call sites (reader `:160`, self-invalidate
-`:166`, `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:335`,
-`EstimateSheetContent.tsx:1238/1241`), so no prior-workspace detail is
+`:166`, `LibraryPageClient.tsx:126`, `use-estimate-row-mutations.ts:406`,
+`EstimateSheetContent.tsx:1299`+`:1302`), so no prior-workspace detail is
 observable; owner Phase 0A Contract Lock (Backend lead, doc 27); gate
 `bun run test:dom`. This gates the doc 13 key-scoping change (see doc 19 phase
 map and doc 24).
+
+### Copy contract for invalid route state + safe-not-found
+
+Invalid-route-state and permission-safe-not-found copy is owned by
+`22-COPY-DECK-AND-MICROCOPY.md`; this section binds every route-state outcome to
+its copy key so wording changes in one place. Use the `secondary`/`danger`
+semantic tokens (never `tertiary` #7F7F7F, which fails WCAG AA — doc 22 §2).
+
+| Route-state outcome | Copy key (doc 22) | Copy (state-name row) | Announcement (doc 22 §12A, assertive) |
+| --- | --- | --- | --- |
+| `?component=<id>` not-found / cross-workspace | `component_inspector.invalid` | That component could not be found here. | `route.not_found_announcement` "The selected component is not available." |
+| `?component=<id>` permission-denied (viewer / foreign-workspace) | `library.permission_denied` | You do not have access to this workspace's library. | `permission.denied_announcement` "You do not have permission to view this component." |
+| Stale-after-workspace-switch recovery | `library.stale_after_switch` | This component is no longer available in this workspace. | `route.stale_after_switch_announcement` "The selection was cleared after switching workspace." |
+| Invalid `templateId` (segment route) | `library.template_not_found` | That template could not be found here. | `route.not_found_announcement` "The selected template is not available." |
+
+Rules: copy is generic (never names the hidden object); it states the issue then
+the next step (Switch workspace / Clear selection / Reselect target). Do not
+reveal object existence, workspace names, or that an object exists.
 
 ## Server Action Contract
 
