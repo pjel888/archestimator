@@ -326,7 +326,7 @@ describe("estimate sheet version control server actions", () => {
   it("shows stale-data copy and actively refetches the active tree on row revision conflicts", () => {
     const hookSource = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8");
 
-    expect(hookSource).toContain('const ESTIMATE_ROW_REVISION_CONFLICT_CODE = "estimate_sheet_row_revision_conflict"');
+    expect(hookSource).toContain('import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict"');
     expect(hookSource).toContain("This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.");
     expect(hookSource).toContain("isRowRevisionConflictError(error) ? \"active\" : \"none\"");
     expect(hookSource).toContain("isRowRevisionConflictError(_error) ? \"active\" : \"none\"");

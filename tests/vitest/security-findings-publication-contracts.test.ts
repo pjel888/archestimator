@@ -5,11 +5,22 @@ import { latestFunction, latestMigrationBySuffix, migrationText, read } from "./
 describe("Codex publication and public-surface hardening contracts", () => {
   it("enforces publication password access before creating recipient sessions", () => {
     const sessionRoute = read("src/app/api/share/[token]/session/route.ts");
-    const handlerBody = sessionRoute.slice(sessionRoute.indexOf("export async function POST"));
+    const sessionHelper = sessionRoute.slice(
+      sessionRoute.indexOf("async function createRecipientSessionResponse"),
+      sessionRoute.indexOf("export async function GET"),
+    );
+    const getHandler = sessionRoute.slice(
+      sessionRoute.indexOf("export async function GET"),
+      sessionRoute.indexOf("export async function POST"),
+    );
+    const postHandler = sessionRoute.slice(sessionRoute.indexOf("export async function POST"));
 
-    expect(handlerBody.indexOf("resolveProjectPublicationAccessByToken")).toBeGreaterThanOrEqual(0);
-    expect(handlerBody.indexOf("hasPublicationAccessCookie")).toBeGreaterThan(handlerBody.indexOf("publicationAccess.passwordRequired"));
-    expect(handlerBody.indexOf("hasPublicationAccessCookie")).toBeLessThan(handlerBody.indexOf("verifySharedLinkRecipientToken"));
+    expect(sessionHelper.indexOf("resolveProjectPublicationAccessByToken")).toBeGreaterThanOrEqual(0);
+    expect(sessionHelper.indexOf("hasPublicationAccessCookie")).toBeGreaterThan(sessionHelper.indexOf("publicationAccess.passwordRequired"));
+    expect(sessionHelper.indexOf("hasPublicationAccessCookie")).toBeLessThan(sessionHelper.indexOf("verifySharedLinkRecipientToken"));
+    expect(getHandler).toContain("createRecipientSessionResponse");
+    expect(postHandler).toContain("assertSameOriginPublicPost");
+    expect(postHandler).toContain("createRecipientSessionResponse");
   });
 
   it("gates public activity for password-protected links and scopes decisions/events to verified recipients", () => {

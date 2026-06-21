@@ -274,6 +274,72 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+function createDataTransferStub(initialDropEffect = "none") {
+  const store = new Map<string, string>();
+  const types: string[] = [];
+  return {
+    types,
+    dropEffect: initialDropEffect,
+    effectAllowed: "all",
+    setData: vi.fn((type: string, value: string) => {
+      store.set(type, value);
+      if (!types.includes(type)) types.push(type);
+    }),
+    getData: vi.fn((type: string) => store.get(type) ?? ""),
+    setDragImage: vi.fn(),
+  };
+}
+
+function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRevision: number) {
+  return {
+    rowId,
+    nodeId: targetNodeId,
+    material: item.material,
+    description: item.description,
+    supplier: item.supplier,
+    unit: item.unit,
+    quantity: item.quantity,
+    itemCost: item.itemCost,
+    contingencyPercentage: item.contingencyPercentage ?? 0,
+    contingencyValue: item.contingencyValue ?? 0,
+    miscCost: item.miscCost ?? 0,
+    sourceSnapshot: item.sourceSnapshot ?? null,
+    metadata: item.metadata ?? {},
+    linkState: item.linkState ?? "unlinked",
+    rowRevision,
+  };
+}
+
+function mockCabinetMovePersistence() {
+  const targetReplace = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+  const sourceClear = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+  actionMocks.replaceEstimateRowItemWithLibrary.mockImplementation(({ rowId }: { rowId: string }) => {
+    if (rowId === sinkRowId) return targetReplace.promise;
+    if (rowId === cabinetRowId) return sourceClear.promise;
+    return Promise.reject(new Error(`Unexpected row ${rowId}`));
+  });
+  return { targetReplace, sourceClear };
+}
+
+async function dragCabinetOntoSink() {
+  renderPersistedEstimateSheet(nodesWithRow);
+
+  const sourceCell = screen.getByLabelText("Kitchen Cabinet replaceable estimate component");
+  const targetCell = screen.getByLabelText("Kitchen Sink replaceable estimate component");
+  const sourceRow = sourceCell.closest("tr");
+  const targetRow = targetCell.closest("tr");
+  expect(sourceRow).not.toBeNull();
+  expect(targetRow).not.toBeNull();
+
+  const dataTransfer = createDataTransferStub("none");
+  fireEvent.dragStart(within(sourceCell).getByRole("button", { name: "Drag component Kitchen Cabinet" }), { dataTransfer });
+  fireEvent.dragOver(targetCell, { dataTransfer });
+  fireEvent.drop(targetCell, { dataTransfer });
+
+  await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(2));
+  return { sourceRow: sourceRow as HTMLElement, targetRow: targetRow as HTMLElement };
+}
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -334,6 +400,9 @@ describe("estimate sheet library insertion persistence", () => {
       linkState: "detached",
       rowRevision: 8,
     });
+    actionMocks.replaceEstimateRowItemWithLibrary.mockImplementation(({ rowId, libraryItem }: { rowId: string; libraryItem: EstimateRowItem }) =>
+      Promise.resolve(makeCanonicalReplaceResult(rowId, libraryItem, 8)),
+    );
     promotionMocks.promoteEstimateRowToLibraryComponent.mockResolvedValue({
       rowId: cabinetRowId,
       itemId: "99999999-9999-4999-8999-999999999999",
@@ -895,6 +964,48 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).queryByText("Saving")).not.toBeInTheDocument();
     expect(within(kitchenSection).queryByText("Saved")).not.toBeInTheDocument();
     expect(within(kitchenSection).queryByText("Save failed")).not.toBeInTheDocument();
+  });
+
+  it("keeps a successful move target when clearing the source row fails", async () => {
+    const { targetReplace, sourceClear } = mockCabinetMovePersistence();
+    const { sourceRow, targetRow } = await dragCabinetOntoSink();
+
+    const targetInput = actionMocks.replaceEstimateRowItemWithLibrary.mock.calls.find(([input]) => input.rowId === sinkRowId)?.[0];
+    if (!targetInput) throw new Error("Target replace input was not captured.");
+
+    await act(async () => {
+      targetReplace.resolve(makeCanonicalReplaceResult(sinkRowId, targetInput.libraryItem, 4));
+      sourceClear.reject(new Error("source clear failed"));
+      await Promise.allSettled([targetReplace.promise, sourceClear.promise]);
+    });
+
+    expect(await screen.findByText("source clear failed")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(sourceRow).getByLabelText("Kitchen Cabinet replaceable estimate component")).toBeInTheDocument();
+      expect(within(targetRow).getByLabelText("Kitchen Cabinet replaceable estimate component")).toBeInTheDocument();
+    });
+    expect(within(targetRow).queryByLabelText("Kitchen Sink replaceable estimate component")).not.toBeInTheDocument();
+  });
+
+  it("keeps a successful source clear when replacing the target row fails", async () => {
+    const { targetReplace, sourceClear } = mockCabinetMovePersistence();
+    const { sourceRow, targetRow } = await dragCabinetOntoSink();
+
+    const sourceInput = actionMocks.replaceEstimateRowItemWithLibrary.mock.calls.find(([input]) => input.rowId === cabinetRowId)?.[0];
+    if (!sourceInput) throw new Error("Source clear input was not captured.");
+
+    await act(async () => {
+      targetReplace.reject(new Error("target replace failed"));
+      sourceClear.resolve(makeCanonicalReplaceResult(cabinetRowId, sourceInput.libraryItem, 8));
+      await Promise.allSettled([targetReplace.promise, sourceClear.promise]);
+    });
+
+    expect(await screen.findByText("target replace failed")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(targetRow).getByLabelText("Kitchen Sink replaceable estimate component")).toBeInTheDocument();
+      expect(within(sourceRow).getByLabelText("Component name")).toHaveValue("");
+    });
+    expect(within(sourceRow).queryByLabelText("Kitchen Cabinet replaceable estimate component")).not.toBeInTheDocument();
   });
 
   it("keeps another row edit when an older row save fails", async () => {

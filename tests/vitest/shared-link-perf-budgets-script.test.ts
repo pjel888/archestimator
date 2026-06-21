@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parsePositiveIntegerList,
+  readShareRequestHeaders,
   renderMeasurementRowsForMarkdown,
   runPerfBudgetMeasurement,
 } from "../../scripts/measure-shared-link-perf-budgets";
@@ -10,6 +11,13 @@ describe("shared-link perf budget measurement helper", () => {
   it("parses positive row/count lists for repeatable evidence commands", () => {
     expect(parsePositiveIntegerList("100, 1000, nope, 10000", "--rows")).toEqual([100, 1000, 10000]);
     expect(() => parsePositiveIntegerList("nope", "--rows")).toThrow(/--rows/);
+  });
+
+  it("builds a Cookie header for protected hosted preview measurements", () => {
+    expect(readShareRequestHeaders({ SHARE_COOKIE: "vercel-auth=secret-cookie" })).toEqual({
+      cookie: "vercel-auth=secret-cookie",
+    });
+    expect(readShareRequestHeaders({ SHARE_COOKIE: "   " })).toEqual(undefined);
   });
 
   it("captures snapshot byte budgets and keeps large compact snapshots inside budget", async () => {

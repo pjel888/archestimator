@@ -126,7 +126,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       passwordRequired: false,
       snapshotVersion: 7,
       credentialVersion: "open",
-      snapshot,
+      snapshot: publicSnapshot,
     });
     mocks.recordProjectPublicationEvent.mockResolvedValue(undefined);
     mocks.recordProjectPublicationAnalyticsEvent.mockResolvedValue({ recorded: true });
@@ -147,7 +147,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("content-disposition")).toBeNull();
     expect(await response.json()).toEqual({
-      publicationId: "publication-1",
+      publicationId: "project-1",
       passwordRequired: false,
       snapshot: publicSnapshot,
     });
@@ -380,6 +380,15 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       request: expect.any(Request),
       metadata: { success: true },
     });
+    expect(mocks.clearProjectPublicationPasswordFailures).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
+    expect(nextServerMocks.after).toHaveBeenCalledTimes(1);
+    expect(mocks.recordProjectPublicationAnalyticsEvent).not.toHaveBeenCalled();
+
+    await Promise.all(nextServerMocks.afterCallbacks.map((callback) => callback()));
+
     expect(mocks.recordProjectPublicationAnalyticsEvent).toHaveBeenCalledWith({
       token: "client-token",
       eventType: "password_attempt",
@@ -387,10 +396,47 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       passwordSuccess: true,
       request: expect.any(Request),
     });
+  });
+
+  it("does not set a password access cookie when durable failure clearing fails", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.verifyProjectPublicationPasswordByToken.mockResolvedValueOnce({
+      publicationId: "publication-1",
+      status: "published",
+      passwordRequired: true,
+      snapshotVersion: 7,
+      credentialVersion: "cred-test",
+    });
+    mocks.clearProjectPublicationPasswordFailures.mockRejectedValueOnce(new Error("delete failed"));
+
+    const response = await POST_PASSWORD(
+      new Request("https://archestimator.test/api/share/client-token/password", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "content-type": "application/json",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ password: "client-secret" }),
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(await response.json()).toEqual({ error: "Unable to unlock publication." });
     expect(mocks.clearProjectPublicationPasswordFailures).toHaveBeenCalledWith({
       token: "client-token",
       request: expect.any(Request),
     });
+    expect(nextServerMocks.after).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationAnalyticsEvent).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[share] failed to clear password failure lockout state after successful unlock",
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
   });
 
   it("rate limits publication password attempts before password verification", async () => {

@@ -21,6 +21,7 @@ describe("estimate row image URL policy", () => {
     expect(normalizeEstimateRowImageUrl(safeSupabaseImage)).toBe(safeSupabaseImage);
     expect(normalizeEstimateRowImageUrl("https://tracker.example/pixel.svg?viewer=1")).toBeNull();
     expect(normalizeEstimateRowImageUrl("https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp?viewer=1")).toBeNull();
+    expect(normalizeEstimateRowImageUrl("https://example.supabase.co/storage/v1/object/public/component-images/ws/user/%2e%2e/fixture.webp")).toBeNull();
     expect(normalizeEstimateRowImageUrl("data:image/svg+xml,<svg></svg>")).toBeNull();
     expect(normalizeEstimateRowImageUrl("javascript:alert(1)")).toBeNull();
   });

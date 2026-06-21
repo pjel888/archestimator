@@ -80,7 +80,7 @@ const sharedLibraryItems: EstimateRowItem[] = [
     brandId: "db-brand",
     pricingSource: "Database Supplier",
     pricingDate: "2026-05-22",
-    imageUrl: "https://assets.example.test/steel-frame.jpg",
+    imageUrl: "/api/component-library/images?path=steel-frame.jpg",
   },
 ];
 const sharedBrands = [
@@ -145,6 +145,7 @@ describe("component library UI", () => {
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -653,25 +654,164 @@ describe("component library UI", () => {
 
     const image = thumbnail?.querySelector("img");
     expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute("src", "https://assets.example.test/steel-frame.jpg");
+    expect(image).toHaveAttribute("src", "/api/component-library/images?path=steel-frame.jpg");
     expect(image).toHaveAttribute("alt", "");
     expect(image).toHaveAttribute("loading", "lazy");
     expect(image).toHaveAttribute("decoding", "async");
   });
 
-  it("uses thumbnail placeholders for missing or non-http image URLs", () => {
+  it("allows bundled and configured Supabase thumbnails without accepting unsafe direct URLs", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    const safeSupabaseImage = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp";
+    const directImageItems: EstimateRowItem[] = [
+      {
+        ...sharedLibraryItems[0],
+        id: "bundled-thumbnail-item",
+        material: "Bundled Thumbnail Component",
+        name: "Bundled Thumbnail Component",
+        imageUrl: "/component-thumbnails/lib-sofa.jpg",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "supabase-thumbnail-item",
+        material: "Supabase Thumbnail Component",
+        name: "Supabase Thumbnail Component",
+        imageUrl: safeSupabaseImage,
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "supabase-query-thumbnail-item",
+        material: "Supabase Query Thumbnail Component",
+        name: "Supabase Query Thumbnail Component",
+        imageUrl: `${safeSupabaseImage}?viewer=1`,
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "supabase-hash-thumbnail-item",
+        material: "Supabase Hash Thumbnail Component",
+        name: "Supabase Hash Thumbnail Component",
+        imageUrl: `${safeSupabaseImage}#preview`,
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "supabase-userinfo-thumbnail-item",
+        material: "Supabase Userinfo Thumbnail Component",
+        name: "Supabase Userinfo Thumbnail Component",
+        imageUrl: "https://viewer@example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "supabase-port-thumbnail-item",
+        material: "Supabase Port Thumbnail Component",
+        name: "Supabase Port Thumbnail Component",
+        imageUrl: "https://example.supabase.co:444/storage/v1/object/public/component-images/ws/user/components/fixture.webp",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "supabase-traversal-thumbnail-item",
+        material: "Supabase Traversal Thumbnail Component",
+        name: "Supabase Traversal Thumbnail Component",
+        imageUrl: "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/%2e%2e/fixture.webp",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "route-traversal-thumbnail-item",
+        material: "Route Traversal Thumbnail Component",
+        name: "Route Traversal Thumbnail Component",
+        imageUrl: "/api/component-library/images/../../projects/images?path=steel-frame.jpg",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "route-encoded-traversal-thumbnail-item",
+        material: "Route Encoded Traversal Thumbnail Component",
+        name: "Route Encoded Traversal Thumbnail Component",
+        imageUrl: "/api/component-library/images/%2e%2e/%2e%2e/projects/images?path=steel-frame.jpg",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "route-hash-thumbnail-item",
+        material: "Route Hash Thumbnail Component",
+        name: "Route Hash Thumbnail Component",
+        imageUrl: "/api/component-library/images?path=steel-frame.jpg#preview",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "route-extra-query-thumbnail-item",
+        material: "Route Extra Query Thumbnail Component",
+        name: "Route Extra Query Thumbnail Component",
+        imageUrl: "/api/component-library/images?path=steel-frame.jpg&next=/api/projects/images",
+      },
+      {
+        ...sharedLibraryItems[0],
+        id: "route-path-traversal-thumbnail-item",
+        material: "Route Path Traversal Thumbnail Component",
+        name: "Route Path Traversal Thumbnail Component",
+        imageUrl: "/api/component-library/images?path=../steel-frame.jpg",
+      },
+    ];
+
+    renderSidebar({
+      initialLibraryItems: directImageItems,
+      categoryTree: sharedCategoryTree,
+      brands: sharedBrands,
+    });
+
+    const bundledImage = screen
+      .getByRole("treeitem", { name: "Bundled Thumbnail Component" })
+      .querySelector("[data-component-library-row-thumbnail] img");
+    expect(bundledImage).toHaveAttribute("src", "/component-thumbnails/lib-sofa.jpg");
+
+    const supabaseImage = screen
+      .getByRole("treeitem", { name: "Supabase Thumbnail Component" })
+      .querySelector("[data-component-library-row-thumbnail] img");
+    expect(supabaseImage).toHaveAttribute("src", safeSupabaseImage);
+
+    for (const name of [
+      "Supabase Query Thumbnail Component",
+      "Supabase Hash Thumbnail Component",
+      "Supabase Userinfo Thumbnail Component",
+      "Supabase Port Thumbnail Component",
+      "Supabase Traversal Thumbnail Component",
+      "Route Traversal Thumbnail Component",
+      "Route Encoded Traversal Thumbnail Component",
+      "Route Hash Thumbnail Component",
+      "Route Extra Query Thumbnail Component",
+      "Route Path Traversal Thumbnail Component",
+    ]) {
+      const thumbnail = screen.getByRole("treeitem", { name }).querySelector("[data-component-library-row-thumbnail]");
+      expect(thumbnail).toBeInTheDocument();
+      expect(thumbnail?.querySelector("img")).toBeNull();
+    }
+  });
+
+  it("uses thumbnail placeholders for missing or disallowed image URLs", () => {
     renderSidebar({
       initialLibraryItems: [
-        { ...sharedLibraryItems[0], id: "invalid-image-item", imageUrl: "javascript:alert(1)" },
+        {
+          ...sharedLibraryItems[0],
+          id: "external-image-item",
+          material: "External Image Component",
+          name: "External Image Component",
+          imageUrl: "https://assets.example.test/steel-frame.jpg",
+        },
+        {
+          ...sharedLibraryItems[0],
+          id: "script-image-item",
+          material: "Script Image Component",
+          name: "Script Image Component",
+          imageUrl: "javascript:alert(1)",
+        },
       ],
       categoryTree: sharedCategoryTree,
       brands: sharedBrands,
     });
 
-    const item = screen.getByRole("treeitem", { name: "Database Steel Frame" });
-    const thumbnail = item.querySelector("[data-component-library-row-thumbnail]");
-    expect(thumbnail).toBeInTheDocument();
-    expect(thumbnail?.querySelector("img")).toBeNull();
+    for (const name of ["External Image Component", "Script Image Component"]) {
+      const item = screen.getByRole("treeitem", { name });
+      const thumbnail = item.querySelector("[data-component-library-row-thumbnail]");
+      expect(thumbnail).toBeInTheDocument();
+      expect(thumbnail?.querySelector("img")).toBeNull();
+    }
   });
 
   it("opens right-click actions for folders and draggable component rows", async () => {
@@ -1174,6 +1314,26 @@ describe("templates tree", () => {
       expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-3" }),
     );
     expect(screen.getByRole("treeitem", { name: "Lobby Refresh Estimate estimate EST-003" })).toBeInTheDocument();
+  });
+
+  it("shows a retry panel when project source auto-load fails", async () => {
+    reusableSourceActionMocks.listReusableProjectSources
+      .mockRejectedValueOnce(new Error("provider unavailable"))
+      .mockResolvedValueOnce({
+        sources: projectSources.filter((source) => source.kind === "project"),
+      });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load project sources.");
+    expect(screen.queryByText(/Try Refresh/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry project sources" }));
+
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    expect(screen.getByText("Project sources updated.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("searches action-backed project sources and reveals unloaded outline matches", async () => {

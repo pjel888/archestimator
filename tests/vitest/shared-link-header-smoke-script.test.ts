@@ -15,6 +15,12 @@ describe("shared-link header smoke script", () => {
     );
   });
 
+  it("redacts Vercel protected-preview bypass tokens from report URLs", () => {
+    expect(redactShareUrl("https://preview.example/share/raw-share-token?_vercel_share=raw-bypass&view=summary")).toBe(
+      "https://preview.example/share/%3Credacted-token%3E?_vercel_share=%3Credacted%3E&view=summary",
+    );
+  });
+
   it("recognizes no-store cache headers and frame protection", () => {
     expect(hasNoStoreCacheControl("private, no-cache, no-store, max-age=0")).toBe(true);
 
@@ -62,6 +68,35 @@ describe("shared-link header smoke script", () => {
     expect(report.passed).toBe(true);
     expect(JSON.stringify(report)).not.toContain("raw-share-token");
     expect(JSON.stringify(report)).not.toContain("raw-recipient-token");
+  });
+
+  it("sends a supplied Cookie header without writing it into the report", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, {
+      status: 200,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-security-policy": "default-src 'self'; frame-ancestors 'none'",
+        "x-frame-options": "DENY",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=63072000",
+        "x-robots-tag": "noindex, nofollow",
+      },
+    }));
+
+    const report = await smokeShareHeaders({
+      shareUrl: "https://preview.example/share/raw-share-token",
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      requestHeaders: { cookie: "vercel-auth=secret-cookie" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://preview.example/share/raw-share-token", {
+      method: "HEAD",
+      redirect: "manual",
+      headers: { cookie: "vercel-auth=secret-cookie" },
+    });
+    expect(report.passed).toBe(true);
+    expect(JSON.stringify(report)).not.toContain("secret-cookie");
   });
 
   it("renders markdown without leaking header values or URL secrets", async () => {

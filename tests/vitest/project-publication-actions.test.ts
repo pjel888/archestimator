@@ -695,7 +695,9 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     const sessionRouteSrc = readFileSync("src/app/api/share/[token]/session/route.ts", "utf8");
     expect(pageSrc).toContain("searchParams");
     expect(pageSrc).toContain("?recipient");
-    expect(pageSrc).toContain("SharePageRecipientSessionInitializer");
+    expect(pageSrc).toContain("redirect(`/api/share/${encodeURIComponent(token)}/session?recipient=${encodeURIComponent(recipientToken)}`)");
+    expect(pageSrc).not.toContain("SharePageRecipientSessionInitializer");
+    expect(sessionRouteSrc).toContain("export async function GET");
     expect(sessionRouteSrc).toContain("verifySharedLinkRecipientToken");
     expect(sessionRouteSrc).toContain("getSharedLinkSessionCookieParts");
     expect(sessionRouteSrc).toContain("response.cookies.set");

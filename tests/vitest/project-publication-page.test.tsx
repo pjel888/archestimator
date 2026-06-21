@@ -38,6 +38,9 @@ vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
 }));
 
 // OPT-1: the page now defers both telemetry writes via after() from next/server. Outside a
@@ -232,53 +235,36 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(container.querySelectorAll(".share-print-hidden").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("defers recipient query session creation to the route-handler mutation boundary", async () => {
-    render(
-      await SharePage({
+  it("redirects recipient query session creation to the route-handler before rendering", async () => {
+    await expect(
+      SharePage({
         params: Promise.resolve({ token: "client-token" }),
         searchParams: Promise.resolve({ recipient: "raw-recipient-token" }),
       }),
-    );
+    ).rejects.toThrow("NEXT_REDIRECT:/api/share/client-token/session?recipient=raw-recipient-token");
 
-    expect(sharePageSource).toContain("SharePageRecipientSessionInitializer");
-    expect(sharePageSource).toContain("recipientToken={recipientToken}");
+    expect(sharePageSource).toContain("redirect(`/api/share/${encodeURIComponent(token)}/session?recipient=${encodeURIComponent(recipientToken)}`)");
+    expect(sharePageSource).not.toContain("SharePageRecipientSessionInitializer");
     expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
     expect(mocks.cookieSet).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-        token: "client-token",
-        eventType: "open",
-        request: expect.any(Request),
-        metadata: {},
-        recipientId: undefined,
-      });
-    });
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
   });
 
-  it("keeps malformed recipient query values out of server-side cookie mutation", async () => {
-    render(
-      await SharePage({
+  it("keeps malformed recipient query values out of page rendering and server-side cookie mutation", async () => {
+    await expect(
+      SharePage({
         params: Promise.resolve({ token: "client-token" }),
         searchParams: Promise.resolve({ recipient: "not-a-valid-recipient-token" }),
       }),
-    );
+    ).rejects.toThrow("NEXT_REDIRECT:/api/share/client-token/session?recipient=not-a-valid-recipient-token");
 
-    expect(screen.queryByText(/Viewing as/)).not.toBeInTheDocument();
     expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
     expect(mocks.cookieSet).not.toHaveBeenCalledWith(
       expect.stringMatching(/^shared_link_session_/),
       expect.any(String),
       expect.any(Object),
     );
-    await waitFor(() => {
-      expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-        token: "client-token",
-        eventType: "open",
-        request: expect.any(Request),
-        metadata: {},
-        recipientId: undefined,
-      });
-    });
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
   });
 
   it("offers a Not you recovery that clears HttpOnly recipient-session cookies server-side", async () => {
@@ -356,6 +342,53 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(setCookieHeader).not.toContain("client-token");
     expect(setCookieHeader).not.toContain("raw-recipient-token");
     expect(shareSessionRouteSource).toContain("after(async () =>");
+  });
+
+  it("creates recipient session cookies through a server redirect without rendering raw tokens", async () => {
+    mocks.verifySharedLinkRecipientToken.mockResolvedValueOnce({
+      publicationId: "publication-1",
+      snapshotVersion: 7,
+      credentialVersion: "open",
+      recipientId: "recipient-1",
+      recipientEmail: "recipient@example.com",
+      recipientDisplayName: "Client Receiver",
+    });
+    const { GET } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await GET(
+      new Request("https://archestimator.test/api/share/client-token/session?recipient=raw-recipient-token"),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+    const setCookieHeader = response.headers.get("set-cookie") ?? "";
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://archestimator.test/share/client-token");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mocks.checkSharedLinkSessionStartRateLimit).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
+    expect(mocks.verifySharedLinkRecipientToken).toHaveBeenCalledWith("client-token", "raw-recipient-token");
+    expect(setCookieHeader).toContain("shared_link_session_");
+    expect(setCookieHeader).toContain("_ok=");
+    expect(setCookieHeader).toContain("HttpOnly");
+    expect(setCookieHeader).not.toContain("client-token");
+    expect(setCookieHeader).not.toContain("raw-recipient-token");
+  });
+
+  it("redirects invalid recipient session links to a non-secret clean error state", async () => {
+    mocks.verifySharedLinkRecipientToken.mockResolvedValueOnce(null);
+    const { GET } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await GET(
+      new Request("https://archestimator.test/api/share/client-token/session?recipient=bad-recipient-token"),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://archestimator.test/share/client-token?recipientSession=invalid");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.headers.get("location")).not.toContain("bad-recipient-token");
   });
 
   it("keeps recipient session creation successful when analytics recording fails", async () => {

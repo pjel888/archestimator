@@ -17,10 +17,11 @@ describe("project dashboard center-column UI governance", () => {
     expect(estimateCenterColumnBoundary).toContain('"workshop-title"');
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
     expect(estimateCenterColumnBoundary).toContain('"--estimate-tree-panel-width": "376px"');
-    expect(estimateCenterColumnBoundary).toContain('"--estimate-library-panel-width": "380px"');
+    expect(estimateCenterColumnBoundary).toContain('"--estimate-library-panel-width": "560px"');
     expect(estimateCenterColumnBoundary).toContain('"--project-mini-sidebar-width": "104px"');
     expect(workshopPageShell).toContain("getSidePanelWidthCssVariables");
     expect(sidePanelWidths).toContain("estimate_component_library_width_v2");
+    expect(sidePanelWidths).toContain("defaultWidth: 560");
     expect(sidePanelWidths).toContain("component_library_tree_width");
     expect(resizableSidePanel).toContain("document.cookie");
     expect(workshopTitleHeader).toContain("EstimateCenterColumnBoundary");
