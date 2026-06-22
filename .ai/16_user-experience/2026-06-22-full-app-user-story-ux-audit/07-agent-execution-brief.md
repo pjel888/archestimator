@@ -32,6 +32,10 @@ Before editing:
 - If editing the CSV, run `08-csv-schema-and-validation-contract.md` validation after the change.
 - If the unit is decision-gated, check `09-decision-ledger.md` before coding.
 
+## Performance Risk Handoff
+
+Before editing any unit whose owner verification is `TV-ESTIMATE-SHEET`, `TV-PROJECT-DASHBOARD`, `TV-AUTH`, or `TV-SHARE-RECIPIENT`, read `13-performance-engagement-and-observability.md` §2 (known root causes) and §4 (per-surface risk handoff), and run the listed before/after perf script. These surfaces sit on known hot paths (estimate-sheet skeleton cascade + 5-RTT server path; hero/auth hosted-Supabase RTT; dashboard query batching; liquid-glass blur arming). A unit that changes these surfaces without a perf before/after measurement is not complete.
+
 ## Work Ownership Template
 
 Use this template in implementation plans:
@@ -44,6 +48,7 @@ Conflict group:
 Files expected:
 Data/provider/security boundaries:
 UX states/copy/a11y affected:
+Perf budget / known risk (see `13-performance-engagement-and-observability.md`):
 Tests/proof:
 Status rows to update after proof:
 Do not touch:
@@ -65,7 +70,7 @@ Do not touch:
 
 Stop and report instead of coding when:
 
-- The unit is marked `Decision required` and `09-decision-ledger.md` does not record an accepted MVP/lightweight decision.
+- The unit's scope posture in `02-implementation-decomposition.md` is `Decision required` (or it is linked to a `DEC-UX-*` row) and `09-decision-ledger.md` does not record an `Accepted for MVP` or `Accepted as lightweight first step` decision with named guardrails. (`Decision required` is a doc-02 scope-posture value and a doc-09 state — check doc 02 and doc 09, not the CSV.)
 - The implementation would create a new permission role, migration, table, enum, RPC, storage bucket, or provider integration and no data/security plan exists.
 - Current source contradicts the audit packet.
 - A required provider credential or hosted target is missing.

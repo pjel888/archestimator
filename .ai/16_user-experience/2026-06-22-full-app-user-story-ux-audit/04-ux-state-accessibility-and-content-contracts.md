@@ -17,12 +17,16 @@ This document defines the UX/UI implementation contract missing from the audit i
 | Publication/share | Owner/recipient | Share or review package and recover from link/session/action failures. | Recipient must understand what the package is, what action means, and how to recover. |
 | Operations/support | Operator | Prove readiness or repair user issue. | Each duty needs owner, proof artifact, pass/fail/blocked state, and escalation path. |
 
-## State Matrix Template
+## State Matrix
 
-Every implementation unit must fill this row shape before coding:
+Every implementation unit must fill this row shape before coding. The four P0 surfaces below are filled against the enumerated states in `## Priority State Contracts`. P2 surfaces use the template row at the bottom.
 
 | Surface | Actor | Entry point | Loading | Empty | Partial/stale | Validation error | Pending | Success | Failure | Permission denied | Provider unavailable | Conflict | Destructive confirm | Recovery action | Required copy | A11y behavior | Test proof |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Estimate sheet | Estimator | `src/app/workshop/projects/[projectId]/estimates/[nodeId]` | Skeleton or progress; leaf `loading.tsx` to avoid list-skeleton flash | Helpful empty state ("No line items yet — add the first") | Stale source badge with refresh/compare | Visible field error near the input; invalid numeric input blocks save | "Saving…" affordance; save pending disables duplicate submit | Confirmation toast; undo available announces | Inline error with retry/rollback; save failed surfaces rollback | n/a (workshop-authed) | n/a (no provider on core path) | Optimistic/merge: drag active + concurrent edit warning | Alertdialog only if destructive | Button/link/help | State name + next action; no generic "error" | Focus returns to the offending field on error; async save failure `role="alert"`; keyboard reorder via arrow keys | `TV-ESTIMATE-SHEET`; perf plan pack `.ai/03_plans/2026-06-21-Estimate-Sheet-Loading-Perf` |
+| Auth/beta/terms | Beta user or invitee | Auth + terms gate routes | Spinner on auth callback | n/a | n/a | Visible field error (terms persistence failed) | Pending during sign-in | Signed in confirmation | Inline error | Signed in denied / revoked / permission forbidden copy | n/a | Unsafe `next` dropped (no silent redirect) | n/a | Retry / contact support | Named state + next action + support path | Focus to primary action on each state; status change `aria-live="polite"` | `TV-AUTH`; `TV-INVITE` |
+| Share recipient | Client / Recipient (or contractor/builder/field operator) | Shared-link recipient route | Skeleton then first-open comprehension content | n/a | n/a | Password failed field error | Lockout timer countdown | Decision/comment accepted | Inline error (asset/comment/decision failed) | Expired/revoked link copy | Asset failed degrades gracefully | Decision conflict copy | n/a | Retry / unlock / request-new-link / contact owner | What is being reviewed + what action means + who to contact | First-open focus to comprehension block; failure `role="alert"`; print mode preserves hierarchy | `TV-SHARE-RECIPIENT` |
+| Project details | PM/estimator/owner | Project details modal / route | Skeleton preserving layout | Empty project copy | Stale badge | Save failed field error | Save pending / upload pending | Save / group delete success | Save failed inline | n/a | n/a | Clean vs dirty on Escape/close | Destructive confirm alertdialog for delete | Button/link/help | State name + what changed + recovery | Focus to confirm/cancel in alertdialog; backdrop/Escape attempted must surface dirty confirm | `TV-PROJECT-DASHBOARD` |
 | Template row | Who experiences it | Route/component | Skeleton or progress | Helpful empty state | Stale badge or timestamp | Visible field error | Pending affordance | Confirmation | Inline error | Permission/access copy | Degraded mode | Retry/merge/cancel | Alertdialog or typed confirm | Button/link/help | Exact text intent | Focus/live-region/keyboard | Test or proof |
 
 ## Priority State Contracts
@@ -48,7 +52,8 @@ Every implementation unit must fill this row shape before coding:
 | Keyboard | Every drag/drop, modal, tab, action menu, and inline edit path needs keyboard equivalent or explicit non-support decision. |
 | Focus | Modal open/close, failed save, route error, and form validation must place focus predictably. |
 | Live regions | Async save failure, destructive result, invite/feedback status, and provider failure must announce via `role=\"alert\"` or appropriate `aria-live`. |
-| Touch target | Mobile actions that create, save, retry, undo, share, or confirm destructive changes must be touch-safe and not icon-only without label/tooltip. |
+| Touch target | Mobile actions that create, save, retry, undo, share, or confirm destructive changes must meet a **44x44px minimum** (WCAG 2.2 SC 2.5.8 Target Size, Minimum) and not be icon-only without label/tooltip. |
+| Modal focus containment | Every modal — including dirty-close confirm (`UX-007`) and destructive alertdialog (`UX-008`) — MUST implement a focus-trap (focusable cycle stays inside the dialog), `aria-modal="true"`, `role="dialog"` (or `role="alertdialog"` for destructive), and inert/suppressed background via `inert` on the background tree. Focus MUST move to the primary action or the confirm button on open and return to the trigger on close. Esc must NOT silently bypass a dirty/destructive confirm. This makes `UX-007` (dirty close) and `UX-008` (destructive alertdialog) focus behavior testable rather than implied. |
 | Print | Recipient print packet must preserve project identity, totals, decisions, headings, dates, and owner/contact context. |
 | Reduced data/provider failure | Maps, AI, export, and collaboration must provide useful degraded content without provider success. |
 
@@ -88,6 +93,51 @@ Static/component proof is sufficient for:
 - Route path existence.
 - Pure provider readiness scripts.
 - Non-visual data mapping.
+
+## WCAG 2.2 AA Conformance Target
+
+The conformance target is **WCAG 2.2 Level AA for all workshop surfaces and all share-recipient surfaces**. This packet does not claim AA is achieved; it claims AA is the binding target and enumerates the testable criteria below (contrast, focus, keyboard, live-region, 44x44px target size, focus-trap). The cross-cutting accessibility gate is `TV-A11Y` (see `06-verification-matrix-and-proof-runbook.md`): contrast/focus/keyboard/live-region assertions must pass for every P0 surface before its row can be promoted in `canonical-feature-status.csv`. This supersedes any earlier implied "accessibility is covered by component tests" posture.
+
+## Color And Contrast Contract
+
+The project has a known design reality: **tertiary `#7F7F7F` FAILS WCAG AA** against the canvas. Load-bearing and meta text MUST use **secondary `#5D5D5D`** instead.
+
+- Forbidden for load-bearing/meta text: `#7F7F7F` (tertiary).
+- Required for meta text: `#5D5D5D` (secondary).
+- `#7F7F7F` is currently live in `src/app/globals.css` and approximately 8 component files (e.g. `ClaimRow.tsx`, `MaturityTag.tsx`, `StatusPill.tsx`, `ResizableSidePanel.tsx`, `HeroSignalField.tsx`, `project-location-map-style.ts`, `foundations.stories.tsx`). These are the known audit-confirmed sites; treat any other site as TODO-verify before claiming it is clean.
+- Enforcement: `scripts/enforce-app-design-system.mjs` is the design-system enforcement script, and the `TV-A11Y` gate asserts contrast. A passing `TV-A11Y` run (or the enforcement script) is required before any row claiming AA can be promoted.
+- This contract is binding regardless of `DESIGN.md` guidance: per CLAUDE.md, `DESIGN.md` is an alpha-stage guide, not law, and known AA failures are not waived by it.
+
+## Responsive Breakpoints And Test Contract
+
+The project's actual breakpoints and traps (cite from the workshop dashboard responsive work and memory, not re-derived):
+
+- Reference desktop size: **1512x982** (the canonical full-size dashboard layout size).
+- Workshop dashboard grid progression: **7-col -> 2-up -> 1-col** as the viewport narrows.
+- Known trap 1: dashboard rows are NOT reset at **<=1023px**, which can leave phantom empty bands if the layout's row template is not re-declared at the breakpoint.
+- Known trap 2: specificity traps where nested selectors (e.g. `.dashboard-imageband > .iband-templates`) beat the tile reset, causing white-out or missing resets.
+- Mobile minimum widths: define "mobile" as **<=640px** (single column) for the estimate sheet and share-recipient surfaces.
+
+Test command (makes "mobile" and "no hover dependency" testable rather than implied):
+
+```
+bun run test:e2e -- --project=mobile e2e/estimate-tabs.spec.ts e2e/shared-link-receiver.spec.ts
+# Plus a viewport-resize smoke for the 1512 -> 1023 -> 640 transition:
+#   load dashboard at 1512x982, resize to 1023, assert no phantom bands;
+#   resize to 640, assert estimate + share-recipient primary actions are reachable
+#   without hover and meet the 44x44px target size.
+```
+
+Residual: the `--project=mobile` Playwright project and the viewport-resize spec are the intended test shape; whether a `mobile` project is already configured in the Playwright config is **TODO-verify** against the current `playwright.config.ts` before claiming this command runs green.
+
+## i18n Deferral
+
+Closed beta is **English-only by decision**: see `DEC-UX-I18N` in `09-decision-ledger.md`. No localization/i18n work is in the closed-beta execution slice; copy contracts and test fixtures may assume English copy. This deferral is itself a named residual — i18n is a runtime/product decision deferred past closed beta, not an execution proof this packet can satisfy.
+
+## Cross-References To Verification IDs
+
+- `TV-A11Y` — cross-cutting accessibility (contrast, focus, keyboard, live-region) gate for all P0 surfaces. Defined in `06-verification-matrix-and-proof-runbook.md`.
+- `TV-ACCESS-PATH-CONTRACT` — persona/access-path authority gate: asserts that the 5 access paths (Anonymous Visitor, Primary App User, Project Collaborator, Shared-Link Recipient, Off-Platform Source Contact) resolve to the correct authority source in `10-access-path-and-persona-taxonomy.md`. Defined in `06-verification-matrix-and-proof-runbook.md`.
 
 ## Anti-Slop Design Bar
 

@@ -1,0 +1,63 @@
+<!-- @dsCard group="Components" viewport="700x320" name="Surfaces" subtitle="Card, FinancialTotalCard, EstimateCell row" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--canvas); padding: 20px; }
+  .grid { display: flex; flex-direction: column; gap: 16px; }
+  .totals { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
+  .sheet { display: grid; grid-template-columns: 28px 2.4fr 0.6fr 1fr 1fr; }
+  .sheet .hd { font-family: var(--font-sf-pro); font-size: 9px; font-weight: 500; text-transform: uppercase; color: var(--tertiary); padding: 6px 8px; background: var(--surface-muted); border: 1px solid var(--hairline); }
+  .ae-app-title { font-family: var(--font-sf-pro); font-size: 12px; font-weight: 500; color: var(--ink); }
+  .ae-app-body { font-family: var(--font-sf-pro); font-size: 10px; color: var(--secondary); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { Card, FinancialTotalCard, EstimateCell } = window.ArchestimatorDesignSystem_3fbb6f;
+  function Demo() {
+    return (
+      <div className="grid">
+        <div className="totals">
+          <FinancialTotalCard variant="primary" label="Grand total" value="₱ 3,964,714.00" sublabel="198% of budget" />
+          <FinancialTotalCard label="Materials" value="₱ 2,840,200.00" />
+          <FinancialTotalCard label="Prior version" value="+ ₱ 184,500.00" />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Card interactive style={{ padding: 14, flex: 1 }}>
+            <div className="ae-app-title">Lewis Residence</div>
+            <div className="ae-app-body">ES-001 · 4 sheets · updated 2h ago</div>
+          </Card>
+          <Card interactive style={{ padding: 14, flex: 1 }}>
+            <div className="ae-app-title">Cafe Fit-out</div>
+            <div className="ae-app-body">ES-014 · 2 sheets · draft</div>
+          </Card>
+        </div>
+        <div className="sheet">
+          <div className="hd">#</div><div className="hd">Materials</div><div className="hd">Qty</div><div className="hd">Subtotal</div><div className="hd">Total</div>
+          <EstimateCell value="01" align="center" />
+          <EstimateCell value="Loose lighting allowance" />
+          <EstimateCell value="2" numeric align="center" />
+          <EstimateCell value="₱ 4,900.00" numeric align="right" />
+          <EstimateCell value="₱ 5,400.00" numeric align="right" />
+          <EstimateCell value="02" align="center" selected />
+          <EstimateCell value="Coffee table allowance" selected />
+          <EstimateCell value="1" numeric align="center" selected editing />
+          <EstimateCell value="₱ 6,350.00" numeric align="right" selected />
+          <EstimateCell value="₱ 7,150.00" numeric align="right" selected />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>

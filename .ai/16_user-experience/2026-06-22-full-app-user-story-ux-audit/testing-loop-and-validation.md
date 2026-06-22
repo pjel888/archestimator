@@ -23,7 +23,7 @@ The second pass expanded the canonical spreadsheet from 55 rows and 15 columns t
 
 Observed local test inventory during this pass:
 
-- 425 Vitest files under `tests/vitest`.
+- 429 Vitest files under `tests/vitest` (corrected 2026-06-22 from a stale `425`; re-derive with `rg --files tests/vitest | wc -l` — the drift-guard validator is in `12-keystone-code-binding-and-drift-protection.md` §3).
 - 21 Playwright/e2e files under `e2e`.
 - 5 Bun unit files under `tests/unit`.
 
@@ -114,7 +114,7 @@ Future coding work must treat those files as the execution contract over the CSV
 These checks were run after synthesis:
 
 - `rg --files tests/vitest | wc -l`
-  - Result after this planning-readiness pass: `425`
+  - Result after this planning-readiness pass: `429` (corrected from stale `425`; drift-guard validator in `12-keystone-code-binding-and-drift-protection.md` §3)
 - `find e2e -type f | wc -l`
   - Result after this planning-readiness pass: `21`
 - `rg --files tests/unit | wc -l`
@@ -131,6 +131,10 @@ These checks were run after synthesis:
   - Result after second-pass expansion: no stale first-pass issue IDs or incorrect webhook path in the synthesized pack.
 - `git diff --check -- .ai/16_user-experience`
   - Result: exit 0 with no whitespace errors.
+
+## Binding-Integrity Sweep (recurring)
+
+Before any status promotion or widen-beta gate, re-derive every hardcoded count, cited route path, cited migration filename, and cited script name against the live repo and report deltas. Canonical commands and the drift-remediation protocol live in `12-keystone-code-binding-and-drift-protection.md` §4 and §5. This sweep is what catches anchor drift (e.g. the 2026-06-22 425→429 vitest correction) between audits, together with the 5th validator (inventory drift guard) and the conflict-coverage invariant in `08-csv-schema-and-validation-contract.md`.
 
 ## Artifact Validation Result
 

@@ -1,0 +1,108 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "889acfc4",
+  "capturedAt": "2026-06-22T11:00:37.515Z",
+  "scenario": "ADV-DENSE-500 provider-backed Chromium dense timing proof",
+  "rowCount": 5000,
+  "fiveThousandRowKeystrokeTier": {
+    "budgetMs": 150,
+    "measuredMedianMs": 84.5
+  },
+  "perfProof": {
+    "sampleCount": 3,
+    "budgets": {
+      "denseToggleMedianMs": 500,
+      "searchNarrowMedianMs": 150,
+      "searchRestoreMedianMs": 500
+    },
+    "denseToggleMs": {
+      "samples": [
+        208
+      ],
+      "median": 208,
+      "p95": 208,
+      "min": 208,
+      "max": 208
+    },
+    "searchNarrowMs": {
+      "samples": [
+        84.5,
+        113.9,
+        67.8
+      ],
+      "median": 84.5,
+      "p95": 113.9,
+      "min": 67.8,
+      "max": 113.9
+    },
+    "searchRestoreMs": {
+      "samples": [
+        185.8,
+        204,
+        182.1
+      ],
+      "median": 185.8,
+      "p95": 204,
+      "min": 182.1,
+      "max": 204
+    }
+  },
+  "resourceSummary": {
+    "count": 54,
+    "transferSize": 1720904,
+    "decodedBodySize": 10055013,
+    "rscCount": 0,
+    "fetchCount": 3
+  },
+  "capturedResponses": [
+    {
+      "url": "http://127.0.0.1:3020/workshop/library/components",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bodyBytes": null
+    },
+    {
+      "url": "http://127.0.0.1:3020/workshop/library/components",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "contentType": "text/x-component",
+      "bodyBytes": null
+    },
+    {
+      "url": "http://127.0.0.1:3020/workshop/library/components",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "contentType": "text/x-component",
+      "bodyBytes": null
+    },
+    {
+      "url": "http://127.0.0.1:3020/workshop/library/components",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "contentType": "text/x-component",
+      "bodyBytes": null
+    }
+  ],
+  "budgetStatus": {
+    "denseToggleMedian": true,
+    "searchNarrowMedian": true,
+    "searchRestoreMedian": true,
+    "fiveThousandRowKeystrokeTier": true
+  },
+  "verdict": "pass"
+}

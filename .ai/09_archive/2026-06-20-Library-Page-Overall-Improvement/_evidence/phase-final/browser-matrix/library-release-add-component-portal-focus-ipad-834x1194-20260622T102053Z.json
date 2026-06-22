@@ -1,0 +1,56 @@
+{
+  "browser": "ipad",
+  "viewport": {
+    "width": 834,
+    "height": 1194
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components",
+  "flagState": {
+    "libraryDenseMode": null,
+    "libraryVirtualization": null
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "889acfc4",
+  "capturedAt": "2026-06-22T10:20:53.263Z",
+  "scenario": "ADV-KEYBOARD-MGMT Add Component touch activation, portal focus, scroll lock, inert shell, and nested Escape layering",
+  "activationMode": "touch",
+  "activationPath": "touch-click",
+  "openedState": {
+    "activeRole": "input",
+    "activeAriaLabel": "Name",
+    "activeName": "",
+    "bodyOverflow": "hidden",
+    "workspaceShellInert": true,
+    "dialogZIndex": "1001",
+    "dialogRect": {
+      "x": 16,
+      "y": 155,
+      "width": 802,
+      "height": 884
+    }
+  },
+  "popupClosedState": {
+    "activeRole": "combobox",
+    "activeAriaLabel": "Unit",
+    "activeName": "unit",
+    "bodyOverflow": "hidden",
+    "workspaceShellInert": true,
+    "dialogZIndex": "1001",
+    "dialogRect": {
+      "x": 16,
+      "y": 155,
+      "width": 802,
+      "height": 884
+    }
+  },
+  "closedState": {
+    "activeRole": "button",
+    "activeAriaLabel": "Add component",
+    "activeName": "Add component",
+    "bodyOverflow": "hidden",
+    "workspaceShellInert": false,
+    "dialogZIndex": null,
+    "dialogRect": null
+  },
+  "verdict": "pass"
+}

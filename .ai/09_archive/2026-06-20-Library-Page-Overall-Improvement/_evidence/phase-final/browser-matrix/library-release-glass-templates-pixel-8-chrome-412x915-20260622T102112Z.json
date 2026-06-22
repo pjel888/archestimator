@@ -1,0 +1,62 @@
+{
+  "browser": "pixel-8-chrome",
+  "viewport": {
+    "width": 412,
+    "height": 915
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/templates",
+  "flagState": {
+    "libraryDenseMode": null,
+    "libraryVirtualization": null
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "889acfc4",
+  "capturedAt": "2026-06-22T10:21:12.861Z",
+  "scenario": "ADV-VISUAL-GLASS release route matrix with paint/navigation evidence",
+  "route": "templates",
+  "path": "/workshop/library/templates",
+  "glassState": {
+    "dataGlass": "ready",
+    "outerFilter": "blur(18px) saturate(1.45)",
+    "surfaceVariant": null,
+    "structuralSurfaces": [
+      {
+        "selector": "[data-template-gallery='true']",
+        "filter": "none",
+        "rect": {
+          "x": 9,
+          "y": 97,
+          "width": 393,
+          "height": 761
+        }
+      }
+    ],
+    "blurredStructuralSurfaces": [],
+    "chromeSurfaces": [],
+    "paintEntries": [
+      {
+        "name": "first-paint",
+        "startTime": 520,
+        "duration": 0
+      },
+      {
+        "name": "first-contentful-paint",
+        "startTime": 560,
+        "duration": 0
+      }
+    ],
+    "navigation": {
+      "domContentLoadedMs": 986.4,
+      "loadEventEndMs": 1014.8,
+      "transferSize": 39654,
+      "decodedBodySize": 212536
+    },
+    "viewport": {
+      "width": 412,
+      "height": 915,
+      "scrollWidth": 412,
+      "scrollHeight": 915
+    }
+  },
+  "verdict": "pass"
+}

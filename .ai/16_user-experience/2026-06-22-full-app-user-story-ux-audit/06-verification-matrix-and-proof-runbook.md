@@ -8,7 +8,7 @@ This document maps targeted verification IDs to proof surfaces. It preserves the
 
 Current repository inventory on 2026-06-22:
 
-- `425` Vitest files under `tests/vitest`.
+- `429` Vitest files under `tests/vitest` (corrected 2026-06-22 from a stale `425`; this count drifts as the repo grows — re-derive with `rg --files tests/vitest | wc -l`, and the drift-guard validator lives in `12-keystone-code-binding-and-drift-protection.md`).
 - `21` Playwright/e2e files under `e2e`.
 - `5` Bun unit files under `tests/unit`.
 
@@ -22,7 +22,7 @@ Current repository inventory on 2026-06-22:
 | `TV-WORKSHOP-ADMIN` | `bunx vitest run tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/account-settings-form-fields-ui.test.tsx tests/vitest/closed-beta-allowlist-admin-ui.test.tsx tests/vitest/beta-feedback-review-ui.test.tsx` | Browser only for joined settings/admin navigation. | Role-limited states are visible and safe. | Admin/support proof. |
 | `TV-PROJECT-DASHBOARD` | `bunx vitest run tests/vitest/project-dashboard-client.test.tsx tests/vitest/project-dashboard-route-shell-ui.test.ts tests/vitest/project-details-modal.test.tsx tests/vitest/projects-page-group-mode.test.tsx tests/vitest/bulk-destructive-preview-modal.test.tsx` | Browser only for joined project route and dashboard scan. | Project state, dirty modals, group delete, destructive semantics, readiness states pass. | Project proof artifact. |
 | `TV-ESTIMATE-SHEET` | `bunx vitest run tests/vitest/project-estimates-inline-edit.test.tsx tests/vitest/project-estimates-table-inline-edit.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-column-resize-a11y.test.tsx tests/vitest/estimate-sheet-route-loading.test.ts` | `bun run test:e2e -- e2e/estimate-tabs.spec.ts e2e/estimate-tree-dnd.spec.ts` for joined browser claims. | Save/error/focus/keyboard/tree interactions are explicit and recoverable. | Estimate proof artifact. |
-| `TV-FIELD-HANDOFF` | Future proof surface only until `DEC-UX-031-FIELD-WORKFLOWS` in `09-decision-ledger.md` selects the first beta slice. Create contract/component tests for package contents, access-path behavior, receipt, and feedback before any status promotion. | Browser proof only after a real field handoff flow exists. | Contractor/builder or field-operator persona reaches the intended package through the intended access path and can acknowledge/provide feedback only within scope. | Field proof artifact. |
+| `TV-FIELD-HANDOFF` | **Gate-locked** — no runnable command today; requires BOTH (1) the `DEC-UX-031-FIELD-WORKFLOWS` first-beta-slice decision (currently `Decision required before code`) AND (2) new contract/component test files. Future proof surface only until `DEC-UX-031-FIELD-WORKFLOWS` in `09-decision-ledger.md` selects the first beta slice. Create contract/component tests for package contents, access-path behavior, receipt, and feedback before any status promotion. | Browser proof only after a real field handoff flow exists. | Contractor/builder or field-operator persona reaches the intended package through the intended access path and can acknowledge/provide feedback only within scope. | Field proof artifact. |
 | `TV-LIBRARY-SOURCING` | `bunx vitest run tests/vitest/component-library-manager.test.tsx tests/vitest/library-source-trust.test.ts tests/vitest/component-library-versioning-schema.test.ts tests/vitest/library-add-component-modal-a11y.test.tsx` plus new stale/accepted-cost tests when built. | Provider/storage proof for attachments and hosted files. | Source freshness, attachment currentness, accepted-cost state are clear and scoped. | Library proof artifact. |
 | `TV-DATA-MAPS` | `bunx vitest run tests/vitest/project-charts-a11y.test.tsx tests/vitest/project-charts-aggregation.test.ts tests/vitest/project-location-map-provider.test.tsx tests/vitest/project-location-actions.test.ts` | Maps provider proof only when claiming configured live map behavior. | Charts pass semantic tests; location can degrade to address-only. | Data/maps proof artifact. |
 | `TV-COLLABORATION` | `bunx vitest run tests/vitest/project-collaboration-actions.test.ts tests/vitest/project-collaboration-realtime.test.ts tests/vitest/estimate-cursor-broadcast-throttle.test.ts tests/vitest/estimate-cursor-identity.test.ts` | `bun run test:e2e -- e2e/teamspace-collaboration.spec.ts` for two-user/presence claims. | Invite/collaboration/presence state is scoped and recoverable. | Collaboration proof artifact. |
@@ -31,6 +31,8 @@ Current repository inventory on 2026-06-22:
 | `TV-AI` | `bunx vitest run tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-provider.test.ts tests/vitest/ai-package-builder-draft.test.ts tests/vitest/ai-package-builder-security-contract.test.ts` | Provider/model quality proof is separate and not implied by local tests. | Disabled/quota/provider/draft states and data exposure controls pass. | AI proof artifact. |
 | `TV-OPS-SUPPORT` | `bun run launch:check-resend-readiness && bun run launch:check-vercel-env && bun run launch:check-vercel-health && bun run launch:check-support-dns && bun run launch:check-support-monitoring && bun run launch:check-legal-owner && bun run launch:check-supabase-linked-readiness && bun run launch:check-supabase-migrations && bun run launch:check-supabase-backup` | Hosted/provider dashboards, inbox proof, monitoring alert/drain, legal owner review when required. | Each provider/operator row is pass/fail/blocked with owner and artifact. | Provider proof run. |
 | `TV-ROUTE-ALIASES` | `bunx vitest run tests/vitest/route-error-smoke-gate.test.ts tests/vitest/workshop-route-error-boundaries.test.tsx && bun run test:e2e -- e2e/workshop-library-routes.spec.ts e2e/workshop-route-error-boundaries.spec.ts` | Browser included only for alias/route boundary claim. | Explicit routes, aliases, and error boundaries match current code. | Route proof artifact. |
+| `TV-A11Y` | `bunx vitest run tests/vitest/*a11y*` (estimate-sheet-column-resize-a11y, project-charts-a11y, library-add-component-modal-a11y) plus an axe/lighthouse a11y pass for browser-proven surfaces. | Browser axe/lighthouse for share-recipient comprehension + estimate mobile (static tests cannot prove rendered contrast/focus order). | WCAG 2.2 AA: contrast (no `#7F7F7F` for load-bearing meta — use `#5D5D5D`; see `04`), keyboard parity, focus order, live regions, 44×44px targets. | A11y proof artifact. |
+| `TV-ACCESS-PATH-CONTRACT` | New contract test (to scaffold) exercising each of the 5 access paths from `10-access-path-and-persona-taxonomy.md` (Anonymous Visitor, Primary App User, Project Collaborator, Shared-Link Recipient, Off-Platform Source Contact) and asserting the authority source per `10` §Authority Rule. | Browser only if a path's authority depends on rendered session state. | Each access path resolves to its correct authority source (public route policy / workspace+RLS / invite+RLS / share token+session / off-platform intake); personas are never treated as permission roles. | Access-path contract proof. |
 
 ## Provider Proof Runbook
 
@@ -46,14 +48,22 @@ Current repository inventory on 2026-06-22:
 
 ## Performance And Network Budgets
 
-| Surface | Budget/proof expectation |
-|---|---|
-| Route transitions | `bun run perf:check-routes` and `bun run perf:measure-routes` when route flow changes. |
-| Estimate sheet large data | Run estimate sheet large-data/perf tests before claiming high-volume readiness. |
-| Share activity | Run activity benchmark/perf budget before claiming large history readiness. |
-| Export workbook | Run proposal workbook benchmark/preflight tests before claiming large export readiness. |
-| Dashboard queries | Run dashboard query count/route transition checks before changing dashboard data composition. |
-| Provider outage | Proof must include degraded state and retry/copy-link/address-only/manual fallback as applicable. |
+This compact table is the runbook entry point. The deep engagement — known root causes, numeric thresholds, the per-surface risk handoff, and the outcome-metric instrumentation plan — lives in `13-performance-engagement-and-observability.md`. **Read `13` §2 and §4 BEFORE editing any surface flagged as a known hot path** (`TV-ESTIMATE-SHEET`, `TV-PROJECT-DASHBOARD`, `TV-AUTH`/hero, `TV-SHARE-RECIPIENT`).
+
+Known hot paths (do not edit blind): the estimate-sheet route (6-layer skeleton cascade + missing leaf `loading.tsx` + a 5-RTT serial server path), the hero/auth path (dev→hosted-Supabase RTT — network-bound, measure on Vercel in-region), the workshop dashboard (query batching), and liquid-glass blur arming (paints blur-off first, arms after first paint). Rate limiting is Postgres-native (NOT Redis).
+
+| Surface | Budget / threshold | Measuring command | Status |
+|---|---|---|---|
+| Route transitions | No regression vs baseline (see `13` §3) | `bun run perf:check-routes`; `bun run perf:measure-routes` | Script exists; live baseline is a runtime residual |
+| Estimate sheet large data | TTI no regression on large fixture (see `13` §3) | `bunx vitest run tests/vitest/estimate-sheet-large-data-budgets.test.ts` | Script exists; hosted TTI is a runtime residual |
+| Dashboard queries | Supabase round-trips ≤ baseline (see `13` §3) | `bun run perf:dashboard-query-count` → `scripts/measure-workshop-dashboard-query-count.ts` | Script exists |
+| Share activity | Large-history no regression | `bun run benchmark-shared-link-activity.ts` | Script exists |
+| Proposal export | Large-export preflight no regression | `bun run benchmark-proposal-workbook.ts` | Script exists |
+| Core Web Vitals | LCP ≤2500ms / INP ≤200ms / CLS ≤0.1 (per `scripts/check-vercel-speed-insights-readiness.ts`) | Vercel Speed Insights (wired in `src/app/layout.tsx`) | Deferred-to-runtime residual (needs live deploy + traffic) |
+| Bundle size | No-regression ceiling | `bun run perf:check-routes` bundle output | Deferred-to-runtime residual |
+| Provider outage | Degraded state + retry/copy-link/address-only/manual fallback | manual/provider proof (`TV-OPS-SUPPORT`) | Residual |
+
+Thresholds that cannot be set without a live hosted measurement are marked as runtime residuals — they are **named**, not invented. Outcome metrics (time-to-editable-estimate, failed-save rate, etc.) require live instrumentation and are planned in `13` §5; behavior tests here prove the path exists, not the metric value.
 
 ## Evidence Rules
 

@@ -34,13 +34,59 @@ This document prevents multiple coding agents from implementing overlapping UX f
 | Conflict group | Includes | Do not implement concurrently with | Lead integration owner |
 |---|---|---|---|
 | Auth/support boundary | `UX-002`, `UX-003`, `UX-040`, `UX-043` | Any support/admin repair or invite role change | Auth/support lead |
-| Project/dashboard/readiness | `UX-006`, `UX-007`, `UX-009`, `UX-032` | Owner governance or publication lifecycle changes | Project lead |
-| Estimate sheet | `UX-010`, `UX-011`, `UX-012`, `UX-013`, `UX-030`, `UX-044` | Field handoff if it changes estimate permissions | Estimate lead |
-| Publication/share recipient | `UX-016`, `UX-022`, `UX-023`, `UX-035`, `UX-036`, `UX-037` | Share security, recipient events, publication lifecycle | Share lead |
+| Project/dashboard/readiness | `UX-006`, `UX-007`, `UX-009`, `UX-032`; secondary: `UX-008` | Owner governance or publication lifecycle changes | Project lead |
+| Estimate sheet | `UX-010`, `UX-011`, `UX-012`, `UX-013`, `UX-030`, `UX-044`; secondary: `UX-014`, `UX-015` | Field handoff if it changes estimate permissions | Estimate lead |
+| Publication/share recipient | `UX-022`, `UX-023`, `UX-035`, `UX-036`, `UX-037`; secondary: `UX-016` | Share security, recipient events, publication lifecycle | Share lead |
 | Collaboration/access paths | `UX-020`, `UX-021`, `UX-031` | Any RLS, invitation, permission, shared-link, or field package change | Collaboration lead |
-| Library/cost/storage | `UX-013`, `UX-033`, `UX-034` | Supplier directory, accepted cost, attachment versioning | Library lead |
+| Library/cost/storage | `UX-033`, `UX-034` | Supplier directory, accepted cost, attachment versioning | Library lead |
 | Operations/provider | `UX-028`, `UX-029`, `UX-038`, `UX-039` | Provider UI, scripts, monitoring, legal/support proof | Operations lead |
 | Evidence/schema | `UX-041`, `UX-042` | Any CSV/status update or route manifest change | QA lead |
+| Copy / settings / notification read-only surfaces | `UX-001`, `UX-004`, `UX-005`, `UX-024`, `UX-025`, `UX-026`, `UX-027` | Any change to the same shared copy string, settings role gate, global toast namespace, or feedback fallback/queue payload shape | Copy/readiness lead |
+| Export / charts / maps / data-viz surfaces | `UX-016`, `UX-017`, `UX-018`, `UX-019` | Shared chart derived-state module, proposal export preflight/payload shape, or Google Maps script/key bootstrap | Data-viz/export lead |
+
+### Primary / Secondary Assignment Rule
+
+Each `UX-*` issue has exactly one **PRIMARY** conflict group (the lead who owns the mutating code path) and zero or more **SECONDARY** groups (touches that need coordination only if a shared contract changes). An issue appears in the `Includes` column of its primary group with a bare ID, and in secondary groups with the `secondary:` prefix. A secondary owner must be looped only if the contract named in the secondary annotation is itself changing; otherwise the primary lead may proceed without blocking. This keeps the non-overlap rule sound: every issue has exactly one blocking lead, even when its fix touches more than one surface.
+
+Primary/secondary assignments for issues that touch 2+ groups (the audit found ~12 such):
+
+- `UX-008` — PRIMARY: Project/dashboard/readiness (destructive modal tone belongs to the Projects modal surface). SECONDARY: none material (the destructive-tone prop is local to the Projects modal stack; no other group mutates it).
+- `UX-013` — PRIMARY: Estimate sheet. The fix (show stale-source badge + refresh/compare before replacing rows) is estimate-SHEET UI code, so the Estimate lead owns it. SECONDARY: coordinate with the Library lead only if the staleness contract itself changes — that work belongs to `UX-033` (supplier/cost governance), not to `UX-013`.
+- `UX-014`, `UX-015` — PRIMARY: Estimate sheet (historical-snapshot and named-version surfaces render inside the estimate activity/version UI). SECONDARY: none material unless a separate versioning data contract is introduced, in which case it becomes a dependency of `UX-033`.
+- `UX-016` — PRIMARY: Export/charts/maps/data-viz (413 preflight lives in the proposal export pipeline). SECONDARY: Publication/share recipient, only if the export payload is delivered through a share-recipient channel and that payload shape changes.
+
+All other issues that touch 2+ surfaces (e.g. `UX-030` mobile estimate also depends on `UX-011`/`UX-044` save-state semantics, captured in the Dependency Graph rather than as a conflict-group overlap) are modeled as **dependencies**, not conflict-group overlaps, because the second surface is consumed read-only or via a stable contract.
+
+### Conflict-Matrix Coverage Invariant
+
+Every `UX-001..UX-044` MUST appear in at least one conflict group's `Includes` column (primary or secondary). This is a hard invariant: an unassigned issue is a silent parallelization hazard because no lead is on the hook for integrating it. The QA lead adds the following set-diff check to `08-csv-schema-and-validation-contract.md`'s Validation Commands and runs it alongside the other four ruby validators after any edit to this doc or to the CSV issue set.
+
+Run from repo root (the script slices the Conflict Groups block, strips the optional `secondary:` prefix from each ID, and asserts the resulting set equals `UX-001..UX-044`):
+
+```sh
+ruby -e '
+text = File.read(ARGV[0])
+s = text.index("## Conflict Groups")   or raise "Conflict Groups section not found"
+e = text.index("## Parallelization Rules", s) or raise "Parallelization Rules section not found"
+block = text[s...e]
+assigned = block.scan(/(secondary:\s*)?`?(UX-\d{3})`?/).map { |pair| pair[1] }.uniq.sort
+canonical = (1..44).map { |n| "UX-%03d" % n }.sort
+missing   = canonical - assigned
+extra     = assigned - canonical
+raise "conflict matrix missing: #{missing}"             unless missing.empty?
+raise "conflict matrix extra (unknown ids): #{extra}"   unless extra.empty?
+puts "conflict_matrix_coverage=ok assigned=#{assigned.size}/44"
+' .ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/03-sequencing-dependencies-and-conflicts.md
+```
+
+A passing run prints `conflict_matrix_coverage=ok assigned=44/44`. If the QA lead prefers a `grep`-only variant (no ruby), the equivalent one-liner is:
+
+```sh
+grep -oE '(secondary: *)?`?UX-[0-9]{3}`?' .ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/03-sequencing-dependencies-and-conflicts.md | grep -oE 'UX-[0-9]{3}' | sort -u | wc -l
+# must equal 44
+```
+
+Note: the `grep` variant checks coverage count only; the ruby variant additionally rejects unknown/typo IDs (`extra`). Prefer the ruby variant in CI.
 
 ## Parallelization Rules
 

@@ -1,0 +1,575 @@
+{
+  "capturedAt": "2026-06-22T14:02:14.556Z",
+  "viewport": "1440x1200",
+  "sites": [
+    {
+      "name": "v7labs",
+      "url": "https://www.v7labs.com/",
+      "ok": true,
+      "title": "V7 Go | AI for Private Equity & Finance",
+      "headings": [
+        {
+          "tag": "H3",
+          "text": "Everything your firm knows."
+        },
+        {
+          "tag": "H3",
+          "text": "The instant you need it."
+        },
+        {
+          "tag": "H2",
+          "text": "3.6T"
+        },
+        {
+          "tag": "H2",
+          "text": "280K"
+        },
+        {
+          "tag": "H2",
+          "text": "15K"
+        }
+      ],
+      "nav": [
+        "How Finance Firms Run LLMs at ScaleWatch Video",
+        "Product",
+        "Solutions",
+        "Resources",
+        "Company",
+        "Log in",
+        "Watch Keynote",
+        "Get in Touch"
+      ],
+      "ctas": [
+        "Get in Touch",
+        "Get in Touch",
+        "Book a demo",
+        "Book a demo",
+        "Request a demo30 minutes",
+        "Book a demo",
+        "Book a demo",
+        "Contact",
+        "Talk to Sales",
+        "Contact"
+      ],
+      "colors": [
+        [
+          "rgb(0, 0, 0)",
+          1710
+        ],
+        [
+          "rgb(255, 255, 255)",
+          51
+        ],
+        [
+          "rgb(0, 0, 238)",
+          28
+        ],
+        [
+          "rgb(255, 216, 102)",
+          14
+        ],
+        [
+          "rgba(255, 255, 255, 0)",
+          13
+        ],
+        [
+          "rgba(255, 255, 255, 0.7)",
+          11
+        ],
+        [
+          "rgba(255, 255, 250, 0.6)",
+          6
+        ],
+        [
+          "rgba(255, 255, 255, 0.36)",
+          6
+        ],
+        [
+          "rgba(255, 255, 255, 0.05)",
+          6
+        ],
+        [
+          "rgb(41, 41, 41)",
+          4
+        ],
+        [
+          "rgb(28, 28, 28)",
+          4
+        ],
+        [
+          "rgb(38, 38, 38)",
+          2
+        ],
+        [
+          "rgb(34, 34, 34)",
+          2
+        ],
+        [
+          "rgb(23, 23, 23)",
+          1
+        ],
+        [
+          "rgba(255, 255, 255, 0.11)",
+          1
+        ],
+        [
+          "rgba(28, 28, 28, 0.9)",
+          1
+        ],
+        [
+          "rgba(41, 41, 41, 0)",
+          1
+        ],
+        [
+          "rgba(255, 255, 255, 0.03)",
+          1
+        ]
+      ],
+      "consoleErrors": []
+    },
+    {
+      "name": "readme",
+      "url": "https://readme.com/",
+      "ok": true,
+      "title": "ReadMe · Developer-friendly API documentation",
+      "headings": [
+        {
+          "tag": "H2",
+          "text": "Trusted by teams who know good docs drive adoption"
+        }
+      ],
+      "nav": [],
+      "ctas": [
+        "Get started",
+        "Get started",
+        "BranchesGET",
+        "BranchesGET",
+        "Quick StartLearn how to write and publish docs",
+        "My DevelopersGet developer usage data in ReadMe",
+        "OpenAPILearn about our support for OAS",
+        "RDMDLearn about ReadMe flavored Markdown",
+        "Learn more",
+        "Book a demo",
+        "Get started"
+      ],
+      "colors": [
+        [
+          "color(display-p3 0 0 0 / 0.84)",
+          817
+        ],
+        [
+          "color(display-p3 1 1 1)",
+          592
+        ],
+        [
+          "color(display-p3 0.0039 0.0039 0.0039 / 0.5)",
+          130
+        ],
+        [
+          "color(display-p3 0.0078 0.0078 0.0078 / 0.64)",
+          84
+        ],
+        [
+          "color(display-p3 0 0.0118 0.2471)",
+          83
+        ],
+        [
+          "color(display-p3 0.3098 0.6745 1)",
+          41
+        ],
+        [
+          "color(display-p3 0.051 0.051 0.051 / 0.19)",
+          34
+        ],
+        [
+          "color(display-p3 0.3373 0.4039 0.7098)",
+          32
+        ],
+        [
+          "color(display-p3 0.0078 0.0706 0.349)",
+          31
+        ],
+        [
+          "color(display-p3 0.9608 0.9608 0.9608)",
+          30
+        ],
+        [
+          "color(display-p3 0.5294 0.0706 1)",
+          20
+        ],
+        [
+          "color(display-p3 0.1647 0.2078 0.498)",
+          20
+        ],
+        [
+          "rgb(255, 255, 255)",
+          16
+        ],
+        [
+          "rgb(0, 19, 97)",
+          12
+        ],
+        [
+          "color(display-p3 0.0196 0.0196 0.0196 / 0.04)",
+          10
+        ],
+        [
+          "color(display-p3 0.4118 0.4863 0.8196)",
+          10
+        ],
+        [
+          "color(display-p3 0.1294 0.2275 1)",
+          9
+        ],
+        [
+          "rgb(245, 245, 245)",
+          6
+        ]
+      ],
+      "consoleErrors": []
+    },
+    {
+      "name": "scorecard",
+      "url": "https://www.scorecard.io/",
+      "ok": true,
+      "title": "Home | Scorecard",
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "The simulation platform for agent self-improvement"
+        },
+        {
+          "tag": "H2",
+          "text": "RUN"
+        },
+        {
+          "tag": "H2",
+          "text": "judge"
+        },
+        {
+          "tag": "H2",
+          "text": "Ship"
+        },
+        {
+          "tag": "H2",
+          "text": "Be at the frontier"
+        },
+        {
+          "tag": "H2",
+          "text": "The Fast Feedback Loop for Agent Development"
+        },
+        {
+          "tag": "H3",
+          "text": "Get feedback in minutes, Not weeks"
+        },
+        {
+          "tag": "H3",
+          "text": "Version and Store Your Best Prompts"
+        },
+        {
+          "tag": "H3",
+          "text": "Create Trustworthy Metrics"
+        },
+        {
+          "tag": "H3",
+          "text": "Run 10,000 SCenarios before you ship"
+        },
+        {
+          "tag": "H2",
+          "text": "Test at the speed of thought in the Scorecard Playground."
+        },
+        {
+          "tag": "H2",
+          "text": "Learn more about how it all comes together"
+        },
+        {
+          "tag": "H2",
+          "text": "Take your first step towards self-improving agents"
+        }
+      ],
+      "nav": [
+        "Product",
+        "Pricing",
+        "Docs",
+        "Blog",
+        "About us",
+        "Careers",
+        "book a demo",
+        "login"
+      ],
+      "ctas": [
+        "book a demo",
+        "book a demo",
+        "Learn More",
+        "Learn More"
+      ],
+      "colors": [
+        [
+          "rgb(26, 25, 24)",
+          417
+        ],
+        [
+          "rgb(255, 255, 255)",
+          65
+        ],
+        [
+          "rgb(255, 110, 62)",
+          13
+        ],
+        [
+          "rgb(240, 240, 240)",
+          7
+        ],
+        [
+          "rgb(116, 116, 116)",
+          4
+        ],
+        [
+          "rgb(181, 181, 181)",
+          2
+        ],
+        [
+          "rgb(204, 204, 204)",
+          1
+        ],
+        [
+          "rgb(188, 190, 255)",
+          1
+        ]
+      ],
+      "consoleErrors": []
+    },
+    {
+      "name": "intercom",
+      "url": "https://www.intercom.com/",
+      "ok": true,
+      "title": "Intercom | The only helpdesk designed for the AI Agent era",
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "The only helpdesk designed for the AI Agent era"
+        },
+        {
+          "tag": "H2",
+          "text": "A complete solution for AI and human agents"
+        },
+        {
+          "tag": "H3",
+          "text": "AI-powered agent workspace"
+        },
+        {
+          "tag": "H3",
+          "text": "A seamless experience for customers and agents"
+        },
+        {
+          "tag": "H3",
+          "text": "AI-powered Insights across every interaction"
+        },
+        {
+          "tag": "H3",
+          "text": "A self-improving system"
+        },
+        {
+          "tag": "H3",
+          "text": "A world-class AI Agent"
+        },
+        {
+          "tag": "H2",
+          "text": "A fully-featured AI-powered helpdesk"
+        },
+        {
+          "tag": "H3",
+          "text": "Resolve queries faster"
+        },
+        {
+          "tag": "H3",
+          "text": "Copilot+-Give every agent an AI assistant that pulls context from past conversations, surfaces instant answers from your knowledge base, and drafts replies, so your team resolves more queries, faster."
+        },
+        {
+          "tag": "H3",
+          "text": "AI-enhanced ticketing+-Convert any conversation into a ticket with one click, automatically categorized, prioritized, and routed to the right team, so every issue reaches the right person, with full context."
+        },
+        {
+          "tag": "H3",
+          "text": "No code automations+-Build powerful automations to route conversations, manage SLAs, and configure escalation triggers, without any engineering support."
+        },
+        {
+          "tag": "H3",
+          "text": "Deliver tailored experiences across every channel"
+        },
+        {
+          "tag": "H3",
+          "text": "Engage customersat the right moment"
+        },
+        {
+          "tag": "H3",
+          "text": "Onboarding tools+-Onboard customers with interactive product tours, checklists, and in-app tooltips, so they get up to speed faster and get more value from your product, all without contacting support."
+        },
+        {
+          "tag": "H3",
+          "text": "Proactive notifications+-Keep customers informed about new features, known issues, and policy changes with in-product messages, mobile push notifications, and banners."
+        },
+        {
+          "tag": "H3",
+          "text": "Targeted messaging sequences+-Build omnichannel message journeys with a no-code visual builder, targeting customers precisely based on live behavioral data, product usage, and custom attributes."
+        },
+        {
+          "tag": "H3",
+          "text": "Monitor and improve every interaction"
+        },
+        {
+          "tag": "H3",
+          "text": "Insights+-The only solution with 100% coverage across your entire support operation, giving you actionable insights into what customers are asking, how they feel, and what's changing, with CX Score, Topics Explorer, and Trends."
+        },
+        {
+          "tag": "H3",
+          "text": "Always-on QA+-Monitor every AI and human conversation in real time, with AI-powered scoring against your custom standards and instant alerts the moment quality drops."
+        },
+        {
+          "tag": "H3",
+          "text": "Reporting+-Access pre-built reports covering every support use case, and a fully customizable report builder with advanced filters and chart visualisations."
+        },
+        {
+          "tag": "H2",
+          "text": "A true partner with deep domain expertise"
+        },
+        {
+          "tag": "H3",
+          "text": "The company you can trust"
+        },
+        {
+          "tag": "H3",
+          "text": "Expert support, at every stage"
+        },
+        {
+          "tag": "H3",
+          "text": "The AI Agent Blueprint"
+        },
+        {
+          "tag": "H2",
+          "text": "Transparent pricing"
+        },
+        {
+          "tag": "H3",
+          "text": "Intercom with Fin"
+        },
+        {
+          "tag": "H2",
+          "text": "Perfect customer experiences, powered by Intercom"
+        }
+      ],
+      "nav": [
+        "Introducing Intercom 2 – Discover over 60 product updates.Learn moreIntroducing Intercom 2 – Discover over 60 product updates.Learn moreIntroducing Intercom 2 – Discover over 60 product updates.Learn more",
+        "Fin",
+        "Log in",
+        "Contact sales",
+        "View demo",
+        "Start free trial",
+        "Customers",
+        "Pricing",
+        "Log in",
+        "Contact sales",
+        "View demo",
+        "Start free trial",
+        "Fin AI Agent"
+      ],
+      "ctas": [
+        "Introducing Intercom 2 – Discover over 60 product updates.Learn moreIntroducing Intercom 2 – Discover over 60 product updates.Learn moreIntroducing Intercom 2 – Discover over 60 product updates.Learn more",
+        "Contact sales",
+        "View demo",
+        "Start free trial",
+        "Contact sales",
+        "View demo",
+        "Start free trial",
+        "Start free trial",
+        "View demo",
+        "Start free trial",
+        "View demo",
+        "Learn more",
+        "Learn more",
+        "Start free trial",
+        "View demo",
+        "Learn more",
+        "Learn more",
+        "Learn more",
+        "Learn more",
+        "Learn more"
+      ],
+      "colors": [
+        [
+          "rgb(17, 17, 17)",
+          789
+        ],
+        [
+          "rgb(0, 0, 0)",
+          252
+        ],
+        [
+          "oklab(0.177637 0.00000810623 0.00000356138 / 0.4)",
+          102
+        ],
+        [
+          "oklab(0.177637 0.00000810623 0.00000356138 / 0.7)",
+          72
+        ],
+        [
+          "rgb(211, 206, 198)",
+          46
+        ],
+        [
+          "rgb(255, 255, 255)",
+          45
+        ],
+        [
+          "oklab(0.177637 0.00000810623 0.00000356138 / 0.8)",
+          34
+        ],
+        [
+          "oklab(0 0 0 / 0.7)",
+          32
+        ],
+        [
+          "rgb(222, 219, 214)",
+          18
+        ],
+        [
+          "rgb(0, 7, 203)",
+          17
+        ],
+        [
+          "rgb(241, 238, 233)",
+          15
+        ],
+        [
+          "oklab(0 0 0 / 0.2)",
+          10
+        ],
+        [
+          "rgb(250, 249, 246)",
+          9
+        ],
+        [
+          "oklab(0.177637 0.00000810623 0.00000356138 / 0.5)",
+          9
+        ],
+        [
+          "oklab(0 0 0 / 0.6)",
+          8
+        ],
+        [
+          "oklab(0.177637 0.00000810623 0.00000356138 / 0.2)",
+          6
+        ],
+        [
+          "oklab(0.581971 -0.00125566 0.00432989 / 0.3)",
+          3
+        ],
+        [
+          "oklab(0.177637 0.00000810623 0.00000356138 / 0.05)",
+          3
+        ]
+      ],
+      "consoleErrors": []
+    }
+  ]
+}

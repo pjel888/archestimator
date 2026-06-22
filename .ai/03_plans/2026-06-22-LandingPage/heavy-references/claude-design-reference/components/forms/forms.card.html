@@ -1,0 +1,53 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Form controls" subtitle="Input + Field, Switch, Checkbox, SegmentedControl" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--surface); padding: 20px; }
+  .grid { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 12px; min-width: 150px; }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { Input, Field, Switch, Checkbox, SegmentedControl } = window.ArchestimatorDesignSystem_3fbb6f;
+  function Demo() {
+    const [view, setView] = React.useState("default");
+    const [notify, setNotify] = React.useState(true);
+    const [a, setA] = React.useState(true);
+    const [b, setB] = React.useState(false);
+    return (
+      <div className="grid">
+        <div className="col">
+          <Field label="Component name"><Input defaultValue="Coffee table allowance" /></Field>
+          <Field label="Unit cost" required><Input align="right" defaultValue="6,350.00" /></Field>
+          <Field label="SKU" errorText="Already in use"><Input invalid defaultValue="WIL-204" /></Field>
+        </div>
+        <div className="col">
+          <div className="stack">
+            <Switch checked={notify} onChange={setNotify} label="Notify on approval" />
+            <Switch checked={false} onChange={()=>{}} label="Lock revision" />
+            <Checkbox checked={a} onChange={setA} label="Include in proposal" />
+            <Checkbox checked={b} onChange={setB} label="Owner-supplied" />
+          </div>
+        </div>
+        <div className="col">
+          <SegmentedControl ariaLabel="View by" value={view} onValueChange={setView}
+            options={[{value:"default",label:"Default"},{value:"suppliers",label:"Suppliers"},{value:"brand",label:"Brand"}]} />
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+</script>
+</body>
+</html>

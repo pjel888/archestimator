@@ -1,0 +1,123 @@
+{
+  "browser": "pixel-8-chrome",
+  "viewport": {
+    "width": 412,
+    "height": 915
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components",
+  "flagState": {
+    "libraryDenseMode": null,
+    "libraryVirtualization": null
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "889acfc4",
+  "capturedAt": "2026-06-22T10:00:31.414Z",
+  "scenario": "ADV-VISUAL-GLASS release route matrix with paint/navigation evidence",
+  "route": "components",
+  "path": "/workshop/library/components",
+  "glassState": {
+    "dataGlass": "ready",
+    "outerFilter": "blur(18px) saturate(1.45)",
+    "surfaceVariant": "glass",
+    "structuralSurfaces": [
+      {
+        "selector": ".estimate-glass-well",
+        "filter": "none",
+        "rect": {
+          "x": 9,
+          "y": 97,
+          "width": 394,
+          "height": 761
+        }
+      },
+      {
+        "selector": ".estimate-glass-rail",
+        "filter": "none",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "selector": ".estimate-glass-paper",
+        "filter": "none",
+        "rect": {
+          "x": 18,
+          "y": 106,
+          "width": 376,
+          "height": 743
+        }
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none",
+        "rect": {
+          "x": 19,
+          "y": 107,
+          "width": 374,
+          "height": 67
+        }
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none",
+        "rect": {
+          "x": 19,
+          "y": 146,
+          "width": 374,
+          "height": 28
+        }
+      },
+      {
+        "selector": "[data-component-library-workspace='true']",
+        "filter": "none",
+        "rect": {
+          "x": 9,
+          "y": 97,
+          "width": 394,
+          "height": 761
+        }
+      }
+    ],
+    "blurredStructuralSurfaces": [],
+    "chromeSurfaces": [
+      {
+        "selector": ".workshop-liquid-button",
+        "filter": "blur(10px) saturate(1.2)",
+        "rect": {
+          "x": 280.14,
+          "y": 114,
+          "width": 104.86,
+          "height": 24
+        }
+      }
+    ],
+    "paintEntries": [
+      {
+        "name": "first-paint",
+        "startTime": 1356,
+        "duration": 0
+      },
+      {
+        "name": "first-contentful-paint",
+        "startTime": 1388,
+        "duration": 0
+      }
+    ],
+    "navigation": {
+      "domContentLoadedMs": 8698.6,
+      "loadEventEndMs": 8701.6,
+      "transferSize": 241569,
+      "decodedBodySize": 3705367
+    },
+    "viewport": {
+      "width": 412,
+      "height": 915,
+      "scrollWidth": 412,
+      "scrollHeight": 915
+    }
+  },
+  "verdict": "pass"
+}

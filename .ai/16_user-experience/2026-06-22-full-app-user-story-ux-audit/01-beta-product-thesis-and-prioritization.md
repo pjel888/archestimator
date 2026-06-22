@@ -54,7 +54,7 @@ Any P0 fix must protect this path. Any fix outside this path must either be chea
 | P0 | Blocks golden path trust, safety, access, or beta operations. | Do not widen beta without either fixing or explicitly accepting the risk with owner sign-off. |
 | P1 | Important user confidence, workflow clarity, or operator efficiency. | Can ship with a documented workaround, evidence gap, and owner. |
 | P2 | Useful polish, future workflow depth, or scale preparation. | Defer unless cheap, isolated, and not conflicting with P0/P1 work. |
-| Decision-gated | Requires product, data-model, security, permission-model, or access-path choice. | Do not implement until `09-decision-ledger.md` shows an accepted decision and required guardrails. |
+| Decision-gated (orthogonal flag, not a 4th priority level) | Requires product, data-model, security, permission-model, or access-path choice. An issue is P0/P1/P2 AND optionally decision-gated. | Do not implement until `09-decision-ledger.md` shows an accepted decision and required guardrails. Detect via doc-02 scope posture (`Decision required`) or a `DEC-UX-*` link — see the cross-walk in `08-csv-schema-and-validation-contract.md`. |
 
 ## Issue Priority Table
 
@@ -62,7 +62,7 @@ Any P0 fix must protect this path. Any fix outside this path must either be chea
 |---|---|---|
 | P0 | `UX-002`, `UX-003`, `UX-004`, `UX-007`, `UX-011`, `UX-019`, `UX-020`, `UX-022`, `UX-025`, `UX-028`, `UX-029`, `UX-035`, `UX-036`, `UX-038`, `UX-040`, `UX-041`, `UX-043`, `UX-044` | These protect access, recovery, provider honesty, recipient trust, data-entry confidence, support repair, and proof integrity. |
 | P1 | `UX-001`, `UX-006`, `UX-008`, `UX-009`, `UX-010`, `UX-012`, `UX-013`, `UX-016`, `UX-017`, `UX-018`, `UX-021`, `UX-024`, `UX-026`, `UX-027`, `UX-030`, `UX-032`, `UX-033`, `UX-034`, `UX-037`, `UX-039`, `UX-042` | These materially improve beta confidence, but can be sequenced after core path safety if a workaround exists. |
-| P2 | `UX-005`, `UX-014`, `UX-015`, `UX-023`, `UX-031` | These are valuable but either low risk, dormant, or a larger workflow decision. `UX-031` is not low-value; it is P2 until the field workflow/access-path slice is chosen. |
+| P2 | `UX-005`, `UX-014`, `UX-015`, `UX-023`, `UX-031` | These are valuable but either low risk, dormant, or a larger workflow decision. `UX-031` is not low-value; it is P2 UNTIL the field workflow/access-path slice is chosen AND the beta cohort composition is decided (`DEC-UX-BETA-COHORT`) — if the first cohort includes contractor/builder recipients, `UX-031` re-tiers to P0. |
 
 ## Proposed Fix Review
 
@@ -77,13 +77,26 @@ Any P0 fix must protect this path. Any fix outside this path must either be chea
 
 ## Outcome Metrics
 
-| Outcome | Metric | Evidence source |
+These metrics define beta success. **Behavioral proof** names the `TV-*` test that proves the path EXISTS; **Measurement** names the instrumentation that produces the metric VALUE. Behavior tests do not measure metrics — the instrumentation plan lives in `13-performance-engagement-and-observability.md` §5, and the analytics sink/provider choice is open (`DEC-UX-ANALYTICS`). Metric VALUES require live beta traffic and are an explicit residual; they cannot be produced by this planning packet.
+
+| Outcome | Metric | Behavioral proof (path exists) | Measurement (metric value) |
+|---|---|---|---|
+| First estimate | Time from sign-in to editable estimate; failed save rate; user-visible recovery count. | `TV-AUTH`, `TV-PROJECT-DASHBOARD`, `TV-ESTIMATE-SHEET`. | Funnel events `session_start` → `estimate_opened` → `first_row_saved`; failed-save counter; recovery-action counter. Sink per `DEC-UX-ANALYTICS`. |
+| Proposal/share trust | Share open success, recipient action success, expired/locked recovery success, print/export readability. | `TV-SHARE-RECIPIENT`, proposal/export tests, recipient browser proof. | `share_opened`, `recipient_decision`, `recovery_succeeded` events. Sink per `DEC-UX-ANALYTICS`. |
+| Supportability | Denied-access repairs resolved, invite repair time, feedback older than latest 50 reachable, provider checks pass/fail/blocked. | `TV-OPS-SUPPORT`, provider proof runbook. | Support repair log + provider-check run results (Postgres/manual). |
+| Cost confidence | Stale/conflicted cost surfaced before insert, accepted source visible, attachment currentness clear. | `TV-LIBRARY-SOURCING`, `TV-ESTIMATE-SHEET`. | Stale-surface impression + accepted-cost state (Postgres). |
+| Proof honesty | No row marked proven without matching evidence artifact. | CSV schema validation + `06`. | Validator pass/fail (automated). |
+
+## Strategic Dimensions (closed-beta scope)
+
+The outcome ladder and tiers define WHAT to build first. A closed beta of a paid estimating/proposal tool must also state four strategic dimensions so widen-beta is gated honestly. These are planning-artifact-fixable; the actual activation/retention NUMBERS are runtime residuals (need live traffic + `DEC-UX-ANALYTICS` instrumentation).
+
+| Dimension | Closed-beta posture | Widen-beta gate |
 |---|---|---|
-| First estimate | Time from sign-in to editable estimate; failed save rate; user-visible recovery count. | Targeted `TV-AUTH`, `TV-PROJECT-DASHBOARD`, `TV-ESTIMATE-SHEET` proof. |
-| Proposal/share trust | Share open success, recipient action success, expired/locked recovery success, print/export readability. | `TV-SHARE-RECIPIENT`, proposal/export tests, recipient browser proof. |
-| Supportability | Denied-access repairs resolved, invite repair time, feedback older than latest 50 reachable, provider checks marked pass/fail/blocked. | `TV-OPS-SUPPORT`, provider proof runbook, support/admin repair evidence. |
-| Cost confidence | Stale/conflicted cost surfaced before insert, accepted source visible, attachment currentness clear. | `TV-LIBRARY-SOURCING`, `TV-ESTIMATE-SHEET`. |
-| Proof honesty | No row marked proven without matching evidence artifact. | CSV schema validation plus `06-verification-matrix-and-proof-runbook.md`. |
+| Activation | Prove a beta sign-in reaches a saved estimate within session 1 (the golden path). Track via the first-estimate funnel in `13` §5. | Do not widen until activation is observable and the golden-path completion rate is known. |
+| Retention | Hypothesis: an estimator returns to revise/share an estimate within 7 days. | Do not widen without a stated retention hypothesis and the instrumentation to test it. |
+| Competitive positioning | The incumbent is the spreadsheet + manual estimating workflow. The beta must prove the estimate→proposal→recipient loop is more trustworthy/recoverable than that baseline. | Do not widen without a positioning note vs the spreadsheet incumbent. |
+| Pricing readiness | Closed beta is unpaid. | Do not widen beyond closed beta without a stated pricing posture (widen-beta decision gate). |
 
 ## Non-Goals For This Packet
 

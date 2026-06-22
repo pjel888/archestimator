@@ -42,6 +42,156 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Landing page GPT Taste reset applied (2026-06-22):**
+
+- The active homepage now renders
+  `src/components/landing/gpt-taste/RedesignedLandingPage.tsx` from
+  `src/app/page.tsx`, replacing the prior plan-driven 11-section stack for the
+  public root route.
+- Do not use `.ai/03_plans/2026-06-21-Landing-Page-Redesign` as visual
+  direction for the homepage unless Philip explicitly re-approves it. The reset
+  direction is: cinematic centered hero, halftone/material field, strict
+  framed gapless bento, pinned proof cards, horizontal role accordion, marquee,
+  and sparse launched-feeling copy.
+- New motion dependencies are `gsap` and `@gsap/react`; the landing motion leaf
+  is `src/components/landing/gpt-taste/LandingGsapMotion.tsx`, with reduced
+  motion fallback. Hero material field is
+  `src/components/landing/gpt-taste/HeroSignalField.tsx`.
+- Focused evidence at implementation time: `bun run type-check` passed;
+  `bun run test:dom -- tests/vitest/landing-amigo-redesign.test.tsx
+  tests/vitest/landing-interactivity.test.tsx
+  tests/vitest/landing-company-proof.test.ts tests/vitest/public-page-shell.test.tsx
+  tests/vitest/public-font-lcp-audit.test.ts` passed 5 files / 15 tests;
+  Playwright screenshots confirmed desktop 2-line hero, 390px/320px 3-line
+  hero, no horizontal overflow, no public stage-language/fake-proof copy, 5
+  bento cards, and 3 proof stack cards.
+
+**Library plan pack archived after Library-owned finalization pass (2026-06-22):**
+
+- Archived completed pack:
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement`.
+- The Library all-flow copy-deck review is closed:
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/copy-deck-all-flow-review-pass-20260622T120350Z.md`.
+  Focused Library validation passed 12 files / 99 tests:
+  `library-copy-contract`, source trust, overview, template gallery, component
+  manager, consolidation UI, insert picker, quick-add validation, bulk
+  destructive preview, folder actions, and Add Component a11y suites.
+- The latest ADV release status is now:
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/adv-release-status-20260622T120350Z.md`.
+  Verdict: Library-owned rows pass; aggregate release remains blocked only by
+  unrelated landing-page TypeScript errors previously recorded at
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/validate-fail-20260622T110951Z.md`.
+- Scope guard: do not use the Library pack to continue into landing/auth/public,
+  Project Data, database reset, or Library-to-Estimate Trust/Governance work.
+  The Trust/Governance AI should read/cite Library evidence but take explicit
+  locks before touching Library release artifacts.
+
+**Library browser matrix and 5k dense proof passed; release still gated (2026-06-22):**
+
+- The Library release browser matrix passed:
+  `ARCHESTIMATOR_E2E_LIBRARY_RELEASE_PROOF=1
+  ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX=1 bun run test:e2e --
+  e2e/workshop-library-routes.spec.ts -g "release matrix" --workers=1`
+  returned 21 passed tests across Chromium, Firefox, WebKit, Mobile Safari,
+  iPhone SE, iPad, and Pixel 8 Chrome. Evidence summary:
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/browser-matrix/release-browser-matrix-proof-20260622T102124Z.md`.
+- The provider-backed 5,000-row dense proof passed after optimizing
+  `loadCurrentWorkspaceComponentRowsLibrary` to load workspace-scoped detail
+  tables in pages and filter by active item IDs in memory. Evidence:
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-5/dense-mode/provider-5000-dense-proof-20260622T110037Z.md`.
+  Key numbers: dense-toggle median `208ms`, search-narrow median `84.5ms`
+  against the `150ms` 5k keystroke budget, search-restore median `185.8ms`,
+  and 0 remaining rows tagged `phase-5-dense-browser-proof`.
+- Latest ADV release status:
+  superseded by
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/adv-release-status-20260622T120350Z.md`.
+  Library-owned rows pass; aggregate release remains NO-GO only because the
+  fresh aggregate `bun run validate` attempt after the final loader/test/doc
+  edits is red on unrelated landing-page TypeScript errors recorded at
+  `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/validate-fail-20260622T110951Z.md`.
+
+**Archestimator live app-data reset executed (2026-06-22):**
+
+- `.ai/09_archive/2026-06-22-Destructive-Database-Reset-Runbook/16-CODEBASE-AI-IMPLEMENTATION-PLAN.md`
+  remains the front door for reset operator requirements. It turns the runbook pack
+  into stable requirements, phases, U0-U13 implementation units, Gate 0-10,
+  pros/cons, SWOT, decisions, traceability, and adversarial QA.
+- The completed planning pack was archived to
+  `.ai/09_archive/2026-06-22-Destructive-Database-Reset-Runbook/` after local
+  coordination repairs aligned artifact ownership and path-neutral evidence
+  examples.
+- Live reset evidence is under
+  `.ai/09_archive/2026-06-22-Destructive-Database-Reset-Runbook/evidence/reset-20260622-codex-live/`.
+  Raw recovery exports are outside the repo at
+  `/Users/philiplewis/Documents/archestimator-reset-backups/reset-20260622-codex-live`.
+- Executed Variant A through the service-role API against project
+  `ebxxqidacheyapmmzavr`: Auth users preserved `4 -> 4`; preserve-table counts
+  stayed unchanged for profiles, beta allowlist, legal/security/audit rows,
+  feedback, collaboration audit, onboarding, and notification definitions.
+- Reset content now verifies at zero rows for projects, estimates, estimate
+  tabs/nodes/row items/events, workspaces, workspace members, library folders,
+  cost library items, component category nodes, project publications, and shared
+  link recipients.
+- Storage cleanup exported and removed reset-bucket objects:
+  `component-images` `840 -> 0`, `project-images` `6 -> 0`, and
+  `component-attachments` `1 -> 0`.
+- No schema migration, type generation, Auth mutation, Supabase project
+  deletion, bucket deletion, or direct managed-schema table mutation was
+  performed.
+
+**Library-to-Estimate codebase-AI implementation guide added (2026-06-22):**
+
+- `.ai/03_plans/2026-06-22-Library-To-Estimate-Trust-Governance/17-CODEBASE-AI-IMPLEMENTATION-GUIDE.md`
+  is now the front door for future implementation agents. It synthesizes the
+  plan pack into a default beta-first path: U1-U3, required U6a recovery states,
+  and per-phase U7 evidence.
+- The guide resolves final handoff gaps found by parallel product, UX, security,
+  DB, performance, and coherence reviews: partial is internal progress only,
+  curator/reviewer are UX task labels unless the actor has admin authority,
+  recovered edit placement is concrete, durable governance stays DB-preflight
+  gated, and SQL-006A/006B, payload, bundle, fanout, realtime, nullable-index,
+  append-only event, and evidence-privacy gates are explicit.
+- This remains a planning/documentation result. No app source, migrations, live
+  provider proof, or release claim is implied by the 100/100 planning score.
+
+**Project Data page donut-first redesign implemented and verified (2026-06-22):**
+
+- `.ai/03_plans/2026-06-21-Project-Data-Page/` is implemented in source/tests:
+  `CostComparisonBoard` now renders one self-contained donut/list column per
+  selected estimate, `EstimateColumn` and `AddEstimateColumn` own the per-column
+  UI, `DeltaBadge` is shared UI, the rightmost add tile stays disabled rather
+  than hidden at capacity, and the old shared comparison table is gone.
+- The completed plan packet was archived to
+  `.ai/09_archive/2026-06-21-Project-Data-Page/`.
+- Deleted the orphan Project Data panels and tests:
+  `CostBreakdownSection`, `CostAcrossSheetsSection`, `ProjectDataInsightHeader`,
+  `CostLedger`, plus their three old Vitest files. `ProjectDataClient.tsx` and
+  the `/charts` redirect stayed untouched.
+- Targeted verification passed:
+  `bunx vitest run tests/vitest/project-data-a11y.test.tsx tests/vitest/project-dashboard-charts-ui.test.ts tests/vitest/project-data-estimate-column.test.tsx tests/vitest/project-data-add-estimate-column.test.tsx tests/vitest/project-data-board-donut-first.test.tsx --maxWorkers=1`
+  (5 files / 34 tests), `bunx tsc --noEmit --pretty false`, scoped `bunx
+  eslint` on the changed Project Data source/tests, scoped `git diff --check`,
+  `rg` orphan-reference audit, and a focused diff check confirming
+  `src/components/workshop/project-data/ProjectDataClient.tsx` has no diff.
+- Browser/Playwright proof was intentionally skipped under the Codex App speed
+  guardrail because the claimed behavior is covered by DOM/component tests,
+  static governance tests, typecheck, lint, and source inspection.
+
+**Library-to-Estimate trust governance plan repaired to 100% planning readiness (2026-06-22):**
+
+- `.ai/03_plans/2026-06-22-Library-To-Estimate-Trust-Governance/` was re-audited
+  with product, UX, security, DB, performance, and coherence lenses, then
+  repaired as a planning-only pack. It now explicitly separates the U1-U3 beta
+  reuse foundation from U4/U5 full durable governance.
+- Added final-readiness docs for beta cutline/role decisions, per-surface UX and
+  visual QA, DB preflight/RPC specification, observability/evidence privacy,
+  file locks, and `_evidence/phase-0/` templates. The pack defines `100/100` as
+  planning contract completeness, not code, migration, provider, or release
+  proof.
+- Durable governance remains blocked until Phase 0 DB preflight records project
+  ref `ebxxqidacheyapmmzavr`, current schema/RLS/grants, SQL probes, generated
+  type impact, direct-write prevention, and fix-forward/backup posture.
+
 **Landing redesign planning packet updated for app/brand introduction (2026-06-22):**
 
 - `.ai/03_plans/2026-06-21-Landing-Page-Redesign/` is a 28-markdown-doc planning
@@ -90,10 +240,11 @@ grep, don't linear-read).
   passed 6 files / 54 tests. It locks the audited source-trust labels/tooltips
   and Library/template empty-state copy. Evidence:
   `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/copy-contract-pass-20260622T082151Z.md`.
-- Release remains NO-GO because Safari/iOS/Android/RTL visual coverage, the
-  full glass matrix/paint-time proof, the separate 5,000-row keystroke tier,
-  cross-browser portal/focus proof, and final all-flow copy-deck review remain
-  partial or unproven.
+- Superseded by the newer Library status entry above: the browser/device/RTL
+  matrix, cross-browser portal/focus proof, 5,000-row dense keystroke tier, and
+  all-flow copy-deck review now pass. Aggregate release remains NO-GO only
+  because `bun run validate` was rerun after the final loader/test/doc edits
+  and failed on unrelated landing-page TypeScript errors.
 
 **Full-app UX audit planning-readiness layer added (2026-06-22):**
 

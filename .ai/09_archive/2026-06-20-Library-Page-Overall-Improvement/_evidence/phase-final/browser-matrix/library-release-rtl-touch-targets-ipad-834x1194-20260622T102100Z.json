@@ -1,0 +1,35 @@
+{
+  "browser": "ipad",
+  "viewport": {
+    "width": 834,
+    "height": 1194
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components",
+  "flagState": {
+    "libraryDenseMode": null,
+    "libraryVirtualization": null
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "889acfc4",
+  "capturedAt": "2026-06-22T10:21:01.877Z",
+  "scenario": "ADV-VISUAL-DENSE-MOBILE RTL containment and coarse-pointer touch-target proof",
+  "rtlState": {
+    "documentDir": "rtl",
+    "viewportWidth": 834,
+    "viewportHeight": 1194,
+    "documentScrollWidth": 834,
+    "documentClientWidth": 834,
+    "touchTargets": [
+      {
+        "ariaLabel": "Add component",
+        "width": 104.86,
+        "height": 44,
+        "left": 637.14,
+        "right": 742
+      }
+    ],
+    "undersizedTouchTargets": []
+  },
+  "assertedTouchTargets": true,
+  "verdict": "pass"
+}

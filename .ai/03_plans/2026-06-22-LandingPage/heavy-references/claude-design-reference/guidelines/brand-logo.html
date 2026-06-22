@@ -1,0 +1,20 @@
+<!-- @dsCard group="Brand" viewport="700x200" name="Logo" subtitle="Clay mark on light; white mark on the orange glass slab" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"/><link rel="stylesheet" href="../styles.css"/>
+<style>
+body{margin:0;display:flex;font-family:var(--font-sf-pro);}
+.cell{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:200px;}
+.light{background:var(--surface);}
+.dark{background:#1c1c1c;}
+.slab{display:grid;place-items:center;width:64px;height:64px;border-radius:12px;background:var(--glass-logo-bg);box-shadow:var(--glass-logo-shadow);}
+.t{font-family:var(--font-numeric);font-size:9px;color:var(--tertiary);}
+.tw{font-family:var(--font-numeric);font-size:9px;color:rgba(255,255,255,.55);}
+</style></head><body>
+<div class="cell light">
+  <img src="../assets/archestimator_logo.svg" width="72" height="72" alt="Archestimator"/>
+  <div class="t">mark · #F24405 on light</div>
+</div>
+<div class="cell dark">
+  <div class="slab"><img src="../assets/archestimator_logo_white.svg" width="40" height="40" alt="Archestimator"/></div>
+  <div class="tw">white mark · orange glass slab (sidebar)</div>
+</div>
+</body></html>

@@ -1,0 +1,57 @@
+{
+  "browser": "iphone-se",
+  "viewport": {
+    "width": 320,
+    "height": 568
+  },
+  "url": "http://127.0.0.1:3020/workshop/library",
+  "flagState": {
+    "libraryDenseMode": null,
+    "libraryVirtualization": null
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "889acfc4",
+  "capturedAt": "2026-06-22T10:20:03.332Z",
+  "scenario": "ADV-VISUAL-GLASS release route matrix with paint/navigation evidence",
+  "route": "overview",
+  "path": "/workshop/library",
+  "glassState": {
+    "dataGlass": "ready",
+    "outerFilter": "blur(18px) saturate(1.45)",
+    "surfaceVariant": null,
+    "structuralSurfaces": [
+      {
+        "selector": "[data-library-overview='true']",
+        "filter": "none",
+        "rect": {
+          "x": 9,
+          "y": 97,
+          "width": 302,
+          "height": 414
+        }
+      }
+    ],
+    "blurredStructuralSurfaces": [],
+    "chromeSurfaces": [],
+    "paintEntries": [
+      {
+        "name": "first-contentful-paint",
+        "startTime": 1731,
+        "duration": 0
+      }
+    ],
+    "navigation": {
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": 0,
+      "transferSize": 35741,
+      "decodedBodySize": 176307
+    },
+    "viewport": {
+      "width": 320,
+      "height": 568,
+      "scrollWidth": 320,
+      "scrollHeight": 568
+    }
+  },
+  "verdict": "pass"
+}

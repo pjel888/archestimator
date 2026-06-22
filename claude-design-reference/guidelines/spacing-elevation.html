@@ -1,0 +1,16 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Elevation — one soft shadow per surface" subtitle="Paper floats on the grey canvas; depth lives on the edge, not inside" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"/><link rel="stylesheet" href="../styles.css"/>
+<style>
+body{margin:0;background:var(--canvas);padding:26px;font-family:var(--font-sf-pro);}
+.row{display:flex;gap:22px;align-items:center;}
+.col{display:flex;flex-direction:column;gap:10px;align-items:center;}
+.box{width:160px;height:74px;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;}
+.glass{width:160px;height:74px;border-radius:12px;}
+.n{font-size:10px;font-weight:500;color:var(--ink);}
+.t{font-family:var(--font-numeric);font-size:9px;color:var(--tertiary);}
+</style></head><body>
+<div class="row">
+  <div class="col"><div class="box" style="box-shadow:var(--shadow-float)"></div><div class="n">paper</div><div class="t">solid white + hairline + 1 float shadow</div></div>
+  <div class="col"><div class="glass ae-glass"></div><div class="n">liquid glass</div><div class="t">one backdrop-filter, frosted chrome</div></div>
+</div>
+</body></html>

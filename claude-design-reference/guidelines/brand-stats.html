@@ -1,0 +1,30 @@
+<!-- @dsCard group="Brand" viewport="700x240" name="Stat blocks" subtitle="Big-number editorial stat grid — pixel numerals, hairline rules, mono labels. Posters / social / deck" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  html,body{margin:0}
+  .wrap{background:var(--ink-editorial);font-family:var(--font-numeric)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1.5px solid #4a4641}
+  .stat{padding:22px 20px 24px;border-right:1.5px solid #4a4641;border-bottom:1.5px solid #4a4641}
+  .stat:nth-child(4n){border-right:none}
+  .k{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#8d8983;display:flex;justify-content:space-between;align-items:center}
+  .k .ic{color:var(--signal)}
+  .v{font-family:var(--font-pixel);font-weight:800;font-size:46px;line-height:1;margin-top:14px;color:var(--editorial-on-dark)}
+  .v.hot{color:var(--signal)}
+  .u{font-family:var(--font-numeric);font-size:13px;font-weight:500;opacity:.6}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><div class="k"><span>Rebuild time</span><span class="ic">&#9633;</span></div><div class="v hot">0H</div></div>
+      <div class="stat"><div class="k"><span>Reused lines</span><span class="ic">&#43;</span></div><div class="v">1.2K</div></div>
+      <div class="stat"><div class="k"><span>Defensible</span><span class="ic">&#10003;</span></div><div class="v">100<span class="u">%</span></div></div>
+      <div class="stat"><div class="k"><span>Suppliers</span><span class="ic">&#9671;</span></div><div class="v">340</div></div>
+    </div>
+  </div>
+</body>
+</html>

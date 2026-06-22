@@ -26,22 +26,34 @@ Every data-affecting implementation plan must fill this shape:
 
 Authority rule: product persona is not authority. Authority comes from the access path plus workspace membership, project collaboration role, admin/operator entitlement, share token, recipient session/password state, or public route policy.
 
+> **Filled matrix lives in doc 14.** The FILLED matrix per high-risk surface (`/share/[token]`, `api/ai/ask`, `api/projects/images`, `api/webhooks/resend`, beta allowlist admin, invite handlers) — with real migration IDs, RPCs, and test files — is in `14-security-primitive-and-rls-binding.md`. **Do not implement a blast-radius item until its row exists there.** This template is the required shape; doc 14 is the required evidence.
+
 ## Required Coverage By Area
 
 | Area | Must be proven before status can move to proven |
 |---|---|
 | Projects/estimates | User cannot read/write another workspace/project; shared project access follows collaboration role; destructive actions require owner/admin or explicit permission. |
 | Collaboration/invites | Invite token lifecycle is bounded; wrong-account and revoked states fail closed; role changes are audited. |
-| Publication/share | Revoked/expired/password-locked links fail closed; no-store/cache headers persist; tokens are redacted from logs and UI; recipient actions are rate-limited. |
+| Publication/share | Revoked/expired/password-locked links fail closed; no-store/cache headers persist; tokens are redacted from logs and UI. NOTE: recipient comment/decision/unsubscribe actions are **NOT currently rate-limited** — see Rate-Limit Truth below. |
 | Assets/uploads | Upload path cannot cross workspace; invalid MIME/size rejected; signed URLs expire; failed asset loads produce recipient-safe copy. |
 | Library/cost | Supplier/cost/attachment governance does not expose private workspace data; accepted-cost or approval states are auditable. |
 | Notifications/campaigns | Delivery rows are scoped to intended users; campaign targeting is reviewed; unsafe CTA cannot ship. |
 | Feedback/support | Support sees only necessary user context; repair actions are logged; fallback email avoids leaking secrets or excessive payload. |
 | AI | Sensitive project/user data sent to model is minimized; generated output requires human review before applying; prompt/output telemetry is redacted. |
 
+### Rate-Limit Truth (honesty correction)
+
+As of this audit, **the only currently-enforced rate limit in the app is AI ask**: `checkAiAskQuota` in `src/lib/ai/rate-limit.ts` (10/min, 60/hr) backed by `security_rate_limit_events` (migration `20260601003000`). The following actions are **NOT currently rate-limited** and any plan that claims otherwise is aspirational, not proven:
+
+- Recipient comment / decision / unsubscribe on `/share/[token]`.
+- Beta access requests (the beta gate request path).
+- Invite accepts (wrong-account / revoked-replay paths).
+
+Rate limiting is Postgres-native (NOT Redis). Which recipient/beta/invite actions need quotas beyond AI ask is an open owner decision — see `DEC-UX-RL-QUOTAS` and doc 14's Rate-Limit Truth Table. Abuse-case rows below that previously implied rate limits exist on these paths have been corrected to "planned, not enforced."
+
 ## Data Classification
 
-| Data class | Examples | Handling |
+| Data class | Examples | Target handling posture (advisory — not yet enforced in code) |
 |---|---|---|
 | Public | Public marketing/legal copy | Can be cached normally unless route policy says otherwise. |
 | Account PII | Email, name, beta access, workspace membership | Redact in logs; expose only to owner/support with purpose. |
@@ -51,6 +63,8 @@ Authority rule: product persona is not authority. Authority comes from the acces
 | Files/assets | Images, attachments, spec sheets, exported workbooks | Bucket-scoped, validated, recoverable, and auditable. |
 | AI content | Prompts, generated proposal text, project context | Minimize, review before apply, redact telemetry. |
 | Support/legal | Feedback, DSAR/deletion/export requests, repair notes | Owner-labeled, retention-aware, audit logged. |
+
+> **Advisory, not enforced.** This posture is a planning target only. No enum, middleware guard, or redaction pipeline enforces these classes in code today. The only concrete redaction primitive in the codebase is `hashAiAuditValue` in `src/lib/ai/audit.ts` (AI audit-value redaction). Treating any row above as enforced is a false claim — see `DEC-UX-DATA-CLASSIFICATION` (data classification is advisory until a redaction guard exists).
 
 ## Provider Boundary Register
 
@@ -65,20 +79,23 @@ Authority rule: product persona is not authority. Authority comes from the acces
 
 ## Abuse Cases
 
-| Surface | Abuse scenario | Planning mitigation |
-|---|---|---|
-| Auth/login | Open redirect or unsafe `next` link | Sanitize redirects and explain dropped unsafe path. |
-| Beta access | Enumerating or repeatedly requesting access | Rate-limit or queue; avoid exposing private allowlist state. |
-| Invite | Token forwarding, wrong account, revoked invite replay | Token state validation, wrong-account flow, audit repair. |
-| Share link | Token brute force, link forwarding, scraping, open-count privacy leak | High-entropy tokens, rate limits, no-store, revocation, privacy-safe events. |
-| Comments/decisions | Spam, duplicate decisions, conflict race | CSRF/rate limits, idempotency or conflict copy, retry semantics. |
-| Unsubscribe | Invalid token abuse or CSRF | Token validation, safe interstitial, no account leakage. |
-| Uploads/assets | Oversized files, MIME spoofing, path traversal, private asset leak | Validation, bucket scoping, signed URLs, failed asset fallback. |
-| Feedback | Payload spam, PII overcollection | Size limits, safe fallback mailto, triage owner, no secrets in payload. |
-| AI | Prompt injection, sensitive data exfiltration, unsafe generated edits | Prompt isolation, data minimization, output review, disabled/quota states. |
-| Export | Huge workbook causing failure or data leak | Preflight size warning, split guidance, scoped export data. |
-| Campaigns | Unsafe CTA or wrong target audience | Preview, CTA validation, target inspection, delivery proof. |
-| Webhooks | Forged delivery webhook | Signature verification and scoped route tests. |
+| Surface | Abuse scenario | Planning mitigation | Bound implementation |
+|---|---|---|---|
+| Auth/login | Open redirect or unsafe `next` link | Sanitize redirects and explain dropped unsafe path. | — (no concrete primitive bound; TODO-verify redirect sanitizer) |
+| Beta access | Enumerating or repeatedly requesting access | Queue/allowlist state isolation; avoid exposing private allowlist state. Quota is **planned, not enforced** — see Rate-Limit Truth + `DEC-UX-RL-QUOTAS`. | — (no rate-limit primitive bound today) |
+| Invite | Token forwarding, wrong account, revoked invite replay | Token state validation, wrong-account flow, audit repair. Accept-quota is **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | doc 14 Bound Security Primitives: invite token validation (see invite handlers row) |
+| Share link | Token brute force, link forwarding, scraping, open-count privacy leak | High-entropy tokens, no-store, revocation, privacy-safe events. Rate limits on this path are **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | doc 14: token brute-force -> HMAC-SHA256 (`hashPublicationToken`) + `submit_client_response` RPC (migration `20260621120000`) validates both `token_hash` and `recipient_token_hash` |
+| Comments/decisions | Spam, duplicate decisions, conflict race | CSRF, idempotency or conflict copy, retry semantics. Recipient comment/decision rate limit is **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | — (no rate-limit primitive bound today; idempotency TODO-verify) |
+| Unsubscribe | Invalid token abuse or CSRF | Token validation, safe interstitial, no account leakage. Unsubscribe rate limit is **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | doc 14: recipient token validation via `submit_client_response` RPC |
+| Password lockout | Password brute force on password-protected share | Slow hashing, lockout posture. | doc 14: `passwordHashPrefix` (scrypt) in `src/lib/publication/security.ts` |
+| Uploads/assets | Oversized files, MIME spoofing, path traversal, private asset leak | Validation, bucket scoping, signed URLs, failed asset fallback. | doc 14: `api/projects/images` row (size/MIME/bucket scoping) |
+| Feedback | Payload spam, PII overcollection | Size limits, safe fallback mailto, triage owner, no secrets in payload. | — (no concrete primitive bound; TODO-verify size cap) |
+| AI | Prompt injection, sensitive data exfiltration, unsafe generated edits | Prompt isolation, data minimization, output review, disabled/quota states. | doc 14: quota enforced via `checkAiAskQuota` (`src/lib/ai/rate-limit.ts`, 10/min 60/hr); telemetry redaction -> `hashAiAuditValue` (`src/lib/ai/audit.ts`) |
+| Export | Huge workbook causing failure or data leak | Preflight size warning, split guidance, scoped export data. | — (no concrete primitive bound) |
+| Campaigns | Unsafe CTA or wrong target audience | Preview, CTA validation, target inspection, delivery proof. | — (no concrete primitive bound) |
+| Webhooks | Forged delivery webhook | Signature verification and scoped route tests. | doc 14: `verifyResendWebhookPayload` + `RESEND_WEBHOOK_SECRET` + svix header verification + 413 size cap (`src/app/api/webhooks/resend/route.ts`) |
+
+> The **Bound implementation** column points at doc 14's Bound Security Primitives table for each abuse case that has a real, greppable primitive today. Empty cells mean the mitigation is still planning-only — do not claim it is enforced.
 
 ## Blast-Radius Checklist
 
@@ -103,3 +120,7 @@ Do not mark an implementation unit security-ready unless:
 - Share/public routes preserve no-store/cache and safe headers.
 - Support/admin repair paths state least privilege and audit records.
 - AI/data exposure posture is explicit before AI-related UX is promoted.
+
+### Telemetry & Redaction Gate
+
+**Redaction must be designed before any outcome-metric instrumentation ships.** `reportWebVitals` + Vercel SpeedInsights are already wired in `src/app/layout.tsx`, so any new analytics/telemetry sink (see `DEC-UX-ANALYTICS`) will begin receiving URLs, errors, and metadata immediately. Before such a sink goes live, a redaction guard for tokens, emails, addresses, and proposal contents must exist — not the reverse. Today the only concrete redaction primitive is `hashAiAuditValue` in `src/lib/ai/audit.ts`; a general-purpose classification/redaction guard does not yet exist (advisory only — see `DEC-UX-DATA-CLASSIFICATION`). Cross-link: doc 13 (telemetry & event instrumentation) defines the event taxonomy that must pass through this gate.

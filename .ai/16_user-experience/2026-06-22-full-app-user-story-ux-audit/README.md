@@ -13,7 +13,7 @@ This folder is the canonical user-experience audit pack for the Archestimator ap
 
 ## Read This First
 
-- `00-readiness-scorecard.md` rates the original and improved packet. It is the entry point for understanding why this planning pass is now considered 100% strategy, quality, and implementation-ready as a planning packet.
+- `00-readiness-scorecard.md` rates the packet using **Rubric B** (planning-complete + independently re-verified + residuals named). A 2026-06-22 independent 7-lens re-audit found the prior self-awarded 100/100/100 was inflated (re-audited to ~81/73/68); this pass records that re-audit, fixes every gap, and reports a two-axis rating (planning-readiness 100; evidence-verified ~29% as a named residual). It is the entry point.
 - `01-beta-product-thesis-and-prioritization.md` defines the beta outcome hierarchy, golden path, persona priority, issue tiers, and MVP-vs-later posture.
 - `02-implementation-decomposition.md` maps every `UX-*` issue to implementation units, owner lanes, scope posture, and verification.
 - `03-sequencing-dependencies-and-conflicts.md` defines phase order, dependencies, conflict groups, rollback/fallback expectations, and CSV status update ownership.
@@ -25,6 +25,9 @@ This folder is the canonical user-experience audit pack for the Archestimator ap
 - `09-decision-ledger.md` records the decision-gated work items, current MVP posture, guardrails, and stop/go status.
 - `10-access-path-and-persona-taxonomy.md` defines canonical access paths and product personas, including the corrected `Primary App User` naming.
 - `11-access-path-rbac-ux-review.md` applies the taxonomy to RBAC, UX/UI, and `UX-031` contractor/builder and field-operator workflow risks.
+- `12-keystone-code-binding-and-drift-protection.md` is the single authoritative binding of every numeric anchor, cited path, script, migration, and provider ID to real code, plus the 5th drift-guard validator and the recurring binding-integrity sweep.
+- `13-performance-engagement-and-observability.md` binds the plan to the repo's known performance root causes, defines numeric budgets, the per-surface perf-risk handoff, and the outcome-metric instrumentation plan.
+- `14-security-primitive-and-rls-binding.md` fills the authz/RLS matrix per high-risk surface and binds the real security primitives (HMAC/AES-256-GCM/scrypt/timingSafeEqual/svix/submit_client_response), the rate-limit truth table, and the redaction surface.
 
 ## Supporting Documents
 
