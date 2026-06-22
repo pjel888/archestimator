@@ -17,9 +17,9 @@ export function PublicPageShell({
   isHomePage = false,
 }: PublicPageShellProps) {
   return (
-    <div className="min-h-screen bg-white text-[#111111]">
+    <div className="min-h-screen bg-warm-canvas text-ink">
       <style>{`
-        @keyframes workspace-arrow-bounce {
+        @keyframes workspace-arrow-drift {
           0%, 100% { transform: translateX(0); }
           50% { transform: translateX(4px); }
         }

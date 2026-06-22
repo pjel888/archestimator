@@ -46,7 +46,7 @@
   z-index: 2;
   border: 0;
   background: transparent;
-  color: #171514;
+  color: var(--landing-ink);
   padding: 10px 12px;
   text-align: left;
   transition:
@@ -73,7 +73,7 @@ path.revisionLoopSketch {
 
 .stepLabel {
   display: block;
-  color: #171514;
+  color: var(--landing-ink);
   font-size: 16px;
   font-weight: 500;
   letter-spacing: 0;
@@ -86,7 +86,7 @@ path.revisionLoopSketch {
 .stepBody {
   display: block;
   margin-top: 5px;
-  color: #5f554d;
+  color: var(--landing-ink-secondary);
   font-size: 11px;
   line-height: 1.35;
 }
@@ -94,7 +94,7 @@ path.revisionLoopSketch {
 .feedbackQuote {
   display: block;
   margin-top: 7px;
-  color: #8f3d21;
+  color: var(--landing-accent-aa);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;
@@ -110,7 +110,7 @@ path.revisionLoopSketch {
 }
 
 .inputCard .stepLabel {
-  color: var(--step-color, #171514);
+  color: var(--step-color, var(--landing-ink));
   font-size: 11px;
   line-height: 1.08;
 }

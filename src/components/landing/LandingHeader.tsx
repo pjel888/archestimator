@@ -84,7 +84,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
               }`}
             >
               Workspace
-              <ArrowRight className="size-3.5 [animation:workspace-arrow-bounce_0.9s_ease-in-out_infinite]" weight="bold" />
+              <ArrowRight className="size-3.5 [animation:workspace-arrow-drift_1.2s_ease-out_infinite]" weight="bold" />
             </Link>
           ) : (
             <>

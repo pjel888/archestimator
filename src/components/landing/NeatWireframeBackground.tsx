@@ -2,20 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { NeatConfig, NeatGradient as NeatGradientInstance } from '@firecms/neat'
+import { LANDING_NEAT_BACKGROUND_COLOR, LANDING_NEAT_COLORS } from '@/lib/landing/neat-theme'
 
 const NEAT_STATIC_FALLBACK_QUERY = '(prefers-reduced-motion: reduce), (pointer: coarse), (max-width: 767px)'
 const NEAT_IDLE_ACTIVATION_TIMEOUT_MS = 1800
 const NEAT_TIMEOUT_ACTIVATION_DELAY_MS = 1200
 
 const neatConfig: NeatConfig = {
-  colors: [
-    { color: '#aa412a', enabled: true, influence: 0.88 },
-    { color: '#8c3623', enabled: true, influence: 0.74 },
-    { color: '#aa412a', enabled: true, influence: 0.58 },
-    { color: '#8d2f21', enabled: true, influence: 0.3 },
-    { color: '#fff0df', enabled: false, influence: 0.08 },
-    { color: '#2e0ec7', enabled: false },
-  ],
+  colors: LANDING_NEAT_COLORS,
   speed: 1.15,
   horizontalPressure: 2.2,
   verticalPressure: 2.8,
@@ -28,7 +22,7 @@ const neatConfig: NeatConfig = {
   colorSaturation: -1.7,
   wireframe: true,
   colorBlending: 8.5,
-  backgroundColor: '#aa412a',
+  backgroundColor: LANDING_NEAT_BACKGROUND_COLOR,
   backgroundAlpha: 0,
   grainScale: 0,
   grainSparsity: 0,
