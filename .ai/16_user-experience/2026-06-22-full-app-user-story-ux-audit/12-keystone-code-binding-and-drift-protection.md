@@ -153,7 +153,7 @@ The three counts (`429`, `21`, `5`) are repeated for readability in `06-verifica
 rg -n '\b425\b' .ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/
 ```
 
-A hit for the *old* vitest count is drift that Section 5 fixes. (On 2026-06-22 this command still reports `425` in `06` and `testing-loop-and-validation.md`; those are the two docs this keystone supersedes — see Section 5.)
+A hit for the *old* vitest count is drift that Section 5 fixes. (After the 2026-06-22 correction pass, `06` and `testing-loop-and-validation.md` were updated to `429`, so this command now returns no hits in those docs — any remaining `425` mentions in the packet are historical/explanatory only.)
 
 ## 5. Drift Remediation Protocol
 
@@ -168,7 +168,7 @@ When any step of the Section 4 sweep (or the Section 3 validator) reports a delt
 
 Drift log:
 
-- **2026-06-22 (initial):** Establishing this keystone. The packet previously cited `425` vitest files in `06` and `testing-loop-and-validation.md`; live `rg --files tests/vitest | wc -l` returns `429`. Cause: vitest inventory grew by 4 files after the docs were written. Registry pins `429`. Per step 5, the `425` references in `06` and `testing-loop-and-validation.md` are the prose-doc updates this keystone requires (owned by the docs' own improvement pass, not this file). `21` e2e and `5` unit were already correct.
+- **2026-06-22 (initial):** Establishing this keystone. The packet previously cited `425` vitest files in `06` and `testing-loop-and-validation.md`; live `rg --files tests/vitest | wc -l` returns `429`. Cause: vitest inventory grew by 4 files after the docs were written. Registry pins `429`. The `425` references in `06` and `testing-loop-and-validation.md` have now been corrected to `429` (2026-06-22 correction pass) — the prose-doc update this keystone required. `21` e2e and `5` unit were already correct.
 
 ## 6. Residuals And What This Document Does NOT Prove
 

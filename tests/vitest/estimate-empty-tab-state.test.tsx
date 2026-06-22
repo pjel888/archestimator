@@ -1,10 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "@/components/workshop/estimate-sheet/events";
 
 beforeAll(() => {
   if (!window.PointerEvent) window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
@@ -52,24 +51,17 @@ describe("new-tab empty shell", () => {
 
     expect(screen.queryByRole("heading", { name: "This tab is empty" })).not.toBeInTheDocument();
     expect(screen.queryByText("Add an Area to start, or drag a template or project content here.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Branch" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Branch" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Browse templates" })).not.toBeInTheDocument();
   });
 
-  it("Add Branch from the empty tree requests a write-valid root create in the active (new) tab", () => {
-    const createRequests: Array<{ kind?: string }> = [];
-    const handler = (event: Event) => createRequests.push((event as CustomEvent<{ kind?: string }>).detail);
-    window.addEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handler);
-    try {
-      renderEmptyTab({ canEditEstimate: true });
-      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
-      // Root create stays write-valid (internal kind "group"); the tree's event
-      // handler routes it through the single Add Branch flow.
-      expect(createRequests).toEqual([{ kind: "group" }]);
-    } finally {
-      window.removeEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handler);
-    }
+  it("does not render center-column create affordances for an empty tab", () => {
+    renderEmptyTab({ canEditEstimate: true });
+
+    expect(screen.getByRole("region", { name: "Estimate tab content" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Area" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Branch" })).not.toBeInTheDocument();
   });
 
   it("hides edit actions for viewers (canEditEstimate=false / omitted)", () => {

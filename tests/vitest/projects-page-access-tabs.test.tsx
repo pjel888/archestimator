@@ -188,11 +188,8 @@ describe("ProjectsPageClient access tabs", () => {
     expect(ownedTab).toHaveClass("!min-h-[41px]", "w-full", "border-brand-orange");
     expect(ownedTab).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Shared" })).toHaveAccessibleName("Shared");
-    for (const tab of tabs) {
-      const panelId = tab.getAttribute("aria-controls");
-      expect(panelId).toBeTruthy();
-      expect(document.getElementById(panelId ?? "")).toBeInTheDocument();
-    }
+    expect(screen.getByRole("tabpanel", { name: "Projects" })).toBeInTheDocument();
+    expect(document.getElementById("panel-shared-to-you")).toHaveAttribute("hidden");
     expect(within(tablist).queryByText("2")).not.toBeInTheDocument();
     expect(within(tablist).queryByText("1")).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /^All/i })).not.toBeInTheDocument();

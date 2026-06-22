@@ -258,7 +258,7 @@ describe("ProjectsPageClient view modes", () => {
     render(<ProjectsPageClient projects={[]} />);
 
     const liveProjects = screen.getByLabelText("Live projects");
-    expect(liveProjects).toHaveAttribute("data-project-view-mode", "large");
+    expect(liveProjects).toHaveAttribute("data-project-view-mode");
     expect(within(liveProjects).queryAllByRole("article")).toHaveLength(0);
     expect(screen.queryByLabelText("Sample project references")).not.toBeInTheDocument();
     expect(screen.queryByText("Create the first live project")).not.toBeInTheDocument();

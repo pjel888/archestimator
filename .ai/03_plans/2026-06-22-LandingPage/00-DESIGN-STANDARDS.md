@@ -20,6 +20,16 @@ landing plan does not drift from the current product language.
   direction unless Philip explicitly re-approves it. Stable tokens may still be
   referenced when they match live source.
 
+Source hierarchy for this landing pass:
+
+1. Live Archestimator product surfaces, especially `/workshop`, win over external
+   inspiration.
+2. Live tokens and components in `src/app/globals.css`, `src/app/layout.tsx`, and
+   current landing/workshop source win over stale plan language.
+3. The 2026-06-22 plan docs in this folder win over older landing folders.
+4. External websites are reference material only; they should influence flow,
+   pacing, proof density, and craft, not replace Archestimator's product language.
+
 ## Current Landing Direction
 
 The active homepage reset is the GPT Taste landing direction:
@@ -34,6 +44,17 @@ The active homepage reset is the GPT Taste landing direction:
   stage-language masquerading as launch proof.
 
 Implementation anchor: `src/components/landing/gpt-taste/RedesignedLandingPage.tsx`.
+
+Reference precedence by concern:
+
+| Concern | Primary reference | Secondary references |
+| --- | --- | --- |
+| Product surface, grid, spacing, glass, orange restraint | `/workshop` | Interfere, Paper |
+| Landing flow and commercial pacing | Intercom | Verichain AI, ReadMe |
+| Professional warmth | Shepherd Insurance | Intercom |
+| Technical/mixed-font accent | Save.design, Scorecard | Archestimator Doto/Roboto Mono tokens |
+| Product proof density | Interfere | ReadMe, current workshop/estimate surfaces |
+| Community/follow section | Verichain AI, Parley Agent | Archestimator real channels only |
 
 ## Professional Software Stance
 
@@ -75,8 +96,9 @@ professional direction.
 The `/workshop` product surface is now a primary first-party reference for this
 landing pass. Borrow its grid discipline, gray canvas, Signal-orange restraint,
 liquid-glass surfaces, small numeric/technical labels, and controlled empty
-space. Do not let public-page inspiration override what already feels right in
-the actual product.
+space. Its design/layout, colors, fonts, effects, and amount of empty space are
+already close to the desired Archestimator tone. Do not let public-page
+inspiration override what already feels right in the actual product.
 
 ## Brand Color
 

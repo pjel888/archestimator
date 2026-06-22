@@ -130,6 +130,8 @@ allowed = {
     "Underrepresented persona/use case",
   ],
   "Targeted Verification" => [
+    "TV-A11Y",
+    "TV-ACCESS-PATH-CONTRACT",
     "TV-AI",
     "TV-ASSET-API",
     "TV-AUTH",

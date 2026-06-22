@@ -22,6 +22,7 @@
 - `.ai/03_plans/2026-06-22-LandingPage/07-CODEBASE-AI-BUILD-BRIEF.md`
 - `.ai/03_plans/2026-06-22-LandingPage/08-COPY-CTA-AND-CONTENT-BEST-PRACTICES.md`
 - `.ai/03_plans/2026-06-22-LandingPage/09-PERFORMANCE-ACCESSIBILITY-AND-MOTION-BEST-PRACTICES.md`
+- `.ai/03_plans/2026-06-22-LandingPage/11-PRODUCT-PROOF-ASSET-AND-COMMUNITY-CONTRACT.md`
 - `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/01-beta-product-thesis-and-prioritization.md`
 - `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/04-ux-state-accessibility-and-content-contracts.md`
 - `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/10-access-path-and-persona-taxonomy.md`
@@ -100,6 +101,12 @@ Request early access
 Book a walkthrough
 ```
 
+- [ ] Map CTAs to real destinations:
+  - `Request early access` -> a real contact/early-access path or form;
+  - `Book a walkthrough` -> scheduling/contact;
+  - `See pricing` -> `/pricing`;
+  - `View product proof` or `See the feature tour` -> in-page proof or `/features`;
+  - `Open workspace` -> authenticated workspace only.
 - [ ] Ensure no standalone `Learn more` CTA is introduced.
 
 Verification:
@@ -156,6 +163,11 @@ Proposal/share status
 
 - [ ] Use real screenshots if available. If screenshots are not available, build
   faithful app panels using current workshop visual language.
+- [ ] If screenshots are used, create or record the manifest fields from doc `11`:
+  source route, viewport, data fixture, capture date, privacy check, compression
+  format, and landing use.
+- [ ] If faithful panels are used, document the source components that informed
+  them and keep text/data realistic.
 - [ ] Do not use fake client names, fake logos, fake testimonial cards, or fake
   adoption metrics.
 
@@ -174,6 +186,8 @@ generic dashboard.
 
 - [ ] Borrow the `/workshop` system: calm gray canvas, tight grid, subtle orange
   bloom, liquid glass, small numeric labels, and controlled empty space.
+- [ ] Treat the `/workshop` amount of empty space as the target: premium but still
+  operational, not oversized marketing whitespace.
 - [ ] Keep a single continuous glass surface where possible.
 - [ ] Do not stack backdrop blurs inside nested children.
 - [ ] Use `--brand-orange` for presence and `--brand-orange-dark` for small orange
@@ -245,12 +259,16 @@ Expected: real channel labels are present only when their links are real.
 
 ## Task 8: Preserve Three.js Performance
 
-- [ ] Keep `HeroSignalField` desktop-only or lazy after first paint.
+- [ ] Keep `HeroSignalField` desktop-only and lazy after first paint, or replace it
+  with an equivalent client leaf.
 - [ ] Preserve WebGL support checks.
 - [ ] Preserve `prefers-reduced-motion` static rendering.
 - [ ] Preserve `powerPreference: "low-power"` and capped pixel ratio.
 - [ ] Ensure the Three.js field is decorative and not required for content
   comprehension.
+- [ ] Ensure `three` is not statically imported into `src/app/page.tsx`,
+  `RedesignedLandingPage.tsx`, or shared landing modules that affect the initial
+  route path.
 
 Verification:
 
@@ -288,6 +306,15 @@ bun run build
 
 Expected: command exits 0 and no landing route size regression is ignored.
 
+Expected route-budget review when build output is available:
+
+- `three` is not pulled into the initial `/` route bundle;
+- landing main chunk stays near the internal `<60KB` gzipped target where
+  practical;
+- critical path JS stays near the internal `<80KB` gzipped target where
+  practical;
+- any unavoidable regression is documented with the reason and mitigation.
+
 - [ ] Run diff whitespace check:
 
 ```sh
@@ -295,6 +322,28 @@ git diff --check -- src/app/page.tsx src/components/landing src/app/globals.css
 ```
 
 Expected: no trailing whitespace or conflict markers.
+
+## Task 10: Update Tests That Encode The Old Direction
+
+- [ ] Inspect current landing tests before changing expectations:
+
+```sh
+sed -n '1,140p' tests/vitest/landing-amigo-redesign.test.tsx
+sed -n '1,180p' tests/vitest/landing-interactivity.test.tsx
+sed -n '1,180p' tests/vitest/public-font-lcp-audit.test.ts
+```
+
+- [ ] Update stale expectations that conflict with this plan:
+  - old hero copy: `Estimates that remember every job`;
+  - old CTA: `Start free`, unless a real free signup path exists;
+  - old giant type clamps: `6.15rem`, `6rem`, or equivalent poster scale;
+  - old prohibition on beta/pre-launch language if the page is now explicitly a
+    closed-beta/pre-launch preview.
+- [ ] Preserve useful behavioral assertions for layout discipline, glass language,
+  CTA accessibility, and performance-sensitive font loading.
+
+Expected: tests describe the new AEC-first, restrained, product-proof-led landing
+direction instead of locking the previous homepage.
 
 ## Acceptance Criteria
 
@@ -311,8 +360,14 @@ Expected: no trailing whitespace or conflict markers.
   omitted because no live channels exist.
 - [ ] Three.js is subtle, decorative, low-power, reduced-motion safe, and not
   required for LCP content.
+- [ ] `three` is isolated to a lazy/client leaf and not pulled into the initial `/`
+  route path.
+- [ ] Product screenshots or faithful panels follow the manifest/source-component
+  contract in doc `11`.
 - [ ] No fake proof, fake metrics, fake logos, generic construction cliches, or
   contractor-first framing.
+- [ ] Tests that encoded the older hero/copy/type scale are updated when the new
+  direction ships.
 - [ ] Verification commands were run or the validation gap is stated.
 
 ## ADR

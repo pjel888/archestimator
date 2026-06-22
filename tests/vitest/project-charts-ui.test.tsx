@@ -28,7 +28,7 @@ type RawFacts = {
 // gone; the page is now a comparison surface driven by the comparison view-model.
 
 describe("ProjectChartsClient — cost comparison", () => {
-  it("renders an empty state with a create-estimate action when a project has no estimates", () => {
+  it("renders the comparison shell when a project has no estimates", () => {
     render(
       <ProjectChartsClient
         data={baseData({ estimateOptions: [] })}
@@ -38,8 +38,11 @@ describe("ProjectChartsClient — cost comparison", () => {
       />,
     );
 
-    expect(screen.getByText("No estimates yet")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /create estimate/i })).toBeInTheDocument();
+    expect(screen.queryByText("No estimates yet")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /create estimate/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId("project-charts-controls")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Cost comparison detail" })).toBeInTheDocument();
+    expect(screen.getByText("No cost rows yet.")).toBeInTheDocument();
   });
 
   it("shows a cost-comparison header, the auto insight sentence, and the variance spine by default", () => {

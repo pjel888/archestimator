@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Plus } from "@phosphor-icons/react/dist/ssr";
+import { Blueprint, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";

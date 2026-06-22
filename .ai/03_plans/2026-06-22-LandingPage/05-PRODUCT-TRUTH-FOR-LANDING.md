@@ -222,3 +222,16 @@ The landing page should use one clean narrative:
 The result should feel professional, finance-aware, and progressive. The page
 can be visually innovative, but the product proof must make it clear this is
 software for commercial decisions, not a decorative brand concept.
+
+## Historical Source Note
+
+The older executive-summary folder reinforces the useful thesis: Archestimator
+is a structured quote, estimate, and proposal workspace where commercial work
+stops dying in disposable files. It also frames construction as a wedge into a
+broader quote-heavy B2B opportunity, which supports the current AEC-first
+positioning without reverting to contractor-first copy.
+
+The older pitch-deck PDF was present but did not expose useful text through
+local extraction in this pass, so future landing copy should not cite or infer
+specific pitch-deck claims unless the implementer reviews the visual deck
+directly.

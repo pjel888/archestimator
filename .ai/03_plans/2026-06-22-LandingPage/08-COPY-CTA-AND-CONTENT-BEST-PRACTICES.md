@@ -18,6 +18,12 @@ External sources checked on 2026-06-22:
   <https://www.nngroup.com/articles/better-link-labels/>
 - Nielsen Norman Group, "'Learn More' Links: You Can Do Better":
   <https://www.nngroup.com/articles/learn-more-links/>
+- Nielsen Norman Group, "How Little Do Users Read?":
+  <https://www.nngroup.com/articles/how-little-do-users-read/>
+- Nielsen Norman Group, "Writing Hyperlinks: Salient, Descriptive, Start with
+  Keyword": <https://www.nngroup.com/articles/writing-links/>
+- W3C, WCAG 2.2 link purpose and label-in-name criteria:
+  <https://www.w3.org/TR/WCAG22/>
 - Framer Marketplace, "Parley Agent":
   <https://www.framer.com/community/marketplace/templates/parley-agent/>
 
@@ -99,11 +105,11 @@ to prevent bloated copy and giant-font composition.
 
 ## Hero Copy Direction
 
-Preferred H1:
+Canonical H1:
 
 > Your cost intelligence layer.
 
-Preferred support copy:
+Canonical support copy:
 
 > Build AEC estimates from your own prices and suppliers, keep every revision on
 > the record, and send proposals clients can review and approve.
@@ -121,6 +127,10 @@ Alternative H1 if the future visual direction needs a warmer line:
 
 > Cost proposals that remember the work.
 
+Use the alternate only if the first viewport still says AEC and cost
+intelligence in the support copy. Do not let the alternate make the page feel
+like a generic proposal tool.
+
 Do not use:
 
 - "The future of estimating"
@@ -133,6 +143,17 @@ Do not use:
 
 Every CTA must set the expectation that the destination immediately fulfills.
 Do not use standalone "Learn more" unless it is qualified by the destination.
+
+Canonical CTA behavior:
+
+| CTA | Label | Destination expectation |
+| --- | --- | --- |
+| Primary hero/nav/final | `Request early access` | Goes to a real early-access/contact path or form. |
+| Secondary hero | `Book a walkthrough` | Goes to scheduling/contact, not a generic marketing page. |
+| Product proof | `View product proof` or `See the feature tour` | Goes to an in-page proof section or `/features`. |
+| Pricing route | `See pricing` | Goes to `/pricing`; the homepage does not duplicate pricing tables. |
+| Trust route | `Read trust notes` | Goes to `/trust` or a trust section with beta honesty. |
+| Signed-in state | `Open workspace` | Opens the authenticated product workspace. |
 
 Primary CTA rules:
 
@@ -161,9 +182,19 @@ CTA placement:
 4. Community: follow/update CTA, not a sales CTA.
 5. Footer/final: repeat early-access or walkthrough CTA.
 
+Homepage pricing boundary:
+
+- The homepage may mention that pricing is available on `/pricing`.
+- It must not include plan cards, package names, price anchors, discount language,
+  or beta package comparisons.
+- If a pricing link appears, its label must be `See pricing` or another equally
+  direct destination label.
+
 ## Community And Social Section
 
-Include a lightweight community/follow area near the footer or final CTA.
+Include a lightweight community/follow area near the footer or final CTA only
+when at least one maintained destination exists. If no real destinations exist,
+omit the section and document that decision in the implementation notes.
 
 Purpose:
 
@@ -194,6 +225,19 @@ Implementation rules:
 - WhatsApp must use a maintained number, group, or channel link.
 - Use `aria-label` only when the visible label is not enough.
 - Keep social icons visually quiet; they should not compete with the product CTA.
+
+Channel manifest rule:
+
+```ts
+type LandingCommunityChannel = {
+  label: "LinkedIn" | "Instagram" | "WhatsApp" | "Facebook" | "Newsletter";
+  href: string;
+  ariaLabel?: string;
+};
+```
+
+Only render channels with a non-placeholder `href`. Avoid `#`, empty strings,
+fake WhatsApp links, or "coming soon" social buttons.
 
 ## Product Proof Copy Matrix
 
@@ -241,3 +285,8 @@ Before a future codebase AI calls the copy ready, scan for:
 - [ ] CTAs describe their destination.
 - [ ] Community/social links are real or omitted.
 - [ ] Hero and section copy fit the copy budget table.
+- [ ] There is one visible H1.
+- [ ] CTA visible labels are descriptive and match accessible names.
+- [ ] Metadata and Open Graph copy match the AEC-first positioning.
+- [ ] Existing landing tests that encode stale copy are intentionally updated, not
+      ignored.

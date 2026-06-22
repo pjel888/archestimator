@@ -21,9 +21,10 @@ Read these before touching landing code:
 8. `.ai/03_plans/2026-06-22-LandingPage/08-COPY-CTA-AND-CONTENT-BEST-PRACTICES.md`
 9. `.ai/03_plans/2026-06-22-LandingPage/09-PERFORMANCE-ACCESSIBILITY-AND-MOTION-BEST-PRACTICES.md`
 10. `.ai/03_plans/2026-06-22-LandingPage/10-LANDING-PAGE-BEST-PRACTICES-IMPLEMENTATION-PLAN.md`
-11. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/01-beta-product-thesis-and-prioritization.md`
-12. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/04-ux-state-accessibility-and-content-contracts.md`
-13. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/10-access-path-and-persona-taxonomy.md`
+11. `.ai/03_plans/2026-06-22-LandingPage/11-PRODUCT-PROOF-ASSET-AND-COMMUNITY-CONTRACT.md`
+12. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/01-beta-product-thesis-and-prioritization.md`
+13. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/04-ux-state-accessibility-and-content-contracts.md`
+14. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/10-access-path-and-persona-taxonomy.md`
 
 Then inspect live implementation files:
 
@@ -108,7 +109,8 @@ Prefer evolving the active route and component set.
 First-party design reference: inspect `/workshop` before major visual changes.
 The landing page should borrow its calm gray canvas, tight grid, liquid-glass
 surface language, small numeric/technical labels, Signal orange precision, and
-controlled empty space.
+controlled empty space. Treat the `/workshop` spacing ratio, fonts, grid, colors,
+and effects as the internal benchmark for professional Archestimator craft.
 
 Current code already contains useful AEC-first anchors:
 
@@ -153,6 +155,10 @@ Recommended hero copy:
 Potential alternate H1:
 
 > Cost proposals that remember the work.
+
+Use the canonical H1 unless the visual pass proves the warmer alternate works
+better. The support copy must still say AEC and cost intelligence above the fold.
+Keep hero and section copy within the budgets in doc `08`.
 
 Implementation guard:
 
@@ -292,6 +298,11 @@ bun run type-check
 bunx vitest run tests/vitest/closed-beta-pricing-copy.test.ts tests/vitest/contact-form-mailto.test.tsx tests/vitest/landing-security-headers.test.ts
 ```
 
+Warning: the current `tests/vitest/landing-amigo-redesign.test.tsx` encodes the
+older hero copy, `Start free` CTA, and giant type scale. If following this plan,
+update those expectations to the new AEC-first copy, CTA contract, and restrained
+type scale.
+
 Use browser/Playwright proof only when the claim needs rendered layout,
 interaction, responsive behavior, canvas proof, or screenshot evidence. The
 project guardrail is explicit: browser automation is opt-in evidence, not a
@@ -307,7 +318,9 @@ Do not call the landing page ready until:
 - Planned capabilities are not presented as shipped.
 - Contractor-first drift is removed.
 - The visual language matches the standards in this folder.
+- Product-proof screenshots or faithful panels follow doc `11`.
 - Pricing depth is removed from the homepage and routed to `/pricing`.
 - Community/social follow links are included or intentionally omitted because no
   live channels exist yet.
+- Three.js and image additions do not violate the performance targets in doc `09`.
 - Targeted verification has run or the validation gap is explicitly stated.

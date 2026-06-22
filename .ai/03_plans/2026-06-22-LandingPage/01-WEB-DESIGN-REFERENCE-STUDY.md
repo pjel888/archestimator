@@ -560,6 +560,8 @@ Archestimator translation:
   should feel related to the product, not like a separate SaaS template.
 - Borrow the calm gray canvas, tight grid, subtle warm orange bloom, frosted
   surfaces, restrained shadows, small numeric labels, and balanced empty space.
+- Treat the `/workshop` amount of empty space as the target: breathable enough to
+  feel premium, but dense enough to read as professional estimating software.
 - Use product screenshots or faithful panels that inherit workshop density:
   estimate sheet, project tree, library/templates, proposal/share, charts/data.
 - Keep the homepage professional and finance-adjacent. The user should feel that

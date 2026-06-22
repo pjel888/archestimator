@@ -104,7 +104,7 @@ The project has a known design reality: **tertiary `#7F7F7F` FAILS WCAG AA** aga
 
 - Forbidden for load-bearing/meta text: `#7F7F7F` (tertiary).
 - Required for meta text: `#5D5D5D` (secondary).
-- `#7F7F7F` is currently live in `src/app/globals.css` and approximately 8 component files (e.g. `ClaimRow.tsx`, `MaturityTag.tsx`, `StatusPill.tsx`, `ResizableSidePanel.tsx`, `HeroSignalField.tsx`, `project-location-map-style.ts`, `foundations.stories.tsx`). These are the known audit-confirmed sites; treat any other site as TODO-verify before claiming it is clean.
+- `#7F7F7F` is currently live in `src/app/globals.css` and 6 component/lib/story files (verified 2026-06-22 by `rg -il '7[fF]7[fF]7[fF]' src/`): `ClaimRow.tsx`, `MaturityTag.tsx`, `StatusPill.tsx`, `ResizableSidePanel.tsx`, `project-location-map-style.ts`, `foundations.stories.tsx` — 7 total including `globals.css`. Treat any other site as TODO-verify before claiming it is clean.
 - Enforcement: `scripts/enforce-app-design-system.mjs` is the design-system enforcement script, and the `TV-A11Y` gate asserts contrast. A passing `TV-A11Y` run (or the enforcement script) is required before any row claiming AA can be promoted.
 - This contract is binding regardless of `DESIGN.md` guidance: per CLAUDE.md, `DESIGN.md` is an alpha-stage guide, not law, and known AA failures are not waived by it.
 

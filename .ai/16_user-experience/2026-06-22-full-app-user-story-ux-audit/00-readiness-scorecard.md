@@ -56,6 +56,8 @@ Seven independent lenses re-rated the improved packet, binding every claim to re
 
 The code-binding lens confirmed the packet is genuinely bound to real code (all 55 cited vitest files, 8 e2e specs, 18 bun scripts, and provider ID `ebxxqidacheyapmmzavr` exist; all 4 ruby validators PASS). The inflation was not fiction — it was unverified self-rating plus thin content on the dimensions below.
 
+> **Independent re-verification of the correction pass (2026-06-22).** The improvement pass that followed this re-audit was itself independently re-verified on 2026-06-22 by a second 4-lens pass (honest re-rate, adversarial inflation-hunt, binding/validator re-check, coherence). That pass confirmed the corrections landed and surfaced a final set of small, fixable defects (a `reportWebVitals` false binding propagated into docs 05/09/13/14, an over-counted evidence-verified `~29%` figure, a doc-08 validator/vocab mismatch, and a few stale cites) — all fixed in the same pass. Rubric B criterion 2 (independently re-verified) is therefore met by this second pass, not merely inherited from the pre-correction re-audit.
+
 ## Gaps Found And Fixed This Pass
 
 | Gap | Finding | Fix applied |
@@ -88,7 +90,7 @@ These are NAMED, not fake-claimed. They require runtime/execution the packet can
 - **Live browser proof** — recipient first-open comprehension (UX-035), two-user realtime presence (UX-021), true mobile interrupted-draft recovery (UX-030), print-packet fidelity, field-package flows.
 - **Live provider proof** — hosted Supabase/Resend/Vercel/Maps behavior, hosted share-password/asset/webhook routes, monitoring alert/drain.
 - **Outcome-metric VALUES** — time-to-editable-estimate, failed-save rate, funnel conversion require live beta traffic + `DEC-UX-ANALYTICS` instrumentation.
-- **Test passing-status** — ~66 of 93 CSV rows (~71%) are honestly marked "not executed this pass"; their tests exist and are bound, but their green status is unverified. **Evidence-verified readiness ≈ 27/93 ≈ 29%.**
+- **Test passing-status** — 0 of 93 CSV rows are marked executed/proven this pass; 5 rows are explicitly `Known red or blocked broad validation`; the remaining 88 are honestly `not executed` / `not run` / `inventory-only` / `source-static-reviewed`. Their tests exist and are bound, but none were run this pass. **Evidence-verified readiness ≈ 0/93 executed (~0%); all 93 are honestly named residuals requiring execution, not planning.** (Tally re-derived from the CSV `Evidence Status` column; the binding-integrity sweep in `12` can re-derive it.)
 - **Live performance numbers** — hero/auth RTT (network-bound; measure on Vercel in-region), estimate-sheet hosted TTI, real-user Core Web Vitals, liquid-glass arming cadence.
 - **Owner product decisions** — UX-031 first-beta-slice, beta-cohort composition, analytics provider/sink, recipient rate-limit quotas (Philip's calls; the packet frames them, it cannot make them).
 - **Rendered WCAG conformance** — full conformance across every dynamic (auth/share-token-gated) surface needs an axe/lighthouse run against rendered pages.
@@ -127,7 +129,7 @@ After the fixes above, each artifact is planning-artifact-complete and independe
 | Original six-file packet (independent baseline) | 78 | 75 | 56 | Strong audit backlog, not a ready execution plan. |
 | Improved packet (2026-06-22 re-audit, pre-correction) | ~81 | ~73 | ~68 | Self-awarded 100 was inflated ~19/27/32. |
 | **Improved packet (post-correction, planning-readiness, Rubric B)** | **100** | **100** | **100** | Planning-complete + independently re-verified + residuals named. |
-| Evidence-verified readiness (runtime axis) | — | — | **~29** | ~27/93 rows executed this pass; the rest are honest residuals requiring execution, not planning. |
+| Evidence-verified readiness (runtime axis) | — | — | **~0** | 0/93 rows test-executed this pass (5 Known-red/blocked, 88 not-executed); all 93 are honest residuals requiring execution, not planning. |
 
 ## Completion Standard
 
@@ -143,4 +145,4 @@ The packet remains 100% planning-ready (Rubric B) only while these claims stay t
 8. Multiple agents do not work in the same conflict group at the same time without a lead-owned integration plan.
 9. Status updates happen only after evidence exists; related tests are never promoted to user-story proof by wording alone.
 10. The inventory anchors, cited paths/scripts/migrations, and provider IDs are re-verified via the binding-integrity sweep in `12` before any status promotion or widen-beta gate.
-11. No rating is read as execution-proof: the evidence-verified axis (~29%) and the named residuals govern what is actually proven.
+11. No rating is read as execution-proof: the evidence-verified axis (~0% executed this pass) and the named residuals govern what is actually proven.

@@ -13,7 +13,7 @@ This folder is the canonical user-experience audit pack for the Archestimator ap
 
 ## Read This First
 
-- `00-readiness-scorecard.md` rates the packet using **Rubric B** (planning-complete + independently re-verified + residuals named). A 2026-06-22 independent 7-lens re-audit found the prior self-awarded 100/100/100 was inflated (re-audited to ~81/73/68); this pass records that re-audit, fixes every gap, and reports a two-axis rating (planning-readiness 100; evidence-verified ~29% as a named residual). It is the entry point.
+- `00-readiness-scorecard.md` rates the packet using **Rubric B** (planning-complete + independently re-verified + residuals named). A 2026-06-22 independent 7-lens re-audit found the prior self-awarded 100/100/100 was inflated (re-audited to ~81/73/68); this pass records that re-audit, fixes every gap, and reports a two-axis rating (planning-readiness 100; evidence-verified ~0% executed this pass — all 93 rows are honestly named residuals requiring execution, not planning). It is the entry point.
 - `01-beta-product-thesis-and-prioritization.md` defines the beta outcome hierarchy, golden path, persona priority, issue tiers, and MVP-vs-later posture.
 - `02-implementation-decomposition.md` maps every `UX-*` issue to implementation units, owner lanes, scope posture, and verification.
 - `03-sequencing-dependencies-and-conflicts.md` defines phase order, dependencies, conflict groups, rollback/fallback expectations, and CSV status update ownership.

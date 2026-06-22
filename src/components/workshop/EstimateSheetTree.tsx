@@ -1505,6 +1505,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             ]}
           />
         </div>
+        </div>
       </ResizableSidePanel>
       <Modal
         open={bulkDeleteConfirmOpen}
