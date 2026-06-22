@@ -1,27 +1,26 @@
+/**
+ * Landing component barrel.
+ *
+ * Exports the Glass-Brand landing system. The OLD flat section files
+ * (HeroSection.tsx with banned "Win More Bids" copy, CompanyProofCarouselSection
+ * with fabricated testimonials, FinalCTASection, SecondaryClaimSection, etc.)
+ * are intentionally NOT re-exported — they are on the removal rail (L-REM-1..4)
+ * and replaced by the `sections/` directory. They remain on disk for the
+ * Phase 8 deletion rail; new code imports from `./sections/*` directly.
+ */
 export { AnnouncementBanner } from "./AnnouncementBanner";
 export { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
-export { CompanyProofCarouselSection } from "./CompanyProofCarouselSection";
 export { CookieConsentBanner } from "./CookieConsentBanner";
 export { CtaLink } from "./CtaLink";
-export { SecondaryClaimSection } from "./SecondaryClaimSection";
-export { EstimatorEngineSection } from "./EstimatorEngineSection";
-export { FAQSection } from "./FAQSection";
-export { FeaturesSection } from "./FeaturesSection";
-export { FinalCTASection } from "./FinalCTASection";
-export { HeroSection } from "./HeroSection";
 export { LandingFooter } from "./LandingFooter";
-export { ProductShowcaseSection } from "./ProductShowcaseSection";
 export { LandingHeader } from "./LandingHeader";
 export { LandingSmoothScrollProvider } from "./LandingSmoothScrollProvider";
-export { PartnerSection } from "./PartnerSection";
-export { PlaceholderMedia } from "./PlaceholderMedia";
-export { PricingSection } from "./PricingSection";
-export { ProductPreview } from "./ProductPreview";
-export { SectionIntro } from "./SectionIntro";
-export { SolutionSection } from "./SolutionSection";
-export { TestimonialSection } from "./TestimonialSection";
 export { PublicPageShell } from "./PublicPageShell";
 export { ContactForm } from "./ContactForm";
 export { ClarityScript } from "./ClarityScript";
 export { LandingAnalyticsLoader } from "./LandingAnalyticsLoader";
 export { ABExperimentProvider } from "./ABExperimentProvider";
+
+// Shell client + maturity tag (Glass Brand foundation).
+export { LandingShellClient } from "./shell/LandingShellClient";
+export { MaturityTag } from "./shell/MaturityTag";

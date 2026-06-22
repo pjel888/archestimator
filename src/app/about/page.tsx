@@ -1,172 +1,175 @@
+import type { Metadata } from "next";
+
 import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
+import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import { PublicPageShell } from "@/components/landing";
-import Link from "next/link";
-import { Info } from "@phosphor-icons/react/dist/ssr";
+import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
+import { SectionShell } from "@/components/landing/sections/SectionShell";
+import { FinalCtaSection } from "@/components/landing/sections/FinalCtaSection";
+
+export const metadata: Metadata = buildLandingMetadata({
+  title: "About — a new company, building for teams who live in spreadsheets",
+  description:
+    "Archestimator started with a simple frustration: every estimate holds real commercial knowledge, and every time a project ends, that knowledge dies in a spreadsheet. We are building the cost intelligence layer that fixes that.",
+  path: "/about",
+});
 
 export default async function AboutPage() {
   const isLoggedIn = await getLandingAuthState();
-
-  const theWayElements = [
-    {
-      title: "Start with Line-Item Structure",
-      desc: "Organize quotes by package, product group, room, location, phase, or scope. The quote structure matches the offer's reality, not a flat table."
-    },
-    {
-      title: "Price in Context",
-      desc: "Insert unit rates, supplier context, labor assumptions, and commercial notes directly alongside the line items they govern."
-    },
-    {
-      title: "Reuse What Repeats",
-      desc: "Compile common products, assemblies, services, or packages and drop them into new sheets instantly."
-    },
-    {
-      title: "Keep Assumptions Attached",
-      desc: "Notes, calculations, and formulas reside directly in the workspace so team members don't have to search email threads."
-    }
-  ];
-
   return (
     <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-28">
-        <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
-            Our Mission & Logic
-          </span>
-          <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
-            Why Archestimator exists.
-          </h1>
-          <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Quote and proposal work has moved from paper files to spreadsheets, but the core challenge remains: keeping line items, supplier rates, assumptions, revisions, and documents connected.
-          </p>
-        </div>
-      </section>
+      <LandingShellClient>
+        <main data-landing-page-root="true" id="main-content">
+          {/* Hero (compact) — introduction posture (§5.1) */}
+          <SectionShell
+            id="about-hero"
+            label="About Archestimator"
+            eyebrow="About"
+            accentRail
+            heading="A new company, building for teams who live in spreadsheets."
+            lead="Name the world as it is. Declare who we are. Show who you become with us."
+          />
 
-      {/* Narrative Section: The Messy Workflow */}
-      <section className="bg-[#eeeeec] py-12 md:py-16">
-        <div className="mx-auto w-full max-w-[760px] px-6">
-          <h2 className="text-[24px] font-semibold tracking-tight text-[#111111] md:text-[30px]">
-            The Connected Workflow Problem
-          </h2>
-          <div className="mt-6 space-y-6 text-[15px] leading-7 text-[#1f201f]">
-            <p>
-              Excel is the most powerful calculator ever created. The enemy isn&apos;t the spreadsheet itself, and it certainly isn&apos;t the estimator. The enemy is the <strong>disconnected file workflow</strong>.
-            </p>
-            <p>
-              When quotes live in separate spreadsheets scattered across local drives, commercial risk multiplies. Rates become obsolete, formulas break silently during row additions, revision changes get lost in buyer email threads, and the final proposal file loses its connection to the underlying price logic.
-            </p>
-            <p>
-              Archestimator is being built as a workspace where quote structures, reusable catalogs, supplier context, change history, and proposal handoff context stay connected in one reviewable environment.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* The Archestimator Way */}
-      <section className="bg-[#eeeeec] py-16 md:py-24 border-t border-[#cfcfca]/40">
-        <div className="mx-auto w-full max-w-[920px] px-6">
-          <div className="text-center">
-            <h2 className="text-[28px] font-semibold tracking-tight text-[#111111] md:text-[34px]">
-              The Archestimator Way
-            </h2>
-            <p className="mt-3 text-[14px] text-[#626260]">
-              How we approach quote and proposal work differently.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {theWayElements.map((item, idx) => (
-              <div key={idx} className="rounded-[12px] bg-[#f5f5f3] p-6 border border-[#cfcfca]/50">
-                <h3 className="text-[16px] font-semibold text-[#111111]">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-[14px] leading-6 text-[#626260]">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* What We Are Not Section */}
-      <section className="bg-[#eeeeec] py-16 md:py-24 border-t border-[#cfcfca]/40">
-        <div className="mx-auto w-full max-w-[760px] px-6">
-          <div className="rounded-[16px] border border-[#cfcfca]/80 bg-[#111111] p-8 text-white">
-            <div className="flex items-center gap-3">
-              <Info className="size-6 text-brand-orange" weight="bold" />
-              <h2 className="text-[20px] font-semibold tracking-tight text-white md:text-[24px]">
-                What Archestimator is not
-              </h2>
+          {/* The intro — founder voice (§11.5) */}
+          <SectionShell
+            id="about-intro"
+            label="The intro"
+            eyebrow="The intro"
+            heading="Every estimate holds real commercial knowledge. Today it dies in a spreadsheet."
+          >
+            <div className="flex flex-col gap-[var(--landing-space-md)]">
+              <p className="max-w-[var(--landing-measure-prose)] text-landing-text-body-lg leading-landing-prose text-landing-ink text-pretty">
+                Archestimator started with a simple frustration: every estimate holds real commercial
+                knowledge — your prices, your suppliers, your judgment — and every time a project
+                ends, that knowledge dies in a spreadsheet. The next job starts from row one.
+              </p>
+              <p className="max-w-[var(--landing-measure-prose)] text-landing-text-body leading-landing-prose text-landing-ink-secondary text-pretty">
+                We are building the cost intelligence layer for teams who live in those spreadsheets.
+                Not an enterprise suite that takes months to set up, but a workspace where your own
+                estimating work compounds: structured estimates, a reusable library, a clean revision
+                record, and proposals your clients can actually review and approve.
+              </p>
+              <p className="max-w-[var(--landing-measure-prose)] text-landing-text-body leading-landing-prose text-landing-ink-secondary text-pretty">
+                Built by someone who has worked both sides of this, the design and cost side, and the
+                software side.
+              </p>
+              <p className="max-w-[var(--landing-measure-prose)] text-landing-text-body leading-landing-prose text-landing-ink-secondary text-pretty">
+                This is a new company and an early product. We would rather tell you exactly what it
+                does today and where it is going than oversell it. That honesty is part of how we work.
+              </p>
             </div>
-            
-            <p className="mt-4 text-[14px] leading-6 text-white/70">
-              We want to be transparent about the boundaries of our workspace. To keep the product fast and reliable:
-            </p>
+          </SectionShell>
 
-            <div className="mt-6 space-y-5 text-[14px] leading-6">
-              <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
-                  Not a broad ERP
-                </strong>
-                <p className="text-white/60 mt-1">
-                  We do not build HR modules, direct field payroll, inventory registries, purchasing execution, or general ledger accounting tools. We focus on structured quote, estimate, and proposal workflows.
+          {/* Mission + vision + promise (§4.5) */}
+          <SectionShell
+            id="about-mission"
+            label="Mission, vision, promise"
+            eyebrow="Mission · Vision · Promise"
+            heading="Why this exists."
+          >
+            <div className="grid gap-[var(--landing-space-lg)] md:grid-cols-3">
+              <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <p className="font-numeric text-landing-text-label uppercase tracking-landing-label text-landing-ink-muted">
+                  Mission
+                </p>
+                <p className="mt-[var(--landing-space-sm)] text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary">
+                  Give AEC teams a cost intelligence layer — one place where unit costs, suppliers,
+                  revisions, and client decisions compound instead of dying in spreadsheets, from
+                  first cost estimate to client approval.
                 </p>
               </div>
-              <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
-                  Not a takeoff-first tool
-                </strong>
-                <p className="text-white/60 mt-1">
-                  We focus on cost structures, quantity math, and rate libraries. We do not currently process raw blueprint files or PDF pixel-measurements directly on the canvas.
+              <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <p className="font-numeric text-landing-text-label uppercase tracking-landing-label text-landing-ink-muted">
+                  Vision
+                </p>
+                <p className="mt-[var(--landing-space-sm)] text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary">
+                  Become the cost intelligence layer for the AEC economy: every estimate a reusable
+                  asset, every approval a permanent record, and a structured bridge from project
+                  demand to supplier supply.
                 </p>
               </div>
-              <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
-                  Not AI magic
-                </strong>
-                <p className="text-white/60 mt-1">
-                  We do not generate binding quotes from simple text descriptions. Unit costs, supplier choices, commercial assumptions, and document review remain under the user&apos;s professional control.
+              <div className="rounded-landing-panel border-l-2 border-brand-orange border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <p className="font-numeric text-landing-text-label uppercase tracking-landing-label text-landing-ink-muted">
+                  Promise
                 </p>
-              </div>
-              <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
-                  Not a finished enterprise platform
-                </strong>
-                <p className="text-white/60 mt-1">
-                  Archestimator is currently in early MVP preview. Features like broader document handoff, issued-output snapshots, and advanced revision tracking will roll out only after they pass verification.
+                <p className="mt-[var(--landing-space-sm)] font-display text-landing-text-body-lg leading-landing-tight text-landing-ink">
+                  You never start from zero again. Your numbers hold up.
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </SectionShell>
 
-      {/* CTA Section */}
-      <section className="bg-[#111111] py-16 text-white md:py-24 border-t border-white/10">
-        <div className="mx-auto w-full max-w-[800px] px-6 text-center">
-          <h2 className="text-[30px] font-normal leading-tight tracking-[-0.04em] text-white sm:text-[40px]">
-            Join our early-access program
-          </h2>
-          <p className="mt-4 text-[15px] leading-6 text-white/60">
-            Open a workspace today to test our structured estimate tabs, reusable catalog, and estimator grid.
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link
-              href="/login"
-              className="inline-flex min-h-11 items-center justify-center rounded-[5px] bg-brand-orange px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-brand-orange-dark active:scale-95"
+          {/* The founder — L-FND-1 GATED */}
+          <SectionShell
+            id="about-founder"
+            label="The founder"
+            eyebrow="The founder"
+            heading="Built by someone who has lived the gap."
+            lead="Founder public bio assets (credentials, photo, links) are coming. We won’t invent them. Until they land, this section is the §13.1 core line."
+          >
+            <div
+              aria-hidden="true"
+              data-landing-founder-slot="reserved"
+              className="relative min-h-[200px] overflow-hidden rounded-landing-panel border border-landing-hairline bg-surface"
             >
-              Try Workspace
-            </Link>
-            <Link
-              href="/contact"
-              className="inline-flex min-h-11 items-center justify-center rounded-[5px] border border-white/20 px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-white/10 active:scale-95"
-            >
-              Contact Team
-            </Link>
-          </div>
-        </div>
-      </section>
+              <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-orange-soft)_0%,transparent_60%)] opacity-60" />
+              <div className="absolute inset-0 flex items-end p-[var(--landing-space-lg)]">
+                <p className="font-display text-landing-text-body-lg leading-landing-tight text-landing-ink">
+                  Archestimator exists because the founder has felt the workflow from both sides —
+                  the design and cost side, and the software side.
+                </p>
+              </div>
+            </div>
+            <p className="mt-[var(--landing-space-md)] text-landing-text-caption text-landing-ink-muted">
+              Founder bio and photo are coming. We won’t invent credentials.
+            </p>
+          </SectionShell>
+
+          {/* Privacy stance (R10) */}
+          <SectionShell
+            id="about-privacy"
+            label="Private by design"
+            eyebrow="Privacy"
+            heading="Your data is yours."
+          >
+            <p className="max-w-[var(--landing-measure-prose)] text-landing-text-body-lg leading-landing-prose text-landing-ink text-pretty">
+              Your data is yours, never pooled or anonymized across customers. This is a deliberate
+              positioning choice — the opposite of a cross-customer benchmark. We forgo that
+              benchmark; we think the trade is worth it.
+            </p>
+          </SectionShell>
+
+          {/* What this is, and is not (§7.4) */}
+          <SectionShell
+            id="about-limits"
+            label="What this is, and is not"
+            eyebrow="Honest limitations"
+            heading="An early product. Honest about what it is not."
+          >
+            <ul className="grid gap-[var(--landing-space-sm)] sm:grid-cols-2">
+              {LIMITATIONS.map((line) => (
+                <li
+                  key={line}
+                  className="rounded-landing-dense border border-landing-hairline bg-surface p-[var(--landing-space-md)] text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary"
+                >
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </SectionShell>
+
+          <FinalCtaSection isLoggedIn={isLoggedIn} />
+        </main>
+      </LandingShellClient>
     </PublicPageShell>
   );
 }
+
+const LIMITATIONS = [
+  "Pre-launch MVP, not production-hardened enterprise SaaS.",
+  "AI is on the roadmap, not in the product today.",
+  "Exports are working documents, not immutable issued records, legal documents, or POs.",
+  "Not procurement, ERP, or payment execution.",
+  "Not an aggregator or a database of other people's estimates.",
+  "No BIM or drawing ingestion today. English UI, no localization yet.",
+] as const;

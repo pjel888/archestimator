@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { Doto, Roboto_Mono } from "next/font/google";
+import { Doto, Geist, Roboto_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
+import { LandingStructuredData } from "@/components/landing/structured-data";
+import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
 import { AppProviders } from "./providers";
 import "./globals.css";
 
 const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"], display: "swap" });
+const geist = Geist({ variable: "--font-geist", subsets: ["latin"], display: "swap" });
 // Technical display face for the Workshop dashboard's editorial headline layer,
 // inspired by the "Improve ROI" reference. Body UI keeps the SF Pro stack.
 const doto = Doto({
@@ -17,8 +20,13 @@ const doto = Doto({
 });
 
 export const metadata: Metadata = {
-  title: "Archestimator | Quote, Proposal & Estimate Workspace",
-  description: "A workspace for teams that build quotes, estimates, and proposals from reusable line items, supplier context, assumptions, and document-ready handoff steps.",
+  metadataBase: new URL(LANDING_SITE_ORIGIN), // L-SEO-1 placeholder origin until domain confirmed
+  title: {
+    default: "Archestimator — your cost intelligence layer for AEC teams",
+    template: "%s — Archestimator",
+  },
+  description:
+    "A construction cost estimating platform where every estimate becomes reusable commercial knowledge. Build from a library of your real prices and suppliers, keep every revision on the record, and share proposals your clients can approve.",
   icons: {
     icon: [
       { url: "/favicon_io/favicon.ico", sizes: "any" },
@@ -33,8 +41,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${robotoMono.variable} ${doto.variable}`}>
+      <body className={`${robotoMono.variable} ${geist.variable} ${doto.variable}`}>
         <AppProviders>{children}</AppProviders>
+        {/* JSON-LD structured data (Organization + WebSite) sitewide (doc 13 §4). */}
+        <LandingStructuredData />
         {/* Arms the deferred liquid-glass blur after first paint + idle. Renders
             null; the glass surfaces ship blur-off so first paint stays cheap. */}
         <LiquidGlassReady />

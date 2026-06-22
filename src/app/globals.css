@@ -5,9 +5,9 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #3D3D3D;
-  --primary: #3D3D3D;
-  --ink: #3D3D3D;
+  --foreground: #3d3d3d;
+  --primary: #3d3d3d;
+  --ink: #3d3d3d;
   --secondary: #5d5d5d;
   --tertiary: #7f7f7f;
   --surface: #ffffff;
@@ -24,7 +24,7 @@
      #6b6b6b ≈ 5.3:1 on white — clears WCAG 1.4.3 (4.5:1) for body text, while the
      design-system-pinned --tertiary (#7f7f7f) stays untouched. */
   --muted-foreground: #6b6b6b;
-  --accent: #3D3D3D;
+  --accent: #3d3d3d;
   /* Primary brand color — Archestimator Signal (owner directive 2026-06-19,
      supersedes the clay/terracotta #AA412A "product" color; Signal is no longer
      campaign-only). Two-tone family because #F24405 is mid-luminance: ~3.75:1
@@ -34,8 +34,8 @@
                                     focus rings, dark-sidebar accents, hover BG.
        --brand-orange-dark #C63804  (Signal×0.82, ~5.3:1 on white) — small text &
                                     icons rendered in the brand color on light. */
-  --brand-orange: #F24405;
-  --brand-orange-dark: #C63804;
+  --brand-orange: #f24405;
+  --brand-orange-dark: #c63804;
   --brand-orange-soft: color-mix(in srgb, var(--brand-orange) 14%, white);
   /* Budget-health meter fills (Project dashboard, owner directive 2026-06-20):
      the bar track stays white; the running-cost (in-budget) portion reads as
@@ -56,12 +56,29 @@
      Transparent blurred destination panes, the two hero gradients, the quiet
      canvas wash, and the warm-dark sidebar. */
   /* Two hero gradients — the only richly-coloured glass cells (Continue wins the duel). */
-  --grad-hero-continue: linear-gradient(135deg, color-mix(in srgb, var(--brand-orange) 22%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 16%, var(--glass-bg)) 48%, color-mix(in srgb, var(--brand-peach) 10%, var(--glass-bg)) 100%);
-  --grad-hero-create: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 17%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 11%, var(--glass-bg)) 100%);
+  --grad-hero-continue: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-orange) 22%, var(--glass-bg)) 0%,
+    color-mix(in srgb, var(--brand-amber) 16%, var(--glass-bg)) 48%,
+    color-mix(in srgb, var(--brand-peach) 10%, var(--glass-bg)) 100%
+  );
+  --grad-hero-create: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-orange) 17%, var(--glass-bg)) 0%,
+    color-mix(in srgb, var(--brand-amber) 11%, var(--glass-bg)) 100%
+  );
   /* Canvas wash — whisper-quiet warm pools bottom-right so frost reads as depth. */
   --grad-canvas-wash:
-    radial-gradient(100% 82% at 94% 100%, rgba(242, 68, 5, 0.07) 0%, transparent 54%),
-    radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.06) 0%, transparent 58%),
+    radial-gradient(
+      100% 82% at 94% 100%,
+      rgba(242, 68, 5, 0.07) 0%,
+      transparent 54%
+    ),
+    radial-gradient(
+      72% 58% at 6% 14%,
+      rgba(70, 82, 104, 0.06) 0%,
+      transparent 58%
+    ),
     linear-gradient(155deg, #eceeef 0%, #e6e7e7 48%, #dedbd8 100%);
   --grad-canvas-wash-fallback: #e6e7e7;
   /* Horizontally uniform (top-lit) so the collapsed 64px rail and the full
@@ -69,26 +86,53 @@
      A left-anchored white radial or an angled base would make the narrow rail
      (left edge only) look lighter than the whole panel; both are kept vertical. */
   --sidebar-glass-wash:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 34%, transparent 64%),
-    linear-gradient(180deg, rgba(248, 250, 251, 0.46) 0%, rgba(238, 240, 241, 0.36) 54%, rgba(221, 224, 226, 0.3) 100%);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.08) 34%,
+      transparent 64%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(248, 250, 251, 0.46) 0%,
+      rgba(238, 240, 241, 0.36) 54%,
+      rgba(221, 224, 226, 0.3) 100%
+    );
   --sidebar-glass-wash-fallback: #edf0f1;
   --workshop-shell-chrome-bg:
-    radial-gradient(100% 82% at 94% 100%, rgba(242, 68, 5, 0.12) 0%, transparent 54%),
-    radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.1) 0%, transparent 58%),
-    linear-gradient(155deg, rgba(248, 250, 251, 0.54) 0%, rgba(232, 234, 235, 0.44) 48%, rgba(221, 217, 213, 0.5) 100%);
+    radial-gradient(
+      100% 82% at 94% 100%,
+      rgba(242, 68, 5, 0.12) 0%,
+      transparent 54%
+    ),
+    radial-gradient(
+      72% 58% at 6% 14%,
+      rgba(70, 82, 104, 0.1) 0%,
+      transparent 58%
+    ),
+    linear-gradient(
+      155deg,
+      rgba(248, 250, 251, 0.54) 0%,
+      rgba(232, 234, 235, 0.44) 48%,
+      rgba(221, 217, 213, 0.5) 100%
+    );
   --workshop-shell-chrome-bg-fallback: #e6e7e7;
-  --glass-shadow-hover: 0 10px 24px rgba(30, 35, 50, 0.13), 0 3px 8px rgba(30, 35, 50, 0.08);
+  --glass-shadow-hover:
+    0 10px 24px rgba(30, 35, 50, 0.13), 0 3px 8px rgba(30, 35, 50, 0.08);
   /* Warm-dark sidebar (scoped to the rail). */
-  --glass-bg-sidebar:
-    linear-gradient(180deg, rgba(52, 53, 52, 0.84), rgba(35, 34, 33, 0.8));
+  --glass-bg-sidebar: linear-gradient(
+    180deg,
+    rgba(52, 53, 52, 0.84),
+    rgba(35, 34, 33, 0.8)
+  );
   --sidebar-texture: url("/sidebar-BG.png");
   --on-rail: rgba(255, 255, 255, 0.97);
   --on-rail-muted: rgba(255, 255, 255, 0.82);
   --rail-hairline: rgba(255, 255, 255, 0.16);
   --source-boundary: #e8d8cf;
-  --accent-dark: #2A2A2A;
+  --accent-dark: #2a2a2a;
   --accent-soft: #f5f5f5;
-  --focus: #3D3D3D;
+  --focus: #3d3d3d;
   --success: #15803d;
   --success-soft: #dcfce7;
   --warning: #b45309;
@@ -96,7 +140,9 @@
   --danger: #b91c1c;
   --danger-soft: #fee2e2;
   --proposal-paper: #fffdf8;
-  --font-sf-pro: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sf-pro:
+    "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   --radius-xs: 3px;
 
   /* ─── Liquid-glass sidebar (brand-adapted, light) ───────────────────────
@@ -105,45 +151,113 @@
      3px-radius / no-shadow / no-glassmorphism defaults. Dark ink text on a
      light warm frost keeps WCAG AA trivially satisfied. Calibrated against the
      WorkshopGlassBackdrop mesh. See DESIGN.md → "Glass surface (sidebar)". */
-  --glass-bg: rgba(255, 255, 255, 0.72);          /* frosted white — floats brightly over the grey canvas */
-  --glass-bg-fallback: #fbfbfc;                   /* opaque: no-support / reduced-transparency */
-  --glass-blur: 18px;                             /* capped 16–20px for mobile GPU */
+  --glass-bg: rgba(
+    255,
+    255,
+    255,
+    0.72
+  ); /* frosted white — floats brightly over the grey canvas */
+  --glass-bg-fallback: #fbfbfc; /* opaque: no-support / reduced-transparency */
+  --glass-blur: 18px; /* capped 16–20px for mobile GPU */
   --glass-saturate: 145%;
-  --glass-border: rgba(38, 44, 58, 0.10);         /* cool neutral hairline (not warm/brown) */
-  --glass-border-top: rgba(255, 255, 255, 0.5);   /* soft specular top edge — present, not a white stripe */
+  --glass-border: rgba(
+    38,
+    44,
+    58,
+    0.1
+  ); /* cool neutral hairline (not warm/brown) */
+  --glass-border-top: rgba(
+    255,
+    255,
+    255,
+    0.5
+  ); /* soft specular top edge — present, not a white stripe */
   --glass-inset-hi: inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
-  --glass-shadow: 0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
+  --glass-shadow:
+    0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
   --glass-radius: 12px;
   --glass-nav-radius: 8px;
   /* Hover: a faint top-lit neutral gradient (not a flat tint). */
-  --glass-nav-hover-bg: linear-gradient(180deg, rgba(38, 44, 58, 0.07), rgba(38, 44, 58, 0.035));
+  --glass-nav-hover-bg: linear-gradient(
+    180deg,
+    rgba(38, 44, 58, 0.07),
+    rgba(38, 44, 58, 0.035)
+  );
   /* Active pill: brand-orange glass — a soft vertical gradient (stronger at the
      top edge where light catches), inset specular, accent hairline. */
-  --glass-nav-active-bg: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 18%, transparent), color-mix(in srgb, var(--brand-orange) 7%, transparent));
-  --glass-nav-active-border: color-mix(in srgb, var(--brand-orange) 30%, transparent);
+  --glass-nav-active-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-orange) 18%, transparent),
+    color-mix(in srgb, var(--brand-orange) 7%, transparent)
+  );
+  --glass-nav-active-border: color-mix(
+    in srgb,
+    var(--brand-orange) 30%,
+    transparent
+  );
   --glass-nav-active-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
   /* Combined active-pill shadow: inner top specular + inset accent hairline. */
-  --glass-nav-active-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-border);
-  --glass-nav-active-collapsed-bg: linear-gradient(180deg, rgba(38, 44, 58, 0.11), rgba(38, 44, 58, 0.055));
+  --glass-nav-active-shadow:
+    var(--glass-nav-active-inset),
+    inset 0 0 0 1px var(--glass-nav-active-border);
+  --glass-nav-active-collapsed-bg: linear-gradient(
+    180deg,
+    rgba(38, 44, 58, 0.11),
+    rgba(38, 44, 58, 0.055)
+  );
   --glass-nav-active-collapsed-border: rgba(38, 44, 58, 0.16);
-  --glass-nav-active-collapsed-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
+  --glass-nav-active-collapsed-shadow:
+    var(--glass-nav-active-inset),
+    inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
   /* Logo frame: frosted vivid-orange liquid-glass slab with a white mark. */
-  --glass-logo-orange: #F24405;
+  --glass-logo-orange: #f24405;
   --glass-logo-bg:
-    radial-gradient(92% 150% at 10% 0%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.16) 34%, transparent 58%),
-    radial-gradient(88% 120% at 100% 100%, rgba(121, 34, 2, 0.32) 0%, transparent 62%),
-    linear-gradient(135deg, color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%, var(--glass-logo-orange) 44%, color-mix(in srgb, var(--glass-logo-orange) 84%, #7a1e02) 100%);
-  --glass-logo-collapsed-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.07) 48%, rgba(255, 255, 255, 0.025) 100%);
+    radial-gradient(
+      92% 150% at 10% 0%,
+      rgba(255, 255, 255, 0.38) 0%,
+      rgba(255, 255, 255, 0.16) 34%,
+      transparent 58%
+    ),
+    radial-gradient(
+      88% 120% at 100% 100%,
+      rgba(121, 34, 2, 0.32) 0%,
+      transparent 62%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%,
+      var(--glass-logo-orange) 44%,
+      color-mix(in srgb, var(--glass-logo-orange) 84%, #7a1e02) 100%
+    );
+  --glass-logo-collapsed-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.07) 48%,
+    rgba(255, 255, 255, 0.025) 100%
+  );
   --glass-logo-sheen:
-    radial-gradient(120% 170% at 3% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 32%, transparent 56%),
+    radial-gradient(
+      120% 170% at 3% 0%,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0.1) 32%,
+      transparent 56%
+    ),
     linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 42%);
-  --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 50%, rgba(255, 255, 255, 0.56));
+  --glass-logo-border: color-mix(
+    in srgb,
+    var(--glass-logo-orange) 50%,
+    rgba(255, 255, 255, 0.56)
+  );
   --glass-logo-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
-    inset 0 -1px 0 0 rgba(121, 34, 2, 0.16),
-    0 1px 2px rgba(30, 35, 50, 0.12);
+    inset 0 -1px 0 0 rgba(121, 34, 2, 0.16), 0 1px 2px rgba(30, 35, 50, 0.12);
   /* Section divider: 1px centre-faded hairline (replaces the hard gray line). */
-  --glass-divider: linear-gradient(90deg, transparent, rgba(38, 44, 58, 0.14), transparent);
+  --glass-divider: linear-gradient(
+    90deg,
+    transparent,
+    rgba(38, 44, 58, 0.14),
+    transparent
+  );
   --glass-grain-opacity: 0.035;
   /* Left offset the workshop content reserves for the floating rail:
      INSET(8) + COLLAPSED(64) + GAP(8) = 80px. Single source of truth — both
@@ -154,16 +268,106 @@
   /* === Landing — Glass Brand additive token layer (D-1/D-3; MASTER-IMPLEMENTATION-PLAN §8.1) ===
      Aliases let every landing component bind to a grep-stable --landing-* name. All alias
      targets are verified present above. Additive only — do not edit existing tokens. */
-  --landing-canvas: var(--warm-canvas);            /* #f5f5f5 */
-  --landing-ink: var(--ink);                       /* #3D3D3D */
-  --landing-ink-secondary: var(--secondary);       /* #5D5D5D */
-  --landing-ink-muted: var(--muted-foreground);    /* #6b6b6b */
-  --landing-accent: var(--brand-orange);           /* #F24405 — presence */
-  --landing-accent-aa: var(--brand-orange-dark);   /* #C63804 — AA small text */
-  --landing-hairline: oklch(96.5% 0.003 264);      /* ≈ #f2f2f2 (alias of --hairline) */
+  --landing-canvas: var(--warm-canvas); /* #f5f5f5 */
+  --landing-ink: var(--ink); /* #3D3D3D */
+  --landing-ink-secondary: var(--secondary); /* #5D5D5D */
+  --landing-ink-muted: var(--muted-foreground); /* #6b6b6b */
+  --landing-accent: var(--brand-orange); /* #F24405 — presence */
+  --landing-accent-aa: var(--brand-orange-dark); /* #C63804 — AA small text */
+  --landing-hairline: oklch(
+    96.5% 0.003 264
+  ); /* ≈ #f2f2f2 (alias of --hairline) */
   --landing-hairline-strong: oklch(92% 0.004 264); /* ≈ #e8e8e8 */
-  --landing-paper: var(--proposal-paper);          /* #fffdf8 — Direction D only; NOT used on Glass routes */
-  --font-ui: var(--font-sf-pro);                   /* SF Pro (C-2 resolution) */
+  --landing-paper: var(
+    --proposal-paper
+  ); /* #fffdf8 — Direction D only; NOT used on Glass routes */
+  --font-ui: var(--font-sf-pro); /* SF Pro (C-2 resolution) */
+
+  /* === Landing type scale (doc 03 §3.4) — mobile-first clamp, editorial register ===
+     Mobile floor → desktop ceiling. Body floor = 16px (≥14px landing floor; app floor
+     is 12px and does NOT apply on landing). Doto display tracks wide. */
+  --landing-text-display: clamp(
+    2.75rem,
+    5.5vw + 1rem,
+    5.5rem
+  ); /* hero H1, ≤7 words */
+  --landing-text-display-s: clamp(
+    2.25rem,
+    4vw + 1rem,
+    3.75rem
+  ); /* long-hero fallback */
+  --landing-text-headline: clamp(
+    1.875rem,
+    2.6vw + 1rem,
+    2.8125rem
+  ); /* section H2 */
+  --landing-text-title: clamp(
+    1.375rem,
+    1.4vw + 1rem,
+    1.75rem
+  ); /* H3 benefit blocks */
+  --landing-text-body-lg: clamp(
+    1.125rem,
+    0.4vw + 1rem,
+    1.25rem
+  ); /* lead paragraphs */
+  --landing-text-body: 1.0625rem; /* body prose (17px) */
+  --landing-text-body-sm: 0.9375rem; /* secondary prose (15px) */
+  --landing-text-caption: 0.875rem; /* notes, disclaimers (14px — FLOOR) */
+  --landing-text-label: 0.75rem; /* status pills, meta (12px — UI labels only) */
+  --landing-leading-display: 1.04; /* hero — Doto uppercase tracks wide */
+  --landing-leading-headline: 1.15;
+  --landing-leading-prose: 1.55; /* body — readable; cap measure 65–75ch */
+  --landing-leading-tight: 1.3; /* UI labels */
+  --landing-tracking-display: 0.02em; /* Doto uppercase — wide, not negative */
+  --landing-tracking-headline: 0;
+  --landing-tracking-prose: 0;
+  --landing-tracking-label: 0.08em; /* SF Pro uppercase pills */
+  --landing-measure-prose: 70ch; /* body prose */
+  --landing-measure-lead: 60ch; /* hero subhead */
+
+  /* === Landing spacing (doc 03 §3.5) — 4-pt base, 8px rhythm, named steps === */
+  --landing-space-3xs: 0.125rem; /* 2px  — hairline gaps */
+  --landing-space-2xs: 0.25rem; /* 4px  — tight icon-to-label */
+  --landing-space-xs: 0.5rem; /* 8px  — bento/pane gutter rhythm (dashboard --spacing-sm) */
+  --landing-space-sm: 0.75rem; /* 12px — caption-to-body */
+  --landing-space-md: 1rem; /* 16px — body default */
+  --landing-space-lg: 1.5rem; /* 24px — between paragraphs */
+  --landing-space-xl: 2rem; /* 32px — between benefit blocks */
+  --landing-space-2xl: 3rem; /* 48px — between sections (mobile) */
+  --landing-space-3xl: 4rem; /* 64px — between sections (desktop) */
+  --landing-space-4xl: 6rem; /* 96px — hero top/bottom padding (desktop) */
+  --landing-section-pad-y: clamp(
+    2.5rem,
+    5vw,
+    6rem
+  ); /* mobile 40px → desktop 96px */
+  --landing-section-pad-x: clamp(
+    1rem,
+    4vw,
+    4rem
+  ); /* mobile 16px → desktop 64px */
+
+  /* === Landing z-index (doc 03 §3.6) — semantic, per impeccable skill === */
+  --landing-z-base: 0;
+  --landing-z-sticky: 100; /* sticky glass header */
+  --landing-z-dropdown: 200; /* header hamburger / mobile nav */
+  --landing-z-plate-caption: 300; /* commercial-graph plate caption */
+  --landing-z-overlay: 400; /* cookie banner */
+  --landing-z-modal: 500; /* reserved — landing has no modals at launch */
+  --landing-z-toast: 600; /* reserved */
+
+  /* === Landing radius (doc 03 §3.7) — the full PRODUCT.md ramp, aliased ===
+     3px dense · 8px glass pills/nav · 12px floating panels. Nothing else. */
+  --landing-radius-dense: var(
+    --radius-xs
+  ); /* 3px — hairline cards, dense cells */
+  --landing-radius-pill: var(
+    --glass-nav-radius
+  ); /* 8px — CTA buttons, nav, filter chips */
+  --landing-radius-panel: var(
+    --glass-radius
+  ); /* 12px — floating glass panels, the plate */
 }
 
 @theme inline {
@@ -214,7 +418,8 @@
      `font-display` = Doto for the Improve-ROI-inspired editorial headline;
      `font-numeric` reuses Roboto Mono for codes/dates/totals. Path-scoped to
      dashboard surfaces; the rest of the app keeps SF Pro. */
-  --font-display: var(--font-doto), var(--font-roboto-mono), ui-monospace, monospace;
+  --font-display:
+    var(--font-doto), var(--font-roboto-mono), ui-monospace, monospace;
   --font-numeric: var(--font-roboto-mono), ui-monospace, monospace;
   --radius-xs: var(--radius-xs);
 
@@ -230,9 +435,33 @@
   --color-landing-hairline: var(--landing-hairline);
   --color-landing-hairline-strong: var(--landing-hairline-strong);
   --color-landing-paper: var(--landing-paper);
-  --font-landing-display: var(--font-display);
+  --font-landing-display: var(--font-geist), var(--font-sf-pro);
   --font-landing-numeric: var(--font-numeric);
   --font-landing-ui: var(--font-ui);
+
+  /* === Landing type scale / spacing / radius @theme bridges (doc 03 §3.4–3.7)
+     Bridges only the tokens a component actually consumes as a native utility.
+     Arbitrary-value usage must use bg-[color:var(--x)] / text-[color:var(--x)]. */
+  --text-landing-display: var(--landing-text-display);
+  --text-landing-display-s: var(--landing-text-display-s);
+  --text-landing-headline: var(--landing-text-headline);
+  --text-landing-title: var(--landing-text-title);
+  --text-landing-body-lg: var(--landing-text-body-lg);
+  --text-landing-body: var(--landing-text-body);
+  --text-landing-body-sm: var(--landing-text-body-sm);
+  --text-landing-caption: var(--landing-text-caption);
+  --text-landing-label: var(--landing-text-label);
+  --leading-landing-display: var(--landing-leading-display);
+  --leading-landing-headline: var(--landing-leading-headline);
+  --leading-landing-prose: var(--landing-leading-prose);
+  --leading-landing-tight: var(--landing-leading-tight);
+  --tracking-landing-display: var(--landing-tracking-display);
+  --tracking-landing-headline: var(--landing-tracking-headline);
+  --tracking-landing-prose: var(--landing-tracking-prose);
+  --tracking-landing-label: var(--landing-tracking-label);
+  --radius-landing-dense: var(--landing-radius-dense);
+  --radius-landing-pill: var(--landing-radius-pill);
+  --radius-landing-panel: var(--landing-radius-panel);
 }
 
 * {
@@ -378,7 +607,13 @@ body:has([data-workshop-page-shell-root]) {
   height: 1px;
   border-top-left-radius: var(--glass-radius);
   border-top-right-radius: var(--glass-radius);
-  background: linear-gradient(90deg, transparent, var(--glass-border-top) 35%, var(--glass-border-top) 65%, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--glass-border-top) 35%,
+    var(--glass-border-top) 65%,
+    transparent
+  );
   opacity: 0.7;
   pointer-events: none;
   z-index: 2;
@@ -401,11 +636,13 @@ body:has([data-workshop-page-shell-root]) {
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   backdrop-filter: blur(10px) saturate(120%);
   border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 6px 16px rgba(30, 35, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 6px 16px rgba(30, 35, 50, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
 .sidebar-logo-frame--collapsed .sidebar-logo-mark {
-  color: #3D3D3D;
+  color: #3d3d3d;
   transition: color 160ms ease-out;
 }
 
@@ -470,7 +707,9 @@ body:has([data-workshop-page-shell-root]) {
 }
 
 /* Fallback A — no backdrop-filter support → solid, still-intentional panel. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   .sidebar-glass {
     background: var(--sidebar-glass-wash-fallback);
   }
@@ -494,7 +733,6 @@ body:has([data-workshop-page-shell-root]) {
     display: none;
   }
 }
-
 
 .halftone-panel {
   position: relative;
@@ -581,8 +819,20 @@ body:has([data-workshop-page-shell-root]) {
   background-repeat: repeat;
   background-size: 14px 14px;
   opacity: 0.48;
-  -webkit-mask-image: linear-gradient(to bottom left, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.62) 36%, rgba(0, 0, 0, 0.2) 60%, transparent 84%);
-  mask-image: linear-gradient(to bottom left, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.62) 36%, rgba(0, 0, 0, 0.2) 60%, transparent 84%);
+  -webkit-mask-image: linear-gradient(
+    to bottom left,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.62) 36%,
+    rgba(0, 0, 0, 0.2) 60%,
+    transparent 84%
+  );
+  mask-image: linear-gradient(
+    to bottom left,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.62) 36%,
+    rgba(0, 0, 0, 0.2) 60%,
+    transparent 84%
+  );
 }
 
 .landing-quote-grid-paper {
@@ -590,7 +840,9 @@ body:has([data-workshop-page-shell-root]) {
   isolation: isolate;
   overflow: hidden;
   background: rgb(255, 255, 255);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .landing-quote-grid-paper::before {
@@ -612,7 +864,11 @@ body:has([data-workshop-page-shell-root]) {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.64), transparent 68%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.64),
+    transparent 68%
+  );
 }
 
 .landing-hero-slide {
@@ -710,7 +966,12 @@ body:has([data-workshop-page-shell-root]) {
   inset-block: -1px;
   left: -28%;
   width: 28%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 1), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 1),
+    transparent
+  );
   opacity: 0;
   animation-duration: 20s;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
@@ -1111,6 +1372,26 @@ body:has([data-workshop-page-shell-root]) {
   }
 }
 
+@keyframes landing-gpt-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.landing-gpt-marquee-track {
+  animation: landing-gpt-marquee 34s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-gpt-marquee-track {
+    animation: none;
+  }
+}
+
 @media (min-width: 64rem) {
   html:has([data-landing-page-root="true"]),
   body:has([data-landing-page-root="true"]) {
@@ -1118,7 +1399,9 @@ body:has([data-workshop-page-shell-root]) {
     scroll-snap-type: none;
   }
 
-  html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
+  html:has([data-landing-page-root="true"])
+    [data-landing-page-root="true"]
+    > :first-child,
   [data-landing-snap-section="true"] {
     scroll-margin-top: 68px;
     scroll-snap-align: none;
@@ -1132,7 +1415,9 @@ body:has([data-workshop-page-shell-root]) {
     scroll-snap-type: none;
   }
 
-  html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
+  html:has([data-landing-page-root="true"])
+    [data-landing-page-root="true"]
+    > :first-child,
   [data-landing-snap-section="true"] {
     scroll-snap-align: none;
     scroll-snap-stop: normal;
@@ -1148,13 +1433,17 @@ body:has([data-workshop-page-shell-root]) {
 [data-motion-reveal="active"] {
   opacity: 0;
   transform: translateY(1rem);
-  transition: opacity 700ms ease-out, transform 700ms ease-out;
+  transition:
+    opacity 700ms ease-out,
+    transform 700ms ease-out;
 }
 
 [data-motion-reveal="revealed"] {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 700ms ease-out, transform 700ms ease-out;
+  transition:
+    opacity 700ms ease-out,
+    transform 700ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1178,23 +1467,41 @@ input[type="number"] {
 /* ─── Animation utilities (replaces tailwindcss-animate) ────────────── */
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-in-from-bottom-4 {
-  from { transform: translateY(1rem); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(1rem);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-in-from-top-1 {
-  from { transform: translateY(-0.25rem); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(-0.25rem);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 @keyframes scale-in {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-in {
@@ -1219,8 +1526,12 @@ input[type="number"] {
   animation-name: scale-in;
 }
 
-.duration-300 { animation-duration: 0.3s; }
-.duration-200 { animation-duration: 0.2s; }
+.duration-300 {
+  animation-duration: 0.3s;
+}
+.duration-200 {
+  animation-duration: 0.2s;
+}
 
 /* ─── Workshop Dashboard surface (2026-06-17) ─────────────────────────────────
    The "command center" homebase: a warm bottom-right bloom dissolving into the
@@ -1233,15 +1544,14 @@ input[type="number"] {
    inward/up-left and fully dissolving to transparent before the center. Hues
    pulled from the brand: clay/terracotta → amber → soft peach → transparent. */
 .workshop-dashboard-bloom {
-  background:
-    radial-gradient(
-      125% 115% at 100% 100%,
-      color-mix(in srgb, var(--brand-orange) 20%, transparent) 0%,
-      color-mix(in srgb, var(--brand-orange) 13%, transparent) 16%,
-      color-mix(in srgb, var(--brand-amber) 11%, transparent) 34%,
-      color-mix(in srgb, var(--brand-peach) 7%, transparent) 50%,
-      transparent 72%
-    );
+  background: radial-gradient(
+    125% 115% at 100% 100%,
+    color-mix(in srgb, var(--brand-orange) 20%, transparent) 0%,
+    color-mix(in srgb, var(--brand-orange) 13%, transparent) 16%,
+    color-mix(in srgb, var(--brand-amber) 11%, transparent) 34%,
+    color-mix(in srgb, var(--brand-peach) 7%, transparent) 50%,
+    transparent 72%
+  );
 }
 
 /* Faint drafting dot-grid — decoration on warm/glass cards only, never under
@@ -1356,6 +1666,13 @@ input[type="number"] {
   outline-offset: 2px;
 }
 
+@media (pointer: coarse) {
+  .workshop-liquid-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .workshop-liquid-button {
     transition: none;
@@ -1367,11 +1684,18 @@ input[type="number"] {
    translucent fills and inset highlights only. */
 .workshop-project-card-glass {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.58));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.76),
+    rgba(255, 255, 255, 0.58)
+  );
   -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
   backdrop-filter: none;
-  border-color: color-mix(in srgb, var(--glass-border) 82%, rgba(255, 255, 255, 0.28));
+  border-color: color-mix(
+    in srgb,
+    var(--glass-border) 82%,
+    rgba(255, 255, 255, 0.28)
+  );
   box-shadow:
     0 7px 14px rgba(30, 35, 50, 0.08),
     0 1px 4px rgba(30, 35, 50, 0.05),
@@ -1385,7 +1709,11 @@ input[type="number"] {
 
 .workshop-project-card-glass:hover,
 .workshop-project-card-glass:focus-within {
-  border-color: color-mix(in srgb, var(--brand-orange) 24%, var(--glass-border));
+  border-color: color-mix(
+    in srgb,
+    var(--brand-orange) 24%,
+    var(--glass-border)
+  );
   box-shadow:
     0 9px 14px rgba(30, 35, 50, 0.105),
     0 2px 7px rgba(30, 35, 50, 0.06),
@@ -1406,7 +1734,7 @@ input[type="number"] {
 
 .workshop-project-card-control {
   background: rgba(255, 255, 255, 0.76);
-  border-color: rgba(30, 35, 50, 0.10);
+  border-color: rgba(30, 35, 50, 0.1);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 1px 2px rgba(30, 35, 50, 0.06);
@@ -1424,11 +1752,16 @@ input[type="number"] {
 .workshop-estimates-list-glass {
   position: relative;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.52)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.74),
+      rgba(255, 255, 255, 0.52)
+    ),
     var(--workshop-shell-chrome-bg);
   -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
   backdrop-filter: none;
-  border: 1px solid color-mix(in srgb, var(--glass-border) 78%, rgba(255, 255, 255, 0.34));
+  border: 1px solid
+    color-mix(in srgb, var(--glass-border) 78%, rgba(255, 255, 255, 0.34));
   border-top-color: rgba(255, 255, 255, 0.58);
   border-radius: var(--glass-radius);
   box-shadow:
@@ -1452,11 +1785,16 @@ input[type="number"] {
 .project-data-panel {
   position: relative;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--glass-border) 84%, rgba(255, 255, 255, 0.28));
+  border: 1px solid
+    color-mix(in srgb, var(--glass-border) 84%, rgba(255, 255, 255, 0.28));
   border-top-color: rgba(255, 255, 255, 0.62);
   border-radius: var(--glass-radius);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.58)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.78),
+      rgba(255, 255, 255, 0.58)
+    ),
     var(--workshop-shell-chrome-bg);
   box-shadow:
     0 7px 18px rgba(30, 35, 50, 0.08),
@@ -1466,7 +1804,11 @@ input[type="number"] {
 
 .project-data-panel--paper {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.90)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(255, 255, 255, 0.9)
+    ),
     #fff;
 }
 
@@ -1487,9 +1829,14 @@ input[type="number"] {
 }
 
 .project-data-bucket-card {
-  border: 1px solid color-mix(in srgb, var(--glass-border) 76%, rgba(255, 255, 255, 0.32));
+  border: 1px solid
+    color-mix(in srgb, var(--glass-border) 76%, rgba(255, 255, 255, 0.32));
   border-top-color: rgba(255, 255, 255, 0.56);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.50));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.68),
+    rgba(255, 255, 255, 0.5)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.56),
     0 1px 3px rgba(30, 35, 50, 0.04);
@@ -1553,8 +1900,11 @@ input[type="number"] {
 }
 
 .workshop-project-card-thumbnail-reveal {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.76));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.76)
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
 }
 
@@ -1584,11 +1934,17 @@ input[type="number"] {
      than four things stacked. Warm stops stay low so the dark grid ink (which
      sits on the paper, not the well) is unaffected. */
   background:
-    radial-gradient(120% 96% at 100% 100%,
+    radial-gradient(
+      120% 96% at 100% 100%,
       color-mix(in srgb, var(--brand-peach) 16%, transparent) 0%,
       color-mix(in srgb, var(--brand-amber) 11%, transparent) 30%,
-      transparent 72%),
-    linear-gradient(180deg, rgba(230, 228, 228, 0.62), rgba(216, 213, 214, 0.56));
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(230, 228, 228, 0.62),
+      rgba(216, 213, 214, 0.56)
+    );
   box-shadow: inset 0 1px 3px rgba(30, 35, 50, 0.06);
 }
 
@@ -1604,10 +1960,15 @@ input[type="number"] {
      is added ahead of the diffuse halo so the float still reads inside the
      narrow 8px gutter; the pane border is softened and its top edge brightened
      to a crisp specular lip against the well. */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.52));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.62),
+    rgba(255, 255, 255, 0.52)
+  );
   /* Softer side/bottom outline — depth lives on the shadow edge + specular top
      lip (DESIGN.md "depth lives on the surface edge"), not a drawn cool line. */
-  border: 1px solid color-mix(in srgb, var(--glass-border) 46%, rgba(255, 255, 255, 0.5));
+  border: 1px solid
+    color-mix(in srgb, var(--glass-border) 46%, rgba(255, 255, 255, 0.5));
   border-top-color: rgba(255, 255, 255, 0.85);
   box-shadow:
     0 2px 6px rgba(30, 35, 50, 0.1),
@@ -1624,8 +1985,13 @@ input[type="number"] {
      for dense cost rows + inline edits. Same near-field contact shadow, brighter
      specular top edge, and softened border as the rails so the three panes read
      as one floating glass family. */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.84));
-  border: 1px solid color-mix(in srgb, var(--glass-border) 50%, rgba(255, 255, 255, 0.44));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.84)
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--glass-border) 50%, rgba(255, 255, 255, 0.44));
   border-top-color: rgba(255, 255, 255, 0.85);
   box-shadow:
     0 2px 6px rgba(30, 35, 50, 0.1),
@@ -1640,7 +2006,11 @@ input[type="number"] {
    actually shows. Pair with .estimate-glass-divider for the soft centre-faded
    hairline that replaces the hard border-hairline. */
 .estimate-glass-chrome {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.62));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0.62)
+  );
 }
 
 /* Sticky headers INSIDE the centre paper — node-group headers and the row-table
@@ -1650,7 +2020,11 @@ input[type="number"] {
    (never stark #fff) keeps the glass read while staying legible, and obeys the
    one-backdrop-filter-per-region performance contract (no own backdrop-filter). */
 .estimate-glass-headchrome {
-  background: linear-gradient(180deg, rgba(250, 249, 248, 0.94), rgba(248, 247, 246, 0.88));
+  background: linear-gradient(
+    180deg,
+    rgba(250, 249, 248, 0.94),
+    rgba(248, 247, 246, 0.88)
+  );
 }
 
 /* Glass interactive states. The shared Tree primitive + the cost rows paint
@@ -1731,7 +2105,11 @@ input[type="number"] {
 .estimate-glass-paper [data-estimate-tab-strip] {
   position: relative;
   border-bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.62));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0.62)
+  );
 }
 .estimate-glass-paper [data-estimate-tab-strip]::after {
   content: "";
@@ -1787,22 +2165,24 @@ input[type="number"] {
 /* Soft variant for over-bloom CTA cards: slightly warmer frost so the bloom
    diffuses through, still keeps crisp dark-ink content on top (AA-safe). */
 .dashboard-glass-warm {
-  background:
-    linear-gradient(
-      150deg,
-      color-mix(in srgb, var(--brand-orange) 6%, var(--glass-bg)),
-      var(--glass-bg)
-    );
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--brand-orange) 6%, var(--glass-bg)),
+    var(--glass-bg)
+  );
   -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
   backdrop-filter: none;
-  border: 1px solid color-mix(in srgb, var(--brand-orange) 18%, var(--glass-border));
+  border: 1px solid
+    color-mix(in srgb, var(--brand-orange) 18%, var(--glass-border));
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
 }
 
 /* Non-blur fallback: solid translucent surface where backdrop-filter is
    unsupported, and when the viewer asks for reduced transparency. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   .dashboard-glass,
   .dashboard-glass-warm {
     background: var(--glass-bg-fallback);
@@ -1874,7 +2254,9 @@ input[type="number"] {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .workshop-dashboard-bloom { opacity: 0.5; }
+  .workshop-dashboard-bloom {
+    opacity: 0.5;
+  }
 }
 
 /* ── Dashboard v2 bento surfaces (owner directive 2026-06-18) ─────────────────
@@ -1894,11 +2276,19 @@ input[type="number"] {
   --dashboard-tile-glass-bg: transparent;
   --dashboard-tile-glass-bg-hover: transparent;
   --dashboard-tile-glass-border: var(--glass-border);
-  --dashboard-tile-glass-border-hover: color-mix(in srgb, var(--glass-border) 72%, rgba(38, 44, 58, 0.22));
-  --dashboard-tile-glass-shadow: 0 4px 14px rgba(30, 35, 50, 0.06), 0 1px 4px rgba(30, 35, 50, 0.035);
-  --dashboard-tile-glass-shadow-hover: 0 5px 12px rgba(30, 35, 50, 0.065), 0 1.5px 4px rgba(30, 35, 50, 0.04);
-  --dashboard-tile-glass-inset: var(--dashboard-tile-glass-shadow), var(--glass-inset-hi);
-  --dashboard-tile-glass-inset-hover: var(--dashboard-tile-glass-shadow-hover), var(--glass-inset-hi);
+  --dashboard-tile-glass-border-hover: color-mix(
+    in srgb,
+    var(--glass-border) 72%,
+    rgba(38, 44, 58, 0.22)
+  );
+  --dashboard-tile-glass-shadow:
+    0 4px 14px rgba(30, 35, 50, 0.06), 0 1px 4px rgba(30, 35, 50, 0.035);
+  --dashboard-tile-glass-shadow-hover:
+    0 5px 12px rgba(30, 35, 50, 0.065), 0 1.5px 4px rgba(30, 35, 50, 0.04);
+  --dashboard-tile-glass-inset:
+    var(--dashboard-tile-glass-shadow), var(--glass-inset-hi);
+  --dashboard-tile-glass-inset-hover:
+    var(--dashboard-tile-glass-shadow-hover), var(--glass-inset-hi);
 }
 
 .dashboard-destination-card {
@@ -1909,7 +2299,7 @@ input[type="number"] {
   --destination-icon: #5d5d5d;
   --destination-border: var(--dashboard-tile-glass-border);
   --destination-inner-border: rgba(38, 44, 58, 0.16);
-  --destination-inner-list-border: rgba(38, 44, 58, 0.10);
+  --destination-inner-list-border: rgba(38, 44, 58, 0.1);
   --destination-inner-text: var(--ink);
   --destination-inner-muted: var(--secondary);
   --destination-mark-opacity: 0.16;
@@ -1945,15 +2335,19 @@ input[type="number"] {
    (they'd read `no-preference` as false and lose the frost). On those engines the
    disarm @media is simply inert, and since they can't be in reduced transparency,
    they correctly keep the frost. */
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   :root[data-glass="ready"] .sidebar-glass,
   :root[data-glass="ready"] .dashboard-glass,
   :root[data-glass="ready"] .dashboard-glass-warm,
   :root[data-glass="ready"] .workshop-workspace-glass-surface,
   :root[data-glass="ready"] .dashboard-destination-card,
   :root[data-glass="ready"] .workshop-estimates-list-glass {
-    -webkit-backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
-    backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur)))
+      saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur)))
+      saturate(var(--glass-saturate));
   }
   :root[data-glass="ready"] .workshop-project-card-glass {
     -webkit-backdrop-filter: blur(12px) saturate(124%);
@@ -2076,7 +2470,8 @@ input[type="number"] {
   bottom: 8px;
   width: min(48%, 104px);
   aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--destination-accent) 26%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--destination-accent) 26%, transparent);
   border-radius: var(--radius-xs);
   opacity: var(--destination-mark-opacity);
   pointer-events: none;
@@ -2300,8 +2695,12 @@ input[type="number"] {
 }
 
 /* Two warm-glass hero cells carry the operational gradient wash. */
-.dashboard-hero-continue { background-image: var(--grad-hero-continue); }
-.dashboard-hero-create { background-image: var(--grad-hero-create); }
+.dashboard-hero-continue {
+  background-image: var(--grad-hero-continue);
+}
+.dashboard-hero-create {
+  background-image: var(--grad-hero-create);
+}
 
 /* Hover feedback without positional movement, so corner arrows stay anchored. */
 .dashboard-card-hover {
@@ -2310,15 +2709,25 @@ input[type="number"] {
     box-shadow 180ms ease-out;
 }
 .dashboard-card-hover:hover {
-  box-shadow: var(--dashboard-tile-glass-inset-hover, var(--glass-shadow-hover));
+  box-shadow: var(
+    --dashboard-tile-glass-inset-hover,
+    var(--glass-shadow-hover)
+  );
 }
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-card-hover { transition: none; }
-  .dashboard-project-card-arrow { transition: none; }
+  .dashboard-card-hover {
+    transition: none;
+  }
+  .dashboard-project-card-arrow {
+    transition: none;
+  }
 }
 
 /* SVG-noise grain — kills banding on gradient cards; sits under content. */
-.grain-overlay { position: relative; isolation: isolate; }
+.grain-overlay {
+  position: relative;
+  isolation: isolate;
+}
 .grain-overlay::after {
   content: "";
   position: absolute;
@@ -2335,11 +2744,19 @@ input[type="number"] {
   /* display:none (not just opacity:0) so the GPU skips rasterizing the
      feTurbulence SVG entirely for this segment — visually identical, since the
      grain is already invisible to these users. */
-  .grain-overlay::after { display: none; }
-  .dashboard-canvas-wash { background: var(--grad-canvas-wash-fallback); }
+  .grain-overlay::after {
+    display: none;
+  }
+  .dashboard-canvas-wash {
+    background: var(--grad-canvas-wash-fallback);
+  }
 }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .dashboard-canvas-wash { background: var(--grad-canvas-wash-fallback); }
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .dashboard-canvas-wash {
+    background: var(--grad-canvas-wash-fallback);
+  }
 }
 
 /* ── Dashboard v2 bento layout (full-bleed square-unit board) ─────────────── */
@@ -2381,10 +2798,18 @@ input[type="number"] {
    6-column coordinate system. Most modules occupy 1×1, 2×1, or 2×2 square
    units instead of reading as stacked horizontal bands. */
 .dashboard-imageband,
-.dashboard-desk { display: contents; }
-.dashboard-masthead { grid-column: 1 / span 2; grid-row: 4; }
-.iband-components { grid-column: 3 / span 3; grid-row: 1 / span 2; }
-.iband-templates  {
+.dashboard-desk {
+  display: contents;
+}
+.dashboard-masthead {
+  grid-column: 1 / span 2;
+  grid-row: 4;
+}
+.iband-components {
+  grid-column: 3 / span 3;
+  grid-row: 1 / span 2;
+}
+.iband-templates {
   grid-column: 5;
   grid-row: 3;
   align-self: stretch;
@@ -2393,7 +2818,7 @@ input[type="number"] {
 .dashboard-imageband > .iband-templates {
   grid-column: 5;
 }
-.iband-library    {
+.iband-library {
   display: grid;
   grid-column: 3 / span 2;
   grid-row: 3;
@@ -2422,7 +2847,9 @@ input[type="number"] {
   transition: color 180ms ease-out;
 }
 .iband-library-continue-slot > a:hover .dashboard-continue-hover-target,
-.iband-library-continue-slot > a:focus-visible .dashboard-continue-hover-target {
+.iband-library-continue-slot
+  > a:focus-visible
+  .dashboard-continue-hover-target {
   color: var(--brand-orange-dark);
 }
 .iband-library-stack {
@@ -2542,7 +2969,9 @@ input[type="number"] {
     transition: none;
   }
 }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   .dashboard-destination-card,
   .iband-library-card,
   .iband-library-continue-slot > a,
@@ -2566,22 +2995,30 @@ input[type="number"] {
     backdrop-filter: none;
   }
 }
-.iband-bignum     {
+.iband-bignum {
   grid-column: 1 / 3;
   grid-row: 5;
   justify-self: stretch;
   width: 100%;
 }
-.iband-projects   { grid-column: 1 / span 2; grid-row: 1 / span 3; }
-.desk-board       { grid-column: 6 / span 2; grid-row: 1 / -1; }
-.desk-continue    {
+.iband-projects {
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 3;
+}
+.desk-board {
+  grid-column: 6 / span 2;
+  grid-row: 1 / -1;
+}
+.desk-continue {
   grid-column: 3 / span 2;
   grid-row: 3;
   align-self: end;
   height: calc((100% - var(--dashboard-gap)) / 2);
 }
-.desk-action      { grid-column: 4; grid-row: 3; }
-.dashboard-first-run { grid-column: 1 / -1; grid-row: 1 / span 2; }
+.desk-action {
+  grid-column: 4;
+  grid-row: 3;
+}
 .desk-board {
   --desk-ledger-border: rgba(38, 44, 58, 0.16);
   --hairline: var(--desk-ledger-border);
@@ -2590,7 +3027,10 @@ input[type="number"] {
   min-height: 0;
   overflow: hidden;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(5, minmax(0, var(--dashboard-board-row))) minmax(0, 1fr);
+  grid-template-rows: repeat(5, minmax(0, var(--dashboard-board-row))) minmax(
+      0,
+      1fr
+    );
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -2645,7 +3085,10 @@ input[type="number"] {
     grid-auto-rows: auto;
     row-gap: 8px;
   }
-  .dashboard-masthead { grid-template-columns: 1fr; row-gap: var(--dashboard-gap); }
+  .dashboard-masthead {
+    grid-template-columns: 1fr;
+    row-gap: var(--dashboard-gap);
+  }
   /* Below the desk breakpoint the editorial field reflows to a simple 2-up of
      square tiles; the voids collapse and the explicit placement is cleared so
      the real tiles flow in source order (Projects keeps a 2-wide emphasis). */
@@ -2674,15 +3117,20 @@ input[type="number"] {
   .iband-library,
   .desk-board,
   .desk-continue,
-  .desk-action,
-  .dashboard-first-run { grid-column: auto; grid-row: auto; }
+  .desk-action {
+    grid-column: auto;
+    grid-row: auto;
+  }
   /* Child-combinator reset must MATCH the specificity of the desktop
      `.dashboard-imageband > .iband-templates { grid-column: 5 }` rule, or
      templates keeps a phantom 5th column and the 2-up reflow collapses. */
   .dashboard-imageband > .iband-projects,
   .dashboard-imageband > .iband-components,
   .dashboard-imageband > .iband-templates,
-  .dashboard-imageband > .iband-library { grid-column: auto; grid-row: auto; }
+  .dashboard-imageband > .iband-library {
+    grid-column: auto;
+    grid-row: auto;
+  }
   /* The display numeral + the interior voids are desktop-only flourishes; on the
      2-up reflow they would orphan a half-tile, so collapse them and let the four
      real tiles sit as clean equal squares. */
@@ -2690,7 +3138,9 @@ input[type="number"] {
   .iband-void-b,
   .iband-void-c,
   .iband-bignum,
-  .dashboard-project-card-topgroup { display: none; }
+  .dashboard-project-card-topgroup {
+    display: none;
+  }
   .dashboard-desk {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2704,14 +3154,26 @@ input[type="number"] {
     grid-area: board;
     grid-template-rows: minmax(220px, 1fr) minmax(176px, auto);
   }
-  .desk-board-favs { grid-row: 1; }
-  .desk-board-recents { grid-row: 2; }
-  .desk-continue { grid-area: continue; height: auto; }
-  .desk-action { grid-area: action; }
+  .desk-board-favs {
+    grid-row: 1;
+  }
+  .desk-board-recents {
+    grid-row: 2;
+  }
+  .desk-continue {
+    grid-area: continue;
+    height: auto;
+  }
+  .desk-action {
+    grid-area: action;
+  }
 }
 @media (max-width: 639px) {
   /* Single-column stack: rows size to content so the ledger tiles never clip. */
-  .dashboard-imageband { grid-template-columns: 1fr; grid-auto-rows: minmax(132px, auto); }
+  .dashboard-imageband {
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(132px, auto);
+  }
   .dashboard-desk {
     grid-template-columns: 1fr;
     grid-auto-rows: auto;
@@ -2734,4 +3196,6 @@ input[type="number"] {
   }
 }
 
-.duration-150 { animation-duration: 0.15s; }
+.duration-150 {
+  animation-duration: 0.15s;
+}

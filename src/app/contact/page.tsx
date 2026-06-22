@@ -1,103 +1,112 @@
+import type { Metadata } from "next";
+
 import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
+import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import { PublicPageShell, ContactForm } from "@/components/landing";
-import { MapPin, Envelope, Sparkle } from "@phosphor-icons/react/dist/ssr";
+import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
+import { SectionShell } from "@/components/landing/sections/SectionShell";
+import { FinalCtaSection } from "@/components/landing/sections/FinalCtaSection";
+import { LandingCTAs } from "@/components/landing/sections/LandingCTAs";
+
+export const metadata: Metadata = buildLandingMetadata({
+  title: "Contact — talk to the founder",
+  description:
+    "Archestimator is founder-led. Book a walkthrough around your own workflow, or send a note. We are looking for design partners who create estimates, quotes, or proposals today — no payment or commitment, just feedback and permission to test the MVP.",
+  path: "/contact",
+});
 
 export default async function ContactPage() {
   const isLoggedIn = await getLandingAuthState();
-
   return (
     <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
-      {/* Hero Header */}
-      <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-24">
-        <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
-            Connect With Us
-          </span>
-          <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
-            Connect with Archestimator.
-          </h1>
-          <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Have a question about quote catalogs, supplier pricing, proposal workflows, or document handoff? Send a direct message to our development team.
-          </p>
-        </div>
-      </section>
+      <LandingShellClient>
+        <main data-landing-page-root="true" id="main-content">
+          {/* Hero (compact) */}
+          <SectionShell
+            id="contact-hero"
+            label="Contact"
+            eyebrow="Contact"
+            accentRail
+            heading="Talk to the founder."
+            lead="Archestimator is founder-led. Book a walkthrough around your own workflow, or send a note. We are looking for design partners who create estimates, quotes, or proposals today — no payment or commitment, just feedback and permission to test the MVP."
+          >
+            <LandingCTAs
+              layout="stack"
+              isLoggedIn={isLoggedIn}
+              location="final-cta"
+              // On /contact the primary intent is "Book a walkthrough" (already here),
+              // so invert: secondary = "Start free" for the build-while-you-wait path.
+              // LandingCTAs renders primary then secondary; this page's hero leads with
+              // the form below, so the CTA pair is supplementary.
+            />
+          </SectionShell>
 
-      {/* Main Section */}
-      <section className="bg-[#eeeeec] py-12 md:py-16">
-        <div className="mx-auto w-full max-w-[1120px] px-6">
-          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-            
-            {/* Info Panel */}
-            <div className="flex flex-col justify-between rounded-[16px] border border-[#cfcfca]/60 bg-[#f5f5f3]/40 p-8">
-              <div>
-                <h2 className="text-[22px] font-semibold tracking-tight text-[#111111]">
-                  Quote Workflow Inquiries
-                </h2>
-                <p className="mt-3 text-[14px] leading-6 text-[#626260]">
-                  We are actively learning from suppliers, sales teams, buyers, and estimators who build quotes, proposals, and approval-ready document packages from spreadsheets.
+          {/* What we are looking for */}
+          <SectionShell
+            id="contact-design-partners"
+            label="Design partners"
+            eyebrow="What we are looking for"
+            heading="A few design partners who estimate, quote, or propose today."
+          >
+            <ul className="grid gap-[var(--landing-space-sm)] sm:grid-cols-2">
+              {DESIGN_PARTNER_POINTS.map((point) => (
+                <li
+                  key={point}
+                  className="flex items-start gap-[var(--landing-space-sm)] rounded-landing-dense border border-landing-hairline bg-surface p-[var(--landing-space-md)] text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mt-[6px] inline-block h-[6px] w-[6px] shrink-0 rounded-full bg-brand-orange"
+                  />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </SectionShell>
+
+          {/* The form */}
+          <SectionShell
+            id="contact-form"
+            label="Send a note"
+            eyebrow="Send a note"
+            heading="Tell us about your workflow."
+          >
+            <div className="grid gap-[var(--landing-space-lg)] lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="flex flex-col gap-[var(--landing-space-md)] rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <p className="font-display text-landing-text-title leading-landing-tight text-landing-ink">
+                  Direct Support
                 </p>
-
-                <div className="mt-8 space-y-6">
-                  {/* Item 1 */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
-                      <Sparkle className="size-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-[14px] font-bold text-[#111111]">
-                        Design Partner Program
-                      </h3>
-                      <p className="mt-1 text-[13px] leading-5 text-[#626260]">
-                        Get direct access to early catalog workflows and shape early features.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Item 2 */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
-                      <Envelope className="size-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-[14px] font-bold text-[#111111]">
-                        Direct Support
-                      </h3>
-                      <p className="mt-1 text-[13px] leading-5 text-[#626260]">
-                        Reach us directly at <span className="font-semibold text-[#111111]">support@archestimator.com</span>.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Item 3 */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
-                      <MapPin className="size-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-[14px] font-bold text-[#111111]">
-                        Location & Focus
-                      </h3>
-                      <p className="mt-1 text-[13px] leading-5 text-[#626260]">
-                        Developed with input from teams that price project work, supplier packages, and itemized commercial offers.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary">
+                  Reach us directly at{" "}
+                  <a
+                    href="mailto:support@archestimator.com"
+                    className="font-medium text-brand-orange-dark underline decoration-landing-hairline underline-offset-4 hover:decoration-brand-orange"
+                  >
+                    support@archestimator.com
+                  </a>
+                  . We read every note.
+                </p>
+                <p className="text-landing-text-caption text-landing-ink-muted">
+                  Privacy Promise: we do not sell or lease your email address. It is strictly used
+                  to reply to quote workflow support and access inquiries.
+                </p>
               </div>
-
-              <div className="mt-8 pt-6 border-t border-[#cfcfca]/30 text-[12px] leading-5 text-[#626260]">
-                <strong>Privacy Promise:</strong> We do not sell or lease your email address. It is strictly used to reply to quote workflow support and access inquiries.
+              <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <ContactForm />
               </div>
             </div>
+          </SectionShell>
 
-            {/* Contact Form Wrapper */}
-            <div>
-              <ContactForm />
-            </div>
-
-          </div>
-        </div>
-      </section>
+          <FinalCtaSection isLoggedIn={isLoggedIn} />
+        </main>
+      </LandingShellClient>
     </PublicPageShell>
   );
 }
+
+const DESIGN_PARTNER_POINTS = [
+  "You create estimates, quotes, or proposals today — on a spreadsheet or an enterprise tool that does not fit.",
+  "No payment and no commitment. Twenty minutes of feedback and permission to test the MVP.",
+  "You are open to a walkthrough around your real workflow, not a generic demo.",
+  "You are in AEC: architecture, engineering, construction, cost estimating, fit-out, interior design, or supply.",
+] as const;

@@ -1,183 +1,188 @@
+import type { Metadata } from "next";
+
 import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
+import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import { PublicPageShell } from "@/components/landing";
-import Link from "next/link";
-import { Check, Info } from "@phosphor-icons/react/dist/ssr";
+import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
+import { SectionShell } from "@/components/landing/sections/SectionShell";
+import { FinalCtaSection } from "@/components/landing/sections/FinalCtaSection";
+import { LandingCTAs } from "@/components/landing/sections/LandingCTAs";
+import { StatusPill } from "@/components/landing/shared/StatusPill";
+
+export const metadata: Metadata = buildLandingMetadata({
+  title: "Pricing, honestly",
+  description:
+    "Freemium, seat-based, peso-denominated, never metered on estimating, exports, or BOQ lines. A permanent free tier so your library can accumulate. Pricing numbers are being validated and will be published once they are.",
+  path: "/pricing",
+});
 
 export default async function PricingPage() {
   const isLoggedIn = await getLandingAuthState();
-
-  const inclusions = [
-    "Create and organize unlimited projects",
-    "Build custom multi-tab estimates within projects",
-    "Nest unlimited cost groups and work breakdown areas",
-    "Edit quantities and Misc Cost allowances",
-    "Access and search the early Component Library flow",
-    "Protected login and secure data persistence",
-  ];
-
-  const futureHighlights = [
-    { title: "Revision comparisons", desc: "Compare versions of the same estimate side-by-side to catch scope creep." },
-    { title: "Excel (.xlsx) exports", desc: "Handoff complete estimate workbooks preserving hierarchy and formulas." },
-    { title: "Document proposal packages", desc: "Format quote data into professional client packages after the document workflow ships." }
-  ];
-
-  const pricingFaq = [
-    {
-      q: "Is Archestimator production-ready?",
-      a: "Archestimator is in a closed beta. It is useful for structured estimates, reusable catalog logic, and workflow feedback, but it is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files.",
-    },
-    {
-      q: "Is payment required during closed beta?",
-      a: "No payment is required during closed beta. Access is manually approved so we can work closely with a small number of testers and harden the database, export, and collaboration workflows before commercial release.",
-    },
-    {
-      q: "When will pricing be available?",
-      a: "Pricing will be announced after beta, once the core workflow, legal copy, support process, and operational readiness have been reviewed. There is no checkout, subscription, or paid-plan enforcement in this MVP.",
-    },
-    {
-      q: "How do I request access?",
-      a: "Use the contact page to request access with the Google account you want invited. Beta testers, investors, and incubator reviewers are allowlisted manually before they can enter the workshop.",
-    },
-  ];
-
   return (
     <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
-      {/* Page Header */}
-      <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-28">
-        <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
-            Closed beta access
-          </span>
-          <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
-            Invitation-only while the workspace hardens.
-          </h1>
-          <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Archestimator is not selling public plans yet. Closed beta access is approved manually for testers and reviewers who can help validate real estimating workflows.
-          </p>
-        </div>
-      </section>
+      <LandingShellClient>
+        <main data-landing-page-root="true" id="main-content">
+          {/* Hero (compact) */}
+          <SectionShell
+            id="pricing-hero"
+            label="Pricing, honestly"
+            eyebrow="Pricing, honestly"
+            accentRail
+            heading="Simple enough to actually adopt. Honest about what it costs and why."
+            lead="Pricing numbers are a hypothesis we are validating, not a locked price. Read the philosophy below — the numbers come once validation closes."
+          >
+            {null}
+          </SectionShell>
 
-      {/* Main Access Section */}
-      <section className="bg-[#eeeeec] py-12 md:py-16">
-        <div className="mx-auto w-full max-w-[1120px] px-6">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            
-            <div className="rounded-[16px] border border-[#cfcfca] bg-[#f5f5f3] p-8 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-[22px] font-semibold tracking-tight text-[#111111]">
-                    Closed beta workspace
-                  </h2>
-                  <p className="mt-1 text-[13px] text-[#626260]">
-                    Invite-only access, no payment required.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[14px] font-bold uppercase tracking-[0.08em] text-[#111111]">No checkout</span>
-                  <span className="block font-mono text-[12px] text-[#626260]">pricing after beta</span>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[8px] bg-amber-500/5 p-4 border border-amber-500/15 flex gap-3 text-amber-800 dark:text-amber-300">
-                <Info className="size-5 shrink-0 mt-0.5" />
-                <p className="text-[13px] leading-5">
-                  <strong>Notice:</strong> No payment is required for closed beta. Pricing will be announced after beta, and there is no Stripe, checkout, subscription, or plan enforcement in this MVP.
+          {/* Pricing philosophy */}
+          <SectionShell
+            id="pricing-philosophy"
+            label="Pricing philosophy"
+            eyebrow="Philosophy"
+            heading="Freemium. Seat-based. Priced in pesos. Never meters the work."
+          >
+            <div className="grid gap-[var(--landing-space-lg)] md:grid-cols-2">
+              <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <h3 className="font-display text-landing-text-title leading-landing-tight text-landing-ink">
+                  What we can say today
+                </h3>
+                <p className="mt-[var(--landing-space-sm)] text-landing-text-body leading-landing-prose text-landing-ink-secondary">
+                  Freemium and seat-based, priced in pesos, billed locally. The compounding cost
+                  library is the lock-in, so we let you build it free and charge to share,
+                  collaborate, and scale. We do not meter estimating, exports, or BOQ lines — that
+                  would tax the exact behavior that builds the moat. A permanent free tier, not just
+                  a trial, so the library can accumulate.
                 </p>
               </div>
-
-              <div className="mt-8">
-                <h3 className="text-[11px] font-mono font-semibold uppercase tracking-[0.08em] text-[#111111]/60">
-                  Included for approved testers
+              <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
+                <h3 className="font-display text-landing-text-title leading-landing-tight text-landing-ink">
+                  What we will never meter
                 </h3>
-                <ul className="mt-4 space-y-3.5">
-                  {inclusions.map((inc, index) => (
-                    <li key={index} className="flex items-start gap-3 text-[14px] leading-5 text-[#1f201f]">
-                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-                        <Check className="size-3.5" weight="bold" />
-                      </div>
-                      <span>{inc}</span>
+                <ul className="mt-[var(--landing-space-sm)] flex flex-col gap-[var(--landing-space-2xs)]">
+                  {NEVER_METERED.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-[var(--landing-space-2xs)] text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mt-[6px] inline-block h-[6px] w-[6px] shrink-0 rounded-full bg-brand-orange"
+                      />
+                      {item}
                     </li>
                   ))}
                 </ul>
               </div>
-
-              <div className="mt-8 pt-6 border-t border-[#cfcfca]/60">
-                <Link
-                  href="/contact"
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-[5px] bg-brand-orange text-[13px] font-bold uppercase tracking-[0.04em] text-white transition hover:bg-brand-orange-dark active:scale-98"
-                >
-                  Request access
-                </Link>
-              </div>
             </div>
+          </SectionShell>
 
-            {/* Panel: What we are shaping */}
-            <div className="flex flex-col justify-between rounded-[16px] border border-[#cfcfca]/60 bg-[#f5f5f3]/60 p-8">
-              <div>
-                <h2 className="text-[20px] font-semibold tracking-tight text-[#111111]">
-                  What beta access means
-                </h2>
-                <p className="mt-1.5 text-[14px] leading-6 text-[#626260]">
-                  Approved testers get the current workshop while planned features stay behind verification gates. The goal is feedback and proof, not public payment conversion.
-                </p>
-
-                <div className="mt-8 space-y-6">
-                  {futureHighlights.map((feat, index) => (
-                    <div key={index} className="border-l-2 border-brand-orange pl-4">
-                      <h3 className="text-[14px] font-bold text-[#111111]">
-                        {feat.title}
-                      </h3>
-                      <p className="mt-1 text-[13px] leading-5 text-[#626260]">
-                        {feat.desc}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-[#cfcfca]/30 text-center sm:text-left">
-                <p className="text-[12px] text-[#626260]">
-                  Already invited?
-                </p>
-                <Link
-                  href="/login"
-                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-[0.02em] text-brand-orange hover:underline"
-                >
-                  Sign in with the invited Google account →
-                </Link>
-              </div>
+          {/* The cement anchor — CONCEPT ONLY, labeled hypothesis */}
+          <SectionShell
+            id="pricing-cement"
+            label="The cement anchor — a concept"
+            eyebrow="Concept · hypothesis"
+            heading="A tool that compounds on every estimate should cost less than a material you pour once."
+          >
+            <div className="rounded-landing-panel border border-landing-hairline-strong bg-surface p-[var(--landing-space-lg)]">
+              <p className="max-w-[var(--landing-measure-prose)] text-landing-text-body-lg leading-landing-prose text-landing-ink text-pretty">
+                Our framing anchor is a bag of cement — the most iconic, instantly-priced unit in
+                Philippine construction. The idea is that a tool that compounds on every estimate you
+                make should cost less, per month, than a material you pour once.
+              </p>
+              <p className="mt-[var(--landing-space-md)] max-w-[var(--landing-measure-prose)] text-landing-text-body leading-landing-prose text-landing-ink-secondary">
+                That is a concept for how we think about value, not a published price. The full
+                pricing model — tiers, numbers, the founding-member rate — is being validated with
+                the teams we are building for, and will be published once it is.
+              </p>
+              <p className="mt-[var(--landing-space-sm)] flex items-center gap-[var(--landing-space-2xs)]">
+                <StatusPill status="Building" size="sm" />
+                <span className="text-landing-text-caption text-landing-ink-muted">
+                  Hypothesis · pending discovery + Van Westendorp validation.
+                </span>
+              </p>
             </div>
+          </SectionShell>
 
-          </div>
-        </div>
-      </section>
+          {/* Tier shape (names only, labeled hypothesis) */}
+          <SectionShell
+            id="pricing-tiers"
+            label="The intended tier shape"
+            eyebrow="Tier shape · no numbers"
+            heading="The intended shape is Free → Solo → Pro → Team."
+            lead="Plus an Education tier and a future Owner/Portfolio tier for the client side. Names only — numbers are pending validation."
+          >
+            <ol className="grid gap-[var(--landing-space-md)] sm:grid-cols-2 lg:grid-cols-4">
+              {TIER_SHAPE.map((tier) => (
+                <li
+                  key={tier.name}
+                  className="flex h-full flex-col gap-[var(--landing-space-2xs)] rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-md)]"
+                >
+                  <h3 className="font-display text-landing-text-body-lg leading-landing-tight text-landing-ink">
+                    {tier.name}
+                  </h3>
+                  <p className="text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary">
+                    {tier.note}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </SectionShell>
 
-      {/* Access FAQs */}
-      <section className="bg-[#eeeeec] py-16 md:py-24 border-t border-[#cfcfca]/40">
-        <div className="mx-auto w-full max-w-[800px] px-6">
-          <div className="text-center">
-            <h2 className="text-[28px] font-semibold tracking-tight text-[#111111] md:text-[34px]">
-              Closed Beta FAQ
-            </h2>
-            <p className="mt-3 text-[14px] text-[#626260]">
-              Clear answers about access, payment, and what changes after beta.
-            </p>
-          </div>
+          {/* How we are validating price */}
+          <SectionShell
+            id="pricing-validation"
+            label="How we are validating price"
+            eyebrow="Validation"
+            heading="Before any number goes public."
+          >
+            <ul className="grid gap-[var(--landing-space-sm)] sm:grid-cols-2">
+              {VALIDATION.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-[var(--landing-space-sm)] rounded-landing-dense border border-landing-hairline bg-surface p-[var(--landing-space-md)]"
+                >
+                  <span className="mt-[2px] shrink-0">
+                    <StatusPill status="Building" size="sm" />
+                  </span>
+                  <span className="text-landing-text-body-sm leading-landing-prose text-landing-ink-secondary">
+                    {item}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <LandingCTAs
+              className="mt-[var(--landing-space-lg)]"
+              layout="stack"
+              isLoggedIn={isLoggedIn}
+              location="final-cta"
+            />
+          </SectionShell>
 
-          <div className="mt-12 space-y-8">
-            {pricingFaq.map((faq, index) => (
-              <div key={index} className="rounded-[12px] bg-[#f5f5f3] p-6 border border-[#cfcfca]/50">
-                <h3 className="text-[16px] font-semibold text-[#111111]">
-                  {faq.q}
-                </h3>
-                <p className="mt-2.5 text-[14px] leading-6 text-[#1f201f]">
-                  {faq.a}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <FinalCtaSection isLoggedIn={isLoggedIn} />
+        </main>
+      </LandingShellClient>
     </PublicPageShell>
   );
 }
+
+const NEVER_METERED = [
+  "Estimating. Build as many estimates as you need.",
+  "Exports. Generate proposal .xlsx workbooks without a counter.",
+  "BOQ lines. Quantity and line items are never usage-metered.",
+  "The library accumulating. That is the moat — we do not tax it.",
+] as const;
+
+const TIER_SHAPE = [
+  { name: "Free", note: "A permanent tier, not a trial. Seeds the component library." },
+  { name: "Solo", note: "For solo contractors, estimators, architects. Sharing + proposals." },
+  { name: "Pro", note: "Serious solo operators. Own branding, deeper analytics, priority support." },
+  { name: "Team", note: "Firms and QS teams. Multiple seats, shared library, admin controls." },
+] as const;
+
+const VALIDATION = [
+  "At least 5 qualified discovery calls with teams who estimate today.",
+  "At least 2 beta users building a real or serious-demo estimate.",
+  "A clear signal on document handoff and proposal value.",
+  "The support burden understood before pricing for scale.",
+  "A Van Westendorp Price Sensitivity Meter study with target users.",
+] as const;
