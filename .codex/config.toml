@@ -17,19 +17,6 @@ command = "uvx"
 suppress_unstable_features_warning = true
 startup_timeout_sec = 15
 
-[mcp_servers.headroom]
-args = [
-    "mcp",
-    "serve",
-]
-command = "headroom"
-startup_timeout_sec = 15
-
-[mcp_servers.headroom.env]
-HEADROOM_TELEMETRY = "off"
-HEADROOM_STORE_URL = "sqlite:////Users/philiplewis/.headroom/archestimator.db"
-HEADROOM_SAVINGS_PATH = "/Users/philiplewis/.headroom/archestimator_proxy_savings.json"
-
 [features]
 multi_agent = true
 child_agents_md = true
@@ -38,10 +25,6 @@ goals = true
 
 [shell_environment_policy.set]
 USE_OMX_EXPLORE_CMD = "0"
-HEADROOM_TELEMETRY = "off"
-HEADROOM_OUTPUT_SHAPER = "1"
-HEADROOM_STORE_URL = "sqlite:////Users/philiplewis/.headroom/archestimator.db"
-HEADROOM_SAVINGS_PATH = "/Users/philiplewis/.headroom/archestimator_proxy_savings.json"
 
 [agents]
 max_depth = 2

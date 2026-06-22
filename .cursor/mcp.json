@@ -7,19 +7,6 @@
         "serve"
       ],
       "type": "stdio"
-    },
-    "headroom": {
-      "command": "headroom",
-      "args": [
-        "mcp",
-        "serve"
-      ],
-      "type": "stdio",
-      "env": {
-        "HEADROOM_TELEMETRY": "off",
-        "HEADROOM_STORE_URL": "sqlite:////Users/philiplewis/.headroom/archestimator.db",
-        "HEADROOM_SAVINGS_PATH": "/Users/philiplewis/.headroom/archestimator_proxy_savings.json"
-      }
     }
   }
 }
