@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { CaretDoubleDown, CaretDoubleUp, FunnelSimple, ListBullets, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
@@ -14,7 +14,7 @@ export type HeaderIconToolbarAddAction = {
    */
   showVisibleLabel?: boolean;
   icon?: ReactNode;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   pressed?: boolean;
   disabled?: boolean;
   className?: string;

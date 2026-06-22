@@ -134,7 +134,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
                   ref={(element) => onTabButtonMount?.(tab, index, element)}
                   role="tab"
                   aria-selected={isActive}
-                  aria-controls={`panel-${tab.id}`}
+                  aria-controls={`tabpanel-${tab.id}`}
                   id={`tab-${tab.id}`}
                   tabIndex={isActive ? 0 : -1}
                   disabled={isDisabled}

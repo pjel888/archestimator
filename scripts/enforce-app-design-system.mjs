@@ -10,12 +10,18 @@ const secondaryTextSizeLimitPx = 10;
 const scannedRoots = ["src/app", "src/components"];
 const landingAllowlist = new Set([
   "src/app/page.tsx",
+  "src/app/login/page.tsx",
+  "src/app/signup/page.tsx",
+  "src/app/trust/page.tsx",
   "src/app/about/page.tsx",
   "src/app/contact/page.tsx",
   "src/app/features/page.tsx",
   "src/app/pricing/page.tsx",
 ]);
-const landingAllowlistPrefixes = ["src/components/landing/"];
+// Public auth routes share the landing/public brand surface, not the compact
+// app/workshop tool surface. Keep this path-scoped so dashboard/workshop rules
+// do not silently weaken elsewhere.
+const landingAllowlistPrefixes = ["src/components/landing/", "src/components/auth/"];
 // The public /share proposal surface is a documented "Client Portal" exception: it is
 // allowed a larger type scale (label floor 12px, prose body ~15-16px) than the compact
 // app/workshop system. It is EXEMPT ONLY from the three px-threshold rules
@@ -166,6 +172,12 @@ export function isDashboardPxExemptPath(rel) {
   return dashboardPxExemptPrefixes.some((prefix) => normalized.startsWith(prefix));
 }
 
+/** True when `rel` is a public landing/auth brand surface excluded from app/workshop enforcement. */
+export function isLandingApprovedPath(rel) {
+  const normalized = rel.split("\\").join("/");
+  return landingAllowlist.has(normalized) || landingAllowlistPrefixes.some((prefix) => normalized.startsWith(prefix));
+}
+
 /** Collect every design-system violation for a single file's source text. */
 export function collectFileViolations(rel, text) {
   const fileViolations = [];
@@ -286,7 +298,7 @@ export function collectAllViolations(scanRoot = root) {
   for (const scannedRoot of scannedRoots) {
     for (const absolute of walk(join(scanRoot, scannedRoot))) {
       const rel = relative(scanRoot, absolute);
-      if (landingAllowlist.has(rel) || landingAllowlistPrefixes.some((prefix) => rel.startsWith(prefix))) continue;
+      if (isLandingApprovedPath(rel)) continue;
       violations.push(...collectFileViolations(rel, readFileSync(absolute, "utf8")));
     }
   }
