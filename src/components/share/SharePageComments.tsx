@@ -95,7 +95,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
   const announce = useCallback((msg: string) => {
     setLastAnnouncement(msg);
     // screen reader will pick up aria-live change
-  }, []);
+  }, [setLastAnnouncement]);
 
   // P12: client retry (3 attempts: immediate, +2s, +5s) + offline queue (sessionStorage + reconnect auto-flush)
   // Additive to P6 optimistic UI, error states, aria, design tokens. No behavior change on first-try success.
@@ -131,10 +131,13 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
   const staleSnapshot = error?.toLowerCase().includes("shared page was updated") ?? false;
 
   useEffect(() => {
-    try {
-      const savedDraft = sessionStorage.getItem(DRAFT_KEY);
-      if (savedDraft) setDraft(savedDraft.slice(0, MAX));
-    } catch {}
+    const timeout = window.setTimeout(() => {
+      try {
+        const savedDraft = sessionStorage.getItem(DRAFT_KEY);
+        if (savedDraft) setDraft(savedDraft.slice(0, MAX));
+      } catch {}
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [DRAFT_KEY]);
 
   useEffect(() => {
@@ -171,7 +174,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     } finally {
       if (!signal?.aborted) setIsLoadingComments(false);
     }
-  }, [isValid, token]);
+  }, [isValid, token, setComments, setIsLoadingComments, setLoadError]);
 
   useEffect(() => {
     if (!isValid) return;
@@ -345,7 +348,21 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
       setIsPosting(false);
       setRetryStatus(null);
     }
-  }, [activeReviewTarget, draft, isValid, isPosting, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
+  }, [
+    activeReviewTarget,
+    draft,
+    isValid,
+    isPosting,
+    announce,
+    postWithRetry,
+    loadQueue,
+    saveQueue,
+    flushQueue,
+    setComments,
+    setDraft,
+    setError,
+    setIsPosting,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== "Enter" || e.shiftKey) return;

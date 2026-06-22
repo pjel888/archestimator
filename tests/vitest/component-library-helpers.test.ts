@@ -277,8 +277,8 @@ describe("library tree sibling ordering", () => {
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "root")).toBeNull();
   });
 
-  it("renders project express components under project and estimate folders in the sidebar tree", async () => {
-    const { buildLibraryTreeWithComponentRows } = await import("@/components/workshop/component-library/tree");
+  it("splits project express components into a project-only sidebar tree", async () => {
+    const { buildLibraryTreeWithComponentRows, buildProjectComponentTree, splitSidebarComponentItems } = await import("@/components/workshop/component-library/tree");
     const { buildLibraryFolderTree, getLibraryItemsForFolderNode } = await import("@/lib/component-library/library-folder-reorder");
     const projectFolderId = "project-components-project-1";
     const estimateFolderId = "project-components-project-1-estimate-estimate-1";
@@ -319,17 +319,41 @@ describe("library tree sibling ordering", () => {
       { id: estimateFolderId, parent_id: projectFolderId, name: "Main Estimate", sort_order: -90 },
     ];
 
-    const tree = buildLibraryTreeWithComponentRows("categories", [projectItem, ordinaryUsedItem, ...items], [], [], {
+    const splitItems = splitSidebarComponentItems([projectItem, ordinaryUsedItem, ...items]);
+    expect(splitItems.projectItems.map((item) => item.id)).toEqual(["express-row-1"]);
+    expect(splitItems.libraryItems.map((item) => item.id)).toContain("ordinary-used-row");
+
+    const projectTree = buildProjectComponentTree(splitItems.projectItems, {
+      libraryFolders: sidebarFolders,
+    });
+    const categoryTree = buildLibraryTreeWithComponentRows("categories", splitItems.libraryItems, [], [], {
       categoryTree: [],
       libraryFolders: sidebarFolders,
       pruneEmptyFolders: true,
     });
+    const supplierTree = buildLibraryTreeWithComponentRows("suppliers", [projectItem, ordinaryUsedItem, ...items], [], [], {
+      suppliers: [],
+      libraryFolders: sidebarFolders,
+      pruneEmptyFolders: true,
+    });
+    const brandTree = buildLibraryTreeWithComponentRows("brands", [projectItem, ordinaryUsedItem, ...items], [], [], {
+      brands: [],
+      libraryFolders: sidebarFolders,
+      pruneEmptyFolders: true,
+    });
+    const customTree = buildLibraryTreeWithComponentRows("custom", [projectItem, ordinaryUsedItem, ...items], [], [], {
+      libraryFolders: sidebarFolders,
+      pruneEmptyFolders: true,
+    });
 
-    expect(tree[0].label).toBe("Casa Miguel");
-    expect(tree[0].children?.[0].label).toBe("Main Estimate");
-    expect(tree[0].children?.[0].children?.[0]).toMatchObject({ id: "express-row-1", label: "Express Vanity" });
-    expect(JSON.stringify(tree[0])).not.toContain("Used Library Sofa");
-    expect(JSON.stringify(tree.slice(1))).not.toContain("Express Vanity");
+    expect(projectTree[0].label).toBe("Casa Miguel");
+    expect(projectTree[0].children?.[0].label).toBe("Main Estimate");
+    expect(projectTree[0].children?.[0].children?.[0]).toMatchObject({ id: "express-row-1", label: "Express Vanity" });
+    expect(JSON.stringify(projectTree[0])).not.toContain("Used Library Sofa");
+    expect(JSON.stringify(categoryTree)).not.toContain("Express Vanity");
+    expect(JSON.stringify(supplierTree)).not.toContain("Express Vanity");
+    expect(JSON.stringify(brandTree)).not.toContain("Express Vanity");
+    expect(JSON.stringify(customTree)).not.toContain("Express Vanity");
 
     const managerFolders = buildLibraryFolderTree(sidebarFolders.map((folder) => ({
       ...folder,

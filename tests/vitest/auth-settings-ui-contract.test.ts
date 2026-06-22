@@ -46,7 +46,7 @@ describe("auth onboarding and settings route contracts", () => {
     expect(source).toContain("Sign out");
     expect(modalSource).toContain('className="max-w-[920px]"');
     expect(modalSource).toContain('bodyClassName="bg-white p-0"');
-    expect(modalSource).toContain("cursor-pointer");
+    expect(modalSource).toContain("PROJECT_HEADER_ACTION_BUTTON_CLASS");
     expect(modalSource).toContain("window.location.assign(closeHref)");
     expect(pageSource).toContain('context.role === "ceo" || context.role === "admin"');
     expect(pageSource).toContain('trigger="none"');

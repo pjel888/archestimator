@@ -224,7 +224,7 @@ describe("estimate sheet version control UI", () => {
     expect(within(rowDialog).getByText("May 24, 10:45 AM")).toBeInTheDocument();
     expect(within(replacementCard).getAllByText("System replaced Hardwood Oak Flooring with HEMLINGBY Loveseat.").length).toBeGreaterThan(0);
     expect(within(replacementCard).queryByText("Row replaced")).not.toBeInTheDocument();
-    expect(within(replacementCard).getByText("material, supplier, unit cost, source snapshot")).toBeInTheDocument();
+    expect(within(replacementCard).getByText("material, supplier, unit cost")).toBeInTheDocument();
     expect(within(replacementCard).getByText("Audit facts")).toBeInTheDocument();
     expect(within(replacementCard).getByText("Component snapshot evidence")).toBeInTheDocument();
     expect(replacementCard.querySelectorAll("[data-row-history-component-card]")).toHaveLength(2);

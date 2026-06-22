@@ -66,6 +66,7 @@ import type { NewComponentForm as NewComponentFormType } from "./types";
 import {
   applyLibraryTreeOrder,
   buildLibraryTreeWithComponentRows,
+  buildProjectComponentTree,
   buildTemplatesSelectionNodes,
   buildTemplatesTreeNodes,
   filterTree,
@@ -78,6 +79,7 @@ import {
   getTemplatesTreeAllNodeIds,
   LibraryTree,
   TemplatesTree,
+  splitSidebarComponentItems,
   templatesTreeCategoryId,
   templatesTreeSectionId,
   type LibraryTreeNode,
@@ -136,7 +138,8 @@ import {
 } from "./helpers";
 
 const LIBRARY_TREE_TABS = [
-  { id: "components", label: "Components" },
+  { id: "components", label: "Library" },
+  { id: "project", label: "Project" },
   { id: "templates", label: "Templates" },
 ] as const;
 
@@ -146,6 +149,11 @@ const EMPTY_COMPONENT_BRANDS: ComponentLibraryBrand[] = [];
 const EMPTY_LIBRARY_FOLDERS: LibraryFolderRecord[] = [];
 const PROJECT_SOURCE_NODE_PREFIX = "source-project-";
 const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
+const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
+
+function isProjectComponentFolderRecord(folder: LibraryFolderRecord) {
+  return folder.id.startsWith(`${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-`);
+}
 
 /**
  * A warm/prefetched expand resolves in well under this window, so its skeleton
@@ -208,7 +216,7 @@ type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
 const TEMPLATE_SOURCE_FILTER_OPTIONS = [
   { value: "all", label: "All sources" },
   { value: "custom", label: "Custom templates" },
-  { value: "projects", label: "Project sources" },
+  { value: "projects", label: "From projects" },
 ] as const satisfies readonly DropdownSelectOption[];
 type TemplateSourceFilter = (typeof TEMPLATE_SOURCE_FILTER_OPTIONS)[number]["value"];
 
@@ -239,10 +247,10 @@ function PreviewPanel({
   item: EstimateRowItem;
   onClose: () => void;
   onAdd: (quantity?: number) => void;
-  onEdit: () => void;
-  onDuplicate: () => void;
-  onFavorite: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDuplicate?: () => void;
+  onFavorite?: () => void;
+  onDelete?: () => void;
   addDisabled: boolean;
   addLabel: string;
   insertQuantity: number;
@@ -251,6 +259,7 @@ function PreviewPanel({
   const stalenessTone = getStalenessTone(item.pricingDate);
   const stalenessLabel = getStalenessLabel(item.pricingDate);
   const sourceHref = sanitizeComponentSourceUrl(item.sourceUrl);
+  const hasManagementActions = Boolean(onEdit || onDuplicate || onFavorite || onDelete);
   const stalenessClass =
     stalenessTone === "danger"
       ? "text-danger"
@@ -310,7 +319,7 @@ function PreviewPanel({
             </Badge>
           ))}
         </div>
-        <div className="mt-2 grid grid-cols-[44px_1fr_1fr_1fr] gap-1">
+        <div className={cn("mt-2 grid gap-1", hasManagementActions ? "grid-cols-[44px_1fr_1fr_1fr]" : "grid-cols-[44px_1fr]")}>
           <input
             type="number"
             min={1}
@@ -322,21 +331,31 @@ function PreviewPanel({
           <Button onClick={() => onAdd(insertQuantity)} disabled={addDisabled} aria-label={addLabel} title={addLabel} className="h-6 min-h-6 text-[9px]">
             {addDisabled ? "Select area" : `Add ×${insertQuantity}`}
           </Button>
-          <Button variant="secondary" onClick={onEdit} className="h-6 min-h-6 text-[9px]">
-            Edit
-          </Button>
-          <Button variant="secondary" onClick={onDuplicate} className="h-6 min-h-6 text-[9px]">
-            Duplicate
-          </Button>
+          {onEdit ? (
+            <Button variant="secondary" onClick={onEdit} className="h-6 min-h-6 text-[9px]">
+              Edit
+            </Button>
+          ) : null}
+          {onDuplicate ? (
+            <Button variant="secondary" onClick={onDuplicate} className="h-6 min-h-6 text-[9px]">
+              Duplicate
+            </Button>
+          ) : null}
         </div>
-        <div className="mt-1 grid grid-cols-2 gap-1">
-          <Button variant="secondary" onClick={onFavorite} className="h-6 min-h-6 text-[9px]">
-            {item.isFavorite ? "Unfavorite" : "Favorite"}
-          </Button>
-          <Button variant="danger" onClick={onDelete} className="h-6 min-h-6 text-[9px]">
-            Delete
-          </Button>
-        </div>
+        {onFavorite || onDelete ? (
+          <div className="mt-1 grid grid-cols-2 gap-1">
+            {onFavorite ? (
+              <Button variant="secondary" onClick={onFavorite} className="h-6 min-h-6 text-[9px]">
+                {item.isFavorite ? "Unfavorite" : "Favorite"}
+              </Button>
+            ) : null}
+            {onDelete ? (
+              <Button variant="danger" onClick={onDelete} className="h-6 min-h-6 text-[9px]">
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {item.notes || sourceHref ? (
           <p className="mt-1.5 text-[9px] leading-3 text-tertiary">
             {item.notes} {sourceHref ? <a href={sourceHref} target="_blank" rel="noreferrer" className="text-accent hover:underline">Source</a> : null}
@@ -819,10 +838,13 @@ function EstimateRightSidebarBase({
   const [componentViewMode, setComponentViewMode] = useState<ComponentViewMode>("default");
   const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
   const [expandedNodeIdsByViewMode, setExpandedNodeIdsByViewMode] = useState<Record<ComponentViewMode, string[]>>(() => ({
-    default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, [], [], { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
+    default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", splitSidebarComponentItems(initialLibraryItems).libraryItems, [], [], { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
     suppliers: [],
-    brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, [], [], { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
+    brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", splitSidebarComponentItems(initialLibraryItems).libraryItems, [], [], { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
   }));
+  const [projectExpandedNodeIds, setProjectExpandedNodeIds] = useState<string[]>(() =>
+    getAllNodeIds(buildProjectComponentTree(splitSidebarComponentItems(initialLibraryItems).projectItems, { libraryFolders })),
+  );
   // Like libraryItems, the template list seeds from the server prop once and
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
@@ -1012,13 +1034,14 @@ function EstimateRightSidebarBase({
         );
         setExpandedNodeIdsByViewMode((current) => ({
           ...current,
-          default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
-          brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
+          default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", splitSidebarComponentItems(initialLibraryItems).libraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
+          brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", splitSidebarComponentItems(initialLibraryItems).libraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
         }));
       }
 
       const storedTab = storedPrefs.activeTab ?? legacyStoredTab;
       if (storedTab === "templates") setActiveTab("templates");
+      else if (storedTab === "project") setActiveTab("project");
 
       const storedMode = storedPrefs.componentViewMode ?? legacyStoredTab;
       if (storedMode === "brand") setComponentViewMode("brand");
@@ -1050,13 +1073,14 @@ function EstimateRightSidebarBase({
     syncedInitialLibraryItemsRef.current = initialLibraryItems;
     syncedLibraryFoldersRef.current = libraryFolders;
     const nextItems = hydrateSidebarLibraryItems(initialLibraryItems);
+    const nextSplitItems = splitSidebarComponentItems(nextItems);
     setLibraryItems(nextItems);
     setPreviewItemId((current) => current && nextItems.some((item) => item.id === current) ? current : null);
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
       default: Array.from(new Set([
         ...current.default,
-        ...getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, [], [], {
+        ...getAllNodeIds(buildLibraryTreeWithComponentRows("categories", nextSplitItems.libraryItems, [], [], {
           categoryTree,
           suppliers,
           libraryFolders,
@@ -1064,6 +1088,10 @@ function EstimateRightSidebarBase({
         })),
       ])),
     }));
+    setProjectExpandedNodeIds((current) => Array.from(new Set([
+      ...current,
+      ...getAllNodeIds(buildProjectComponentTree(nextSplitItems.projectItems, { libraryFolders })),
+    ])));
   }, [categoryTree, initialLibraryItems, libraryFolders, suppliers]);
 
   useEffect(() => {
@@ -1204,22 +1232,34 @@ function EstimateRightSidebarBase({
 
   const favoriteIds = useMemo(() => libraryItems.filter((item) => item.isFavorite).map((item) => item.id), [libraryItems]);
   const componentTreeTab = getComponentTreeTab(componentViewMode);
+  const splitComponentItems = useMemo(() => splitSidebarComponentItems(libraryItems), [libraryItems]);
+  const reusableLibraryItems = splitComponentItems.libraryItems;
+  const projectComponentItems = splitComponentItems.projectItems;
+  const reusableLibraryFolders = useMemo(
+    () => libraryFolders.filter((folder) => !isProjectComponentFolderRecord(folder)),
+    [libraryFolders],
+  );
+  const isLibraryTab = activeTab === "components";
+  const isProjectTab = activeTab === "project";
+  const isTemplatesTab = activeTab === "templates";
 
   // D1: Facet filter state — mirrors ComponentLibraryManager wiring.
   const [facetFilters, setFacetFilters] = useState<ComponentFacetFilters>(() => EMPTY_COMPONENT_FACET_FILTERS);
-  const facetOptions = useMemo(() => buildComponentFacetOptions(libraryItems), [libraryItems]);
+  const facetOptions = useMemo(() => buildComponentFacetOptions(reusableLibraryItems), [reusableLibraryItems]);
   const activeFacetCount = useMemo(() => countActiveComponentFacets(facetFilters), [facetFilters]);
-  // Facets apply to the components list only; templates have their own list.
+  // Facets apply to the reusable library list only; project-owned components
+  // are a scope tab, not another component taxonomy.
   const facetFilteredItems = useMemo(
-    () => (activeFacetCount === 0 ? libraryItems : libraryItems.filter((item) => componentMatchesFacets(item, facetFilters))),
-    [activeFacetCount, facetFilters, libraryItems],
+    () => (activeFacetCount === 0 ? reusableLibraryItems : reusableLibraryItems.filter((item) => componentMatchesFacets(item, facetFilters))),
+    [activeFacetCount, facetFilters, reusableLibraryItems],
   );
 
   const treeNodes = useMemo(() => {
-    if (activeTab === "templates") return [];
+    if (isTemplatesTab) return [];
+    if (isProjectTab) return buildProjectComponentTree(projectComponentItems, { libraryFolders });
     const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands, libraryFolders, pruneEmptyFolders: true });
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
-  }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, facetFilteredItems, favoriteIds, libraryFolders, recentIds, suppliers]);
+  }, [brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, libraryFolders, projectComponentItems, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
@@ -1261,7 +1301,7 @@ function EstimateRightSidebarBase({
     () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources, visibleCustomTemplateGroups),
     [visibleCustomTemplateGroups, visibleTemplateList, visibleTemplateProjectSources],
   );
-  const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
+  const activeSelectionNodes = isTemplatesTab ? templatesSelectionNodes : librarySelectionNodes;
   const previewProjectSource = useMemo(
     () => findProjectSourceByKey(visibleTemplateProjectSources, previewProjectSourceKey),
     [previewProjectSourceKey, visibleTemplateProjectSources],
@@ -1457,8 +1497,7 @@ function EstimateRightSidebarBase({
     [insertLibraryItems],
   );
 
-  // Quick top-level folder create (matches the /workshop/library manager's
-  // window.prompt flow). The new folder is usable in the Add Component folder
+  // Quick top-level folder create (legacy sidebar prompt flow). The new folder is usable in the Add Component folder
   // picker and on /workshop/library; the sidebar's taxonomy tree doesn't render
   // folders yet, so it won't appear here until a Folders view is built.
   const [createFolderPending, setCreateFolderPending] = useState(false);
@@ -1800,12 +1839,16 @@ function EstimateRightSidebarBase({
   }, []);
 
   const handleToggleNode = useCallback((nodeId: string) => {
+    if (isProjectTab) {
+      setProjectExpandedNodeIds((current) => (current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId]));
+      return;
+    }
     setExpandedNodeIdsByViewMode((current) => {
       const ids = current[componentViewMode];
       const next = ids.includes(nodeId) ? ids.filter((id) => id !== nodeId) : [...ids, nodeId];
       return { ...current, [componentViewMode]: next };
     });
-  }, [componentViewMode]);
+  }, [componentViewMode, isProjectTab]);
 
   const handleLibraryReorder = useCallback(
     (draggedId: string, targetId: string, position: "before" | "after") => {
@@ -1863,6 +1906,10 @@ function EstimateRightSidebarBase({
   ]);
 
   const handleConfirmBulkDelete = useCallback(() => {
+    if (!isLibraryTab) {
+      setBulkDeleteConfirmOpen(false);
+      return;
+    }
     if (bulkSelectedItems.length === 0) {
       setBulkDeleteConfirmOpen(false);
       return;
@@ -1879,32 +1926,40 @@ function EstimateRightSidebarBase({
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
     onLibraryDataChanged?.();
-  }, [bulkSelectedItems, clearBulkSelection, onLibraryDataChanged]);
+  }, [bulkSelectedItems, clearBulkSelection, isLibraryTab, onLibraryDataChanged]);
 
   const handleExpandAll = useCallback(() => {
-    if (activeTab === "templates") {
+    if (isTemplatesTab) {
       // PERF-4: build the id list lazily on click. buildTemplatesTreeNodes
       // allocates a full JSX-bearing tree; doing it every render (the old
       // templatesAllNodeIds memo) was pure waste since only Expand-all reads it.
       setTemplatesExpandedIds(getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(visibleTemplateList, visibleTemplateProjectSources)));
       return;
     }
+    if (isProjectTab) {
+      setProjectExpandedNodeIds(getAllNodeIds(treeNodes));
+      return;
+    }
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
       [componentViewMode]: getAllNodeIds(treeNodes),
     }));
-  }, [activeTab, componentViewMode, treeNodes, visibleTemplateList, visibleTemplateProjectSources]);
+  }, [componentViewMode, isProjectTab, isTemplatesTab, treeNodes, visibleTemplateList, visibleTemplateProjectSources]);
 
   const handleCollapseAll = useCallback(() => {
-    if (activeTab === "templates") {
+    if (isTemplatesTab) {
       setTemplatesExpandedIds([]);
+      return;
+    }
+    if (isProjectTab) {
+      setProjectExpandedNodeIds([]);
       return;
     }
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
       [componentViewMode]: [],
     }));
-  }, [activeTab, componentViewMode]);
+  }, [componentViewMode, isProjectTab, isTemplatesTab]);
 
   // Loading the next level (estimates under a project, the outline under an
   // estimate) is shared by both expand and hover-prefetch (U6/U23). Each is
@@ -2092,6 +2147,11 @@ function EstimateRightSidebarBase({
     [],
   );
 
+  const activeTreeLabelPrefix = isProjectTab ? "project components" : isTemplatesTab ? "templates" : "library";
+  const activeSearchLabel = isProjectTab ? "Search Project Components" : isTemplatesTab ? "Search Templates" : "Search Library";
+  const activeToolsLabel = isProjectTab ? "Project tools" : isTemplatesTab ? "Template tools" : "Library tools";
+  const activeExpandedNodeIds = isProjectTab ? projectExpandedNodeIds : expandedNodeIdsByViewMode[componentViewMode];
+
   return (
     <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={560} minWidth={360} maxWidth={560}>
       {/* group/tree on the panel keeps the tree's drag/select rail space open
@@ -2103,14 +2163,14 @@ function EstimateRightSidebarBase({
           className={estimateSurfaceClass(surfaceVariant, "railPanelHeader")}
           toolbarClassName={estimateSurfaceClass(surfaceVariant, "chromeToolbar")}
           ref={treeHeaderRef}
-          ariaLabel="Library tree tools"
-          labelPrefix="library tree"
+          ariaLabel="Estimate source tools"
+          labelPrefix={activeTreeLabelPrefix}
           onExpandAll={handleExpandAll}
           onCollapseAll={handleCollapseAll}
           searchValue={searchQuery}
           onSearchValueChange={setSearchQuery}
-          searchPlaceholder="Search Library Tree"
-          searchLabel="Search Library Tree"
+          searchPlaceholder={activeSearchLabel}
+          searchLabel={activeSearchLabel}
           searchOpen={searchOpen}
           onSearchOpenChange={setSearchOpen}
           searchInputRef={searchRef}
@@ -2119,7 +2179,7 @@ function EstimateRightSidebarBase({
           tabs={LIBRARY_TREE_TABS}
           activeTab={activeTab}
           tabVariant="tabs"
-          tabsAriaLabel="Library sections"
+          tabsAriaLabel="Estimate source sections"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
           showBottomBorder={false}
           showToolbarBottomBorder
@@ -2130,26 +2190,29 @@ function EstimateRightSidebarBase({
         <div className="relative">
           <div
             role="toolbar"
-            aria-label="Library tools"
+            aria-label={activeToolsLabel}
             className={cn("mx-2 flex h-[38px] min-h-[38px] items-center gap-1 px-0 py-0", estimateSurfaceClass(surfaceVariant, "railToolbar"))}
           >
             {/* D1: Facet filter — components only; templates-tab faceting is out of scope. */}
-            <ComponentFacetFilterPopover
-              options={facetOptions}
-              filters={facetFilters}
-              onFiltersChange={setFacetFilters}
-            />
+            {isLibraryTab ? (
+              <ComponentFacetFilterPopover
+                options={facetOptions}
+                filters={facetFilters}
+                onFiltersChange={setFacetFilters}
+              />
+            ) : null}
             {/* View-by — relocated grouping control */}
-            <ToolbarIconButton
-              label="View by"
-              onClick={() => setViewModeMenuOpen((current) => !current)}
-              aria-expanded={viewModeMenuOpen}
-              disabled={activeTab !== "components"}
-            >
-              <Rows size={13} weight="regular" aria-hidden="true" />
-            </ToolbarIconButton>
+            {isLibraryTab ? (
+              <ToolbarIconButton
+                label="View by"
+                onClick={() => setViewModeMenuOpen((current) => !current)}
+                aria-expanded={viewModeMenuOpen}
+              >
+                <Rows size={13} weight="regular" aria-hidden="true" />
+              </ToolbarIconButton>
+            ) : null}
             <div className="ml-auto flex items-center gap-1">
-              {activeTab === "components" ? (
+              {isLibraryTab ? (
                 <>
                   <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending} className={ADD_BUTTON_CLASSNAME}>
                     <FolderSimple size={13} weight="regular" aria-hidden="true" />
@@ -2158,7 +2221,7 @@ function EstimateRightSidebarBase({
                     <Package size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                 </>
-              ) : (
+              ) : isTemplatesTab ? (
                 <>
                   {effectiveTemplateSourceFilter !== "projects" ? (
                     <ToolbarIconButton label="Add Template Group" onClick={startNewTemplateGroup} className={ADD_BUTTON_CLASSNAME}>
@@ -2169,12 +2232,12 @@ function EstimateRightSidebarBase({
                     <StackPlus size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
           {/* View-by popover — positioned absolute relative to this wrapper div,
               top-full places it just below the 38px toolbar row. */}
-          {activeTab === "components" && viewModeMenuOpen ? (
+          {isLibraryTab && viewModeMenuOpen ? (
             <ComponentViewControls
               mode={componentViewMode}
               ariaLabel="Component view mode"
@@ -2188,7 +2251,7 @@ function EstimateRightSidebarBase({
         <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
           <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
-            {activeTab === "templates" ? (
+            {isTemplatesTab ? (
               <>
                 {templatesProjectSourceSearchStatus}
                 {templatesProjectSourceLoadStatus}
@@ -2234,7 +2297,7 @@ function EstimateRightSidebarBase({
               <LibraryTree
                 nodes={filteredTreeNodes}
                 selectedNodeId={previewItemId}
-                expandedNodeIds={expandedNodeIdsByViewMode[componentViewMode]}
+                expandedNodeIds={activeExpandedNodeIds}
                 searchQuery={deferredSearchQuery}
                 onToggle={handleToggleNode}
                 onItemAdd={(item) => { if (item) addComponent(item); }}
@@ -2242,11 +2305,11 @@ function EstimateRightSidebarBase({
                   setPreviewProjectSourceKey(null);
                   setPreviewItemId(itemId);
                 }}
-                onItemEdit={startEditComponent}
-                onItemDuplicate={duplicateItem}
-                onItemToggleFavorite={toggleFavorite}
-                onItemDelete={setDeleteCandidate}
-                onCreateComponent={startNewComponent}
+                onItemEdit={isLibraryTab ? startEditComponent : undefined}
+                onItemDuplicate={isLibraryTab ? duplicateItem : undefined}
+                onItemToggleFavorite={isLibraryTab ? toggleFavorite : undefined}
+                onItemDelete={isLibraryTab ? setDeleteCandidate : undefined}
+                onCreateComponent={isLibraryTab ? startNewComponent : undefined}
                 addDisabled={!canInsert}
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
@@ -2254,7 +2317,7 @@ function EstimateRightSidebarBase({
                 selectable
                 checkedIds={bulkSelectedIds}
                 onCheckToggle={handleBulkCheckToggle}
-                onReorder={handleLibraryReorder}
+                onReorder={isLibraryTab ? handleLibraryReorder : undefined}
                 reorderDisabled={searchQuery.trim().length > 0}
               />
             )}
@@ -2267,7 +2330,7 @@ function EstimateRightSidebarBase({
           selectedLabel="selected"
           onClear={clearBulkSelection}
           actions={
-            activeTab === "templates"
+            isTemplatesTab
               ? [
                   {
                     label: "Add selected to estimate",
@@ -2285,13 +2348,17 @@ function EstimateRightSidebarBase({
                     disabled: !canInsert || bulkSelectedItems.length === 0,
                     onClick: handleBulkAddSelected,
                   },
-                  {
-                    label: "Delete selected components",
-                    icon: <Trash size={12} weight="regular" />,
-                    variant: "danger",
-                    disabled: bulkSelectedItems.length === 0,
-                    onClick: () => setBulkDeleteConfirmOpen(true),
-                  },
+                  ...(isLibraryTab
+                    ? [
+                        {
+                          label: "Delete selected components",
+                          icon: <Trash size={12} weight="regular" />,
+                          variant: "danger" as const,
+                          disabled: bulkSelectedItems.length === 0,
+                          onClick: () => setBulkDeleteConfirmOpen(true),
+                        },
+                      ]
+                    : []),
                 ]
           }
         />
@@ -2303,10 +2370,10 @@ function EstimateRightSidebarBase({
             item={previewItem}
             onClose={() => setPreviewItemId(null)}
             onAdd={(quantity) => addComponent(previewItem, quantity ?? insertQuantity)}
-            onEdit={() => startEditComponent(previewItem)}
-            onDuplicate={() => duplicateItem(previewItem)}
-            onFavorite={() => toggleFavorite(previewItem)}
-            onDelete={() => setDeleteCandidate(previewItem)}
+            onEdit={isLibraryTab ? () => startEditComponent(previewItem) : undefined}
+            onDuplicate={isLibraryTab ? () => duplicateItem(previewItem) : undefined}
+            onFavorite={isLibraryTab ? () => toggleFavorite(previewItem) : undefined}
+            onDelete={isLibraryTab ? () => setDeleteCandidate(previewItem) : undefined}
             addDisabled={!canInsert}
             addLabel={targetLabel}
             insertQuantity={insertQuantity}
@@ -2333,11 +2400,11 @@ function EstimateRightSidebarBase({
         {addComponentOpen ? (
           <AddComponentModal
             open={addComponentOpen}
-            folders={libraryFolders}
+            folders={reusableLibraryFolders}
             categoryTree={categoryTree}
             suppliers={suppliers}
             brands={brands}
-            libraryItems={libraryItems}
+            libraryItems={reusableLibraryItems}
             selectedFolderId={null}
             onOpenChange={setAddComponentOpen}
             onComponentCreated={handleComponentCreated}
@@ -2445,7 +2512,7 @@ function EstimateRightSidebarBase({
         </div>
 
         {/* Bulk delete confirmation */}
-        {bulkDeleteConfirmOpen ? (
+        {bulkDeleteConfirmOpen && isLibraryTab ? (
           <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
             <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
               <h3 className="text-[11px] font-medium text-ink">

@@ -85,5 +85,14 @@ export function TemplatesBrowsePageClient({ templates, queryScope }: TemplatesBr
     },
     [queryClient, queryKey],
   );
-  return <TemplatesBrowseManager templates={data ?? templates} onTemplatesMutated={onTemplatesMutated} />;
+  const onTemplatesInvalidated = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey });
+  }, [queryClient, queryKey]);
+  return (
+    <TemplatesBrowseManager
+      templates={data ?? templates}
+      onTemplatesMutated={onTemplatesMutated}
+      onTemplatesInvalidated={onTemplatesInvalidated}
+    />
+  );
 }

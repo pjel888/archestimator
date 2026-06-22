@@ -39,6 +39,7 @@ const EstimateSheetContent = dynamic(() =>
 
 type EstimateWorkspaceClientProps = {
   projectId: string;
+  workspaceId?: string;
   estimateId: string;
   projectName: string;
   selectedNodeId: string | null;
@@ -67,6 +68,7 @@ type EstimateWorkspaceClientProps = {
 
 export function EstimateWorkspaceClient({
   projectId,
+  workspaceId,
   estimateId,
   projectName,
   selectedNodeId,
@@ -142,6 +144,7 @@ export function EstimateWorkspaceClient({
         selectedNodeId={routeSelectedNodeId}
         nodes={nodes}
         projectId={projectId}
+        workspaceId={workspaceId}
         estimateId={estimateId}
         estimateTabs={fallbackTabs}
         activeTabId={displayActiveTabId}

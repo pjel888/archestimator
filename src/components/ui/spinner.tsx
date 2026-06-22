@@ -43,15 +43,15 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
               animation-iteration-count: infinite;
               animation-timing-function: steps(1, end);
             }
-            .blocks-shuffle-box:nth-child(1) { fill: #F36F21; animation-name: blocks-shuffle-1; }
-            .blocks-shuffle-box:nth-child(2) { fill: #FF8A2A; animation-name: blocks-shuffle-2; }
-            .blocks-shuffle-box:nth-child(3) { fill: #C94F17; animation-name: blocks-shuffle-3; }
-            .blocks-shuffle-box:nth-child(4) { fill: #E85D1B; animation-name: blocks-shuffle-4; }
-            .blocks-shuffle-box:nth-child(5) { fill: #FF9F45; animation-name: blocks-shuffle-5; }
-            .blocks-shuffle-box:nth-child(6) { fill: #D85A1E; animation-name: blocks-shuffle-6; }
-            .blocks-shuffle-box:nth-child(7) { fill: #B94813; animation-name: blocks-shuffle-7; }
-            .blocks-shuffle-box:nth-child(8) { fill: #F47A24; animation-name: blocks-shuffle-8; }
-            .blocks-shuffle-box:nth-child(9) { fill: #A93F10; animation-name: blocks-shuffle-9; }
+            .blocks-shuffle-box:nth-child(1) { fill: var(--brand-orange); animation-name: blocks-shuffle-1; }
+            .blocks-shuffle-box:nth-child(2) { fill: color-mix(in srgb, var(--brand-orange) 72%, var(--brand-peach)); animation-name: blocks-shuffle-2; }
+            .blocks-shuffle-box:nth-child(3) { fill: var(--brand-orange-dark); animation-name: blocks-shuffle-3; }
+            .blocks-shuffle-box:nth-child(4) { fill: color-mix(in srgb, var(--brand-orange) 84%, var(--brand-orange-dark)); animation-name: blocks-shuffle-4; }
+            .blocks-shuffle-box:nth-child(5) { fill: color-mix(in srgb, var(--brand-orange) 58%, var(--brand-peach)); animation-name: blocks-shuffle-5; }
+            .blocks-shuffle-box:nth-child(6) { fill: color-mix(in srgb, var(--brand-orange) 76%, var(--brand-orange-dark)); animation-name: blocks-shuffle-6; }
+            .blocks-shuffle-box:nth-child(7) { fill: color-mix(in srgb, var(--brand-orange-dark) 88%, var(--landing-ink)); animation-name: blocks-shuffle-7; }
+            .blocks-shuffle-box:nth-child(8) { fill: color-mix(in srgb, var(--brand-orange) 92%, var(--brand-peach)); animation-name: blocks-shuffle-8; }
+            .blocks-shuffle-box:nth-child(9) { fill: color-mix(in srgb, var(--brand-orange-dark) 76%, var(--landing-ink)); animation-name: blocks-shuffle-9; }
             @media (prefers-reduced-motion: reduce) {
               .blocks-shuffle-box { animation-duration: 6s; }
             }

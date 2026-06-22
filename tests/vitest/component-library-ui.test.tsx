@@ -83,6 +83,43 @@ const sharedLibraryItems: EstimateRowItem[] = [
     imageUrl: "/api/component-library/images?path=steel-frame.jpg",
   },
 ];
+const projectFolderId = "project-components-project-1";
+const projectEstimateFolderId = "project-components-project-1-estimate-estimate-1";
+const projectComponentItem: EstimateRowItem = {
+  ...sharedLibraryItems[0],
+  id: "project-vanity-row",
+  material: "Project Vanity",
+  name: "Project Vanity",
+  description: "Project-owned vanity",
+  supplier: "Project",
+  supplierId: null,
+  source: "project",
+  unit: "lot",
+  itemCost: 2750,
+  price: 2750,
+  subTotal: 2750,
+  totalItemCosts: 2750,
+  category: "Unassigned",
+  categoryNodeId: null,
+  categoryPath: undefined,
+  brand: "",
+  brandId: null,
+  pricingSource: "Project estimate row",
+  libraryFolderId: projectEstimateFolderId,
+  metadata: {
+    projectComponentProjection: {
+      projectId: "project-1",
+      projectName: "Casa Miguel",
+      estimateId: "estimate-1",
+      estimateName: "Main Estimate",
+      classification: "express",
+    },
+  },
+};
+const projectLibraryFolders = [
+  { id: projectFolderId, parent_id: null, name: "Casa Miguel", sort_order: -100 },
+  { id: projectEstimateFolderId, parent_id: projectFolderId, name: "Main Estimate", sort_order: -90 },
+];
 const sharedBrands = [
   {
     id: "db-brand",
@@ -101,21 +138,21 @@ function openComponentViewMenu() {
   return screen.getByRole("menu", { name: "Component view mode" });
 }
 
-function librarySearchToggle(label: "Show library tree search" | "Hide library tree search") {
+function librarySearchToggle(label: string) {
   const element = document.querySelector(`button[aria-label="${label}"]`);
   if (!(element instanceof HTMLButtonElement)) throw new Error(`Missing ${label} button.`);
   return element;
 }
 
-function librarySearchInput() {
-  const element = document.querySelector(`input[aria-label="Search Library Tree"]`);
-  if (!(element instanceof HTMLInputElement)) throw new Error("Missing Search Library Tree input.");
+function librarySearchInput(label = "Search Library") {
+  const element = document.querySelector(`input[aria-label="${label}"]`);
+  if (!(element instanceof HTMLInputElement)) throw new Error(`Missing ${label} input.`);
   return element;
 }
 
-function openLibrarySearch() {
-  fireEvent.click(librarySearchToggle("Show library tree search"));
-  return librarySearchInput();
+function openLibrarySearch(toggleLabel = "Show library search", inputLabel = "Search Library") {
+  fireEvent.click(librarySearchToggle(toggleLabel));
+  return librarySearchInput(inputLabel);
 }
 
 describe("component library UI", () => {
@@ -206,22 +243,22 @@ describe("component library UI", () => {
   it("renders the sidebar without a title bar and with a search disclosure", () => {
     renderSidebar();
     expect(screen.queryByRole("heading", { name: "Library" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show library tree search" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Search Library")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show library search" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /new/i })).not.toBeInTheDocument();
   });
 
   it("opens and closes the search dropdown from the toolbar toggle", () => {
     renderSidebar();
     openLibrarySearch();
-    expect(librarySearchInput()).toHaveAttribute("placeholder", "Search Library Tree");
-    fireEvent.click(librarySearchToggle("Hide library tree search"));
-    expect(document.querySelector('input[placeholder="Search Library Tree"]')).toBeNull();
+    expect(librarySearchInput()).toHaveAttribute("placeholder", "Search Library");
+    fireEvent.click(librarySearchToggle("Hide library search"));
+    expect(document.querySelector('input[placeholder="Search Library"]')).toBeNull();
   });
 
   it("opens the search dropdown with the slash shortcut", () => {
     renderSidebar();
-    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search Library")).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: "/" });
     expect(librarySearchInput()).toBeInTheDocument();
   });
@@ -236,7 +273,7 @@ describe("component library UI", () => {
 
     fireEvent.change(search, { target: { value: "" } });
     fireEvent.pointerDown(document.body);
-    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search Library")).not.toBeInTheDocument();
   });
 
   it("cascade-selects folders and bulk-adds the selected components from the dock", () => {
@@ -272,21 +309,21 @@ describe("component library UI", () => {
 
   it("shows left-aligned icon-only tools with tooltips and tree controls", () => {
     const { container } = renderSidebar();
-    expect(screen.getByLabelText("Library tree tools")).toBeInTheDocument();
+    expect(screen.getByLabelText("Estimate source tools")).toBeInTheDocument();
     expect(screen.queryByText(/\d+ components?/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expand all library tree" })).toHaveAttribute("title", "Expand all library tree");
-    expect(screen.getByRole("button", { name: "Collapse all library tree" })).toHaveAttribute("title", "Collapse all library tree");
+    expect(screen.getByRole("button", { name: "Expand all library" })).toHaveAttribute("title", "Expand all library");
+    expect(screen.getByRole("button", { name: "Collapse all library" })).toHaveAttribute("title", "Collapse all library");
 
-    // Top header (Library tree tools toolbar) has only search + expand/collapse —
+    // Top header (source tools toolbar) has only search + expand/collapse —
     // no Filter, no Group, no View-by, no Add buttons.
     expect(
-      Array.from(screen.getByLabelText("Library tree tools").querySelectorAll("button")).map((button) =>
+      Array.from(screen.getByLabelText("Estimate source tools").querySelectorAll("button")).map((button) =>
         button.getAttribute("aria-label"),
       ),
     ).toEqual([
-      "Show library tree search",
-      "Expand all library tree",
-      "Collapse all library tree",
+      "Show library search",
+      "Expand all library",
+      "Collapse all library",
     ]);
     expect(screen.queryByRole("button", { name: "Filter library tree" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Group library tree" })).not.toBeInTheDocument();
@@ -297,7 +334,7 @@ describe("component library UI", () => {
 
     // The sticky header keeps exactly 2 children (toolbar wrapper + tabs) whether
     // or not the view-by popover is open — the popover is now an external sibling.
-    const stickyHeader = screen.getByLabelText("Library tree tools").closest(".sticky");
+    const stickyHeader = screen.getByLabelText("Estimate source tools").closest(".sticky");
     expect(stickyHeader?.children).toHaveLength(2); // toolbar + search disclosure, tabs
     expect(stickyHeader).not.toHaveClass("border-b");
     expect(stickyHeader?.firstElementChild).toHaveClass("border-b");
@@ -329,9 +366,9 @@ describe("component library UI", () => {
 
   it("matches the component library route navigation contract", () => {
     renderSidebar();
-    const tabs = screen.getByRole("tablist", { name: "Library sections" });
-    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components", "Templates"]);
-    expect(within(tabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    const tabs = screen.getByRole("tablist", { name: "Estimate source sections" });
+    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Library", "Project", "Templates"]);
+    expect(within(tabs).getByRole("tab", { name: "Library" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("tab", { name: "Categories" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
@@ -341,6 +378,72 @@ describe("component library UI", () => {
     expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" })).toHaveAttribute("aria-checked", "false");
     expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("scopes reusable and project-owned components into separate source tabs", () => {
+    renderSidebar({
+      initialLibraryItems: [projectComponentItem, ...sharedLibraryItems],
+      categoryTree: sharedCategoryTree,
+      suppliers: [{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }],
+      brands: sharedBrands,
+      libraryFolders: projectLibraryFolders,
+    });
+
+    expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Project Vanity" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Project" }));
+
+    expect(screen.getByRole("button", { name: "Show project components search" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show project components search" }));
+    expect(librarySearchInput("Search Project Components")).toHaveAttribute("placeholder", "Search Project Components");
+    expect(screen.getByRole("treeitem", { name: "Casa Miguel" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Main Estimate" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Project Vanity" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Database Steel Frame" })).not.toBeInTheDocument();
+
+    const toolsRow = screen.getByRole("toolbar", { name: "Project tools" });
+    expect(within(toolsRow).queryByRole("button", { name: "Filter components" })).not.toBeInTheDocument();
+    expect(within(toolsRow).queryByRole("button", { name: "View by" })).not.toBeInTheDocument();
+    expect(within(toolsRow).queryByRole("button", { name: "Add folder" })).not.toBeInTheDocument();
+    expect(within(toolsRow).queryByRole("button", { name: "Add Component" })).not.toBeInTheDocument();
+    expect(within(toolsRow).queryByRole("button", { name: "Add Template" })).not.toBeInTheDocument();
+  });
+
+  it("bulk-adds project components without exposing library management actions", () => {
+    const onInsert = vi.fn(() => true);
+    renderSidebar({
+      onInsertComponent: onInsert,
+      selectedNodeKind: "area",
+      selectedNodeName: "Kitchen",
+      initialLibraryItems: [projectComponentItem, ...sharedLibraryItems],
+      categoryTree: sharedCategoryTree,
+      suppliers: [{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }],
+      brands: sharedBrands,
+      libraryFolders: projectLibraryFolders,
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Project" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Project Vanity" }));
+
+    const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
+    expect(within(dock).getByRole("button", { name: "Add selected components" })).toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "Delete selected components" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Project Vanity" }));
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Duplicate" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Favorite" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(dock).getByRole("button", { name: "Add selected components" }));
+    expect(onInsert).toHaveBeenCalledWith(expect.objectContaining<Partial<EstimateRowItem>>({
+      id: "project-vanity-row",
+      source: "project",
+      metadata: expect.objectContaining({
+        projectComponentProjection: expect.objectContaining({ projectId: "project-1" }),
+      }),
+    }));
   });
 
   it("opens the shared Add Component modal from the add component tool", async () => {
@@ -557,7 +660,7 @@ describe("component library UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
     fireEvent.keyDown(window, { key: "/" });
-    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search Library")).not.toBeInTheDocument();
   });
 
   it("shows taxonomy folders in the tree", () => {
@@ -1094,7 +1197,7 @@ describe("templates tree", () => {
   it("creates an empty custom template group from the templates toolbar", async () => {
     openTemplatesTab();
 
-    const toolbar = screen.getByRole("toolbar", { name: "Library tools" });
+    const toolbar = screen.getByRole("toolbar", { name: "Template tools" });
     const addGroupButton = within(toolbar).getByRole("button", { name: "Add Template Group" });
     const addTemplateButton = within(toolbar).getByRole("button", { name: "Add Template" });
     expect(Array.from(toolbar.querySelectorAll("button")).indexOf(addGroupButton)).toBeLessThan(
@@ -1304,7 +1407,7 @@ describe("templates tree", () => {
     expect(screen.queryByRole("button", { name: "Refresh project sources" })).not.toBeInTheDocument();
 
     // Re-opening the Templates tab auto-refreshes the project sources.
-    fireEvent.click(screen.getByRole("tab", { name: "Components" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Library" }));
     fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
 
     await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
@@ -1347,7 +1450,7 @@ describe("templates tree", () => {
     expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Amenity Millwork project area" })).not.toBeInTheDocument();
 
-    const search = openLibrarySearch();
+    const search = openLibrarySearch("Show templates search", "Search Templates");
     fireEvent.change(search, { target: { value: "Amenity" } });
 
     await waitFor(() =>
@@ -1512,9 +1615,9 @@ describe("templates tree", () => {
     expect(allSourcesProjectSection).toHaveClass("mt-1");
 
     fireEvent.click(sourceFilter);
-    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
+    fireEvent.click(screen.getByRole("option", { name: "From projects" }));
 
-    expect(sourceFilter).toHaveTextContent("Project sources");
+    expect(sourceFilter).toHaveTextContent("From projects");
     expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
     const projectOnlySection = screen.getByRole("treeitem", { name: "Projects reusable sources" });
     expect(projectOnlySection).toBeInTheDocument();
@@ -1542,9 +1645,9 @@ describe("templates tree", () => {
 
     const sourceFilter = await screen.findByRole("combobox", { name: "Reusable source filter" });
     fireEvent.click(sourceFilter);
-    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
+    fireEvent.click(screen.getByRole("option", { name: "From projects" }));
 
-    expect(sourceFilter).toHaveTextContent("Project sources");
+    expect(sourceFilter).toHaveTextContent("From projects");
     expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
 
     await act(async () => {
@@ -1750,7 +1853,7 @@ describe("templates tree", () => {
   it("searches project-source names and keeps their source ancestors visible", () => {
     openTemplatesTab({ projectSources });
 
-    const search = openLibrarySearch();
+    const search = openLibrarySearch("Show templates search", "Search Templates");
     fireEvent.change(search, { target: { value: "Amenity" } });
 
     expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();

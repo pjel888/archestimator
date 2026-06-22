@@ -60,6 +60,9 @@ function makeRow(overrides: Partial<EstimateRowItem> & { id: string; material: s
     category: "General",
     pricingSource: "Test source",
     pricingDate: "2026-06-01",
+    confidence: "Quoted",
+    sourceLibraryItemId: `component-${overrides.id}`,
+    linkState: "linked-clean",
     ...overrides,
     itemCost,
     quantity,
@@ -175,6 +178,9 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     const gallery = getGallery();
     expect(within(gallery).getByText("2 areas · 1 row")).toBeInTheDocument();
     expect(within(gallery).getByText("2 areas · 2 rows")).toBeInTheDocument();
+    const condoTrust = within(gallery).getByLabelText("Source trust for Condo Starter");
+    expect(within(condoTrust).getByText("1/1 linked rows")).toBeInTheDocument();
+    expect(within(condoTrust).getByText("Current")).toBeInTheDocument();
     const contextStrip = document.querySelector('[data-template-sheet-context-strip="true"]');
     expect(contextStrip).toHaveTextContent("All Templates · 2 templates");
     expect(contextStrip).toHaveTextContent("Sorted by group");
@@ -225,6 +231,9 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     });
     componentLibraryActionMocks.resolveEstimateTemplateInsertTarget.mockResolvedValue({
       targetParentNodeId: "node-root-group",
+      targetParentNodeName: "Interior Fit-Out",
+      targetParentNodeKind: "group",
+      targetParentNodePath: ["Interior Fit-Out"],
     });
     estimateActionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({
       tree: [],
@@ -247,6 +256,9 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
       within(screen.getByRole("listbox", { name: "Insert target estimate" })).getByRole("option", { name: "EST-01 · Main Estimate" }),
     );
 
+    expect(await within(dialog).findByText("Inserting into Main Estimate — Tower A.")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Target group: Interior Fit-Out")).toBeInTheDocument();
+
     fireEvent.click(within(dialog).getByRole("button", { name: "Insert template" }));
 
     await waitFor(() => {
@@ -255,8 +267,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
         estimateId: "estimate-1",
       });
     });
-    // P1 T7 (F21): the redundant pre-check resolve was removed; submit resolves exactly once.
-    expect(componentLibraryActionMocks.resolveEstimateTemplateInsertTarget).toHaveBeenCalledTimes(1);
+    expect(componentLibraryActionMocks.resolveEstimateTemplateInsertTarget).toHaveBeenCalledTimes(2);
     await waitFor(() => {
       expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
         projectId: "project-1",
@@ -388,11 +399,10 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.contextMenu(within(tree).getByRole("treeitem", { name: "Condo Starter template" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Move to group…" }));
 
-    // U12 (C5): in-DS modal replaces window.prompt; the field is prefilled with
-    // the current category and surfaces the existing alternatives.
-    const input = await screen.findByLabelText("Group (existing: Exterior)");
-    expect(input).toHaveValue("Residential");
-    fireEvent.change(input, { target: { value: "Exterior" } });
+    const input = await screen.findByRole("combobox", { name: "Template group" });
+    expect(screen.getByText("Current group: Residential. Choose an existing group or create a new one.")).toBeInTheDocument();
+    fireEvent.click(input);
+    fireEvent.click(screen.getByRole("option", { name: /Exterior/ }));
     fireEvent.click(screen.getByRole("button", { name: "Move" }));
 
     await waitFor(() => {
@@ -403,16 +413,37 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     });
   });
 
+  it("creates a new template group from the move combobox", async () => {
+    componentLibraryActionMocks.moveEstimateTemplateToCategory.mockResolvedValue({
+      templateId: "template-condo",
+      category: "Premium",
+      sortOrder: 0,
+    });
+    renderManager();
+
+    const tree = screen.getByRole("tree", { name: "Template library tree" });
+    fireEvent.contextMenu(within(tree).getByRole("treeitem", { name: "Condo Starter template" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Move to group…" }));
+
+    const input = await screen.findByRole("combobox", { name: "Template group" });
+    fireEvent.change(input, { target: { value: "Premium" } });
+    fireEvent.click(screen.getByRole("option", { name: 'Create "Premium"' }));
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+
+    await waitFor(() => {
+      expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
+        templateId: "template-condo",
+        category: "Premium",
+      });
+    });
+  });
+
   it("shows the verbatim empty state with a working New template action", async () => {
     renderManager([]);
 
     const gallery = getGallery();
-    expect(within(gallery).getByText("No templates yet")).toBeInTheDocument();
-    expect(
-      within(gallery).getByText(
-        "Create a template from scratch, or save any estimate group as a template from the estimate page.",
-      ),
-    ).toBeInTheDocument();
+    expect(within(gallery).getByText("No templates yet.")).toBeInTheDocument();
+    expect(within(gallery).getByText("Save a template to reuse line items.")).toBeInTheDocument();
 
     // Two working New template entry points: the toolbar action and the
     // empty-state CTA. The CTA is the second in DOM order.

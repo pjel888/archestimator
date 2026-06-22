@@ -35,7 +35,7 @@ describe("project groups repository wiring (Part 7c, additive)", () => {
     // ...and they live in the SAME Promise.all wave as the favorites read, not a
     // new serial await. Anchor: the group reads must appear before the favorites
     // result is destructured (which happens right after the single Promise.all).
-    const promiseAllIndex = body.indexOf("await Promise.all([");
+    const promiseAllIndex = body.indexOf("Promise.all([");
     const groupsReadIndex = body.indexOf('.from("project_groups")');
     const membershipsReadIndex = body.indexOf('.from("project_group_memberships")');
     const destructureIndex = body.indexOf("if (projectsResult.error) throw projectsResult.error;");

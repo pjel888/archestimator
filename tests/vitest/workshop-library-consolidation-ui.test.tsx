@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
@@ -60,6 +60,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteLibraryFolder: vi.fn(),
   deleteLibraryFoldersBulk: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
+  getCostLibraryComponentUsage: vi.fn(),
   moveCostLibraryComponentToFolder: vi.fn(),
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
@@ -67,17 +68,30 @@ const actionMocks = vi.hoisted(() => ({
   upsertCostLibraryComponentPriceOption: vi.fn(),
 }));
 
-const navigationMocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-}));
+const navigationMocks = vi.hoisted(() => {
+  const state = {
+    search: "",
+    push: vi.fn((href: string) => {
+      state.search = href.includes("?") ? href.slice(href.indexOf("?") + 1) : "";
+    }),
+    refresh: vi.fn(),
+    replace: vi.fn((href: string) => {
+      state.search = href.includes("?") ? href.slice(href.indexOf("?") + 1) : "";
+    }),
+  };
+  return state;
+});
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
+    push: navigationMocks.push,
     refresh: navigationMocks.refresh,
+    replace: navigationMocks.replace,
   }),
-  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/workshop/library/components",
+  useSearchParams: () => new URLSearchParams(window.location.search || navigationMocks.search),
 }));
 
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
@@ -212,6 +226,7 @@ describe("workshop library consolidation UI", () => {
     actionMocks.deleteLibraryFolder.mockReset();
     actionMocks.deleteLibraryFoldersBulk.mockReset();
     actionMocks.executeBulkArchiveLibraryComponents.mockReset();
+    actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.moveCostLibraryComponentToFolder.mockReset();
     actionMocks.previewBulkArchiveLibraryComponents.mockReset();
     actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
@@ -219,9 +234,19 @@ describe("workshop library consolidation UI", () => {
     actionMocks.reorderLibraryFolders.mockReset();
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
     actionMocks.reorderLibraryFolders.mockResolvedValue(undefined);
+    actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 0, estimateRowCount: 0 });
     actionMocks.moveCostLibraryComponentToFolder.mockResolvedValue(undefined);
+    navigationMocks.search = "";
+    window.history.replaceState(null, "", "/workshop/library/components");
+    navigationMocks.push.mockClear();
     navigationMocks.refresh.mockReset();
+    navigationMocks.replace.mockClear();
     vi.spyOn(window, "confirm").mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    window.localStorage.clear();
   });
 
   it("uses /workshop/library as the canonical route and redirects the retired components and templates routes", () => {
@@ -313,6 +338,79 @@ describe("workshop library consolidation UI", () => {
     expect(screen.getAllByText("Database Steel Frame").length).toBeGreaterThan(1);
   });
 
+  it("gates the persisted dense component table behind the library dense-mode flag with card action parity", async () => {
+    vi.stubEnv("NEXT_PUBLIC_LIBRARY_DENSE_MODE", "1");
+    renderLibraryShell(
+      <LibraryPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        brands={sharedBrands}
+        libraryFolders={sharedFolders}
+        libraryItems={[
+          { ...sharedLibraryItems[0], confidence: "Quoted", lifecycleState: "available" },
+          { ...sharedLibraryItems[1], confidence: "Allowance", lifecycleState: "draft" },
+          { ...sharedLibraryItems[2], confidence: "", lifecycleState: "discontinued" },
+        ]}
+      />,
+    );
+    await waitForLibraryWorkspace();
+
+    const displayMode = screen.getByRole("group", { name: "Component display mode" });
+    expect(within(displayMode).getByRole("button", { name: "Cards" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(displayMode).getByRole("button", { name: "Dense" }));
+
+    expect(window.localStorage.getItem("archestimator_component_library_display_mode_v1")).toBe("dense");
+    const table = screen.getByRole("table", { name: "All Components dense component table" });
+    expect(table).toHaveAttribute("data-library-virtualization-source", "WORKSHOP_VIRTUALIZATION_FLAGS");
+    for (const column of ["Name", "Folder", "Supplier", "Brand", "Cost", "Pricing source", "Pricing date", "Confidence", "Lifecycle", "Usage", "Actions"]) {
+      expect(within(table).getByRole("columnheader", { name: new RegExp(column, "i") })).toBeInTheDocument();
+    }
+
+    const steelRow = within(table).getByRole("row", { name: /Database Steel Frame/ });
+    expect(within(steelRow).getByText("Fabrication")).toBeInTheDocument();
+    expect(within(steelRow).getAllByText("Database Supplier")).toHaveLength(2);
+    expect(within(steelRow).getByText("Database Brand")).toBeInTheDocument();
+    expect(steelRow).toHaveTextContent("₱1,200.00 / pc");
+    expect(within(steelRow).getByText("2026-05-22")).toBeInTheDocument();
+    expect(within(steelRow).getByText("Verified source")).toBeInTheDocument();
+    expect(within(steelRow).getByText("Available")).toBeInTheDocument();
+    const detailButtons = within(steelRow).getAllByRole("button", { name: "View details for Database Steel Frame" });
+    expect(detailButtons[0]).toHaveAttribute(
+      "data-component-card-inspect",
+      "db-library-steel-frame",
+    );
+
+    expect(within(steelRow).getByRole("checkbox", { name: "Select Database Steel Frame for archive" })).toBeInTheDocument();
+    fireEvent.keyDown(steelRow, { key: " " });
+    expect(screen.getByRole("button", { name: "Archive selected" })).not.toBeDisabled();
+    fireEvent.keyDown(within(table).getByRole("row", { name: /Database Steel Frame/ }), { key: "Enter" });
+    expect(await screen.findByLabelText("Component inspector")).toBeInTheDocument();
+    expect(window.location.search).toBe("?component=db-library-steel-frame");
+    expect(actionMocks.getCostLibraryComponentUsage).toHaveBeenCalledWith({ itemId: "db-library-steel-frame" });
+
+    fireEvent.click(within(table).getByRole("button", { name: "Sort by cost" }));
+    expect(within(table).getAllByRole("row")[1]).toHaveTextContent("Custom Pull");
+  });
+
+  it("clears a foreign component route-state id without opening the inspector", async () => {
+    window.history.replaceState(null, "", "/workshop/library/components?component=foreign-component-id");
+
+    renderLibraryShell(
+      <LibraryPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        brands={sharedBrands}
+        libraryFolders={sharedFolders}
+        libraryItems={sharedLibraryItems}
+      />,
+    );
+    await waitForLibraryWorkspace();
+
+    await waitFor(() => expect(window.location.search).toBe(""));
+    expect(screen.queryByLabelText("Component inspector")).not.toBeInTheDocument();
+    expect(actionMocks.getCostLibraryComponentUsage).not.toHaveBeenCalledWith({ itemId: "foreign-component-id" });
+  });
+
   it("keeps Add folder usable from supplier organization by creating a Default folder", async () => {
     actionMocks.createLibraryFolder.mockResolvedValueOnce({
       folder: {
@@ -325,8 +423,6 @@ describe("workshop library consolidation UI", () => {
         folder_kind: "custom",
       },
     });
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Supplier Review Folder");
-
     renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -345,11 +441,13 @@ describe("workshop library consolidation UI", () => {
     expect(addFolderButton).not.toBeDisabled();
     fireEvent.click(addFolderButton);
 
+    const createFolderDialog = await screen.findByRole("dialog", { name: "New folder" });
+    fireEvent.change(within(createFolderDialog).getByLabelText("Folder name"), { target: { value: "Supplier Review Folder" } });
+    fireEvent.click(within(createFolderDialog).getByRole("button", { name: "Create folder" }));
+
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Supplier Review Folder", { placement: "top" }));
-    expect(promptSpy).toHaveBeenCalledWith("Folder name");
     await waitFor(() => expect(screen.getByRole("button", { name: "View by: Default" })).toHaveAttribute("aria-pressed", "false"));
     expect(screen.getByRole("treeitem", { name: "Supplier Review Folder" })).toHaveAttribute("aria-current", "page");
-    promptSpy.mockRestore();
   });
 
   it("creates a root folder at the top from Add Component when no folder is selected", async () => {
@@ -364,8 +462,6 @@ describe("workshop library consolidation UI", () => {
         folder_kind: "custom",
       },
     });
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Root First");
-
     renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -384,12 +480,14 @@ describe("workshop library consolidation UI", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Add library folder" }));
 
+    const createFolderDialog = await screen.findByRole("dialog", { name: "New folder" });
+    fireEvent.change(within(createFolderDialog).getByLabelText("Folder name"), { target: { value: "Root First" } });
+    fireEvent.click(within(createFolderDialog).getByRole("button", { name: "Create folder" }));
+
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Root First", { placement: "top" }));
-    expect(promptSpy).toHaveBeenCalledWith("Folder name");
     await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Root First" })).toHaveAttribute("aria-current", "page"));
     const folderLabels = within(dialog).getAllByRole("treeitem").map((item) => item.getAttribute("aria-label") ?? item.textContent ?? "");
     expect(folderLabels.indexOf("Root First")).toBeLessThan(folderLabels.indexOf("Fabrication"));
-    promptSpy.mockRestore();
   });
 
   it("opens the Add Component modal and submits categorized variants", async () => {
@@ -446,6 +544,11 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByRole("combobox", { name: "Brand" })).toBeInTheDocument();
     expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Kind")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Component measurements")).not.toBeInTheDocument();
+    const advancedDetailsButton = within(dialog).getByRole("button", { name: "Advanced catalog details" });
+    expect(advancedDetailsButton).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(advancedDetailsButton);
+    expect(advancedDetailsButton).toHaveAttribute("aria-expanded", "true");
     expect(within(dialog).getByLabelText("Component measurements")).toBeInTheDocument();
     // Folder search in the picker sits behind the toolbar's magnifier disclosure.
     expect(within(dialog).queryByLabelText("Search add component library folders")).not.toBeInTheDocument();
@@ -485,7 +588,6 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByRole("treeitem", { name: "Details" })).toHaveAttribute("aria-current", "page");
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Details")).toHaveClass("font-medium");
     fireEvent.click(within(dialog).getByRole("treeitem", { name: "Fabrication" }));
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Acoustics");
     actionMocks.createLibraryFolder.mockResolvedValueOnce({
       folder: {
         id: "folder-acoustics",
@@ -498,9 +600,11 @@ describe("workshop library consolidation UI", () => {
       },
     });
     fireEvent.click(modalAddFolderButton);
+    const modalCreateFolderDialog = await screen.findByRole("dialog", { name: "New folder" });
+    fireEvent.change(within(modalCreateFolderDialog).getByLabelText("Folder name"), { target: { value: "Acoustics" } });
+    fireEvent.click(within(modalCreateFolderDialog).getByRole("button", { name: "Create folder" }));
+
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith("folder-fabrication", "Acoustics"));
-    expect(promptSpy).toHaveBeenCalledWith("Folder name");
-    promptSpy.mockRestore();
     await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Acoustics" })).toHaveAttribute("aria-current", "page"));
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Acoustics")).toHaveClass("font-medium");
 
@@ -508,7 +612,7 @@ describe("workshop library consolidation UI", () => {
     expect(nameInput).toHaveAttribute("aria-invalid", "true");
     fireEvent.change(nameInput, { target: { value: "Acoustic Wall Panel" } });
     expect(nameInput).not.toHaveAttribute("aria-invalid");
-    const costInput = within(dialog).getByLabelText("Cost");
+    const costInput = within(dialog).getByLabelText("Unit cost");
     expect(within(dialog).queryByLabelText("Price")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Pricing")).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Add price option" })).not.toBeInTheDocument();
@@ -629,7 +733,7 @@ describe("workshop library consolidation UI", () => {
     expect(makeDefaultAction).toHaveClass("w-24");
     expect(makeDefaultAction.parentElement).toHaveClass("w-[8.5rem]");
     expect(within(variantTwoPanel).getByRole("button", { name: "Remove active variant" })).toBeInTheDocument();
-    const variantTwoCostInput = within(dialog).getByLabelText("Cost");
+    const variantTwoCostInput = within(dialog).getByLabelText("Unit cost");
     fireEvent.change(variantTwoCostInput, { target: { value: "1450" } });
     expect(variantTwoCostInput).toHaveValue("1,450.00");
     const variantTwoUnitCombobox = within(dialog).getByRole("combobox", { name: "Unit" });

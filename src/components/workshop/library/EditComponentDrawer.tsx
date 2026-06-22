@@ -10,6 +10,7 @@ import {
   updateCostLibraryComponent,
   upsertCostLibraryComponentPriceOption,
 } from "@/lib/component-library/actions";
+import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
 import type { ComponentLifecycleState, EstimateRowItem } from "@/lib/estimates/types";
 
 const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string }> = [
@@ -86,6 +87,32 @@ export function EditComponentDrawer({
       null,
     [item.priceOptions],
   );
+  const componentCategory = item.category?.trim() || "Component";
+  const validation = useMemo(() => validateQuickAddComponentInput({
+    name: form.name,
+    category: componentCategory,
+    unit: form.unit,
+    unitCost: form.unitCost,
+    miscCost: form.miscCost,
+    supplier: form.supplier,
+    brand: form.brand,
+    pricingDate: form.pricingDate,
+    pricingSource: form.pricingSource,
+    confidence: form.confidence,
+    libraryFolderId: item.libraryFolderId ?? null,
+  }), [
+    componentCategory,
+    form.brand,
+    form.confidence,
+    form.miscCost,
+    form.name,
+    form.pricingDate,
+    form.pricingSource,
+    form.supplier,
+    form.unit,
+    form.unitCost,
+    item.libraryFolderId,
+  ]);
 
   function setField<K extends keyof EditComponentFormState>(key: K, value: EditComponentFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -95,34 +122,29 @@ export function EditComponentDrawer({
     event.preventDefault();
     setError(null);
 
-    const name = form.name.trim();
-    const unit = form.unit.trim();
-    if (!name) {
-      setError("Component name is required.");
+    const firstError = Object.values(validation.errors)[0];
+    if (firstError) {
+      setError(firstError);
       return;
     }
-    if (!unit) {
-      setError("Unit is required.");
-      return;
-    }
-    const unitCost = Number(form.unitCost);
-    const miscCost = Number(form.miscCost || "0");
-    if (!Number.isFinite(unitCost) || unitCost < 0) {
-      setError("Unit cost must be a non-negative number.");
-      return;
-    }
-    if (!Number.isFinite(miscCost) || miscCost < 0) {
-      setError("Misc cost must be a non-negative number.");
-      return;
-    }
+    const normalized = validation.normalized;
+    const name = normalized.name ?? form.name.trim();
+    const unit = normalized.unit ?? form.unit.trim();
+    const unitCost = normalized.unitCost ?? Number(form.unitCost);
+    const miscCost = normalized.miscCost ?? Number(form.miscCost || "0");
+    const pricingDate = normalized.pricingDate ?? "";
+    const pricingSource = normalized.pricingSource ?? "";
+    const confidence = normalized.confidence ?? "";
+    const supplier = normalized.supplier ?? "";
+    const brand = normalized.brand ?? "";
 
     const priceChanged =
       unitCost !== item.itemCost ||
       miscCost !== item.miscCost ||
       unit !== item.unit ||
-      form.pricingDate.trim() !== (item.pricingDate ?? "") ||
-      form.pricingSource.trim() !== (item.pricingSource ?? "") ||
-      form.confidence.trim() !== (item.confidence ?? "");
+      pricingDate !== (item.pricingDate ?? "") ||
+      pricingSource !== (item.pricingSource ?? "") ||
+      confidence !== (item.confidence ?? "");
 
     startSaving(async () => {
       try {
@@ -130,11 +152,11 @@ export function EditComponentDrawer({
           name,
           description: form.description.trim(),
           unit,
-          supplier: form.supplier.trim() || null,
+          supplier,
           supplierId: item.supplierId ?? null,
-          brand: form.brand.trim() || null,
+          brand,
           brandId: item.brandId ?? null,
-          category: item.category,
+          category: componentCategory,
           categoryNodeId: item.categoryNodeId ?? null,
           libraryFolderId: item.libraryFolderId ?? null,
           lifecycleState: form.lifecycleState,
@@ -148,9 +170,9 @@ export function EditComponentDrawer({
             unit,
             unitCost,
             miscCost,
-            pricingDate: form.pricingDate.trim() || undefined,
-            pricingSource: form.pricingSource.trim() || undefined,
-            confidence: form.confidence.trim() || undefined,
+            pricingDate: pricingDate || undefined,
+            pricingSource: pricingSource || undefined,
+            confidence: confidence || undefined,
             isDefault: true,
             changeReason: "Edited from the component inspector",
           });
@@ -162,14 +184,14 @@ export function EditComponentDrawer({
           material: name,
           description: form.description.trim(),
           unit,
-          supplier: form.supplier.trim(),
-          brand: form.brand.trim() || undefined,
+          supplier,
+          brand: brand || undefined,
           lifecycleState: form.lifecycleState,
           itemCost: unitCost,
           miscCost,
-          pricingDate: form.pricingDate.trim(),
-          pricingSource: form.pricingSource.trim(),
-          confidence: form.confidence.trim() || undefined,
+          pricingDate,
+          pricingSource,
+          confidence: confidence || undefined,
         });
         onOpenChange(false);
       } catch (saveError) {
@@ -189,8 +211,13 @@ export function EditComponentDrawer({
     >
       <form className="flex h-full min-h-0 flex-col" onSubmit={handleSubmit}>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
-          <ControlField label="Name" required>
-            <ControlInput value={form.name} onChange={(event) => setField("name", event.target.value)} required />
+          <ControlField label="Name" required errorText={validation.errors.name}>
+            <ControlInput
+              value={form.name}
+              onChange={(event) => setField("name", event.target.value)}
+              required
+              invalid={Boolean(validation.errors.name)}
+            />
           </ControlField>
           <ControlField label="Description">
             <ControlTextarea
@@ -200,11 +227,19 @@ export function EditComponentDrawer({
             />
           </ControlField>
           <div className="grid grid-cols-2 gap-2">
-            <ControlField label="Supplier">
-              <ControlInput value={form.supplier} onChange={(event) => setField("supplier", event.target.value)} />
+            <ControlField label="Supplier" errorText={validation.errors.supplier}>
+              <ControlInput
+                value={form.supplier}
+                onChange={(event) => setField("supplier", event.target.value)}
+                invalid={Boolean(validation.errors.supplier)}
+              />
             </ControlField>
-            <ControlField label="Brand">
-              <ControlInput value={form.brand} onChange={(event) => setField("brand", event.target.value)} />
+            <ControlField label="Brand" errorText={validation.errors.brand}>
+              <ControlInput
+                value={form.brand}
+                onChange={(event) => setField("brand", event.target.value)}
+                invalid={Boolean(validation.errors.brand)}
+              />
             </ControlField>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -216,12 +251,17 @@ export function EditComponentDrawer({
                 onValueChange={(value) => setField("lifecycleState", value as ComponentLifecycleState)}
               />
             </ControlField>
-            <ControlField label="Unit" required>
-              <ControlInput value={form.unit} onChange={(event) => setField("unit", event.target.value)} required />
+            <ControlField label="Unit" required errorText={validation.errors.unit}>
+              <ControlInput
+                value={form.unit}
+                onChange={(event) => setField("unit", event.target.value)}
+                required
+                invalid={Boolean(validation.errors.unit)}
+              />
             </ControlField>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <ControlField label="Unit cost" required>
+            <ControlField label="Unit cost" required errorText={validation.errors.unitCost}>
               <ControlInput
                 type="number"
                 min={0}
@@ -230,9 +270,10 @@ export function EditComponentDrawer({
                 value={form.unitCost}
                 onChange={(event) => setField("unitCost", event.target.value)}
                 required
+                invalid={Boolean(validation.errors.unitCost)}
               />
             </ControlField>
-            <ControlField label="Misc cost">
+            <ControlField label="Misc cost" errorText={validation.errors.miscCost}>
               <ControlInput
                 type="number"
                 min={0}
@@ -240,29 +281,33 @@ export function EditComponentDrawer({
                 align="right"
                 value={form.miscCost}
                 onChange={(event) => setField("miscCost", event.target.value)}
+                invalid={Boolean(validation.errors.miscCost)}
               />
             </ControlField>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <ControlField label="Pricing date">
+            <ControlField label="Pricing date" errorText={validation.errors.pricingDate}>
               <ControlInput
                 type="date"
                 value={form.pricingDate}
                 onChange={(event) => setField("pricingDate", event.target.value)}
+                invalid={Boolean(validation.errors.pricingDate)}
               />
             </ControlField>
-            <ControlField label="Confidence">
+            <ControlField label="Confidence" errorText={validation.errors.confidence}>
               <ControlInput
                 value={form.confidence}
-                placeholder="high, medium, low…"
+                placeholder="Supplier quote, verified invoice"
                 onChange={(event) => setField("confidence", event.target.value)}
+                invalid={Boolean(validation.errors.confidence)}
               />
             </ControlField>
           </div>
-          <ControlField label="Pricing source">
+          <ControlField label="Pricing source" errorText={validation.errors.pricingSource}>
             <ControlInput
               value={form.pricingSource}
               onChange={(event) => setField("pricingSource", event.target.value)}
+              invalid={Boolean(validation.errors.pricingSource)}
             />
           </ControlField>
           {error ? (

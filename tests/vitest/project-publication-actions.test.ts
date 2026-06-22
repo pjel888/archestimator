@@ -263,8 +263,8 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 
-  const module = await import("@/lib/publication/actions");
-  return { module, state };
+  const publicationActions = await import("@/lib/publication/actions");
+  return { publicationActions, state };
 }
 
 afterEach(() => {
@@ -331,44 +331,44 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     ];
     const mutationCases: Array<{
       label: string;
-      run: (module: Awaited<ReturnType<typeof loadPublicationActionsWithHarness>>["module"]) => Promise<unknown>;
+      run: (publicationActions: Awaited<ReturnType<typeof loadPublicationActionsWithHarness>>["publicationActions"]) => Promise<unknown>;
     }> = [
       {
         label: "createProjectPublication",
-        run: (module) => module.createProjectPublication({ projectId: PROJECT_ID }),
+        run: (publicationActions) => publicationActions.createProjectPublication({ projectId: PROJECT_ID }),
       },
       {
         label: "republishProjectPublication",
-        run: (module) => module.republishProjectPublication({ projectId: PROJECT_ID }),
+        run: (publicationActions) => publicationActions.republishProjectPublication({ projectId: PROJECT_ID }),
       },
       {
         label: "rotateProjectPublicationLink",
-        run: (module) => module.rotateProjectPublicationLink({ projectId: PROJECT_ID }),
+        run: (publicationActions) => publicationActions.rotateProjectPublicationLink({ projectId: PROJECT_ID }),
       },
       {
         label: "revokeProjectPublication",
-        run: (module) => module.revokeProjectPublication({ projectId: PROJECT_ID }),
+        run: (publicationActions) => publicationActions.revokeProjectPublication({ projectId: PROJECT_ID }),
       },
       {
         label: "addSharedLinkRecipients",
-        run: (module) =>
-          module.addSharedLinkRecipients({
+        run: (publicationActions) =>
+          publicationActions.addSharedLinkRecipients({
             publicationId: PUBLICATION_ID,
             recipients: [{ email: "client@example.com" }],
           }),
       },
       {
         label: "resendSharedLinkRecipientEmail",
-        run: (module) =>
-          module.resendSharedLinkRecipientEmail({
+        run: (publicationActions) =>
+          publicationActions.resendSharedLinkRecipientEmail({
             publicationId: PUBLICATION_ID,
             recipientId: USER_ID,
           }),
       },
       {
         label: "removeSharedLinkRecipient",
-        run: (module) =>
-          module.removeSharedLinkRecipient({
+        run: (publicationActions) =>
+          publicationActions.removeSharedLinkRecipient({
             publicationId: PUBLICATION_ID,
             recipientId: USER_ID,
           }),
@@ -377,13 +377,13 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
 
     for (const actor of actors) {
       for (const mutation of mutationCases) {
-        const { module, state } = await loadPublicationActionsWithHarness({
+        const { publicationActions, state } = await loadPublicationActionsWithHarness({
           currentUserRole: actor.currentUserRole,
           projectRole: actor.projectRole,
           workspaceRole: actor.workspaceRole,
         });
 
-        await expect(mutation.run(module), `${actor.label} should not run ${mutation.label}`).rejects.toThrow(actor.expectedError);
+        await expect(mutation.run(publicationActions), `${actor.label} should not run ${mutation.label}`).rejects.toThrow(actor.expectedError);
         expect(state.publicationUpdates, `${actor.label} ${mutation.label} should not write rows`).toEqual([]);
         expect(state.rpcCalls, `${actor.label} ${mutation.label} should not call RPCs`).toEqual([]);
         expect(state.revalidatedPaths, `${actor.label} ${mutation.label} should not revalidate`).toEqual([]);
@@ -392,9 +392,9 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   });
 
   it("asserts behavioral return contracts for republish success and invalid-password failure", async () => {
-    const { module, state } = await loadPublicationActionsWithHarness();
+    const { publicationActions, state } = await loadPublicationActionsWithHarness();
 
-    const invalid = await module.republishProjectPublication({
+    const invalid = await publicationActions.republishProjectPublication({
       projectId: PROJECT_ID,
       password: "short",
     });
@@ -405,7 +405,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     });
     expect(state.publicationUpdates).toHaveLength(0);
 
-    const result = await module.republishProjectPublication({
+    const result = await publicationActions.republishProjectPublication({
       clearPassword: true,
       expiresAt: null,
       projectId: PROJECT_ID,
@@ -434,7 +434,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("asserts behavioral return contracts for rotate success and stale-token conflict", async () => {
     const successHarness = await loadPublicationActionsWithHarness();
 
-    const result = await successHarness.module.rotateProjectPublicationLink({ projectId: PROJECT_ID });
+    const result = await successHarness.publicationActions.rotateProjectPublicationLink({ projectId: PROJECT_ID });
 
     expect(result).toEqual({
       clientLinkPath: "/share/new-token",
@@ -462,7 +462,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
 
     const conflictHarness = await loadPublicationActionsWithHarness({ rpcData: -1 });
 
-    const conflict = await conflictHarness.module.rotateProjectPublicationLink({ projectId: PROJECT_ID });
+    const conflict = await conflictHarness.publicationActions.rotateProjectPublicationLink({ projectId: PROJECT_ID });
 
     expect(conflict).toEqual({
       message: "Shared link changed while rotating. Refresh and try again.",
@@ -475,7 +475,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("asserts behavioral return contracts for owner activity load and inactive tokens", async () => {
     const successHarness = await loadPublicationActionsWithHarness();
 
-    await expect(successHarness.module.loadSharedLinkActivity("public-token", { limit: 500 })).resolves.toEqual({
+    await expect(successHarness.publicationActions.loadSharedLinkActivity("public-token", { limit: 500 })).resolves.toEqual({
       activities: [],
       hasMore: false,
     });
@@ -491,7 +491,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
       },
     });
 
-    await expect(inactiveHarness.module.loadSharedLinkActivity("public-token")).rejects.toThrow(
+    await expect(inactiveHarness.publicationActions.loadSharedLinkActivity("public-token")).rejects.toThrow(
       "Publication not found or inactive.",
     );
   });

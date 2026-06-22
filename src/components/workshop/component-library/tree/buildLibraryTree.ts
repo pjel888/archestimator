@@ -168,8 +168,20 @@ function isProjectComponentFolderId(folderId: string | null | undefined) {
   return typeof folderId === "string" && folderId.startsWith(`${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-`);
 }
 
-function isProjectComponentProjectionItem(item: EstimateRowItem) {
+export function isProjectComponentProjectionItem(item: EstimateRowItem) {
   return readProjectComponentProjectionMetadata(item.metadata) !== null;
+}
+
+export function splitSidebarComponentItems(items: EstimateRowItem[]) {
+  const libraryItems: EstimateRowItem[] = [];
+  const projectItems: EstimateRowItem[] = [];
+
+  for (const item of items) {
+    if (isProjectComponentProjectionItem(item)) projectItems.push(item);
+    else libraryItems.push(item);
+  }
+
+  return { libraryItems, projectItems };
 }
 
 function createComponentTreeNode(item: EstimateRowItem): LibraryTreeNode {
@@ -233,6 +245,13 @@ function buildProjectComponentFolderTree(
   });
 
   return { nodes, itemIds: projectedItemIds };
+}
+
+export function buildProjectComponentTree(
+  items: EstimateRowItem[],
+  options: ComponentLibraryTreeSourceOptions = {},
+): LibraryTreeNode[] {
+  return buildProjectComponentFolderTree(items, options.libraryFolders).nodes;
 }
 
 function sortTreeNodes(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
@@ -474,32 +493,29 @@ function buildLibraryTree(
   options: BuildLibraryTreeOptions = {},
 ): LibraryTreeNode[] {
   const includeComponentRows = options.includeComponentRows ?? true;
+  const libraryItems = items.filter((item) => !isProjectComponentProjectionItem(item));
 
   if (tab === "categories") {
-    const projectComponentFolders = buildProjectComponentFolderTree(items, options.libraryFolders);
-    const catalogItems = projectComponentFolders.itemIds.size > 0
-      ? items.filter((item) => !projectComponentFolders.itemIds.has(item.id))
-      : items;
     const tree = buildCategoryTreeShell(options.categoryTree);
-    attachComponentsToTree(tree, catalogItems, (item) => item.category);
-    if (!includeComponentRows) return [...stripComponentRows(projectComponentFolders.nodes), ...stripComponentRows(tree)];
+    attachComponentsToTree(tree, libraryItems, (item) => item.category);
+    if (!includeComponentRows) return stripComponentRows(tree);
 
     const sortedTree = sortComponentRowsOnly(tree);
     const categoryNodes = options.pruneEmptyFolders ? pruneEmptyFolders(sortedTree) : sortedTree;
-    return [...projectComponentFolders.nodes, ...categoryNodes];
+    return categoryNodes;
   }
 
   if (tab === "suppliers") {
-    const sortedTree = sortTreeNodes(buildSupplierTree(items, options.suppliers, includeComponentRows));
+    const sortedTree = sortTreeNodes(buildSupplierTree(libraryItems, options.suppliers, includeComponentRows));
     return options.pruneEmptyFolders && includeComponentRows ? pruneEmptyFolders(sortedTree) : sortedTree;
   }
 
   if (tab === "brands") {
-    const sortedTree = sortTreeNodes(buildBrandTree(items, options.brands, includeComponentRows));
+    const sortedTree = sortTreeNodes(buildBrandTree(libraryItems, options.brands, includeComponentRows));
     return options.pruneEmptyFolders && includeComponentRows ? pruneEmptyFolders(sortedTree) : sortedTree;
   }
 
-  const sortedTree = sortTreeNodes(buildCustomTree(items, favoriteIds, recentIds, includeComponentRows));
+  const sortedTree = sortTreeNodes(buildCustomTree(libraryItems, favoriteIds, recentIds, includeComponentRows));
   return options.pruneEmptyFolders && includeComponentRows ? pruneEmptyFolders(sortedTree) : sortedTree;
 }
 

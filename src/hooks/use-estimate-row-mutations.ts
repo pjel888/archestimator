@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryQueryKey } from "@/lib/component-library/query-keys";
 import type { Json } from "@/lib/supabase/types";
 import { deleteEstimateRowItem, detachEstimateRowItemFromLibrary, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
@@ -248,7 +248,7 @@ function withoutClientCallbacks<T extends { onError?: unknown; onSuccess?: unkno
   return next;
 }
 
-export function useEstimateRowMutations(estimateId?: string, estimateTabId?: string) {
+export function useEstimateRowMutations(estimateId?: string, estimateTabId?: string, workspaceId?: string) {
   const queryClient = useQueryClient();
   const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState();
   const rowOperationIdsRef = useRef<Record<string, number>>({});
@@ -410,7 +410,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "active" });
-      void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "active" });
+      if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
       void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
       input.onSuccess?.(result);
     },

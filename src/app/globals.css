@@ -150,6 +150,20 @@
      WorkshopPageShell and StaticWorkshopLoadingShell consume this, so they can
      never drift. Mirrors SIDEBAR geometry in sidebar-types.ts. */
   --sidebar-content-offset: 80px;
+
+  /* === Landing — Glass Brand additive token layer (D-1/D-3; MASTER-IMPLEMENTATION-PLAN §8.1) ===
+     Aliases let every landing component bind to a grep-stable --landing-* name. All alias
+     targets are verified present above. Additive only — do not edit existing tokens. */
+  --landing-canvas: var(--warm-canvas);            /* #f5f5f5 */
+  --landing-ink: var(--ink);                       /* #3D3D3D */
+  --landing-ink-secondary: var(--secondary);       /* #5D5D5D */
+  --landing-ink-muted: var(--muted-foreground);    /* #6b6b6b */
+  --landing-accent: var(--brand-orange);           /* #F24405 — presence */
+  --landing-accent-aa: var(--brand-orange-dark);   /* #C63804 — AA small text */
+  --landing-hairline: oklch(96.5% 0.003 264);      /* ≈ #f2f2f2 (alias of --hairline) */
+  --landing-hairline-strong: oklch(92% 0.004 264); /* ≈ #e8e8e8 */
+  --landing-paper: var(--proposal-paper);          /* #fffdf8 — Direction D only; NOT used on Glass routes */
+  --font-ui: var(--font-sf-pro);                   /* SF Pro (C-2 resolution) */
 }
 
 @theme inline {
@@ -203,6 +217,22 @@
   --font-display: var(--font-doto), var(--font-roboto-mono), ui-monospace, monospace;
   --font-numeric: var(--font-roboto-mono), ui-monospace, monospace;
   --radius-xs: var(--radius-xs);
+
+  /* === Landing — Glass Brand @theme bridge (MASTER-IMPLEMENTATION-PLAN §8.1)
+     Resolves bg-landing-*, text-landing-*, border-landing-*, font-landing-* as native
+     Tailwind v4 utilities (sidesteps the bg-[color:var(--x)] arbitrary-value gotcha). */
+  --color-landing-canvas: var(--landing-canvas);
+  --color-landing-ink: var(--landing-ink);
+  --color-landing-ink-secondary: var(--landing-ink-secondary);
+  --color-landing-ink-muted: var(--landing-ink-muted);
+  --color-landing-accent: var(--landing-accent);
+  --color-landing-accent-aa: var(--landing-accent-aa);
+  --color-landing-hairline: var(--landing-hairline);
+  --color-landing-hairline-strong: var(--landing-hairline-strong);
+  --color-landing-paper: var(--landing-paper);
+  --font-landing-display: var(--font-display);
+  --font-landing-numeric: var(--font-numeric);
+  --font-landing-ui: var(--font-ui);
 }
 
 * {
@@ -215,6 +245,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-sf-pro);
   font-feature-settings: "kern";
+  /* 320px hard floor (doc 07 §2.2) — clip horizontal overflow so no landing element forces a scrollbar. */
+  overflow-x: clip;
 }
 
 body:has([data-landing-page-root="true"]) {
@@ -1626,9 +1658,13 @@ input[type="number"] {
    frosted glass. Re-skin them as frosted LIFTS (brighter = active), scoped to
    the glass surfaces only — the paper variant and the six non-estimate Tree
    uses keep their grey. Selected (aria-current) is the brightest; hover is a
-   whisper. Specificity (class + attribute/pseudo) beats the Tailwind utility. */
-.estimate-glass-rail [aria-current="page"],
-.estimate-glass-rail [aria-selected="true"] {
+   whisper. Specificity (class + attribute/pseudo) beats the Tailwind utility.
+   Scoped to `group/tree-row`: underline TAB buttons also carry
+   aria-selected="true" (Tabs.tsx), so an unscoped [aria-selected] would paint
+   the active Estimate Tree / Components / Library tab a white slab. Rows keep
+   their lift; tabs stay transparent over the frosted rail. */
+.estimate-glass-rail [class~="group/tree-row"][aria-current="page"],
+.estimate-glass-rail [class~="group/tree-row"][aria-selected="true"] {
   background: rgba(255, 255, 255, 0.82);
 }
 .estimate-glass-rail [class~="group/tree-row"]:hover {

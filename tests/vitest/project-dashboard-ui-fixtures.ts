@@ -46,4 +46,6 @@ export const projectVarianceSpine = readOptional("src/components/workshop/projec
 export const projectComparisonTable = readOptional("src/components/workshop/project-charts/ProjectComparisonTable.tsx");
 export const globalsCss = readFileSync("src/app/globals.css", "utf8");
 export const projectEstimatesLoading = readOptional("src/app/workshop/projects/[projectId]/estimates/loading.tsx");
+export const projectEstimateNodeLoading = readOptional("src/app/workshop/projects/[projectId]/estimates/[nodeId]/loading.tsx");
+export const estimateSheetRouteSkeleton = readOptional("src/components/workshop/EstimateSheetRouteSkeleton.tsx");
 export const estimateWorkspaceClient = readOptional("src/components/workshop/EstimateWorkspaceClient.tsx");

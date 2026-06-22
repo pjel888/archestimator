@@ -3,6 +3,7 @@ import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActio
 import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
 import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PROJECT_HEADER_ACTION_SKELETON_CLASS } from "@/components/workshop/project-header-action-styles";
 import {
   getProjectCollaborationSummary,
   getProjectPublicationSummary,
@@ -83,23 +84,22 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
  * outer shape: a single `flex items-center gap-1` wrapper holding the toolbar's
  * icon buttons. Keeping the fallback and the resolved content at the same single
  * top-level node count is what prevents the streaming swap from shifting the
- * notification/settings siblings and triggering a hydration mismatch. The two
- * size-10 placeholders are sized to the real toolbar buttons so the swap also
+ * notification/settings siblings and triggering a hydration mismatch. The
+ * size-8 placeholders are sized to the real toolbar buttons so the swap also
  * avoids layout shift (CLS).
  */
 export function ProjectHeaderChromeSkeleton() {
   return (
     <div className="flex items-center gap-1" aria-hidden="true" data-testid="project-header-chrome-skeleton">
-      {/* Four size-10 placeholders approximate the resolved cluster — Share,
+      {/* Four size-8 placeholders approximate the resolved cluster — Share,
           Teamspace, and (on the estimate route) the relocated Activity + Preview
           Excel Export buttons (Req 1) — so the streamed swap minimizes layout
           shift (CLS). Off-route the two action buttons resolve to nothing, a
           minor over-estimate that errs toward stability. */}
-      <Skeleton className="size-10 rounded-xs" />
-      <Skeleton className="size-10 rounded-xs" />
-      <Skeleton className="size-10 rounded-xs" />
-      <Skeleton className="size-10 rounded-xs" />
+      <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />
+      <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />
+      <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />
+      <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />
     </div>
   );
 }
-

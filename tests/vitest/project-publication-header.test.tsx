@@ -91,7 +91,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
   it("renders the shared-link header button and keeps the client link in its own modal", async () => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <ProjectPublicationHeader
         summary={publicationSummary}
         projectEstimateSheets={sampleEstimateSheets}
@@ -99,11 +99,12 @@ describe("ProjectPublicationHeader publication control", () => {
     );
 
     const sharedLinkButton = screen.getByRole("button", { name: "Open shared link" });
-    expect(sharedLinkButton).toHaveClass("h-10", "border", "bg-white");
-    expect(within(sharedLinkButton).getByText("Share")).toBeInTheDocument();
-    expect(within(sharedLinkButton).getByText("Live, 4 opened")).toBeInTheDocument();
+    expect(sharedLinkButton).toHaveClass("size-8", "cursor-pointer", "border", "bg-white");
+    expect(within(sharedLinkButton).queryByText("Share")).not.toBeInTheDocument();
+    expect(within(sharedLinkButton).queryByText("Live, 4 opened")).not.toBeInTheDocument();
     expect(sharedLinkButton).toHaveAttribute("aria-haspopup", "dialog");
     expect(sharedLinkButton).toHaveAttribute("aria-expanded", "false");
+    expect(container.querySelector('[data-shared-link-active-dot="true"]')).toBeInTheDocument();
 
     await user.click(sharedLinkButton);
 
@@ -157,7 +158,7 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(headerSource).not.toContain('className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]"');
   });
 
-  it("marks shared-link activity from the labeled header entry", async () => {
+  it("marks shared-link activity from the compact header entry", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -172,10 +173,11 @@ describe("ProjectPublicationHeader publication control", () => {
     );
 
     const sharedLinkButton = screen.getByRole("button", { name: "Open shared link" });
-    expect(sharedLinkButton).toHaveClass("h-10", "border", "bg-white");
-    expect(within(sharedLinkButton).getByText("Share")).toBeInTheDocument();
+    expect(sharedLinkButton).toHaveClass("size-8", "cursor-pointer", "border", "bg-white");
+    expect(within(sharedLinkButton).queryByText("Share")).not.toBeInTheDocument();
     expect(sharedLinkButton).toHaveAttribute("aria-haspopup", "dialog");
     expect(sharedLinkButton).toHaveAttribute("aria-expanded", "false");
+    expect(container.querySelector('[data-shared-link-active-dot="true"]')).toBeInTheDocument();
     expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
     await user.click(sharedLinkButton);
     expect(screen.getByRole("dialog", { name: "Shared link" })).toBeInTheDocument();

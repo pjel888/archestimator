@@ -22,10 +22,19 @@ const actionMocks = vi.hoisted(() => ({
   upsertCostLibraryComponentPriceOption: vi.fn(),
 }));
 
-const navigationMocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  searchParams: new URLSearchParams(),
-}));
+const navigationMocks = vi.hoisted(() => {
+  const push = vi.fn();
+  const refresh = vi.fn();
+  const replace = vi.fn();
+  return {
+    push,
+    refresh,
+    replace,
+    router: { push, refresh, replace },
+    pathname: "/workshop/library/components",
+    searchParams: new URLSearchParams(),
+  };
+});
 
 const promotionMocks = vi.hoisted(() => ({
   promoteExpressRowToLibraryComponent: vi.fn(),
@@ -35,8 +44,9 @@ vi.mock("@/lib/component-library/actions", () => actionMocks);
 vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: navigationMocks.refresh }),
-  useSearchParams: () => navigationMocks.searchParams,
+  useRouter: () => navigationMocks.router,
+  usePathname: () => navigationMocks.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock("react-complex-tree", () => ({
@@ -140,7 +150,10 @@ async function waitForSheet() {
 describe("ComponentLibraryManager Phase 1 uplift", () => {
   beforeEach(() => {
     navigationMocks.searchParams = new URLSearchParams();
+    window.history.replaceState(null, "", navigationMocks.pathname);
+    navigationMocks.push.mockReset();
     navigationMocks.refresh.mockReset();
+    navigationMocks.replace.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 2, estimateRowCount: 6 });
     actionMocks.updateCostLibraryComponent.mockReset();
@@ -213,6 +226,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
 
   it("seeds facet state from deep-link search params", async () => {
     navigationMocks.searchParams = new URLSearchParams("lifecycle=discontinued");
+    window.history.replaceState(null, "", `${navigationMocks.pathname}?lifecycle=discontinued`);
     renderManager();
     await waitForSheet();
     const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
@@ -226,6 +240,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
 
   it("supports the missing-brand deep link from the library health line", async () => {
     navigationMocks.searchParams = new URLSearchParams("brand=none");
+    window.history.replaceState(null, "", `${navigationMocks.pathname}?brand=none`);
     renderManager();
     await waitForSheet();
     const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
@@ -257,6 +272,10 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
 
     const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
     expect(within(dock).getByText("Mariwasa")).toBeInTheDocument();
+    const trustChips = within(dock).getByLabelText("Source trust for Fresh Tile");
+    expect(within(trustChips).getByText("Current")).toBeInTheDocument();
+    expect(within(trustChips).getByText("Verified source")).toBeInTheDocument();
+    expect(within(dock).getByText("Confidence")).toBeInTheDocument();
     expect(within(dock).getByText("Quoted")).toBeInTheDocument();
     expect(within(dock).getByText("Available")).toBeInTheDocument();
     expect(await within(dock).findByText("2 template rows · 6 estimate rows")).toBeInTheDocument();

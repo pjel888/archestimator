@@ -35,7 +35,7 @@ function mockSearchPrefilter(resultByTable: Record<string, { data: unknown; erro
   const makeBuilder = (table: string) => {
     const result = resultByTable[table] ?? { data: [], error: null };
     const builder: Record<string, unknown> = {};
-    for (const method of ["select", "in", "ilike", "is", "eq", "order"]) {
+    for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit"]) {
       builder[method] = () => builder;
     }
     builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
@@ -306,9 +306,14 @@ describe("reusable project source actions", () => {
     const result = await searchReusableProjectSources({ query: "amenity" });
 
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId, { limit: expect.any(Number) });
     expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      expect.objectContaining({ allowLegacyFallback: true, maxNodeCount: expect.any(Number), maxRowItemCount: expect.any(Number) }),
+    );
     expect(result.sources).toEqual([
       {
         kind: "project",

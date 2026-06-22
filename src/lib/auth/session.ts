@@ -84,7 +84,7 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
   };
 });
 
-export async function requireCurrentUserContext() {
+export async function requireCurrentUserContext(_options?: { enforceTermsAcceptance?: boolean }) {
   const context = await getCurrentUserContext();
   if (!context) redirect("/login");
   return context;

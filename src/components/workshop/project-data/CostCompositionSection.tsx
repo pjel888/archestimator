@@ -1,5 +1,6 @@
 "use client";
 
+import { OKABE_ITO_SERIES_COLORS } from "@/lib/project-charts/bucket-color";
 import { formatChartMoney, formatChartShare, formatSignedChartMoney } from "@/lib/project-charts/format";
 import type { ProjectChartCostComposition } from "@/lib/project-charts/types";
 import { cn } from "@/lib/ui/cn";
@@ -19,9 +20,9 @@ type Segment = {
 };
 
 const SEGMENTS: Omit<Segment, "value">[] = [
-  { id: "base", label: "Direct", color: "#38586F" },
-  { id: "misc", label: "Misc", color: "#C9894B" },
-  { id: "adjustment", label: "Contingency / discount", color: "#7A6A56" },
+  { id: "base", label: "Direct", color: OKABE_ITO_SERIES_COLORS[0] },
+  { id: "misc", label: "Misc", color: OKABE_ITO_SERIES_COLORS[1] },
+  { id: "adjustment", label: "Contingency / discount", color: OKABE_ITO_SERIES_COLORS[2] },
 ];
 
 export function CostCompositionSection({ className, composition, currencyCode, sheetName }: CostCompositionSectionProps) {

@@ -56,7 +56,7 @@ describe("project dashboard side-panel UI governance", () => {
     expect(searchInput).toContain("h-[38px] min-h-[38px]");
     expect(searchInput).not.toContain("h-12 min-h-12");
     expect(searchInput).not.toContain("border border-hairline bg-white px-1");
-    expect(headerIconToolbar).toContain('className="flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"');
+    expect(headerIconToolbar).toContain('"flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"');
     expect(headerIconToolbar).not.toContain("border-y border-hairline");
     expect(headerIconToolbar).not.toContain("min-h-10");
     expect(sharedSearchSurfaces).not.toContain('wrapperClassName="h-12 w-full"');

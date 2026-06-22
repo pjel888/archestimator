@@ -85,7 +85,7 @@ describe("ProjectsPageClient view modes", () => {
     expect(container.firstElementChild).toHaveClass("dashboard-canvas-wash");
     expect(screen.getByLabelText("Project tools")).toHaveClass("bg-transparent");
     expect(screen.getByRole("tablist", { name: "Project access tabs" }).closest("[data-navigation-tabs]")).toHaveClass(
-      "bg-white/45",
+      "bg-transparent",
     );
     expect(screen.getByLabelText("Lewis Residence project, owned access")).toHaveClass("workshop-project-card-glass");
     expect(screen.getByLabelText("Live projects")).toHaveAttribute(

@@ -5,6 +5,8 @@ import { ImageSquare } from "@phosphor-icons/react/dist/ssr";
 
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter";
+import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
+import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import type { LibraryOverviewComponent } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 
@@ -18,8 +20,7 @@ const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
 /**
  * Compact recently-updated component card for the Library Overview home:
  * 72px thumb, name, `subcategory · supplier`, price + unit. Clicking opens
- * the Components tab (per-item deep links are a post-v1 follow-up, so the
- * card links to the tab itself).
+ * the Components tab with the item inspector selected via route state.
  */
 export function RecentComponentCard({ component }: { component: LibraryOverviewComponent }) {
   const subline = [component.category, component.supplier].filter(Boolean).join(" · ");
@@ -33,7 +34,7 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
   return (
     <li className="min-w-0">
       <Link
-        href="/workshop/library/components"
+        href={getComponentDetailsHref(component.id)}
         aria-label={`Open components: ${component.name}`}
         data-library-overview-recent-component={component.id}
         className="group flex h-full flex-col overflow-hidden rounded-xs border border-hairline bg-white transition hover:border-divider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -72,6 +73,12 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
               {subline}
             </p>
           ) : null}
+          <SourceTrustChips
+            chips={getComponentSourceTrustChips(component)}
+            ariaLabel={`Source trust for ${component.name}`}
+            maxChips={2}
+            chipClassName="max-w-[88px]"
+          />
           <p className="mt-auto pt-1 text-[10px] font-medium leading-4 tabular-nums text-ink">
             {pesoFormatter.format(component.unitCost)}
             <span className="ml-1 text-[8px] font-normal text-tertiary">/ {component.unit}</span>

@@ -1,0 +1,192 @@
+import { describe, expect, it } from "vitest";
+
+import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import {
+  componentMatchesPricingFreshness,
+  getComponentPricingFreshness,
+  getComponentSourceTrustChips,
+  getTemplateSourceTrustChips,
+} from "@/components/workshop/library/source-trust-model";
+import type { EstimateRowItem } from "@/lib/estimates/types";
+
+const NOW = Date.parse("2026-06-22T00:00:00.000Z");
+
+function makeRow(overrides: Partial<EstimateRowItem> & { id: string; material: string }): EstimateRowItem {
+  const itemCost = overrides.itemCost ?? 100;
+  const quantity = overrides.quantity ?? 1;
+  const miscCost = overrides.miscCost ?? 0;
+  const subTotal = itemCost * quantity;
+  return {
+    name: overrides.material,
+    description: "",
+    supplier: "Test Supplier",
+    source: "library",
+    unit: "pc",
+    itemCost,
+    price: itemCost,
+    currency: "PHP",
+    quantity,
+    subTotal,
+    contingencyPercentage: 0,
+    contingencyValue: 0,
+    miscCost,
+    miscCostDefault: miscCost,
+    totalItemCosts: subTotal + miscCost,
+    category: "General",
+    pricingSource: "Supplier quote",
+    pricingDate: "2026-06-01",
+    ...overrides,
+  };
+}
+
+describe("library source trust model", () => {
+  it("classifies pricing freshness into current, stale, very stale, and missing tiers", () => {
+    expect(getComponentPricingFreshness({ pricingDate: "2026-06-01" }, NOW)).toBe("fresh");
+    expect(getComponentPricingFreshness({ pricingDate: "2026-02-01" }, NOW)).toBe("stale");
+    expect(getComponentPricingFreshness({ pricingDate: "2025-12-01" }, NOW)).toBe("very-stale");
+    expect(getComponentPricingFreshness({ pricingDate: "" }, NOW)).toBe("missing");
+
+    expect(componentMatchesPricingFreshness({ pricingDate: "2025-12-01" }, "stale", NOW)).toBe(true);
+    expect(componentMatchesPricingFreshness({ pricingDate: "2025-12-01" }, "very-stale", NOW)).toBe(true);
+    expect(componentMatchesPricingFreshness({ pricingDate: "" }, "stale", NOW)).toBe(false);
+  });
+
+  it("renders component confidence as copy-deck labels and flags missing source fields", () => {
+    expect(
+      getComponentSourceTrustChips(
+        { pricingDate: "2026-06-01", pricingSource: "Supplier quote", confidence: "Quoted", lifecycleState: "available" },
+        { now: NOW },
+      ).map((chip) => chip.label),
+    ).toEqual(["Current", "Verified source"]);
+
+    expect(
+      getComponentSourceTrustChips(
+        { pricingDate: "2026-06-01", pricingSource: "Catalog", confidence: "catalog match", lifecycleState: "available" },
+        { now: NOW },
+      ).find((chip) => chip.id === "confidence-catalog-match"),
+    ).toMatchObject({
+      label: "Likely source",
+      tone: "neutral",
+      title: "Plausible but not fully verified.",
+    });
+
+    expect(
+      getComponentSourceTrustChips(
+        { pricingDate: "2026-06-01", pricingSource: "Manual", confidence: "low", lifecycleState: "available" },
+        { now: NOW },
+      ).find((chip) => chip.id === "confidence-low"),
+    ).toMatchObject({
+      label: "Low confidence",
+      tone: "warning",
+      title: "User-entered or uncertain source. Review before reuse.",
+    });
+
+    expect(
+      getComponentSourceTrustChips(
+        { pricingDate: "2026-06-01", pricingSource: "Manual", confidence: "field note", lifecycleState: "available" },
+        { now: NOW },
+      ).find((chip) => chip.id === "confidence-field-note"),
+    ).toMatchObject({
+      label: "field note",
+      tone: "neutral",
+      title: "Recorded confidence note.",
+    });
+
+    const missingChips = getComponentSourceTrustChips(
+      { pricingDate: "", pricingSource: "", confidence: "", lifecycleState: "archived" },
+      { now: NOW },
+    );
+    expect(missingChips.map((chip) => chip.label)).toEqual(["No price date", "No confidence", "Archived", "No source"]);
+    expect(missingChips.find((chip) => chip.id === "pricing-missing")).toMatchObject({
+      tone: "neutral",
+      title: "No pricing date recorded. Add one to track freshness.",
+    });
+    expect(missingChips.find((chip) => chip.id === "confidence-missing")).toMatchObject({
+      tone: "neutral",
+      title: "No source confidence recorded.",
+    });
+    expect(missingChips.find((chip) => chip.id === "lifecycle-archived")).toMatchObject({
+      tone: "neutral",
+    });
+  });
+
+  it("computes template trust from row links, link state, and row pricing dates", () => {
+    const template: EstimateTemplate = {
+      id: "template-1",
+      name: "Source-aware template",
+      description: "",
+      category: "Residential",
+      nodes: [
+        {
+          id: "area-1",
+          name: "Area",
+          kind: "area",
+          total: "",
+          estimateRowItems: [
+            makeRow({
+              id: "row-1",
+              material: "Fresh linked row",
+              sourceLibraryItemId: "component-1",
+              linkState: "linked-clean",
+            }),
+            makeRow({
+              id: "row-2",
+              material: "Changed stale row",
+              pricingDate: "2025-12-01",
+              sourceLibraryItemId: "component-2",
+              linkState: "source-changed",
+            }),
+          ],
+        },
+      ],
+    };
+
+    expect(getTemplateSourceTrustChips(template, { now: NOW }).map((chip) => chip.label)).toEqual([
+      "2/2 linked rows",
+      "Very stale",
+      "Source changed",
+    ]);
+  });
+
+  it("uses copy-deck labels for overridden and detached template rows", () => {
+    const overriddenTemplate: EstimateTemplate = {
+      id: "template-overridden",
+      name: "Overridden template",
+      description: "",
+      category: "Residential",
+      nodes: [{
+        id: "area-1",
+        name: "Area",
+        kind: "area",
+        total: "",
+        estimateRowItems: [makeRow({
+          id: "row-overridden",
+          material: "Overridden row",
+          sourceLibraryItemId: "component-1",
+          linkState: "linked-overridden",
+        })],
+      }],
+    };
+    const detachedTemplate: EstimateTemplate = {
+      id: "template-detached",
+      name: "Detached template",
+      description: "",
+      category: "Residential",
+      nodes: [{
+        id: "area-1",
+        name: "Area",
+        kind: "area",
+        total: "",
+        estimateRowItems: [makeRow({
+          id: "row-detached",
+          material: "Detached row",
+          sourceLibraryItemId: "component-1",
+          linkState: "detached",
+        })],
+      }],
+    };
+
+    expect(getTemplateSourceTrustChips(overriddenTemplate, { now: NOW }).map((chip) => chip.label)).toContain("Local override");
+    expect(getTemplateSourceTrustChips(detachedTemplate, { now: NOW }).map((chip) => chip.label)).toContain("Detached");
+  });
+});

@@ -1,20 +1,32 @@
 "use client";
 
 import { useMemo } from "react";
-import { FunnelSimple } from "@phosphor-icons/react/dist/ssr";
+import { FunnelSimple, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterPopover } from "@/components/ui/overlays/popover";
 import type { EstimateRowItem, ComponentLifecycleState } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import {
+  componentMatchesPricingFreshness,
+  COMPONENT_FACET_STALE_DAYS,
+  COMPONENT_FACET_VERY_STALE_DAYS,
+  COMPONENT_LIFECYCLE_FACET_LABELS,
+  type ComponentPricingFreshness,
+} from "./source-trust-model";
 
-export const COMPONENT_FACET_STALE_DAYS = 90;
+export {
+  COMPONENT_FACET_STALE_DAYS,
+  COMPONENT_FACET_VERY_STALE_DAYS,
+  COMPONENT_LIFECYCLE_FACET_LABELS,
+  COMPONENT_PRICING_FRESHNESS_LABELS,
+  getComponentPricingFreshness,
+  type ComponentPricingFreshness,
+} from "./source-trust-model";
 
-const NO_SUPPLIER_OPTION = "__no_supplier__";
-const NO_BRAND_OPTION = "__no_brand__";
-
-export type ComponentPricingFreshness = "any" | "fresh" | "stale" | "missing";
+export const NO_SUPPLIER_OPTION = "__no_supplier__";
+export const NO_BRAND_OPTION = "__no_brand__";
 
 export type ComponentFacetFilters = {
   suppliers: string[];
@@ -30,14 +42,6 @@ export const EMPTY_COMPONENT_FACET_FILTERS: ComponentFacetFilters = {
   lifecycles: [],
   confidence: [],
   freshness: "any",
-};
-
-export const COMPONENT_LIFECYCLE_FACET_LABELS: Record<ComponentLifecycleState, string> = {
-  draft: "Draft",
-  in_production: "In production",
-  available: "Available",
-  discontinued: "Discontinued",
-  archived: "Archived",
 };
 
 export function countActiveComponentFacets(filters: ComponentFacetFilters): number {
@@ -58,18 +62,6 @@ function getBrandFacetValue(item: EstimateRowItem): string {
   return item.brand?.trim() || NO_BRAND_OPTION;
 }
 
-export function getComponentPricingFreshness(
-  item: Pick<EstimateRowItem, "pricingDate">,
-  now: number = Date.now(),
-): Exclude<ComponentPricingFreshness, "any"> {
-  const raw = item.pricingDate?.trim();
-  if (!raw) return "missing";
-  const parsed = Date.parse(raw);
-  if (Number.isNaN(parsed)) return "missing";
-  const ageDays = (now - parsed) / (1000 * 60 * 60 * 24);
-  return ageDays > COMPONENT_FACET_STALE_DAYS ? "stale" : "fresh";
-}
-
 export function componentMatchesFacets(
   item: EstimateRowItem,
   filters: ComponentFacetFilters,
@@ -85,7 +77,7 @@ export function componentMatchesFacets(
     const confidence = item.confidence?.trim();
     if (!confidence || !filters.confidence.includes(confidence)) return false;
   }
-  if (filters.freshness !== "any" && getComponentPricingFreshness(item, now) !== filters.freshness) return false;
+  if (filters.freshness !== "any" && !componentMatchesPricingFreshness(item, filters.freshness, now)) return false;
   return true;
 }
 
@@ -103,7 +95,9 @@ export function parseComponentFacetSearchParams(params: URLSearchParams): Compon
   const confidence = params.getAll("confidence");
   const freshnessRaw = params.get("freshness");
   const freshness: ComponentPricingFreshness =
-    freshnessRaw === "fresh" || freshnessRaw === "stale" || freshnessRaw === "missing" ? freshnessRaw : "any";
+    freshnessRaw === "fresh" || freshnessRaw === "stale" || freshnessRaw === "very-stale" || freshnessRaw === "missing"
+      ? freshnessRaw
+      : "any";
 
   return { suppliers, brands, lifecycles, confidence, freshness };
 }
@@ -162,8 +156,165 @@ const FRESHNESS_OPTIONS: Array<{ value: ComponentPricingFreshness; label: string
   { value: "any", label: "Any pricing date" },
   { value: "fresh", label: `Updated within ${COMPONENT_FACET_STALE_DAYS} days` },
   { value: "stale", label: `Older than ${COMPONENT_FACET_STALE_DAYS} days` },
+  { value: "very-stale", label: `Older than ${COMPONENT_FACET_VERY_STALE_DAYS} days` },
   { value: "missing", label: "No pricing date" },
 ];
+
+const APPLIED_FRESHNESS_LABELS: Record<Exclude<ComponentPricingFreshness, "any">, string> = {
+  fresh: `Updated within ${COMPONENT_FACET_STALE_DAYS} days`,
+  stale: `Older than ${COMPONENT_FACET_STALE_DAYS} days`,
+  "very-stale": `Older than ${COMPONENT_FACET_VERY_STALE_DAYS} days`,
+  missing: "No pricing date",
+};
+
+type ComponentAppliedFacetKind = "supplier" | "brand" | "lifecycle" | "confidence" | "freshness";
+
+type ComponentAppliedFacetChip = {
+  id: string;
+  kind: ComponentAppliedFacetKind;
+  value: string;
+  label: string;
+};
+
+function findFacetOptionLabel(options: FacetOption[], value: string) {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
+
+function appliedFacetPrefix(kind: ComponentAppliedFacetKind) {
+  switch (kind) {
+    case "supplier":
+      return "Supplier";
+    case "brand":
+      return "Brand";
+    case "lifecycle":
+      return "Lifecycle";
+    case "confidence":
+      return "Confidence";
+    case "freshness":
+      return "Pricing";
+    default:
+      return "Filter";
+  }
+}
+
+export function buildComponentAppliedFacetChips(
+  filters: ComponentFacetFilters,
+  options: ComponentFacetOptions,
+): ComponentAppliedFacetChip[] {
+  const chips: ComponentAppliedFacetChip[] = [];
+  for (const value of filters.suppliers) {
+    chips.push({
+      id: `supplier:${value}`,
+      kind: "supplier",
+      value,
+      label: `${appliedFacetPrefix("supplier")}: ${findFacetOptionLabel(options.suppliers, value)}`,
+    });
+  }
+  for (const value of filters.brands) {
+    chips.push({
+      id: `brand:${value}`,
+      kind: "brand",
+      value,
+      label: `${appliedFacetPrefix("brand")}: ${findFacetOptionLabel(options.brands, value)}`,
+    });
+  }
+  for (const value of filters.lifecycles) {
+    chips.push({
+      id: `lifecycle:${value}`,
+      kind: "lifecycle",
+      value,
+      label: `${appliedFacetPrefix("lifecycle")}: ${COMPONENT_LIFECYCLE_FACET_LABELS[value]}`,
+    });
+  }
+  for (const value of filters.confidence) {
+    chips.push({
+      id: `confidence:${value}`,
+      kind: "confidence",
+      value,
+      label: `${appliedFacetPrefix("confidence")}: ${findFacetOptionLabel(options.confidence, value)}`,
+    });
+  }
+  if (filters.freshness !== "any") {
+    chips.push({
+      id: `freshness:${filters.freshness}`,
+      kind: "freshness",
+      value: filters.freshness,
+      label: `${appliedFacetPrefix("freshness")}: ${APPLIED_FRESHNESS_LABELS[filters.freshness]}`,
+    });
+  }
+  return chips;
+}
+
+function removeAppliedFacetChip(
+  filters: ComponentFacetFilters,
+  chip: ComponentAppliedFacetChip,
+): ComponentFacetFilters {
+  switch (chip.kind) {
+    case "supplier":
+      return { ...filters, suppliers: filters.suppliers.filter((value) => value !== chip.value) };
+    case "brand":
+      return { ...filters, brands: filters.brands.filter((value) => value !== chip.value) };
+    case "lifecycle":
+      return { ...filters, lifecycles: filters.lifecycles.filter((value) => value !== chip.value) };
+    case "confidence":
+      return { ...filters, confidence: filters.confidence.filter((value) => value !== chip.value) };
+    case "freshness":
+      return { ...filters, freshness: "any" };
+    default:
+      return filters;
+  }
+}
+
+export function ComponentAppliedFacetChips({
+  filters,
+  options,
+  onFiltersChange,
+  className,
+}: {
+  filters: ComponentFacetFilters;
+  options: ComponentFacetOptions;
+  onFiltersChange: (filters: ComponentFacetFilters) => void;
+  className?: string;
+}) {
+  const chips = useMemo(() => buildComponentAppliedFacetChips(filters, options), [filters, options]);
+  if (chips.length === 0) return null;
+
+  return (
+    <div
+      className={cn("flex min-h-8 flex-wrap items-center gap-1.5 border-b border-hairline px-2 py-1", className)}
+      data-component-applied-filters="true"
+      aria-label="Applied component filters"
+    >
+      <span className="mr-0.5 text-[9px] font-medium leading-3 text-tertiary">
+        {chips.length} {chips.length === 1 ? "filter" : "filters"}
+      </span>
+      <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-1" aria-label="Active component filter chips">
+        {chips.map((chip) => (
+          <li key={chip.id} className="min-w-0">
+            <button
+              type="button"
+              className="inline-flex max-w-[min(220px,80vw)] items-center gap-1 rounded-xs border border-hairline bg-white/75 px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              onClick={() => onFiltersChange(removeAppliedFacetChip(filters, chip))}
+              aria-label={`Remove ${chip.label} filter`}
+            >
+              <span className="truncate">{chip.label}</span>
+              <X size={10} weight="regular" aria-hidden="true" className="shrink-0" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <Button
+        type="button"
+        variant="plain"
+        size="xs"
+        className="h-6 min-h-6 min-w-0 shrink-0 px-1.5 py-0 !text-[9px]"
+        onClick={() => onFiltersChange(EMPTY_COMPONENT_FACET_FILTERS)}
+      >
+        Clear filters
+      </Button>
+    </div>
+  );
+}
 
 function toggleValue<T extends string>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value];

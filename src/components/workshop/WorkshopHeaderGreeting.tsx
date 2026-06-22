@@ -42,10 +42,10 @@ export function WorkshopHeaderGreeting({ displayName }: WorkshopHeaderGreetingPr
         <PeriodIcon role="img" aria-label={tone.periodLabel} weight="regular" className="size-7" />
       </span>
       <h1 className="flex min-w-0 flex-col justify-center leading-none text-ink">
-        <span className="truncate font-numeric text-[10px] font-light uppercase leading-3 text-secondary">
+        <span className="truncate font-numeric text-[9px] font-medium uppercase leading-3 text-secondary">
           {tone.greeting}
         </span>
-        <span className="truncate font-display text-[14px] font-bold uppercase leading-4 tracking-normal">
+        <span className="truncate font-display text-[12px] font-medium leading-4 tracking-normal">
           {name}
         </span>
       </h1>

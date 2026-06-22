@@ -23,6 +23,7 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "../../component-library/templates";
+import { getTemplateSourceTrustChips, SourceTrustChips } from "../source-trust-chips";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 
@@ -593,6 +594,16 @@ export function TemplateEditorSheet({
             },
           ]}
         />
+        <div
+          className="flex min-h-7 items-center border-b border-hairline bg-white px-2"
+          data-template-editor-source-trust="true"
+        >
+          <SourceTrustChips
+            chips={getTemplateSourceTrustChips(template)}
+            ariaLabel={`Source trust for ${template.name}`}
+            maxChips={3}
+          />
+        </div>
         <div
           className={cn(
             "grid min-h-7 items-center border-b border-hairline bg-white text-[8px] font-medium leading-3 text-tertiary",

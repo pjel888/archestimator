@@ -351,7 +351,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
         </p>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-[7px] border border-white/45 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)]">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-xs border border-white/45 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)]">
         {hasFilteredEstimates ? (
           <ProjectEstimatesTable
             projectId={projectId}

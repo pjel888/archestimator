@@ -13,6 +13,7 @@ vi.mock("@/components/workshop/library/templates-browse/TemplatesBrowseManager",
   TemplatesBrowseManager: (props: {
     templates?: unknown[];
     onTemplatesMutated?: (updater: (items: unknown[]) => unknown[]) => void;
+    onTemplatesInvalidated?: () => void;
   }) => (
     <div data-testid="tmgr">
       templates:{props.templates?.length ?? 0}
@@ -22,6 +23,13 @@ vi.mock("@/components/workshop/library/templates-browse/TemplatesBrowseManager",
         onClick={() => props.onTemplatesMutated?.((items) => [...items, { id: "new-t" }])}
       >
         add
+      </button>
+      <button
+        type="button"
+        data-testid="invalidate-templates"
+        onClick={() => props.onTemplatesInvalidated?.()}
+      >
+        invalidate
       </button>
     </div>
   ),
@@ -94,5 +102,22 @@ describe("Templates tab TanStack Query cache (P0 T3/T4)", () => {
     expect(qc.getQueryData<EstimateTemplate[]>(workspaceEstimateTemplatesQueryKey(scopeA))).toHaveLength(1);
     expect(qc.getQueryData<EstimateTemplate[]>(workspaceEstimateTemplatesQueryKey(scopeB))).toHaveLength(3);
     expect(loadTemplatesSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("exposes a scoped invalidation callback for successful template moves", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
+    render(
+      <QueryClientProvider client={qc}>
+        <TemplatesBrowsePageClient templates={tpl(2)} queryScope={scopeA} />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByTestId("tmgr")).toHaveTextContent("templates:2");
+
+    fireEvent.click(screen.getByTestId("invalidate-templates"));
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: workspaceEstimateTemplatesQueryKey(scopeA) });
+    });
   });
 });

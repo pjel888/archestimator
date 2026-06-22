@@ -25,6 +25,7 @@ type CreatableComboboxProps = {
   options: CreatableComboboxOption[];
   onChange: (change: CreatableComboboxChange) => void;
   ariaLabel: string;
+  ariaRequired?: boolean;
   placeholder?: string;
   createLabel?: (value: string) => string;
   emptyLabel?: string;
@@ -61,6 +62,7 @@ export function CreatableCombobox({
   options,
   onChange,
   ariaLabel,
+  ariaRequired,
   placeholder = "Search or add",
   createLabel = (nextValue) => `Add "${nextValue}"`,
   emptyLabel = "No matches",
@@ -118,6 +120,10 @@ export function CreatableCombobox({
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
+      if (open) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       setOpen(false);
       return;
     }
@@ -142,6 +148,7 @@ export function CreatableCombobox({
         value={value}
         role="combobox"
         aria-label={ariaLabel}
+        aria-required={ariaRequired}
         aria-autocomplete="list"
         aria-controls={listboxId}
         aria-expanded={open}

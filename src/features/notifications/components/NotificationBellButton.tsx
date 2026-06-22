@@ -3,7 +3,10 @@
 import { Bell } from "@phosphor-icons/react/dist/ssr";
 import type { RefObject } from "react";
 
-import { cn } from "@/lib/ui/cn";
+import {
+  PROJECT_HEADER_ACTION_BUTTON_CLASS,
+  PROJECT_HEADER_ACTION_ICON_SIZE,
+} from "@/components/workshop/project-header-action-styles";
 
 type NotificationBellButtonProps = {
   unreadCount: number;
@@ -23,16 +26,14 @@ export function NotificationBellButton({ unreadCount, open, onClick, buttonRef }
       aria-label={label}
       aria-expanded={open}
       aria-controls="notification-center-panel"
-      className={cn(
-        "workshop-liquid-button relative grid size-10 shrink-0 place-items-center rounded-xs border focus-visible:outline-none",
-      )}
+      className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
       onClick={onClick}
     >
-      <Bell size={15} weight="regular" aria-hidden="true" />
+      <Bell size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
       {unreadCount > 0 ? (
         <span
           aria-hidden="true"
-          className="absolute -right-1 -top-1 grid h-3.5 min-w-3.5 place-items-center rounded-full border border-white bg-danger px-0.5 text-[8px] font-medium leading-none text-white shadow-[0_2px_4px_rgba(30,35,50,0.18)]"
+          className="absolute -right-0.5 -top-0.5 grid h-3 min-w-3 place-items-center rounded-full border border-white bg-danger px-0.5 text-[7px] font-medium leading-none text-white shadow-[0_2px_4px_rgba(30,35,50,0.18)]"
         >
           {badgeLabel}
         </span>

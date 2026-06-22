@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import type {
   LibraryOverview as LibraryOverviewPayload,
   LibraryOverviewHealth,
@@ -85,6 +86,12 @@ function RecentTemplateRow({
         {template.name}
       </p>
       <p className="min-w-0 truncate text-[9px] font-normal leading-3 text-tertiary">{counts}</p>
+      <SourceTrustChips
+        chips={template.sourceTrustChips}
+        ariaLabel={`Source trust for ${template.name}`}
+        maxChips={2}
+        chipClassName="max-w-[104px]"
+      />
       <span className="ml-auto shrink-0 rounded-xs border border-hairline bg-surfaceMuted px-1 py-0.5 text-[8px] font-medium leading-3 text-secondary">
         {template.category}
       </span>
@@ -204,8 +211,8 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
   const componentsEmptyState = (
     <EmptyState
       icon={<Package size={18} weight="regular" aria-hidden="true" />}
-      title="Build your component library"
-      description="Add your first component, or import from a price list."
+      title="Your library is empty."
+      description="Add a component to reuse it across estimates."
       action={
         <Button type="button" variant="primary" size="xs" onClick={() => router.push("/workshop/library/components?add=component")}>
           Add component
@@ -217,8 +224,8 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
   const templatesEmptyState = (
     <EmptyState
       icon={<Blueprint size={18} weight="regular" aria-hidden="true" />}
-      title="No templates yet"
-      description="Create a template from scratch, or save any estimate group as a template from the estimate page."
+      title="No templates yet."
+      description="Save a template to reuse line items."
       action={
         <Button type="button" variant="secondary" size="xs" onClick={() => setNewTemplateOpen(true)}>
           New template

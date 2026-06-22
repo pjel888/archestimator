@@ -46,6 +46,10 @@ import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { describeActiveSurface, routeToActiveSurface } from "@/lib/collaboration/presence-surface";
 import type { CollaborationRole, ProjectCollaborationSummary, ProjectCollaboratorSummary } from "@/lib/collaboration/types";
 import { cn } from "@/lib/ui/cn";
+import {
+  PROJECT_HEADER_ACTION_BUTTON_CLASS,
+  PROJECT_HEADER_ACTION_ICON_SIZE,
+} from "./project-header-action-styles";
 
 type ProjectTeamspaceHeaderProps = {
   /** SSR summary; seeds the TanStack query (T2.1) — treated as initial data. */
@@ -489,15 +493,17 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
         data-workshop-layout="project-teamspace-header"
         data-teamspace-presence-cluster
       >
-        <button
+        <Button
           type="button"
-          className="relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          variant="ghost"
+          size="icon-sm"
+          className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
           aria-label="Teamspace"
           title="Teamspace"
           onClick={openManageAccess}
         >
-          <UsersThree size={14} weight="regular" aria-hidden="true" />
-        </button>
+          <UsersThree size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+        </Button>
 
         <span className="sr-only" role="status" aria-live="polite" aria-relevant="additions removals">
           {presenceAnnouncement}

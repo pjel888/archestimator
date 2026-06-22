@@ -6,15 +6,19 @@
 // Library management surfaces (template editor, component manager).
 export const WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"] as const;
 
+export function workspaceComponentLibraryQueryKey(workspaceId: string) {
+  return [...WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, "workspace", workspaceId] as const;
+}
+
 // U18/U19: the in-estimate Templates panel uses the LITE dataset under a distinct
 // sub-key so it never serves incomplete (detail-graph-less) data to the full-graph
-// editor surfaces. Note the shared prefix: a non-exact
-// `invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY })` still
-// invalidates this lite key.
-export const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY = ["workspace-component-library", "lite"] as const;
+// editor surfaces. Note the shared scoped prefix: a non-exact
+// `invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId) })`
+// still invalidates this lite key without crossing workspace boundaries.
+export const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT = "lite";
 
-export function workspaceComponentLibraryLiteQueryKey(projectId: string) {
-  return [...WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, "project", projectId] as const;
+export function workspaceComponentLibraryLiteQueryKey(workspaceId: string, projectId: string) {
+  return [...workspaceComponentLibraryQueryKey(workspaceId), WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT, "project", projectId] as const;
 }
 
 // Library Optimization Plan P0 T3 — the Components *management* tab (LibraryPageClient

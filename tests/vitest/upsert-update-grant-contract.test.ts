@@ -22,6 +22,7 @@ const srcDir = join(process.cwd(), "src");
 const AUTH_UPSERT_TABLES_REQUIRING_UPDATE = new Set([
   "project_group_memberships", // moveProjectToGroup / bulkAssignProjectsToGroup
   "project_favorites", // setProjectFavorite (favorite = true)
+  "project_locations", // saveProjectLocation uses an authenticated DO-UPDATE upsert
   "workspace_account_settings", // account settings upsert (already granted update)
 ]);
 

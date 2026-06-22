@@ -454,7 +454,7 @@ function LiveProjectCardImpl({
     return (
       <div className={cn("relative shrink-0 overflow-hidden bg-surfaceMuted", wrapperClass)} data-project-card-thumbnail>
         {imageUrl ? (
-          // Plain <img>, NOT next/image: the image is served by the auth-gated proxy
+          // Plain image element, NOT next/image: the image is served by the auth-gated proxy
           // (/api/projects/images), and only a browser request carries the user's session
           // cookie. next/image's optimizer fetches the source server-side WITHOUT that cookie,
           // so the protected image can't be retrieved (blank). The big win is already banked by

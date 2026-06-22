@@ -14,6 +14,7 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "@/lib/component-library/estimate-templates";
+import { getTemplateSourceTrustChips, type SourceTrustChipSpec } from "@/components/workshop/library/source-trust-model";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import {
   buildComponentCategoryTreeFromRows,
@@ -61,6 +62,10 @@ type ComponentPriceHistoryRow = Tables<"cost_library_item_price_history">;
 type ComponentStateHistoryRow = Tables<"cost_library_item_state_history">;
 type ComponentVariantCostEntryRow = Tables<"cost_library_item_variant_cost_entries">;
 type ComponentVariantAttachmentRow = Tables<"cost_library_item_variant_attachments">;
+type ComponentLibraryChunkedResult<T> = {
+  data: T[];
+  error: { code?: string | null; message?: string | null } | null;
+};
 
 type BuildEstimateTemplatesInput = {
   templates: EstimateTemplateRow[];
@@ -70,6 +75,8 @@ type BuildEstimateTemplatesInput = {
 
 type ComponentLibraryRepositoryClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
+const COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE = 100;
+
 function readMetadataRecord(metadata: Json): Record<string, Json> {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
   return metadata as Record<string, Json>;
@@ -77,6 +84,29 @@ function readMetadataRecord(metadata: Json): Record<string, Json> {
 
 function readString(value: Json | undefined): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+async function collectComponentLibraryRowsInItemChunks<T>(
+  itemIds: string[],
+  loadChunk: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { code?: string | null; message?: string | null } | null }>,
+): Promise<ComponentLibraryChunkedResult<T>> {
+  const data: T[] = [];
+
+  for (const chunk of chunkArray(itemIds, COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE)) {
+    const result = await loadChunk(chunk);
+    if (result.error) return { data: [], error: result.error };
+    data.push(...(result.data ?? []));
+  }
+
+  return { data, error: null };
 }
 
 function readStringArray(value: Json | undefined): string[] | undefined {
@@ -513,6 +543,7 @@ export function buildEstimateTemplatesFromRows(input: BuildEstimateTemplatesInpu
 
       return {
         id: template.id,
+        workspaceId: template.workspace_id,
         name: template.name,
         description: template.description,
         category: template.category,
@@ -601,23 +632,27 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   // (potentially lagging) denormalized cost_library_items columns alone.
   const [priceOptionsResult, costEntriesResult] = itemIds.length > 0
     ? await Promise.all([
-        supabase
-          .from("cost_library_item_price_options")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .order("is_default", { ascending: false })
-          .order("variant_sort_order", { ascending: true })
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("cost_library_item_variant_cost_entries")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .is("deleted_at", null)
-          .order("is_current", { ascending: false })
-          .order("pricing_date", { ascending: false })
-          .order("created_at", { ascending: false }),
+        collectComponentLibraryRowsInItemChunks<ComponentPriceOptionRow>(itemIds, (chunk) =>
+          supabase
+            .from("cost_library_item_price_options")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .in("item_id", chunk)
+            .order("is_default", { ascending: false })
+            .order("variant_sort_order", { ascending: true })
+            .order("created_at", { ascending: true }),
+        ),
+        collectComponentLibraryRowsInItemChunks<ComponentVariantCostEntryRow>(itemIds, (chunk) =>
+          supabase
+            .from("cost_library_item_variant_cost_entries")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .in("item_id", chunk)
+            .is("deleted_at", null)
+            .order("is_current", { ascending: false })
+            .order("pricing_date", { ascending: false })
+            .order("created_at", { ascending: false }),
+        ),
       ])
     : [
         { data: [], error: null },
@@ -629,30 +664,38 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   // management surfaces (includeDetailGraph: true) keep the full set.
   const [versionsResult, priceHistoryResult, stateHistoryResult, attachmentsResult] = (itemIds.length > 0 && includeDetailGraph)
     ? await Promise.all([
-        supabase
-          .from("cost_library_item_versions")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .order("version_number", { ascending: false }),
-        supabase
-          .from("cost_library_item_price_history")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .order("effective_at", { ascending: false }),
-        supabase
-          .from("cost_library_item_state_history")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .order("effective_at", { ascending: false }),
-        supabase
-          .from("cost_library_item_variant_attachments")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .order("created_at", { ascending: false }),
+        collectComponentLibraryRowsInItemChunks<ComponentVersionRow>(itemIds, (chunk) =>
+          supabase
+            .from("cost_library_item_versions")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .in("item_id", chunk)
+            .order("version_number", { ascending: false }),
+        ),
+        collectComponentLibraryRowsInItemChunks<ComponentPriceHistoryRow>(itemIds, (chunk) =>
+          supabase
+            .from("cost_library_item_price_history")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .in("item_id", chunk)
+            .order("effective_at", { ascending: false }),
+        ),
+        collectComponentLibraryRowsInItemChunks<ComponentStateHistoryRow>(itemIds, (chunk) =>
+          supabase
+            .from("cost_library_item_state_history")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .in("item_id", chunk)
+            .order("effective_at", { ascending: false }),
+        ),
+        collectComponentLibraryRowsInItemChunks<ComponentVariantAttachmentRow>(itemIds, (chunk) =>
+          supabase
+            .from("cost_library_item_variant_attachments")
+            .select("*")
+            .eq("workspace_id", workspaceId)
+            .in("item_id", chunk)
+            .order("created_at", { ascending: false }),
+        ),
       ])
     : [
         { data: [], error: null },
@@ -834,6 +877,9 @@ export type LibraryOverviewComponent = {
   unit: string;
   unitCost: number;
   imageUrl?: string;
+  pricingSource?: string | null;
+  pricingDate?: string | null;
+  confidence?: string | null;
   lifecycleState: Tables<"cost_library_items">["lifecycle_state"];
   updatedAt: string;
 };
@@ -847,6 +893,7 @@ export type LibraryOverviewTemplate = {
   areaCount: number;
   rowCount: number;
   total: number;
+  sourceTrustChips: SourceTrustChipSpec[];
 };
 
 export type LibraryOverviewHealth = {
@@ -887,15 +934,27 @@ function toLibraryOverviewTemplate(template: EstimateTemplate): LibraryOverviewT
     areaCount: summary.areaCount,
     rowCount: summary.rowCount,
     total: summary.total,
+    sourceTrustChips: getTemplateSourceTrustChips(template),
   };
 }
 
 const LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS =
-  "id, name, category, supplier, unit, unit_cost, thumbnail_path, lifecycle_state, updated_at";
+  "id, name, category, supplier, unit, unit_cost, thumbnail_path, pricing_source, pricing_date, confidence, lifecycle_state, updated_at";
 
 type LibraryOverviewComponentRow = Pick<
   Tables<"cost_library_items">,
-  "id" | "name" | "category" | "supplier" | "unit" | "unit_cost" | "thumbnail_path" | "lifecycle_state" | "updated_at"
+  | "id"
+  | "name"
+  | "category"
+  | "supplier"
+  | "unit"
+  | "unit_cost"
+  | "thumbnail_path"
+  | "pricing_source"
+  | "pricing_date"
+  | "confidence"
+  | "lifecycle_state"
+  | "updated_at"
 >;
 
 function toLibraryOverviewComponent(row: LibraryOverviewComponentRow): LibraryOverviewComponent {
@@ -907,6 +966,9 @@ function toLibraryOverviewComponent(row: LibraryOverviewComponentRow): LibraryOv
     unit: row.unit,
     unitCost: Number(row.unit_cost),
     imageUrl: row.thumbnail_path ?? undefined,
+    pricingSource: row.pricing_source,
+    pricingDate: row.pricing_date,
+    confidence: row.confidence,
     lifecycleState: row.lifecycle_state,
     updatedAt: row.updated_at,
   };

@@ -699,7 +699,7 @@ describe("estimate tree context menu", () => {
     await waitFor(() => expect(screen.queryByRole("button", { name: /Ground Floor/ })).not.toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /Kitchen/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Living Area/ })).not.toBeInTheDocument();
-    await waitFor(() => expect(actionMocks.deleteEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "ground-floor"));
+    await waitFor(() => expect(actionMocks.deleteEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "ground-floor", undefined));
 
     await act(async () => {
       pending.resolve({ tree: fixtureTree(), deletedNodeIds: ["ground-floor", "kitchen", "living"], fallbackNodeId: "site-works" });
@@ -716,7 +716,7 @@ describe("estimate tree context menu", () => {
     fireEvent.click(within(screen.getByRole("dialog", { name: "Delete Front Yard" })).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(screen.queryByRole("button", { name: /Front Yard/ })).not.toBeInTheDocument());
-    await waitFor(() => expect(actionMocks.deleteEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "front-yard"));
+    await waitFor(() => expect(actionMocks.deleteEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "front-yard", undefined));
     expect(replaceStateSpy).not.toHaveBeenCalled();
     expect(routerMock.replace).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();

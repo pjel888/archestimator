@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
+import { EstimateSheetRouteSkeleton } from "@/components/workshop/EstimateSheetRouteSkeleton";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
@@ -12,6 +14,31 @@ import type { Json } from "@/lib/supabase/types";
 type ProjectEstimateNodePageProps = {
   params: Promise<{ projectId: string; nodeId: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type EstimateRouteContext = Awaited<ReturnType<typeof resolveEstimateTabRouteContext>>;
+type CurrentUserContext = Awaited<ReturnType<typeof requireCurrentUserContext>>;
+
+type EstimateWorkspaceResolvedProps = {
+  project: NonNullable<EstimateRouteContext["project"]>;
+  estimate: NonNullable<EstimateRouteContext["estimate"]>;
+  selectedNodeId: EstimateRouteContext["selectedNodeId"];
+  tree: EstimateRouteContext["tree"];
+  tab: EstimateRouteContext["tab"];
+  tabs: EstimateRouteContext["tabs"];
+  loadLimitState: EstimateRouteContext["loadLimitState"];
+  currentUser: CurrentUserContext;
+  proposalExportMetadata: {
+    projectId: string;
+    estimateId: string;
+    projectName: string;
+    projectCode: string | null;
+    projectAddress: string | null;
+    estimateName: string;
+    estimateSheetCode: string;
+    versionLabel: string;
+    currency: string;
+  };
 };
 
 function readEstimateVersionLabel(metadata: Json): string {
@@ -55,6 +82,35 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
     versionLabel: estimateVersionLabel,
     currency: estimate.currency_code || project.currency_code || "PHP",
   };
+
+  return (
+    <Suspense fallback={<EstimateSheetRouteSkeleton />}>
+      <EstimateWorkspaceResolved
+        project={project}
+        estimate={estimate}
+        selectedNodeId={selectedNodeId}
+        tree={tree}
+        tab={tab}
+        tabs={tabs}
+        loadLimitState={loadLimitState}
+        currentUser={currentUser}
+        proposalExportMetadata={proposalExportMetadata}
+      />
+    </Suspense>
+  );
+}
+
+async function EstimateWorkspaceResolved({
+  project,
+  estimate,
+  selectedNodeId,
+  tree,
+  tab,
+  tabs,
+  loadLimitState,
+  currentUser,
+  proposalExportMetadata,
+}: EstimateWorkspaceResolvedProps) {
   // U21: the resolver already returns the tab list on tab-present paths, so
   // prefer it and only fall back to a direct getEstimateTabs round-trip when it
   // wasn't provided. canEditEstimate (Add New Tabs U1) resolves in parallel —
@@ -84,6 +140,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
       <ProjectEstimateMetadataPublisher metadata={estimateMetadata} />
       <EstimateWorkspaceClient
         projectId={project.id}
+        workspaceId={project.workspace_id}
         estimateId={estimate.id}
         projectName={project.name}
         selectedNodeId={selectedNodeId}

@@ -3,12 +3,16 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { ControlInput } from "@/components/ui/control-input";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
+  ComponentAppliedFacetChips,
   buildComponentFacetOptions,
   componentMatchesFacets,
   ComponentFacetFilterPopover,
@@ -30,6 +34,15 @@ import {
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
 import { ComponentInspectorDock } from "@/components/workshop/library/ComponentInspectorDock";
+import {
+  buildComponentRouteStateHref,
+  COMPONENT_ROUTE_PARAM,
+} from "@/components/workshop/library/component-route-state";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
+import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { promoteExpressRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
 import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { EditComponentDrawer } from "@/components/workshop/library/EditComponentDrawer";
@@ -47,6 +60,12 @@ import {
 } from "@/lib/component-library/taxonomy";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
+import {
+  isLibraryDenseModeEnabled,
+  WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION,
+  WORKSHOP_VIRTUALIZATION_FLAGS,
+} from "@/lib/workshop/virtualization-flags";
+import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
 import {
   buildLibraryTreeWithComponentRows,
@@ -92,6 +111,7 @@ const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fi
 const CATALOGUE_CARD_SHELL_CLASS =
   "flex min-h-[236px] flex-col overflow-hidden rounded-xs border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
 const CATALOGUE_CARD_BODY_HEIGHT_CLASS = "h-[132px]";
+const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode_v1";
 
 type CatalogueFolderMeta = {
   folderId: string;
@@ -119,6 +139,25 @@ type CatalogueBranch = {
 type CatalogueOutline = {
   branches: CatalogueBranch[];
   items: CatalogueCard[];
+};
+
+type ComponentLibraryDisplayMode = "cards" | "dense";
+type DenseSortDirection = "asc" | "desc";
+type DenseSortKey =
+  | "name"
+  | "folder"
+  | "supplier"
+  | "brand"
+  | "cost"
+  | "pricingSource"
+  | "pricingDate"
+  | "confidence"
+  | "lifecycle"
+  | "usage";
+
+type DenseSortState = {
+  key: DenseSortKey;
+  direction: DenseSortDirection;
 };
 
 type SheetStatus =
@@ -294,6 +333,79 @@ function getCatalogueScopeSummary(totalCount: number) {
   return `${totalCount} ${totalCount === 1 ? "component" : "components"}`;
 }
 
+function flattenCatalogueBranch(branch: CatalogueBranch): CatalogueCard[] {
+  return [
+    ...branch.directItems,
+    ...branch.children.flatMap((child) => flattenCatalogueBranch(child)),
+  ];
+}
+
+function flattenCatalogueOutline(outline: CatalogueOutline): CatalogueCard[] {
+  return [
+    ...outline.branches.flatMap((branch) => flattenCatalogueBranch(branch)),
+    ...outline.items,
+  ];
+}
+
+function getComponentLifecycleLabel(item: EstimateRowItem) {
+  return COMPONENT_LIFECYCLE_FACET_LABELS[item.lifecycleState ?? "available"];
+}
+
+function getComponentUsageLabel(item: EstimateRowItem) {
+  return item.lastUsedAt?.trim() ? `Last used ${item.lastUsedAt.slice(0, 10)}` : "Usage not recorded";
+}
+
+function getDenseSortValue(card: CatalogueCard, key: DenseSortKey): string | number {
+  const item = card.item;
+  switch (key) {
+    case "folder":
+      return card.pathLabel;
+    case "supplier":
+      return item.supplier || "No supplier";
+    case "brand":
+      return getItemBrandLabel(item);
+    case "cost":
+      return getComponentPrice(item);
+    case "pricingSource":
+      return getItemPricingSourceLabel(item);
+    case "pricingDate":
+      return item.pricingDate || "";
+    case "confidence":
+      return item.confidence || "";
+    case "lifecycle":
+      return getComponentLifecycleLabel(item);
+    case "usage":
+      return item.lastUsedAt || "";
+    case "name":
+    default:
+      return getComponentName(item);
+  }
+}
+
+function compareDenseValues(left: string | number, right: string | number) {
+  if (typeof left === "number" && typeof right === "number") return left - right;
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+}
+
+function sortDenseCatalogueCards(cards: CatalogueCard[], sort: DenseSortState): CatalogueCard[] {
+  const direction = sort.direction === "asc" ? 1 : -1;
+  return [...cards].sort((left, right) => {
+    const primary = compareDenseValues(getDenseSortValue(left, sort.key), getDenseSortValue(right, sort.key));
+    if (primary !== 0) return primary * direction;
+    return getComponentName(left.item).localeCompare(getComponentName(right.item), undefined, { sensitivity: "base" });
+  });
+}
+
+function getNextDenseSortState(current: DenseSortState, key: DenseSortKey): DenseSortState {
+  if (current.key !== key) return { key, direction: "asc" };
+  return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+}
+
+function getDenseAriaSort(sort: DenseSortState, key: DenseSortKey) {
+  if (sort.key !== key) return "none" as const;
+  return sort.direction === "asc" ? "ascending" as const : "descending" as const;
+}
+
 function isNextImageSafeComponentSource(src: string) {
   if (!src) return false;
   if (src.startsWith("/")) return true;
@@ -461,6 +573,12 @@ function ComponentCatalogueCard({
             </button>
           ) : null}
           <div className="mt-1 space-y-0.5 border-t border-hairline pt-1">
+            <SourceTrustChips
+              chips={getComponentSourceTrustChips(item)}
+              ariaLabel={`Source trust for ${name}`}
+              maxChips={3}
+              chipClassName="max-w-[96px]"
+            />
             <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={pricingSource}>
               Source: {pricingSource}
             </p>
@@ -518,6 +636,317 @@ function CatalogueCardGrid({
         />
       ))}
     </ul>
+  );
+}
+
+function DenseSortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string;
+  sortKey: DenseSortKey;
+  sort: DenseSortState;
+  onSort: (key: DenseSortKey) => void;
+  className?: string;
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <th
+      scope="col"
+      aria-sort={getDenseAriaSort(sort, sortKey)}
+      className={cn("sticky top-0 z-10 border-b border-hairline bg-white px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary", className)}
+    >
+      <button
+        type="button"
+        className="inline-flex min-h-6 max-w-full items-center gap-1 text-left text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        aria-label={`Sort by ${label.toLowerCase()}`}
+        onClick={() => onSort(sortKey)}
+      >
+        <span className="truncate">{label}</span>
+        {active ? <span aria-hidden="true" className="shrink-0 text-[8px] uppercase">{sort.direction}</span> : null}
+      </button>
+    </th>
+  );
+}
+
+function ComponentCatalogueDenseTable({
+  cards,
+  label,
+  sort,
+  selectedItemIds,
+  inspectorItemId,
+  onSort,
+  onToggleSelected,
+  onInspect,
+  onPromote,
+  promotingItemId,
+}: {
+  cards: CatalogueCard[];
+  label: string;
+  sort: DenseSortState;
+  selectedItemIds: Set<string>;
+  inspectorItemId: string | null;
+  onSort: (key: DenseSortKey) => void;
+  onToggleSelected: (itemId: string) => void;
+  onInspect: (itemId: string) => void;
+  onPromote?: (item: EstimateRowItem) => void;
+  promotingItemId?: string | null;
+}) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const virtualEnabled = Boolean(
+    WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.enabled &&
+      cards.length >= WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows,
+  );
+  const virtualEstimateRowHeight = WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.estimateRowHeight;
+  const virtualOverscan = WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.overscan;
+  const virtualInitialViewportHeight = WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.initialViewportHeight;
+  const rowVirtualizer = useVirtualizer({
+    count: cards.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => virtualEstimateRowHeight,
+    overscan: virtualOverscan,
+    getItemKey: (index) => cards[index]?.item.id ?? index,
+    enabled: virtualEnabled,
+    useFlushSync: WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.useFlushSync,
+    initialRect: { height: virtualInitialViewportHeight, width: 0 },
+  });
+  const measuredVirtualRows = rowVirtualizer.getVirtualItems();
+  const renderedVirtualRows = virtualEnabled && measuredVirtualRows.length === 0
+    ? Array.from(
+        {
+          length: Math.min(
+            cards.length,
+            Math.ceil(virtualInitialViewportHeight / virtualEstimateRowHeight) + virtualOverscan * 2,
+          ),
+        },
+        (_, index) => ({
+          index,
+          key: cards[index]?.item.id ?? index,
+          start: index * virtualEstimateRowHeight,
+          end: (index + 1) * virtualEstimateRowHeight,
+        }),
+      )
+    : measuredVirtualRows;
+  const rowSlots = virtualEnabled
+    ? renderedVirtualRows
+    : cards.map((card, index) => ({
+        index,
+        key: card.item.id,
+        start: 0,
+        end: 0,
+      }));
+  const firstVirtualRow = virtualEnabled ? renderedVirtualRows[0] : null;
+  const lastVirtualRow = virtualEnabled ? renderedVirtualRows[renderedVirtualRows.length - 1] : null;
+  const virtualPaddingTop = firstVirtualRow?.start ?? 0;
+  const virtualPaddingBottom = Math.max(0, virtualEnabled ? rowVirtualizer.getTotalSize() - (lastVirtualRow?.end ?? 0) : 0);
+
+  if (cards.length === 0) return null;
+
+  return (
+    <div
+      ref={scrollContainerRef}
+      className="h-full max-h-full min-h-0 overflow-auto rounded-xs border border-hairline bg-white"
+      data-component-dense-scroll-container="true"
+      data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
+      data-library-virtualization-enabled={String(WORKSHOP_VIRTUALIZATION_FLAGS.libraryComponents)}
+      data-library-virtualization-active={String(virtualEnabled)}
+      data-library-virtualization-min-rows={String(WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows)}
+      data-library-virtual-total-count={virtualEnabled ? String(cards.length) : undefined}
+      data-library-virtual-mounted-count={virtualEnabled ? String(rowSlots.length) : undefined}
+    >
+      <table
+        className="min-w-[1120px] table-fixed border-collapse text-[10px]"
+        aria-label={`${label} dense component table`}
+        data-component-dense-table="true"
+        data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
+        data-library-virtualization-active={String(virtualEnabled)}
+        data-library-virtual-total-count={virtualEnabled ? String(cards.length) : undefined}
+        data-library-virtual-mounted-count={virtualEnabled ? String(rowSlots.length) : undefined}
+      >
+        <colgroup>
+          <col className="w-9" />
+          <col className="w-[220px]" />
+          <col className="w-[160px]" />
+          <col className="w-[132px]" />
+          <col className="w-[132px]" />
+          <col className="w-[112px]" />
+          <col className="w-[148px]" />
+          <col className="w-[104px]" />
+          <col className="w-[104px]" />
+          <col className="w-[116px]" />
+          <col className="w-[128px]" />
+          <col className="w-[132px]" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              className="sticky top-0 z-10 border-b border-hairline bg-white px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary"
+            >
+              <span className="sr-only">Select</span>
+            </th>
+            <DenseSortableHeader label="Name" sortKey="name" sort={sort} onSort={onSort} className="z-20" />
+            <DenseSortableHeader label="Folder" sortKey="folder" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Supplier" sortKey="supplier" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Brand" sortKey="brand" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Cost" sortKey="cost" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Pricing source" sortKey="pricingSource" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Pricing date" sortKey="pricingDate" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Confidence" sortKey="confidence" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Lifecycle" sortKey="lifecycle" sort={sort} onSort={onSort} />
+            <DenseSortableHeader label="Usage" sortKey="usage" sort={sort} onSort={onSort} />
+            <th
+              scope="col"
+              className="sticky top-0 z-10 border-b border-hairline bg-white px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary"
+            >
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {virtualEnabled && virtualPaddingTop > 0 ? (
+            <tr aria-hidden="true" data-component-dense-virtual-spacer="top">
+              <td colSpan={12} style={{ height: virtualPaddingTop, padding: 0, border: 0 }} />
+            </tr>
+          ) : null}
+          {rowSlots.map((virtualRow) => {
+            const card = cards[virtualRow.index];
+            if (!card) return null;
+            const item = card.item;
+            const name = getComponentName(item);
+            const selected = selectedItemIds.has(item.id);
+            const inspectorSelected = inspectorItemId === item.id;
+            const lifecycle = getComponentLifecycleLabel(item);
+            const canPromote = Boolean(onPromote && isPromotableProjectProjectionItem(item));
+            return (
+              <tr
+                key={virtualRow.key}
+                tabIndex={0}
+                data-index={virtualEnabled ? virtualRow.index : undefined}
+                data-component-dense-row-id={item.id}
+                data-component-dense-virtual-row={virtualEnabled ? item.id : undefined}
+                aria-selected={inspectorSelected || selected}
+                className={cn(
+                  "border-b border-hairline transition hover:bg-surfaceMuted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus",
+                  inspectorSelected && "bg-surfaceMuted/70",
+                )}
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).closest("label, button, a, input")) return;
+                  if (event.metaKey || event.ctrlKey) {
+                    onToggleSelected(item.id);
+                    return;
+                  }
+                  onInspect(item.id);
+                }}
+                onKeyDown={(event) => {
+                  if (event.defaultPrevented || event.target !== event.currentTarget) return;
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    onInspect(item.id);
+                    return;
+                  }
+                  if (event.key === " ") {
+                    event.preventDefault();
+                    onToggleSelected(item.id);
+                  }
+                }}
+              >
+                <td className="px-2 py-1 align-top">
+                  <input
+                    type="checkbox"
+                    className="size-3 rounded-xs border-hairline accent-danger"
+                    aria-label={`Select ${name} for archive`}
+                    checked={selected}
+                    onChange={() => onToggleSelected(item.id)}
+                  />
+                </td>
+                <th scope="row" className="bg-white px-2 py-1 text-left align-top">
+                  <button
+                    type="button"
+                    className="block max-w-full truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    data-component-card-inspect={item.id}
+                    aria-label={`View details for ${name}`}
+                    title={name}
+                    onClick={(event) => {
+                      if (event.metaKey || event.ctrlKey) {
+                        onToggleSelected(item.id);
+                        return;
+                      }
+                      onInspect(item.id);
+                    }}
+                  >
+                    {name}
+                  </button>
+                  <SourceTrustChips
+                    chips={getComponentSourceTrustChips(item)}
+                    ariaLabel={`Source trust for ${name}`}
+                    maxChips={3}
+                    chipClassName="max-w-[92px]"
+                    className="mt-1"
+                  />
+                </th>
+                <td className="truncate px-2 py-1 align-top text-secondary" title={card.pathLabel}>{card.pathLabel}</td>
+                <td className="truncate px-2 py-1 align-top text-secondary" title={item.supplier || "No supplier"}>
+                  {item.supplier || "No supplier"}
+                </td>
+                <td className="truncate px-2 py-1 align-top text-tertiary" title={getItemBrandLabel(item)}>
+                  {getItemBrandLabel(item)}
+                </td>
+                <td className="px-2 py-1 align-top font-sans tabular-nums text-ink">
+                  {pesoFormatter.format(getComponentPrice(item))} / {item.unit}
+                </td>
+                <td className="truncate px-2 py-1 align-top text-tertiary" title={getItemPricingSourceLabel(item)}>
+                  {getItemPricingSourceLabel(item)}
+                </td>
+                <td className="truncate px-2 py-1 align-top tabular-nums text-tertiary">
+                  {item.pricingDate || "Date not set"}
+                </td>
+                <td className="truncate px-2 py-1 align-top text-tertiary" title={item.confidence || "Not set"}>
+                  {item.confidence || "Not set"}
+                </td>
+                <td className="truncate px-2 py-1 align-top text-tertiary">{lifecycle}</td>
+                <td className="truncate px-2 py-1 align-top text-tertiary" title={getComponentUsageLabel(item)}>
+                  {getComponentUsageLabel(item)}
+                </td>
+                <td className="px-2 py-1 align-top">
+                  <div className="flex min-w-0 items-center gap-1">
+                    <button
+                      type="button"
+                      className="inline-flex h-6 items-center justify-center rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      data-component-card-inspect={item.id}
+                      aria-label={`View details for ${name}`}
+                      onClick={() => onInspect(item.id)}
+                    >
+                      Details
+                    </button>
+                    {canPromote ? (
+                      <button
+                        type="button"
+                        className="inline-flex h-6 items-center justify-center rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+                        aria-label={`Promote ${name} to library`}
+                        title={`Promote ${name} to library`}
+                        disabled={promotingItemId === item.id}
+                        onClick={() => onPromote?.(item)}
+                      >
+                        {promotingItemId === item.id ? "Promoting" : "Promote"}
+                      </button>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+          {virtualEnabled && virtualPaddingBottom > 0 ? (
+            <tr aria-hidden="true" data-component-dense-virtual-spacer="bottom">
+              <td colSpan={12} style={{ height: virtualPaddingBottom, padding: 0, border: 0 }} />
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -749,6 +1178,8 @@ function ComponentLibraryTreePanel({
   onRenameFolder: (folderId: string, currentName: string) => void;
   onDeleteFolder: (folderId: string, currentName: string) => void;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
+
   return (
     <ResizableSidePanel
       side="left"
@@ -759,8 +1190,12 @@ function ComponentLibraryTreePanel({
       maxWidth={432}
       widthOffset={COMPONENT_LIBRARY_TREE_WIDTH_OFFSET}
     >
-      <div className="flex h-full flex-col overflow-hidden bg-white" data-component-library-tree-panel="true">
+      <div
+        className={cn("flex h-full flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "treeRail"))}
+        data-component-library-tree-panel="true"
+      >
         <LibraryFolderTreeSurface
+          className={surfaceVariant === "glass" ? "bg-transparent" : undefined}
           folders={folders}
           folderNodes={folderNodes}
           libraryItems={libraryItems}
@@ -841,6 +1276,7 @@ function ComponentLibrarySheet({
   onPromoteItem?: (item: EstimateRowItem) => void;
   promotingItemId?: string | null;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -857,6 +1293,17 @@ function ComponentLibrarySheet({
     setFacetFilters(parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)));
   }
   const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
+  const denseModeEnabled = isLibraryDenseModeEnabled();
+  const [displayMode, setDisplayMode] = useState<ComponentLibraryDisplayMode>(() => {
+    if (!denseModeEnabled) return "cards";
+    try {
+      const stored = window.localStorage.getItem(LIBRARY_DISPLAY_MODE_STORAGE_KEY);
+      if (stored === "cards" || stored === "dense") return stored;
+    } catch {}
+    return "cards";
+  });
+  const effectiveDisplayMode: ComponentLibraryDisplayMode = denseModeEnabled ? displayMode : "cards";
+  const [denseSort, setDenseSort] = useState<DenseSortState>({ key: "folder", direction: "asc" });
   const sheetItems = useMemo(() => {
     if (viewMode === "suppliers") {
       if (!selectedSupplierNode || selectedSupplierNode.id === "all-suppliers") return getSupplierBackedItems(libraryItems);
@@ -899,6 +1346,7 @@ function ComponentLibrarySheet({
     () => buildCatalogueOutline(visibleItems, folderNodes, selectedFolderNode, searchQuery),
     [folderNodes, searchQuery, selectedFolderNode, visibleItems],
   );
+  const denseCatalogueCards = useMemo(() => sortDenseCatalogueCards(flattenCatalogueOutline(catalogueOutline), denseSort), [catalogueOutline, denseSort]);
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
   const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
   const resultSummary = getCatalogueScopeSummary(sheetItems.length);
@@ -913,6 +1361,15 @@ function ComponentLibrarySheet({
       return next;
     });
   };
+  const changeDisplayMode = (mode: ComponentLibraryDisplayMode) => {
+    setDisplayMode(mode);
+    try {
+      window.localStorage.setItem(LIBRARY_DISPLAY_MODE_STORAGE_KEY, mode);
+    } catch {}
+  };
+  const changeDenseSort = (key: DenseSortKey) => {
+    setDenseSort((current) => getNextDenseSortState(current, key));
+  };
   const selectedLabel = viewMode === "suppliers"
     ? selectedSupplierNode?.label ?? "All Suppliers"
     : viewMode === "brand"
@@ -920,17 +1377,30 @@ function ComponentLibrarySheet({
     : isAllComponentsFolderId(selectedFolderId)
       ? "All Components"
       : selectedFolderNode?.label ?? "Components";
+  const visibleSummary = searchQuery
+    ? `${visibleItems.length} shown · ${facetedItems.length} after filters`
+    : activeFacetCount > 0
+      ? `${facetedItems.length} shown · ${sheetItems.length} in scope`
+      : resultSummary;
 
   return (
     <section
       id="component-library-sheet-center-column"
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white !text-[10px]"
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !text-[10px]",
+        librarySurfaceClass(surfaceVariant, "centerColumn"),
+      )}
       data-component-library-sheet="true"
       aria-label="Component table"
     >
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component table controls">
+      <header
+        className={cn("sticky top-0 z-20", librarySurfaceClass(surfaceVariant, "sheetHeader"))}
+        aria-label="Component table controls"
+      >
         <TreePanelHeader
-          className="static z-auto bg-transparent"
+          className={cn("static z-auto bg-transparent", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}
+          toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
+          showToolbarBottomBorder={surfaceVariant !== "glass"}
           ariaLabel="Component table tools"
           labelPrefix="component table"
           searchValue={searchQuery}
@@ -955,24 +1425,72 @@ function ComponentLibrarySheet({
               showVisibleLabel: true,
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               onClick: onAddComponent,
+              className: surfaceVariant === "glass"
+                ? "workshop-liquid-button border px-2 text-secondary hover:text-ink"
+                : undefined,
             },
           ]}
         />
         <div
-          className="flex h-7 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2"
+          className={cn(
+            "flex min-h-7 shrink-0 items-center justify-between gap-2 px-2",
+            librarySurfaceClass(surfaceVariant, "contextStrip"),
+          )}
           data-component-sheet-context-strip="true"
         >
           <p className="truncate text-[10px] font-normal leading-4 text-secondary">
-            {selectedLabel} · {resultSummary}
+            {selectedLabel} · {visibleSummary}
           </p>
-          <p aria-live="polite" className="shrink-0 text-[9px] leading-3 text-tertiary">
-            {searchQuery
-              ? `${visibleItems.length} of ${facetedItems.length} match "${searchQuery}"`
-              : activeFacetCount > 0
-                ? `${facetedItems.length} of ${sheetItems.length} after filters`
-                : "Sorted by folder order"}
-          </p>
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {denseModeEnabled ? (
+              <div
+                role="group"
+                aria-label="Component display mode"
+                className="flex h-6 shrink-0 items-center overflow-hidden rounded-xs border border-hairline bg-white"
+              >
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex h-full items-center gap-1 px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                    effectiveDisplayMode === "cards" && "bg-surfaceMuted text-ink",
+                  )}
+                  aria-pressed={effectiveDisplayMode === "cards"}
+                  onClick={() => changeDisplayMode("cards")}
+                >
+                  <SquaresFour size={10} weight="regular" aria-hidden="true" />
+                  Cards
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex h-full items-center gap-1 border-l border-hairline px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                    effectiveDisplayMode === "dense" && "bg-surfaceMuted text-ink",
+                  )}
+                  aria-pressed={effectiveDisplayMode === "dense"}
+                  onClick={() => changeDisplayMode("dense")}
+                >
+                  <Rows size={10} weight="regular" aria-hidden="true" />
+                  Dense
+                </button>
+              </div>
+            ) : null}
+            <p aria-live="polite" className="shrink-0 text-[9px] leading-3 text-tertiary">
+              {searchQuery
+                ? `${visibleItems.length} of ${facetedItems.length} match "${searchQuery}"`
+                : activeFacetCount > 0
+                  ? `${facetedItems.length} of ${sheetItems.length} after filters`
+                  : effectiveDisplayMode === "dense"
+                    ? "Sorted in dense table"
+                    : "Sorted by folder order"}
+            </p>
+          </div>
         </div>
+        <ComponentAppliedFacetChips
+          filters={facetFilters}
+          options={facetOptions}
+          onFiltersChange={setFacetFilters}
+          className={surfaceVariant === "glass" ? "estimate-glass-chrome estimate-glass-divider border-b-0 bg-transparent" : undefined}
+        />
         {status.state !== "idle" ? (
           <div
             role="status"
@@ -997,6 +1515,20 @@ function ComponentLibrarySheet({
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
         {hasCatalogueResults ? (
+          effectiveDisplayMode === "dense" ? (
+            <ComponentCatalogueDenseTable
+              cards={denseCatalogueCards}
+              label={selectedLabel}
+              sort={denseSort}
+              selectedItemIds={selectedItemIds}
+              inspectorItemId={inspectorItemId}
+              onSort={changeDenseSort}
+              onToggleSelected={onToggleSelected}
+              onInspect={onInspectItem}
+              onPromote={onPromoteItem}
+              promotingItemId={promotingItemId}
+            />
+          ) : (
           <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
             {catalogueOutline.branches.map((branch) => (
               <ComponentCatalogueBranch
@@ -1038,6 +1570,7 @@ function ComponentLibrarySheet({
               </section>
             ) : null}
           </div>
+          )
         ) : (
           <EmptyState
             icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
@@ -1131,6 +1664,7 @@ export function ComponentLibraryManager({
   brands = [],
   libraryFolders,
   libraryItems = estimateLibraryItems,
+  workspaceId = "fallback-workspace",
   onLibraryItemsMutated = () => {},
   onLibraryFoldersMutated = () => {},
   projectId,
@@ -1142,6 +1676,7 @@ export function ComponentLibraryManager({
   brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
+  workspaceId?: string;
   // Library Optimization Plan P0 T4: the Components route shell (LibraryPageClient)
   // owns the TanStack Query cache and passes these so mutations patch that warm cache
   // instead of calling router.refresh() (which re-ran the whole server segment). They
@@ -1153,11 +1688,15 @@ export function ComponentLibraryManager({
   promotionEnabled?: boolean;
   onProjectPromotionSucceeded?: () => void;
 } = {}) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   // Mutations call these to keep the route shell's warm query cache coherent
   // (T4). No-ops when mounted bare (e.g. unit tests / surfaces without the shell).
   const syncLibraryItemsCache = onLibraryItemsMutated;
   const syncLibraryFoldersCache = onLibraryFoldersMutated;
   const addButtonReturnRef = useRef<HTMLElement | null>(null);
+  const quickAddSessionCounterRef = useRef(0);
+  const quickAddSessionRef = useRef<{ id: string } | null>(null);
+  const selectedRouteTelemetryRef = useRef<string | null>(null);
   const fallbackFolders = useMemo(() => buildFallbackLibraryFolders(categoryTree), [categoryTree]);
   const normalizedPropFolders = useMemo(
     () => normalizeLibraryFolderRecords(libraryFolders?.length ? libraryFolders : fallbackFolders),
@@ -1188,7 +1727,10 @@ export function ComponentLibraryManager({
   // here with ?add=component; open the Add Component modal on arrival instead of just
   // landing on the tab. Seeding the initial state from the param (not an effect) opens
   // it exactly once on mount with no cascading re-render.
+  const pathname = usePathname();
   const addComponentSearchParams = useSearchParams();
+  const componentRouteSearchParamsKey = addComponentSearchParams?.toString() ?? "";
+  const routeComponentId = addComponentSearchParams?.get(COMPONENT_ROUTE_PARAM) ?? null;
   const [addComponentOpen, setAddComponentOpen] = useState(
     () => addComponentSearchParams?.get("add") === "component",
   );
@@ -1202,8 +1744,14 @@ export function ComponentLibraryManager({
   const [archiveComponentPreview, setArchiveComponentPreview] = useState<BulkActionPreviewResult | null>(null);
   const [archiveComponentError, setArchiveComponentError] = useState<string | null>(null);
   const [archiveComponentState, setArchiveComponentState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
+  const [folderTextPrompt, setFolderTextPrompt] = useState<
+    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
+    | null
+  >(null);
+  const [folderTextPromptValue, setFolderTextPromptValue] = useState("");
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<{ folderId: string; currentName: string } | null>(null);
   const [isTreeMutationPending, startTreeMutation] = useTransition();
-  const [inspectorItemId, setInspectorItemId] = useState<string | null>(null);
+  const [, bumpComponentRouteStateVersion] = useState(0);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [isDuplicatePending, startDuplicateTransition] = useTransition();
 
@@ -1214,7 +1762,7 @@ export function ComponentLibraryManager({
   }
 
   const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;
-  const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive component" : `Archive ${archiveComponentTargetIds.length} components`;
+  const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive 1 component?" : `Archive ${archiveComponentTargetIds.length} components?`;
 
   const folderNodes = useMemo(() => buildLibraryFolderTree(localFolders), [localFolders]);
   const firstFolderId = useMemo(() => getFirstFolderId(folderNodes), [folderNodes]);
@@ -1258,6 +1806,13 @@ export function ComponentLibraryManager({
 
   function openAddComponentModal() {
     addButtonReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    quickAddSessionCounterRef.current += 1;
+    quickAddSessionRef.current = { id: `quick-add-${quickAddSessionCounterRef.current}` };
+    recordLibraryEvent("quick_add_started", {
+      workspaceId,
+      sessionAddId: quickAddSessionRef.current.id,
+      entry: "button",
+    });
     setAddComponentOpen(true);
   }
 
@@ -1279,18 +1834,77 @@ export function ComponentLibraryManager({
     if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
     setSheetStatus({ state: "saved", message: "Component saved." });
     syncLibraryItemsCache((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
+    writeComponentRouteState(item.id);
+    const quickAddSession = quickAddSessionRef.current;
+    if (quickAddSession) {
+      recordLibraryEvent("quick_add_saved", {
+        workspaceId,
+        sessionAddId: quickAddSession.id,
+        itemId: item.id,
+        usedAdvanced: false,
+      });
+      quickAddSessionRef.current = null;
+    }
   }
 
-  const inspectorItem = localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null;
+  const routeComponentIsValid = Boolean(routeComponentId && localLibraryItems.some((entry) => entry.id === routeComponentId));
+  const inspectorItemId = routeComponentIsValid ? routeComponentId : null;
+  const inspectorItem = inspectorItemId ? localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null : null;
+
+  function writeComponentRouteState(componentId: string | null, mode: "push" | "replace" = "replace") {
+    const href = buildComponentRouteStateHref({
+      pathname,
+      searchParams: componentRouteSearchParamsKey,
+      componentId,
+    });
+    const historyMethod = mode === "push" ? "pushState" : "replaceState";
+    window.history[historyMethod](null, "", href);
+    bumpComponentRouteStateVersion((version) => version + 1);
+  }
+
+  useEffect(() => {
+    if (!routeComponentId) return;
+    if (routeComponentIsValid) {
+      if (selectedRouteTelemetryRef.current !== routeComponentId) {
+        recordLibraryEvent("library_component_selected", {
+          workspaceId,
+          surface: "components",
+          kind: "component",
+          itemId: routeComponentId,
+        });
+        selectedRouteTelemetryRef.current = routeComponentId;
+      }
+      return;
+    }
+    recordLibraryEvent("route_state_authz_denied", {
+      workspaceId,
+      resourceKind: "component",
+      reason: "not_found",
+    });
+    recordLibraryEvent("component_route_not_found", {
+      workspaceId,
+      surface: "components",
+      reason: "not_found",
+    });
+    window.history.replaceState(
+      null,
+      "",
+      buildComponentRouteStateHref({
+        pathname,
+        searchParams: componentRouteSearchParamsKey,
+        componentId: null,
+      }),
+    );
+  }, [componentRouteSearchParamsKey, pathname, routeComponentId, routeComponentIsValid, workspaceId]);
 
   function inspectComponent(itemId: string) {
-    setInspectorItemId(itemId);
+    writeComponentRouteState(itemId, "push");
   }
 
   function closeInspector() {
     const itemId = inspectorItemId;
-    setInspectorItemId(null);
     setEditDrawerOpen(false);
+    writeComponentRouteState(null);
     if (itemId) {
       requestAnimationFrame(() => {
         document
@@ -1318,7 +1932,7 @@ export function ComponentLibraryManager({
         const result = await createCostLibraryComponent({
           name: copyName,
           description: source.description,
-          category: source.category,
+          category: source.category?.trim() || "Component",
           categoryNodeId: source.categoryNodeId ?? null,
           supplier: source.supplier || null,
           supplierId: source.supplierId ?? null,
@@ -1353,7 +1967,7 @@ export function ComponentLibraryManager({
           componentVersionNumber: result.versionNumber,
         };
         handleComponentCreated(duplicated);
-        setInspectorItemId(duplicatedItemId);
+        writeComponentRouteState(duplicatedItemId);
       } catch (error) {
         setSheetStatus({
           state: "error",
@@ -1407,7 +2021,9 @@ export function ComponentLibraryManager({
         next.delete(item.id);
         return next;
       });
-      if (inspectorItemId === item.id) setInspectorItemId(null);
+      if (inspectorItemId === item.id) {
+        writeComponentRouteState(null);
+      }
       onProjectPromotionSucceeded();
       setSheetStatus({ state: "saved", message: `${getComponentName(item)} promoted to the workspace library.` });
     } catch (error) {
@@ -1479,6 +2095,9 @@ export function ComponentLibraryManager({
             return next;
           });
           setSheetStatus({ state: "saved", message: `${archivedIds.length} component${archivedIds.length === 1 ? "" : "s"} archived.` });
+          if (inspectorItemId && archivedIds.includes(inspectorItemId)) {
+            writeComponentRouteState(null);
+          }
           closeArchiveComponentPreview();
           syncLibraryItemsCache((items) => items.filter((item) => !archivedIds.includes(item.id)));
         })
@@ -1489,9 +2108,20 @@ export function ComponentLibraryManager({
     });
   }
 
-  const createFolder: CreateLibraryFolderHandler = (parentId, options) => {
-    const name = window.prompt("Folder name");
-    if (!name?.trim()) return;
+  function openFolderTextPrompt(next: NonNullable<typeof folderTextPrompt>) {
+    setFolderTextPrompt(next);
+    setFolderTextPromptValue(next.initialValue);
+  }
+
+  function submitFolderTextPrompt() {
+    if (!folderTextPrompt) return;
+    const value = folderTextPromptValue.trim();
+    const handler = folderTextPrompt.onSubmit;
+    setFolderTextPrompt(null);
+    if (value) handler(value);
+  }
+
+  function commitCreateFolder(parentId: string | null, name: string, options?: Parameters<CreateLibraryFolderHandler>[1]) {
     startTreeMutation(async () => {
       setReorderStatus({ state: "saving", message: "Creating folder..." });
       try {
@@ -1509,11 +2139,20 @@ export function ComponentLibraryManager({
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not create folder." });
       }
     });
+  }
+
+  const createFolder: CreateLibraryFolderHandler = (parentId, options) => {
+    openFolderTextPrompt({
+      title: "New folder",
+      label: "Folder name",
+      confirmLabel: "Create folder",
+      initialValue: "",
+      onSubmit: (name) => commitCreateFolder(parentId, name, options),
+    });
   };
 
-  function renameFolder(folderId: string, currentName: string) {
-    const name = window.prompt("Folder name", currentName);
-    if (!name?.trim() || name.trim() === currentName) return;
+  function commitRenameFolder(folderId: string, currentName: string, name: string) {
+    if (name === currentName) return;
     startTreeMutation(async () => {
       setReorderStatus({ state: "saving", message: "Renaming folder..." });
       try {
@@ -1530,8 +2169,25 @@ export function ComponentLibraryManager({
     });
   }
 
+  function renameFolder(folderId: string, currentName: string) {
+    openFolderTextPrompt({
+      title: "Rename folder",
+      label: "Folder name",
+      confirmLabel: "Save name",
+      initialValue: currentName,
+      onSubmit: (name) => commitRenameFolder(folderId, currentName, name),
+    });
+  }
+
   function deleteFolder(folderId: string, currentName: string) {
-    if (!window.confirm(`Delete "${currentName}"? Row items assigned to it will stay in the library without a folder.`)) return;
+    setDeleteFolderTarget({ folderId, currentName });
+  }
+
+  function confirmDeleteFolder() {
+    const target = deleteFolderTarget;
+    if (!target) return;
+    const { folderId } = target;
+    setDeleteFolderTarget(null);
     startTreeMutation(async () => {
       setReorderStatus({ state: "saving", message: "Deleting folder..." });
       try {
@@ -1549,6 +2205,27 @@ export function ComponentLibraryManager({
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete folder." });
       }
     });
+  }
+
+  function getDeleteFolderDescription(target: { folderId: string; currentName: string }) {
+    const componentCount = localLibraryItems.filter((item) => item.libraryFolderId === target.folderId).length;
+    const childFolderCount = localFolders.filter((folder) => folder.parent_id === target.folderId).length;
+    if (childFolderCount > 0) {
+      const componentPart = componentCount === 1 ? "1 component" : `${componentCount} components`;
+      const folderPart = childFolderCount === 1 ? "1 subfolder" : `${childFolderCount} subfolders`;
+      if (componentCount === 0) {
+        const verb = childFolderCount === 1 ? "moves" : "move";
+        return `Delete "${target.currentName}"? Its ${folderPart} ${verb} out of this folder; nothing is deleted from the library.`;
+      }
+      return `Delete "${target.currentName}"? Its ${componentPart} and ${folderPart} move out of this folder; nothing is deleted from the library.`;
+    }
+    if (componentCount > 0) {
+      const componentPart = componentCount === 1
+        ? "1 component stays in the library and loses this folder"
+        : `${componentCount} components stay in the library and lose this folder`;
+      return `Delete "${target.currentName}"? Its ${componentPart}.`;
+    }
+    return `Delete "${target.currentName}"? This folder is empty.`;
   }
 
   async function moveComponentToFolder(item: EstimateRowItem, targetFolderId: string) {
@@ -1576,9 +2253,18 @@ export function ComponentLibraryManager({
   }
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white" data-component-library-workspace="true">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-        <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
+    <div
+      className={cn(
+        "flex h-full min-h-0 overflow-hidden rounded-xs",
+        surfaceVariant === "glass" ? "border border-[color:var(--glass-border)]" : "border-r border-hairline",
+        surfaceVariant === "glass" && "gap-2 p-2",
+        librarySurfaceClass(surfaceVariant, "root"),
+      )}
+      data-component-library-workspace="true"
+      data-library-surface={surfaceVariant}
+    >
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <section className="flex h-full min-h-0 overflow-hidden bg-transparent" aria-label="Component library workspace">
           <ComponentLibraryTreePanel
             supplierNodes={supplierTree}
             brandNodes={brandTree}
@@ -1674,6 +2360,48 @@ export function ComponentLibraryManager({
           onOpenChange={setEditDrawerOpen}
           onSaved={handleComponentEdited}
         />
+      ) : null}
+      {deleteFolderTarget ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setDeleteFolderTarget(null);
+          }}
+          title="Delete folder?"
+          description={getDeleteFolderDescription(deleteFolderTarget)}
+          tone="destructive"
+          confirmLabel="Delete folder"
+          cancelLabel="Keep folder"
+          onConfirm={confirmDeleteFolder}
+        />
+      ) : null}
+      {folderTextPrompt ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setFolderTextPrompt(null);
+          }}
+          title={folderTextPrompt.title}
+          description="Enter a folder name and confirm to apply."
+          confirmLabel={folderTextPrompt.confirmLabel}
+          onConfirm={submitFolderTextPrompt}
+        >
+          <label className="grid gap-1">
+            <span className="text-[9px] font-medium text-tertiary">{folderTextPrompt.label}</span>
+            <ControlInput
+              aria-label={folderTextPrompt.label}
+              autoFocus
+              value={folderTextPromptValue}
+              onChange={(event) => setFolderTextPromptValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitFolderTextPrompt();
+                }
+              }}
+            />
+          </label>
+        </ConfirmDialog>
       ) : null}
       <BulkDestructivePreviewModal
         open={archiveComponentTargetIds.length > 0}

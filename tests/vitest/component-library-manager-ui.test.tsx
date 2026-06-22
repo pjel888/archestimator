@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentProps, ReactNode } from "react";
@@ -11,9 +11,19 @@ import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 
-const navigationMocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-}));
+const navigationMocks = vi.hoisted(() => {
+  const refresh = vi.fn();
+  const push = vi.fn();
+  const replace = vi.fn();
+  return {
+    refresh,
+    push,
+    replace,
+    router: { refresh, push, replace },
+    pathname: "/workshop/library/components",
+    searchParams: "",
+  };
+});
 
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
@@ -24,15 +34,15 @@ const actionMocks = vi.hoisted(() => ({
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
+  getCostLibraryComponentUsage: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    refresh: navigationMocks.refresh,
-  }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => navigationMocks.router,
+  usePathname: () => navigationMocks.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
@@ -200,6 +210,11 @@ function withQueryClient(children: ReactNode) {
 }
 
 async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPageClient>> = {}) {
+  window.history.replaceState(
+    null,
+    "",
+    `${navigationMocks.pathname}${navigationMocks.searchParams ? `?${navigationMocks.searchParams}` : ""}`,
+  );
   const result = render(
     withQueryClient(
       <LibraryPageClient
@@ -291,6 +306,25 @@ describe("component library manager UI", () => {
     }
   });
 
+  beforeEach(() => {
+    navigationMocks.refresh.mockReset();
+    navigationMocks.push.mockReset();
+    navigationMocks.replace.mockReset();
+    navigationMocks.pathname = "/workshop/library/components";
+    navigationMocks.searchParams = "";
+    window.history.replaceState(null, "", navigationMocks.pathname);
+    actionMocks.createCostLibraryComponent.mockReset();
+    actionMocks.createLibraryFolder.mockReset();
+    actionMocks.deleteLibraryFolder.mockReset();
+    actionMocks.executeBulkArchiveLibraryComponents.mockReset();
+    actionMocks.moveCostLibraryComponentToFolder.mockReset();
+    actionMocks.previewBulkArchiveLibraryComponents.mockReset();
+    actionMocks.renameLibraryFolder.mockReset();
+    actionMocks.reorderLibraryFolders.mockReset();
+    actionMocks.getCostLibraryComponentUsage.mockReset();
+    actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 0, estimateRowCount: 0 });
+  });
+
   it("renders the library workspace without the retired standalone manager chrome", async () => {
     await renderLibrary();
 
@@ -317,11 +351,8 @@ describe("component library manager UI", () => {
     const workspaceFrame = document.querySelector('[data-component-library-workspace="true"]');
     const sheetPanel = workspace.querySelector('[data-component-library-sheet-panel="true"]');
     const treePanel = workspace.querySelector('[data-component-library-tree-panel="true"]');
-    expect(workspaceFrame).toHaveClass("border-r");
-    expect(workspaceFrame).not.toHaveClass("border");
-    expect(workspaceFrame).not.toHaveClass("border-l");
-    expect(workspaceFrame).not.toHaveClass("border-b");
-    expect(workspaceFrame).not.toHaveClass("border-t");
+    expect(workspaceFrame).toHaveAttribute("data-library-surface", "glass");
+    expect(workspaceFrame).toHaveClass("estimate-glass-well");
     expect(sheetPanel).not.toBeNull();
     expect(treePanel).not.toBeNull();
     expect(treePanel).not.toHaveClass("border-l");
@@ -351,6 +382,69 @@ describe("component library manager UI", () => {
     expect(screen.queryByRole("grid", { name: "Component library table" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Library filters")).not.toBeInTheDocument();
     expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
+  });
+
+  it("uses an in-app discard confirmation for dirty Add Component drafts", async () => {
+    await renderLibrary();
+
+    const addComponentModalSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
+    expect(addComponentModalSource).not.toContain("window.confirm");
+    expect(addComponentModalSource).toContain("ConfirmDialog");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
+    const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
+
+    fireEvent.change(within(addDialog).getByLabelText("Name"), {
+      target: { value: "Draft component" },
+    });
+    fireEvent.click(within(addDialog).getByRole("button", { name: "Close add component modal" }));
+
+    const discardDialog = await screen.findByRole("dialog", { name: "Discard this draft?" });
+    expect(discardDialog).toHaveTextContent("You have unsaved changes to this component. They are lost if you leave.");
+
+    fireEvent.click(within(discardDialog).getByRole("button", { name: "Keep editing" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Discard this draft?" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
+  });
+
+  it("opens and closes the component inspector from route state without dropping other params", async () => {
+    navigationMocks.searchParams = "component=db-library-custom-cabinet-pull&brand=none";
+
+    await renderLibrary();
+
+    const inspector = await screen.findByLabelText("Component inspector");
+    expect(within(inspector).getByText("Custom Cabinet Pull")).toBeInTheDocument();
+
+    fireEvent.click(within(inspector).getByRole("button", { name: "Close component details" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Component inspector")).not.toBeInTheDocument();
+    });
+    expect(`${window.location.pathname}${window.location.search}`).toBe("/workshop/library/components?brand=none");
+  });
+
+  it("fails safe for invalid component route state", async () => {
+    navigationMocks.searchParams = "component=foreign-component&density=compact";
+
+    await renderLibrary();
+
+    await waitFor(() => {
+      expect(`${window.location.pathname}${window.location.search}`).toBe("/workshop/library/components?density=compact");
+    });
+    expect(screen.queryByLabelText("Component inspector")).not.toBeInTheDocument();
+  });
+
+  it("deep-links clicked component cards into inspector route state", async () => {
+    await renderLibrary();
+    fireEvent.click(screen.getByRole("button", { name: "View details for Custom Cabinet Pull" }));
+
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      "/workshop/library/components?component=db-library-custom-cabinet-pull",
+    );
+    expect(await screen.findByLabelText("Component inspector")).toHaveTextContent("Custom Cabinet Pull");
   });
 
   it("uses editable folder navigation and shows component leaves inside the library tree", async () => {
@@ -604,7 +698,11 @@ describe("component library manager UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Renamed Details");
+    const managerSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
+    expect(managerSource).not.toContain("window.prompt");
+    expect(managerSource).not.toContain("window.confirm");
+    expect(managerSource).toContain("ConfirmDialog");
+
     actionMocks.renameLibraryFolder.mockResolvedValueOnce({
       folder: {
         ...sharedLibraryFolders[1],
@@ -618,19 +716,59 @@ describe("component library manager UI", () => {
     expect(screen.getByRole("menuitem", { name: "Add folder" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
 
+    const renameDialog = await screen.findByRole("dialog", { name: "Rename folder" });
+    fireEvent.change(within(renameDialog).getByLabelText("Folder name"), {
+      target: { value: "Renamed Details" },
+    });
+    fireEvent.click(within(renameDialog).getByRole("button", { name: "Save name" }));
+
     await waitFor(() => expect(actionMocks.renameLibraryFolder).toHaveBeenCalledWith("folder-details", "Renamed Details"));
     await waitFor(() => expect(getLibraryFolderButtonWithin(dialog, "Renamed Details")).toBeInTheDocument());
 
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     actionMocks.deleteLibraryFolder.mockResolvedValueOnce(undefined);
 
     fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Renamed Details"), { clientX: 16, clientY: 16 });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
 
-    await waitFor(() => expect(actionMocks.deleteLibraryFolder).toHaveBeenCalledWith("folder-details"));
+    const deleteDialog = await screen.findByRole("alertdialog", { name: "Delete folder?" });
+    expect(deleteDialog).toHaveTextContent('Delete "Renamed Details"? Its 1 component and 1 subfolder move out of this folder; nothing is deleted from the library.');
+    expect(within(deleteDialog).getByRole("button", { name: "Keep folder" })).toBeInTheDocument();
+    fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete folder" }));
 
-    promptSpy.mockRestore();
-    confirmSpy.mockRestore();
+    await waitFor(() => expect(actionMocks.deleteLibraryFolder).toHaveBeenCalledWith("folder-details"));
+  });
+
+  it("keeps folder actions recoverable when rename or delete fails", async () => {
+    await renderLibrary();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
+
+    actionMocks.renameLibraryFolder.mockRejectedValueOnce(new Error("Folder was changed by someone else."));
+
+    fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Details"), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const renameDialog = await screen.findByRole("dialog", { name: "Rename folder" });
+    fireEvent.change(within(renameDialog).getByLabelText("Folder name"), {
+      target: { value: "Conflicted Details" },
+    });
+    fireEvent.click(within(renameDialog).getByRole("button", { name: "Save name" }));
+
+    expect((await screen.findAllByText("Folder was changed by someone else.")).length).toBeGreaterThan(0);
+    expect(getLibraryFolderButtonWithin(dialog, "Details")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("treeitem", { name: "Conflicted Details" })).not.toBeInTheDocument();
+
+    actionMocks.deleteLibraryFolder.mockRejectedValueOnce(new Error("Folder still has children."));
+
+    fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Details"), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+
+    const deleteDialog = await screen.findByRole("alertdialog", { name: "Delete folder?" });
+    fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete folder" }));
+
+    expect((await screen.findAllByText("Folder still has children.")).length).toBeGreaterThan(0);
+    expect(getLibraryFolderButtonWithin(dialog, "Details")).toBeInTheDocument();
   });
 
   it("keeps supplier typing in the current Add Component tree view and stages the supplier folder", async () => {
@@ -799,6 +937,7 @@ describe("component library manager UI", () => {
     expect(packageUnitOptions.querySelector('[data-combobox-option-code="pieces"]')).toHaveTextContent("pieces");
     expect(packageUnitOptions.querySelector('[data-combobox-option-meaning="Count"]')).toHaveTextContent("Count");
 
+    fireEvent.click(within(dialog).getByRole("button", { name: "Advanced catalog details" }));
     const dimensionUnitInput = within(dialog).getByRole("combobox", { name: "Dimension unit" });
     fireEvent.focus(dimensionUnitInput);
 

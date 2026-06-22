@@ -263,7 +263,7 @@ describe("BulkDestructivePreviewModal", () => {
     render(
       <BulkDestructivePreviewModal
         open
-        title="Archive 2 components"
+        title="Archive 2 components?"
         description="Archiving keeps component history intact while hiding selected components from library insertion."
         requiredPhrase="ARCHIVE 2 COMPONENTS"
         executeLabel="Archive components"
@@ -273,7 +273,7 @@ describe("BulkDestructivePreviewModal", () => {
       />,
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Archive 2 components" });
+    const dialog = screen.getByRole("dialog", { name: "Archive 2 components?" });
 
     expect(dialog).toHaveTextContent("Ready to archive");
     expect(dialog).toHaveTextContent("This will archive 2 components.");
@@ -281,11 +281,35 @@ describe("BulkDestructivePreviewModal", () => {
     expect(dialog).not.toHaveTextContent(/Ready to delete|This will delete/i);
   });
 
+  it("keeps ready archive confirmation copy recoverable", () => {
+    render(
+      <BulkDestructivePreviewModal
+        open
+        title="Archive 2 components?"
+        description="Archiving keeps component history intact while hiding selected components from library insertion."
+        requiredPhrase="ARCHIVE 2 COMPONENTS"
+        executeLabel="Archive components"
+        preview={READY_ARCHIVE_PREVIEW}
+        onExecute={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Archive 2 components?" });
+
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Type ARCHIVE 2 COMPONENTS to confirm" }), {
+      target: { value: "ARCHIVE 2 COMPONENTS" },
+    });
+
+    expect(dialog).toHaveTextContent("Archived components are hidden from browse and blocked from new inserts. You can restore them later.");
+    expect(dialog).not.toHaveTextContent("This action cannot be undone.");
+  });
+
   it("uses archive copy when archive is blocked", () => {
     render(
       <BulkDestructivePreviewModal
         open
-        title="Archive component"
+        title="Archive 1 component?"
         description="Archiving keeps component history intact while hiding selected components from library insertion."
         requiredPhrase="ARCHIVE COMPONENT"
         executeLabel="Archive component"
@@ -295,7 +319,7 @@ describe("BulkDestructivePreviewModal", () => {
       />,
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Archive component" });
+    const dialog = screen.getByRole("dialog", { name: "Archive 1 component?" });
 
     expect(dialog).toHaveTextContent("Cannot archive yet");
     expect(dialog).toHaveTextContent("Resolve the item above before archiving.");

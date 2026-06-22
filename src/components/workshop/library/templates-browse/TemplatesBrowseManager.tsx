@@ -19,6 +19,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ControlInput } from "@/components/ui/control-input";
+import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
   TREE_ROW_ICON_SIZE,
@@ -452,8 +453,8 @@ function TemplatesBrowseTreePanel({
           {templates.length === 0 ? (
             <EmptyState
               icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
-              title="No templates yet"
-              description="Create a template from scratch, or save any estimate group as a template from the estimate page."
+              title="No templates yet."
+              description="Save a template to reuse line items."
               className="min-h-24 rounded-xs"
             />
           ) : (
@@ -507,6 +508,7 @@ export type TemplatesBrowseManagerProps = {
   // router.refresh() (which re-ran the whole server segment). No-op default keeps
   // the manager mountable bare in unit tests.
   onTemplatesMutated?: (updater: (templates: EstimateTemplate[]) => EstimateTemplate[]) => void;
+  onTemplatesInvalidated?: () => void;
 };
 
 /**
@@ -514,7 +516,11 @@ export type TemplatesBrowseManagerProps = {
  * center `TemplateGallery`, right `TemplatePreviewDock`. Selection state
  * lives here so the tree, gallery, and preview dock stay in sync.
  */
-export function TemplatesBrowseManager({ templates = [], onTemplatesMutated = () => {} }: TemplatesBrowseManagerProps = {}) {
+export function TemplatesBrowseManager({
+  templates = [],
+  onTemplatesMutated = () => {},
+  onTemplatesInvalidated = () => {},
+}: TemplatesBrowseManagerProps = {}) {
   const router = useNavigationRouter();
   // Mutations patch the route shell's warm query cache (T4). No-op when bare.
   const syncTemplatesCache = onTemplatesMutated;
@@ -526,13 +532,14 @@ export function TemplatesBrowseManager({ templates = [], onTemplatesMutated = ()
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [status, setStatus] = useState<TemplatesBrowseStatus>({ state: "idle" });
   const [newTemplate, setNewTemplate] = useState<{ open: boolean; category?: string }>({ open: false });
-  // U12 (C5): replaces the native window.prompt for rename/move with an in-DS
+  // U12 (C5): replaces the native browser prompt for rename/move with an in-DS
   // modal (SF Pro, tokens, focus management). One reusable text prompt.
   const [textPrompt, setTextPrompt] = useState<
     | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
     | null
   >(null);
   const [textPromptValue, setTextPromptValue] = useState("");
+  const [movePrompt, setMovePrompt] = useState<{ template: EstimateTemplate; value: string; selectedId: string | null } | null>(null);
   const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
     setTextPrompt(next);
     setTextPromptValue(next.initialValue);
@@ -682,6 +689,7 @@ export function TemplatesBrowseManager({ templates = [], onTemplatesMutated = ()
           syncTemplatesCache((items) =>
             items.map((entry) => (entry.id === template.id ? { ...entry, category: nextCategory } : entry)),
           );
+          onTemplatesInvalidated();
         })
         .catch((error: unknown) => {
           setItems((items) => items.map((entry) => (entry.id === previous.id ? previous : entry)));
@@ -691,22 +699,34 @@ export function TemplatesBrowseManager({ templates = [], onTemplatesMutated = ()
           });
         });
     },
-    [syncTemplatesCache, setItems],
+    [onTemplatesInvalidated, syncTemplatesCache, setItems],
   );
 
   const moveTemplatePrompt = useCallback(
     (template: EstimateTemplate) => {
-      const otherCategories = categories.filter((category) => category !== template.category);
-      openTextPrompt({
-        title: `Move "${template.name}" to group`,
-        label: otherCategories.length ? `Group (existing: ${otherCategories.join(", ")})` : "Group",
-        confirmLabel: "Move",
-        initialValue: template.category,
-        onSubmit: (category) => moveTemplateToCategory(template, category),
-      });
+      setMovePrompt({ template, value: "", selectedId: template.category });
     },
-    [categories, moveTemplateToCategory, openTextPrompt],
+    [],
   );
+
+  const movePromptCategory = movePrompt?.template.category;
+  const movePromptOptions = useMemo<CreatableComboboxOption[]>(
+    () =>
+      categories.map((category) => ({
+        id: category,
+        label: category,
+        description: movePromptCategory === category ? "Current group" : "Existing group",
+      })),
+    [categories, movePromptCategory],
+  );
+
+  const submitMovePrompt = useCallback(() => {
+    if (!movePrompt) return;
+    const category = movePrompt.value.trim();
+    const template = movePrompt.template;
+    setMovePrompt(null);
+    if (category) moveTemplateToCategory(template, category);
+  }, [movePrompt, moveTemplateToCategory]);
 
   const applyRenameCategory = useCallback(
     (category: string, name: string) => {
@@ -889,6 +909,42 @@ export function TemplatesBrowseManager({ templates = [], onTemplatesMutated = ()
                   event.preventDefault();
                   submitTextPrompt();
                 }
+              }}
+            />
+          </label>
+        </ConfirmDialog>
+      ) : null}
+
+      {movePrompt ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setMovePrompt(null);
+          }}
+          title={`Move "${movePrompt.template.name}" to group`}
+          description={`Current group: ${movePrompt.template.category}. Choose an existing group or create a new one.`}
+          confirmLabel="Move"
+          onConfirm={submitMovePrompt}
+        >
+          <label className="grid gap-1">
+            <span className="text-[9px] font-medium text-tertiary">Group</span>
+            <CreatableCombobox
+              ariaLabel="Template group"
+              value={movePrompt.value}
+              selectedId={movePrompt.selectedId}
+              options={movePromptOptions}
+              placeholder="Search or create a group"
+              createLabel={(value) => `Create "${value}"`}
+              onChange={(change) => {
+                setMovePrompt((current) =>
+                  current
+                    ? {
+                        ...current,
+                        value: change.label,
+                        selectedId: change.id,
+                      }
+                    : current,
+                );
               }}
             />
           </label>

@@ -2,14 +2,15 @@
 
 import { ClockCounterClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 
-import { cn } from "@/lib/ui/cn";
+import { Button } from "@/components/ui/button";
+import {
+  PROJECT_HEADER_ACTION_BUTTON_CLASS,
+  PROJECT_HEADER_ACTION_ICON_SIZE,
+} from "./project-header-action-styles";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
 
-// Mirror the "Share" trigger in ProjectPublicationHeader so the four header
-// actions read as one cluster (size-10 icon button, hairline border, same hover
-// + focus states).
-const HEADER_ACTION_BUTTON_CLASS =
-  "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-tertiary";
+// Mirror the "Share" trigger in ProjectPublicationHeader so the header actions
+// read as one compact icon-button cluster.
 
 /**
  * The relocated estimate-sheet "Activity" + "Preview Excel Export" triggers,
@@ -32,25 +33,29 @@ export function EstimateHeaderActions() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
-        className={cn(HEADER_ACTION_BUTTON_CLASS)}
+        variant="ghost"
+        size="icon-sm"
+        className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
         aria-label="Preview Excel Export"
         title="Preview Excel Export"
         disabled={!canPreviewExport}
         onClick={openProposalPreview ?? undefined}
       >
-        <FileXls size={14} weight="regular" aria-hidden="true" />
-      </button>
-      <button
+        <FileXls size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+      </Button>
+      <Button
         type="button"
-        className={cn(HEADER_ACTION_BUTTON_CLASS)}
+        variant="ghost"
+        size="icon-sm"
+        className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
         aria-label="Activity"
         title="Activity"
         onClick={openActivity ?? undefined}
       >
-        <ClockCounterClockwise size={14} weight="regular" aria-hidden="true" />
-      </button>
+        <ClockCounterClockwise size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+      </Button>
     </>
   );
 }

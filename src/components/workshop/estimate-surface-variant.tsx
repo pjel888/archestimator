@@ -95,24 +95,22 @@ export function estimateSurfaceClass(
       return glass ? "estimate-glass-well" : "bg-white";
     case "treeRail":
       // glass: the rail is a floating frosted pane (the tree container carries
-      // overflow-hidden, which clips the rounding). Radius = 8px on the OUTER
-      // floating panes — matching the reference glass family's 8px nav / 12px
-      // panel radii — while inner dense grid cells stay 3px for legibility. No
-      // own margin: the root section owns a uniform 8px gutter (gap-2 + p-2), so
-      // the gutter equals the inner padding and panes never double their spacing.
+      // overflow-hidden, which clips the rounding). Radius follows the app
+      // design-system token; the root section owns a uniform gutter (gap-2 +
+      // p-2), so panes never double their spacing.
       return glass
-        ? "estimate-glass-rail rounded-[8px]"
+        ? "estimate-glass-rail rounded-xs"
         : "border-r border-hairline bg-white";
     case "libraryRail":
       // glass: same floating treatment; the library container lacks
-      // overflow-hidden, so add it here to clip the rounded corners.
+      // overflow-hidden, so add it here to clip the pane corners.
       return glass
-        ? "estimate-glass-rail rounded-[8px] overflow-hidden"
+        ? "estimate-glass-rail rounded-xs overflow-hidden"
         : "border-l border-hairline bg-white";
     case "centerColumn":
     case "centerColumnFallback":
       // glass: floating near-opaque paper with a small frost gutter + rounding.
-      return glass ? "estimate-glass-paper rounded-[8px]" : "bg-white";
+      return glass ? "estimate-glass-paper rounded-xs" : "bg-white";
     case "railPanelHeader":
       // glass: transparent over the rail's own frosted pane + soft hairline, so
       // the title/tool rows match the tree/library body instead of becoming a

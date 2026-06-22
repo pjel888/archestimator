@@ -23,10 +23,10 @@ type QueryBuilder = {
   limit: ReturnType<typeof vi.fn>;
 };
 
-var supabaseMocks = {
+const supabaseMocks = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
-};
+}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => ({

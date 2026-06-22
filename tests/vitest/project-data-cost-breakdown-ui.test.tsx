@@ -26,7 +26,7 @@ describe("CostBreakdownSection", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "Cost breakdown" })).toBeInTheDocument();
-    expect(screen.getByText("Total estimate")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Total estimate" })).toBeInTheDocument();
 
     const table = screen.getByRole("table", { name: "Original Estimate cost groups by category" });
     expect(table).toHaveAttribute("id", "project-data-cost-breakdown-table");

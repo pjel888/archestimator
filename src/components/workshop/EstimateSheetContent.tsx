@@ -18,7 +18,7 @@ import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
 import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
-import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
+import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey } from "@/lib/component-library/query-keys";
 import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
@@ -36,7 +36,6 @@ import { cn } from "@/lib/ui/cn";
 import { estimateSurfaceClass, useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-flags";
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
-import { EstimateRightSidebar } from "./component-library";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { useToast } from "@/components/ui/toast";
@@ -47,6 +46,16 @@ import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
 const CommandPalette = dynamic(
   () => import("./component-library/CommandPalette").then((mod) => mod.CommandPalette),
   { ssr: false },
+);
+// The heavy component-library rail stays out of the sheet content chunk. The
+// route keeps its footprint stable with the same retryable placeholder used by
+// the lazy data query.
+const EstimateRightSidebar = dynamic(
+  () => import("./component-library").then((mod) => mod.EstimateRightSidebar),
+  {
+    ssr: false,
+    loading: () => <ComponentLibrarySidebarFallback isError={false} />,
+  },
 );
 import {
   INSERT_ESTIMATE_TEMPLATE_EVENT,
@@ -132,7 +141,7 @@ import {
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
-/* Re-export component library helpers and sidebar so existing imports don't break */
+/* Re-export component library helpers so existing imports don't break */
 export {
   createComponent,
   createDefaultLibraryBundles,
@@ -161,7 +170,6 @@ export {
 // block above is a re-export (`export … from`) and creates NO local binding,
 // so these must be imported explicitly to be callable here.
 import { groupComponents as groupSheetRows, sortComponents as sortSheetRows } from "./component-library/helpers";
-export { EstimateRightSidebar } from "./component-library";
 export { pesoFormatter };
 
 // legacy "EstimateSheetContent" name kept for compatibility; see plan 2026-06-12 §01-17
@@ -169,6 +177,7 @@ type EstimateSheetContentProps = {
   selectedNodeId: string | null;
   nodes?: EstimateTreeNode[];
   projectId?: string;
+  workspaceId?: string;
   estimateId?: string;
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string;
@@ -1114,6 +1123,7 @@ export function EstimateSheetContent({
   selectedNodeId,
   nodes = sampleEstimateTree,
   projectId,
+  workspaceId,
   estimateId,
   estimateTabs = [],
   activeTabId,
@@ -1149,7 +1159,7 @@ export function EstimateSheetContent({
     promoteRow,
     deleteRow,
     updateRow,
-  } = useEstimateRowMutations(estimateId, dataTabId);
+  } = useEstimateRowMutations(estimateId, dataTabId, workspaceId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1266,9 +1276,9 @@ export function EstimateSheetContent({
   // it. Server-provided props short-circuit the fetch for tests/embeds.
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
-  const lazyLibraryQueryKey = projectId
-    ? workspaceComponentLibraryLiteQueryKey(projectId)
-    : workspaceComponentLibraryLiteQueryKey("missing-project");
+  const lazyLibraryQueryKey = workspaceId && projectId
+    ? workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)
+    : workspaceComponentLibraryLiteQueryKey(workspaceId ?? "missing-workspace", projectId ?? "missing-project");
   const libraryQuery = useQuery({
     // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
     // dataset under its own key — never the full-graph key the editor surfaces use.
@@ -1297,10 +1307,10 @@ export function EstimateSheetContent({
   // sidebar's local optimistic state is already correct, and the next cold mount
   // reseeds fresh. Avoids a full-library refetch after common in-panel actions.
   const handleLibraryDataChanged = useStableCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "none" });
+    if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
   });
   const refetchProjectComponentProjection = useStableCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "active" });
+    if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
     void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
   });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
@@ -3108,7 +3118,7 @@ export function EstimateSheetContent({
 // Placeholder column while the lazy component-library dataset loads. Keeps
 // the sidebar footprint stable so the sheet does not reflow, and keeps load
 // failures visible and retryable without blocking sheet editing.
-function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolean; onRetry: () => void }) {
+function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolean; onRetry?: () => void }) {
   const surfaceVariant = useEstimateSurfaceVariant();
   return (
     <aside className={cn("flex h-full min-h-0 min-w-[320px] flex-col", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
@@ -3116,9 +3126,11 @@ function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolea
         <div role="alert" className={cn("m-2 mt-2 rounded-xs border border-dashed p-3 text-center", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
           <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate is still editable. Retry to load components and templates.</p>
-          <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
-            Retry
-          </Button>
+          {onRetry ? (
+            <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div role="status" aria-label="Loading component library" className="space-y-1 p-2">

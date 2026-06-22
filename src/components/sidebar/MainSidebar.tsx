@@ -249,17 +249,10 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
   // so the floating drop-shadow always hugs the visible rail (clip-path would crop
   // a shadow drawn on the panel itself).
   const shadowPlateStyle = useMemo<React.CSSProperties>(() => {
-    const base: React.CSSProperties = {
+    return {
       width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED,
     };
-
-    if (prefersReducedMotion) return base;
-
-    return {
-      ...base,
-      transition: `width ${expanded ? SIDEBAR_TRANSITION.expandDuration : SIDEBAR_TRANSITION.collapseDuration}ms ${SIDEBAR_TRANSITION.easing}`,
-    };
-  }, [expanded, prefersReducedMotion]);
+  }, [expanded]);
   return (
     <>
       {expanded && (
@@ -367,7 +360,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                   expanded ? "text-warning" : "text-tertiary group-hover:text-warning group-focus:text-warning",
                 ].join(" ")}
               >
-                <Star size={15} weight="fill" aria-hidden="true" className="shrink-0" />
+                <Star size={15} weight="regular" aria-hidden="true" className="shrink-0" />
               </span>
               <span
                 aria-hidden={!expanded}

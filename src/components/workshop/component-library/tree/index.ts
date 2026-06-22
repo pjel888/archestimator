@@ -13,9 +13,12 @@ export {
 } from "./TemplatesTree";
 export type { CheckedTemplateUnits, TemplatesTreeDatum, TemplatesTreeProps } from "./TemplatesTree";
 export {
+  buildProjectComponentTree,
   buildComponentLibraryNavigationTree,
   buildLibraryTreeWithComponentRows,
   getLibraryItemsForTreeNode,
+  isProjectComponentProjectionItem,
+  splitSidebarComponentItems,
 } from "./buildLibraryTree";
 export {
   matchesQuery,

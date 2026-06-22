@@ -409,17 +409,17 @@ export default function SharePageTabs({
     kind: "row",
     label: row.description || row.material || "Selected line item",
     secondaryLabel: activeContentLabel,
-    estimateId: activeEstimate?.id ?? null,
+    estimateId: activeEstimate.id,
     rowId: row.id,
-  }), [activeContentLabel, activeEstimate?.id]);
+  }), [activeContentLabel, activeEstimate.id]);
 
   const createEstimateReviewTarget = useCallback((): ShareReviewTarget => ({
     kind: "estimate",
-    label: activeEstimate?.name ?? "Selected estimate",
-    secondaryLabel: activeEstimate?.sheetCode || null,
-    estimateId: activeEstimate?.id ?? null,
+    label: activeEstimate.name,
+    secondaryLabel: activeEstimate.sheetCode || null,
+    estimateId: activeEstimate.id,
     rowId: null,
-  }), [activeEstimate?.id, activeEstimate?.name, activeEstimate?.sheetCode]);
+  }), [activeEstimate.id, activeEstimate.name, activeEstimate.sheetCode]);
 
   const handleEstimateReview = useCallback(() => {
     const target = createEstimateReviewTarget();
@@ -539,7 +539,7 @@ export default function SharePageTabs({
               <span className="flex min-w-0 items-center gap-1.5 text-ink">
                 <span
                   aria-hidden="true"
-                  className="size-2 flex-none rounded-full"
+                  className="size-2 flex-none rounded-xs"
                   style={{ backgroundColor: bucket.color }}
                 />
                 <span className="truncate">{bucket.label}</span>

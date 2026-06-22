@@ -115,18 +115,21 @@ export function useGlassElasticity(
 
   // Keep the latest tunables available to the rAF loop without re-subscribing.
   const strengthRef = useRef(strength);
-  strengthRef.current = strength;
+
+  useEffect(() => {
+    strengthRef.current = strength;
+  }, [strength]);
 
   useEffect(() => {
     if (!enabled) {
-      setTransform({});
+      queueMicrotask(() => setTransform({}));
       return;
     }
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
       return;
     }
     if (window.matchMedia("(prefers-reduced-motion:reduce)").matches) {
-      setTransform({});
+      queueMicrotask(() => setTransform({}));
       return;
     }
 

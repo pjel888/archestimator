@@ -3,6 +3,10 @@
 import { useState, type ReactNode } from "react";
 import { GearSix } from "@phosphor-icons/react/dist/ssr";
 
+import {
+  PROJECT_HEADER_ACTION_BUTTON_CLASS,
+  PROJECT_HEADER_ACTION_ICON_SIZE,
+} from "@/components/workshop/project-header-action-styles";
 import { Modal } from "@/components/ui/modal";
 
 type WorkshopSettingsModalProps = {
@@ -35,10 +39,10 @@ export function WorkshopSettingsModal({
           aria-label="Open settings"
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="workshop-liquid-button relative grid size-10 shrink-0 cursor-pointer place-items-center rounded-xs border focus-visible:outline-none"
+          className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
           onClick={() => setOpen(true)}
         >
-          <GearSix size={15} weight="regular" aria-hidden="true" />
+          <GearSix size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
         </button>
       ) : null}
       <Modal

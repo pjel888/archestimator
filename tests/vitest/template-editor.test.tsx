@@ -108,6 +108,8 @@ function buildTemplate(): EstimateTemplate {
                 category: "Plumbing Fixtures",
                 pricingSource: "Test",
                 pricingDate: "2026-05-01",
+                sourceLibraryItemId: "component-row-1",
+                linkState: "linked-clean",
               },
               {
                 id: "row-2",
@@ -140,7 +142,7 @@ function renderEditor(template: EstimateTemplate) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <TemplateEditorClient template={template} />
+      <TemplateEditorClient template={template} workspaceId="workspace-1" />
     </QueryClientProvider>,
   );
 }
@@ -170,6 +172,9 @@ describe("TemplateEditorClient", () => {
       category: "Residential Rooms",
     });
     expect(screen.getByRole("region", { name: "Template content" })).toBeInTheDocument();
+    const sourceTrust = screen.getByLabelText("Source trust for Powder Room Basic");
+    expect(within(sourceTrust).getByText("1/2 linked rows")).toBeInTheDocument();
+    expect(within(sourceTrust).getByText("Current")).toBeInTheDocument();
     expect(screen.getByDisplayValue("GROHE Lavatory Faucet")).toBeInTheDocument();
     expect(screen.getByText("Totals are reference pricing: estimates re-price on insert")).toBeInTheDocument();
   });

@@ -29,6 +29,15 @@ import {
   getLibraryFolderCreateSortOrder,
   type LibraryFolderCreatePlacement,
 } from "./library-folder-reorder";
+import {
+  assertQuickAddComponentInput,
+  normalizeQuickAddText,
+  type QuickAddField,
+  QUICK_ADD_TEXT_LIMITS,
+  roundQuickAddMoney,
+  validateQuickAddComponentInput,
+} from "./quick-add-validation";
+import { recordLibraryEvent } from "./library-telemetry";
 import { readComponentSourceUrlInput } from "./source-url";
 import { throwActionError } from "./action-errors";
 
@@ -178,10 +187,14 @@ function readFolderName(name: string) {
 async function assertCanManageLibraryFolders(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   workspaceId: string,
+  action = "manage_library_folders",
 ) {
   const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
   if (error) throwActionError("Could not verify library folder access.", error);
-  if (data !== true) throw new Error("Only workspace editors/admins can manage library folders.");
+  if (data !== true) {
+    recordLibraryEvent("authz_denied", { workspaceId, action, role: "viewer" });
+    throw new Error("Only workspace editors/admins can manage library folders.");
+  }
 }
 
 // Library Optimization Plan P3 T17 (F19/D8): app-layer fail-fast guard mirroring
@@ -191,10 +204,28 @@ async function assertCanManageLibraryFolders(
 async function assertCanManageLibrary(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   workspaceId: string,
+  action = "manage_library",
 ) {
   const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
   if (error) throwActionError("Could not verify library access.", error);
-  if (data !== true) throw new Error("Only workspace editors/admins can manage the library.");
+  if (data !== true) {
+    recordLibraryEvent("authz_denied", { workspaceId, action, role: "viewer" });
+    throw new Error("Only workspace editors/admins can manage the library.");
+  }
+}
+
+async function assertCanEditEstimate(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+  estimateId: string,
+  action = "resolve_estimate_template_insert_target",
+) {
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  if (error) throwActionError("Could not verify estimate edit access.", error);
+  if (data !== true) {
+    recordLibraryEvent("authz_denied", { workspaceId, estimateId, action, role: "viewer" });
+    throw new Error("Estimate edit access denied.");
+  }
 }
 
 async function assertCanPublishEstimateTemplateFromEstimate(
@@ -229,9 +260,17 @@ async function assertWithinLibraryQuota(
   }
 }
 
-function readRequiredComponentText(value: string | undefined | null, label: string) {
-  const text = String(value ?? "").trim();
+function readRequiredComponentText(value: string | undefined | null, label: string, maxLength?: number) {
+  const text = normalizeQuickAddText(value);
   if (!text) throw new Error(`${label} is required.`);
+  if (maxLength && text.length > maxLength) throw new Error(`${label} must use ${maxLength} characters or fewer.`);
+  return text;
+}
+
+function readOptionalComponentText(value: string | undefined | null, label: string, maxLength: number) {
+  const text = normalizeQuickAddText(value);
+  if (!text) return null;
+  if (text.length > maxLength) throw new Error(`${label} must use ${maxLength} characters or fewer.`);
   return text;
 }
 
@@ -280,15 +319,32 @@ function validatePriceOptions(priceOptions: ComponentPriceOptionInput[]) {
   }
 }
 
+function toQuickAddTelemetryField(field: QuickAddField) {
+  return field.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+function recordQuickAddValidationErrors(
+  workspaceId: string,
+  errors: Partial<Record<QuickAddField, string>>,
+) {
+  for (const field of Object.keys(errors) as QuickAddField[]) {
+    recordLibraryEvent("quick_add_field_invalid", {
+      workspaceId,
+      field: toQuickAddTelemetryField(field),
+      rule: "invalid",
+    });
+  }
+}
+
 function normalizeComponentInput(input: CostLibraryComponentInput) {
   return {
     ...input,
-    name: readRequiredComponentText(input.name, "Component name"),
-    unit: readRequiredComponentText(input.unit, "Component unit"),
-    category: input.category?.trim() || "General",
+    name: readRequiredComponentText(input.name, "Component name", QUICK_ADD_TEXT_LIMITS.name),
+    unit: readRequiredComponentText(input.unit, "Component unit", QUICK_ADD_TEXT_LIMITS.unit),
+    category: readRequiredComponentText(input.category, "Component category", QUICK_ADD_TEXT_LIMITS.category),
     description: input.description ?? "",
-    supplier: input.supplier?.trim() || null,
-    brand: input.brand?.trim() || null,
+    supplier: readOptionalComponentText(input.supplier, "Supplier", QUICK_ADD_TEXT_LIMITS.supplier),
+    brand: readOptionalComponentText(input.brand, "Brand", QUICK_ADD_TEXT_LIMITS.brand),
     brandId: input.brandId?.trim() || null,
     thumbnailPath: input.thumbnailPath?.trim() || null,
     lifecycleState: input.lifecycleState ?? "available",
@@ -300,28 +356,57 @@ function normalizeComponentInput(input: CostLibraryComponentInput) {
 
 function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
   const sourceUrl = readComponentSourceUrlInput(input.sourceUrl);
+  const sourceValidation = validateQuickAddComponentInput({
+    name: input.label,
+    category: "Component",
+    unit: input.unit,
+    unitCost: input.unitCost,
+    miscCost: input.miscCost ?? 0,
+    pricingDate: input.pricingDate,
+    pricingSource: input.pricingSource,
+    confidence: input.confidence,
+  });
+  if (sourceValidation.errors.pricingDate) throw new Error(sourceValidation.errors.pricingDate);
+  if (sourceValidation.errors.pricingSource) throw new Error(sourceValidation.errors.pricingSource);
+  if (sourceValidation.errors.confidence) throw new Error(sourceValidation.errors.confidence);
   const costEntries = input.costEntries?.length
-    ? input.costEntries.map((entry) => ({
-        ...entry,
-        clientId: entry.clientId?.trim() || entry.id?.trim() || undefined,
-        miscCost: entry.miscCost ?? 0,
-        currency: entry.currency ?? input.currency ?? "PHP",
-        pricingSource: entry.pricingSource?.trim() || null,
-        pricingDate: entry.pricingDate || input.pricingDate || new Date().toISOString().slice(0, 10),
-        confidence: entry.confidence?.trim() || null,
-        sourceUrl: readComponentSourceUrlInput(entry.sourceUrl, "Cost entry source URL"),
-        notes: entry.notes ?? "",
-        deletedAt: entry.deletedAt ?? null,
-        isCurrent: entry.isCurrent ?? false,
-      }))
+    ? input.costEntries.map((entry) => {
+        const entryValidation = validateQuickAddComponentInput({
+          name: input.label,
+          category: "Component",
+          unit: input.unit,
+          unitCost: entry.unitCost,
+          miscCost: entry.miscCost ?? 0,
+          pricingDate: entry.pricingDate || input.pricingDate,
+          pricingSource: entry.pricingSource,
+          confidence: entry.confidence,
+        });
+        if (entryValidation.errors.pricingDate) throw new Error(entryValidation.errors.pricingDate);
+        if (entryValidation.errors.pricingSource) throw new Error(entryValidation.errors.pricingSource);
+        if (entryValidation.errors.confidence) throw new Error(entryValidation.errors.confidence);
+        return {
+          ...entry,
+          clientId: entry.clientId?.trim() || entry.id?.trim() || undefined,
+          unitCost: roundQuickAddMoney(entry.unitCost),
+          miscCost: roundQuickAddMoney(entry.miscCost ?? 0),
+          currency: entry.currency ?? input.currency ?? "PHP",
+          pricingSource: entryValidation.normalized.pricingSource ?? null,
+          pricingDate: entryValidation.normalized.pricingDate || input.pricingDate || new Date().toISOString().slice(0, 10),
+          confidence: entryValidation.normalized.confidence ?? null,
+          sourceUrl: readComponentSourceUrlInput(entry.sourceUrl, "Cost entry source URL"),
+          notes: entry.notes ?? "",
+          deletedAt: entry.deletedAt ?? null,
+          isCurrent: entry.isCurrent ?? false,
+        };
+      })
     : [{
         clientId: input.activeCostEntryId?.trim() || undefined,
-        unitCost: input.unitCost,
-        miscCost: input.miscCost ?? 0,
+        unitCost: roundQuickAddMoney(input.unitCost),
+        miscCost: roundQuickAddMoney(input.miscCost ?? 0),
         currency: input.currency ?? "PHP",
-        pricingSource: input.pricingSource?.trim() || null,
-        pricingDate: input.pricingDate || new Date().toISOString().slice(0, 10),
-        confidence: input.confidence?.trim() || null,
+        pricingSource: sourceValidation.normalized.pricingSource ?? null,
+        pricingDate: sourceValidation.normalized.pricingDate || new Date().toISOString().slice(0, 10),
+        confidence: sourceValidation.normalized.confidence ?? null,
         sourceUrl,
         notes: input.notes ?? "",
         isCurrent: true,
@@ -343,12 +428,13 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     sku: input.sku?.trim() || null,
     variantDescription: input.variantDescription ?? "",
     variantSortOrder: input.variantSortOrder ?? 0,
-    unit: readRequiredComponentText(input.unit, "Variant unit"),
-    miscCost: input.miscCost ?? 0,
+    unit: readRequiredComponentText(input.unit, "Variant unit", QUICK_ADD_TEXT_LIMITS.unit),
+    unitCost: roundQuickAddMoney(input.unitCost),
+    miscCost: roundQuickAddMoney(input.miscCost ?? 0),
     currency: input.currency ?? "PHP",
-    pricingSource: input.pricingSource?.trim() || null,
-    pricingDate: input.pricingDate || null,
-    confidence: input.confidence?.trim() || null,
+    pricingSource: sourceValidation.normalized.pricingSource ?? null,
+    pricingDate: sourceValidation.normalized.pricingDate || null,
+    confidence: sourceValidation.normalized.confidence ?? null,
     sourceUrl,
     notes: input.notes ?? "",
     supplierId: input.supplierId ?? null,
@@ -460,9 +546,9 @@ export async function loadCurrentWorkspaceEstimateTemplates(): Promise<EstimateT
 
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  validatePriceOptions(input.priceOptions);
-
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
+  validatePriceOptions(input.priceOptions);
   const component = normalizeComponentInput({
     ...input,
     metadata: {
@@ -472,8 +558,35 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       createdFrom: "workshop-library",
     },
   });
+  const defaultPriceOption = input.priceOptions.find((option) => option.isDefault) ?? input.priceOptions[0];
+  const quickAddValidation = validateQuickAddComponentInput({
+    name: component.name,
+    category: component.category,
+    unit: defaultPriceOption?.unit || component.unit,
+    unitCost: defaultPriceOption?.unitCost,
+    supplier: component.supplier,
+    brand: component.brand,
+    pricingDate: defaultPriceOption?.pricingDate,
+    pricingSource: defaultPriceOption?.pricingSource,
+    confidence: defaultPriceOption?.confidence,
+    libraryFolderId: component.libraryFolderId,
+  });
+  if (Object.keys(quickAddValidation.errors).length > 0) {
+    recordQuickAddValidationErrors(workspace.id, quickAddValidation.errors);
+  }
+  assertQuickAddComponentInput({
+    name: component.name,
+    category: component.category,
+    unit: defaultPriceOption?.unit || component.unit,
+    unitCost: defaultPriceOption?.unitCost,
+    supplier: component.supplier,
+    brand: component.brand,
+    pricingDate: defaultPriceOption?.pricingDate,
+    pricingSource: defaultPriceOption?.pricingSource,
+    confidence: defaultPriceOption?.confidence,
+    libraryFolderId: component.libraryFolderId,
+  });
   const priceOptions = input.priceOptions.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
-  await assertCanManageLibrary(supabase, workspace.id);
   await assertWithinLibraryQuota(supabase, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
   const { data, error } = await supabase.rpc("create_cost_library_component", {
     target_workspace_id: workspace.id,
@@ -1439,6 +1552,14 @@ type EstimateInsertTargetNodeRow = {
   id: string;
   parent_id: string | null;
   kind: string;
+  name: string;
+};
+
+export type EstimateTemplateInsertTargetResolution = {
+  targetParentNodeId: string | null;
+  targetParentNodeName: string | null;
+  targetParentNodeKind: "group" | "area" | null;
+  targetParentNodePath: string[] | null;
 };
 
 /**
@@ -1448,7 +1569,7 @@ type EstimateInsertTargetNodeRow = {
  * children of unknown-kind nodes promote to roots, mirroring
  * buildEstimateTree.
  */
-export async function resolveEstimateTemplateInsertTarget(input: { projectId: string; estimateId: string }) {
+export async function resolveEstimateTemplateInsertTarget(input: { projectId: string; estimateId: string }): Promise<EstimateTemplateInsertTargetResolution> {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.projectId) || !isUuid(input.estimateId)) {
     throw new Error("Estimate not found in the current workspace.");
@@ -1464,27 +1585,52 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
     .maybeSingle();
   if (estimateError) throwActionError("Could not load the estimate.", estimateError);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
+  await assertCanEditEstimate(supabase, workspace.id, input.estimateId);
 
   const { data: nodeRows, error: nodesError } = await supabase
     .from("estimate_nodes")
-    .select("id, parent_id, kind")
+    .select("id, parent_id, kind, name")
     .eq("estimate_id", input.estimateId)
     .order("sort_order", { ascending: true });
   if (nodesError) throwActionError("Could not load the estimate tree.", nodesError);
 
   const nodes = (nodeRows ?? []) as EstimateInsertTargetNodeRow[];
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const kindById = new Map<string, "group" | "area">();
   for (const node of nodes) {
     const kind = normalizeEstimateTreeNodeKind(node.kind);
     if (kind) kindById.set(node.id, kind);
   }
 
-  for (const node of nodes) {
-    if (kindById.get(node.id) !== "group") continue;
-    const isRoot = !node.parent_id || !kindById.has(node.parent_id);
-    if (isRoot) return { targetParentNodeId: node.id };
+  function nodePath(node: EstimateInsertTargetNodeRow) {
+    const path: string[] = [];
+    let current: EstimateInsertTargetNodeRow | undefined = node;
+    while (current) {
+      path.unshift(current.name);
+      current = current.parent_id ? nodeById.get(current.parent_id) : undefined;
+    }
+    return path;
   }
-  return { targetParentNodeId: null };
+
+  for (const node of nodes) {
+    const kind = kindById.get(node.id);
+    if (kind !== "group") continue;
+    const isRoot = !node.parent_id || !kindById.has(node.parent_id);
+    if (isRoot) {
+      return {
+        targetParentNodeId: node.id,
+        targetParentNodeName: node.name,
+        targetParentNodeKind: kind,
+        targetParentNodePath: nodePath(node),
+      };
+    }
+  }
+  return {
+    targetParentNodeId: null,
+    targetParentNodeName: null,
+    targetParentNodeKind: null,
+    targetParentNodePath: null,
+  };
 }
 
 /**

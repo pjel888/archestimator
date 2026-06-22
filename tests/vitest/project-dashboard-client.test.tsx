@@ -11,6 +11,10 @@ vi.mock("@/lib/projects/location-actions", () => ({
   saveProjectLocation: vi.fn(async () => ({ status: "success", message: "Project pin saved." })),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ prefetch: vi.fn() }),
+}));
+
 const PROJECT_FIXTURE = {
   id: "11111111-1111-4111-8111-111111111111",
   workspace_id: "22222222-2222-4222-8222-222222222222",
@@ -72,6 +76,11 @@ const RECENT_ESTIMATE_SHEETS_FIXTURE = [
   },
 ] as const;
 
+const PROJECT_ACTIVITY_PAGE_FIXTURE = {
+  items: [],
+  nextCursor: null,
+};
+
 const FALLBACK = {
   id: "sample-modern-bungalow",
   name: "Modern Bungalow",
@@ -93,6 +102,7 @@ describe("ProjectDashboardClient", () => {
         recentEstimateSheets={RECENT_ESTIMATE_SHEETS_FIXTURE}
         canEditProject
         projectLocation={PROJECT_LOCATION_FIXTURE}
+        projectActivityPage={PROJECT_ACTIVITY_PAGE_FIXTURE}
         googleMapsApiKey="test-google-browser-key"
       />,
     );
@@ -123,6 +133,7 @@ describe("ProjectDashboardClient", () => {
     expect(regions).toEqual([
       "Project command surface",
       "Project estimates summary",
+      "Project activity feed",
       "Recent estimate running costs",
       "Recent estimate budget health",
     ]);
@@ -205,6 +216,7 @@ describe("ProjectDashboardClient", () => {
         recentEstimateSheets={[]}
         canEditProject={false}
         projectLocation={null}
+        projectActivityPage={PROJECT_ACTIVITY_PAGE_FIXTURE}
         googleMapsApiKey=""
       />,
     );

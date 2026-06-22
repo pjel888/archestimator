@@ -16,7 +16,6 @@ describe("workshop dashboard baseline", () => {
     const source = await Bun.file("src/app/workshop/page.tsx").text();
     const homebase = await Bun.file("src/components/workshop/WorkshopHomebaseClient.tsx").text();
     const dashboard = await Bun.file("src/components/workshop/dashboard/WorkshopDashboard.tsx").text();
-    const hero = await Bun.file("src/components/workshop/dashboard/DashboardHero.tsx").text();
 
     // Page reuses the cached homebase + favorites + library repositories and keeps
     // the pending-invite bridge. No parallel data layer.
@@ -46,16 +45,17 @@ describe("workshop dashboard baseline", () => {
     expect(homebase).not.toContain("onExpandAll");
     expect(homebase).not.toContain("onCollapseAll");
 
-    // The bento lays the masthead headline + the editorial square material field
-    // (destination tiles + Library hub) + a working desk led by Favorites with a
-    // combined Continue+Create action rail and the two recent ledgers beneath.
+    // The bento lays the editorial square material field (destination tiles +
+    // Library hub) + a working desk led by Favorites with compact Library action
+    // access and the two recent ledgers beneath.
     // (LibrarySpotlight + DashboardStatStrip were removed by owner directive
     // 2026-06-18 — the dashboard no longer surfaces those panels.)
     for (const moduleName of [
-      "DashboardHero",
       "ImageDestinationCard",
       "LibraryHubCard",
       "LibraryCardLink",
+      "PublishedProjectQuickActions",
+      "RecentlyAddedComponents",
       "RecentProjectsList",
       "RecentSheetsList",
       "FavoritesTree",
@@ -65,18 +65,11 @@ describe("workshop dashboard baseline", () => {
     }
     expect(dashboard).toContain("dashboard-imageband");
     expect(dashboard).toContain("dashboard-desk");
+    expect(dashboard).toContain("dashboard-published-panel");
+    expect(dashboard).toContain("dashboard-project-card-panel");
+    expect(dashboard).toContain("dashboard-component-card-panel");
+    expect(dashboard).toContain("dashboard-bignum-value");
     expect(dashboard).toContain("isFirstRun");
-
-    // The greeting hero keeps its accessibility + time-of-day contract.
-    expect(hero).toContain('aria-label="Workshop greeting"');
-    expect(hero).toContain("getWorkshopGreetingTone");
-    expect(hero).toContain("formatWorkshopGreetingName");
-    expect(hero).toContain("Good morning");
-    expect(hero).toContain("Good afternoon");
-    expect(hero).toContain("Good evening");
-    expect(hero).toContain('icon: "sun"');
-    expect(hero).toContain('icon: "moon"');
-    expect(hero).toContain("font-display");
   });
 
   test("main sidebar preserves archestimator sidebar measurements with overlay expansion", async () => {
@@ -121,7 +114,7 @@ describe("workshop dashboard baseline", () => {
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-shadow)");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-shadow)");
     expect(sidebarNavItemRow).toContain('weight="regular"');
-    expect(sidebar).toContain('<Star size={15} weight="fill"');
+    expect(sidebar).toContain('<Star size={15} weight="regular"');
     expect(sidebar).toContain('<Folder size={13} weight="regular"');
     expect(sidebar).toContain('<FileText size={11} weight="regular"');
     expect(sidebar).toContain('<SidebarSimple');

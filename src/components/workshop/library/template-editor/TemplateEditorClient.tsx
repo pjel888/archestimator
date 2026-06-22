@@ -13,6 +13,7 @@ import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
+import { workspaceComponentLibraryQueryKey } from "@/lib/component-library/query-keys";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import { EstimateRightSidebar } from "../../component-library";
 import { filterTemplatesByQuery, type EstimateTemplate } from "../../component-library/templates";
@@ -48,7 +49,7 @@ function TemplateEditorDockFallback() {
  * estimate-style editable sheet in the center. The right Components dock
  * arrives with the editor's drag/drop phase.
  */
-export function TemplateEditorClient({ template: serverTemplate }: { template: EstimateTemplate }) {
+export function TemplateEditorClient({ template: serverTemplate, workspaceId }: { template: EstimateTemplate; workspaceId: string }) {
   const editor = useTemplateEditor(serverTemplate);
   const template = editor.template;
   const setBreadcrumb = useLibraryEditorChrome((state) => state.setBreadcrumb);
@@ -59,7 +60,7 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
   const [expandedIds, setExpandedIds] = useState<string[]>(() => getTemplateStructureAllNodeIds(serverTemplate));
   const treeSearchInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Library Optimization Plan P1 T8 (F22): replace native window.prompt/confirm with
+  // Library Optimization Plan P1 T8 (F22): replace native browser dialogs with
   // the in-DS dialog pattern (mirrors TemplatesBrowseManager). One reusable text prompt
   // for add/rename; a destructive ConfirmDialog for delete.
   const [textPrompt, setTextPrompt] = useState<
@@ -68,6 +69,7 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
   >(null);
   const [textPromptValue, setTextPromptValue] = useState("");
   const [deleteNodeTarget, setDeleteNodeTarget] = useState<EstimateTreeNode | null>(null);
+  const componentLibraryQueryKey = useMemo(() => workspaceComponentLibraryQueryKey(workspaceId), [workspaceId]);
   const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
     setTextPrompt(next);
     setTextPromptValue(next.initialValue);
@@ -157,13 +159,13 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
   // Dock dataset: same lazy query + cache key as the estimate workspace, so
   // switching between the two surfaces reuses one fetch.
   const libraryQuery = useQuery({
-    queryKey: ["workspace-component-library"],
+    queryKey: componentLibraryQueryKey,
     queryFn: () => loadCurrentWorkspaceComponentLibrary(),
     staleTime: 5 * 60 * 1000,
   });
   const queryClient = useQueryClient();
   const handleLibraryDataChanged = useStableCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] });
+    void queryClient.invalidateQueries({ queryKey: componentLibraryQueryKey });
   });
 
   // Component inserts land on the selected area, a selected group's first

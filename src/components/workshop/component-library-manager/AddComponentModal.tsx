@@ -14,12 +14,14 @@ import {
 import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import {
   createCostLibraryComponent,
   type ComponentLifecycleState,
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
 import { buildLibraryFolderTree, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
+import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { findComponentCategoryPath, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
@@ -72,6 +74,7 @@ type VariantDraft = {
 
 type ComponentDraft = {
   name: string;
+  category: string;
   brand: string;
   brandId: string;
   thumbnailPath: string;
@@ -468,6 +471,7 @@ function getInitialNestingViewMode(selectedSupplierId?: string | null, selectedB
 
 function getInitialDraft({
   folders,
+  categoryTree,
   selectedFolderId,
   selectedSupplierId,
   selectedBrandId,
@@ -475,6 +479,7 @@ function getInitialDraft({
   brands,
 }: {
   folders: LibraryFolderRecord[];
+  categoryTree: ComponentLibraryTaxonomyNode[];
   selectedFolderId: string | null;
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
@@ -487,8 +492,10 @@ function getInitialDraft({
   const supplier = selectedSupplierId ? suppliers.find((entry) => entry.id === selectedSupplierId) : undefined;
   const brand = selectedBrandId ? brands.find((entry) => entry.id === selectedBrandId) : undefined;
   const categoryNodeId = resolveFolderCategoryNodeId(folders, selectedFolder?.id ?? null);
+  const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
   return {
     name: "",
+    category: categoryPath.at(-1) ?? "",
     brand: brand?.name ?? "",
     brandId: brand?.id ?? "",
     thumbnailPath: "",
@@ -699,13 +706,17 @@ export function AddComponentModal({
   reorderStatus,
   treeMutationPending,
 }: AddComponentModalProps) {
-  const [draft, setDraft] = useState(() => getInitialDraft({ folders, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands }));
+  const [draft, setDraft] = useState(() => getInitialDraft({ folders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands }));
   const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
   const [sharedPreviewUrl, setSharedPreviewUrl] = useState("");
   const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
   const [attachmentUpload, setAttachmentUpload] = useState<ImageUploadState>({ state: "idle" });
   const [costPickerOpen, setCostPickerOpen] = useState(false);
   const [costManagerOpen, setCostManagerOpen] = useState(false);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [duplicateCheckReady, setDuplicateCheckReady] = useState(false);
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const [advancedDetailsOpen, setAdvancedDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
   const [activeVariantId, setActiveVariantId] = useState("");
   const [nestingViewMode, setNestingViewMode] = useState<ComponentViewMode>(() => getInitialNestingViewMode(selectedSupplierId, selectedBrandId));
@@ -716,6 +727,7 @@ export function AddComponentModal({
   const tabsId = useId();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
+  const duplicateCheckTimerRef = useRef<number | null>(null);
   const wasOpenRef = useRef(false);
   const variantPreviewUrlsRef = useRef<Record<string, string>>({});
   const sharedPreviewUrlRef = useRef("");
@@ -724,6 +736,7 @@ export function AddComponentModal({
   const componentTabPanelId = `${tabsId}-component-panel`;
   const activityTabPanelId = `${tabsId}-activity-panel`;
   const costPickerListboxId = `${tabsId}-cost-picker-listbox`;
+  const advancedDetailsId = `${tabsId}-advanced-details`;
 
   const folderNodes = useMemo(() => buildLibraryFolderTree(folders), [folders]);
   const selectedFolderPath = useMemo(() => buildFolderPath(folders, draft.libraryFolderId || null), [draft.libraryFolderId, folders]);
@@ -750,6 +763,61 @@ export function AddComponentModal({
   const defaultCost = defaultCostEntry && Number.isFinite(parseMoney(defaultCostEntry.unitCost))
     ? formatAccountingMoney(defaultCostEntry.unitCost)
     : "0.00";
+  const quickAddValidation = useMemo(() => validateQuickAddComponentInput({
+    name: draft.name,
+    category: draft.category,
+    unit: activeVariant?.unit ?? defaultVariant?.unit ?? "",
+    unitCost: activeCostEntry?.unitCost ?? defaultCostEntry?.unitCost ?? "",
+    supplier: selectedSupplier?.name ?? draft.supplierName,
+    brand: selectedBrand?.name ?? draft.brand,
+    pricingDate: activeCostEntry?.pricingDate ?? defaultCostEntry?.pricingDate ?? "",
+    pricingSource: activeCostEntry?.pricingSource ?? defaultCostEntry?.pricingSource ?? "",
+    confidence: activeCostEntry?.confidence ?? defaultCostEntry?.confidence ?? "",
+    libraryFolderId: draft.libraryFolderId || null,
+  }), [
+    activeCostEntry?.confidence,
+    activeCostEntry?.pricingDate,
+    activeCostEntry?.pricingSource,
+    activeCostEntry?.unitCost,
+    activeVariant?.unit,
+    defaultCostEntry?.confidence,
+    defaultCostEntry?.pricingDate,
+    defaultCostEntry?.pricingSource,
+    defaultCostEntry?.unitCost,
+    defaultVariant?.unit,
+    draft.brand,
+    draft.category,
+    draft.libraryFolderId,
+    draft.name,
+    draft.supplierName,
+    selectedBrand?.name,
+    selectedSupplier?.name,
+  ]);
+  const possibleDuplicate = useMemo(() => {
+    if (!duplicateCheckReady || duplicateAcknowledged) return null;
+    const name = draft.name.trim().toLowerCase();
+    const category = draft.category.trim().toLowerCase();
+    const supplier = (selectedSupplier?.name ?? draft.supplierName).trim().toLowerCase();
+    const brand = (selectedBrand?.name ?? draft.brand).trim().toLowerCase();
+    if (!name || !category || (!supplier && !brand)) return null;
+    return libraryItems.find((item) => {
+      const itemName = (item.name ?? item.material ?? "").trim().toLowerCase();
+      const itemCategory = (item.category ?? "").trim().toLowerCase();
+      const itemSupplier = (item.supplier ?? "").trim().toLowerCase();
+      const itemBrand = (item.brand ?? "").trim().toLowerCase();
+      return itemName === name && itemCategory === category && ((supplier && itemSupplier === supplier) || (brand && itemBrand === brand));
+    }) ?? null;
+  }, [
+    duplicateAcknowledged,
+    duplicateCheckReady,
+    draft.brand,
+    draft.category,
+    draft.name,
+    draft.supplierName,
+    libraryItems,
+    selectedBrand?.name,
+    selectedSupplier?.name,
+  ]);
   const activeContentConversion = getContentConversionCopy(activeVariant?.unit ?? "");
   const computedMeasurements = useMemo(() => {
     const usesContentConversion = unitUsesContentConversion(activeVariant?.unit ?? "");
@@ -769,9 +837,7 @@ export function AddComponentModal({
     return { footprintArea, packageArea, volume };
   }, [activeVariant?.dimensionHeight, activeVariant?.dimensionLength, activeVariant?.dimensionWidth, activeVariant?.packageQuantity, activeVariant?.unit]);
   const validation = useMemo(() => {
-    const messages: string[] = [];
-    if (!draft.name.trim()) messages.push("Name is required.");
-    if (!draft.libraryFolderId) messages.push("Library folder is required.");
+    const messages: string[] = Object.values(quickAddValidation.errors);
     if (draft.variants.length === 0) messages.push("At least one variant is required.");
     if (draft.variants.filter((variant) => variant.isDefault).length !== 1) messages.push("Exactly one default variant is required.");
     for (const [index, variant] of draft.variants.entries()) {
@@ -807,7 +873,7 @@ export function AddComponentModal({
       }
     }
     return messages;
-  }, [draft]);
+  }, [draft, quickAddValidation.errors]);
 
   useEffect(() => {
     if (!open) {
@@ -817,7 +883,7 @@ export function AddComponentModal({
     if (wasOpenRef.current) return;
     wasOpenRef.current = true;
     dirtyRef.current = false;
-    const initialDraft = getInitialDraft({ folders, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands });
+    const initialDraft = getInitialDraft({ folders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands });
     setDraft(initialDraft);
     setActiveVariantId(initialDraft.variants[0]?.id ?? "");
     setError("");
@@ -829,11 +895,19 @@ export function AddComponentModal({
     setAttachmentUpload({ state: "idle" });
     setCostPickerOpen(false);
     setCostManagerOpen(false);
+    setDiscardDialogOpen(false);
+    setDuplicateCheckReady(false);
+    setDuplicateAcknowledged(false);
+    setAdvancedDetailsOpen(false);
+    if (duplicateCheckTimerRef.current !== null) {
+      window.clearTimeout(duplicateCheckTimerRef.current);
+      duplicateCheckTimerRef.current = null;
+    }
     costEditBaselineRef.current = null;
     setActiveTab("component");
     setNestingViewMode(getInitialNestingViewMode(selectedSupplierId, selectedBrandId));
     requestAnimationFrame(() => initialFocusRef.current?.focus());
-  }, [brands, folders, open, selectedBrandId, selectedFolderId, selectedSupplierId, sharedPreviewUrl, suppliers, variantPreviewUrls]);
+  }, [brands, categoryTree, folders, open, selectedBrandId, selectedFolderId, selectedSupplierId, sharedPreviewUrl, suppliers, variantPreviewUrls]);
 
   useEffect(() => {
     variantPreviewUrlsRef.current = variantPreviewUrls;
@@ -846,12 +920,37 @@ export function AddComponentModal({
   useEffect(() => () => {
     Object.values(variantPreviewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
     if (sharedPreviewUrlRef.current) URL.revokeObjectURL(sharedPreviewUrlRef.current);
+    if (duplicateCheckTimerRef.current !== null) window.clearTimeout(duplicateCheckTimerRef.current);
   }, []);
 
   function updateDraft(update: Partial<ComponentDraft>) {
     dirtyRef.current = true;
     setDraft((current) => ({ ...current, ...update }));
     setError("");
+  }
+
+  function updateQuickAddIdentity(update: Partial<ComponentDraft>) {
+    setDuplicateCheckReady(false);
+    setDuplicateAcknowledged(false);
+    updateDraft(update);
+  }
+
+  function scheduleDuplicateCheck() {
+    if (duplicateCheckTimerRef.current !== null) window.clearTimeout(duplicateCheckTimerRef.current);
+    duplicateCheckTimerRef.current = window.setTimeout(() => {
+      setDuplicateCheckReady(true);
+      duplicateCheckTimerRef.current = null;
+    }, 300);
+  }
+
+  function getFolderCategoryDraft(nextFolders: LibraryFolderRecord[], folderId: string | null) {
+    const categoryNodeId = resolveFolderCategoryNodeId(nextFolders, folderId);
+    const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
+    const category = categoryPath.at(-1) ?? "";
+    return {
+      categoryNodeId,
+      ...(category ? { category } : {}),
+    };
   }
 
   const handleCreateFolder: CreateLibraryFolderHandler | undefined = onCreateFolder
@@ -861,9 +960,9 @@ export function AddComponentModal({
           onCreated: (folder) => {
             options?.onCreated?.(folder);
             const nextFolders = [...folders.filter((entry) => entry.id !== folder.id), folder];
-            updateDraft({
+            updateQuickAddIdentity({
               libraryFolderId: folder.id,
-              categoryNodeId: resolveFolderCategoryNodeId(nextFolders, folder.id),
+              ...getFolderCategoryDraft(nextFolders, folder.id),
             });
           },
         });
@@ -960,11 +1059,14 @@ export function AddComponentModal({
       onOpenChange(false);
       return;
     }
-    if (window.confirm("Discard this component draft?")) {
-      cleanupUploadedDraftAssets();
-      dirtyRef.current = false;
-      onOpenChange(false);
-    }
+    setDiscardDialogOpen(true);
+  }
+
+  function confirmDiscardDraft() {
+    cleanupUploadedDraftAssets();
+    dirtyRef.current = false;
+    setDiscardDialogOpen(false);
+    onOpenChange(false);
   }
 
   async function handleThumbnailUpload(file: File) {
@@ -1267,7 +1369,7 @@ export function AddComponentModal({
     const miscCost = parseMoney(variantCost?.miscCost ?? variant?.miscCost ?? "0");
     const supplierName = selectedSupplier?.name ?? draft.supplierName;
     const brandName = selectedBrand?.name ?? draft.brand;
-    const category = selectedCategoryPath.at(-1) ?? "General";
+    const category = draft.category.trim();
     const persistedOptions = result.priceOptions ?? [];
     return {
       id: result.itemId ?? crypto.randomUUID(),
@@ -1290,7 +1392,7 @@ export function AddComponentModal({
       category,
       categoryNodeId: draft.categoryNodeId || undefined,
       categoryPath: selectedCategoryPath,
-      libraryFolderId: draft.libraryFolderId,
+      libraryFolderId: draft.libraryFolderId || undefined,
       brand: brandName || undefined,
       brandId: draft.brandId || undefined,
       sku: variant?.sku || undefined,
@@ -1412,7 +1514,7 @@ export function AddComponentModal({
     const payload: CreateCostLibraryComponentInput = {
       name: draft.name,
       description: fallbackVariant?.description ?? "",
-      category: selectedCategoryPath.at(-1) ?? "General",
+      category: draft.category.trim(),
       categoryNodeId: draft.categoryNodeId,
       supplier: selectedSupplier?.name ?? draft.supplierName,
       supplierId: draft.supplierId || null,
@@ -1420,7 +1522,7 @@ export function AddComponentModal({
       brandId: draft.brandId || null,
       unit: fallbackVariant?.unit ?? "unit",
       thumbnailPath: defaultThumbnailPath,
-      libraryFolderId: draft.libraryFolderId,
+      libraryFolderId: draft.libraryFolderId || null,
       lifecycleState: draft.lifecycleState,
       effectiveAt: draft.effectiveAt,
       changeReason: draft.changeReason,
@@ -1623,18 +1725,31 @@ export function AddComponentModal({
 
             <div className="min-h-0 flex-1 overflow-auto p-3">
               <div className="grid gap-3">
-              <section className="grid gap-2" aria-label="Component details">
+              <section className="grid gap-2" role="form" aria-label="Quick add component">
                 <div className="grid gap-x-2 gap-y-3 md:grid-cols-2" aria-label="Component information fields">
-                  <ControlField label="Name" className="md:col-span-2">
+                  <ControlField label="Name" className="md:col-span-2" required errorText={quickAddValidation.errors.name}>
                     <ControlInput
                       ref={initialFocusRef}
+                      aria-label="Name"
                       value={draft.name}
-                      onChange={(event) => updateDraft({ name: event.target.value })}
-                      invalid={!draft.name.trim()}
+                      onBlur={scheduleDuplicateCheck}
+                      onChange={(event) => updateQuickAddIdentity({ name: event.target.value })}
+                      aria-required="true"
+                      invalid={Boolean(quickAddValidation.errors.name)}
                       className={CONTROL_INPUT_SURFACE_CLASS}
                     />
                   </ControlField>
-                  <ControlField as="div" label="Brand" className="md:col-span-2">
+                  <ControlField label="Category" required errorText={quickAddValidation.errors.category}>
+                    <ControlInput
+                      aria-label="Category"
+                      value={draft.category}
+                      onChange={(event) => updateQuickAddIdentity({ category: event.target.value })}
+                      aria-required="true"
+                      invalid={Boolean(quickAddValidation.errors.category)}
+                      className={CONTROL_INPUT_SURFACE_CLASS}
+                    />
+                  </ControlField>
+                  <ControlField as="div" label="Brand" errorText={quickAddValidation.errors.brand}>
                     <CreatableCombobox
                       ariaLabel="Brand"
                       value={selectedBrand?.name ?? draft.brand}
@@ -1642,12 +1757,13 @@ export function AddComponentModal({
                       options={brandOptions}
                       placeholder="Search or add brand"
                       emptyLabel="No brands yet"
+                      invalid={Boolean(quickAddValidation.errors.brand)}
                       onChange={(change) => {
-                        updateDraft({ brandId: change.id ?? "", brand: change.label });
+                        updateQuickAddIdentity({ brandId: change.id ?? "", brand: change.label });
                       }}
                     />
                   </ControlField>
-                  <ControlField as="div" label="Supplier" className="md:col-span-2">
+                  <ControlField as="div" label="Supplier" errorText={quickAddValidation.errors.supplier}>
                     <CreatableCombobox
                       ariaLabel="Supplier"
                       value={selectedSupplier?.name ?? draft.supplierName}
@@ -1655,11 +1771,31 @@ export function AddComponentModal({
                       options={supplierOptions}
                       placeholder="Search or add supplier"
                       emptyLabel="No suppliers yet"
+                      invalid={Boolean(quickAddValidation.errors.supplier)}
                       onChange={(change) => {
-                        updateDraft({ supplierId: change.id ?? "", supplierName: change.label });
+                        updateQuickAddIdentity({ supplierId: change.id ?? "", supplierName: change.label });
                       }}
                     />
                   </ControlField>
+                  {possibleDuplicate ? (
+                    <div
+                      role="status"
+                      className="md:col-span-2 flex min-h-9 items-center justify-between gap-2 rounded-xs border border-warning/30 bg-warningSoft/40 px-2 py-1.5 text-[10px] font-medium leading-4 text-ink"
+                    >
+                      <span className="min-w-0">
+                        A component named &quot;{possibleDuplicate.name ?? possibleDuplicate.material}&quot; already exists. Add anyway or open the existing one.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="warning"
+                        size="xs"
+                        className="min-w-0 shrink-0 px-2"
+                        onClick={() => setDuplicateAcknowledged(true)}
+                      >
+                        Create anyway
+                      </Button>
+                    </div>
+                  ) : null}
                   <div className="md:col-span-2 rounded-xs border border-hairline bg-white" aria-label="Component variants">
                     <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component variants">
                       {draft.variants.map((variant) => (
@@ -1733,7 +1869,7 @@ export function AddComponentModal({
                               className={CONTROL_INPUT_SURFACE_CLASS}
                             />
                           </ControlField>
-                          <ControlField as="div" label="Cost" className="md:col-span-2">
+                          <ControlField as="div" label="Unit cost" className="md:col-span-2" required errorText={quickAddValidation.errors.unitCost}>
                             <div ref={costPickerRootRef} className="relative grid gap-1">
                               <div className="flex min-h-8 items-center justify-between gap-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1">
                                 <div className="min-w-0">
@@ -1758,7 +1894,8 @@ export function AddComponentModal({
                               </div>
                               <div className="grid grid-cols-[minmax(0,1fr)_32px] gap-1">
                                 <ControlInput
-                                  aria-label="Cost"
+                                  aria-label="Unit cost"
+                                  aria-required="true"
                                   role="combobox"
                                   aria-expanded={costPickerOpen}
                                   aria-controls={costPickerListboxId}
@@ -1790,7 +1927,7 @@ export function AddComponentModal({
                                       setCostPickerOpen(false);
                                     }
                                   }}
-                                  invalid={!Number.isFinite(parseMoney(activeCostEntry?.unitCost ?? "")) || parseMoney(activeCostEntry?.unitCost ?? "") < 0}
+                                  invalid={Boolean(quickAddValidation.errors.unitCost)}
                                   className={cn(CONTROL_INPUT_SURFACE_CLASS, "text-right tabular-nums")}
                                   placeholder="0.00"
                                 />
@@ -1871,9 +2008,10 @@ export function AddComponentModal({
                                 : "md:grid-cols-1",
                             )}
                           >
-                            <ControlField as="div" label="Unit" reserveHelperSpace>
+                            <ControlField as="div" label="Unit" required errorText={quickAddValidation.errors.unit} reserveHelperSpace>
                               <CreatableCombobox
                                 ariaLabel="Unit"
+                                ariaRequired
                                 value={activeVariant.unit}
                                 selectedId={getSelectedUnitId(activeVariant.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
                                 options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
@@ -1881,7 +2019,7 @@ export function AddComponentModal({
                                 emptyLabel="No units found"
                                 createLabel={(value) => `Add unit "${value}"`}
                                 onChange={(change) => updateActiveVariantUnit(getUnitComboboxValue(change))}
-                                invalid={!activeVariant.unit.trim()}
+                                invalid={Boolean(quickAddValidation.errors.unit)}
                                 preferSelectionOnEnter
                                 suppressCreateWhenSearchMatches
                                 optionPresentation="unit"
@@ -1917,6 +2055,56 @@ export function AddComponentModal({
                               </ControlField>
                             ) : null}
                           </div>
+                          <div className="grid gap-x-2 gap-y-3 md:col-span-2 md:grid-cols-3">
+                            <ControlField label="Pricing date" errorText={quickAddValidation.errors.pricingDate}>
+                              <ControlInput
+                                aria-label="Pricing date"
+                                type="date"
+                                value={activeCostEntry?.pricingDate ?? ""}
+                                onChange={(event) => updateActiveCostEntry({ pricingDate: event.target.value })}
+                                invalid={Boolean(quickAddValidation.errors.pricingDate)}
+                                className={CONTROL_INPUT_SURFACE_CLASS}
+                              />
+                            </ControlField>
+                            <ControlField label="Pricing source" errorText={quickAddValidation.errors.pricingSource}>
+                              <ControlInput
+                                aria-label="Pricing source"
+                                value={activeCostEntry?.pricingSource ?? ""}
+                                onChange={(event) => updateActiveCostEntry({ pricingSource: event.target.value })}
+                                invalid={Boolean(quickAddValidation.errors.pricingSource)}
+                                className={CONTROL_INPUT_SURFACE_CLASS}
+                              />
+                            </ControlField>
+                            <ControlField label="Confidence" errorText={quickAddValidation.errors.confidence}>
+                              <ControlInput
+                                aria-label="Confidence"
+                                value={activeCostEntry?.confidence ?? ""}
+                                onChange={(event) => updateActiveCostEntry({ confidence: event.target.value })}
+                                invalid={Boolean(quickAddValidation.errors.confidence)}
+                                className={CONTROL_INPUT_SURFACE_CLASS}
+                                placeholder="Supplier quote, verified invoice"
+                              />
+                            </ControlField>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="xs"
+                            aria-expanded={advancedDetailsOpen}
+                            aria-controls={advancedDetailsId}
+                            className="md:col-span-2 min-w-0 justify-between px-2"
+                            onClick={() => setAdvancedDetailsOpen((current) => !current)}
+                          >
+                            Advanced catalog details
+                            <CaretDown
+                              size={12}
+                              weight="regular"
+                              aria-hidden="true"
+                              className={cn("transition", advancedDetailsOpen ? "rotate-180" : "")}
+                            />
+                          </Button>
+                          {advancedDetailsOpen ? (
+                          <div id={advancedDetailsId} className="md:col-span-2 grid gap-3">
                           <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Component measurements">
                             <div className={sectionTitleClassName()}>Measurements</div>
                             <div className="mt-2 grid gap-x-2 gap-y-3 md:grid-cols-4">
@@ -2077,6 +2265,8 @@ export function AddComponentModal({
                               </span>
                             ) : null}
                           </div>
+                          </div>
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -2104,19 +2294,19 @@ export function AddComponentModal({
                 selectedBrandId={draft.brandId || null}
                 selectedBrandName={draft.brand || null}
                 onSelectFolder={(folderId) => {
-                  updateDraft({
+                  updateQuickAddIdentity({
                     libraryFolderId: folderId,
-                    categoryNodeId: resolveFolderCategoryNodeId(folders, folderId),
+                    ...getFolderCategoryDraft(folders, folderId),
                   });
                 }}
                 onSelectSupplier={(supplierId, supplierName) => {
                   const supplier = supplierId ? suppliers.find((entry) => entry.id === supplierId) : null;
-                  updateDraft({ supplierId: supplierId ?? "", supplierName: supplierName ?? supplier?.name ?? "" });
+                  updateQuickAddIdentity({ supplierId: supplierId ?? "", supplierName: supplierName ?? supplier?.name ?? "" });
                   setNestingViewMode("suppliers");
                 }}
                 onSelectBrand={(brandId, brandName) => {
                   const brand = brandId ? brands.find((entry) => entry.id === brandId) : null;
-                  updateDraft({ brandId: brandId ?? "", brand: brandName ?? brand?.name ?? "" });
+                  updateQuickAddIdentity({ brandId: brandId ?? "", brand: brandName ?? brand?.name ?? "" });
                   setNestingViewMode("brand");
                 }}
                 onCreateFolder={handleCreateFolder}
@@ -2354,6 +2544,16 @@ export function AddComponentModal({
         </section>
       </div>
     </Modal>
+    <ConfirmDialog
+      open={discardDialogOpen}
+      onOpenChange={setDiscardDialogOpen}
+      title="Discard this draft?"
+      description="You have unsaved changes to this component. They are lost if you leave."
+      confirmLabel="Discard draft"
+      cancelLabel="Keep editing"
+      tone="warning"
+      onConfirm={confirmDiscardDraft}
+    />
     </>
   );
 }

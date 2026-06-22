@@ -4,10 +4,10 @@ import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { LibrarySurfaceVariantProvider } from "@/components/workshop/library/library-surface-variant";
 import {
-  WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY,
-  WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY,
   WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+  workspaceComponentLibraryQueryKey,
   workspaceComponentRowsLibraryQueryKey,
 } from "@/lib/component-library/query-keys";
 import { loadCurrentWorkspaceComponentRowsLibrary, loadProjectComponentRowsLibrary } from "@/lib/component-library/actions";
@@ -26,10 +26,14 @@ const ComponentLibraryManager = dynamic(() =>
 
 function LibraryManagerFallback() {
   return (
-    <div className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white" role="status" aria-label="Loading library">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-        <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
-          <div className="flex min-w-0 flex-1 flex-col p-2" aria-hidden="true">
+    <div
+      className="estimate-glass-well flex h-full min-h-0 gap-2 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2"
+      role="status"
+      aria-label="Loading library"
+    >
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <section className="flex h-full min-h-0 gap-2 overflow-hidden bg-transparent" aria-label="Component library workspace">
+          <div className="estimate-glass-paper flex min-w-0 flex-1 flex-col rounded-xs p-2" aria-hidden="true">
             <Skeleton className="h-7 w-32" />
             <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2">
               {Array.from({ length: 8 }, (_, index) => (
@@ -37,7 +41,7 @@ function LibraryManagerFallback() {
               ))}
             </div>
           </div>
-          <div className="hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block" aria-hidden="true">
+          <div className="estimate-glass-rail hidden w-[312px] shrink-0 rounded-xs p-2 lg:block" aria-hidden="true">
             <Skeleton className="h-7 w-full" />
             <div className="mt-2 space-y-1">
               {Array.from({ length: 9 }, (_, index) => (
@@ -123,22 +127,26 @@ export function LibraryPageClient({
   const onProjectPromotionSucceeded = () => {
     void queryClient.invalidateQueries({ queryKey: componentRowsQueryKey });
     void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY });
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY });
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY });
+    if (library?.workspaceId) {
+      void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(library.workspaceId) });
+    }
   };
 
   return (
-    <ComponentLibraryManager
-      categoryTree={library?.categoryTree}
-      suppliers={library?.suppliers}
-      brands={library?.brands}
-      libraryFolders={library?.libraryFolders}
-      libraryItems={library?.libraryItems}
-      projectId={projectId}
-      promotionEnabled={promotionEnabled}
-      onLibraryItemsMutated={onLibraryItemsMutated}
-      onLibraryFoldersMutated={onLibraryFoldersMutated}
-      onProjectPromotionSucceeded={onProjectPromotionSucceeded}
-    />
+    <LibrarySurfaceVariantProvider variant="glass">
+      <ComponentLibraryManager
+        categoryTree={library?.categoryTree}
+        suppliers={library?.suppliers}
+        brands={library?.brands}
+        libraryFolders={library?.libraryFolders}
+        libraryItems={library?.libraryItems}
+        workspaceId={library?.workspaceId}
+        projectId={projectId}
+        promotionEnabled={promotionEnabled}
+        onLibraryItemsMutated={onLibraryItemsMutated}
+        onLibraryFoldersMutated={onLibraryFoldersMutated}
+        onProjectPromotionSucceeded={onProjectPromotionSucceeded}
+      />
+    </LibrarySurfaceVariantProvider>
   );
 }

@@ -52,7 +52,9 @@ describe("project dashboard route shell UI governance", () => {
   it("gets the active header budget from the selected estimate sheet metadata", () => {
     expect(projectDashboardLayout).not.toContain("readProjectBudget");
     expect(projectDashboardLayout).toContain("projectId={projectId}");
-    expect(workshopPageShell).toContain("<ProjectTotalHeader projectId={projectId} />");
+    expect(workshopPageShell).toContain("<ProjectTotalFooterOverlay projectId={projectId} />");
+    expect(projectTotalHeader).toContain("function ProjectTotalFooterOverlay");
+    expect(projectTotalHeader).toContain("<ProjectTotalHeader projectId={projectId} />");
     expect(projectTotalHeader).toContain("usePathname");
     expect(projectTotalHeader).toContain("pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)");
     expect(projectTotalHeader).toContain("if (!isEstimateSheetRoute) return null;");

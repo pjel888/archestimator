@@ -181,6 +181,8 @@ export function withCopiedExpressComponentMetadata(
 export function readProjectComponentProjectionMetadata(metadata: unknown): ProjectComponentProjectionMetadata | null {
   const projection = readEstimateRowMetadata(metadata).projectComponentProjection;
   if (!isRecord(projection)) return null;
+  if (typeof projection.projectId !== "string" || projection.projectId.trim().length === 0) return null;
+  if (projection.classification !== "express" && projection.classification !== "detached-library") return null;
   return { ...(projection as ProjectComponentProjectionMetadata) };
 }
 

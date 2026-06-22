@@ -27,7 +27,7 @@ describe("collaboration/publication summaries reuse the cached project (F7)", ()
   });
 
   it("publication summary uses the cached project lookup, not a raw projects re-query", () => {
-    const body = summaryBody("export async function getProjectPublicationSummary(projectId: string)");
+    const body = summaryBody("async function getProjectPublicationSummary(\n  projectId: string,");
     expect(body).toContain("await getCurrentWorkspaceProject(projectId)");
     expect(body).not.toContain('.from("projects")');
   });

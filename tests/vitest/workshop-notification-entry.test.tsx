@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { WorkshopSettingsModal } from "@/components/workshop/WorkshopSettingsModal";
 import { WorkshopNotificationEntry } from "@/features/notifications/components/WorkshopNotificationEntry";
 import { notificationFeedResult } from "../fixtures/notifications";
 
@@ -55,7 +56,16 @@ describe("workshop notification entry", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Notifications, 2 unread" })).toHaveClass("size-10");
+    expect(screen.getByRole("button", { name: "Notifications, 2 unread" })).toHaveClass(
+      "size-8",
+      "cursor-pointer",
+    );
+  });
+
+  it("renders the workshop settings entry point at the compact header icon size", () => {
+    render(<WorkshopSettingsModal>Settings body</WorkshopSettingsModal>);
+
+    expect(screen.getByRole("button", { name: "Open settings" })).toHaveClass("size-8", "cursor-pointer");
   });
 
   it("mounts notifications under the app query provider and workshop actions slot", () => {
@@ -74,7 +84,7 @@ describe("workshop notification entry", () => {
       shellSource.indexOf("return (", headerActionsStart),
     );
     expect(headerActionsSource.indexOf("<WorkshopNotificationEntry")).toBeLessThan(
-      headerActionsSource.indexOf("<WorkshopSettingsModal>"),
+      headerActionsSource.indexOf("<WorkshopSettingsModal"),
     );
   });
 });

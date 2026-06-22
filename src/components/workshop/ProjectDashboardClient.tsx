@@ -772,11 +772,11 @@ export function ProjectDashboardClient({
   const [locationSaveStatus, setLocationSaveStatus] = useState("");
 
   useEffect(() => {
-    setAddressValue(location);
+    queueMicrotask(() => setAddressValue(location));
   }, [location]);
 
   useEffect(() => {
-    setLocationPin(initialPin);
+    queueMicrotask(() => setLocationPin(initialPin));
   }, [initialPin]);
 
   const handleGooglePlaceSelect = useCallback(async (selection: ProjectGooglePlaceSelection) => {

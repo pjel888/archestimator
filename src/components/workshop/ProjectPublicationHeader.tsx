@@ -23,6 +23,11 @@ import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
 import { WorkshopTreeTabs, getTabStripPanelId, getTabStripTabId } from "./workshop-tree";
+import {
+  PROJECT_HEADER_ACTION_BUTTON_CLASS,
+  PROJECT_HEADER_ACTION_DOT_CLASS,
+  PROJECT_HEADER_ACTION_ICON_SIZE,
+} from "./project-header-action-styles";
 import type {
   ProjectEstimateSheet,
   ProjectPublicationLocationVisibility,
@@ -626,35 +631,31 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
   return (
     <>
-      <button
+      <Button
         type="button"
-        className={cn(
-          "relative inline-flex h-10 shrink-0 items-center gap-2 rounded-xs border border-hairline bg-white px-3 text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-          open ? "bg-surfaceMuted text-ink" : null,
-        )}
+        variant="ghost"
+        size="icon-sm"
+        className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
         aria-label="Open shared link"
         aria-haspopup="dialog"
         aria-expanded={open}
-        title="Shared link"
+        title={`Shared link: ${shareTriggerStateLabel}`}
         data-workshop-layout="project-publication-header"
         onClick={() => {
           setActiveTab("link");
           setOpen(true);
         }}
       >
-        <LinkSimple size={14} weight="regular" aria-hidden="true" />
-        <span className="text-[12px] font-medium leading-none tracking-normal">Share</span>
-        <span className="hidden text-[10px] leading-none tracking-normal text-tertiary sm:inline">
-          {shareTriggerStateLabel}
-        </span>
-        {hasHeaderActivity ? (
+        <LinkSimple size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+        {hasLiveClientLink ? (
           <span
             aria-hidden="true"
-            data-shared-link-activity-dot="true"
-            className="absolute -right-1 -top-1 size-2 rounded-xs border border-white bg-warning"
+            data-shared-link-active-dot="true"
+            data-shared-link-activity-dot={hasHeaderActivity ? "true" : undefined}
+            className={PROJECT_HEADER_ACTION_DOT_CLASS}
           />
         ) : null}
-      </button>
+      </Button>
       {actionFeedback ? (
         <span
           className="sr-only"

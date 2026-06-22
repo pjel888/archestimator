@@ -67,25 +67,11 @@ describe("MainSidebar favorites", () => {
     );
 
     const collapsedNavigation = screen.getByRole("navigation", { name: "Main navigation" });
-    // Redesign: the mark is locked into the 48px column so it stays put on
-    // toggle; the red frame expands into a wordmark slab only when opened.
-    const collapsedFrame = collapsedNavigation.querySelector("[data-sidebar-header-frame]");
-    expect(collapsedFrame).toHaveStyle({ width: "48px" });
-    const collapsedLogo = collapsedNavigation.querySelector("[data-sidebar-header-logo-lock]");
-    expect(collapsedLogo).toBeTruthy();
-    expect(collapsedLogo).toHaveClass("w-12");
-    expect((collapsedLogo as HTMLElement).querySelector("img")?.getAttribute("src")).toContain("archestimator_logo_white");
-    expect(within(collapsedLogo as HTMLElement).queryByText("archestimator")).toBeNull();
+    expect(within(collapsedNavigation).queryByText("Favorites")).toHaveClass("opacity-0");
 
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
 
     const navigation = screen.getByRole("navigation", { name: "Main navigation" });
-    const expandedFrame = navigation.querySelector("[data-sidebar-header-frame]");
-    expect(expandedFrame).toHaveStyle({ width: "272px" });
-    const expandedLogo = navigation.querySelector("[data-sidebar-header-logo-lock]");
-    expect(expandedLogo).toBeTruthy();
-    expect(expandedLogo).toHaveClass("w-12");
-    expect(within(navigation).getByText("archestimator")).toHaveClass("text-[12px]", "text-white");
     expect(within(navigation).getByText("Favorites")).toBeInTheDocument();
 
     const favoriteProject = within(navigation).getByRole("link", { name: "Lewis Residence" });

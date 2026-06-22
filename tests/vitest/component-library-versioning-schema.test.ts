@@ -114,7 +114,8 @@ describe("component library item versioning schema", () => {
     expect(addModal).toContain("Component variants");
     expect(addModal).toContain("Variant 1");
     expect(addModal).toContain("Add variant");
-    expect(addModal).toContain("aria-label=\"Cost\"");
+    expect(addModal).toContain("aria-label=\"Unit cost\"");
+    expect(addModal).toContain("aria-label=\"Open cost entries\"");
     expect(supabaseTypes).toContain("cost_library_item_price_options");
     expect(supabaseTypes).toContain("component_lifecycle_state");
   });

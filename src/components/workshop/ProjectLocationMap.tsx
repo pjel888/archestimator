@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { hasGoogleMapsApiKey, loadGoogleMapsApi } from "@/lib/google-maps/loader";
+import { PROJECT_LOCATION_MAP_STYLES } from "@/lib/google-maps/project-location-map-style";
 
 export type ProjectLocationPin = {
   readonly latitude: number;
@@ -38,59 +39,11 @@ type MapsLibrary = {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMapInstance;
 };
 
-type GoogleMapStyle = {
-  readonly featureType?: string;
-  readonly elementType?: string;
-  readonly stylers: ReadonlyArray<Record<string, boolean | number | string>>;
-};
-
 type MapStatus = "idle" | "ready" | "fallback";
 
 const DEFAULT_CENTER: GoogleLatLngLiteral = { lat: 14.599512, lng: 120.984222 };
 const PROJECT_LOCATION_FROSTED_PANEL_CLASS =
   "border-l border-white/45 bg-[linear-gradient(135deg,rgba(255,255,255,0.42),rgba(255,255,255,0.16)_48%,rgba(255,255,255,0.28))] shadow-[inset_1px_0_0_rgba(255,255,255,0.52),inset_0_1px_0_rgba(255,255,255,0.34),0_18px_56px_-48px_rgba(17,17,17,0.46)] ring-1 ring-black/[0.018] backdrop-blur-[10px] backdrop-saturate-125";
-const PROJECT_LOCATION_MAP_STYLES: readonly GoogleMapStyle[] = [
-  { stylers: [{ saturation: -100 }] },
-  { elementType: "geometry", stylers: [{ color: "#f9f9f9" }] },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#7a7a7a" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ visibility: "off" }] },
-  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9a9a9a" }] },
-  { featureType: "administrative.province", elementType: "labels.text.fill", stylers: [{ color: "#9a9a9a" }] },
-  {
-    featureType: "administrative.locality",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#666666" }, { weight: 1.15 }],
-  },
-  {
-    featureType: "administrative.neighborhood",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#767676" }, { weight: 1 }],
-  },
-  { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
-  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f8f8f8" }] },
-  { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "off" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.attraction", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.business", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.government", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.medical", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.park", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.place_of_worship", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.school", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.sports_complex", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#f4f4f4" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#f0f0f0" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#7a7a7a" }] },
-  { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#f9f9f9" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#dcebf2" }] },
-  { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
-];
 
 function toMapPosition(pin: ProjectLocationPin | null): GoogleLatLngLiteral {
   return pin ? { lat: pin.latitude, lng: pin.longitude } : DEFAULT_CENTER;
@@ -113,22 +66,25 @@ export function ProjectLocationMap({
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const [status, setStatus] = useState<MapStatus>("idle");
   const [fallbackReason, setFallbackReason] = useState("Google Maps loading");
+  const hasMapsApiKey = hasGoogleMapsApiKey(apiKey);
+  const renderedStatus: MapStatus = hasMapsApiKey ? status : "fallback";
+  const renderedFallbackReason = hasMapsApiKey ? fallbackReason : "Google Maps API key missing";
   const center = useMemo(() => toMapPosition(pin), [pin]);
   const coordinateLabel = pin ? `${formatCoordinate(pin.latitude)}, ${formatCoordinate(pin.longitude)}` : null;
 
   useEffect(() => {
-    if (!hasGoogleMapsApiKey(apiKey)) {
-      setStatus("fallback");
-      setFallbackReason("Google Maps API key missing");
-      return;
-    }
+    if (!hasMapsApiKey) return;
 
     const container = containerRef.current;
     if (!container) return;
 
     let cancelled = false;
-    setStatus("idle");
-    setFallbackReason("Google Maps loading");
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setStatus("idle");
+        setFallbackReason("Google Maps loading");
+      }
+    });
 
     loadGoogleMapsApi(apiKey)
       .then((api) => api.importLibrary("maps"))
@@ -164,7 +120,7 @@ export function ProjectLocationMap({
       cancelled = true;
       mapRef.current = null;
     };
-  }, [apiKey]);
+  }, [apiKey, hasMapsApiKey]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -173,10 +129,10 @@ export function ProjectLocationMap({
     map.setZoom(pin ? 15 : 11);
   }, [center, pin, status]);
 
-  if (status === "fallback") {
+  if (renderedStatus === "fallback") {
     return (
       <div className="flex h-full min-h-[320px] flex-col justify-center rounded-xs border border-dashed border-[color:var(--glass-border)] bg-white/40 p-4 text-center">
-        <p className="text-[10px] font-medium uppercase leading-3 tracking-normal text-tertiary">{fallbackReason}</p>
+        <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">{renderedFallbackReason}</p>
         <p className="mx-auto mt-2 max-w-sm text-[10px] leading-4 text-secondary">
           The saved address remains editable. Google map display will return when the browser key and provider are available.
         </p>
@@ -230,7 +186,7 @@ export function ProjectLocationMap({
         <div
           data-testid="project-location-map-pin"
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-7 w-7 -translate-x-1/2 -translate-y-full rounded-full border-2 border-white bg-[color:var(--brand-orange)] shadow-[0_10px_24px_rgba(0,0,0,0.22)] after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-7 w-7 -translate-x-1/2 -translate-y-full rounded-xs border-2 border-white bg-[color:var(--brand-orange)] shadow-[0_10px_24px_rgba(0,0,0,0.22)] after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-xs after:bg-white"
         />
       ) : null}
       {!pin ? (

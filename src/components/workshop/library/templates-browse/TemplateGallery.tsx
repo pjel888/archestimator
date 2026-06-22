@@ -13,6 +13,7 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
+import { getTemplateSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { cn } from "@/lib/ui/cn";
 
 export type TemplatesBrowseStatus =
@@ -97,6 +98,12 @@ function TemplateGalleryRow({
       ) : null}
       <div className="mt-2 flex items-center gap-1">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+          <SourceTrustChips
+            chips={getTemplateSourceTrustChips(template)}
+            ariaLabel={`Source trust for ${template.name}`}
+            maxChips={3}
+            chipClassName="max-w-[112px]"
+          />
           {getTemplateChips(template).map((chip) => (
             <span
               key={chip}
@@ -284,8 +291,8 @@ export function TemplateGallery({
         ) : totalTemplateCount === 0 ? (
           <EmptyState
             icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title="No templates yet"
-            description="Create a template from scratch, or save any estimate group as a template from the estimate page."
+            title="No templates yet."
+            description="Save a template to reuse line items."
             action={
               <Button type="button" variant="primary" size="xs" className="min-w-0 px-2" onClick={onNewTemplate}>
                 New template

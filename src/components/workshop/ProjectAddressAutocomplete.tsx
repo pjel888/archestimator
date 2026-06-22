@@ -144,7 +144,7 @@ export function ProjectAddressAutocomplete({
 
   useEffect(() => {
     if (!placesLibrary || readOnly || value.trim().length < 3) {
-      setSuggestions([]);
+      queueMicrotask(() => setSuggestions([]));
       return;
     }
 
@@ -177,7 +177,7 @@ export function ProjectAddressAutocomplete({
   }, [placesLibrary, readOnly, value]);
 
   useEffect(() => {
-    setActiveIndex(suggestions.length > 0 ? 0 : -1);
+    queueMicrotask(() => setActiveIndex(suggestions.length > 0 ? 0 : -1));
   }, [suggestions]);
 
   useEffect(() => {

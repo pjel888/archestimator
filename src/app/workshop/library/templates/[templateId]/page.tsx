@@ -15,6 +15,7 @@ export default async function TemplateEditorPage({ params, searchParams }: Templ
   const { templateId } = await params;
   const template = await getEstimateTemplateById(templateId);
   if (!template) notFound();
+  if (!template.workspaceId) notFound();
 
-  return <TemplateEditorClient template={template} />;
+  return <TemplateEditorClient template={template} workspaceId={template.workspaceId} />;
 }

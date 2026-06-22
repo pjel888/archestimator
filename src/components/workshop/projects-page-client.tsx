@@ -687,9 +687,6 @@ export function ProjectsPageClient({
   // Defer the BulkDestructivePreviewModal chunk until the first delete is initiated, then keep
   // it mounted so its open/close animation stays intact (re-opens are instant — chunk cached).
   const [bulkDeleteModalMounted, setBulkDeleteModalMounted] = useState(false);
-  useEffect(() => {
-    if (deleteProjectTargetIds.length > 0) setBulkDeleteModalMounted(true);
-  }, [deleteProjectTargetIds.length]);
   // Shared transition for group-CRUD (create/rename/recolor/delete) and the
   // delete-preview/execute flow. Its pending flag is intentionally NOT consumed — the
   // reconciliation gate tracks the assignment-only transition below (F3), so only the
@@ -1253,6 +1250,7 @@ export function ProjectsPageClient({
     const allowedIds = new Set(projectItems.filter(canSelectProjectForDeletion).map((item) => item.project.id));
     const ids = Array.from(new Set(projectIds)).filter((id) => allowedIds.has(id));
     if (ids.length === 0) return;
+    setBulkDeleteModalMounted(true);
     setDeleteProjectTargetIds(ids);
     setDeleteProjectPreview(null);
     setDeleteProjectError(null);

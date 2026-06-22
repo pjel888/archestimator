@@ -44,6 +44,9 @@ const baseOverview: LibraryOverviewPayload = {
       supplier: "FloorCo",
       unit: "sqm",
       unitCost: 2450,
+      pricingSource: "FloorCo quote",
+      pricingDate: "2026-06-01",
+      confidence: "Quoted",
       lifecycleState: "available",
       updatedAt: "2026-06-08T00:00:00.000Z",
     },
@@ -54,6 +57,9 @@ const baseOverview: LibraryOverviewPayload = {
       supplier: "FloorCo",
       unit: "sqm",
       unitCost: 890,
+      pricingSource: "FloorCo quote",
+      pricingDate: "2025-12-01",
+      confidence: "low",
       lifecycleState: "discontinued",
       updatedAt: "2026-06-07T00:00:00.000Z",
     },
@@ -68,6 +74,18 @@ const baseOverview: LibraryOverviewPayload = {
       areaCount: 1,
       rowCount: 4,
       total: 61150,
+      sourceTrustChips: [
+        {
+          id: "template-linked-rows",
+          label: "4/4 linked rows",
+          tone: "success",
+        },
+        {
+          id: "template-pricing-fresh",
+          label: "Current",
+          tone: "success",
+        },
+      ],
     },
   ],
   health: {
@@ -120,8 +138,11 @@ describe("LibraryOverview", () => {
     render(<LibraryOverview overview={baseOverview} />);
 
     const componentCard = screen.getByRole("link", { name: "Open components: Engineered Oak Plank" });
-    expect(componentCard).toHaveAttribute("href", "/workshop/library/components");
+    expect(componentCard).toHaveAttribute("href", "/workshop/library/components?component=comp-1");
     expect(within(componentCard).getByText("Floor Finishes · FloorCo")).toBeInTheDocument();
+    const componentTrust = within(componentCard).getByLabelText("Source trust for Engineered Oak Plank");
+    expect(within(componentTrust).getByText("Current")).toBeInTheDocument();
+    expect(within(componentTrust).getByText("Verified source")).toBeInTheDocument();
     expect(within(componentCard).getByText("₱2,450.00")).toBeInTheDocument();
     expect(within(componentCard).getByText("/ sqm")).toBeInTheDocument();
 
@@ -135,6 +156,9 @@ describe("LibraryOverview", () => {
     // P4: groups + areas collapse to one "areas" count (1 group + 1 area = 2).
     expect(within(templateRow as HTMLElement).getByText("2 areas · 4 rows")).toBeInTheDocument();
     expect(within(templateRow as HTMLElement).getByText("Residential Rooms")).toBeInTheDocument();
+    const templateTrust = within(templateRow as HTMLElement).getByLabelText("Source trust for Powder Room Basic");
+    expect(within(templateTrust).getByText("4/4 linked rows")).toBeInTheDocument();
+    expect(within(templateTrust).getByText("Current")).toBeInTheDocument();
     expect(within(templateRow as HTMLElement).getByText("₱61,150.00")).toBeInTheDocument();
 
     fireEvent.click(within(templateRow as HTMLElement).getByRole("button", { name: "Open Powder Room Basic" }));
@@ -176,13 +200,11 @@ describe("LibraryOverview", () => {
     const emptyWorkspace = document.querySelector('[data-library-overview-empty-workspace="true"]');
     expect(emptyWorkspace).not.toBeNull();
     const teach = within(emptyWorkspace as HTMLElement);
-    expect(teach.getByText("Build your component library")).toBeInTheDocument();
-    expect(teach.getByText("Add your first component, or import from a price list.")).toBeInTheDocument();
+    expect(teach.getByText("Your library is empty.")).toBeInTheDocument();
+    expect(teach.getByText("Add a component to reuse it across estimates.")).toBeInTheDocument();
     expect(teach.getByRole("button", { name: "Add component" })).toBeInTheDocument();
-    expect(teach.getByText("No templates yet")).toBeInTheDocument();
-    expect(
-      teach.getByText("Create a template from scratch, or save any estimate group as a template from the estimate page."),
-    ).toBeInTheDocument();
+    expect(teach.getByText("No templates yet.")).toBeInTheDocument();
+    expect(teach.getByText("Save a template to reuse line items.")).toBeInTheDocument();
     expect(teach.getByRole("button", { name: "New template" })).toBeInTheDocument();
 
     // Sections and health line collapse away entirely.
@@ -224,10 +246,24 @@ describe("LibraryOverview", () => {
     await screen.findByRole("group", { name: "Components" });
 
     // Enter without an explicit highlight activates the first result: a
-    // component, which deep-links to the Components tab (no per-item link
-    // exists yet).
+    // component, which deep-links to its Components inspector route state.
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(navigationMocks.push).toHaveBeenCalledWith("/workshop/library/components");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/workshop/library/components?component=search-comp-1");
+  });
+
+  it("opens a component result in the Components inspector route state", async () => {
+    actionMocks.searchLibraryOverview.mockResolvedValue({
+      components: [{ id: "search-comp-1", name: "Engineered Oak Plank", category: "Floor Finishes", supplier: "FloorCo" }],
+      templates: [],
+    });
+
+    render(<LibraryOverview overview={baseOverview} />);
+    fireEvent.change(getSearchInput(), { target: { value: "oak" } });
+    const componentsGroup = await screen.findByRole("group", { name: "Components" });
+
+    fireEvent.click(within(componentsGroup).getByText("Engineered Oak Plank"));
+
+    expect(navigationMocks.push).toHaveBeenCalledWith("/workshop/library/components?component=search-comp-1");
   });
 
   it("opens a template result in its editor and closes on Escape", async () => {

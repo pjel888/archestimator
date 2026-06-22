@@ -105,7 +105,9 @@ export function BulkDestructivePreviewModal({
             ? `This will ${actionCopy.verb} ${eligibleCount === 1 ? `this ${getTargetLabel(preview, 1)}` : `${eligibleCount} ${getTargetLabel(preview, eligibleCount)}`}.`
             : "Review the details before continuing.";
   const confirmationHint = canExecute
-    ? "This action cannot be undone."
+    ? actionCopy.verb === "archive"
+      ? "Archived components are hidden from browse and blocked from new inserts. You can restore them later."
+      : "This action cannot be undone."
     : actionBlocked
       ? `Resolve the item above before ${actionCopy.gerund}.`
       : `Type ${requiredPhrase} to enable ${executeLabel.toLowerCase()}.`;

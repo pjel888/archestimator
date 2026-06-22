@@ -9,7 +9,7 @@ import {
   projectEstimateRowToLibraryItem,
   type ProjectComponentProjectionRow,
 } from "@/lib/component-library/project-component-projection";
-import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import { readProjectComponentProjectionMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 function row(overrides: Partial<ProjectComponentProjectionRow> = {}): ProjectComponentProjectionRow {
   return {
@@ -109,9 +109,32 @@ describe("project component projection", () => {
     expect(legacyBlank).toBeNull();
   });
 
+  it("treats malformed projection metadata as non-project-owned", () => {
+    expect(readProjectComponentProjectionMetadata({ projectComponentProjection: {} })).toBeNull();
+    expect(readProjectComponentProjectionMetadata({
+      projectComponentProjection: {
+        projectId: "",
+        classification: "express",
+      },
+    })).toBeNull();
+    expect(readProjectComponentProjectionMetadata({
+      projectComponentProjection: {
+        projectId: "project-1",
+        classification: "linked-library",
+      },
+    })).toBeNull();
+    expect(readProjectComponentProjectionMetadata({
+      projectComponentProjection: {
+        projectId: "project-1",
+        classification: "express",
+      },
+    })).toMatchObject({ projectId: "project-1", classification: "express" });
+  });
+
   it("keeps projection support while the project Components route stays deleted", () => {
     const projectRoutePath = join(process.cwd(), "src/app/workshop/projects/[projectId]/components/page.tsx");
     const sidebar = readFileSync(join(process.cwd(), "src/components/workshop/ProjectMiniSidebar.tsx"), "utf8");
+    const estimateSidebar = readFileSync(join(process.cwd(), "src/components/workshop/component-library/index.tsx"), "utf8");
     const workspaceRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/components/page.tsx"), "utf8");
     const libraryPage = readFileSync(join(process.cwd(), "src/components/workshop/LibraryPageClient.tsx"), "utf8");
     const projection = readFileSync(join(process.cwd(), "src/lib/component-library/project-component-projection.ts"), "utf8");
@@ -128,6 +151,7 @@ describe("project component projection", () => {
     expect(projection).toContain("name: project.name || \"Project\"");
     expect(projection).toContain("name: row.estimate_nodes?.estimates?.name?.trim() || \"Estimate Sheet\"");
     expect(sidebar).not.toContain("/workshop/projects/${projectId}/components");
-    expect(sidebar).not.toContain('label: "Components"');
+    expect(estimateSidebar).toContain('{ id: "components", label: "Library" }');
+    expect(estimateSidebar).toContain('{ id: "project", label: "Project" }');
   });
 });

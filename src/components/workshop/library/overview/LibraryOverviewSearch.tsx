@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   searchLibraryOverview,
@@ -29,10 +30,9 @@ function optionDomId(entryId: string) {
  * Cross-library search for the Overview home: a persistent 360px
  * `SearchInput` whose results popover groups Components and Templates,
  * fetched lazily through the `searchLibraryOverview` server action from the
- * first keystroke. Components deep-link to the Components tab (no per-item
- * selection link exists yet — documented v1 simplification); templates open
- * their editor. `⌘K` focuses the input, arrows move the highlight, Esc
- * closes.
+ * first keystroke. Component results deep-link to the Components inspector;
+ * templates open their editor. `⌘K` focuses the input, arrows move the
+ * highlight, Esc closes.
  */
 export function LibraryOverviewSearch() {
   const router = useNavigationRouter();
@@ -117,7 +117,7 @@ export function LibraryOverviewSearch() {
         id: `component-${component.id}`,
         title: component.name,
         meta: [component.category, component.supplier].filter(Boolean).join(" · ") || undefined,
-        href: "/workshop/library/components",
+        href: getComponentDetailsHref(component.id),
         kind: "component" as const,
       })),
       {

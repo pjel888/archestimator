@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter";
+import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { getCostLibraryComponentUsage } from "@/lib/component-library/actions";
 import type { EstimateRowItem } from "@/lib/estimates/types";
-import { cn } from "@/lib/ui/cn";
 
 const PRICE_HISTORY_PREVIEW_COUNT = 5;
 
@@ -42,12 +42,6 @@ function isNextImageSafeSource(src: string) {
   } catch {
     return false;
   }
-}
-
-function confidencePillClass(confidence: string) {
-  return /^(high|quoted)/i.test(confidence)
-    ? "border-success/20 bg-successSoft text-success"
-    : "border-warning/20 bg-warningSoft text-warning";
 }
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
@@ -94,6 +88,7 @@ export function ComponentInspectorDock({
     error: boolean;
   }>({ itemId: item.id, counts: null, error: false });
   const [historyState, setHistoryState] = useState({ itemId: item.id, showAll: false });
+  const [compactViewport, setCompactViewport] = useState(false);
   // Selection moves reset both panels during render, not in an effect.
   if (usageState.itemId !== item.id) setUsageState({ itemId: item.id, counts: null, error: false });
   if (historyState.itemId !== item.id) setHistoryState({ itemId: item.id, showAll: false });
@@ -116,6 +111,14 @@ export function ComponentInspectorDock({
   }, [item.id]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const updateCompactViewport = () => setCompactViewport(mediaQuery.matches);
+    updateCompactViewport();
+    mediaQuery.addEventListener("change", updateCompactViewport);
+    return () => mediaQuery.removeEventListener("change", updateCompactViewport);
+  }, []);
+
+  useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
@@ -136,15 +139,7 @@ export function ComponentInspectorDock({
   const lifecycle = item.lifecycleState ?? "available";
   const confidence = item.confidence?.trim();
 
-  return (
-    <ResizableSidePanel
-      side="right"
-      ariaLabel="Component inspector"
-      storageKey="component_inspector_dock_width"
-      defaultWidth={380}
-      minWidth={360}
-      maxWidth={560}
-    >
+  const detailsPanel = (
       <section
         className="flex h-full min-h-0 flex-col overflow-hidden bg-white"
         aria-label={`Component details for ${name}`}
@@ -198,6 +193,11 @@ export function ComponentInspectorDock({
           <p className="mt-0.5 truncate text-[9px] leading-3 text-tertiary" title={taxonomyPath}>
             {taxonomyPath}
           </p>
+          <SourceTrustChips
+            chips={getComponentSourceTrustChips(item)}
+            ariaLabel={`Source trust for ${name}`}
+            className="mt-2"
+          />
 
           <dl className="mt-3 border-t border-hairline pt-2">
             <DetailRow label="Unit cost">
@@ -212,20 +212,7 @@ export function ComponentInspectorDock({
             <DetailRow label="Supplier">{item.supplier?.trim() || "No supplier"}</DetailRow>
             <DetailRow label="Brand">{item.brand?.trim() || "No brand"}</DetailRow>
             <DetailRow label="Pricing date">{item.pricingDate?.trim() || "Not set"}</DetailRow>
-            <DetailRow label="Confidence">
-              {confidence ? (
-                <span
-                  className={cn(
-                    "inline-flex rounded-xs border px-1 py-0.5 text-[8px] font-medium leading-3",
-                    confidencePillClass(confidence),
-                  )}
-                >
-                  {confidence}
-                </span>
-              ) : (
-                "Not set"
-              )}
-            </DetailRow>
+            <DetailRow label="Confidence">{confidence || "Not set"}</DetailRow>
             <DetailRow label="Lifecycle">{COMPONENT_LIFECYCLE_FACET_LABELS[lifecycle]}</DetailRow>
             {typeof item.componentVersionNumber === "number" ? (
               <DetailRow label="Version">{`v${item.componentVersionNumber} · current`}</DetailRow>
@@ -310,6 +297,29 @@ export function ComponentInspectorDock({
           ) : null}
         </footer>
       </section>
+  );
+
+  if (compactViewport) {
+    return (
+      <aside
+        className="fixed inset-x-2 bottom-2 z-[850] max-h-[46vh] overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_18px_48px_-28px_rgba(17,24,39,0.7)] !text-[10px]"
+        aria-label="Component inspector"
+      >
+        {detailsPanel}
+      </aside>
+    );
+  }
+
+  return (
+    <ResizableSidePanel
+      side="right"
+      ariaLabel="Component inspector"
+      storageKey="component_inspector_dock_width"
+      defaultWidth={380}
+      minWidth={360}
+      maxWidth={560}
+    >
+      {detailsPanel}
     </ResizableSidePanel>
   );
 }

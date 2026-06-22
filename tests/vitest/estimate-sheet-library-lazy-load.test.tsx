@@ -119,12 +119,14 @@ describe("component library lazy load (U4)", () => {
     await waitFor(() => {
       expect(screen.queryByRole("status", { name: "Loading component library" })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Templates" })).toBeInTheDocument();
 
     view.unmount();
     renderSheet(queryClient);
     await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
     });
     expect(loadProjectLibraryMock).toHaveBeenCalledTimes(1);
     expect(loadLibraryMock).not.toHaveBeenCalled();
@@ -146,7 +148,7 @@ describe("component library lazy load (U4)", () => {
     loadProjectLibraryMock.mockResolvedValueOnce(sampleDataset);
     await userEvent.click(retryButton);
     await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
     });
     expect(loadProjectLibraryMock).toHaveBeenCalledTimes(2);
     expect(loadLibraryMock).not.toHaveBeenCalled();
@@ -163,7 +165,7 @@ describe("component library lazy load (U4)", () => {
       libraryFolders: [],
     });
 
-    expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
     expect(loadLibraryMock).not.toHaveBeenCalled();
     expect(loadProjectLibraryMock).not.toHaveBeenCalled();
   });
@@ -183,8 +185,8 @@ describe("component library lazy load (U4)", () => {
     // covers both the lite panel key and the full editor key). PERF-7: with
     // refetchType "none" it marks the heavy lite dataset stale without eagerly
     // refetching while the panel is open (local optimistic state is correct).
-    expect(sheetSource).toContain('queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "none" })');
-    expect(sheetSource).toContain("workspaceComponentLibraryLiteQueryKey(projectId)");
+    expect(sheetSource).toContain("workspaceComponentLibraryQueryKey(workspaceId)");
+    expect(sheetSource).toContain("workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)");
     expect(sheetSource).not.toContain("loadCurrentWorkspaceComponentLibraryLite");
     expect(sheetSource).toContain("onLibraryDataChanged={handleLibraryDataChanged}");
 

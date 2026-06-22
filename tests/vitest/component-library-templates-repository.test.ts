@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 import { estimateTemplates } from "@/lib/component-library/estimate-templates";
 import {
@@ -15,6 +18,18 @@ function collectTemplateNodeIds(nodes: Array<{ id: string; children?: Array<{ id
 }
 
 describe("component-library template repository helpers", () => {
+  it("chunks item-id detail graph reads so large component libraries do not exceed PostgREST query limits", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/lib/repositories/component-library-repository.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("const COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE = 100;");
+    expect(source).toContain("collectComponentLibraryRowsInItemChunks");
+    expect(source.match(/collectComponentLibraryRowsInItemChunks</g)?.length ?? 0).toBeGreaterThanOrEqual(6);
+    expect(source).not.toContain('.in("item_id", itemIds)');
+  });
+
   it("exposes separate component-only, template-only, and combined helper contracts", () => {
     expect(typeof getCurrentWorkspaceComponentRowsLibrary).toBe("function");
     expect(typeof getCurrentWorkspaceEstimateTemplates).toBe("function");

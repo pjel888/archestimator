@@ -2,6 +2,7 @@ import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 
 export type EstimateTemplate = {
   id: string;
+  workspaceId?: string;
   name: string;
   description: string;
   category: string;

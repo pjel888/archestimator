@@ -55,7 +55,12 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
 
     const tick = () => {
       if (speed !== 0) {
+        const previousScrollTop = scroller.scrollTop;
         scroller.scrollTop += speed;
+        if (scroller.scrollTop === previousScrollTop) {
+          stop();
+          return;
+        }
         frame = requestAnimationFrame(tick);
       } else {
         frame = null;
@@ -76,17 +81,41 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
       if (speed !== 0 && frame === null) frame = requestAnimationFrame(tick);
     };
 
+    const handleDragLeave = (event: DragEvent) => {
+      const relatedTarget = event.relatedTarget;
+      if (relatedTarget instanceof Node && scroller.contains(relatedTarget)) return;
+
+      if (relatedTarget === null) {
+        const { clientX, clientY } = event;
+        const rect = scroller.getBoundingClientRect();
+        if (
+          clientX > rect.left &&
+          clientX < rect.right &&
+          clientY > rect.top &&
+          clientY < rect.bottom
+        ) {
+          return;
+        }
+      }
+
+      stop();
+    };
+
     scroller.addEventListener("dragover", handleDragOver);
+    scroller.addEventListener("dragleave", handleDragLeave);
     // A drag that ends or drops anywhere must halt the loop, even if the pointer
     // was sitting in the hot zone (a drop at the very bottom edge otherwise
     // scrolls forever). dragend fires on the source, so listen at the document.
     document.addEventListener("dragend", stop);
     document.addEventListener("drop", stop);
+    window.addEventListener("blur", stop);
 
     return () => {
       scroller.removeEventListener("dragover", handleDragOver);
+      scroller.removeEventListener("dragleave", handleDragLeave);
       document.removeEventListener("dragend", stop);
       document.removeEventListener("drop", stop);
+      window.removeEventListener("blur", stop);
       stop();
     };
   }, [anchorRef, enabled]);
