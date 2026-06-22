@@ -19,6 +19,8 @@ Live sites inspected:
 - Paper: <https://paper.design/>
 - Interfere: <https://interfere.com/>
 - Verichain AI Framer reference: <https://verichainai.framer.website/>
+- Parley Agent Framer template:
+  <https://www.framer.com/community/marketplace/templates/parley-agent/>
 
 Local browser snapshots captured at `1440x1200`:
 
@@ -498,3 +500,74 @@ Avoid:
 - Overloading the homepage with pricing cards.
 - Turning community into fake social proof. Only show real channels and label
   inactive or planned channels honestly.
+
+## Parley Agent Framer Template Reference
+
+Reference role: modern agentic/SaaS structure with a warmer product tone and a
+multi-page public-site system.
+
+Observed marketplace facts:
+
+- The template is positioned as "AI SaaS & Startup" with 11 pages including Home,
+  Workflows, Pricing, Blog, Contact, Waitlist, Legal, and 404.
+- Its feature list includes sticky scrolling, scroll effects, forms, CMS, rich
+  media, code components, and conversion-built sections.
+- The template description explicitly aims to look like a real product rather
+  than a side project, with a warm editorial aesthetic instead of another dark
+  gradient AI site.
+
+Archestimator translation:
+
+- Use Parley as a public-site system reference: homepage, `/features`,
+  `/pricing`, `/about`, `/trust`, `/contact`, and follow/community surfaces can
+  work together rather than forcing every detail onto the homepage.
+- Borrow the "real product, not side project" expectation. Archestimator should
+  look like serious commercial software, even while pre-launch.
+- Keep the copy and typography restrained. This is another reference against
+  oversized hero type.
+- Keep pricing as its own page. The homepage can route to `/pricing`, but should
+  not become a pricing-comparison page.
+
+Avoid:
+
+- AI-agent category language as the public identity.
+- Big-font startup-template drama.
+- Generic template sections that could describe any SaaS.
+- CMS/blog complexity unless the content strategy explicitly needs it.
+
+## First-Party Workshop Reference
+
+Reference role: the strongest Archestimator-native visual system for layout,
+spacing, color, glass, grid discipline, and professional density.
+
+Observed source anchors:
+
+- `/workshop` uses `WorkshopPageShell`, which mounts `WorkshopGlassBackdrop`,
+  `MainSidebar`, a continuous glass workspace surface, route chrome, and compact
+  content slots.
+- `WorkshopGlassBackdrop` is a static, GPU-cheap, warm-neutral mesh whose job is
+  to make frosted glass read over a quiet gray canvas.
+- `src/app/globals.css` defines the live Signal orange family, liquid-glass
+  tokens, deferred glass arming, dashboard bloom, dot-grid texture, and
+  glass-surface shadow language.
+- `WorkshopDashboard` uses a dense bento/workbench layout with small labels,
+  numeric texture, route tiles, recent work lists, and enough empty space for the
+  interface to breathe.
+
+Archestimator translation:
+
+- Treat `/workshop` as the first-party art direction. The public landing page
+  should feel related to the product, not like a separate SaaS template.
+- Borrow the calm gray canvas, tight grid, subtle warm orange bloom, frosted
+  surfaces, restrained shadows, small numeric labels, and balanced empty space.
+- Use product screenshots or faithful panels that inherit workshop density:
+  estimate sheet, project tree, library/templates, proposal/share, charts/data.
+- Keep the homepage professional and finance-adjacent. The user should feel that
+  the same system that prices work is visible behind the marketing page.
+
+Avoid:
+
+- Oversized marketing whitespace that makes the app feel lightweight.
+- Giant editorial type that breaks from the compact workshop/product tone.
+- Decorative card stacks that do not carry workflow proof.
+- More simultaneous glass blur layers than the workshop performance model allows.

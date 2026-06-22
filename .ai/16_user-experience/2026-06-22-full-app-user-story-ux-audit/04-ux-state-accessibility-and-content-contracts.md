@@ -121,14 +121,14 @@ The project's actual breakpoints and traps (cite from the workshop dashboard res
 Test command (makes "mobile" and "no hover dependency" testable rather than implied):
 
 ```
-bun run test:e2e -- --project=mobile e2e/estimate-tabs.spec.ts e2e/shared-link-receiver.spec.ts
+bun run test:e2e -- --project=mobile-safari e2e/estimate-tabs.spec.ts e2e/shared-link-receiver.spec.ts  # 'mobile-safari' is the configured Playwright mobile project (verified in playwright.config.ts, 2026-06-22)
 # Plus a viewport-resize smoke for the 1512 -> 1023 -> 640 transition:
 #   load dashboard at 1512x982, resize to 1023, assert no phantom bands;
 #   resize to 640, assert estimate + share-recipient primary actions are reachable
 #   without hover and meet the 44x44px target size.
 ```
 
-Residual: the `--project=mobile` Playwright project and the viewport-resize spec are the intended test shape; whether a `mobile` project is already configured in the Playwright config is **TODO-verify** against the current `playwright.config.ts` before claiming this command runs green.
+Confirmed: the `mobile-safari` Playwright project exists in `playwright.config.ts` (7 projects total; verified 2026-06-22). Residual: the explicit 1512→1023→640 viewport-resize smoke spec is the intended additional shape and may not exist as a standalone spec yet — add it before claiming full responsive no-regression.
 
 ## i18n Deferral
 

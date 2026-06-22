@@ -18,9 +18,12 @@ Read these before touching landing code:
 5. `.ai/03_plans/2026-06-22-LandingPage/04-HERO-THREEJS-BACKGROUND-DIRECTION.md`
 6. `.ai/03_plans/2026-06-22-LandingPage/05-PRODUCT-TRUTH-FOR-LANDING.md`
 7. `.ai/03_plans/2026-06-22-LandingPage/06-LANDING-CONTENT-ARCHITECTURE.md`
-8. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/01-beta-product-thesis-and-prioritization.md`
-9. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/04-ux-state-accessibility-and-content-contracts.md`
-10. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/10-access-path-and-persona-taxonomy.md`
+8. `.ai/03_plans/2026-06-22-LandingPage/08-COPY-CTA-AND-CONTENT-BEST-PRACTICES.md`
+9. `.ai/03_plans/2026-06-22-LandingPage/09-PERFORMANCE-ACCESSIBILITY-AND-MOTION-BEST-PRACTICES.md`
+10. `.ai/03_plans/2026-06-22-LandingPage/10-LANDING-PAGE-BEST-PRACTICES-IMPLEMENTATION-PLAN.md`
+11. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/01-beta-product-thesis-and-prioritization.md`
+12. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/04-ux-state-accessibility-and-content-contracts.md`
+13. `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/10-access-path-and-persona-taxonomy.md`
 
 Then inspect live implementation files:
 
@@ -102,6 +105,11 @@ The active homepage is currently:
 Do not create a parallel landing page unless the routing plan explicitly changes.
 Prefer evolving the active route and component set.
 
+First-party design reference: inspect `/workshop` before major visual changes.
+The landing page should borrow its calm gray canvas, tight grid, liquid-glass
+surface language, small numeric/technical labels, Signal orange precision, and
+controlled empty space.
+
 Current code already contains useful AEC-first anchors:
 
 - `src/app/page.tsx` metadata describes "AEC estimating teams".
@@ -131,6 +139,8 @@ The hero must include:
 - light/gray canvas;
 - frosted/liquid-glass product frame;
 - no huge poster typography;
+- use the professional type targets in doc `08` instead of the current 6rem-scale
+  clamps;
 - CTA pair for early access and walkthrough.
 
 Recommended hero copy:

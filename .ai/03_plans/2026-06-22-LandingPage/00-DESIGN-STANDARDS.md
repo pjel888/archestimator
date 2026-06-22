@@ -72,6 +72,12 @@ campaign/poster register. The older landing token that can reach `5.5rem` exists
 in the codebase, but it should not be treated as the default for this new
 professional direction.
 
+The `/workshop` product surface is now a primary first-party reference for this
+landing pass. Borrow its grid discipline, gray canvas, Signal-orange restraint,
+liquid-glass surfaces, small numeric/technical labels, and controlled empty
+space. Do not let public-page inspiration override what already feels right in
+the actual product.
+
 ## Brand Color
 
 Use Archestimator Signal orange. Do not revive clay/terracotta as the brand
