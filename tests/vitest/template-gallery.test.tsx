@@ -438,18 +438,18 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     });
   });
 
-  it("shows the verbatim empty state with a working New template action", async () => {
+  it("keeps the gallery shell empty with a working New template action", async () => {
     renderManager([]);
 
     const gallery = getGallery();
-    expect(within(gallery).getByText("No templates yet.")).toBeInTheDocument();
-    expect(within(gallery).getByText("Save a template to reuse line items.")).toBeInTheDocument();
+    expect(within(gallery).queryByText("No templates yet.")).not.toBeInTheDocument();
+    expect(within(gallery).queryByText("Save a template to reuse line items.")).not.toBeInTheDocument();
+    expect(within(gallery).getByRole("list", { name: "All Templates template rows" })).toBeInTheDocument();
 
-    // Two working New template entry points: the toolbar action and the
-    // empty-state CTA. The CTA is the second in DOM order.
+    // The persistent toolbar action remains the New template entry point.
     const newTemplateButtons = within(gallery).getAllByRole("button", { name: "New template" });
-    expect(newTemplateButtons).toHaveLength(2);
-    fireEvent.click(newTemplateButtons[1]);
+    expect(newTemplateButtons).toHaveLength(1);
+    fireEvent.click(newTemplateButtons[0]);
     expect(await screen.findByRole("dialog", { name: "New template" })).toBeInTheDocument();
   });
 });

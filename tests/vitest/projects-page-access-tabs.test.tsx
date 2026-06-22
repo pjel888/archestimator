@@ -272,7 +272,8 @@ describe("ProjectsPageClient access tabs", () => {
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "clinic" } });
 
-    expect(within(getActivePanel()).getByText("No projects match your search")).toBeInTheDocument();
+    expect(within(getActivePanel()).getByLabelText("Live projects").querySelectorAll("article")).toHaveLength(0);
+    expect(within(getActivePanel()).queryByText("No projects match your search")).not.toBeInTheDocument();
     expect(within(getActivePanel()).queryByText("Shared Clinic")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Shared/i }));
@@ -282,15 +283,15 @@ describe("ProjectsPageClient access tabs", () => {
     expect(within(getActivePanel()).queryByText("Owned Residence")).not.toBeInTheDocument();
   });
 
-  it("explains an empty shared tab without showing a create-project action in that panel", async () => {
+  it("keeps an empty shared tab in the normal project shell without a create action in that panel", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[createProjectItem("owned")]} />);
 
     await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     const panel = getActivePanel();
-    expect(within(panel).getByText("No projects shared to you yet")).toBeInTheDocument();
-    expect(within(panel).getByText(/viewer, editor, admin, or sheet collaborator/i)).toBeInTheDocument();
+    expect(within(panel).getByLabelText("Live projects").querySelectorAll("article")).toHaveLength(0);
+    expect(within(panel).queryByText("No projects shared to you yet")).not.toBeInTheDocument();
     expect(within(panel).queryByRole("button", { name: /Create/i })).not.toBeInTheDocument();
   });
 

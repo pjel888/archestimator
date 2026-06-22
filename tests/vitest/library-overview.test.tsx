@@ -194,21 +194,20 @@ describe("LibraryOverview", () => {
     expect(screen.getByText("2026-06-08")).toBeInTheDocument();
   });
 
-  it("renders the two teach empty states side by side for an empty workspace", () => {
+  it("renders the normal sections for an empty workspace", () => {
     render(<LibraryOverview overview={emptyOverview} />);
 
-    const emptyWorkspace = document.querySelector('[data-library-overview-empty-workspace="true"]');
-    expect(emptyWorkspace).not.toBeNull();
-    const teach = within(emptyWorkspace as HTMLElement);
-    expect(teach.getByText("Your library is empty.")).toBeInTheDocument();
-    expect(teach.getByText("Add a component to reuse it across estimates.")).toBeInTheDocument();
-    expect(teach.getByRole("button", { name: "Add component" })).toBeInTheDocument();
-    expect(teach.getByText("No templates yet.")).toBeInTheDocument();
-    expect(teach.getByText("Save a template to reuse line items.")).toBeInTheDocument();
-    expect(teach.getByRole("button", { name: "New template" })).toBeInTheDocument();
+    expect(document.querySelector('[data-library-overview-empty-workspace="true"]')).toBeNull();
+    expect(screen.queryByText("Your library is empty.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No templates yet.")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Components" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Templates" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open components" })).toHaveAttribute("href", "/workshop/library/components");
+    expect(screen.getByRole("link", { name: "Open templates" })).toHaveAttribute("href", "/workshop/library/templates");
+    expect(screen.getByRole("button", { name: "Add component" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New template" })).toBeInTheDocument();
 
-    // Sections and health line collapse away entirely.
-    expect(screen.queryByRole("link", { name: "Open components" })).not.toBeInTheDocument();
+    // No health line when every health stat is zero and there is no last update.
     expect(document.querySelector('[data-library-overview-health="true"]')).toBeNull();
   });
 

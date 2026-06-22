@@ -42,51 +42,50 @@ function renderEmptyTab(overrides: Partial<ComponentProps<typeof EstimateSheetCo
   );
 }
 
-describe("new-tab empty state", () => {
+describe("new-tab empty shell", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("renders the empty-tab state for a freshly created tab with edit actions for editors", () => {
+  it("renders the normal empty tab shell for editors", () => {
     renderEmptyTab({ canEditEstimate: true });
 
-    expect(screen.getByRole("heading", { name: "This tab is empty" })).toBeInTheDocument();
-    // P4: empty-tab copy + button de-kinded to "Area".
-    expect(screen.getByText("Add an Area to start, or drag a template or project content here.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "This tab is empty" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Add an Area to start, or drag a template or project content here.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Branch" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Browse templates" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Browse templates" })).not.toBeInTheDocument();
   });
 
-  it("Add Area from the empty state requests a write-valid root create in the active (new) tab", () => {
+  it("Add Branch from the empty tree requests a write-valid root create in the active (new) tab", () => {
     const createRequests: Array<{ kind?: string }> = [];
     const handler = (event: Event) => createRequests.push((event as CustomEvent<{ kind?: string }>).detail);
     window.addEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handler);
     try {
       renderEmptyTab({ canEditEstimate: true });
-      fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
       // Root create stays write-valid (internal kind "group"); the tree's event
-      // handler routes it through the single Add Area flow.
+      // handler routes it through the single Add Branch flow.
       expect(createRequests).toEqual([{ kind: "group" }]);
     } finally {
       window.removeEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handler);
     }
   });
 
-  it("hides the empty-state edit actions for viewers (canEditEstimate=false / omitted)", () => {
+  it("hides edit actions for viewers (canEditEstimate=false / omitted)", () => {
     renderEmptyTab({ canEditEstimate: false });
 
-    // The informational empty state still renders…
-    expect(screen.getByRole("heading", { name: "This tab is empty" })).toBeInTheDocument();
-    // …but its edit affordances are gone, so viewers get no dead buttons.
+    expect(screen.queryByRole("heading", { name: "This tab is empty" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Branch" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Browse templates" })).not.toBeInTheDocument();
   });
 
-  it("defaults to read-only empty-state actions when canEditEstimate is omitted", () => {
+  it("defaults to read-only empty shell actions when canEditEstimate is omitted", () => {
     renderEmptyTab();
 
-    expect(screen.getByRole("heading", { name: "This tab is empty" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "This tab is empty" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Branch" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
   });
 });

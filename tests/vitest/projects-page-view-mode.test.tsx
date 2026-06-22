@@ -253,30 +253,31 @@ describe("ProjectsPageClient view modes", () => {
     expect(publishedCard).not.toHaveTextContent("1 open");
   });
 
-  it("guides first-run users to create a live project while keeping samples as references", async () => {
+  it("keeps the live-project shell for first-run users", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[]} />);
 
-    expect(screen.getByLabelText("Sample project references")).toBeInTheDocument();
-    expect(screen.getByText("Create the first live project")).toBeInTheDocument();
-    expect(screen.getByText(/Sample cards below are references only/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create the first project" })).toBeInTheDocument();
+    const liveProjects = screen.getByLabelText("Live projects");
+    expect(liveProjects).toHaveAttribute("data-project-view-mode", "large");
+    expect(within(liveProjects).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByLabelText("Sample project references")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create the first live project")).not.toBeInTheDocument();
     expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Create the first project" }));
+    await user.click(screen.getByRole("button", { name: "Add projects" }));
 
     expect(await screen.findByRole("dialog", { name: "Create project" })).toBeInTheDocument();
   });
 
-  it("uses shared no-result copy for live project search", async () => {
+  it("keeps the live-project shell for live project search misses", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[PROJECT_FIXTURE]} />);
 
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "zzzz-project" } });
 
-    expect(screen.getByText("No projects match your search")).toBeInTheDocument();
-    expect(screen.getByText("Try an owned project name, client, code, or location.")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByText("No projects match your search")).not.toBeInTheDocument();
     expect(screen.queryByText("Try adjusting your search terms")).not.toBeInTheDocument();
   });
 

@@ -461,11 +461,13 @@ describe("component library UI", () => {
     expect(within(dialog).getByLabelText("Name")).toBeInTheDocument();
   });
 
-  it("shows empty state when search returns no results", () => {
+  it("keeps the component tree shell when search returns no results", () => {
     renderSidebar();
     const search = openLibrarySearch();
     fireEvent.change(search, { target: { value: "xyz-nonexistent-12345" } });
-    expect(screen.getByText(/No matches for/i)).toBeInTheDocument();
+    const tree = screen.getByRole("tree", { name: "Library sources" });
+    expect(within(tree).queryAllByRole("treeitem")).toHaveLength(0);
+    expect(screen.queryByText(/No matches for/i)).not.toBeInTheDocument();
   });
 
   function expandSupplierFolder() {
@@ -546,12 +548,13 @@ describe("component library UI", () => {
     expect(screen.queryByRole("button", { name: "Export components as CSV" })).not.toBeInTheDocument();
   });
 
-  it("always shows the Templates tab with an empty state instead of static templates", () => {
+  it("always shows the Templates tab with an empty tree instead of static templates", () => {
     renderSidebar();
 
     fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
 
-    expect(screen.getByText(/No templates yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("tree", { name: "Reusable estimate sources" })).toBeInTheDocument();
+    expect(screen.queryByText(/No templates yet/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Condo Fit-Out Starter")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Add template Condo Fit-Out Starter/i })).not.toBeInTheDocument();
   });
@@ -1932,7 +1935,8 @@ describe("templates tree", () => {
 
     await waitFor(() => expect(screen.queryByRole("treeitem", { name: "Kitchen Starter estimate template" })).not.toBeInTheDocument());
     expect(templateActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({ templateId: "tpl-1" });
-    expect(screen.getByText(/No templates yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No templates yet/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("tree", { name: "Reusable estimate sources" })).toBeInTheDocument();
   });
 
   it("starts a new template from a category with the category prefilled", async () => {

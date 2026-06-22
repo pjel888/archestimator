@@ -87,7 +87,7 @@ describe("estimate sheet tree query errors", () => {
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(actionMocks.fetchEstimateTabTree).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText("This tab is empty")).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    expect(screen.queryByText("This tab is empty")).not.toBeInTheDocument();
   });
 });

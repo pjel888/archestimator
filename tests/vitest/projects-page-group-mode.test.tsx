@@ -183,14 +183,14 @@ describe("ProjectsPageClient group mode", () => {
   });
 });
 
-describe("ProjectsPageClient group mode — zero groups (P0-1)", () => {
+describe("ProjectsPageClient group mode — zero groups", () => {
   beforeEach(() => {
     window.localStorage.clear();
     Object.values(mocks).forEach((m) => "mockClear" in m && m.mockClear());
     window.localStorage.setItem("archestimator_projects_organize_by_v1", "group");
   });
 
-  it("shows the create-first-group EmptyState ABOVE a single Ungrouped flag holding all projects", () => {
+  it("shows a single Ungrouped flag holding all projects without an empty-state CTA", () => {
     renderClient(
       <ProjectsPageClient
         projects={[
@@ -200,20 +200,18 @@ describe("ProjectsPageClient group mode — zero groups (P0-1)", () => {
         projectGroups={[]}
       />,
     );
-    expect(screen.getByText("Organize projects into groups")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create your first group" })).toBeInTheDocument();
+    expect(screen.queryByText("Organize projects into groups")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create your first group" })).not.toBeInTheDocument();
     const ungrouped = screen.getByLabelText("Ungrouped");
     expect(ungrouped).toHaveAttribute("data-project-group", "__ungrouped__");
     expect(within(ungrouped).getAllByRole("article")).toHaveLength(2);
     const wall = screen.getByLabelText("Live projects");
-    const emptyStateNode = screen.getByText("Organize projects into groups");
-    expect(wall.compareDocumentPosition(emptyStateNode) & Node.DOCUMENT_POSITION_CONTAINED_BY).toBeTruthy();
     expect(
-      emptyStateNode.compareDocumentPosition(ungrouped) & Node.DOCUMENT_POSITION_FOLLOWING,
+      wall.compareDocumentPosition(ungrouped) & Node.DOCUMENT_POSITION_CONTAINED_BY,
     ).toBeTruthy();
   });
 
-  it("opens the Manage-groups popover when the empty-state CTA is clicked", async () => {
+  it("opens the Manage-groups popover from the toolbar when no groups exist", async () => {
     const user = userEvent.setup();
     renderClient(
       <ProjectsPageClient
@@ -221,7 +219,7 @@ describe("ProjectsPageClient group mode — zero groups (P0-1)", () => {
         projectGroups={[]}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Create your first group" }));
+    await user.click(screen.getByRole("button", { name: "Manage groups" }));
     expect(screen.getByRole("dialog", { name: "Manage groups" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "New group name" })).toBeInTheDocument();
   });
@@ -244,7 +242,7 @@ describe("ProjectsPageClient group mode — search-empty fallback (LD-10)", () =
     window.localStorage.setItem("archestimator_projects_organize_by_v1", "group");
   });
 
-  it("falls back to the search-empty state when a search hides every group", async () => {
+  it("leaves the group shell empty when a search hides every group", async () => {
     const user = userEvent.setup();
     renderClient(
       <ProjectsPageClient
@@ -255,7 +253,8 @@ describe("ProjectsPageClient group mode — search-empty fallback (LD-10)", () =
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "zzz-no-match" } });
     expect(screen.queryByLabelText("Pipeline")).not.toBeInTheDocument();
-    expect(screen.getByText("No projects match your search")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByText("No projects match your search")).not.toBeInTheDocument();
   });
 });
 

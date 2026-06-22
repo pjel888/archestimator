@@ -112,17 +112,17 @@ describe("project estimates create flow", () => {
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
-  it("guides first-run users to create the first estimate sheet", async () => {
+  it("keeps first-run users in the estimate table shell", async () => {
     actionMocks.createEstimateSheetDraft.mockResolvedValue({ row: makeEstimate({ id: "estimate-1" }) });
     const user = userEvent.setup();
 
     renderClient();
 
-    expect(screen.getByText("Create the first estimate")).toBeInTheDocument();
-    expect(screen.getByText(/Start an estimate before adding groups/)).toBeInTheDocument();
-    expect(screen.queryByTestId("project-estimates-table")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create the first estimate")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Start an estimate before adding groups/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("project-estimates-table")).toHaveAttribute("data-estimate-ids", "");
 
-    await user.click(screen.getByRole("button", { name: "Create first estimate" }));
+    await user.click(screen.getByRole("button", { name: "Create Estimate" }));
 
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
     await waitFor(() => expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledTimes(1));
@@ -134,7 +134,7 @@ describe("project estimates create flow", () => {
 
     renderClient([], { canCreateEstimates: false });
 
-    const createButton = screen.getByRole("button", { name: "Create first estimate" });
+    const createButton = screen.getByRole("button", { name: "Create Estimate" });
     expect(createButton).toBeDisabled();
 
     await user.click(createButton);
@@ -143,7 +143,7 @@ describe("project estimates create flow", () => {
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
-  it("shows searchable no-match copy without creating duplicate estimate actions", async () => {
+  it("keeps searchable no-match results in the estimate table shell", async () => {
     const user = userEvent.setup();
 
     renderClient([makeEstimate()]);
@@ -153,10 +153,10 @@ describe("project estimates create flow", () => {
     await user.click(screen.getByRole("button", { name: "Show estimates search" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search Estimates" }), { target: { value: "zzzz-estimate" } });
 
-    expect(screen.getByText("No matching estimates")).toBeInTheDocument();
-    expect(screen.getByText("Adjust filters or clear search to return to more estimates.")).toBeInTheDocument();
+    expect(screen.queryByText("No matching estimates")).not.toBeInTheDocument();
+    expect(screen.queryByText("Adjust filters or clear search to return to more estimates.")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create first estimate" })).not.toBeInTheDocument();
-    expect(screen.queryByTestId("project-estimates-table")).not.toBeInTheDocument();
+    expect(screen.getByTestId("project-estimates-table")).toHaveAttribute("data-estimate-ids", "");
   });
 
   it("filters favorite estimates and searches within the active filter", async () => {
@@ -186,8 +186,8 @@ describe("project estimates create flow", () => {
     await user.click(screen.getByRole("button", { name: "Show estimates search" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search Estimates" }), { target: { value: "ORD-001" } });
 
-    expect(screen.queryByTestId("project-estimates-table")).not.toBeInTheDocument();
-    expect(screen.getByText("No matching estimates")).toBeInTheDocument();
+    expect(screen.getByTestId("project-estimates-table")).toHaveAttribute("data-estimate-ids", "");
+    expect(screen.queryByText("No matching estimates")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("searchbox", { name: "Search Estimates" }), { target: { value: "FAV-001" } });
 

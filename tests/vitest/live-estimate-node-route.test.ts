@@ -150,14 +150,13 @@ describe("live estimate node route", () => {
 
   it("opens empty estimates by estimate id instead of looping back to the estimate list", () => {
     expect(readFileSync("src/components/workshop/EstimateListCard.tsx", "utf8")).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
-    // Empty-tree copy de-kinded by P4 ("Add a Group Node or Area Node" → one
-    // kind-neutral line). Asserts the empty state still renders, with the new
-    // single-node copy.
-    expect(estimateTree).toContain("This estimate is empty. Add an area to begin.");
+    // Empty estimates still open in the estimate workspace, but without a
+    // dedicated teaching card or tree placeholder copy.
+    expect(estimateTree).not.toContain("This estimate is empty. Add an area to begin.");
     expect(estimateTree).not.toContain("This estimate has no tree nodes yet");
     expect(estimateTree).toContain("selectedNodeId: string | null");
     expect(estimateContent).toContain("selectedNodeId: string | null");
-    expect(estimateContent).toContain("No estimate tree yet");
+    expect(estimateContent).not.toContain("No estimate tree yet");
     expect(estimateContent).toContain("estimateTree.reduce");
   });
 

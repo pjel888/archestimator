@@ -365,13 +365,14 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
   });
 
-  it("hides Sort and disables View for empty/sample states while keeping search misses interactive", async () => {
+  it("keeps project controls available for empty states and search misses", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<ProjectsPageClient projects={[]} />);
 
-    expect(screen.getByRole("combobox", { name: /View, disabled until this tab has projects/i })).toBeDisabled();
-    expect(screen.queryByRole("combobox", { name: "Sort field" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("combobox", { name: "Sort direction" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "View" })).not.toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
 
     rerender(<ProjectsPageClient projects={[item({ id: "p1", name: "Live Project" })]} />);
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
@@ -380,7 +381,8 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByRole("combobox", { name: "View" })).not.toBeDisabled();
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
-    expect(screen.getByText("No projects match your search")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByText("No projects match your search")).not.toBeInTheDocument();
   });
 
   it("shows created date metadata only on large live cards", async () => {
