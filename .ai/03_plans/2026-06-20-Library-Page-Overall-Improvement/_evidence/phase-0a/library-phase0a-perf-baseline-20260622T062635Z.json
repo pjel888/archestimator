@@ -1,0 +1,416 @@
+{
+  "generatedAt": "2026-06-22T06:26:35.104Z",
+  "gitCommit": "35656449",
+  "command": "LIBRARY_PERF_RUNS=5 LIBRARY_PERF_TIERS=100,500,5000,10000 bun run scripts/measure-library-performance-baseline.ts",
+  "environment": {
+    "runtime": "bun 1.3.14",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "measurements": [
+    {
+      "tier": 100,
+      "runs": 5,
+      "cardModelMs": {
+        "values": [
+          1.87,
+          0.06,
+          0.04,
+          0.27,
+          0.03
+        ],
+        "median": 0.06,
+        "p95": 1.87,
+        "min": 0.03,
+        "max": 1.87
+      },
+      "denseModelMs": {
+        "values": [
+          0.18,
+          0.04,
+          0.06,
+          0.02,
+          0.03
+        ],
+        "median": 0.04,
+        "p95": 0.18,
+        "min": 0.02,
+        "max": 0.18
+      },
+      "refilterMs": {
+        "values": [
+          0.08,
+          0.04,
+          0.04,
+          0.06,
+          0.04
+        ],
+        "median": 0.04,
+        "p95": 0.08,
+        "min": 0.04,
+        "max": 0.08
+      },
+      "payloadLite": {
+        "bytes": 40286,
+        "stringifyMs": {
+          "values": [
+            0.26,
+            0.04,
+            0.08,
+            0.07,
+            0.04
+          ],
+          "median": 0.07,
+          "p95": 0.26,
+          "min": 0.04,
+          "max": 0.26
+        },
+        "parseMs": {
+          "values": [
+            0.65,
+            0.09,
+            0.06,
+            0.06,
+            0.08
+          ],
+          "median": 0.08,
+          "p95": 0.65,
+          "min": 0.06,
+          "max": 0.65
+        }
+      },
+      "payloadDetailGraph": {
+        "bytes": 150563,
+        "stringifyMs": {
+          "values": [
+            0.23,
+            0.14,
+            0.2,
+            0.13,
+            0.22
+          ],
+          "median": 0.2,
+          "p95": 0.23,
+          "min": 0.13,
+          "max": 0.23
+        },
+        "parseMs": {
+          "values": [
+            0.33,
+            0.25,
+            0.41,
+            0.32,
+            0.73
+          ],
+          "median": 0.33,
+          "p95": 0.73,
+          "min": 0.25,
+          "max": 0.73
+        }
+      }
+    },
+    {
+      "tier": 500,
+      "runs": 5,
+      "cardModelMs": {
+        "values": [
+          0.83,
+          0.62,
+          0.33,
+          0.14,
+          0.13
+        ],
+        "median": 0.33,
+        "p95": 0.83,
+        "min": 0.13,
+        "max": 0.83
+      },
+      "denseModelMs": {
+        "values": [
+          0.46,
+          0.56,
+          0.13,
+          0.12,
+          0.12
+        ],
+        "median": 0.13,
+        "p95": 0.56,
+        "min": 0.12,
+        "max": 0.56
+      },
+      "refilterMs": {
+        "values": [
+          0.32,
+          0.14,
+          0.14,
+          0.57,
+          0.11
+        ],
+        "median": 0.14,
+        "p95": 0.57,
+        "min": 0.11,
+        "max": 0.57
+      },
+      "payloadLite": {
+        "bytes": 202069,
+        "stringifyMs": {
+          "values": [
+            0.23,
+            0.14,
+            0.14,
+            0.15,
+            0.14
+          ],
+          "median": 0.14,
+          "p95": 0.23,
+          "min": 0.14,
+          "max": 0.23
+        },
+        "parseMs": {
+          "values": [
+            0.35,
+            0.28,
+            0.28,
+            0.28,
+            0.28
+          ],
+          "median": 0.28,
+          "p95": 0.35,
+          "min": 0.28,
+          "max": 0.35
+        }
+      },
+      "payloadDetailGraph": {
+        "bytes": 754853,
+        "stringifyMs": {
+          "values": [
+            0.96,
+            0.59,
+            0.56,
+            0.59,
+            0.59
+          ],
+          "median": 0.59,
+          "p95": 0.96,
+          "min": 0.56,
+          "max": 0.96
+        },
+        "parseMs": {
+          "values": [
+            1.36,
+            1.29,
+            1.43,
+            1.23,
+            1.21
+          ],
+          "median": 1.29,
+          "p95": 1.43,
+          "min": 1.21,
+          "max": 1.43
+        }
+      }
+    },
+    {
+      "tier": 5000,
+      "runs": 5,
+      "cardModelMs": {
+        "values": [
+          2.39,
+          4.24,
+          1.58,
+          1.74,
+          1.78
+        ],
+        "median": 1.78,
+        "p95": 4.24,
+        "min": 1.58,
+        "max": 4.24
+      },
+      "denseModelMs": {
+        "values": [
+          1.5,
+          2.49,
+          1.3,
+          1.38,
+          1.59
+        ],
+        "median": 1.5,
+        "p95": 2.49,
+        "min": 1.3,
+        "max": 2.49
+      },
+      "refilterMs": {
+        "values": [
+          1.18,
+          1.34,
+          1.29,
+          1.45,
+          1.3
+        ],
+        "median": 1.3,
+        "p95": 1.45,
+        "min": 1.18,
+        "max": 1.45
+      },
+      "payloadLite": {
+        "bytes": 2040496,
+        "stringifyMs": {
+          "values": [
+            2.18,
+            1.76,
+            1.51,
+            1.42,
+            1.37
+          ],
+          "median": 1.51,
+          "p95": 2.18,
+          "min": 1.37,
+          "max": 2.18
+        },
+        "parseMs": {
+          "values": [
+            3.48,
+            3.42,
+            3.52,
+            2.87,
+            2.86
+          ],
+          "median": 3.42,
+          "p95": 3.52,
+          "min": 2.86,
+          "max": 3.52
+        }
+      },
+      "payloadDetailGraph": {
+        "bytes": 7621666,
+        "stringifyMs": {
+          "values": [
+            9.7,
+            6.56,
+            5.38,
+            5.07,
+            5.6
+          ],
+          "median": 5.6,
+          "p95": 9.7,
+          "min": 5.07,
+          "max": 9.7
+        },
+        "parseMs": {
+          "values": [
+            15.38,
+            13.56,
+            15.02,
+            13.31,
+            17.32
+          ],
+          "median": 15.02,
+          "p95": 17.32,
+          "min": 13.31,
+          "max": 17.32
+        }
+      }
+    },
+    {
+      "tier": 10000,
+      "runs": 5,
+      "cardModelMs": {
+        "values": [
+          5.42,
+          5.14,
+          4.2,
+          3.58,
+          3.95
+        ],
+        "median": 4.2,
+        "p95": 5.42,
+        "min": 3.58,
+        "max": 5.42
+      },
+      "denseModelMs": {
+        "values": [
+          3.48,
+          4.18,
+          4.35,
+          3.19,
+          3.07
+        ],
+        "median": 3.48,
+        "p95": 4.35,
+        "min": 3.07,
+        "max": 4.35
+      },
+      "refilterMs": {
+        "values": [
+          2.98,
+          3.25,
+          2.48,
+          2.48,
+          2.62
+        ],
+        "median": 2.62,
+        "p95": 3.25,
+        "min": 2.48,
+        "max": 3.25
+      },
+      "payloadLite": {
+        "bytes": 4112123,
+        "stringifyMs": {
+          "values": [
+            4.08,
+            2.89,
+            2.62,
+            2.84,
+            2.81
+          ],
+          "median": 2.84,
+          "p95": 4.08,
+          "min": 2.62,
+          "max": 4.08
+        },
+        "parseMs": {
+          "values": [
+            6.77,
+            6.68,
+            7.07,
+            7.59,
+            7.08
+          ],
+          "median": 7.07,
+          "p95": 7.59,
+          "min": 6.68,
+          "max": 7.59
+        }
+      },
+      "payloadDetailGraph": {
+        "bytes": 15384557,
+        "stringifyMs": {
+          "values": [
+            18.12,
+            13.65,
+            11.96,
+            12.59,
+            10.29
+          ],
+          "median": 12.59,
+          "p95": 18.12,
+          "min": 10.29,
+          "max": 18.12
+        },
+        "parseMs": {
+          "values": [
+            26.38,
+            26.73,
+            27.05,
+            27.3,
+            26.16
+          ],
+          "median": 26.73,
+          "p95": 27.3,
+          "min": 26.16,
+          "max": 27.3
+        }
+      }
+    }
+  ]
+}

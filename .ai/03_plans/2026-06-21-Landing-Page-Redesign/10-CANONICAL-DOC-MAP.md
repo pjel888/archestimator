@@ -9,11 +9,12 @@ This doc exists because the pack was authored in parallel and the eight original
 invented their own naming convention (see `MASTER-AUDIT-AND-SCORECARD.md` §2 for the
 forensic detail). This is the fix.
 
-> **2026-06-22 update.** All 27 docs now `exist` on disk (the prior "missing (M-x)" flags were
+> **2026-06-22 update.** All 28 markdown docs now `exist` on disk (the prior "missing (M-x)" flags were
 > the 2026-06-21 baseline state and are all cleared). `23-AUTH-EXPERIENCE.md` was added
 > 2026-06-22 (D-2) and owns the **Auth experience** dimension. The type-pairing for doc 03 was
 > corrected from "Source Serif 4" to the Glass Brand pairing (Doto / Roboto Mono / SF Pro;
-> Source Serif 4 DEFERRED per D-1).
+> Source Serif 4 DEFERRED per D-1). `MASTER-IMPLEMENTATION-PLAN.md` is the execution-layer handoff,
+> not another strategy source.
 
 ---
 
@@ -48,9 +49,11 @@ forensic detail). This is the fix.
 | — | `MASTER-AUDIT-AND-SCORECARD.md` | The audit + scorecard (this pack's quality gate). | exists |
 | — | `LOOP_LEDGER.md` | Plan-pack loop ledger: open decisions, iteration state, owner-decision queue, sign-off log. | exists |
 | — | `README.md` | Pack entry point: doc-order, dimensions, the honesty-aware Definition of 100 %. | exists |
+| — | `MASTER-IMPLEMENTATION-PLAN.md` | Execution handoff: current-codebase checkpoint, minimum shippable slice, implementation phases, coordination protocol. | exists |
 
-**Pack inventory: 27 docs on disk** (8 original `00`–`07` + 16 additional `08`–`23` + 3 meta:
-`MASTER-AUDIT-AND-SCORECARD`, `LOOP_LEDGER`, `README`). Verified by `ls -1`.
+**Pack inventory: 28 markdown docs on disk** (24 numbered docs `00`–`23` + 4 meta/execution docs:
+`MASTER-AUDIT-AND-SCORECARD`, `LOOP_LEDGER`, `README`, `MASTER-IMPLEMENTATION-PLAN`). Verified by
+`find .ai/03_plans/2026-06-21-Landing-Page-Redesign -maxdepth 1 -name '*.md'`.
 
 ---
 
@@ -93,6 +96,7 @@ README.md  →  00-OVERVIEW  →  01-DESIGN-DIRECTION  →  10-CANONICAL-DOC-MAP
            →  08-ROLLOUT-AND-ANALYTICS  →  09-CLAIMS-LEDGER-SIGN-OFF
            →  11-COMPONENT-INVENTORY  →  dimension docs (12–22) on demand
            →  LOOP_LEDGER (open decisions)  →  21-BLAST-RADIUS (before any code)
+           →  MASTER-IMPLEMENTATION-PLAN (execution handoff; last stop before edits)
 ```
 
 ---
@@ -106,13 +110,17 @@ For each doc:
 3. Verify with:
 
 ```bash
-# (a) stale aliases — must return ZERO matches
-rg -n "01-COMPETITIVE|01-PEG-STUDY-AND|02-HERO-AND-VOICE|02-SECTION-TAXONOMY-AND-IA|02-SECTION-TAXONOMY-AND-REMOVALS|03-VISUAL-AND-TOKEN|03-VISUAL-TOKENS|05-COPY-LEDGER|05-SECTION-MARKUP|06-COMPONENT-INVENTORY-AND-CONTENT|07-ENGINEERING-SPEC|07-ENGINEERING-AND-|07-CLAIMS-LEDGER|08-ROLLOUT-AND-METRICS|08-ROLLOUT-AND-CLAIMS|09-CLAIMS-LEDER" .ai/03_plans/2026-06-21-Landing-Page-Redesign/
+# (a) stale aliases in active planning docs — must return ZERO matches.
+# Exclude this alias table and MASTER audit/history contexts; those intentionally preserve old names.
+rg -n "01-COMPETITIVE|01-PEG-STUDY-AND|02-HERO-AND-VOICE|02-SECTION-TAXONOMY-AND-IA|02-SECTION-TAXONOMY-AND-REMOVALS|03-VISUAL-AND-TOKEN|03-VISUAL-TOKENS|05-COPY-LEDGER|05-SECTION-MARKUP|06-COMPONENT-INVENTORY-AND-CONTENT|07-ENGINEERING-SPEC|07-ENGINEERING-AND-|07-CLAIMS-LEDGER|08-ROLLOUT-AND-METRICS|08-ROLLOUT-AND-CLAIMS|09-CLAIMS-LEDER" .ai/03_plans/2026-06-21-Landing-Page-Redesign/ -g '*.md' -g '!10-CANONICAL-DOC-MAP.md' -g '!MASTER-AUDIT-AND-SCORECARD.md'
 
 # (b) wrong rate-limit table name — must return ZERO matches (the real table is security_rate_limit_events)
-rg -n "\brate_limit\b" .ai/03_plans/2026-06-21-Landing-Page-Redesign/   # expect 0 (doc 15 may keep an intentional shorthand)
+rg -n "\brate_limit\b" .ai/03_plans/2026-06-21-Landing-Page-Redesign/ -g '*.md' -g '!10-CANONICAL-DOC-MAP.md' -g '!MASTER-AUDIT-AND-SCORECARD.md' -g '!LOOP_LEDGER.md'
 
-# (c) the recalled dishonest score — must return ZERO matches outside the audit/history context
+# (c) typo in the proof doc filename — must return ZERO matches
+rg -n "06-PROOF-AND-CLAIMS-CLAIMS-DISCIPLINE" .ai/03_plans/2026-06-21-Landing-Page-Redesign/ -g '*.md' -g '!10-CANONICAL-DOC-MAP.md'
+
+# (d) the recalled dishonest score — must return ZERO matches outside the audit/history context
 rg -n "100 / 100 / 100 across|Pack-weighted score.*Strategy 100" .ai/03_plans/2026-06-21-Landing-Page-Redesign/
 ```
 
@@ -149,6 +157,7 @@ without an owner is a gap.
 | Content workflow / governance | `20-CONTENT-WORKFLOW-AND-GOVERNANCE.md` | ✓ |
 | Blast radius / migration | `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` | ✓ |
 | Peg-study deep dive (evidence) | `22-PEG-STUDY-DEEP-DIVE.md` | ✓ |
+| Implementation execution handoff | `MASTER-IMPLEMENTATION-PLAN.md` | ✓ |
 | Cross-link integrity | `10-CANONICAL-DOC-MAP.md` (this doc) | ✓ |
 | Audit / scorecard | `MASTER-AUDIT-AND-SCORECARD.md` | ✓ |
 | Loop state / open decisions | `LOOP_LEDGER.md` | ✓ |

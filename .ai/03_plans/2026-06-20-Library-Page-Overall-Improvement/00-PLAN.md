@@ -34,7 +34,7 @@ Non-goals:
 - `DESIGN.md` is a guide, not enforceable law, but its app/workshop density guidance is still the best local baseline.
   - **12-dim:** Owner: Design lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: n/a | Telemetry: n/a | Copy: n/a | A11y: see [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: DESIGN.md
 - The Library should stay compact, keyboard-friendly, and work-focused.
-  - **12-dim:** Owner: A11y lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §Phase 6 | Telemetry: n/a | Copy: n/a | A11y: see [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) | Perf: n/a | Browser-proof: Playwright | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Performance Reality
+  - **12-dim:** Owner: A11y lead | Phase: all | Flag: n/a | Rollback: n/a | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §final release gate (historical Phase 6 alias) | Telemetry: n/a | Copy: n/a | A11y: see [31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md](31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md) | Perf: n/a | Browser-proof: Playwright | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Performance Reality
 - Component Library data must preserve source, pricing date, confidence, supplier, lifecycle, and copied estimate snapshots.
   - **12-dim:** Owner: Backend lead | Phase: 0A | Flag: n/a | Rollback: revert data contract PR | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §0A | Telemetry: n/a | Copy: see [22-COPY-DECK-AND-MICROCOPY.md](22-COPY-DECK-AND-MICROCOPY.md) | A11y: n/a | Perf: n/a | Browser-proof: n/a | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Data Layer
 - Browser automation is not a default planning artifact. Use it later only when it proves a browser-only claim.
@@ -334,7 +334,7 @@ Remove or retire:
 
 Stop the future implementation loop only when targeted tests pass, the changed route/action behavior is verified, browser-only claims have matching browser proof or are explicitly out of scope, and remaining risks are documented.
 
-> **12-dim:** Owner: Planning lead | Phase: 6 | Flag: library_release_ready | Rollback: redeploy previous build | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §Phase 6 | Telemetry: n/a (gate event) | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: Playwright | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Test Commands
+> **12-dim:** Owner: Planning lead | Phase: final release gate (historical Phase 6 alias) | Flag: library_release_ready | Rollback: redeploy previous build | Evidence: see [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md) §final release gate | Telemetry: n/a (gate event) | Copy: n/a | A11y: n/a | Perf: n/a | Browser-proof: Playwright | i18n: n/a | Binding: [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md) §Test Commands
 
 ---
 

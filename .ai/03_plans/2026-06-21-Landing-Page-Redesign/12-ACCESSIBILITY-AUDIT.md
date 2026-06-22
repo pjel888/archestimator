@@ -173,7 +173,7 @@ ink-colored outline so the ring reads against the orange fill. No positive `tabi
 |---|---|---|
 | Skip-to-content link | First focusable element on every route; `<Tab>` from the URL bar lands on it; `<Enter>` jumps focus to `<main id="main-content">`. | this doc §3.3 |
 | `LandingHeader` nav items | `<Tab>` cycles; `<Enter>` activates; hamburger at ≤768px opens/closes on `<Enter>`/`<Space>`, closes on `Esc`. | `02` §3 |
-| CTAs (`Start free`, `Book a walkthrough`) | `<Tab>` cycles; `<Enter>` activates. "Start free" → `/signup` is gated L-FUN-1/L-FUN-2 (D-2). | `05` §0/§1/§11 |
+| CTAs (`Start free`, `Book a walkthrough`) | `<Tab>` cycles; `<Enter>` activates. "Start free" uses the settled `/signup` path; self-serve behavior remains gated on L-FUN-2 (D-2). | `05` §0/§1/§11 |
 | `ArchitecturePlate` nodes | See §3.4 — explicit tabindex sequence + caption-on-focus. | `04` §4.5 |
 | `ClaimFilter` (All/Live/Building/Planned) | `<Tab>` to the filter; arrow keys cycle the options (radiogroup pattern, ARIA `role="radiogroup"`); selection toggles row visibility. | `06` §2 |
 | `ClaimsLedger` rows (`<ul>` per §2.3) | If expandable: `<Tab>` to a row (`<li>`); `<Enter>`/`<Space>` expands/collapses the source detail; expanded content is inserted into the same `<li>` (DOM order preserved). | `06` §2 |
@@ -314,7 +314,7 @@ Real heading hierarchy, not visual-only. Per route:
 | `/contact` | Route H1 ("Talk to the founder.") | One H2 per block. |
 | `/trust` | Route H1 ("What we will and will not claim.") | One H2 per section (A–G per `06` §6.2). |
 | `/login` | Route H1 ("Sign in"). | One H2 if the legal-links row has a heading; else H1 only. |
-| `/signup` | Route H1 ("Start free"). | Same as `/login`. Self-serve GATED L-FUN-1/L-FUN-2. |
+| `/signup` | Route H1 ("Start free"). | Same as `/login`. Route path settled; self-serve GATED L-FUN-2. |
 
 No skipped levels (no H1 → H3); no all-caps tag treated as a heading (Doto display uppercase is a
 visual treatment, not a heading promotion — it still renders as an `<hN>`).
@@ -472,7 +472,7 @@ Per D-5, no gate is silently marked closed.
   a11y-adjacent concern. ⚠️ GATED ON `14` lab measurement.
 - **L-I18N-1 — Bilingual SR support (FIL).** If i18n ships FIL copy (`18`), the §7.2 SR tests re-run
   with Filipino pronunciation in scope. ⚠️ GATED ON launch-locale decision.
-- **L-FUN-1 / L-FUN-2 — `/signup` self-serve activation.** The auth-surface a11y (§3.5, §6, §7.2
+- **L-FUN-2 — `/signup` self-serve activation.** The auth-surface a11y (§3.5, §6, §7.2
   path 7) is designed for both the self-serve and the closed-beta-gate variants; the audit applies
   unchanged either way. ⚠️ GATED ON owner.
 - **L-LEG-2 — Privacy Policy live before signup data.** The legal-links row is in the design (`23`
@@ -547,6 +547,6 @@ real `src/app/globals.css` on 2026-06-22.
 |---|---|---|
 | **Strategy** | **96 / 100** | The audit fully covers the Glass Brand surface (D-1) + the auth surface (D-2) in one a11y frame; the `<ul>`-vs-`<table>` decision is pinned with a11y-grounded rationale; the SVG-`tabindex` problem (a real cross-SR divergence) is named and solved; the SR stack matches the PH+SEA market. Not 100 because the Doto-display and Roboto-Mono-numeral legibility items in §11 are verification items inside §8, not yet run — strategy says "verify," not "verified." |
 | **Quality** | **95 / 100** | Every contrast ratio is computed via the WCAG formula against three real backdrops (canvas, glass fallback, armed glass) with `globals.css` anchors; the §2.2 Cases A–D cover the actual risk surfaces (hero gradient peak, white-on-orange CTA, body-on-glass); every cross-link resolves to a canonical filename (`10` §1); `#7F7F7F` appears only as "NOT load-bearing"; `#AA412A` does not appear at all. Not 100 because the §2.1 ratios are computed by formula and need the §8 on-device + axe sweep to close (L-A11Y-1), and the §2.2 Case C "raise opacity locally" override is specced as a policy without a tested numeric threshold. |
-| **Implementation-Readiness** | **94 / 100** | An implementer gets a verbatim `<g tabIndex={0}>` block with the exact `FOCUS_SEQUENCE` (§3.4), a pinned `<ul role="list">` ledger container (§2.3), a CI gate spec (§8), the `--focus`/`outline` token pattern already in the repo (`globals.css:2218`), and a per-route heading map (§4.2). Not 100 because the on-device SR verification (L-A11Y-1), the bilingual SR re-run (L-I18N-1), the `/signup` self-serve activation (L-FUN-1/L-FUN-2), and the Privacy Policy publication (L-LEG-2) are genuinely owner-gated and honestly cap readiness below 100 — per D-5 they are carried in `LOOP_LEDGER`, not silently closed. |
+| **Implementation-Readiness** | **94 / 100** | An implementer gets a verbatim `<g tabIndex={0}>` block with the exact `FOCUS_SEQUENCE` (§3.4), a pinned `<ul role="list">` ledger container (§2.3), a CI gate spec (§8), the `--focus`/`outline` token pattern already in the repo (`globals.css:2218`), and a per-route heading map (§4.2). Not 100 because the on-device SR verification (L-A11Y-1), the bilingual SR re-run (L-I18N-1), the `/signup` self-serve activation (L-FUN-2), and the Privacy Policy publication (L-LEG-2) are genuinely owner-gated and honestly cap readiness below 100 — per D-5 they are carried in `LOOP_LEDGER`, not silently closed. |
 
-**Carried to `LOOP_LEDGER.md` (not silent):** L-A11Y-1, L-DES-6, L-I18N-1, L-FUN-1, L-FUN-2, L-LEG-2.
+**Carried to `LOOP_LEDGER.md` (not silent):** L-A11Y-1, L-DES-6, L-I18N-1, L-FUN-2, L-LEG-2. L-FUN-1 remains only as a superseded route record.

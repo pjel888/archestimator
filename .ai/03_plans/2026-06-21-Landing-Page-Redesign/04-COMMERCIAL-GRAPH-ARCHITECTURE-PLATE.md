@@ -115,15 +115,16 @@ Live/Building/Planned subset (no NotUs nodes); see §4.4 + §4.8.
 
 | # | Named node | Contains (§8.3) | One-line public label (≤12 words) |
 |---|---|---|---|
-| L1 | **The Estimate Tree** | Projects → Estimates → Group/Area nodes → rows; quantity × unit cost; rollups by Area/Group; `misc_cost` (§8.4) | A structured estimate, not a flat sheet. |
-| L2 | **The Component Library** | components · suppliers · brands · variants · pricing · images · attachments · cost entries · price history | Your real prices and suppliers, reusable. |
+| L1 | **The Estimate Tree** | Projects → Estimates → Group/Area nodes → rows; quantity × unit cost; rollups by Area/Group; `misc_cost` (§8.4); the domain-shaped organization that keeps the sheet understandable | A structured estimate, not a flat sheet. |
+| L2 | **The Component Library** | components · templates · suppliers · brands · variants · pricing · images · attachments · cost entries · price history; drag/drop into the estimate sheet | Your real prices and suppliers, reusable. |
 | L3 | **The Activity Record** | Activity · Node Activity · row Version History; what changed, when, why | Every revision, on the record. |
 | L4 | **The Proposal Handoff** | publications · shared proposal links · comments · decisions · password protection · .xlsx export (§7.2) | From estimate to a proposal your client can approve. |
 
 Supporting Live edges (drawn as thin hairline connectors on the plate, not as headline nodes):
-**collaboration invites** (email, roles, realtime cursors — §7.2), **templates** (§7.2), **D3 comparison
-charts** (donut + bubble — §7.2). These connect the four headline nodes but are not themselves
-claim-headlined; their detail lives on `/features` (→ `05-COPY-SKELETON.md`).
+**collaboration invites** (email, roles, realtime cursors — §7.2), **drag/drop insertion** into the
+estimate sheet (§7.2), **templates** (§7.2), and **D3 comparison charts** (donut + bubble — §7.2).
+These connect the four headline nodes but are not themselves claim-headlined; their detail lives on
+`/features` (→ `05-COPY-SKELETON.md`).
 
 ### 3.2 Building node (§15 "Partial")
 
@@ -232,6 +233,22 @@ It is **explicitly NOT**:
 > the data omitted; they are now reconciled verbatim — §4.2, §4.3, and §4.8 all describe the same
 > graph. The bidirectional arrows are *visual*; the data model stores them as one edge per direction
 > for simpler traversal (see §4.8 note).
+
+#### 4.2.1 Pinned geometry (implementation default, no invention)
+
+The SVG geometry is no longer left to the implementer. Use this as the default unless the owner
+explicitly approves a visual change in L-DES-1:
+
+| Surface | `viewBox` | Node geometry |
+|---|---|---|
+| Desktop `>=1024px` | `0 0 1440 720` | L1 `540,48 360x96`; L2 `120,220 320x132`; L3 `560,220 320x132`; L4 `1000,220 320x132`; B1 `540,430 360x110`; P1 `540,590 360x92`. Corner radius `12`; inner pill radius `3`; focus ring inset `-4`. |
+| Tablet `768-1023px` | `0 0 768 920` | Vertical stack: x `84`, w `600`, h `104`, y positions `40,180,320,460,620,780`; L2/L3/L4 keep bidirectional semantics via short vertical connectors and captions, not horizontal arrows. |
+| Mobile `<=414px` | `0 0 360 700` | Full-width tiles: x `16`, w `328`, h `76`, y positions `24,124,224,324,444,564`; at `<=360px` sub-labels are hidden per §4.6. |
+
+Edge anchors: outgoing top/bottom edges connect to the midpoint of the nearest node side; the L2/L3/L4
+band cross-edges connect center-left/center-right. Labels wrap at 18 desktop characters and 14 mobile
+characters; status pills never shrink below 54px wide. A focused node must keep its focus ring fully
+inside the `viewBox`; do not crop focus affordances.
 
 Spatial logic the SVG must encode:
 
@@ -520,7 +537,10 @@ We do the same move, with two honest substitutions:
    cost intelligence layer possible."* The reusable component library (L2) feeding the estimate tree
    (L1), recorded in Activity (L3), handed off as a proposal (L4), and — the payoff — *surfaced back*
    (B1) so your own history works for you (§3.1, §3.3): that loop is the lock-in (§9.2: "the
-   compounding cost library is the lock-in"). The plate makes that loop visible in five seconds. No
+   compounding cost library is the lock-in"). The visible loop is: create a domain-shaped estimate
+   tree (L1), drag reusable components/templates from the library into the sheet (L2), preserve the
+   revision trail (L3), and share the proposal for comment/approval (L4). The plate makes that loop
+   visible in five seconds. No
    competitor in our segment has drawn it (§6.4: the reusable-intelligence value is enterprise-locked;
    nobody owns it for SMB/SEA/supplier, and nobody owns the estimate-to-supplier bridge).
 

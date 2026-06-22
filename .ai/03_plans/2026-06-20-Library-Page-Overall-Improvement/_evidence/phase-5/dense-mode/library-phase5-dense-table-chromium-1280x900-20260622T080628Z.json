@@ -1,0 +1,18 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components?component=49077f09-bc2f-4d5c-84f1-283b6c4c7960",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "35656449",
+  "capturedAt": "2026-06-22T08:06:29.121Z",
+  "scenario": "ADV-DENSE-500 desktop dense table with keyboard Space/Enter path",
+  "rowCount": 500,
+  "verdict": "pass"
+}

@@ -214,7 +214,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         disallow: [
           "/login",      // D-2: auth is noindex,nofollow — belt-and-suspenders with the meta tag
-          "/signup",     // D-2: auth is noindex,nofollow (also gated L-FUN-1 — route may not exist yet)
+          "/signup",     // D-2: auth is noindex,nofollow (path settled; route may not exist yet)
           "/auth/",      // the callback + any /auth/* return paths
           "/beta/",      // closed-beta gate surface
           "/workshop/",  // the app surface (not marketing)
@@ -303,7 +303,7 @@ Auth `<title>`s are brand-suffixed and intent-clear but **deliberately not keywo
 | Route | `<title>` | `<meta description>` | Notes |
 |---|---|---|---|
 | `/login` | `Sign in — Archestimator` | none (noindex — no SERP snippet to optimize) | `noindex,nofollow`; canonical-self |
-| `/signup` | `Start free — Archestimator` | none | `noindex,nofollow`; canonical-self; **route gated L-FUN-1** (may not exist at launch — "Start free" routes to `/login` or `/contact` meanwhile) |
+| `/signup` | `Start free — Archestimator` | none | `noindex,nofollow`; canonical-self; route path settled, implementation may not exist at launch — "Start free" routes to `/login` or `/contact` meanwhile. |
 
 No `<meta description>` on auth routes: with `noindex`, Google will not show a snippet, so a
 description is dead weight. (A description does not hurt, but it does not help either; omit for
@@ -453,20 +453,20 @@ never back to marketing sections, so crawl budget is not funneled into noindexed
 
 | From | To | Anchor | Why |
 |---|---|---|---|
-| `/` hero | `/features`, `/pricing`, `/signup` (CTAs + nav) | "Start free" / "Book a walkthrough" / nav items | Primary funnel. **"Start free" → `/signup` gated L-FUN-1/L-FUN-2; routes to `/login` or `/contact` meanwhile.** |
+| `/` hero | `/features`, `/pricing`, `/signup` (CTAs + nav) | "Start free" / "Book a walkthrough" / nav items | Primary funnel. **"Start free" → `/signup`; self-serve behavior gated L-FUN-2, with `/login` or `/contact` fallback meanwhile.** |
 | `/` section 7 (claims ledger) | `/trust` | "Full claims matrix" | Depth for the trust-curious. |
 | `/` section 3 (plate) | `/features` | "See the mechanics" | Depth for the evaluation-stage visitor. |
 | `/` section 10 (pricing philosophy) | `/pricing` | "Pricing, honestly" | Conversion-adjacent. |
 | `/features` | `/trust`, `/pricing` | nav + CTAs | Standard. |
-| `/pricing` | `/signup` "Start free" (or `/login` / `/contact`) | CTA | Self-serve path; gated L-FUN-1/L-FUN-2. |
+| `/pricing` | `/signup` "Start free" (or `/login` / `/contact`) | CTA | Self-serve path; route settled, behavior gated L-FUN-2. |
 | `/about` | `/contact`, `/trust` | nav + inline | Founder-led → contact; trust depth. |
-| `/contact` | `/signup` "Start free" (or `/login`) | CTA | Self-serve alternative; gated L-FUN-1/L-FUN-2. |
+| `/contact` | `/signup` "Start free" (or `/login`) | CTA | Self-serve alternative; route settled, behavior gated L-FUN-2. |
 | `/trust` | `/features`, `/pricing` | nav + inline | Standard. |
 | Footer (every marketing route) | All marketing routes + `/privacy`, `/terms` | sitemap | Sitewide distribution. **Footer does NOT link to `/login`/`/signup`** — those are reached only via CTAs, keeping them out of the global nav crawl path. |
 
 Every internal link uses a real anchor (not "click here"); every anchor obeys §10 voice. The
-"Start free" href is the **one** internal link whose target is owner-gated (L-FUN-1); the
-internal-link structure is agnostic to whether it resolves to `/signup`, `/login`, or
+"Start free" href is the **one** internal link whose behavior is owner-gated (L-FUN-2); the
+route path is settled as `/signup`, while launch slices may temporarily resolve to `/login` or
 `/contact` — doc 05 owns the per-CTA routing decision.
 
 ---
@@ -505,7 +505,7 @@ specific type and inherits `Article`); until then it is absent from this doc's s
 
 - **`00-OVERVIEW.md`** — owns the ratified keystone decisions D-1…D-5 this doc obeys (Glass
   Brand, full-page auth, orange discipline, ClaimStatus type, honest scoring). The
-  L-FUN-1/L-FUN-2/L-SEO-1/L-I18N-1 gates this doc carries are rows in `00-OVERVIEW.md` §7 and
+  L-FUN-1 superseded decision record, L-FUN-2/L-SEO-1/L-I18N-1 gates this doc carries are rows in `00-OVERVIEW.md` §7 and
   in `LOOP_LEDGER.md`.
 - **`05-COPY-SKELETON.md`** — the on-page copy; §3.1 meta copy above feeds its §12 (new); the
   keyword clusters (§2.2) feed its copy choices.
@@ -525,7 +525,7 @@ specific type and inherits `Article`); until then it is absent from this doc's s
   doc 23 §7 implements it. Auth `<title>`s (§5.2), canonical-self, sitemap exclusion, and
   `robots.txt` disallow are cross-owned.
 - **`LOOP_LEDGER.md`** — L-SEO-1 (PH/SEA volume validation), L-I18N-1 (launch locale),
-  L-ENG-2 (analytics tool), L-FND-1 (founder bio → `Person` schema), L-FUN-1 (signup route),
+  L-ENG-2 (analytics tool), L-FND-1 (founder bio → `Person` schema), L-FUN-1 (superseded signup-route record),
   L-FUN-2 (self-serve enablement), L-PRC-1 (pricing validation → no `Offer` schema).
 
 ---
@@ -544,10 +544,9 @@ Per D-5, no gate is silently marked closed. Each item below is a row in `LOOP_LE
   recommended by doc 17). ⚠️ GATED on owner.
 - **L-FND-1 — Founder bio assets.** The `Person` schema on `/about` (§6.3) + the `/about` OG
   image (§5.4) wait on this. Fallback: wordmark-only OG, no `Person` schema, no fake headshot.
-- **L-FUN-1 — `/signup` route path.** Whether "Start free" routes to `/signup` (top-level) vs
-  `/auth/signup` vs `/login` vs `/contact`. This doc assumes `/signup` (recommended by doc 23
-  §10); the sitemap/robots exclusion list + the `<title>` (§5.2) are ready for whichever path
-  is chosen. ⚠️ GATED on owner.
+- **L-FUN-1 — `/signup` route path.** Superseded by D-2 / `LOOP_LEDGER`: top-level `/signup`.
+  This doc's sitemap/robots exclusion list + `<title>` (§5.2) are authoritative for that route.
+  The source route still needs implementation; the route-name decision is no longer owner-open.
 - **L-FUN-2 — Self-serve enablement.** Whether `/signup` accepts new accounts or routes to
   request-access (doc 23 §3). Does not change the SEO policy (noindex either way); called out
   for traceability.
@@ -576,7 +575,8 @@ D-4 type name in §6.3/§5.4 context; no score is self-asserted as 100/100/100.
 |---|---|---|
 | **Strategy** | **95 / 100** | The SEO thesis (search-intent match, PH+SEA geo-scope, plain anchor "construction cost estimating platform") is coherent and MASTER-§4.1-grounded; the auth-page SEO policy (D-2) is encoded correctly (noindex,nofollow + canonical-self + sitemap exclusion + robots disallow — the four-layer posture); the A/B canonical strategy (§4.4) and the EN-only hreflang default (§4.5) are pinned. Not 100 because L-SEO-1 (volume validation) and L-I18N-1 (launch locale) are genuinely open — the clusters are honestly labeled hypotheses, not validated targets, which is the correct posture but means the strategy is not yet fully locked. |
 | **Quality** | **96 / 100** | Every gap from the 2026-06-21 draft is closed: the `Disallow: /auth/` bug is fixed to explicit `/login` + `/signup` (§4.3); the fabricated `SearchAction` is removed with a §15 justification (§6.2); the sitemap tool is pinned to native `app/sitemap.ts` with type-safe code (§4.1/§4.2); per-route OG images are specified and cross-linked to doc 19 (§5.4); the EN-only hreflang self-reference is explicit (§4.5); the no-Offer/no-aggregateRating discipline is preserved and expanded (§6.4). Every token citation is grep-verified against `globals.css` (§7). Not 100 because the `app/sitemap.ts` + `app/robots.ts` code blocks are plan-spec, not committed code (an implementer may need to reconcile with the real Next.js metadata API version), and the OG-image compositions are specified as constraints rather than pixel-designed (correctly deferred to doc 19 per DESIGN.md-as-alpha). |
-| **Implementation-Readiness** | **94 / 100** | An implementer can copy the `app/sitemap.ts` (§4.2) and `app/robots.ts` (§4.3) blocks verbatim (they are valid `MetadataRoute` types), the per-route meta table (§3.1) maps directly to Next.js `metadata` exports, the auth SEO policy (§5) is a checklist, and the canonical-during-A/B rule (§4.4) is a single decision per route. Not 100 because `/signup` does not exist on disk today (gated L-FUN-1 — verified absent via `ls src/app/signup`), so the robots disallow + noindex for it is policy-ready but not yet applicable; and the OG images (§5.4) are a cross-doc dependency on doc 19's pipeline, not something this doc can ship alone. Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |
+| **Implementation-Readiness** | **94 / 100** | An implementer can copy the `app/sitemap.ts` (§4.2) and `app/robots.ts` (§4.3) blocks verbatim (they are valid `MetadataRoute` types), the per-route meta table (§3.1) maps directly to Next.js `metadata` exports, the auth SEO policy (§5) is a checklist, and the canonical-during-A/B rule (§4.4) is a single decision per route. Not 100 because `/signup` does not exist on disk today (implementation deliverable, not a route-name decision), so the robots disallow + noindex for it is policy-ready but not yet applicable; and the OG images (§5.4) are a cross-doc dependency on doc 19's pipeline, not something this doc can ship alone. Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |
 
-**Carried to `LOOP_LEDGER.md` (not silent):** L-SEO-1, L-I18N-1, L-ENG-2, L-FND-1, L-FUN-1,
-L-FUN-2, L-PRC-1. Plus two open-but-non-blocking forward decisions (blog, real site-search).
+**Carried to `LOOP_LEDGER.md` (not silent):** L-SEO-1, L-I18N-1, L-ENG-2, L-FND-1,
+L-FUN-2, L-PRC-1. L-FUN-1 remains only as a superseded decision record. Plus two
+open-but-non-blocking forward decisions (blog, real site-search).

@@ -484,10 +484,11 @@ admin surface); (e) `signInWithEmail` already sets `shouldCreateUser:true`, so *
 link is already the signup mechanism** — `/signup` is the same server action with different
 copy, not a separate code path (doc 23 §2.2).
 
-**⚠️ GATED on L-FUN-1** (the owner's auth-route decision: `/signup` vs `/auth/signup`).
-**⚠️ GATED on L-FUN-2** (beta onboarding + self-serve enablement: does `/signup` accept new
+**L-FUN-1 is superseded by D-2 / `LOOP_LEDGER`: the route shape is `/signup`; do not reopen
+`/auth/signup` vs `/start`.** **⚠️ GATED on L-FUN-2** (beta onboarding + self-serve enablement:
+does `/signup` accept new
 accounts, or route to `ClosedBetaGate` request-access?). The 2-column design ships ready
-for either resolution (doc 23 §3.2). **Fallback until L-FUN-1/L-FUN-2 close:** "Start free"
+for either resolution (doc 23 §3.2). **Fallback until L-FUN-2 closes:** "Start free"
 routes to `/login` (the magic link already handles signup via `shouldCreateUser:true`) or
 to `/contact` (the assisted path). Per D-2, the 2-column auth design is **agnostic** to
 this routing decision.
@@ -607,7 +608,7 @@ signup — they gate charging, not onboarding.
    `prefers-reduced-transparency` alone.
 9. JS budget **< 40 KB gzipped per route (target) / > 60 KB fails CI**, enforced by
    `@next/bundle-analyzer` (already wired) + a threshold script (§3.6, doc 16 §8).
-10. "Start free" → dedicated `/signup` (recommended, gated L-FUN-1/L-FUN-2; fallback
+10. "Start free" → dedicated `/signup` (route path settled; self-serve gated L-FUN-2; fallback
     `/login` or `/contact`); do not gate on pricing or billing; **do** gate on legal docs +
     DPA + abuse guardrails + onboarding/first-run.
 11. Instrument the §7.2 event set; the moat metric is first-reuse. Auth-surface events in
@@ -706,9 +707,9 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc 
   confirmation; the implementation lane does not delete until confirmed in `LOOP_LEDGER.md`.
   Includes the 3 fabricated testimonials, the hype hero, the construction-photo slideshow +
   2.3MB PNG, the logo-only footer, and any re-drawn browser/IDE chrome.
-- **L-FUN-1 — Auth route for "Start free" (§6.1).** No `/signup` exists today (`/auth` and
-  `/login` do). Recommend a dedicated `/signup`; owner to decide. **Fallback until closed:**
-  "Start free" → `/login` or `/contact`.
+- **L-FUN-1 — Auth route for "Start free" (§6.1).** Superseded by D-2 / `LOOP_LEDGER`:
+  top-level `/signup` is the route. No source route exists yet, so implementation still adds it;
+  the decision itself is no longer owner-open.
 - **L-FUN-2 — Beta onboarding + self-serve enablement (§6.1).** Does `/signup` accept new
   accounts, or route to `ClosedBetaGate`? The 2-col design ships ready for either (doc 23
   §3.2).
@@ -775,6 +776,6 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc 
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **95 / 100** | The engineering contract is fully re-aligned to the Glass Brand (D-1): RSC-first mirrors the proven workshop-dashboard pattern, the deferred-glass perf model is explicit and inherited unchanged, the JS budget is anchored to a real repo precedent (the dashboard's leaf-only JS), and the auth surface (D-2) is correctly threaded through the same contract. Not 100 because L-ENG-1 (perf-targets ratification) and L-FUN-1/L-FUN-2 (auth routing + self-serve) are genuinely owner-open and affect whether the §3.2 targets and the §6.1 CTA destination are final — these are carried, not silently closed. |
+| **Strategy** | **95 / 100** | The engineering contract is fully re-aligned to the Glass Brand (D-1): RSC-first mirrors the proven workshop-dashboard pattern, the deferred-glass perf model is explicit and inherited unchanged, the JS budget is anchored to a real repo precedent (the dashboard's leaf-only JS), and the auth surface (D-2) is correctly threaded through the same contract. Not 100 because L-ENG-1 (perf-targets ratification) and L-FUN-2 (self-serve) are genuinely owner-open and affect whether the §3.2 targets and the §6.1 CTA behavior are final — these are carried, not silently closed. |
 | **Quality** | **96 / 100** | Every token cited (`--brand-orange` L37, `--brand-orange-dark` L38, `--canvas`/`--warm-canvas` L16-17, `--ink` L10, `--secondary` L11, `--tertiary` L12, `--glass-bg`/`--glass-blur` L108-110, `--glass-radius` L116, `--glass-nav-radius` L117, `--radius-xs` L100, `--font-sf-pro` L99, `--proposal-paper` L98, `@property --glass-blur-amount` L287, `--grad-canvas-wash` L62, `--grad-hero-continue`/`--grad-hero-create` L59-60) is grep-verified against `globals.css` on 2026-06-22; every reference file path (`WorkshopDashboard.tsx`, `WorkshopHomebaseClient.tsx`, `page.tsx`, `LiquidGlassReady.tsx`, `variant-assigner.ts`) is verified to exist; the A/B signature (`getVariant(experimentId, {analyticsConsent}): Promise<Variant>`) is read from source, not assumed; the `@next/bundle-analyzer@16.2.6` devDep + `next.config.ts` `createBundleAnalyzer` import are verified; every cross-link resolves to a canonical filename; no `#AA412A`/`--clay`/`#292929`/Source-Serif-4-as-default/paper-as-base-surface reference survives. Not 100 because: (a) the §3.2.1 "match-or-beat the dashboard's leaf-only JS" precedent asserts the dashboard's JS is small without citing the actual measured KB (the Phase-0 L-ENG-1 task records the number); (b) the §3.6 threshold script is described but its exact CLI invocation is deferred to doc 16 §8 (sibling-owned). |
-| **Implementation-Readiness** | **93 / 100** | An implementer can start: the RSC pattern is concretely named with reference files, the hydrating-leaf set is enumerated, the JS-budget enforcement mechanism is already wired in-repo, the deferred-glass technique is inherited unchanged from a mounted component, the A/B scaffolding is reused as-is with a clear Phase-0 verification task, the measurement methodology names the device class + region + cache state, and the `/signup` recommendation + fallback is explicit. Not 100 because the genuinely-open gates honestly cap readiness below 100: L-ENG-1 (numeric thresholds unratified), L-FUN-1/L-FUN-2 (`/signup` does not exist yet — it is the deliverable, gated on owner routing + beta-onboarding decisions), L-FUN-3/L-FUN-4 (first-run flow + P1 abuse guardrails are not built), and L-ENG-3 (page-level-split verification is a Phase-0 check, not yet run). Per D-5 these are carried, not silently closed. |
+| **Implementation-Readiness** | **93 / 100** | An implementer can start: the RSC pattern is concretely named with reference files, the hydrating-leaf set is enumerated, the JS-budget enforcement mechanism is already wired in-repo, the deferred-glass technique is inherited unchanged from a mounted component, the A/B scaffolding is reused as-is with a clear Phase-0 verification task, the measurement methodology names the device class + region + cache state, and the `/signup` route + fallback behavior is explicit. Not 100 because the genuinely-open gates honestly cap readiness below 100: L-ENG-1 (numeric thresholds unratified), L-FUN-2 (`/signup` does not exist yet and self-serve remains owner-gated), L-FUN-3/L-FUN-4 (first-run flow + P1 abuse guardrails are not built), and L-ENG-3 (page-level-split verification is a Phase-0 check, not yet run). Per D-5 these are carried, not silently closed. |

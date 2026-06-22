@@ -520,6 +520,41 @@ Every claim in this doc is reproducible:
 
 ---
 
+## 10.5 Bounded AEC estimating market scan (2026-06-22)
+
+This scan does **not** close L-PEG-1 (the formal PH/SEA competitor scan remains open), but it
+does constrain the landing copy:
+
+- **Spreadsheet pain is real and externally legible.** Bluebeam and HCSS both frame estimating
+  software around moving teams beyond manual spreadsheet work: centralized takeoff/estimate
+  workflows, cost databases, bid management, and fewer manual-entry errors. This supports the
+  "why not a spreadsheet" section, but it is not unique to us.
+- **The competitor category is crowded.** Capterra's construction-estimating category, STACK,
+  and Procore Estimating show a broad existing market for takeoff, estimating, bid management,
+  templates, cost data, and proposal workflows. Public copy must not imply "no competitors."
+- **Our defensible emphasis is workflow shape, not category existence.** The landing should lead
+  with the Live feature spine: reusable components/templates, drag/drop into the estimate sheet,
+  the domain-shaped estimate tree, Activity/version history, and shared proposal
+  comment/approval. The commercial graph remains a qualified positioning device — "we draw our
+  workflow this way and claims-tag every part" — not a proven monopoly claim.
+- **SEA/PH specificity is still unproven.** Keep L-PEG-1 open until Procore/Buildertrend/PlanSwift/
+  CostX/RIB iTWO/Assemble plus local SEA/PH tools are reviewed against the same criteria.
+
+Sources used for this bounded scan:
+
+- Bluebeam, "Construction Estimation Software Guide 2026":
+  `https://www.bluebeam.com/resources/construction-estimation-software-2026/`
+- HCSS, "Excel vs Estimating Software":
+  `https://www.hcss.com/blog/excel-vs-estimating-software/`
+- Capterra, "Best Construction Estimating Software":
+  `https://www.capterra.com/construction-estimating-software/`
+- Capterra, "STACK":
+  `https://www.capterra.com/p/147181/STACK-Takeoff/`
+- Procore, "Estimating":
+  `https://www.procore.com/estimating`
+
+---
+
 ## 11. Cross-links
 
 - **`00-OVERVIEW.md`** — owns the five ratified keystone decisions D-1…D-5 this doc obeys (Glass

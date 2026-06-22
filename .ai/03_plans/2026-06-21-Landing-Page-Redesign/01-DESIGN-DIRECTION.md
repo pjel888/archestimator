@@ -21,8 +21,8 @@
 
 **Locked context (do not relitigate; every doc in this pack obeys the ratified decisions D-1…D-5):**
 Direction A — The Glass Brand is decided (D-1). This doc explains *why* so the rest of the pack stays
-coherent, not to reopen the call. Primary CTA = "Start free" (routing gated `LOOP_LEDGER.md`
-L-FUN-1/L-FUN-2); secondary = "Book a walkthrough". Routes: `/`, `/features`, `/pricing`, `/about`,
+coherent, not to reopen the call. Primary CTA = "Start free" (`/signup` path settled by
+L-FUN-1; self-serve behavior gated on L-FUN-2); secondary = "Book a walkthrough". Routes: `/`, `/features`, `/pricing`, `/about`,
 `/contact` + new `/trust`; **auth is in scope** — `/login` + `/signup` as full-page 2-column
 brand-forward surfaces (D-2; see `23-AUTH-EXPERIENCE.md`). Proof = radical honesty (a
 Live/Building/Planned claims ledger, typed per D-4) + the named commercial-graph plate — NO logos /
@@ -59,6 +59,11 @@ workspace over a warm grey canvas with a signal-orange logo slab and Doto headli
 If the public marketing site looks like a different company — warm paper + a serif — the click-through
 is a **brand discontinuity**, and a reader who just trusted the page enough to click "Start free"
 trusts it *less* on the other side, not more. The page must look like the product.
+
+The landing therefore acts as an **introduction to the app material**: the first viewport should
+teach the reader the warm canvas, liquid-glass chrome, signal-orange brand slab, compact UI
+discipline, and claims-tagged product architecture they will meet inside the product. The effect is
+a hint and a handoff, not decorative glass for its own sake.
 
 > ⚠️ **O-3 DISCLAIMER (inherited from `03-VISUAL-LANGUAGE-AND-TOKENS.md` §7.4; carried as L-DES-3,
 > closed for the Glass Brand, preserved for Direction D):** Source Serif 4 is **DEFERRED**. The

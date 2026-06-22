@@ -74,7 +74,7 @@ Accessibility is a first-class contract, not a post-hoc check. This doc:
 | Perceivable | All content is programmatically determinable | manual review of ARIA/roles | axe + manual review |
 | Operable | All functionality is keyboard accessible | Keyboard test (Tab, Enter, Space, Esc, Arrow) | same |
 | Understandable | Content is readable and predictable | manual review + copy review (doc 22) | same |
-| Robust | Compatible with assistive technologies | Screen reader test (VoiceOver macOS; NVDA Win in Phase 6) | same |
+| Robust | Compatible with assistive technologies | Screen reader test (VoiceOver macOS; NVDA Win at the final release gate, historical Phase 6 alias) | same |
 
 ### Library-specific requirements
 
@@ -119,10 +119,10 @@ Binding: these mirror [35-LIQUID-GLASS-LIBRARY-UX-SPEC.md](35-LIQUID-GLASS-LIBRA
 | Test type | Tool | Phase | Gate status |
 |---|---|---|---|
 | Manual keyboard | Keyboard + DevTools | 0A–5 | Pre-merge (active today) |
-| Manual screen reader | VoiceOver (macOS); NVDA (Windows) | 1, 5b, 6 | Phase exit |
+| Manual screen reader | VoiceOver (macOS); NVDA (Windows) | 1, Phase 5 dense-mode subtrack (formerly 5b), final release gate alias (formerly Phase 6) | Phase exit |
 | axe automated | axe-core (`jest-axe` for jsdom + `@axe-core/playwright` for Playwright) | 0A (config) → 5 | **INACTIVE pre-0A**; Pre-merge post-0A |
-| Playwright a11y | Playwright + axe | 5b, 6 | Phase exit |
-| Visual focus review | Screenshot focus state | 1, 5b, 6 | Phase exit |
+| Playwright a11y | Playwright + axe | Phase 5 dense-mode subtrack (formerly 5b), final release gate alias (formerly Phase 6) | Phase exit |
+| Visual focus review | Screenshot focus state | 1, Phase 5 dense-mode subtrack (formerly 5b), final release gate alias (formerly Phase 6) | Phase exit |
 
 ### axe harness (Phase 0A deliverable — resolves C-014)
 
@@ -145,10 +145,10 @@ Until `EV-0A-AXE-HARNESS` is green, the "axe automated ... Gate: Pre-merge (post
 
 | Screen reader | Browser | Phase | Surfaces |
 |---|---|---|---|
-| VoiceOver | Safari (macOS) | 1, 5b, 6 | All Library surfaces |
-| VoiceOver | Safari iOS | 6 | Mobile surfaces |
-| NVDA | Firefox (Windows) | 6 | All Library surfaces |
-| TalkBack | Chrome (Android) | 6 | Mobile surfaces (Phase 6) |
+| VoiceOver | Safari (macOS) | 1, Phase 5 dense-mode subtrack (formerly 5b), final release gate alias (formerly Phase 6) | All Library surfaces |
+| VoiceOver | Safari iOS | final release gate alias (formerly Phase 6) | Mobile surfaces |
+| NVDA | Firefox (Windows) | final release gate alias (formerly Phase 6) | All Library surfaces |
+| TalkBack | Chrome (Android) | final release gate alias (formerly Phase 6) | Mobile surfaces |
 
 ---
 
@@ -235,7 +235,7 @@ DOM target (the "Present today?" column in §4) and the right politeness.
 1. **Use `polite` for non-urgent updates** — results, filters, state changes, open/close, item counts.
 2. **Use `assertive` for urgent updates** — errors, destructive-action results, permission denied, very-stale insert gate.
 3. **Never use `off`** — if it doesn't need announcement, don't add aria-live.
-4. **Test with real screen reader** — aria-live behavior varies across browsers; VoiceOver macOS is the Phase-1 exit target, NVDA Firefox is Phase 6.
+4. **Test with real screen reader** — aria-live behavior varies across browsers; VoiceOver macOS is the Phase-1 exit target, NVDA Firefox is the final release-gate target (historical Phase 6 alias).
 5. **Keep announcements short** — 1-3 words ideal, max 1 sentence.
 6. **Chips (C-002 chip, not badge) carry no aria-live** — freshness/confidence/lifecycle chips are read as part of the host row/card accessible name; only the very-stale insert-gate confirm uses an assertive region.
 7. **REUSE first, NET-NEW second** — the §4 "Present today?" column distinguishes the two. REUSE means the region exists and only needs the keyed copy wired in (Phase 1, low-risk); NET-NEW means a new region must be added (Phase 0B/1/2, sequenced in doc 12 and tracked in [24](24-EXECUTION-EVIDENCE-LEDGER.md)).

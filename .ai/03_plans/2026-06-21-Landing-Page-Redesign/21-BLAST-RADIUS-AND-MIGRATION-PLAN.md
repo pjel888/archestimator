@@ -17,19 +17,22 @@ rollout mechanics (→ `08`), or the per-file diffs (those are the implementer's
 
 ## 0. Proportional risk posture (per AGENT_OPERATING_PROTOCOL "Loop activation criteria")
 
-**Overall risk = LOW.** This is an **additive marketing + auth-skin change**, NOT a
-database/RLS/RPC/migration, NOT auth-security (the server actions, callback, closed-beta RPC, and
-error-code contract are all unchanged — verified by `23-AUTH-EXPERIENCE.md` §0), NOT data-integrity,
-NOT a cross-cutting refactor. The two mildly elevated pieces are:
+**Overall risk = MODERATE, with a low-risk marketing slice.** The static marketing route work is
+additive and reversible, but the public auth/contact surfaces are security-relevant because they
+introduce or expose public submission paths. This is **not** a database/RLS rewrite or
+data-integrity migration, but it does require explicit auth/form abuse wrappers, PII handling, and
+monitoring before public signup/contact. The elevated pieces are:
 
-1. **The new `/signup` route** (gated L-FUN-1/L-FUN-2) — an auth *surface*, but it is a reskin +
-   twin of the existing `/login` (same two server actions: `signInWithEmail` with
-   `shouldCreateUser:true` + `signInWithGoogle`). No new server-action code, no new RPC, no new
-   rate-limit code. The blast radius is one new RSC route + a new `src/components/auth/` dir.
-2. **The URL cutover** — the public surface changes. Mitigated entirely by the `/newdesign` preview
+1. **The new `/signup` route** (route shape resolved by D-2; self-serve gated L-FUN-2) — an auth
+   surface that must wrap the existing `signInWithEmail` / `signInWithGoogle` actions with the
+   Postgres quota + honeypot contract in `15-FORMS-AND-ABUSE-GUARDRAILS.md`. The route itself is
+   additive; the abuse wrapper is the security blocker.
+2. **The `/contact` / beta-request path** — public PII intake. It needs the contact data-flow,
+   retention, support-channel, and provider-readiness contract in `15` §2.4 before launch.
+3. **The URL cutover** — the public surface changes. Mitigated entirely by the `/newdesign` preview
    → `/legacy` swap pattern (`08` §2): the cutover is a **URL swap, not a code change** (§2 phase 6).
 
-**Why 27 docs, then?** The breadth is **owner-directed comprehensiveness** (Philip asked for 100%
+**Why 27 planning docs plus an execution guide, then?** The breadth is **owner-directed comprehensiveness** (Philip asked for 100%
 on all three axes), **not proportional necessity**. Per the project's own proportional-policy rule,
 ordinary additive marketing work would run a lightweight in-session loop, not a 27-doc pack. The
 pack exists because the owner ratified it; the *risk* stays Low regardless of the doc count. This
@@ -54,9 +57,9 @@ section exists so the implementer does not mistake the pack's size for the chang
 | `src/components/landing/motion/ScrollReveal.tsx` | new (or refactor of existing `MotionReveal`) | `11` §2.5 | Low. |
 | `src/components/landing/analytics/LandingAnalyticsBoot.tsx` | new (wraps existing loaders) | `11` §2.5 | Low. |
 | `src/components/brand/Wordmark.tsx` | new | `19` §3 | Low. |
-| **`src/components/auth/AuthLayout.tsx`** + 6 leaves (`AuthGlassPanel`, `LoginForm`, `SignupForm`, `GoogleButton`, `MagicLinkButton`, `ClosedBetaGate`) | **new dir** | `23` §4 | Low — additive; the `/login` RSC markup is *extracted*, not re-architected. **Zero changes to server actions / callback / closed-beta RPC / error codes** (`23` §0). |
+| **`src/components/auth/AuthLayout.tsx`** + 6 leaves (`AuthGlassPanel`, `LoginForm`, `SignupForm`, `GoogleButton`, `MagicLinkButton`, `ClosedBetaGate`) | **new dir** | `23` §4 | Low–Medium — additive; the `/login` RSC markup is extracted, not re-architected. Public auth still needs the doc `15` rate-limit/honeypot wrapper before launch. Callback / closed-beta RPC / error codes stay unchanged. |
 | `src/app/trust/page.tsx` | **new route** | `02` §2.5 + `06` §6 | Low — additive. |
-| `src/app/signup/page.tsx` | **new route** (⚠️ GATED L-FUN-1/L-FUN-2 — `23` §9/§10) | `23` §2.1 | Medium — auth surface, but reskin/twin of `/login`. |
+| `src/app/signup/page.tsx` | **new route** (route path settled by L-FUN-1; self-serve gated L-FUN-2 — `23` §9/§10) | `23` §2.1 | Medium — auth surface, but reskin/twin of `/login` with the `ClosedBetaGate` default while self-serve is off. |
 | `src/app/newdesign/page.tsx` (+ per-route preview pages) | **new route** (preview only, `08` §2) | `08` §2 | Low — additive, preview. |
 | `src/app/legacy/page.tsx` (+ per-route rollback mirrors) | **new route** (rollback host, `08` §2.3) | `08` §2.3 + §4 below | Low — additive, noindex. |
 | **`src/app/sitemap.ts`** | **new** (none exists today — verified) | `13` §4 + §3 below | Low — net-new, no migration. |
@@ -121,7 +124,7 @@ routes that keep their path need no redirect.
 | _(none of the canonical marketing routes change path)_ | — | — | `/`, `/features`, `/pricing`, `/about`, `/contact`, `/login` all **keep their URLs**; the cutover swaps the *component tree* under them, not the path. This is the single biggest SEO risk-reducer. |
 | `/favicon.ico` → new root-level `public/favicon.ico` | `/favicon.ico` (root) | n/a (file replace, not redirect) | The new set ships at the root; `/favicon_io/*` is deleted in phase 7. No redirect needed if `metadata.icons` points at the new root paths. Add a 301 from `/favicon_io/favicon.ico` → `/favicon.ico` only if log analysis shows inbound traffic to the old subpath. |
 | `/trust` (new) | n/a | n/a | **Net-new route** — no old URL to redirect from. |
-| `/signup` (new) | n/a | n/a | **Net-new route** (gated L-FUN-1/L-FUN-2). |
+| `/signup` (new) | n/a | n/a | **Net-new route** (path settled; self-serve gated L-FUN-2). |
 | `/newdesign` (preview) | n/a | n/a | **Net-new, internal-only** — `noindex` from day 1 (§3); never in the sitemap. |
 | `/legacy` (rollback host) | n/a | n/a | **Net-new, rollback-only** — `noindex` from day 1 (§3); never in the sitemap. |
 | Old deep-section anchors (e.g. `/#testimonials`, `/#partners` — if they existed) | the nearest new section anchor (e.g. `/#proof` or `/#how-it-works`) | `true` | **See risk-register row R-8 (anchor rot).** Only add if analytics/search-console shows inbound links to the removed anchors; otherwise let them 404 to the section. |
@@ -140,7 +143,7 @@ above are the only likely candidates, and only if inbound-link evidence (§R-8) 
 | `/login` | **Stays** | Reskinned to 2-col (`23`); path + server-action contract unchanged. |
 | `/privacy`, `/terms` | **Stay** | Unchanged by this redesign (legal content owner-gated L-LEG-1…4). |
 | `/trust` | **NEW** | Additive; no redirect. |
-| `/signup` | **NEW** | Additive; gated L-FUN-1/L-FUN-2. |
+| `/signup` | **NEW** | Additive; path settled, self-serve gated L-FUN-2. |
 | `/newdesign`, `/legacy` | **NEW (internal)** | Preview + rollback hosts; `noindex`, sitemap-excluded (§3). |
 | `/favicon_io/*` | **REMOVED (phase 7)** | Replaced by root-level set; conditional 301 only on inbound evidence. |
 
@@ -152,7 +155,7 @@ above are the only likely candidates, and only if inbound-link evidence (§R-8) 
 | **2. Sitemap + robots (net-new)** | Add `src/app/sitemap.ts` + `src/app/robots.ts` (§3 below). They list the canonical routes and exclude `/newdesign`, `/legacy`, `/login`, `/signup`, `/trust`-if-gated. | Low. | Delete the two files; the app ran without them before. |
 | **3. New components (additive, not routed)** | Build the new components per `11` + the `src/components/auth/` leaves per `23` §4. They live in the tree but no route renders them yet. Storybook + unit + component tests pass. | Low. | Delete the new component files; no route is affected. |
 | **4. The `/newdesign` preview routes** | Add `/newdesign` + the per-route preview pages; they render the new components. `noindex` from day 1 (§3). Internal review + A/B exposure per `08` §2–3. | Low (the canonical routes are untouched). | Remove the `/newdesign` routes. |
-| **5. The `/trust` route + the `/signup` route (additive, gated)** | Add `/trust` (a new route; does not replace anything). Add `/signup` (⚠️ GATED L-FUN-1/L-FUN-2 — `23` §9/§10; ship the `ClosedBetaGate` variant if self-serve is off). `/login` reskin lands here too. | Low–Medium (`/signup` is the only auth-surface addition; server actions unchanged). | Remove the routes. |
+| **5. The `/trust` route + the `/signup` route (additive, gated)** | Add `/trust` (a new route; does not replace anything). Add `/signup` (path settled; self-serve gated L-FUN-2 — `23` §9/§10; ship the `ClosedBetaGate` variant if self-serve is off). `/login` reskin lands here too. | Medium (`/signup` is an auth-surface addition; public launch requires the doc `15` quota/honeypot wrapper, while callback / closed-beta RPC / error codes stay unchanged). | Remove the routes. |
 | **6. The claims sign-off gate** | Run the sign-off procedure (`09-CLAIMS-LEDGER-SIGN-OFF`); the owner signs that the matrix reconciles. | Gates the cutover. | If fail, correct the matrix; re-run. |
 | **7. The cutover (URL swap, NOT code change)** | The new components render at the canonical routes (`/`, `/features`, `/pricing`, `/about`, `/contact`); the old components move to `/legacy`. **The components rendered at `/newdesign` are byte-identical to the ones rendered at the canonical routes post-cutover** — this is the single biggest risk reducer. The `/legacy` route is `noindex` (§3) so it cannot cannibalize the canonical routes during the 30-day rollback window. | Medium — the public surface changes. | Revert the route swap; the `/legacy` components are still live at `/legacy`. |
 | **8. Deletions (post-cutover, ⚠️ GATED on owner + 30-day stable)** | Delete the `/legacy` components + the fabricated-testimonial files + the hero slideshow + the 2.3MB PNG + the logo-only footer + `/favicon_io/*`. See §5 for the day-31 `/legacy` action. | Low — the components are no longer rendered. | Restore from git history (30-day window — §5). |
@@ -288,7 +291,7 @@ reconstructible from history. This is the audit trail for "we rolled back / we d
 | **R-2** A claim ships that violates §15 (forbidden list) | Med | High (brand) | The claims-test sweep (`16` §9) catches it in CI; the sign-off gate (`09`) blocks release. | Reviewer + owner |
 | **R-3** Deferred-glass CLS / blur jank on mid-range Android | Low | Med | The deferred-glass pattern + ≤4-blur cap (`03` §4); lab CI catches it (`16` §8). L-A11Y-1 (30fps verify) carried. | Eng |
 | **R-4** The plate SVG overflows at 320px | Med | Med | The collapse-to-vertical-stack behavior (`04` §4.6); the e2e mobile-render test (`16` §5) catches it. | Eng |
-| **R-5** The `/signup` route is not ready by cutover | High | Med | The `Start free` CTA is href-gated (L-FUN-1); the cutover ships with the CTA pointing to `/contact` (the assisted path) or `/login` (magic-link handles signup — `23` §0) until `/signup` lands. **The cutover does NOT wait on `/signup`.** | Owner |
+| **R-5** The `/signup` route is not ready by cutover | High | Med | The `Start free` CTA is launch-gated by the doc 23 matrix: `/signup` is the settled path, but cutover may point to `/contact` (assisted path) or `/login` (magic-link handles signup — `23` §0) until the route exists or renders the `ClosedBetaGate`. **The cutover does NOT wait on self-serve `/signup`.** | Owner |
 | **R-6** The claims matrix drifts (a feature ships without the matrix updating) | Med | High (brand) | The content workflow (`20` §3) + the weekly reconciliation cadence. | Author + reviewer |
 | **R-7** A banned hero line regresses (someone re-adds "Start Winning") | Low | Med (brand) | The forbidden-list sweep (`16` §9.1) catches it in CI. | Eng |
 | **R-8** **Inbound-link anchor rot to removed deep sections** (e.g. `/#testimonials`, `/#partners`, `/favicon_io/*`) | Low | Med (SEO) | (a) Audit Search Console + inbound-link tools (Ahrefs/SEMrush if available, else Search Console referrer report) for links to removed anchors/subpaths BEFORE phase-8 deletion; (b) add `301` redirects (§2.1) from any evidence-backed old anchor to the nearest new section (`/#proof`, `/#how-it-works`); (c) for the removed `/#testimonials` specifically, redirect to `/#proof` (the radical-honesty claims ledger is the successor surface). If no inbound evidence, let the anchor 404 to the section (a fragment 404 is harmless). | Owner + SEO |
@@ -329,7 +332,7 @@ post-cutover, then resolves per §4 (day-31 action).
 - `17-ANALYTICS-AND-OBSERVABILITY.md` — the event-schema continuity (R-13) + the `surface` discriminator.
 - `19-ASSET-PIPELINE-AND-IMAGERY.md` — the asset additions + the OG-image cache strategy (R-9).
 - `23-AUTH-EXPERIENCE.md` — the auth-surface blast radius (§0 there → §0 + §1.1 here) + the no-signup fallback (R-5).
-- `LOOP_LEDGER.md` — the L-REM-* family + L-FUN-1/2 + L-REM-6 (day-31 action) + the open dependencies.
+- `LOOP_LEDGER.md` — the L-REM-* family + superseded L-FUN-1, active L-FUN-2, L-REM-6 (day-31 action), and the open dependencies.
 
 ---
 
@@ -339,7 +342,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 
 - **L-REM-1 → L-REM-5** — Owner confirmation of the deletion rail (§1.3). No deletion ships without it.
 - **L-REM-6 (new)** — The day-31 `/legacy` action (A auto-delete / B reminder / C keep — §4). Default A; owner confirms.
-- **L-FUN-1** — The `/signup` route path (recommend `/signup`, `23` §10). Affects whether the cutover's `Start free` points to `/signup` or to `/login`/`/contact` (R-5).
+- **L-FUN-1** — Superseded decision record: `/signup` is the route path (D-2 / `LOOP_LEDGER`). Do not reopen route shape; only launch behavior changes R-5.
 - **L-FUN-2** — Beta-onboarding + self-serve enablement (`23` §10). Decides whether `/signup` ships `SignupForm` or `ClosedBetaGate`.
 - **L-FUN-3, L-FUN-4** — First-run flow + abuse guardrails (P1). Affect whether the cutover's "Start free" leads to a working activation path; R-5 routes around them.
 - **L-ENG-2 / L-ENG-3** — A/B provider + analytics tool ratification. Affect R-13 (event-continuity shape).
@@ -351,7 +354,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 ## 9. Coherence contracts (this doc honors)
 
 - **D-1 (Glass Brand)** — the canvas wash replaces (not paper) the background; `NeatWireframeBackground` deletion gated on that (`03` §4.1). No Source Serif 4 in `layout.tsx` (§1.2 + §2.3 phase 1).
-- **D-2 (full-page auth)** — `/login` + `/signup` are routes, not modals; both `noindex,nofollow` + sitemap-excluded (§3.1/§3.2). Auth blast radius is reskin + twin, server actions unchanged (`23` §0).
+- **D-2 (full-page auth)** — `/login` + `/signup` are routes, not modals; both `noindex,nofollow` + sitemap-excluded (§3.1/§3.2). Auth UI is a reskin + twin, but public auth entrypoints require the `15` rate-limit/honeypot wrapper before launch.
 - **D-3 (orange discipline)** — no clay `#AA412A` anywhere (it is not a token; `globals.css` grep confirms absence except the DESIGN.md-prose comment at L29). The redesign does not introduce it.
 - **D-4 (ClaimStatus type)** — single source `src/components/landing/shared/StatusPill.tsx` (§1.1); no divergent type.
 - **D-5 (honest scoring)** — the overall risk is rated **LOW** with explicit justification (§0); the doc does not inflate risk to justify its own breadth, nor deflate it to look simple. Gated items are carried, not silently closed (§8).
@@ -364,9 +367,9 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **95 / 100** | The proportional-risk posture (§0) honestly frames this as additive Low-risk work and justifies the 27-doc breadth as owner-directed, not proportional-necessary — the load-bearing strategic correction the prompt required. The 7-phase order, the "cutover = URL swap not code change" insight, the 5-layer `/legacy` noindex discipline, the day-31 action pin, the R-8 anchor-rot + R-9 OG-stability + R-13 event-continuity rows, and the "Start free → /contact or /login" fallback (R-5) are all concrete and owner-aligned. Not 100 because L-FUN-1/L-FUN-2 (signup path/self-serve) and L-REM-6 (day-31 action) are genuinely open and affect the final cutover shape; the doc recommends defaults but cannot ratify them. |
+| **Strategy** | **95 / 100** | The proportional-risk posture (§0) honestly splits low-risk static marketing work from moderate auth/contact launch risk and justifies the 27-planning-doc breadth as owner-directed, not proportional-necessary. The 7-phase order, the "cutover = URL swap not code change" insight, the 5-layer `/legacy` noindex discipline, the day-31 action pin, the R-8 anchor-rot + R-9 OG-stability + R-13 event-continuity rows, and the "Start free → /contact or /login" fallback (R-5) are all concrete and owner-aligned. Not 100 because L-FUN-2 (self-serve), L-FUN-4 (abuse wrapper), L-CRM-1 (waitlist/support destination), and L-REM-6 (day-31 action) are genuinely open and affect the final cutover shape. |
 | **Quality** | **94 / 100** | Every structural claim is verified against live source: `next.config.ts:99` `redirects()` exists (§2.1 format reference), no `metadataBase`/`sitemap.ts`/`robots.ts`/`middleware.ts` exist today (§3 net-new), `public/favicon_io/` + `public/landing/hero-slides` + the frosted PNG exist (§1.3 deletion targets), `X-Robots-Tag: noindex` precedent is in the existing `headers()` block (§3.4 #5), no clay `#AA412A` token (§9). The redirect map is explicit about which URLs change vs stay (§2.2) — zero silent shape changes. Not 100 because: (a) the R-8 inbound-link audit is described as a process ("audit Search Console + referrer report") not a verified result (no inbound-link data was pulled for this revision — it is correctly deferred to cutover-eve); (b) the OG `Cache-Control` value (24h) is a reasonable starting point, not a measured scraper-respect value; (c) the exact `metadataBase` origin is a placeholder (`archestimator.com`) pending L-SEO-1/domain confirmation. |
-| **Implementation-Readiness** | **92 / 100** | An implementer can start: the 7-phase order has per-phase rollback, the redirect map has the exact `next.config.ts` hook + format reference, the sitemap/robots/metadataBase diff is a net-new file list with per-route decisions, the day-31 action is pinned, and the risk register maps each risk to a mitigation owner. The blast radius explicitly bounds the auth change to "reskin + twin, server actions unchanged" (per `23` §0). Not 100 because the genuinely-open gates (L-FUN-1/2, L-REM-1…6, L-ENG-2/3, L-SEO-1) honestly cap readiness below 100 — per D-5 these are carried in LOOP_LEDGER, not silently closed. The cutover phase (7) cannot finalize its `Start free` href until L-FUN-1 closes, and the day-31 action (§4) cannot finalize until L-REM-6 closes. |
+| **Implementation-Readiness** | **92 / 100** | An implementer can start: the 7-phase order has per-phase rollback, the redirect map has the exact `next.config.ts` hook + format reference, the sitemap/robots/metadataBase diff is a net-new file list with per-route decisions, the day-31 action is pinned, and the risk register maps each risk to a mitigation owner. The blast radius explicitly bounds auth to a reskin + `/signup` twin plus the doc `15` quota/honeypot wrapper; callback, closed-beta RPC, and error-code contracts stay unchanged. Not 100 because the genuinely-open gates (L-FUN-2, L-FUN-4, L-REM-1…6, L-ENG-2/3, L-SEO-1) honestly cap readiness below 100 — per D-5 these are carried in LOOP_LEDGER, not silently closed. The cutover phase (7) cannot finalize its self-serve behavior until L-FUN-2 closes, and the day-31 action (§4) cannot finalize until L-REM-6 closes. |
 
-**Carried to LOOP_LEDGER (not silent):** L-REM-1…5, L-REM-6 (new), L-FUN-1, L-FUN-2, L-FUN-3,
+**Carried to LOOP_LEDGER (not silent):** L-REM-1…5, L-REM-6 (new), L-FUN-2, L-FUN-3,
 L-FUN-4, L-ENG-2, L-ENG-3, L-SEO-1.

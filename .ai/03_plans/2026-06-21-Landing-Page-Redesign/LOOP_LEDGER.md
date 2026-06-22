@@ -15,7 +15,7 @@ pack waits on.
 
 | Field | Value |
 |---|---|
-| Pack | `2026-06-21-Landing-Page-Redesign` (27 docs on disk) |
+| Pack | `2026-06-21-Landing-Page-Redesign` (28 markdown docs on disk: 24 numbered + README/LOOP/MASTER audit/MASTER implementation) |
 | Stage | Post-pivot honest re-baseline (D-1..D-5 ratified 2026-06-22). |
 | Pre-pivot baseline (2026-06-21, independent re-audit) | Strategy ~85 · Quality ~85 · Impl-Ready ~72 (the prior self-claim of 100/100/100 is **recalled — D-5**). |
 | Post-pivot honest score (2026-06-22, §4 iter 6) | Strategy ~95 · Quality ~94 · Impl-Ready ~91. |
@@ -79,8 +79,9 @@ Rubric A).
 | L-ENG-3 | Bundle-gate wiring (`analyze` npm script + CI step + budget file) — the `withBundleAnalyzer` wrapper already exists in `next.config.ts:223`; the gate does not | ⚠️ GATED — see `07` §3.6 + `16` §28 |
 | L-ENG-4 | Proposal export policy (issued/immutable snapshot) | ⚠️ NEEDS INPUT |
 | L-ENG-5 | `adjustFontFallback` values for Doto/Roboto Mono (CLS=0 lab verify) | ⚠️ GATED — starting-guess in `14` §5.1.2 |
-| L-ENG-6 | LHCI config + budget file path (`.lighthouseci/budget.json` — reconcile `14` §7.3 with `16` §8.1) | ✅ carried (path decided; CI lane gated on L-ENG-2) |
+| L-ENG-6 | LHCI config path (`lighthouserc.js` — one canonical config; no `.lighthouseci/budget.json` sidecar unless LHCI requires it) | ✅ carried (path decided; CI lane gated on L-ENG-2) |
 | L-ENG-7 | Canonical role names + permissions (Access Matrix) | ⚠️ NEEDS INPUT |
+| L-EXP-1 | A/B baseline signup CVR + weekly-unique estimate for sample-size recompute | ⚠️ GATED — replaces the erroneous `08` use of L-ENG-4; blocks A/B significance claims, not preview build |
 
 ### 2.7 Design / visual
 
@@ -127,6 +128,9 @@ Rubric A).
 |---|---|---|
 | L-A11Y-1 | Live 30fps motion-reduction + text-on-glass AA verify on the target mid-range-Android device | ⚠️ GATED — the unautomatable gate; see `12` + `14` |
 | L-CRM-1 | Closed-beta waitlist destination (when self-serve is off) | ⚠️ GATED — see `23-AUTH-EXPERIENCE.md` §10 |
+| L-VIS-1 | Playwright screenshot-diff baselines at 1280, 768, 414, 375, and 320 widths | ⚠️ GATED — see `16-TEST-AND-VERIFICATION-PLAN.md` §6; blocks visual sign-off, not static planning |
+| L-PRIV-1 | Contact / waitlist PII data-flow destination, access, retention, export/deletion, and provider DPA check | ⚠️ GATED — see `15-FORMS-AND-ABUSE-GUARDRAILS.md` §2.4; blocks public forms |
+| L-OBS-1 | Minimum monitoring path before analytics tooling closes: Vercel log query, Supabase query, alert destination, daily owner check | ⚠️ GATED — see `17-ANALYTICS-AND-OBSERVABILITY.md` §10 |
 
 ---
 
@@ -136,6 +140,8 @@ Rubric A).
 - [x] M-1..17 — the 17 originally-missing docs created (2026-06-21).
 - [x] `README` · `LOOP_LEDGER` · `10-CANONICAL-DOC-MAP` · `MASTER-AUDIT-AND-SCORECARD` created.
 - [x] **Iter 6 (2026-06-22):** D-1..D-5 pivot — 3 keystone docs rewritten (00, 03, new 23), 20 substance docs upgraded, 5-agent adversarial panel run, `rate_limit`→`security_rate_limit_events` corrected across 14 docs, the 4 meta docs reconciled. **Honest re-score recorded in `MASTER` §7.1.**
+- [x] **Iter 7 (2026-06-22):** Codex + five native subagent audit reconciled the execution layer: `MASTER-IMPLEMENTATION-PLAN.md` integrated as the 28th markdown doc, `/newdesign` SEO policy unified, auth/contact reclassified as security-relevant, CTA route-shape vs self-serve gates split, current-codebase checkpoint added, and visual/PII/experiment gates registered.
+- [x] **Iter 8 (2026-06-22):** Owner clarified that the landing must introduce the app/brand and include hints of liquid glass. The pack now treats liquid glass as a brand-continuity cue across the first viewport, masthead, hero material panel, commercial graph, claims ledger, CTA, and auth handoff.
 - [ ] Owner resolves the ⚠️ GATED items above (none block Rubric A = planning-complete).
 
 ---
@@ -146,7 +152,9 @@ Rubric A).
 |---|---|---|---|
 | 2026-06-21 | 1 | Baseline audit; wrote MASTER, 10-CANONICAL, README, this ledger. | Baseline ~88/83/81 recorded; 17 missing docs + 10 cross-cutting gaps identified. |
 | 2026-06-21 | 2–5 | Created the 17 missing docs; patched cross-links; closed the 8-original-doc gaps; **self-scored 100/100/100 (the D-5 defect — recalled in iter 6)**. | Pack had 26 docs; every dimension owned. |
-| 2026-06-22 | **6** | Owner directed the **Glass Brand** pivot (D-1) + full-page 2-col auth (D-2); ratified D-3/D-4/**D-5 (honest scoring)**. 28-agent pass: rewrote 00/03/new-23, upgraded 01/02/04/05/06/07/08/09/11–22; 5-agent adversarial panel re-audited (brand-fidelity 88, coherence 62→fixed in meta pass, impl-readiness ~88, must-haves all PASS, meta-honesty 38→fixed). Corrected `rate_limit`→`security_rate_limit_events` across 14 docs (real table verified: migration `20260601003000`). Reconciled the 4 meta docs (README, 10-CANONICAL, MASTER §7, this doc). | **Honest re-score: Strategy ~95 · Quality ~94 · Impl-Ready ~91. Rubric A = 100 % (planning-complete); Rubric B ≈ 91 % (capped by carried owner gates). The recalled 100/100/100 is retired.** |
+| 2026-06-22 | **6** | Owner directed the **Glass Brand** pivot (D-1) + full-page 2-col auth (D-2); ratified D-3/D-4/**D-5 (honest scoring)**. Broad multi-agent revision pass: rewrote 00/03/new-23, upgraded 01/02/04/05/06/07/08/09/11–22; 5-agent adversarial panel re-audited (brand-fidelity 88, coherence 62→fixed in meta pass, impl-readiness ~88, must-haves all PASS, meta-honesty 38→fixed). Corrected `rate_limit`→`security_rate_limit_events` across 14 docs (real table verified: migration `20260601003000`). Reconciled the 4 meta docs (README, 10-CANONICAL, MASTER §7, this doc). | **Honest re-score: Strategy ~95 · Quality ~94 · Impl-Ready ~91. Rubric A = 100 % (planning-complete); Rubric B ≈ 91 % (capped by carried owner gates). The recalled 100/100/100 is retired.** |
+| 2026-06-22 | **7** | Codex continuation ran five read-only specialist lanes (product, design, feasibility, security, scope) plus local/web research and patched the packet against confidence-100 contradictions. | `/newdesign` is consistently `noindex`; L-FUN-1 route shape is resolved while L-FUN-2 self-serve remains open; public auth/contact now block on rate-limit/PII contracts; `MASTER-IMPLEMENTATION-PLAN.md` is integrated; remaining gates are explicit owner/provider/verification gates. |
+| 2026-06-22 | **8** | Owner explicitly required liquid-glass hints and landing-as-app/brand introduction. | `00`, `01`, `03`, `05`, `11`, and `16` now make liquid-glass continuity a contract; design-qa/Visual Ralph remain implementation-time evidence gates because no rendered landing exists in this docs-only pass. |
 
 ---
 

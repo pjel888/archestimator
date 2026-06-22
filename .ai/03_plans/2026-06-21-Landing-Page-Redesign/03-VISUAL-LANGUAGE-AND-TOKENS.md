@@ -37,6 +37,36 @@ Three moves carry it:
 Everything below is the exact additive token plan that delivers those three moves **without
 clobbering the Workshop's existing token system** (append-only, §3.1).
 
+### 1.1 Liquid-glass hint contract (brand continuity, not decoration)
+
+The landing must **hint at the app's liquid-glass material** in the places where a user expects
+chrome, proof, or a handoff into the product:
+
+1. **Frosted masthead** — sticky navigation on the warm canvas, using `.dashboard-glass` /
+   `.dashboard-glass-warm`, with the signal-orange logo slab as the brand anchor.
+2. **Hero material panel** — a first-viewport glass composition that suggests the app's actual
+   surfaces: estimate tree rail, component-library dock, activity/proposal handoff lines, and
+   claims tags. It is an abstract material specimen, not a fake screenshot.
+3. **Commercial-graph plate** — the named architecture sits in glass because it is the product
+   model, not a marketing illustration.
+4. **Claims ledger + final CTA** — use glass to frame trust and action, while body copy remains on
+   high-contrast ink and stable surfaces.
+5. **Auth left panel** — the strongest continuity moment: the visitor moves from landing CTA into
+   the same material language before entering the app.
+
+This adapts the Liquid Glass principle as a **unifying material for controls/navigation and layered
+context** (Apple HIG Materials + Liquid Glass technology overview), but the implementation is our
+web product language: content-first, dark ink on frosted-white surfaces, and no platform mimicry.
+The Hallmark/impeccable guardrail is explicit: **glass is a skin and transition cue, never a
+generic card treatment.** If a section does not need chrome, proof framing, or product handoff, it
+should stay open on the warm canvas or use an opaque paper surface.
+
+External references used for this material principle — reference, not clone target:
+
+- Apple HIG Materials: https://developer.apple.com/design/human-interface-guidelines/materials
+- Apple Liquid Glass overview: https://developer.apple.com/documentation/technologyoverviews/liquid-glass
+- WWDC25 "Meet Liquid Glass": https://developer.apple.com/videos/play/wwdc2025/219/
+
 ---
 
 ## 2. The 3-family type stack (Doto display · Roboto Mono numerals · SF Pro UI)
@@ -100,7 +130,7 @@ one of these; none are redeclared.**
 | `--canvas` / `--warm-canvas` (L16-17) | `#f5f5f5` | **THE** page background (D-1: warm grey canvas, not paper). |
 | `--surface` (L13) | `#ffffff` | Opaque inner surface fallback. |
 | `--hairline` (L18) | `#f2f2f2` | Hairline rules on glass. |
-| `--proposal-paper` (L98) | `#fffdf8` | **Accent option only** (D-1) — e.g. a single quote-block or the `/trust` claims-ledger "document panel" may sit on paper as a callback to the proposal export. **NOT the page background.** |
+| `--proposal-paper` (L98) | `#fffdf8` | **Direction D accent only** (D-1) — a one-off owner-approved callback surface may use it later, but **not `/trust` in the launch redesign**. `/trust` stays Glass Brand until Philip explicitly approves a paper callback. **NOT the page background.** |
 | `--success` / `--warning` / `--danger` (L92/94/96) | `#15803d` / `#b45309` / `#b91c1c` | Claim-status semantics ONLY where the ledger maps them (Live→success, Building→warning, Planned→ink). Never decorative. |
 | `--radius-xs` (L100) | `3px` | Inner cells, dense cards. |
 | `--glass-bg`, `--glass-bg-fallback`, `--glass-blur`, `--glass-saturate`, `--glass-radius`, `--glass-nav-radius` (L108-117) | see §4 | The Glass Brand surface — full spec in §4. |

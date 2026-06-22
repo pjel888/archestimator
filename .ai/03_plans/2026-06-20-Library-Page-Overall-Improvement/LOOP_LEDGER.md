@@ -296,8 +296,8 @@
 | Evidence ID | `EV-TELEMETRY-INPUT` (11 input/trust-gate/bulk-action events: `trust_insert_gate_warned/confirmed/blocked`, `quick_add_field_invalid`, `formula_injection_detected`, `upload_rejected_type`, `import_failed_partial_commit`, `export_large_export_logged`, `bulk_export`, `bulk_archive_hash_mismatch`, `trust_state_tamper`) | doc 20 §6C (canonical registry); events defined in docs 11 §"Trust-chip Telemetry" + 15 §telemetry + 32 §5 | docs 24 (owner should register), 11/15/32 (defining docs), 18 (ADV), 06 | perf-browser-telemetry-agent |
 | Telemetry family | `library_route_state` family (6 events §6B), `library_input` family (11 events §6C) — both route through `recordLibraryEvent` in the net-new `library-telemetry.ts` twin (doc 20 §2) | doc 20 §6B/§6C/§12 | docs 09 (metric bindings), 24 (evidence), 21 (no new flag — always-on for security/route-authz) | perf-browser-telemetry-agent |
 | Feature flag | `library_glass_arming` (runtime, gates deferred glass-blur arming via `<LiquidGlassReady/>`; distinct from `library_dense_mode` + `library_virtualization_enabled`) | doc 30 §3 glass-shell row (perf surface) + doc 29 §5.1 glass-shell row (browser-proof) | docs 21 (owner should register), 35 (§11 GPU budget references it), 17 (Phase-1 rollback) | perf-browser-telemetry-agent |
-| Evidence ID | `EV-0A-PERF-BASELINE` (Phase 0A perf baseline: extend `scripts/seed-performance-test-data.ts` to cover `cost_library_items`, seed 100/500/5,000/10,000, measure LCP/INP/CLS/TTFB/FCP/TTI/heap/initial-JS/response-body, store under `evidence/perf/0A/_PHASE-0A-PERF-BASELINE.md`) | doc 30 §4 gate-row footer + §2 methodology | docs 24 (owner should register), 05 (Seq), 16 (§3 step 3 already cites `_PHASE-0A-PERF-BASELINE.md`), 18 (ADV) | perf-browser-telemetry-agent |
-| Evidence ID | `EV-HARNESS-SCREENSHOTS` (Phase 0A screenshot harness: create `evidence/screenshots/` dir, capture per doc 29 §5 matrix) | doc 29 §4 storage path + §5.1 per-surface footers | docs 24 (owner should register), 05 (0A Seq), 18 (ADV-VISUAL-*) | perf-browser-telemetry-agent |
+| Evidence ID | `EV-0A-PERF-BASELINE` (Phase 0A perf baseline: extend `scripts/seed-performance-test-data.ts` to cover `cost_library_items`, seed 100/500/5,000/10,000, measure LCP/INP/CLS/TTFB/FCP/TTI/heap/initial-JS/response-body, store under `_evidence/phase-0a/perf-baseline-<date>.md`) | doc 30 §4 gate-row footer + §2 methodology | docs 24 (owner should register), 05 (Seq), 16 (§3 step 3 already cites `_PHASE-0A-PERF-BASELINE.md`), 18 (ADV) | perf-browser-telemetry-agent |
+| Evidence ID | `EV-HARNESS-SCREENSHOTS` (Phase 0A screenshot harness: create `_evidence/` structure and capture per doc 29 §5 matrix) | doc 29 §4 storage path + §5.1 per-surface footers | docs 24 (owner should register), 05 (0A Seq), 18 (ADV-VISUAL-*) | perf-browser-telemetry-agent |
 | DB fact (verified 2026-06-21) | `scripts/seed-performance-test-data.ts` does NOT cover `cost_library_items` (rg returned 0 hits) — Phase 0A must extend it before any perf budget is enforced | doc 30 §4 footer + §2; doc 16 §3 step 1 | docs 19 (keystone §Performance Reality already says this), 24 (EV-0A-PERF-BASELINE prerequisite), 33 (no migration needed — seed script only) | perf-browser-telemetry-agent |
 | Telemetry substrate fact (verified 2026-06-21) | `src/lib/estimates/express-components-telemetry.ts` + `src/lib/collaboration/realtime-telemetry.ts` exist (the twin pattern source); `src/lib/component-library/library-telemetry.ts` does NOT exist yet (net-new Phase 0A); current sink is `console.warn` only | doc 20 §2 substrate decision (already says this); re-verified | docs 19 (keystone), 24 (EV-TELEMETRY-01) | perf-browser-telemetry-agent |
 
@@ -333,3 +333,43 @@ the lead running the keystone provenance commands (not self-attest): 4 routes �
 - **One honest residual:** doc 28 Strategy = 95 — the i18n *runtime* choice (`next-intl` vs status-quo) is a genuine **Phase-0A product decision**, evidence `EV-I18N-RUNTIME`; it is named + gated, not closed — NOT a planning gap.
 - Execution evidence (rendered UI / green tests / applied migrations / measured perf baseline) stays **pre-registered** in `24-EXECUTION-EVIDENCE-LEDGER.md` — the complete, honest state for a planning-only task.
 - `_AGENT-COORDINATION-BRIEF.md` + this ledger are working artifacts, NOT scored plan docs (excluded from `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md`).
+
+---
+
+## §6 CODEX FUTURE-AI IMPLEMENTATION GUIDE SYNTHESIS (2026-06-22)
+
+**Result:** Added `36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md` as the lead-facing
+front door for future codebase AI implementation. This pass did not change
+application code; it converted the full plan pack into a practical execution
+guide with pre-code errata, phases, validation gates, owner handoffs,
+pros/cons, SWOT, residuals, and parallel-agent work boundaries.
+Doc 36 is an unscored execution guide created after the 2026-06-21 audit; the
+prior "all 36 docs" score remains historical shorthand for scored docs 00-35.
+
+**Independent audit lanes synthesized:**
+
+| Lane | Role | Scope | Outcome |
+|---|---|---|---|
+| Product/user-flow audit | `explore` | `00`, `01`, `02`, `04`, `09`, `10`, `22`, `35` | Preserved `?component=<id>` continuity, Quick Add primacy, visible trust/source state, template insert target disclosure, public snapshot redaction, and liquid-glass sequencing. |
+| Repo/code surface audit | `explore` | Library routes, component-library files, current tests/scripts | Mapped active routes/components/tests, confirmed command discipline (`bun run test:dom` / `vitest`, not `bun test` for Vitest), and flagged shared estimate/template contracts. |
+| Data/security audit | `analyst` | `11`, `13`, `14`, `15`, `17`, `20`, `21`, `32`, `33` | Confirmed no 0A-5 schema changes, cache-key scoping as a blocking gate, frozen/redacted public snapshots, segment-route template telemetry, and PII-safe telemetry payloads. |
+| QA/perf/a11y audit | `test-engineer` | `06`, `12`, `16`, `18`, `24`, `29`, `30`, `31`, `34` | Identified evidence-ID and artifact-path drift, focus/axe harness prerequisites, perf-seed gap, and browser-proof boundaries. |
+| Sequencing/ownership audit | `planner` | `03`, `05`, `07`, `08`, `19`, `23`, `25`, `26`, `27`, `28` | Defined the single front-door guide shape, phase table, cross-doc decisions, residuals, and do-not-relitigate rules. |
+
+**New implementation-front-door decisions:**
+
+- `19` remains the keystone for bindings and phase map; `36` is an execution
+  guide, not a replacement for the keystone.
+- `36` records seven pre-code errata before app work: `_evidence/` path
+  canonicalization, missing evidence IDs, `?template=` telemetry drift,
+  `inputSnippet`/free-text telemetry risk, browser-matrix status, phase-alias
+  cleanup, and known `bun run validate` baseline reds.
+- The build sequence stays `0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5`; `Phase 6` is
+  a final release-gate alias and `5b` is a dense-mode subtrack, not a separate
+  implementation phase.
+- Future implementation should split along independent lanes only after each
+  lane has an explicit write scope and maker/checker boundary.
+
+**Verification for this docs-only synthesis:** README start-here/launcher/artifact
+map updated to include `36`; current-state updated with the new guide; final
+docs checks are recorded in the agent's completion report.

@@ -55,7 +55,7 @@ preview, gated on the existing consent model (§4.3).
 | `/newdesign/contact` | `/contact` | new |
 | `/newdesign/trust` | `/trust` | **new route** (does not exist at canonical path today) |
 | `/newdesign/login` | `/login` | reskin (D-2; see `23-AUTH-EXPERIENCE.md`) |
-| `/newdesign/signup` | `/signup` | **new route** (gated L-FUN-1/L-FUN-2; see `23-AUTH-EXPERIENCE.md`) |
+| `/newdesign/signup` | `/signup` | **new route** (`/signup` path settled; self-serve gated L-FUN-2; see `23-AUTH-EXPERIENCE.md`) |
 
 The preview routes reuse the same `LandingShellClient` (doc 07 §1.1) and the same components
 as the canonical routes will post-cutover; they differ only in URL. This means the A/B and
@@ -70,13 +70,14 @@ is old-vs-new, not new-vs-redesigned-new.
 
 The preview is **not auth-gated** (it is a static marketing surface; no Supabase call), but
 it is **not advertised**. Internal review happens at `/newdesign` directly; external A/B
-traffic is split by the `ABExperimentProvider` (§3). The marketing preview routes are
-**crawlable** (no `noindex`) so SEO can be measured pre-cutover
-(`13-SEO-AND-DISCOVERY.md`); canonical URLs are reconciled via the `sitemap.xml` +
-`rel="canonical"` strategy in `13-SEO-AND-DISCOVERY.md` §5. **The auth preview routes
-(`/newdesign/login`, `/newdesign/signup`) ARE `noindex,nofollow`** — same as their canonical
-counterparts per D-2 / `23-AUTH-EXPERIENCE.md` §7 — so the auth surface never leaks into the
-indexable graph.
+traffic is split by the `ABExperimentProvider` (§3). **Every `/newdesign/**` route is
+`noindex,follow`, excluded from the sitemap, and canonicalized to its canonical pair** (for
+example `/newdesign/features` → `/features`) per `13-SEO-AND-DISCOVERY.md` §4.4 and
+`21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` §3. The preview can still be measured by product
+analytics, but it does not compete for search equity. **The auth preview routes
+(`/newdesign/login`, `/newdesign/signup`) are stricter: `noindex,nofollow`** — same as their
+canonical counterparts per D-2 / `23-AUTH-EXPERIENCE.md` §7 — so the auth surface never leaks
+into the indexable graph.
 
 ### 2.3 The `/legacy` rollback path
 
@@ -146,7 +147,7 @@ out of the box.** Three concrete gaps, each a small additive extension (no new A
 
 | Parameter | Value | Basis |
 |---|---|---|
-| Baseline `signup` CVR (control) | **1.5 %** | Assumption — the product is pre-launch closed-beta; no historical public-funnel data exists. Owner to confirm/replace with the first week's observed control CVR (§3.4 ramps on the *observed* rate). Tracked as **L-ENG-4**. |
+| Baseline `signup` CVR (control) | **1.5 %** | Assumption — the product is pre-launch closed-beta; no historical public-funnel data exists. Owner to confirm/replace with the first week's observed control CVR (§3.4 ramps on the *observed* rate). Tracked as **L-EXP-1**. |
 | Minimum detectable effect (MDE) | **+20 % relative** (1.5 % → 1.8 %) | A Glass-Brand redesign that moves the primary metric less than 20 % relative is not worth the cutover risk; below this, ship no-op. The 20 % threshold is the "is the redesign doing anything real" bar. |
 | Significance (α) | **0.05** (two-sided) | Standard for a single primary metric with no multi-armed correction (one comparison: A vs B). |
 | Power (1 − β) | **0.80** | Standard; pre-revenue beta, 0.80 is proportional (0.90 would inflate the sample ~30 % and is unjustified at this traffic). |
@@ -154,10 +155,10 @@ out of the box.** Three concrete gaps, each a small additive extension (no new A
 | PH vs SEA traffic-share assumption | **PH 70 % / SEA 30 %** | Assumption — primary market is PH (`00-OVERVIEW.md` §1). Owner to confirm; if SEA share is higher, the clock-time to reach n is longer (more low-converting SEA traffic dilutes CVR). Tracked as **L-SEO-1** (PH/SEA volumes live in `13-SEO-AND-DISCOVERY.md`). |
 | Estimated clock-time to reach n | **3–5 weeks at 50/50**, assuming ~400–600 weekly unique visitors to `/` (closed-beta + word-of-mouth + owner demo traffic) | **2 weeks is achievable ONLY if weekly traffic ≥ ~600 uniques.** At the low end (~400/wk), plan for 4–5 weeks. The §3.4 ramp rule gates on n reached, not on a calendar. |
 
-> ⚠️ **GATED ON L-ENG-4** — the 1.5 % baseline and the ~400–600 weekly-unique estimate are
+> ⚠️ **GATED ON L-EXP-1** — the 1.5 % baseline and the ~400–600 weekly-unique estimate are
 > **planning assumptions**, not measured facts (there is no analytics tool wired yet —
 > L-ENG-2). Once L-ENG-2 closes, **replace the baseline with the first week's observed
-> control CVR and recompute n** before declaring significance. This doc carries L-ENG-4; the
+> control CVR and recompute n** before declaring significance. This doc carries L-EXP-1; the
 > decision rule (§3.4) explicitly says "significance is computed against the observed
 > baseline, not the assumed one."
 
@@ -187,19 +188,19 @@ The ramp is deterministic, not "or":
 (traffic observed + no alarm + significance where required). If traffic is slow, the ramp
 waits — this is why §3.2 says 2 weeks is achievable only at the high-traffic estimate.
 
-### 3.5 What the treatment variant serves if `/signup` is not ready (L-FUN-1/L-FUN-2)
+### 3.5 What the treatment variant serves while `/signup` behavior is gated (L-FUN-2)
 
 The treatment's "Start free" CTA href depends on the auth-onboarding gates. To keep the A/B
 honest (both arms must test the *same funnel shape* or the comparison is confounded), the
 **treatment and control serve the SAME "Start free" target during the experiment**:
 
-| L-FUN-1/L-FUN-2 state | Control (A) "Start free" href | Treatment (B) "Start free" href | Why |
+| Route/self-serve state | Control (A) "Start free" href | Treatment (B) "Start free" href | Why |
 |---|---|---|---|
-| Both closed (current beta reality) | `/login` (magic link handles signup) | `/login` | The funnel under test is "visit `/` → click 'Start free' → reach `/login` → authenticate". Both arms route to `/login`. `/signup` does not exist yet, so neither arm can route there without inventing a route mid-experiment. |
-| L-FUN-1 closed, L-FUN-2 open | `/signup` (self-serve on) | `/signup` | Once `/signup` exists and self-serve is on, both arms flip together; restart the A/B clock because the funnel shape changed. |
-| L-FUN-1 open, L-FUN-2 closed | `/signup` (renders `ClosedBetaGate` request-access variant — `23-AUTH-EXPERIENCE.md` §3.2) | `/signup` | The route exists; the gate is a content variant. Both arms route to `/signup`. |
+| No `/signup` implementation yet (current source reality) | `/login` (magic link handles signup) | `/login` | The funnel under test is "visit `/` → click 'Start free' → reach `/login` → authenticate". Both arms route to `/login`; no arm invents a route mid-experiment. |
+| `/signup` exists, self-serve ON (L-FUN-2 resolved "on") | `/signup` | `/signup` | Once `/signup` exists and self-serve is on, both arms flip together; restart the A/B clock because the funnel shape changed. |
+| `/signup` exists, self-serve OFF (current closed-beta policy) | `/signup` (renders `ClosedBetaGate` request-access variant — `23-AUTH-EXPERIENCE.md` §3.2) | `/signup` | The route exists; the gate is a content variant. Both arms route to `/signup`. |
 
-**Consequence:** the A/B does NOT block on L-FUN-1/L-FUN-2 — it runs against whichever funnel
+**Consequence:** the A/B does NOT block on L-FUN-2 — it runs against whichever funnel
 is live on the day R1 starts, and both arms share it. If the gates flip mid-experiment, the
 clock restarts (note this in the experiment log). This resolves the CTA→`/signup`-gating
 consistency: the rollout never serves a different funnel shape to treatment than to control.
@@ -317,7 +318,7 @@ The new surface may cutover from `/newdesign` to canonical routes (R2 → R3) wh
 hold:
 
 1. **A/B primary metric: `signup` CVR on `treatment` ≥ `control`** (statistically
-   significant at p < 0.05 against the **observed** baseline — L-ENG-4 — not the §3.2 assumed
+   significant at p < 0.05 against the **observed** baseline — L-EXP-1 — not the §3.2 assumed
    baseline; minimum both arms reach n ≈ 6,000 per §3.2, OR significance reached earlier at
    the same α).
 2. **A/B guardrails clean:** no CWV regression beyond `14-PERFORMANCE-AND-CORE-WEB-VITALS.md`
@@ -328,7 +329,7 @@ hold:
 4. **Wedge-fit sub-test clean:** treatment CVR holds for contractor/estimator self-reports,
    not only architects (`01-DESIGN-DIRECTION.md` §7).
 5. **Owner confirmation** of the removals rail (`LOOP_LEDGER.md` L-REM-1 → L-REM-5).
-6. **All ⚠️ GATED ON funnel co-dependencies** for "Start free" (L-FUN-1 → L-FUN-4) either
+6. **All ⚠️ GATED ON funnel co-dependencies** for "Start free" (active gates L-FUN-2 → L-FUN-4; L-FUN-1 is superseded) either
    closed or explicitly owner-accepted — per D-5, never silently closed. (Note per §3.5: the
    A/B does NOT block on these, but the cutover does, because post-cutover the canonical
    `/signup` must be the real target.)
@@ -423,8 +424,8 @@ visual decision binds to the Glass Brand (D-1) and the orange discipline (D-3):
 - `23-AUTH-EXPERIENCE.md` — the auth preview routes (§2.1); the CTA→`/signup` gating logic
   (§3.5); the merge-boundary events (§4.1 `signup`, `login_view`, `signup_view`).
 - `LOOP_LEDGER.md` — open decisions: L-ENG-1 (perf targets), L-ENG-2 (analytics tool),
-  L-ENG-3 (A/B provider extension), L-ENG-4 (baseline CVR — **new**, this doc), L-SEO-1
-  (PH/SEA traffic share), L-FUN-1/L-FUN-2 (auth routing), L-REM-1…L-REM-5 (Hallmark removals).
+  L-ENG-3 (A/B provider extension), L-EXP-1 (baseline CVR — **new**, this doc), L-SEO-1
+  (PH/SEA traffic share), L-FUN-1 superseded route record + L-FUN-2 active self-serve gate, L-REM-1…L-REM-5 (Hallmark removals).
 
 ---
 
@@ -438,7 +439,7 @@ visual decision binds to the Glass Brand (D-1) and the orange discipline (D-3):
   binary; it needs three additive extensions (page-level split, `trafficFraction` ramp,
   registry entry for `landing-redesign-2026-06`). No new A/B library. Tracked in
   `LOOP_LEDGER.md`.
-- **L-ENG-4 — Baseline `signup` CVR (NEW, this doc).** The §3.2 power calculation uses a 1.5 %
+- **L-EXP-1 — Baseline `signup` CVR (NEW, this doc).** The §3.2 power calculation uses a 1.5 %
   baseline assumption because no analytics tool is wired yet. Once L-ENG-2 closes, replace
   with the observed control CVR and recompute n before declaring significance. Tracked in
   `LOOP_LEDGER.md`.
@@ -447,8 +448,9 @@ visual decision binds to the Glass Brand (D-1) and the orange discipline (D-3):
   if the owner ratifies different targets, the alarms retune.
 - **L-SEO-1 — PH/SEA traffic-share.** The §3.2 70/30 PH/SEA split is an assumption; the
   clock-time-to-n estimate depends on it. Tracked in `LOOP_LEDGER.md` / `13-SEO-AND-DISCOVERY.md`.
-- **L-FUN-1 / L-FUN-2 — Auth routing + self-serve.** The CTA→`/signup` target depends on
-  these (§3.5); the A/B does not block on them, but the cutover does (§5.1 #6).
+- **L-FUN-2 — Auth self-serve behavior.** The CTA target table depends on this (§3.5); the A/B
+  does not block on it, but the post-cutover `/signup` behavior does (§5.1 #6). L-FUN-1 route
+  shape is superseded by D-2 / `LOOP_LEDGER` as `/signup`.
 - **L-REM-1 → L-REM-5 — Owner confirmation of the removals rail.** The cutover cannot ship
   the new `/` while the old fabricated testimonials + hype hero + slideshow + logo footer are
   still live at `/` — the cutover IS the removal (§5.1 #5).
@@ -466,16 +468,17 @@ visual decision binds to the Glass Brand (D-1) and the orange discipline (D-3):
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **94 / 100** | The rollout shape (preview → ramped A/B → claims gate → cutover → `/legacy`) is the right strategy for a low-traffic pre-revenue beta, and the §3.2 power calculation + §3.4 ramp rule + §3.5 CTA-gating consistency resolve the three hedged-open gaps the orchestrator flagged. Not 100 because the baseline CVR (1.5 %) and the PH/SEA 70/30 split are **assumptions** (L-ENG-4, L-SEO-1) that materially change the sample size and the clock-time; the strategy is sound but its execution clock is owner-gated on traffic reality, not just on this doc. |
-| **Quality** | **96 / 100** | Every infrastructure claim is grep-verified against real source (`getVariant` 2-variant binary at `variant-assigner.ts:53`; consent gate at `:34-36`; bot guard at `:30-32`; `ab_test` cookie 30-day httpOnly:false at `:58-64`; `CookieConsentBanner` via `PublicPageShell.tsx:41`; `parseLandingConsentValue` at `consent.ts:23`; `hasLandingAnalyticsConsent` at `:62`; `getLandingAuthState` at `get-landing-auth-state.ts:10`; rate-limit table `security_rate_limit_events`). Cross-links resolve to canonical filenames; clay `#AA412A` appears nowhere as an active token (D-3 honored); the §4.1.1 payload shape binds to the D-4 ClaimStatus type. Not 100 because the §3.2 sample-size arithmetic uses the z-test approximation (fine for planning, but the final n should be confirmed in a stats calculator once the observed baseline lands — L-ENG-4), and the §5.3 alarm thresholds are policy I asserted, not owner-confirmed in their exact numeric form. |
-| **Implementation-Readiness** | **90 / 100** | An implementer can act on this doc: the §3.1 three-point extension of `getVariant` is concrete, the §3.4 ramp rule is deterministic, the §5.3 alarms have magnitudes + windows, the §4.1.1 payload is a copyable TS type, and the §4.3 reuse list names exact files. Not 100 because: (a) L-ENG-2 (analytics tool), L-ENG-3 (A/B extension), L-ENG-4 (baseline CVR), and L-SEO-1 (traffic share) are all genuinely open and each blocks a different part of the rollout — the implementer can build the scaffolding but cannot *run* the A/B until L-ENG-2 + L-ENG-3 close; (b) the §5.3 alarms require a wired dashboard + alert channel (owned by doc 17, which itself waits on L-ENG-2); (c) the cutover (R3) genuinely waits on L-FUN-1/L-FUN-2 and the claims gate per D-5. These are honest open gates, not doc gaps — carrying them per README gate #4 rather than silently closing them is the D-5-correct posture. |
+| **Strategy** | **94 / 100** | The rollout shape (preview → ramped A/B → claims gate → cutover → `/legacy`) is the right strategy for a low-traffic pre-revenue beta, and the §3.2 power calculation + §3.4 ramp rule + §3.5 CTA-gating consistency resolve the three hedged-open gaps the orchestrator flagged. Not 100 because the baseline CVR (1.5 %) and the PH/SEA 70/30 split are **assumptions** (L-EXP-1, L-SEO-1) that materially change the sample size and the clock-time; the strategy is sound but its execution clock is owner-gated on traffic reality, not just on this doc. |
+| **Quality** | **96 / 100** | Every infrastructure claim is grep-verified against real source (`getVariant` 2-variant binary at `variant-assigner.ts:53`; consent gate at `:34-36`; bot guard at `:30-32`; `ab_test` cookie 30-day httpOnly:false at `:58-64`; `CookieConsentBanner` via `PublicPageShell.tsx:41`; `parseLandingConsentValue` at `consent.ts:23`; `hasLandingAnalyticsConsent` at `:62`; `getLandingAuthState` at `get-landing-auth-state.ts:10`; rate-limit table `security_rate_limit_events`). Cross-links resolve to canonical filenames; clay `#AA412A` appears nowhere as an active token (D-3 honored); the §4.1.1 payload shape binds to the D-4 ClaimStatus type. Not 100 because the §3.2 sample-size arithmetic uses the z-test approximation (fine for planning, but the final n should be confirmed in a stats calculator once the observed baseline lands — L-EXP-1), and the §5.3 alarm thresholds are policy I asserted, not owner-confirmed in their exact numeric form. |
+| **Implementation-Readiness** | **90 / 100** | An implementer can act on this doc: the §3.1 three-point extension of `getVariant` is concrete, the §3.4 ramp rule is deterministic, the §5.3 alarms have magnitudes + windows, the §4.1.1 payload is a copyable TS type, and the §4.3 reuse list names exact files. Not 100 because: (a) L-ENG-2 (analytics tool), L-ENG-3 (A/B extension), L-EXP-1 (baseline CVR), and L-SEO-1 (traffic share) are all genuinely open and each blocks a different part of the rollout — the implementer can build the scaffolding but cannot *run* the A/B until L-ENG-2 + L-ENG-3 close; (b) the §5.3 alarms require a wired dashboard + alert channel (owned by doc 17, which itself waits on L-ENG-2); (c) the cutover (R3) genuinely waits on L-FUN-2 and the claims gate per D-5. These are honest open gates, not doc gaps — carrying them per README gate #4 rather than silently closing them is the D-5-correct posture. |
 
-**Carried to LOOP_LEDGER (not silent):** L-ENG-1, L-ENG-2, L-ENG-3, **L-ENG-4 (new)**,
-L-SEO-1, L-FUN-1, L-FUN-2, L-FUN-3, L-FUN-4, L-REM-1…L-REM-5, and the claims sign-off gate.
+**Carried to LOOP_LEDGER (not silent):** L-ENG-1, L-ENG-2, L-ENG-3, **L-EXP-1 (new)**,
+L-SEO-1, L-FUN-2, L-FUN-3, L-FUN-4, L-REM-1…L-REM-5, and the claims sign-off gate.
+L-FUN-1 is retained in the ledger only as a superseded decision record.
 
 **No invented features, metrics, testimonials, prices, or partner names appear in this doc.**
 The §3.2 baseline CVR (1.5 %) and the weekly-traffic estimate (~400–600) are explicitly
-labeled as **planning assumptions** (L-ENG-4), not measured facts. Voice throughout =
+labeled as **planning assumptions** (L-EXP-1), not measured facts. Voice throughout =
 Controlled Confidence (`00-OVERVIEW.md` §10). Rate-limiting is Postgres
 (`security_rate_limit_events` table), NOT Redis (project position). Turnstile is NOT yet
 built (planned); `/contact` + `/signup` abuse = honeypot + Postgres rate-limit + validation;

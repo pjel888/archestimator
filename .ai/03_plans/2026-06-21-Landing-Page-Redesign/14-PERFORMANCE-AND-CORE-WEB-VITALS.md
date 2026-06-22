@@ -167,7 +167,7 @@ At most **4** glass surfaces may carry a live blur in any single viewport on the
 ⚠️ **Verify item (not a claim):** memory `liquid-glass-sidebar-direction` records that
 estimate-alignment + Realme 30fps **still need live verification on the target device**. The
 4–10 ms/frame range above is a planning estimate, not a measured guarantee on the Moto G-class.
-Carried as **L-A11Y-1** in `23-AUTH-EXPERIENCE.md` §10; this doc adds **L-ENG-4** (live 30fps
+Carried as **L-A11Y-1** in `23-AUTH-EXPERIENCE.md` §10; this doc uses the same live 30fps
 verification of the landing's 4-panel stack on Moto G Power) to the §11 ledger.
 
 ---
@@ -413,7 +413,7 @@ remediation table.
 ### 7.3 LHCI budget JSON (alternative format)
 
 If the team prefers LHCI's native budget over `size-limit`, the equivalent
-`.lighthouseci/budget.json`:
+`lighthouserc.js`:
 
 ```json
 [
@@ -554,7 +554,7 @@ analytics + Speed Insights (both shipped). When Turnstile ships, it is scoped to
 - `19-ASSET-PIPELINE-AND-IMAGERY.md` — the image + OG payload.
 - `23-AUTH-EXPERIENCE.md` — §8 (auth perf) cross-links here; the auth surface is 1 blur panel
   + a server-action submit (the structural perf wins in §6).
-- `LOOP_LEDGER.md` — L-ENG-1 (target ratification), L-ENG-3 (A/B provider), L-ENG-4 (live 30fps
+- `LOOP_LEDGER.md` — L-ENG-1 (target ratification), L-ENG-3 (A/B provider), L-A11Y-1 (live 30fps
   Moto G verification), L-ENG-5 (Doto `adjustFontFallback` measurement), L-ENG-6 (size-limit
   glob), L-ENG-7 (SIN-region + Cloudflare-in-front).
 
@@ -572,7 +572,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 - **G — A/B provider (L-ENG-3).** When the A/B provider ships, its SDK is budgeted at < 5 KB
   initial, async/deferred (§10.3). Until then, Vercel Web Analytics (first-party, shipped) is
   the only analytics on the marketing routes.
-- **O — Live 30fps verification on Moto G Power (L-ENG-4, NEW).** The §4.1 4–10 ms/frame blur
+- **O — Live 30fps verification on Moto G Power (L-A11Y-1).** The §4.1 4–10 ms/frame blur
   cost is a planning estimate; verify the landing's 4-panel stack holds 30fps on the target
   device. Mirrors L-A11Y-1 in `23-AUTH-EXPERIENCE.md` §10.
 - **O — Doto `adjustFontFallback` CLS = 0 measurement (L-ENG-5, NEW).** §5.1.2 proposes

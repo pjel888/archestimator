@@ -54,7 +54,7 @@ affects *how* the event is sent (SDK vs fetch vs pixel), not *what* the event is
 | `claims_ledger_expand` | `status?` (the active filter, D-4 subset) | Claims-ledger filter change / row expand | Trust-stage engagement |
 | `pricing_philosophy_engagement` | `scroll_depth` (25/50/75/100 % of the section) | Scroll-depth on the pricing-philosophy section | Conversion-adjacent engagement |
 | `contact_form_submit` | `role`, `consent` (boolean), `success` (boolean) | `/contact` form submit | Conversion (assisted path) |
-| `signup` | `route` (where they came from), `variant?`, `method` (`"google"` / `"magic_link"`), `anon_id` | Free-tier account creation (`23-AUTH-EXPERIENCE.md` §9.1) | **Primary conversion** (gated L-FUN-1/L-FUN-2) |
+| `signup` | `route` (where they came from), `variant?`, `method` (`"google"` / `"magic_link"`), `anon_id` | Free-tier account creation (`23-AUTH-EXPERIENCE.md` §9.1) | **Primary conversion** (self-serve gated L-FUN-2; L-FUN-1 route settled) |
 | `first_estimate_created` | `time_to_first_estimate` (seconds from signup) | First estimate in a new account | Activation step 1 |
 | `component_reused` | `time_to_first_reuse` (seconds from signup), `component_count_in_estimate` | First reuse of a library component — **the moat metric** | **Activation (north-star)** |
 | `proposal_shared` | `time_to_first_share`, `via` (`"link"` / `"invite"`) | First shared proposal link | Mid-funnel (paid) |
@@ -231,12 +231,12 @@ it, §6). This covers the top-of-funnel reach signal with zero new work.
 
 **Limitation (honest):** Vercel Web Analytics cannot fire custom events, funnels, or the
 session merge. Under the fallback, the funnel is **route views (Vercel) → `signup` /
-`contact_form_submit` (console log, §5.2) → in-app activation (console log)** — joined by
+`contact_form_submit` (interim custom-event sink, §5.2) → in-app activation (interim sink)** — joined by
 `anon_id` server-side, not by a unified tool. This is sufficient for pre-launch + soft-launch
 volume; it is **not** sufficient for serious funnel optimization, which is why L-ENG-2 is a
 gate, not a defer-forever.
 
-### 5.2 Console-log fallback (every custom event, structured shape)
+### 5.2 Interim custom-event sink (existing GA4/Clarity pattern + debug console)
 
 Every custom event in §2.1 is wired through **one** client-side function
 (`trackLandingEvent(name, props)`) that:
@@ -244,16 +244,20 @@ Every custom event in §2.1 is wired through **one** client-side function
 1. **Checks consent** (§6) — if analytics consent is off, the event is **dropped silently on
    the client** (never queued, never retroactively sent — see §6.2).
 2. **Stamps `anon_id`** (§3.1) on every event.
-3. **Console-logs** the event as a structured JSON line in **development** (`NODE_ENV !==
+3. **Sends to existing browser sinks when present** using the same shape as
+   `src/lib/ab-testing/experiment-tracker.ts`: `window.gtag("event", name, props)` and
+   `window.clarity("event", name)` plus `clarity("set", key, value)` for primitive props. This
+   keeps closed-beta custom events out of a console-only dead end while L-ENG-2 is open.
+4. **Console-logs** the event as a structured JSON line in **development** (`NODE_ENV !==
    "production"`) and in **production with a `?debug=analytics` query flag** — so the founder
    can see the live event stream in the browser console during the closed beta:
    ```json
    { "event": "hero_cta_click", "anon_id": "<uuid>", "cta": "start_free", "ts": 1749… }
    ```
-4. **Buffers** the event in a `window.__landingEventQueue` array (capped at 100, FIFO) so that
+5. **Buffers** the event in a `window.__landingEventQueue` array (capped at 100, FIFO) so that
    when PostHog is ratified, the integration is a **one-file swap** — the same
    `trackLandingEvent` function drains the queue into `posthog.capture()` instead of
-   console-logging. The event schema (§2.1) is the same either way.
+   the interim GA4/Clarity/debug sinks. The event schema (§2.1) is the same either way.
 
 **This shape is the contract that makes L-ENG-2 a swap, not a rewrite.** An implementer writes
 `trackLandingEvent` once; the tool decision changes only the sink.
@@ -379,6 +383,21 @@ disclose the analytics tool + retention + the cookieless vs cookie distinction +
 `landing_anon_id` cookie + the anonymous→authenticated merge. Until the Privacy Policy ships,
 the consent copy references "analytics" generically.
 
+### 8.1 Analytics processor readiness checklist
+
+Before PostHog Cloud (or any equivalent analytics vendor) receives production beta events, close
+this checklist or keep the interim GA4/Clarity/Vercel sink only:
+
+| Item | Required decision |
+|---|---|
+| Processor contract | DPA / SCCs accepted or explicitly deemed unnecessary for the closed-beta data set. |
+| Region + retention | Confirm event-storage region, 12-month raw retention, and deletion/export support. |
+| Session replay | Off by default. Enable only after a separate privacy review; never record form fields. |
+| Identity merge | Use anonymous `anon_id` before auth; post-auth identity link stores user id only server-side unless the DPA permits vendor-side aliasing. |
+| PII exclusion | Email/name/phone/company never enter product analytics props; server audit trail owns PII. |
+| Deletion/export | Account deletion/export path includes analytics identity deletion or a documented vendor-support process. |
+| Founder access | Founder/admin access only; no shared vendor credentials in repo or `.ai`. |
+
 ---
 
 ## 9. The dashboard
@@ -412,6 +431,20 @@ The dashboard is built in PostHog (funnels + experiments + activation + merge ra
 not blocking. Tracked in `LOOP_LEDGER.md` as **L-OBS-1** (new ID this doc introduces; see
 `MASTER-AUDIT-AND-SCORECARD.md` and `LOOP_LEDGER.md`).
 
+### 10.1 Minimum closed-beta monitoring runbook
+
+Until a dedicated error tracker ships, the closed-beta launch runbook is:
+
+| Frequency | Check | Evidence source | Action threshold |
+|---|---|---|---|
+| Daily during first week | 5xx / server-action failures on `/contact`, `/login`, `/signup` | Vercel logs filtered by route | Any sustained spike or >1% request failure → hold rollout / revert route swap. |
+| Daily during first week | Rate-limit and honeypot activity | `security_rate_limit_events` + `landing_*` audit events | >50 rate-limit hits/hour or honeypot >5% submissions → keep self-serve off; review Turnstile escalation. |
+| Daily during first week | Funnel continuity | `hero_cta_click` → `login_view`/`signup_view` → `signup_success` | Missing merge IDs or no post-auth attribution → pause A/B significance claims. |
+| Weekly | Privacy/export/delete support | account-data export/delete path + analytics vendor admin | Any unsupported deletion/export path blocks public self-serve. |
+
+These checks are intentionally small and founder-operable; they are not a substitute for Sentry,
+but they prevent the closed beta from relying on invisible failures.
+
 ---
 
 ## 11. Cross-links
@@ -439,7 +472,7 @@ not blocking. Tracked in `LOOP_LEDGER.md` as **L-OBS-1** (new ID this doc introd
   boundary (the callback route) + the `recordAccountSecurityEvent` audit layer (kept distinct
   from product analytics).
 - `LOOP_LEDGER.md` — L-ENG-2 (tool decision), L-ENG-3 (A/B provider), L-LEG-2/L-LEG-3
-  (Privacy Policy / DPA), L-FUN-1/L-FUN-2 (signup routing/self-serve), L-OBS-1 (Sentry,
+  (Privacy Policy / DPA), L-FUN-2 (signup self-serve), L-OBS-1 (Sentry,
   new this doc).
 
 ---
@@ -447,8 +480,9 @@ not blocking. Tracked in `LOOP_LEDGER.md` as **L-OBS-1** (new ID this doc introd
 ## 12. ⚠️ Gated on / Open decisions
 
 - **L-ENG-2 — Analytics tool (G-10).** PostHog Cloud is recommended (§4.2); owner ratifies or
-  selects an alternative. Until ratified, the §5 fallback (Vercel Web Analytics + console-log
-  `trackLandingEvent`) is the live implementation; no event is un-instrumented. The
+  selects an alternative. Until ratified, the §5 fallback (Vercel Web Analytics + existing
+  GA4/Clarity-style custom-event sink + debug console) is the live implementation; no event is
+  un-instrumented. The
   `user_activation_state` table for the moat-metric dedup (§2.2) is created at implementation
   regardless of the tool choice.
 - **L-ENG-3 — A/B provider (G-10).** If PostHog is ratified, PostHog Experiments replaces the
@@ -458,9 +492,9 @@ not blocking. Tracked in `LOOP_LEDGER.md` as **L-OBS-1** (new ID this doc introd
   + cookieless-vs-cookie + the `landing_anon_id` cookie + the merge (§8).
 - **L-LEG-3 — DPA posture (G-9).** Required for any beta signup handling personal data;
   affects whether the merge (§3.2) can run server-side against a cloud analytics vendor.
-- **L-FUN-1 / L-FUN-2 — Signup routing + self-serve (G-2/G-3).** The `signup` event + the
-  merge fire only when a real signup happens; while self-serve is off, the `signup_view` event
-  still fires but `signup` does not.
+- **L-FUN-2 — Signup self-serve (G-3).** The `signup` event + the merge fire only when a real
+  signup happens; while self-serve is off, the `signup_view` event still fires but `signup`
+  does not. L-FUN-1 route shape is superseded by D-2 / `LOOP_LEDGER` as `/signup`.
 - **L-OBS-1 — Sentry (or equivalent error tracking) (open, not blocking).** Recommended; not
   in the repo today.
 - **L-DES-2 (inherited) — 5th glass surface.** The analytics dashboard is **off-landing**
@@ -482,7 +516,8 @@ abuse = honeypot + Postgres rate-limit + validation (§7); CAPTCHA escalation-on
   `15-FORMS-AND-ABUSE-GUARDRAILS.md`. No visual decisions in this doc contradict the Glass
   Brand.
 - **D-2 (full-page auth)** — the merge boundary is the auth callback (§3.2), bound to the
-  verified callback route; the `signup` event fires only on a real signup (gated L-FUN-1/2).
+  verified callback route; the `signup` event fires only on a real signup (self-serve gated
+  L-FUN-2).
 - **D-3 (orange discipline)** — no color decisions in this doc; where the dashboard surfaces
   status (success/error), it inherits the app's status semantics, not the brand-orange
   presence token. Clay `#AA412A` is NOT used (NOT a token in `globals.css`).
@@ -497,10 +532,10 @@ abuse = honeypot + Postgres rate-limit + validation (§7); CAPTCHA escalation-on
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **96 / 100** | The three measurement jobs (funnel, moat, abuse/perf) are coherent; the anonymous→authenticated merge (§3) is the load-bearing contract that makes the funnel continuous and is bound to the verified callback route; the moat-metric dedup is server-authoritative (Postgres, not client cache); the tool recommendation (PostHog) + the rejection (GA4) + the fallback (Vercel + console) are each justified against the verified infra + R10 posture + the cost guard. Not 100 because L-ENG-2 (tool) and L-FUN-1/L-FUN-2 (signup self-serve) are genuinely open and affect which mechanisms are live vs. deferred; the consent-deferred-signup retry (§5.3) is a reasonable design but its real-world attribution-latency wants one live confirmation at implementation. |
+| **Strategy** | **96 / 100** | The three measurement jobs (funnel, moat, abuse/perf) are coherent; the anonymous→authenticated merge (§3) is the load-bearing contract that makes the funnel continuous and is bound to the verified callback route; the moat-metric dedup is server-authoritative (Postgres, not client cache); the tool recommendation (PostHog) + the rejection (GA4) + the fallback (Vercel + console) are each justified against the verified infra + R10 posture + the cost guard. Not 100 because L-ENG-2 (tool) and L-FUN-2 (signup self-serve) are genuinely open and affect which mechanisms are live vs. deferred; the consent-deferred-signup retry (§5.3) is a reasonable design but its real-world attribution-latency wants one live confirmation at implementation. |
 | **Quality** | **95 / 100** | Every source citation is verified (`parseLandingConsentValue` `consent.ts:23`, `getLandingConsentFromCookieHeader` `consent.ts:58`, `<VercelWebAnalytics />` `layout.tsx:41` with the `redactVercelAnalyticsEvent` hook, `<SpeedInsights />` `layout.tsx:42`, the callback route per doc 23 §0). The PostHog 1M-events-free fact is web-sourced (§4.3). Cross-links resolve to canonical filenames. The bot filter is layered (client → rate-limit → honeypot → server-side → Turnstile-escalation) and honest about what it does NOT do (no fingerprinting, no traffic blocking). Not 100 because (a) the `user_activation_state` table for the moat dedup is specified with a `was_insert` (`xmax = 0`) Postgres idiom that is correct but unverified against the actual table's existence (the doc flags this); (b) the PostHog `alias` vs `$identify` choice is presented as either/or without a final pick (correctly deferred to the integration, but a hair below fully-resolved). |
-| **Implementation-Readiness** | **93 / 100** | An implementer can write `trackLandingEvent` (§5.2) and the §7 filter layers today against the verified consent + rate-limit infra, and the L-ENG-2 tool swap is a one-file sink change. The merge (§3.2) is bound to a real route + real primitives. Not 100 because: (a) the `user_activation_state` table + the `recordComponentReused` server action are net-new code (correctly specced, but the deliverable, not pre-existing); (b) the fallback's `window.__landingEventQueue` → PostHog `capture()` swap path is sound but unproven at runtime; (c) the consent-deferred-signup merge retry (§5.3) needs a real post-consent re-merge mechanism that this doc specifies as a contract but leaves the exact retry trigger (next-authenticated-event vs. a polling loop) to implementation; (d) L-ENG-2/L-ENG-3/L-LEG-2/L-LEG-3 are genuinely open and cap the score honestly per D-5. |
+| **Implementation-Readiness** | **93 / 100** | An implementer can write `trackLandingEvent` (§5.2) and the §7 filter layers today against the verified consent + rate-limit infra, and the L-ENG-2 tool swap is a one-file sink change. The merge (§3.2), processor checklist (§8.1), and closed-beta monitoring runbook (§10.1) are bound to concrete sources. Not 100 because: (a) the `user_activation_state` table + the `recordComponentReused` server action are net-new code (correctly specced, but the deliverable, not pre-existing); (b) the fallback's `window.__landingEventQueue` → PostHog `capture()` swap path is sound but unproven at runtime; (c) the consent-deferred-signup merge retry (§5.3) needs a real post-consent re-merge mechanism that this doc specifies as a contract but leaves the exact retry trigger (next-authenticated-event vs. a polling loop) to implementation; (d) L-ENG-2/L-ENG-3/L-LEG-2/L-LEG-3 are genuinely open and cap the score honestly per D-5. |
 
 **Carried to LOOP_LEDGER (not silent):** L-ENG-2 (tool), L-ENG-3 (A/B provider), L-LEG-2
-(Privacy Policy), L-LEG-3 (DPA), L-FUN-1 (signup route), L-FUN-2 (self-serve), L-OBS-1
+(Privacy Policy), L-LEG-3 (DPA), L-FUN-2 (self-serve), L-OBS-1
 (Sentry, new this doc), L-RAT-6 (R10 privacy stance, inherited).

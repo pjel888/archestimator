@@ -1,7 +1,7 @@
 # Library Page Overall Improvement Plan
 
 Date: 2026-06-20
-Status: planning and audit pack hardened to implementation-ready handoff, no app code changed. Scores are **planning-achievable** (Rubric B: 100/100/100 = implementation-ready, NOT execution-complete) under a **relaxed 12-dimension standard** (gate-rows-only, `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3). The authoritative per-doc scores live in **`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1.1**: the **2026-06-21 parallel-agent pass drove all 36 docs to 100/100/100 planning-achievable (Rubric B)** — the prior ~S82/Q78/R70 re-audit and the 90.3 headline are superseded (historical, in §1). One honest residual is flagged: doc 28's i18n *runtime* choice (next-intl vs status-quo) is a genuine Phase-0A product decision, not a planning gap. Readiness is pre-registered, not executed: every execution-evidence item (rendered UI, green tests, applied migrations, measured perf baseline) is bound to an exact command + pass criterion + owner + phase in `24-EXECUTION-EVIDENCE-LEDGER.md`.
+Status: planning and audit pack hardened to implementation-ready handoff, no app code changed. Scores are **planning-achievable** (Rubric B: 100/100/100 = implementation-ready, NOT execution-complete) under a **relaxed 12-dimension standard** (gate-rows-only, `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3). The authoritative per-doc scores live in **`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1.1**: the **2026-06-21 parallel-agent pass drove all 36 scored docs (00–35) to 100/100/100 planning-achievable (Rubric B)** — the prior ~S82/Q78/R70 re-audit and the 90.3 headline are superseded (historical, in §1). `36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md` is a 2026-06-22 unscored future-AI execution front door, not part of that historical score. One honest residual is flagged: doc 28's i18n *runtime* choice (next-intl vs status-quo) is a genuine Phase-0A product decision, not a planning gap. Readiness is pre-registered, not executed: every execution-evidence item (rendered UI, green tests, applied migrations, measured perf baseline) is bound to an exact command + pass criterion + owner + phase in `24-EXECUTION-EVIDENCE-LEDGER.md`.
 Primary routes: the four Library routes verified in `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` (Verified File Paths) — `/workshop/library`, `/workshop/library/components`, `/workshop/library/templates`, `/workshop/library/templates/[templateId]`.
 
 > AUTHORITATIVE BINDINGS: `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` is the single source of truth for every file path, line number, column, enum, query key, server action, RPC, constant, threshold, and test command in this pack. Read it first; if any other doc disagrees with 19, 19 wins.
@@ -10,7 +10,7 @@ Primary routes: the four Library routes verified in `19-VERIFIED-CODEBASE-BINDIN
 
 ## Pack Audit Status (2026-06-21)
 
-Every doc in this pack is scored 1–100 on three dimensions: **Strategy**, **Quality**, **Implementation Readiness**. These scores are **planning-achievable** (Rubric B: 100/100/100 = implementation-ready, NOT execution-complete) under a **relaxed 12-dimension standard** — gate-rows-only per `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3 (Owner/Rollback/Telemetry/etc. apply to implementation tasks, acceptance gates, and high-risk contract rows; informational rows delegate to docs 27/17/20 with a section pointer). The headline average and per-doc scores live in **`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1.1**: **2026-06-21 parallel-agent pass = 100/100/100 planning-achievable across all 36 docs** (the prior ~S82/Q78/R70 and 90.3 figures are superseded history). The 20 cross-doc conflicts logged in `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` are now **applied inline** to the affected docs (including C-001 4-tier freshness, C-002 chip terminology, C-003 component-library/index.tsx disposition, C-011 Quick Add no-schema, C-012 public-snapshot redaction, C-013 archive-vs-delete, C-016 rubric definition). The 11 companion docs (25–35) are individually scored in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1. **Execution-inclusive readiness is lower** than the planning-achievable figure (no rendered UI, no green tests, no measured perf baseline yet) and is pre-registered — not demonstrated — in `24-EXECUTION-EVIDENCE-LEDGER.md`.
+Every scored doc in this pack (00–35) is scored 1–100 on three dimensions: **Strategy**, **Quality**, **Implementation Readiness**. These scores are **planning-achievable** (Rubric B: 100/100/100 = implementation-ready, NOT execution-complete) under a **relaxed 12-dimension standard** — gate-rows-only per `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` §3 (Owner/Rollback/Telemetry/etc. apply to implementation tasks, acceptance gates, and high-risk contract rows; informational rows delegate to docs 27/17/20 with a section pointer). The headline average and per-doc scores live in **`25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1.1**: **2026-06-21 parallel-agent pass = 100/100/100 planning-achievable across all 36 scored docs (00–35)** (the prior ~S82/Q78/R70 and 90.3 figures are superseded history). `36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md` is an unscored implementation guide created after that audit. The 20 cross-doc conflicts logged in `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` are now **applied inline** to the affected docs (including C-001 4-tier freshness, C-002 chip terminology, C-003 component-library/index.tsx disposition, C-011 Quick Add no-schema, C-012 public-snapshot redaction, C-013 archive-vs-delete, C-016 rubric definition). The 11 companion docs (25–35) are individually scored in `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` §1. **Execution-inclusive readiness is lower** than the planning-achievable figure (no rendered UI, no green tests, no measured perf baseline yet) and is pre-registered — not demonstrated — in `24-EXECUTION-EVIDENCE-LEDGER.md`.
 
 ### 12-dimension row-level completeness standard
 
@@ -37,24 +37,25 @@ Both the Components and Templates tabs, plus all Library modals/drawers, adopt t
 ## Start Here
 
 1. [MANDATORY before coding] Read `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` FIRST — the keystone binding table and the canonical phase map (Phase 0A -> 0B -> 1 -> 2 -> 3 -> 4 -> 5). All other docs cite it instead of restating bindings.
-2. [MANDATORY before coding] Read `00-PLAN.md` for the full implementation strategy and non-goals.
-3. [MANDATORY before coding] Read `05-IMPLEMENTATION-ROADMAP.md` for ordered work items (labels aligned to the doc 19 phase map).
-4. [PULL on demand] Read `03-MODALS-POPOVERS-AND-OVERLAYS.md` before touching any modal, drawer, popover, menu, or text-prompt dialog.
-5. [PULL on demand] Read `08-RATINGS-AND-GAP-CLOSURE.md` to understand the hardening gaps closed by this pass.
-6. [MANDATORY before coding] Read `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`, and `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` before implementation.
-7. [PULL on demand] Read `06-QA-AND-VALIDATION-PLAN.md` for proportional verification, and `21-FEATURE-FLAGS-AND-ROLLOUT.md` for per-phase flags and rollback.
-8. [PULL on demand] Pull `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md`, `22-COPY-DECK-AND-MICROCOPY.md`, and `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` when wiring events, copy, and overlay primitives respectively.
-9. [MANDATORY before coding] Read `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` for the full audit scores and improvement plan.
-10. [MANDATORY before coding] Read `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` to know who owns what.
-11. [MANDATORY before coding] Read `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` for the 12-dimension row-level completeness standard every actionable row must satisfy.
-12. [PULL on demand] Read `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` when a cross-doc inconsistency is suspected.
-13. [PULL on demand] Read `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` when wiring copy or layout that must be localizable.
-14. [PULL on demand] Read `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md` when determining jsdom vs Playwright proof boundary.
-15. [PULL on demand] Read `30-PERF-BUDGET-AND-REGRESSION-GATES.md` for the final perf budget (after Phase 0A baseline).
-16. [PULL on demand] Read `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` for per-surface a11y pass conditions.
-17. [PULL on demand] Read `32-SECURITY-THREAT-MODEL-EXPANSION.md` for the full threat model beyond doc 14.
-18. [PULL on demand] Read `33-DB-RLS-AND-MIGRATION-CONTRACT.md` for the DB/RLS/migration contract (no migrations in 0A–5).
-19. [PULL on demand] Read `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` (v2, 2026-06-21) for the liquid-glass material + grid + overlay redesign of both tabs and the modals — the pack's visual thesis and the material layer every visual-language claim binds to.
+2. [MANDATORY before coding] Read `36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md` for the synthesized future-AI execution plan, pre-code errata, phase gates, pros/cons, SWOT, and parallel-agent work model.
+3. [MANDATORY before coding] Read `00-PLAN.md` for the full implementation strategy and non-goals.
+4. [MANDATORY before coding] Read `05-IMPLEMENTATION-ROADMAP.md` for ordered work items (labels aligned to the doc 19 phase map).
+5. [PULL on demand] Read `03-MODALS-POPOVERS-AND-OVERLAYS.md` before touching any modal, drawer, popover, menu, or text-prompt dialog.
+6. [PULL on demand] Read `08-RATINGS-AND-GAP-CLOSURE.md` to understand the hardening gaps closed by this pass.
+7. [MANDATORY before coding] Read `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`, and `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` before implementation.
+8. [PULL on demand] Read `06-QA-AND-VALIDATION-PLAN.md` for proportional verification, and `21-FEATURE-FLAGS-AND-ROLLOUT.md` for per-phase flags and rollback.
+9. [PULL on demand] Pull `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md`, `22-COPY-DECK-AND-MICROCOPY.md`, and `23-DESIGN-SYSTEM-COMPONENT-MAPPING.md` when wiring events, copy, and overlay primitives respectively.
+10. [MANDATORY before coding] Read `25-AUDIT-SCORES-AND-IMPROVEMENT-PLAN.md` for the full audit scores and improvement plan.
+11. [MANDATORY before coding] Read `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` to know who owns what.
+12. [MANDATORY before coding] Read `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` for the 12-dimension row-level completeness standard every actionable row must satisfy.
+13. [PULL on demand] Read `26-CROSS-DOC-CONFLICTS-AND-RESOLUTIONS.md` when a cross-doc inconsistency is suspected.
+14. [PULL on demand] Read `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` when wiring copy or layout that must be localizable.
+15. [PULL on demand] Read `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md` when determining jsdom vs Playwright proof boundary.
+16. [PULL on demand] Read `30-PERF-BUDGET-AND-REGRESSION-GATES.md` for the final perf budget (after Phase 0A baseline).
+17. [PULL on demand] Read `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` for per-surface a11y pass conditions.
+18. [PULL on demand] Read `32-SECURITY-THREAT-MODEL-EXPANSION.md` for the full threat model beyond doc 14.
+19. [PULL on demand] Read `33-DB-RLS-AND-MIGRATION-CONTRACT.md` for the DB/RLS/migration contract (no migrations in 0A–5).
+20. [PULL on demand] Read `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` (v2, 2026-06-21) for the liquid-glass material + grid + overlay redesign of both tabs and the modals — the pack's visual thesis and the material layer every visual-language claim binds to.
 
 ## Verify this pack is current (run from repo root)
 
@@ -129,6 +130,7 @@ The pack is organized by concern. Use this matrix to find the right doc for each
 | Need | Read | Owner | Phase |
 |---|---|---|---|
 | What is the plan scope? | `00-PLAN.md` | Planning lead | all |
+| What is the future-AI implementation front door? | `36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md` | Planning lead | 0A–5 |
 | What are the verified codebase bindings? | `19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md` | Planning lead | all (keystone) |
 | What is the build order? | `05-IMPLEMENTATION-ROADMAP.md` | Planning lead | 0A–5 |
 | What are the test commands? | `06-QA-AND-VALIDATION-PLAN.md` | QA lead | 0A–6 |
@@ -142,7 +144,7 @@ The pack is organized by concern. Use this matrix to find the right doc for each
 | What are the telemetry events? | `20-TELEMETRY-AND-EVENT-INSTRUMENTATION.md` | Telemetry lead | 0A–5 |
 | What is the copy deck? | `22-COPY-DECK-AND-MICROCOPY.md` | Copy lead | 0A–5 |
 | What is the i18n contract? | `28-I18N-RTL-AND-LOCALIZATION-CONTRACT.md` | i18n lead | 0A–5 |
-| What is the a11y matrix? | `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` | A11y lead | 1, 5b, 6 |
+| What is the a11y matrix? | `31-A11Y-ACCEPTANCE-CRITERIA-MATRIX.md` | A11y lead | 1, Phase 5 dense-mode subtrack, final release gate |
 | What is the perf budget? | `30-PERF-BUDGET-AND-REGRESSION-GATES.md` | Perf lead | 0A (baseline) → 5 |
 | What is the browser-proof boundary? | `29-BROWSER-PROOF-AND-VISUAL-QA-MATRIX.md` | QA lead | 6 |
 | Who owns what? | `27-OWNERS-AND-ACCOUNTABILITY-MATRIX.md` | Planning lead | all |
@@ -189,3 +191,4 @@ The pack is organized by concern. Use this matrix to find the right doc for each
 - `33-DB-RLS-AND-MIGRATION-CONTRACT.md` - DB/RLS/migration contract: schema, RLS policies for all Library tables, no-migration gate for 0A–5, query optimization, backfill plans. Deepens docs 13 and 14.
 - `34-ROW-LEVEL-COMPLETENESS-MATRIX.md` - 12-dimension row-level completeness standard: defines what counts as an actionable row, per-doc compliance matrix, gap closure plan, verification commands.
 - `35-LIQUID-GLASS-LIBRARY-UX-SPEC.md` - the liquid-glass Library redesign (v2, 2026-06-21): full glass as a first-class skin matching the workshop shell via a per-region surface-variant slot system mirroring `estimate-surface-variant.tsx`, a workspace/catalogue/overview grid system, glass overlays (drawers glass; modals paper), warm-glass CTAs, content-grade glass cards (Phase 2 components / Phase 5 templates). One-blur-per-region, AA-safe, deferred arming. This is the material/grid layer every visual-language claim in the pack binds to.
+- `36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md` - future-AI execution guide synthesized from the full pack plus five 2026-06-22 audit lanes: pre-code errata, phase-by-phase tasks and validation, owner handoffs, residuals, pros/cons, SWOT, parallel-agent model, merge gates, and do-not-relitigate decisions.

@@ -166,7 +166,7 @@ deliberate, not an omission:
    authentication. The gate does not look at locale; it looks at the email + the Postgres RPC. Adding
    a locale param to the callback would change nothing about access.
 3. **Auth routes stay `noindex,nofollow`** (`23-AUTH-EXPERIENCE.md` §7) and carry **no hreflang**
-   (§3). The "Start free" CTA → `/signup` (or `/login` while L-FUN-1/L-FUN-2 are open) is a locale-
+   (§3). The "Start free" CTA → `/signup` (or `/login` / `/contact` while L-FUN-2 is open) is a locale-
    agnostic navigation.
 
 **What the landing DOES hand off (locale-relevant):**
@@ -258,7 +258,7 @@ src/app/
     trust/page.tsx        # /trust
     layout.tsx            # sets <html lang>, the locale cookie, the string bundle
   login/page.tsx          # /login  (locale-agnostic, noindex)
-  signup/page.tsx         # /signup (locale-agnostic, noindex, gated L-FUN-1/2)
+  signup/page.tsx         # /signup (locale-agnostic, noindex; self-serve gated L-FUN-2)
   auth/callback/route.ts  # /auth/callback (unchanged)
 ```
 
@@ -406,8 +406,8 @@ does not translate).
 - `23-AUTH-EXPERIENCE.md` — §5 (the landing→app handoff is locale-agnostic at EN-only); §7 (auth
   routes are `noindex,nofollow`, no hreflang).
 - `LOOP_LEDGER.md` — L-I18N-1 (locale strategy), L-SEO-1 (search-volume validation), L-PRC-1 (the
-  validated solo price that the `{{price_solo}}` token resolves to), L-FUN-1/L-FUN-2 (the
-  `/signup` self-serve gates that the locale handoff is agnostic to).
+  validated solo price that the `{{price_solo}}` token resolves to), L-FUN-1 (superseded route
+  record), and L-FUN-2 (the `/signup` self-serve gate that the locale handoff is agnostic to).
 
 ---
 

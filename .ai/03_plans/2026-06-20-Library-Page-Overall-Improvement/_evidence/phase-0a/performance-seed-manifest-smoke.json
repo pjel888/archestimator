@@ -1,0 +1,156 @@
+{
+  "generatedAt": "2026-06-22T06:03:11.467Z",
+  "mode": "manifest-only",
+  "note": "Non-destructive peak-load seed manifest. It intentionally does not write to Supabase; import/apply requires a separate approved local-only DB seeding step. Component library tiers model cost_library_items with folder, supplier, and brand spread for 100 / 500 / 5,000 / 10,000-row perf baselines.",
+  "scale": {
+    "projects": 1,
+    "estimatesPerProject": 1,
+    "rowsPerEstimate": 3,
+    "rowSamplesPerEstimate": 2,
+    "componentLibraryTiers": [
+      100,
+      500
+    ],
+    "componentSamplesPerTier": 2
+  },
+  "totals": {
+    "projects": 1,
+    "estimates": 1,
+    "rowItems": 3,
+    "sampledRowItems": 2,
+    "componentLibraryItems": 600,
+    "sampledComponentLibraryItems": 4
+  },
+  "generationMs": 0.25,
+  "projects": [
+    {
+      "projectId": "perf-project-001",
+      "name": "Performance Project 001",
+      "estimateCount": 1,
+      "estimates": [
+        {
+          "estimateId": "perf-project-001-estimate-01",
+          "projectId": "perf-project-001",
+          "sheetCode": "PERF-001-01",
+          "rowCount": 3,
+          "sampleRows": [
+            {
+              "itemId": "perf-project-001-estimate-01-row-001",
+              "estimateId": "perf-project-001-estimate-01",
+              "projectId": "perf-project-001",
+              "areaPath": "Level 1 / Area 1",
+              "description": "Performance fixture item 1",
+              "quantity": 1,
+              "unit": "lot",
+              "unitCost": 450,
+              "totalCost": 450
+            },
+            {
+              "itemId": "perf-project-001-estimate-01-row-002",
+              "estimateId": "perf-project-001-estimate-01",
+              "projectId": "perf-project-001",
+              "areaPath": "Level 2 / Area 2",
+              "description": "Performance fixture item 2",
+              "quantity": 2,
+              "unit": "sqm",
+              "unitCost": 461,
+              "totalCost": 922
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "componentLibrary": {
+    "tiers": [
+      {
+        "tier": 100,
+        "table": "cost_library_items",
+        "rowCount": 100,
+        "folderCount": 24,
+        "supplierCount": 12,
+        "brandCount": 18,
+        "sampleItems": [
+          {
+            "table": "cost_library_items",
+            "itemId": "perf-cost-library-100-00001",
+            "name": "Performance Cost Library Item 100-00001",
+            "category": "Performance Category 1",
+            "folderName": "Performance Folder 01",
+            "supplier": "Performance Supplier 01",
+            "brand": "Performance Brand 01",
+            "unit": "sqm",
+            "unitCost": 225,
+            "pricingSource": "https://example.test/performance-cost-library/100/1",
+            "lifecycleState": "discontinued",
+            "metadata": {
+              "performanceTier": 100,
+              "rowNumber": 1
+            }
+          },
+          {
+            "table": "cost_library_items",
+            "itemId": "perf-cost-library-100-00002",
+            "name": "Performance Cost Library Item 100-00002",
+            "category": "Performance Category 2",
+            "folderName": "Performance Folder 02",
+            "supplier": "Performance Supplier 02",
+            "brand": "Performance Brand 02",
+            "unit": "pc",
+            "unitCost": 242,
+            "pricingSource": "https://example.test/performance-cost-library/100/2",
+            "lifecycleState": "available",
+            "metadata": {
+              "performanceTier": 100,
+              "rowNumber": 2
+            }
+          }
+        ]
+      },
+      {
+        "tier": 500,
+        "table": "cost_library_items",
+        "rowCount": 500,
+        "folderCount": 24,
+        "supplierCount": 12,
+        "brandCount": 18,
+        "sampleItems": [
+          {
+            "table": "cost_library_items",
+            "itemId": "perf-cost-library-500-00001",
+            "name": "Performance Cost Library Item 500-00001",
+            "category": "Performance Category 1",
+            "folderName": "Performance Folder 01",
+            "supplier": "Performance Supplier 01",
+            "brand": "Performance Brand 01",
+            "unit": "sqm",
+            "unitCost": 625,
+            "pricingSource": "https://example.test/performance-cost-library/500/1",
+            "lifecycleState": "discontinued",
+            "metadata": {
+              "performanceTier": 500,
+              "rowNumber": 1
+            }
+          },
+          {
+            "table": "cost_library_items",
+            "itemId": "perf-cost-library-500-00002",
+            "name": "Performance Cost Library Item 500-00002",
+            "category": "Performance Category 2",
+            "folderName": "Performance Folder 02",
+            "supplier": "Performance Supplier 02",
+            "brand": "Performance Brand 02",
+            "unit": "pc",
+            "unitCost": 642,
+            "pricingSource": "https://example.test/performance-cost-library/500/2",
+            "lifecycleState": "available",
+            "metadata": {
+              "performanceTier": 500,
+              "rowNumber": 2
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

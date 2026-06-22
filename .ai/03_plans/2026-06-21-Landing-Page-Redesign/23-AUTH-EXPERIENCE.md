@@ -45,10 +45,10 @@ The recon facts below were confirmed by reading the live source before writing t
 | `next=` redirect param is sanitized and round-tripped | `sanitizeNextPath` in `redirects.ts` | ✅ reused as-is |
 | Server actions live in `src/lib/auth/actions.ts` ("use server") | `actions.ts` | ✅ actions stay here; UI calls them |
 | No middleware | `ls middleware.ts` → absent | ✅ auth is enforced by Server Components + the callback route, not middleware |
-| No `/signup` route today | `ls src/app/signup` → absent | ⚠️ **NEW route this doc introduces** (gated — see §9, L-FUN-1) |
+| No `/signup` route today | `ls src/app/signup` → absent | ⚠️ **NEW route this doc introduces** (path settled by L-FUN-1; self-serve gated L-FUN-2) |
 | No `src/components/auth/` today | `ls src/components/auth` → absent | ⚠️ **NEW dir this doc introduces** |
 
-**Migration shape:** extract the inline RSC markup in `page.tsx` into `src/components/auth/*` leaves (RSC shell + client form leaves), wrap both `/login` and the new `/signup` in a shared `AuthLayout`, and reskin to the 2-column glass composition. **Zero changes to the server actions, the callback, the closed-beta RPC, or the error-code contract.** This is the smallest blast radius that delivers D-2.
+**Migration shape:** extract the inline RSC markup in `page.tsx` into `src/components/auth/*` leaves (RSC shell + client form leaves), wrap both `/login` and the new `/signup` in a shared `AuthLayout`, and reskin to the 2-column glass composition. The callback, closed-beta RPC, and error-code contract stay unchanged; public auth entrypoints still need the doc `15` quota/honeypot wrapper before launch. This is the smallest blast radius that delivers D-2 without pretending abuse controls are already wired.
 
 ---
 
@@ -113,7 +113,7 @@ The recon facts below were confirmed by reading the live source before writing t
 | Route | Type | Audience | Today |
 |---|---|---|---|
 | `/login` | Full-page RSC (`AuthLayout`) | Returning users | exists (single-col) — **reskinned to 2-col** |
-| `/signup` | Full-page RSC (`AuthLayout`) | New users ("Start free") | **NEW** — gated on L-FUN-1/L-FUN-2 (§9) |
+| `/signup` | Full-page RSC (`AuthLayout`) | New users ("Start free") | **NEW** — path settled by L-FUN-1; self-serve gated on L-FUN-2 (§9) |
 | `/auth/callback` | Route handler (GET) | OAuth + magic-link return | exists — **unchanged** |
 | `/beta/access-required` | Full-page RSC | Blocked closed-beta users | exists — **unchanged** |
 
@@ -216,6 +216,19 @@ The 2-col layout is **agnostic to the gate** — the gate is a *content variant 
 
 Whether `/signup` self-serve is **on** (real `SignupForm` accepting new accounts) or **off** (`ClosedBetaGate` request-access variant) is **owner-gated** (Philip, beta-onboarding strategy). It is carried in LOOP_LEDGER as **L-FUN-2** and never silently resolved in this doc. The 2-col design is shipped ready for either resolution.
 
+### 3.4 Closed-beta launch CTA matrix
+
+| Launch state | Header / hero "Start free" | `/signup` right column | Secondary CTA | Analytics interpretation |
+|---|---|---|---|---|
+| Current source reality (no `/signup` route yet) | `/login?next=/workshop` | n/a | `/contact?intent=walkthrough` | `hero_cta_click` + `login_view`; no `signup_view`. |
+| Closed beta, `/signup` route implemented, self-serve OFF | `/signup` | `ClosedBetaGate`; request-access form posts to `/contact?intent=beta-request` or the L-CRM-1 destination | `/contact?intent=walkthrough` | `signup_view` fires; `signup` does not fire unless a real auth callback creates an allowed session. |
+| Self-serve ON (L-FUN-2 closed "on") | `/signup` | `SignupForm`; Google + magic-link create accounts via existing auth actions wrapped by doc `15` quota checks | `/contact?intent=walkthrough` | `signup_view`, `signup_attempt`, and `signup_success` become the primary funnel. |
+| Waitlist-only fallback | `/contact?intent=beta-request` | Optional not shipped | `/contact?intent=walkthrough` | Assisted funnel only; do not call it signup conversion. |
+
+The matrix is the canonical CTA behavior for docs `05`, `08`, `13`, `16`, and `17`. It prevents
+the old L-FUN-1 ambiguity from leaking back into implementation: path is `/signup`; launch behavior
+depends on source readiness and L-FUN-2.
+
 ---
 
 ## 4. Components (cross-link `11-COMPONENT-INVENTORY-AND-CONTENT-MAP`)
@@ -229,7 +242,7 @@ All new components live under **`src/components/auth/`** (a new directory; today
 | `LoginForm` | `src/components/auth/LoginForm.tsx` | **Client** ("use client") | `{ next: string }` | Two `<form action={signInWithGoogle}>` and `<form action={signInWithEmail}>` leaves (server actions). Renders `GoogleButton` + divider + email field + submit. `autocomplete` attrs set (§5). Cross-links to `/signup`. |
 | `SignupForm` | `src/components/auth/SignupForm.tsx` | **Client** ("use client") | `{ next: string }` | Visually near-identical to `LoginForm` (same two server actions — `shouldCreateUser:true` makes them signup-capable). Copy differs ("Create your account"). Renders the beta-gate variant when self-serve is off (§3.2). Cross-links to `/login`. |
 | `GoogleButton` | `src/components/auth/GoogleButton.tsx` | **Client** ("use client") | `{ next: string; label: string }` | A submit button inside the Google `<form action={signInWithGoogle}>`. `variant="secondary"`. Carries the Google "G" mark (asset — § asset pipeline) + `label` ("Continue with Google"). |
-| `MagicLinkButton` | `src/components/auth/MagicLinkButton.tsx` | **Client** ("use client") | `{ next: string; label: string }` | The submit button for the email `<form action={signInWithEmail}>`, co-located with the email `ControlInput`. `variant="primary"`, brand-orange fill (`--brand-orange`, large fill — D-3 allows fill on primary CTAs). |
+| `MagicLinkButton` | `src/components/auth/MagicLinkButton.tsx` | **Client** ("use client") | `{ next: string; label: string }` | The submit button for the email `<form action={signInWithEmail}>`, co-located with the email `ControlInput`. Use `variant="brand"` after extending `ButtonVariant`; do **not** use `variant="primary"` because today's primary is not the signal-orange treatment. |
 | `ClosedBetaGate` | `src/components/auth/ClosedBetaGate.tsx` | **RSC** | `{ status?: ClosedBetaAccessStatus }` | The request-access variant that replaces `SignupForm` when self-serve is off (§3.2). Routes the email capture to `/contact?intent=beta-request` (or waitlist). Reuses the same `AuthLayout` shell. |
 
 ### 4.1 Designation rules (why RSC shell + client leaves)
@@ -266,7 +279,7 @@ All new components live under **`src/components/auth/`** (a new directory; today
 
 The auth surface is the highest-abuse-risk surface on the landing. Guardrails:
 
-1. **Postgres rate-limiting, NOT Redis** (project position — memory, README). The `security_rate_limit_events` table throttles magic-link and OAuth-start attempts per email + per IP. Both `/login` and `/signup` server actions (`signInWithEmail`, `signInWithGoogle`) are rate-limited server-side. The redesign adds **no new rate-limit code**; it ensures the existing limit covers the new `/signup` path (same actions, so it does).
+1. **Postgres rate-limiting, NOT Redis** (project position — memory, README). The `security_rate_limit_events` table is the required durable throttle for magic-link, OAuth-start, `/contact`, and `/signup` attempts per email + per IP. Current `src/lib/auth/actions.ts` calls Supabase directly; **public `/login` or `/signup` must not ship until the rate-limit wrapper/honeypot path in `15-FORMS-AND-ABUSE-GUARDRAILS.md` is implemented and tested.** The redesign may reuse the existing auth actions internally, but the public entrypoints need explicit quota checks before delegating.
 2. **Honeypot field.** Each client form (`LoginForm`, `SignupForm`) carries a visually-hidden, `aria-hidden`, `tabindex=-1` honeypot input (e.g. `name="company_url"`). Server actions reject submissions where the honeypot is non-empty. Cheap, accessible, no CAPTCHA friction.
 3. **Validation.** Email is validated server-side (format + length + lowercase normalization — already done in `signInWithEmail`). The redesign preserves this; client-side validation is progressive-enhancement only.
 4. **Fail-closed closed-beta.** `getClosedBetaAccessForEmail` returns `status:"error"` → `allowed:false` on any RPC error (§3.1). The redesign does not weaken this.
@@ -336,7 +349,7 @@ The auth surface is the highest-abuse-risk surface on the landing. Guardrails:
 
 | ID | Item | Owner | This doc's stance |
 |---|---|---|---|
-| **L-FUN-1** | `/signup` route path: `/signup` vs `/auth/signup`. | Philip | **Recommend `/signup`.** It's a top-level intent ("Start free"), not a sub-action of `/auth`. `/auth/callback` is the only `/auth/*` route (it's a return path, not a human destination). Top-level `/signup` is shareable, memorable, and matches the CTA. Carry the decision in LOOP_LEDGER; the components are route-agnostic either way. |
+| **L-FUN-1** | `/signup` route path. | Philip | **Resolved by D-2 / LOOP_LEDGER: `/signup`.** Do not re-prompt on route shape. Only L-FUN-2 decides whether the route renders self-serve signup or the closed-beta gate. |
 | **L-FUN-2** | Beta-onboarding + self-serve enablement: does `/signup` accept new accounts (`SignupForm`) or route to request-access (`ClosedBetaGate`)? | Philip | The 2-col design ships ready for both (§3.2). Default to `ClosedBetaGate` (current beta reality) until Philip flips self-serve on. **This is the gate that decides whether "Start free" routes to `/signup` or to `/login`.** |
 | **L-LEG-2** | Privacy Policy live before handling signup data. | Philip / legal | `/signup` must not collect email before the Privacy Policy is linked and live. The legal-links row is in the design (§1.2); the Policy itself is owner-gated. |
 | **L-LEG-3** | Data Processing Agreement (DPA) for beta signups (enterprise/AEC firms may require it). | Philip / legal | Gated; surface as a link from `/signup` legal row only if/when Philip confirms it's required for closed beta. |
@@ -364,7 +377,7 @@ The auth surface is the highest-abuse-risk surface on the landing. Guardrails:
 - **D-4** — ClaimStatus type not directly used on auth (no Live/Building/Planned claims here); if a claim ever appears on the glass panel it imports `StatusPill` from `src/components/landing/shared/StatusPill.tsx` and narrows. ✅
 - **D-5** — honest scoring (§13). No self-congratulation. Verify-items are carried, not claimed.
 - **Auth noindex** — `/login` + `/signup` are `noindex,nofollow`, canonical-self, sitemap-excluded. ✅ (§7)
-- **"Start free" gated** — L-FUN-1/L-FUN-2 carried. ✅ (§9, §10)
+- **"Start free" gated** — L-FUN-1 route path settled; L-FUN-2 self-serve carried. ✅ (§3.4, §10)
 - **Rate-limiting = Postgres** — no Redis. Turnstile not yet built. ✅ (§6)
 - **Radical honesty** — no fake screenshots/stats/testimonials; the glass panel is abstract brand composition only. ✅ (§1.2)
 
@@ -374,8 +387,9 @@ The auth surface is the highest-abuse-risk surface on the landing. Guardrails:
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **96 / 100** | The 2-col full-page direction is owner-ratified (D-2) and justified against modal alternatives with concrete reasons (SEO, mobile, shareability, parity). The closed-beta-gate-as-content-variant insight keeps the design durable across L-FUN-2 outcomes. Not 100 because L-FUN-1 (route path) and L-FUN-2 (self-serve) are genuinely open and affect the final copy/flow; the doc recommends but cannot ratify. |
+| **Strategy** | **96 / 100** | The 2-col full-page direction is owner-ratified (D-2) and justified against modal alternatives with concrete reasons (SEO, mobile, shareability, parity). The closed-beta-gate-as-content-variant insight keeps the design durable across L-FUN-2 outcomes, and §3.4 pins the launch CTA matrix. Not 100 because L-FUN-2 (self-serve) is genuinely open and affects the final copy/flow; route path is settled by L-FUN-1. |
 | **Quality** | **94 / 100** | Every claim is bound to a verified source file (§0). Component list is implementer-ready (path, RSC/client, props). a11y/abuse/SEO/perf/analytics are each concrete and cross-linked. Not 100 because: (a) the LCP-element-is-H1 claim is reasonable but not yet measured on the target device (L-A11Y-1/L-CRM-1 verify items); (b) the exact brand composition inside `AuthGlassPanel` is specified as constraints (gradients, frost, no screenshots) but not pixel-designed — that is correctly deferred to implementation per DESIGN.md-as-alpha-guide. |
 | **Implementation-Readiness** | **93 / 100** | An engineer can start: real source bindings, exact component paths, designation rules, reused-vs-new code split, test plan. Not 100 because the new `src/components/auth/` directory and `/signup` route do not exist yet (they are the deliverable), and because `shouldCreateUser:true` doubling as signup — while verified true — needs a behavioral confirmation that a brand-new email lands in `/workshop` and not `/beta/access-required` when the gate is off (the callback runs the gate either way; verify in implementation). These are honest implementation-time confirmations, not doc gaps. |
 
-**Carried to LOOP_LEDGER (not silent):** L-FUN-1, L-FUN-2, L-LEG-2, L-LEG-3, L-A11Y-1, L-CRM-1.
+**Carried to LOOP_LEDGER (not silent):** L-FUN-2, L-LEG-2, L-LEG-3, L-A11Y-1, L-CRM-1.
+L-FUN-1 remains only as a superseded decision record.

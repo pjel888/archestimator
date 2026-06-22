@@ -31,7 +31,7 @@ the prior draft assumed):
 | a11y automation | `axe-core` / `@axe-core/playwright` presence not verified as a dep today | ⚠️ **VERIFY at implementation** (L-A11Y-2) — add if absent; the plan names the assertion style either way. |
 | Claims scripts | `scripts/claims-matrix-check.mjs` + `scripts/claims-forbidden-sweep.mjs` are **OPEN dependencies** (do not exist) | ⚠️ **GATED (L-CLM-1, L-CLM-2)** — the `test:claims` CI job is **honestly conditional** on them existing (§9.3); until then the sign-off gate runs the reconciliation manually per `09-CLAIMS-LEDGER-SIGN-OFF.md` §3.2. |
 | Visual regression | No Chromatic, no Playwright screenshot-diff baseline today | This doc specifies the **Playwright screenshot-diff strategy** (§6) because Chromatic is unreliable for `backdrop-filter`. ⚠️ **GATED (L-VIS-1)** — baseline capture is an implementation task. |
-| `StatusPill` source | `src/components/landing/shared/StatusPill.tsx` is the D-4 single-source component (does not yet exist on disk — it is the redesign's deliverable) | Component + claims tests import from this path; the path is the contract. |
+| `StatusPill` source | `src/components/landing/shared/StatusPill.tsx` already exists on disk and exports `ClaimStatus` | Component + claims tests import from this path; implementation updates the existing file in place if the color/prop contract changes. |
 | `LiquidGlassReady` | `src/components/system/LiquidGlassReady.tsx` exists; mounts in `src/app/layout.tsx:40`; arms `<html data-glass="ready">` | The deferred-glass arming test (§6.2) targets this real component. |
 | Auth source (D-2) | `src/app/login/page.tsx` (full-page RSC); `src/lib/auth/actions.ts` (`signInWithEmail` w/ `shouldCreateUser:true`, `signInWithGoogle`); `src/app/auth/callback/route.ts`; `src/lib/auth/closed-beta-access.ts`; `src/lib/auth/error-mapping.ts`; `src/lib/auth/redirects.ts` | All auth-flow e2e (§5) targets these real paths. No `/signup`, no `src/components/auth/`, no middleware today (per `23-AUTH-EXPERIENCE.md` §0). |
 
@@ -91,7 +91,7 @@ duplicated.
 | Component | Test file | What it proves |
 |---|---|---|
 | `LandingShellClient` | `tests/vitest/landing-shell-client.test.tsx` | Renders children; mounts the ScrollReveal driver; fires `route_view` on mount. |
-| `LandingHeader` | `tests/vitest/landing-header.test.tsx` | Renders the wordmark + nav + CTAs; the `/signup` href is correct (or marked GATED per L-FUN-1/L-FUN-2 — routes to `/login` meanwhile); the hamburger toggles at ≤768px. |
+| `LandingHeader` | `tests/vitest/landing-header.test.tsx` | Renders the wordmark + nav + CTAs; the `/signup` href is correct when the route exists, and the L-FUN-2 fallback routes to `/login` meanwhile; the hamburger toggles at ≤768px. |
 | `LandingFooter` | `tests/vitest/landing-footer.test.tsx` | Renders the sitemap + tagline + honesty line; every link resolves. |
 | `MaturityTag` | `tests/vitest/maturity-tag.test.tsx` | Renders "Pre-launch MVP preview" in `--secondary #5D5D5D` ink (never `#7F7F7F` — §7). |
 | `HeroSection` | `tests/vitest/hero-section.test.tsx` | H1 uses `--font-display` (Doto); CTAs present; no banned hero copy (regression vs. `05-COPY-SKELETON.md` §10.4). |
@@ -183,8 +183,10 @@ erodes trust. The same problem hits any cloud-VM screenshot service.
 **The strategy:** a **Playwright screenshot-diff at a fixed viewport with the glass ARMED**, run on
 the developer's local browser (or a CI runner with a real GPU/compositor). Concretely:
 
-- **Fixed viewport:** `1280×800` (desktop) and `390×844` (iPhone-14-class mobile proxy for the
-  320/375/414 mobile lanes) — exact dimensions pinned so the diff baseline is stable.
+- **Fixed viewport:** `1280×800` (desktop), `768×1024` (tablet), and the actual mobile-risk widths
+  `320×700`, `375×812`, `414×896`. `390×844` may be kept as an iPhone-14-class convenience shot,
+  but it does **not** replace the 320/375/414 baselines because the plate has a `<=360px`
+  sub-label-drop rule.
 - **Armed glass:** the test **waits for `<html data-glass="ready">`** before capturing, so the
   `--glass-blur-amount` is at its final `var(--glass-blur)` (`globals.css:296`) and the panel is not
   mid-ramp. See §6.2 for the arming test.
@@ -209,6 +211,21 @@ holds:
 |---|---|---|
 | Arming sequence | `e2e/glass-arming.spec.ts` | (1) On first paint, `getComputedStyle(document.documentElement).getPropertyValue('--glass-blur-amount')` is `0px` and `document.documentElement.dataset.glass !== 'ready'`; (2) the test waits for the double-rAF + `requestIdleCallback` (or the hard 1500ms backstop in `LiquidGlassReady.tsx:56`) and asserts `document.documentElement.dataset.glass === 'ready'` and `--glass-blur-amount` flips to `18px` (the `var(--glass-blur)` value); (3) under `prefers-reduced-motion: reduce`, the ramp does not animate (`transition: none`) but the blur **still applies** once armed (`globals.css:309-313`); (4) under `prefers-reduced-transparency: reduce`, the surface falls back to the opaque `--glass-bg-fallback #fbfbfc` (the test asserts no live `backdrop-filter`). |
 | ≤4-blur cap | `e2e/glass-blur-cap.spec.ts` | Counts elements with a computed `backdrop-filter: blur(...)` resolving to a non-zero amount on the initial desktop viewport (≥1024px, `pointer:fine`) and asserts the count is **≤ 4**. This is the §4.4 cap of `03-VISUAL-LANGUAGE-AND-TOKENS.md` and the `14` perf budget, enforced at the e2e layer. |
+
+### 6.2.1 Brand-continuity first viewport + Visual Ralph handoff (NEW)
+
+The landing is the first product introduction, not a detached brochure. The first viewport must
+therefore prove continuity with the app's glass material system before the user scrolls.
+
+| Test | Spec | What it proves |
+|---|---|---|
+| Brand-continuity first viewport | `e2e/landing-brand-continuity.spec.ts` | Captures `/` at 1280, 768, 414, 375, and 320px and verifies the first viewport includes the warm canvas, frosted masthead, signal-orange logo/CTA, and `HeroMaterialPanel` with product-mechanic hints: estimate tree, reusable component library, activity record, and proposal handoff. Fails if the viewport regresses to a generic brochure, stock construction hero, fake browser chrome, or all-sections-as-glass-card treatment. |
+
+`$visual-ralph` / `product-design:design-qa` are **implementation-time evidence gates** for this
+claim. They cannot pass during this docs-only planning pass because there is no rendered landing
+implementation or approved visual reference yet. Once the implementation exists, capture the first
+viewport and compare it against the approved contract/reference before launch handoff; record pass
+or blocker evidence with the visual regression artifacts above.
 
 ### 6.3 What visual regression also guards (cross-cutting asserts)
 
@@ -252,16 +269,16 @@ Per `14-PERFORMANCE-AND-CORE-WEB-VITALS.md` §3:
 | Layer | Tool | Scope | Gate |
 |---|---|---|---|
 | **Lab (Playwright-perf)** | `bun run test:e2e:perf` (existing; `package.json:25`) + the existing `e2e/route-transition-performance-budgets.json` | Every PR affecting landing files; the hero route + `/login` + `/signup`. | LCP < 2.5 s; CLS < 0.1; TBT < 300 ms. |
-| **Lab (Lighthouse CI — GATED L-ENG-2)** | `@lhci/cli` in GitHub Actions, config at **`lighthouserc.json`** (repo root, to add), budget at **`lighthouse/budgets.json`** (to add) | Every PR affecting landing files. | Same thresholds, measured at the Moto G Power class emulated device. |
+| **Lab (Lighthouse CI — GATED L-ENG-2)** | `@lhci/cli` in GitHub Actions, config at **`lighthouserc.js`** (repo root, to add; one canonical file, no separate budget JSON unless LHCI requires it) | Every PR affecting landing files. | Same thresholds, measured at the Moto G Power class emulated device. |
 | **Bundle (GATED L-ENG-3)** | `@next/bundle-analyzer` (devDep present, `package.json:93`); add an `"analyze"` script (`package.json`) + budget at **`next.bundle-budget.json`** (to add) | Every PR. | Initial JS < 60 KB gzipped per marketing route; **auth routes < 40 KB gz** (only the form leaves hydrate — `23` §8). |
 | **Blur cap** | `e2e/glass-blur-cap.spec.ts` (§6.2) | Every PR affecting a glass surface. | ≤ 4 simultaneous live-blur panels. |
 | **Field (CrUX + Vercel)** | PageSpeed Insights + Vercel Speed Insights | Continuous post-cutover. | Field LCP < 2.0 s at the PH + SEA device class. |
 
 ### 8.1 LHCI config + budget (closes gap 3)
 
-The plan specifies the two files to add (both GATED L-ENG-2 — they do not exist yet):
+The plan specifies one canonical config file to add (GATED L-ENG-2 — it does not exist yet):
 
-- **`lighthouserc.json`** (repo root): `ci.collect.url` = the preview route (`/newdesign`) + the
+- **`lighthouserc.js`** (repo root): `ci.collect.url` = the preview route (`/newdesign`) + the
   canonical routes; `ci.collect.numberOfRuns = 5`; `ci.collect.settings.preset = "desktop"` AND a
   second pass with `formFactor: "mobile"` + `emulatedDevice` = Moto G Power (the `14` target device);
   `ci.assert.assertions` = the LCP/CLS/TBT/TB thresholds above at `warn`/`error`; `ci.upload.target =
@@ -271,7 +288,7 @@ The plan specifies the two files to add (both GATED L-ENG-2 — they do not exis
   `/about`), font bytes (the landing adds **zero** font requests — Doto/Roboto Mono already loaded),
   third-party JS.
 
-The `bun run test:lighthouse` CI job (§10) is **honestly conditional**: until `lighthouserc.json`
+The `bun run perf:lighthouse` CI job (§10) is **honestly conditional**: until `lighthouserc.js`
 exists, the job is a no-op gate that prints "LHCI not configured (L-ENG-2 open)" and passes; once
 configured, it fails on any threshold breach.
 
@@ -350,7 +367,7 @@ jobs:
   perf-e2e:    bun run test:e2e:perf              # EXISTING (package.json:25) — Playwright-perf lane
   visual:      bun run test:e2e -- --grep=@visual # NEW PROJECT TAG — screenshot-diff (§6), GATE not optional
   a11y:        bun run test:e2e -- --grep=@a11y   # @axe-core/playwright (GATED L-A11Y-2 if axe dep absent)
-  lighthouse:  bun run test:lighthouse            # GATED L-ENG-2 — honestly conditional on lighthouserc.json
+  lighthouse:  bun run perf:lighthouse            # GATED L-ENG-2 — honestly conditional on lighthouserc.js
   bundle:      bun run analyze                    # GATED L-ENG-3 — honestly conditional on analyze script + budget
   claims:      (conditional block — §9.3)         # GATED L-CLM-1/L-CLM-2 — honestly conditional on the scripts
 ```
@@ -401,7 +418,7 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
   forbidden-list sweep is manual per `09` §3.2; the CI `claims` job is honestly conditional (§9.3).
 - **L-CLM-2 — `scripts/claims-matrix-check.mjs` + the Feature Inventory snapshot generator** (§9.2,
   §9.4). Open dependency. Until both exist the matrix reconciliation is manual.
-- **L-ENG-2 — Lighthouse CI wiring** (§8.1). `lighthouserc.json` + `lighthouse/budgets.json` +
+- **L-ENG-2 — Lighthouse CI wiring** (§8.1). `lighthouserc.js` +
   `@lhci/cli` dep do not exist. Until they do, lab perf runs via the existing `test:e2e:perf` lane +
   a manual Lighthouse run; the `lighthouse` CI job is honestly conditional.
 - **L-ENG-3 — Bundle-analyzer wiring** (§8.2). The `analyze` script + `next.bundle-budget.json` do
@@ -414,8 +431,8 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
 - **L-VIS-1 — Playwright screenshot-diff baseline capture** (§6). The strategy is specified (§6.1);
   the baselines under `e2e/visual/__screenshots__/` are captured at first implementation and
   reviewed on every diff. Visual regression is a GATE, not optional, once the baselines exist.
-- **L-FUN-1 — `/signup` route path** (§5.2). Recommend `/signup`; the e2e specs are route-agnostic
-  until ratified.
+- **L-FUN-1 — `/signup` route path** (§5.2). Superseded by D-2 / `LOOP_LEDGER`: `/signup`
+  is the route. Tests stay route-explicit; the source route still needs implementation.
 - **L-FUN-2 — `/signup` self-serve enablement** (§5.2). The self-serve-on e2e spec is `.skip` until
   self-serve is enabled; the gated-path spec runs today.
 - **L-FND-1 — Founder bio assets** (§5.1). The `/about` render test asserts the gated one-liner
@@ -458,4 +475,4 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
 | **Implementation-Readiness** | **91 / 100** | An implementer can start: the entry points (`bun run test` / `test:dom` / `test:e2e`) are real, the new specs' file paths and assertions are concretely named, the CI shape maps 1:1 to scripts that either exist or are GATED with an L-* ID, and the visual-regression strategy is actionable (fixed viewport, armed-glass wait, committed baselines). Not 100 because four CI jobs (lighthouse/bundle/claims, and a11y-pending-axe) are honestly conditional on open gates, the `/signup` self-serve e2e is `.skip` until L-FUN-2 resolves, and the moat-metric e2e needs a seeded library + DnD harness whose exact shape is deferred to implementation. Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |
 
 **Carried to `LOOP_LEDGER.md` (not silent):** L-CLM-1, L-CLM-2, L-ENG-1, L-ENG-2, L-ENG-3, L-A11Y-1,
-L-A11Y-2, L-VIS-1, L-FUN-1, L-FUN-2, L-FND-1.
+L-A11Y-2, L-VIS-1, L-FUN-2, L-FND-1. L-FUN-1 remains only as a superseded decision record.

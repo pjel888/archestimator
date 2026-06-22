@@ -76,8 +76,8 @@ mobile compression decisions and the §5.3 a11y/SEO forward-pointers.
 | 1 | **Hero** | §11.1 | The hook + the one plain payoff; **LCP = the Doto text headline** (no heavy hero image); hero brand panel is a glass composition (NOT a fake screenshot, D-2) | **above-fold** | Awareness | **Server** (RSC hero); the hero brand panel is pure CSS gradient + glass — zero client JS | **Yes** — Start free (primary, `--brand-orange` fill) + Book a walkthrough (secondary) | `12` §2 (H1 once; text-LCP contrast vs hero gradient peak) | `13` §2 (H1 = primary keyword target; one `<h1>` per route) |
 | 2 | **The Problem** | §3.2, §6.3 | Name the rebuild loop and the dead file; attack the workflow, never the user (§10.2#4) | above-fold → mid-fold | Awareness | **Server** (static) | No | `12` §4 (prose measure 65–75ch; body floor ≥14px) | `13` §2 (semantic `<section>` + heading hierarchy) |
 | 3 | **The Layer + the commercial-graph plate** | §3, §8.3 | Declare the cost intelligence layer; show the named commercial graph as a claims-tagged SVG plate (D-4 subset: Live/Building/Planned) on a `.dashboard-glass-warm` floating panel | mid-fold | Awareness → Evaluation | **Server** (static plate SVG) + **one client leaf** for the hover-interaction flourish (per `04` and `07` §1.2); the plate is interactive, not a CTA | No | `12` §5 (plate collapses to a vertical stack on mobile; hover has a keyboard-equivalent) | `13` §3 (the plate's claims-tags are real text in the DOM — crawlable) |
-| 4 | **What you get** (3 benefit blocks) | §11.2 | Present-tense, Live-grounded: *Stop starting from zero · Defend every number · From estimate to approval* | mid-fold | Evaluation | **Server** (static) | No | `12` §4 (3-up grid collapses to 1-up at `<768px`; heading-per-block) | `13` §2 (each benefit = an `<h3>`; internal anchor targets) |
-| 5 | **How it works** (5-step workflow) | §7.3 | The mechanic, mechanic-forward: create → organize → reuse → track → hand off | mid-fold → below-fold | Evaluation | **Server** (static) | No | `12` §4 (ordered list semantics `<ol>`; 5 steps collapse to a vertical read on mobile) | `13` §2 (`<ol>` = real list semantics) |
+| 4 | **What you get** (3 benefit blocks) | §11.2 | Present-tense, Live-grounded: *Stop starting from zero · Defend every number · From estimate to approval*; includes reusable components/templates, the domain-shaped estimate tree, and shared approval. | mid-fold | Evaluation | **Server** (static) | No | `12` §4 (3-up grid collapses to 1-up at `<768px`; heading-per-block) | `13` §2 (each benefit = an `<h3>`; internal anchor targets) |
+| 5 | **How it works** (5-step workflow) | §7.3 | The mechanic, mechanic-forward: create → organize as tree → drag components/templates into sheet → track → share for approval | mid-fold → below-fold | Evaluation | **Server** (static) | No | `12` §4 (ordered list semantics `<ol>`; 5 steps collapse to a vertical read on mobile) | `13` §2 (`<ol>` = real list semantics) |
 | 6 | **Who it is for** (tiered roles) | §11.3, §6.2 | Tiered AEC roles (NOT logos); directed messages per role | below-fold | Evaluation → Trust | **Server** (static) | No | `12` §4 (role cards reachable by keyboard; no logo-only detection) | `13` §2 (role names = secondary keyword surface) |
 | 7 | **What is real today** (claims ledger) | §7.2, §15 | The radical-honesty proof: Live / Building / Planned claims, each tagged via the D-4 `StatusPill` on a `.dashboard-glass` panel | below-fold | Trust | **Server** (static ledger) + **optional client leaf** for the filter (per `06` + `07` §1.2) | No | `12` §6 (status tags have `aria-label`; ledger is a real `<table>` or `<dl>`) | `13` §3 (claims text in DOM = trust signal + crawlable) |
 | 8 | **Why not a spreadsheet** | §11.4 | The direct comparison; the spreadsheet resets, the layer compounds | below-fold | Evaluation → Trust | **Server** (static comparison) | No (links to `/features`) | `12` §4 (comparison is a real `<table>` with `<th scope>`, not a decorative grid) | `13` §2 (comparison-table semantics) |
@@ -129,7 +129,7 @@ Source: §7.2 (Feature Inventory by status — "the single tracker; marketing mu
 | # | Section | Scroll depth | Render layer | Purpose |
 |---|---|---|---|---|
 | 1 | **Hero (compact)** | above-fold | Server | Route title + the one-liner (§11.6); a single line on what this page is: the honest feature ledger. |
-| 2 | **Live, today** | mid-fold | Server | Every Live capability from §7.2 (estimate tree, component library, inline editing, templates, D3 charts, Activity / Node Activity / row version history, .xlsx export, shared proposal links with comments/decisions/password, collaboration invites with roles + realtime cursors). Each item links to its mechanic. |
+| 2 | **Live, today** | mid-fold | Server | Every Live capability from §7.2 (domain-shaped estimate tree, reusable component library, drag/drop components and templates into the estimate sheet, inline editing, D3 charts, Activity / Node Activity / row version history, .xlsx export, shared proposal links with comments/decisions/password, collaboration invites with roles + realtime cursors). Each item links to its mechanic. |
 | 3 | **Building** | mid-fold | Server | The Building list (formerly "Partial", reconciled to D-4 `Building`): Activity rollups + action taxonomy (improving); proposal export policy (preview/download exists; **issued/immutable snapshot is an OPEN decision** — label it). |
 | 4 | **Planned (Next)** | below-fold | Server | The Planned list labeled as such: proposal snapshots/issued exports (policy gate first), archiving+trash (paid tier), proposal open-tracking (tiered), beta onboarding, **surfacing your own accumulated history by client / project type / supplier (the payoff the hook commits to — NOT shipped)**, supplier catalog + quote requests + product comparison + procurement bridge, client-side proposal record/archive. |
 | 5 | **AI, deferred (honest)** | below-fold | Server | A clearly-marked section: the AI copilot is deferred (§7.2, §16.1). When it ships it enters at Pro+. **Must not feature as a current capability.** Any future AI mention carries a visible DeepSeek/privacy note (§15). |
@@ -188,7 +188,7 @@ Conversion, "request access").
 | 1 | **Hero (compact)** | above-fold | Server | Route title + the line that this is for design partners and people who estimate/quote/propose today. |
 | 2 | **What we are looking for** | mid-fold | Server | The §12.5 posture: a few design partners who create estimates, quotes, or proposals today; no payment or commitment; 20 minutes of feedback and permission to test the MVP. |
 | 3 | **The discovery questions (optional)** | mid-fold | Server | The §14.2 script surfaced as "what we'd love to learn" — how you quote today, where it breaks, what wastes time, how you reuse items/suppliers/brands/templates. Framed as curiosity, not a form-wall. |
-| 4 | **The form** | below-fold | **Server shell + client form leaf** (per `15`) | Name, role, current method (spreadsheet / tool / other), the one thing that breaks. Both CTAs present (Start free for the self-serve path, gated L-FUN-1/L-FUN-2; "Book a walkthrough" for the design-partner path). **Abuse = Postgres `security_rate_limit_events` + honeypot + validation; Turnstile escalation-only, NOT yet built** (per `15`). |
+| 4 | **The form** | below-fold | **Server shell + client form leaf** (per `15`) | Name, role, current method (spreadsheet / tool / other), the one thing that breaks. Both CTAs present (Start free for the settled `/signup` path, with self-serve gated L-FUN-2; "Book a walkthrough" for the design-partner path). **Abuse = Postgres `security_rate_limit_events` + honeypot + validation; Turnstile escalation-only, NOT yet built** (per `15`). |
 | 5 | **Email-pitch tone note (for outbound reuse)** | below-fold | Server | The §12.5 email is the canonical outbound voice; this page is its inbound mirror. |
 
 ### 2.5 `/trust` — Trust · the honesty-as-proof home (NEW ROUTE)
@@ -225,9 +225,9 @@ doc covers the **funnel entry** that lands a visitor on auth; the auth surface i
 
 **Funnel entry contract (this doc owns):**
 - The hero "Start free" CTA routes to **`/signup`** when self-serve is enabled.
-- **`/signup` self-serve is GATED** on `LOOP_LEDGER.md` L-FUN-1 (route path: recommend `/signup`)
-  and L-FUN-2 (beta-onboarding + self-serve enablement). **Until those resolve, "Start free"
-  routes to `/login`** (the magic link already doubles as signup via `shouldCreateUser:true`,
+- **`/signup` route shape is resolved** by D-2 / `LOOP_LEDGER.md` L-FUN-1. **`/signup`
+  self-serve remains GATED** on L-FUN-2 (beta-onboarding + self-serve enablement). **Until that
+  resolves, "Start free" routes to `/login`** (the magic link already doubles as signup via `shouldCreateUser:true`,
   verified in `23-AUTH-EXPERIENCE.md` §0) **or to `/contact`** (design-partner path). The header,
   hero, final-CTA, and footer CTAs all honor this routing rule.
 - The "Book a walkthrough" CTA always routes to `/contact`, ungated.
@@ -348,8 +348,9 @@ planned, because we told them plainly.
   visitors back to "Start free" (no number required).
 
 **The two conversion paths (brief locked decision #2):**
-- **Self-serve (Start free):** Free-tier signup → `/signup` (gated L-FUN-1/L-FUN-2; until then
-  `/login` or `/contact`). `⚠️ GATED ON` the CO-DEPENDENCIES in **07**: beta onboarding +
+- **Self-serve (Start free):** Free-tier signup → settled `/signup` path (self-serve gated
+  L-FUN-2; until implementation/self-serve is ready, `/login` or `/contact`). `⚠️ GATED ON`
+  the CO-DEPENDENCIES in **07**: beta onboarding +
   demo-data/reset (§7.5 launch gate, L-FUN-2), abuse guardrails (Postgres `security_rate_limit_events`, NOT
   Redis; POST-only invite acceptance; token hashing w/ pepper — the P1 items, L-FUN-4), and
   first-run flow (§18.3, L-FUN-3 `⚠️ NEEDS INPUT`). Free-tier signup does **not** require
@@ -358,7 +359,8 @@ planned, because we told them plainly.
   path carries no dependency on the self-serve funnel.
 
 **The moat metric (§14.4):** "reused components/templates per estimate" is the funnel's true north
-— the homepage's section 4 ("Stop starting from zero") is the promise that metric measures.
+— the homepage's section 4 ("Stop starting from zero") and section 5 ("drag components/templates
+into the estimate sheet") are the promise that metric measures.
 Analytics events per **`08-ROLLOUT-AND-ANALYTICS`** + **`17-ANALYTICS-AND-OBSERVABILITY`**
 (signup, first estimate, component reused, proposal shared, export) instrument this arc.
 
@@ -485,10 +487,10 @@ Restated so `05`/`11` inherit them without re-reading §15:
 
 Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 
-- **L-FUN-1 — "Start free" route path** (recommend `/signup`). Gates every "Start free" CTA href
-  in sections H, 1, 11, and the footer sitemap link. Until resolved, CTAs route to `/login` (magic
-  link doubles as signup via `shouldCreateUser:true`) or `/contact`. Owned jointly with
-  `23-AUTH-EXPERIENCE.md`.
+- **L-FUN-1 — "Start free" route path** is superseded by D-2 / `LOOP_LEDGER`: `/signup`.
+  Do not reopen `/auth/signup` vs `/start`. Until the route implementation and L-FUN-2 are ready,
+  CTAs route to `/login` (magic link doubles as signup via `shouldCreateUser:true`) or `/contact`.
+  Owned jointly with `23-AUTH-EXPERIENCE.md`.
 - **L-FUN-2 — Beta onboarding + self-serve enablement.** Gates whether `/signup` accepts new
   accounts or routes to request-access (`ClosedBetaGate` per `23` §3.2). Gates the self-serve
   conversion path's activation quality.
@@ -534,7 +536,7 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
   columns, no Source Serif 4, no N1b-masthead framing (retired with Alternative D). ✅ (§0.1, §1,
   §3, §4)
 - **D-2 — Full-page 2-column auth.** Auth is the destination of the primary CTA (§2.6, §5.1),
-  owned by `23-AUTH-EXPERIENCE.md`; "Start free" → `/signup` is gated L-FUN-1/L-FUN-2. ✅
+  owned by `23-AUTH-EXPERIENCE.md`; "Start free" → `/signup` uses the settled path and is self-serve gated on L-FUN-2. ✅
 - **D-3 — Orange token discipline.** `--brand-orange #F24405` for fills/logo/focus/accent rail;
   `--brand-orange-dark #C63804` for AA small text; clay `#AA412A` is NOT a token and is NOT
   referenced anywhere in this doc as an active value. ✅ (§0.1, §3, §5). Tailwind v4 gotcha
@@ -557,9 +559,9 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **96 / 100** | The taxonomy flips fully to the Glass Brand (D-1): sections are glass-over-warm-canvas, the N1b-masthead/serif framing is retired with Alternative D, the nav is a sticky glass bar with the logo slab, the funnel's auth entry (D-2) is explicit and gated L-FUN-1/2, the D-3 orange discipline and D-4 `ClaimStatus` type are honored, and the §1 table now carries scroll-depth + render-layer + a11y/SEO forward-pointers so the funnel reads end-to-end on desktop AND mobile (§5.2). Not 100 because the visual result of D-1 wants one owner look (L-DES-1…5, carried in `LOOP_LEDGER`) before the strategy is fully locked, and "Direction D — The Document" preservation depends on `01-DESIGN-DIRECTION.md` being updated by its owner (cross-doc, not my file). |
+| **Strategy** | **96 / 100** | The taxonomy flips fully to the Glass Brand (D-1): sections are glass-over-warm-canvas, the N1b-masthead/serif framing is retired with Alternative D, the nav is a sticky glass bar with the logo slab, the funnel's auth entry (D-2) is explicit and self-serve gated by L-FUN-2, the D-3 orange discipline and D-4 `ClaimStatus` type are honored, and the §1 table now carries scroll-depth + render-layer + a11y/SEO forward-pointers so the funnel reads end-to-end on desktop AND mobile (§5.2). Not 100 because the visual result of D-1 wants one owner look (L-DES-1…5, carried in `LOOP_LEDGER`) before the strategy is fully locked, and "Direction D — The Document" preservation depends on `01-DESIGN-DIRECTION.md` being updated by its owner (cross-doc, not my file). |
 | **Quality** | **95 / 100** | Every token citation in §0.1 was grepped against the real `globals.css` on 2026-06-22 with line anchors (`--brand-orange` L37, `--brand-orange-dark` L38, `--glass-logo-orange` L131, `--grad-canvas-wash` L62, `--glass-radius` L116, `--glass-nav-radius` L117, `--font-display` L203, `--radius-xs` L100, `--proposal-paper` L98); every cross-link resolves to a canonical filename in `10-CANONICAL-DOC-MAP.md` §1 (zero stale `06-COMPONENT-ANATOMY`, `07-ENGINEERING-CONSTRAINTS-CONSTRAINTS`, `04-COMMERCIAL-GRAPH-PLATE`, or `00-EXECUTIVE-SUMMARY` aliases remain — all four were broken in the prior revision and are corrected here); clay `#AA412A` appears only in "NOT a token / NOT used" contexts; `#FFFDF8`/Source Serif 4 appear only as the demoted Alternative D, never as the default. Not 100 because the §5.2 mobile-compression rules (e.g. "hero brand panel reduced height so H1+CTAs fit above 320px fold") are policy I asserted from the device class, not yet pixel-verified against a real 320px render (that verification belongs to `12` + `14`, correctly forward-pointed). |
-| **Implementation-Readiness** | **93 / 100** | An implementer reading §1 gets the exact DOM order, the scroll-depth intent, the RSC-vs-client-leaf designation per section (referencing `07` §1.2), the CTA placement, and the per-section a11y/SEO forward-pointers — enough to scaffold the homepage and every route without re-deriving the IA. §2.6 + §5.1 make the auth entry contract explicit (CTA destination, gating, noindex). Not 100 because `/trust`, `/signup`, and `src/components/auth/` do not exist on disk yet (they are sibling-doc deliverables, not pre-existing), the taxonomy's CTA routing genuinely waits on L-FUN-1/L-FUN-2 before auth code can ship, and the §5.2 mobile compression + the §3 sticky-header collapse are IA-level specs whose exact breakpoints are owned by `11`/`12`/`14` (correctly deferred, not gaps in this doc). Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |
+| **Implementation-Readiness** | **93 / 100** | An implementer reading §1 gets the exact DOM order, the scroll-depth intent, the RSC-vs-client-leaf designation per section (referencing `07` §1.2), the CTA placement, and the per-section a11y/SEO forward-pointers — enough to scaffold the homepage and every route without re-deriving the IA. §2.6 + §5.1 make the auth entry contract explicit (CTA destination, gating, noindex). Not 100 because `/trust`, `/signup`, and `src/components/auth/` do not exist on disk yet (they are sibling-doc deliverables, not pre-existing), the taxonomy's CTA behavior genuinely waits on L-FUN-2 before self-serve auth can ship, and the §5.2 mobile compression + the §3 sticky-header collapse are IA-level specs whose exact breakpoints are owned by `11`/`12`/`14` (correctly deferred, not gaps in this doc). Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |
 
-**Carried to `LOOP_LEDGER.md` (not silent):** L-FUN-1, L-FUN-2, L-FUN-3, L-FUN-4, L-FND-1,
+**Carried to `LOOP_LEDGER.md` (not silent):** L-FUN-2, L-FUN-3, L-FUN-4, L-FND-1,
 L-PRC-1, L-SIGN-1, L-LEG-1…4, L-REM-1…4, L-SEO-1, R10, L-DES-1…5 (visual final), role-names.

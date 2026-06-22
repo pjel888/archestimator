@@ -1,15 +1,16 @@
 # 29 — Browser-Proof and Visual QA Matrix
 
-> **Status:** DRAFT framework, not build-ready proof obligations. Path
+> **Status:** Build-ready browser-boundary reference. Doc 24 is the canonical
+> artifact-storage and proof authority; this doc defines which claims need
+> browser/visual proof and the metadata shape for those artifacts. Path
 > bindings corrected to the real `src/components/workshop/library/`,
 > `src/components/workshop/component-library/`, and
 > `src/components/workshop/component-library-manager/` roots per
 > [19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md](19-VERIFIED-CODEBASE-BINDINGS-AND-PHASE-MAP.md).
-> The `evidence/screenshots/` directory does **not** exist yet — it is created
+> The `_evidence/` directory does **not** exist yet — it is created
 > in Phase 0A as part of the baseline measurement task (owner: QA lead; see
 > [30-PERF-BUDGET-AND-REGRESSION-GATES.md](30-PERF-BUDGET-AND-REGRESSION-GATES.md) §2 and the EV rows in
-> [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md)). Sign-offs in §9 are pending; treat this as a
-> template until they land. Living document, initialized 2026-06-21 by the
+> [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md)). Sign-offs in §9 are pending; treat browser captures as required only for browser-only claims. Living document, initialized 2026-06-21 by the
 > Ultrawork audit loop.
 >
 > **Scope:** jsdom vs Playwright boundary, visual QA matrix, browser matrix,
@@ -28,7 +29,7 @@
 > Playwright-tests columns bound to real file:line); (2) **browser matrix** — §3
 > (4 desktop browsers + 5 mobile devices with priority + 5 visual-QA breakpoints); (3)
 > **screenshot artifact convention + storage path** — §4 (naming `<phase>/<surface>/<state>-<browser>-<viewport>.png`,
-> storage `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/screenshots/`,
+> storage `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/`,
 > companion `.json` metadata schema); (4) **per-surface proof requirements** — §5
 > (11 rows binding each surface to jsdom + Playwright test scope + browser matrix +
 > viewports + states) + §5.1 12-dim gate-row footers + §6 evidence-ledger integration.
@@ -176,18 +177,18 @@ phase-1/library-overview/loading-firefox-1024.png
 phase-1/library-overview/error-chrome-1280.png
 phase-3/component-card/trust-stale-chrome-1280.png
 phase-3/component-card/trust-very-stale-chrome-1280.png
-phase-5b/dense-mode/row-default-chrome-1280.png
-phase-5b/dense-mode/row-overflow-safari-iphone15.png
+phase-5/dense-mode/row-default-chrome-1280.png
+phase-5/dense-mode/row-overflow-safari-iphone15.png
 ```
 
 ### Storage
 
 ```
-.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/screenshots/
+.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/
 ```
 
-> **Prerequisite (0A):** this directory does **not** exist today — the pack has
-> no `evidence/` dir at all. It must be created in Phase 0A as part of the
+> **Prerequisite (0A):** this directory may not exist before implementation. It
+> must be created in Phase 0A as part of the
 > baseline measurement task (owner: QA lead; evidence: `EV-HARNESS-SCREENSHOTS`;
 > binding: [24-EXECUTION-EVIDENCE-LEDGER.md](24-EXECUTION-EVIDENCE-LEDGER.md)
 > §screenshot harness; seq: add to
@@ -301,12 +302,12 @@ rg "Browser-proof:" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/ -g
 # Expected: measured baseline is ~1 pack-wide today (only this doc + doc 16-adjacent rows declare it); the "26+ files" target is aspirational until Wave 2 adds the field per doc.
 
 # Screenshot artifacts exist for every Playwright-required surface (Phase 0A onward only)
-ls .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/screenshots/ 2>&1
+ls .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/ 2>&1
 # Expected pre-0A: "No such file or directory" — the dir is created in Phase 0A (see §4 prerequisite).
 # Expected post-0A: directory with screenshots matching the naming convention in §4.
 
 # Every screenshot has a companion .json metadata file (Phase 0A onward only)
-find .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/evidence/screenshots/ -name "*.png" 2>/dev/null | while read f; do
+find .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/ -name "*.png" 2>/dev/null | while read f; do
   json="${f%.png}.json"
   if [ ! -f "$json" ]; then echo "MISSING: $json"; fi
 done

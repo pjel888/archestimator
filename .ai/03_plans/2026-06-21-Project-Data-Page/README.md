@@ -32,7 +32,8 @@ ux is non existent… you can even delete all of it."*
 
 | File | Purpose |
 |------|---------|
-| `00-PLAN.md` | The implementation plan (read this first; the ExitPlanMode handoff mirrors it). |
+| `08-IMPLEMENTATION-GUIDE.md` | **Authoritative codebase-AI implementation guide (read this FIRST for implementation).** Code-verified 2026-06-22 via a 6-agent audit + adversarial review; corrects 5 errors in `00`/`03`/`04`/`06`, adds SWOT, a 12-item risk register, a 5-commit green-at-every-commit sequence, and copy-pasteable component specs. |
+| `00-PLAN.md` | The original implementation plan (design rationale; for implementation specifics defer to `08`, which corrects its errors). |
 | `01-CURRENT-STATE-AUDIT.md` | What the page is today, the data contract, and why it reads as unusable. |
 | `02-TARGET-UX-AND-LAYOUT.md` | The donut-first target layout, column anatomy, the `+` affordance, states. |
 | `03-COMPONENT-AND-FILE-PLAN.md` | New/changed/deleted files, shared-primitive reuse, type additions. |

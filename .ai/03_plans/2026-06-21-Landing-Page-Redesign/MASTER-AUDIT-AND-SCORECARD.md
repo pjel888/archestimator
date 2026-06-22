@@ -1,7 +1,7 @@
 # 09 — Master Audit & Scorecard
 
 > **STATUS: PLANNING AUDIT · 2026-06-21 · not code.**
-> **Purpose:** Be the single, durable, re-runnable audit of every doc in this pack against three axes (Strategy / Quality / Implementation Readiness), each scored 1–100 %, with a concrete gap list for each and the work items needed to drive every doc to 100 / 100 / 100. It is the master record the rest of the pack reconciles to. When a gap closes, mark it ✅ in place; the scorecard re-score is the completion gate (see `README.md` → "Definition of 100 %").
+> **Purpose:** Be the single, durable, re-runnable audit of every doc in this pack against three axes (Strategy / Quality / Implementation Readiness), each scored 1–100 %, with a concrete gap list for each and the work items needed to make the pack honestly implementation-ready. It is the master record the rest of the pack reconciles to. When a gap closes, mark it ✅ in place; the scorecard re-score is the completion gate (see `README.md` → "Definition of 100 %").
 
 This doc **does not own** any plan decision; it **measures** the docs that do. Every
 cross-doc claim in this audit is verified against the actual files (file paths, line refs,
@@ -19,7 +19,8 @@ grounding in `ARCHESTIMATOR_MASTER.md`, `DESIGN.md`, `src/app/globals.css`, `src
 | **Implementation Readiness** | A competent implementer (Codex / human dev) can pick the doc up and build exactly what it says without a clarifying conversation: tokens named, files listed, components specified, props defined, build order clear, dependencies flagged, tests / verification specified, no silent traps. | 1/3 |
 
 A doc is at 100 % only when **all three** axes are 100 %. The pack's overall score is the
-weighted mean; the goal is 100 / 100 / 100 on every doc.
+weighted mean. Per D-5, the planning-rubric goal is "closed or explicitly carried," not pretending
+owner/provider/runtime gates can be completed inside a planning document.
 
 ---
 
@@ -43,8 +44,8 @@ weighted mean; the goal is 100 / 100 / 100 on every doc.
 - **D-3 — Orange token discipline** (`#F24405` presence / `#C63804` AA text / clay `#AA412A` never used).
 - **D-4 — Single shared `ClaimStatus` type** (`"Live" | "Building" | "Planned" | "NotUs"`); the plate narrows.
 - **D-5 — Honest scoring.** **The prior "100/100/100 across all docs" claim (this doc's old §7.1/§7.2)
-> is RECALLED.** It was self-assessed, not independently verified; a 2026-06-22 independent 28-agent
-> pass + 5-agent adversarial panel found the substance docs in the **91–96 band**, never 100, with
+> is RECALLED.** It was self-assessed, not independently verified; a 2026-06-22 multi-agent
+> revision pass + five-lane adversarial panel found the substance docs in the **91–96 band**, never 100, with
 > every residual owner gate carried openly in `LOOP_LEDGER.md`. The honest verdict is **Rubric A
 > (planning-achievable) = 100 %; Rubric B (execution-inclusive) ≈ 91 %** — see §7.3.
 
@@ -287,7 +288,9 @@ The pack is at 100 % when **all** of the following hold:
 |---|---|---|---|
 | 2026-06-21 | baseline | First audit of the 8 original docs; baseline ~88/83/81; 17 missing docs + 10 cross-cutting gaps identified. | Gaps open. |
 | 2026-06-21 | iter 2–5 | Created the 17 missing docs; patched cross-links; closed the 8-original-doc per-doc gaps. **⚠️ Self-scored 100/100/100 — but that score was self-assessed, not independently verified (the D-5 defect).** | (Recalled — see next row.) |
-| **2026-06-22** | **iter 6 (D-1..D-5 pivot + recall)** | Owner directed the redesign to the **Glass Brand** (D-1) + **full-page 2-col auth** (D-2); ratified D-3 (orange), D-4 (ClaimStatus), D-5 (honest scoring). A 28-agent pass rewrote the 3 keystone docs + upgraded the 20 substance docs against the new contract; a 5-agent independent adversarial panel re-audited the pack; the pack-wide `rate_limit`→`security_rate_limit_events` error was corrected across 14 docs; the 4 meta docs were reconciled (this row). | **Honest re-score recorded below (§7.1). The prior "100/100/100 across all docs" claim is RECALLED (D-5).** |
+| **2026-06-22** | **iter 6 (D-1..D-5 pivot + recall)** | Owner directed the redesign to the **Glass Brand** (D-1) + **full-page 2-col auth** (D-2); ratified D-3 (orange), D-4 (ClaimStatus), D-5 (honest scoring). A broad multi-agent pass rewrote the 3 keystone docs + upgraded the 20 substance docs against the new contract; a five-lane independent adversarial panel re-audited the pack; the pack-wide `rate_limit`→`security_rate_limit_events` error was corrected across 14 docs; the 4 meta docs were reconciled (this row). | **Honest re-score recorded below (§7.1). The prior "100/100/100 across all docs" claim is RECALLED (D-5).** |
+| **2026-06-22** | **iter 7 (continuation reconciliation)** | Codex continuation integrated the master implementation plan as the 28th markdown doc; corrected `/newdesign` indexing, L-FUN-1 route-shape drift, auth/contact abuse and PII contracts, Lighthouse config path, visual geometry, analytics processor readiness, and the public feature spine (reusable components, drag/drop into estimate sheet, domain-shaped tree, share/comment/approval, one workflow). | **Current packet is planning-complete under Rubric A; execution gates remain carried, not hidden.** |
+| **2026-06-22** | **iter 8 (brand-introduction + liquid-glass continuity)** | Owner clarified that the landing must introduce the app and brand, with hints of liquid glass that are cohesive with the whole app. The pack now binds liquid glass to first-viewport brand continuity, product-mechanic hints, and implementation-time Visual Ralph/design-qa evidence instead of generic glassmorphism. | **Current packet preserves Rubric A planning-complete status; implementation-time visual QA is carried openly until a rendered landing/reference exists.** |
 
 ### 7.1 Honest per-doc re-score (2026-06-22, independent adversarial panel)
 
@@ -297,33 +300,34 @@ genuinely-open owner gates (carried in `LOOP_LEDGER.md`) cap Implementation-Read
 
 | Doc | S | Q | I | Evidence + what caps it |
 |---|---|---|---|---|
-| 00-OVERVIEW | 96 | 95 | 92 | Encodes D-1..D-5 verbatim + dependency graph + gate table. Capped by: `23-AUTH` is a sibling deliverable; L-FUN-1/2 + L-DES-* genuinely open. |
-| 01-DESIGN-DIRECTION | 96 | 95 | 92 | Glass Brand primary + Direction D demoted; peg study corrected (Intercom #050505/tabbed; Amigo 2-layer pyramid). Capped by: archived-peg-URLs deferred to doc 22; L-DES-1/6 owner look. |
-| 02-SECTION-TAXONOMY | 95 | 95 | 92 | Glass re-skin + scroll-depth + RSC + a11y/SEO columns + mobile funnel + gated auth entry. Capped by: L-FUN-1/2; mobile breakpoints pixel-unverified (deferred to 12/14). |
-| 03-VISUAL-LANGUAGE-AND-TOKENS | 96 | 96 | 94 | Best token binding — every `--landing-*` aliases a grep-verified `globals.css` token; full glass-application section; D-3/D-4 tables. Capped by: L-DES-6 (Doto `adjustFontFallback` CLS unmeasured); warm-hairline contrast unverified (→ doc 12). |
-| 04-COMMERCIAL-GRAPH-PLATE | 95 | 95 | 90 | D-3/D-4 honored (clay→#C63804; shared type narrowed via `Exclude`); §4.2/§4.3/§4.8 reconciled. Capped by: SVG geometry is a brief (viewBox/coordinates deferred to owner look) — the moat deserves a sign-off; SVG+backdrop-filter interaction renderer-flaky. |
-| 05-COPY-SKELETON | 94 | 93 | 90 | Voice-locked, §-anchored, auth microcopy cross-linked to 23. Capped by: auth copy re-verification at build time; meta copy deferred to 13. |
-| 06-PROOF-AND-CLAIMS | 96 | 95 | 92 | ClaimStatus 4-variant; matrix clean; removals rail concrete; §2.5 file layout. Capped by: matrix shape vs 09 parser contract unverified at build time; automation scripts (L-CLM-1) open. |
-| 07-ENGINEERING-CONSTRAINTS | 94 | 94 | 88 | RSC + glass perf model + CWV + funnel gates. **Bundle-gate claim corrected** (the `withBundleAnalyzer` wrapper is wired in `next.config.ts:223`, but the `analyze` script + CI step + budget file are the open L-ENG-3 deliverable — the budget is a target, not yet a gate). Capped by: L-ENG-1/3, L-FUN-1/2. |
+| 00-OVERVIEW | 96 | 95 | 92 | Encodes D-1..D-5 verbatim + dependency graph + gate table + the landing feature spine + the brand-introduction/liquid-glass hint contract. Capped by: `23-AUTH` is a sibling deliverable; L-FUN-2 + L-DES-* genuinely open. |
+| 01-DESIGN-DIRECTION | 96 | 95 | 92 | Glass Brand primary + Direction D demoted; peg study corrected (Intercom #050505/tabbed; Amigo 2-layer pyramid); first viewport now explicitly introduces app material, chrome, orange presence, and product architecture. Capped by: archived-peg-URLs deferred to doc 22; L-DES-1/6 owner look. |
+| 02-SECTION-TAXONOMY | 95 | 95 | 92 | Glass re-skin + scroll-depth + RSC + a11y/SEO columns + mobile funnel + gated auth entry + the feature-spine workflow. Capped by: L-FUN-2; mobile breakpoints pixel-unverified (deferred to 12/14). |
+| 03-VISUAL-LANGUAGE-AND-TOKENS | 96 | 96 | 94 | Best token binding — every `--landing-*` aliases a grep-verified `globals.css` token; full glass-application section; D-3/D-4 tables; liquid-glass hint contract grounded in app continuity and official material references. Capped by: L-DES-6 (Doto `adjustFontFallback` CLS unmeasured); warm-hairline contrast unverified (→ doc 12). |
+| 04-COMMERCIAL-GRAPH-PLATE | 95 | 95 | 90 | D-3/D-4 honored (clay→#C63804; shared type narrowed via `Exclude`); §4.2/§4.3/§4.8 reconciled; desktop/tablet/mobile geometry pinned; feature-spine loop visible. Capped by: owner look + renderer proof for SVG/backdrop-filter interaction. |
+| 05-COPY-SKELETON | 94 | 94 | 91 | Voice-locked, §-anchored, feature-spine copy promoted, first-viewport visual contract added, auth microcopy cross-linked to 23. Capped by: auth copy re-verification at build time; meta copy deferred to 13. |
+| 06-PROOF-AND-CLAIMS | 96 | 95 | 92 | ClaimStatus 4-variant; matrix clean; feature-spine claims explicit; removals rail concrete; §2.5 file layout. Capped by: matrix shape vs 09 parser contract unverified at build time; automation scripts (L-CLM-1) open. |
+| 07-ENGINEERING-CONSTRAINTS | 94 | 94 | 88 | RSC + glass perf model + CWV + funnel gates. **Bundle-gate claim corrected** (the `withBundleAnalyzer` wrapper is wired in `next.config.ts:223`, but the `analyze` script + CI step + budget file are the open L-ENG-3 deliverable — the budget is a target, not yet a gate). Capped by: L-ENG-1/3, L-FUN-2. |
 | 08-ROLLOUT-AND-ANALYTICS | 94 | 94 | 90 | Preview→A/B→cutover + `/legacy` rollback. Capped by: no power-calc/MDE for the signup primary; SR/SEA traffic split + ramp rule unspecified; event schema deferred to 17. |
 | 09-CLAIMS-LEDGER-SIGN-OFF | 95 | 95 | 90 | Gate design + the L-CLM-1/2/3 honestly-conditional pattern. Capped by: the two scripts (L-CLM-1) don't exist yet → the gate is a manual checklist until they ship; `.mjs` parser validates against the ClaimStatus *string values* (not a `.tsx` runtime import — the trap is mitigated). |
-| 10-CANONICAL-DOC-MAP | 95 | 95 | 95 | All 27 docs `exists`; `23-AUTH` added; type-pairing corrected; entry order + verify grep updated. Clean. |
-| 11-COMPONENT-INVENTORY | 95 | 95 | 92 | Real props + D-4 narrowing + the 7-component auth set (cross-linked to 23). Capped by: L-FUN-1/2 + L-FND-1 honestly block; HeroSection RSC designation is a build-time call. |
+| 10-CANONICAL-DOC-MAP | 95 | 95 | 95 | All 28 markdown docs `exists`; `23-AUTH` + `MASTER-IMPLEMENTATION-PLAN` integrated; type-pairing corrected; entry order + verify grep updated. Clean. |
+| 11-COMPONENT-INVENTORY | 95 | 95 | 92 | Real props + D-4 narrowing + `HeroMaterialPanel` contract + the 7-component auth set (cross-linked to 23). Capped by: L-FUN-2 + L-FND-1 honestly block; HeroSection RSC designation is a build-time call. |
 | 12-ACCESSIBILITY-AUDIT | 95 | 95 | 92 | Contrast + keyboard + semantics + auth-surface a11y; #7F7F7F rail kept; serif-legibility gate retired for D-1. Capped by: text-on-glass AA worst-case unmeasured on the target device (L-A11Y-1); plate SVG tabindex seq asserted. |
 | 13-SEO-AND-DISCOVERY | 95 | 94 | 93 | Per-route meta + auth `noindex,nofollow` + canonical-self + sitemap exclusion; SearchAction schema removed. Capped by: L-SEO-1 keyword volumes; sitemap tool chosen (app/sitemap.ts); `/trust` indexability pre-launch ambiguous. |
-| 14-PERFORMANCE-AND-CORE-WEB-VITALS | 95 | 95 | 91 | Best-in-class glass-perf model verified against `LiquidGlassReady.tsx` + `globals.css:287-313`. Capped by: L-ENG-1 targets unratified; §5.1.1 `unicodeRanges:["U+20B1"]` is malformed (→ use `subsets:['latin-ext']`); `adjustFontFallback` numbers are guesses (L-ENG-5); LHCI budget path to reconcile with 16 (`.lighthouseci/budget.json`). |
-| 15-FORMS-AND-ABUSE-GUARDRAILS | 96 | 95 | 92 | **Gold standard** — names the real table (`security_rate_limit_events`), RPC (`reserve_security_rate_limit_slot`), lib (`src/lib/ai/rate-limit.ts`); splits scope cleanly with 23. Capped by: L-FUN-4 abuse P1 + Turnstile-not-built honestly open. |
-| 16-TEST-AND-VERIFICATION-PLAN | 95 | 94 | 91 | 7-layer model + auth e2e + glass visual regression + honestly-conditional CI. Capped by: LHCI budget path differs from 14 (reconcile); the two claims scripts (L-CLM-1) gate `test:claims`; the "callback, gate OFF, new email → /workshop" case not pinned (cross-link 23 §11). |
-| 17-ANALYTICS-AND-OBSERVABILITY | 94 | 93 | 90 | Canonical event set + anon→auth merge + consent reuse. Capped by: L-ENG-2 tool unratified; anon→auth merge mechanism unspecified; analytics/security rate-limit isolation rule. |
+| 14-PERFORMANCE-AND-CORE-WEB-VITALS | 95 | 95 | 91 | Best-in-class glass-perf model verified against `LiquidGlassReady.tsx` + `globals.css:287-313`; canonical LHCI config path is `lighthouserc.js`, with size-limit handling JS-byte budgets. Capped by: L-ENG-1 targets unratified; `adjustFontFallback` numbers are guesses (L-ENG-5); exact size-limit route glob still implementation-pinned. |
+| 15-FORMS-AND-ABUSE-GUARDRAILS | 96 | 96 | 92 | **Gold standard** — names the real table (`security_rate_limit_events`), RPC (`reserve_security_rate_limit_slot`), lib (`src/lib/ai/rate-limit.ts`); adds PII/data-flow, audit-event, pending-submit, duplicate-submit, and retry contracts; splits scope cleanly with 23. Capped by: L-FUN-4 abuse P1 + Turnstile-not-built honestly open. |
+| 16-TEST-AND-VERIFICATION-PLAN | 95 | 95 | 91 | 7-layer model + auth e2e + pinned viewport visual regression + brand-continuity first-viewport test + `lighthouserc.js` perf path + honestly-conditional CI. Capped by: the two claims scripts (L-CLM-1) gate `test:claims`; the "callback, gate OFF, new email → /workshop" case not pinned (cross-link 23 §11); Visual Ralph/design-qa waits for implementation/reference. |
+| 17-ANALYTICS-AND-OBSERVABILITY | 94 | 94 | 91 | Canonical event set + anon→auth merge + consent reuse + interim GA4/Clarity fallback + analytics processor checklist + closed-beta monitoring runbook. Capped by: L-ENG-2 tool unratified; anon→auth merge mechanism unspecified. |
 | 18-I18N-AND-LOCALIZATION | 92 | 91 | 88 | EN-only + copy-idiom discipline + hreflang + FIL/ID roadmap. Capped by: L-I18N-1 locale decision; next.config i18n contract for `/fil/` not pinned; ₱ rendering not cross-linked to 14. |
 | 19-ASSET-PIPELINE-AND-IMAGERY | 94 | 93 | 90 | D-1 pivot (wordmark = Doto, no flat #F24405); brand-composition assets for glass surfaces; no-stock-photo rail kept. Capped by: dark-mode story; OG generator method (next/og vs static) unpinned; founder-photo fallback (L-FND-1). |
 | 20-CONTENT-WORKFLOW-AND-GOVERNANCE | 93 | 92 | 88 | Governance made realistic (owner-only at launch, honestly stated). Capped by: Notion automation unspecified; emergency copy hotfix path; `/blog`/`/changelog`/`/for` phase triggers vague. |
-| 21-BLAST-RADIUS-AND-MIGRATION-PLAN | 94 | 94 | 90 | 7-phase migration + URL-swap rollback + 301-redirect map + `/legacy` noindex. Capped by: risk correctly characterized LOW (per proportional policy) — the 26-doc breadth is owner-directed comprehensiveness, not proportional necessity; day-31 `/legacy` action unpinned. |
-| 22-PEG-STUDY-DEEP-DIVE | 95 | 95 | 92 | Intercom + Amigo + **Workshop Dashboard as a third peg**; full transfer verdicts; vapor-risk warning. Capped by: L-PEG-1..4 referenced 13× but now registered in LOOP_LEDGER; Amigo homepage confidence; motion + mobile analysis added. |
-| 23-AUTH-EXPERIENCE (new) | 96 | 95 | 93 | Best-in-class — recon-verified (no password, magic link = signup, closed-beta gate as content variant), 2-col full-page contract, threads through 11/12/13/14/15/16/17. Capped by: L-FUN-1/2 + L-A11Y-1; `/signup` + `src/components/auth/` are the deliverable; `shouldCreateUser:true`→`/workshop`-when-gate-off needs build-time confirm. |
-| README | 96 | 95 | 93 | Rewritten 2026-06-22 to D-1..D-5 + the honest two-rubric Definition of 100 % + Auth dimension. |
+| 21-BLAST-RADIUS-AND-MIGRATION-PLAN | 94 | 94 | 90 | 7-phase migration + URL-swap rollback + 301-redirect map + `/legacy` noindex + moderate auth/contact risk with rate-limit wrapper requirement. Capped by: the broad plan remains owner-directed comprehensiveness, not proportional necessity; day-31 `/legacy` action unpinned. |
+| 22-PEG-STUDY-DEEP-DIVE | 95 | 95 | 92 | Intercom + Amigo + **Workshop Dashboard as a third peg**; full transfer verdicts; vapor-risk warning; bounded AEC estimating market scan added. Capped by: L-PEG-1 PH/SEA formal competitor scan still open; Amigo homepage confidence; motion + mobile analysis added. |
+| 23-AUTH-EXPERIENCE (new) | 96 | 95 | 93 | Best-in-class — recon-verified (no password, magic link = signup, closed-beta gate as content variant), 2-col full-page contract, launch CTA matrix, threads through 11/12/13/14/15/16/17. Capped by: L-FUN-2 + L-A11Y-1; `/signup` + `src/components/auth/` are the deliverable; `shouldCreateUser:true`→`/workshop`-when-gate-off needs build-time confirm. |
+| README | 96 | 95 | 93 | Rewritten 2026-06-22 to D-1..D-5 + the honest two-rubric Definition of 100 % + Auth dimension + master implementation handoff. |
 | LOOP_LEDGER | 95 | 95 | 92 | Rewritten 2026-06-22 — recall recorded, baseline reconciled, all referenced gates registered, sign-off log template added. |
-| MASTER-AUDIT-AND-SCORECARD (this doc) | 95 | 95 | 93 | §7 honestly re-scored (this section); §0.5 ratified decisions added; §1–§5 marked as the baseline snapshot. |
+| MASTER-AUDIT-AND-SCORECARD (this doc) | 95 | 95 | 93 | §7 honestly re-scored (this section); §0.5 ratified decisions added; §1–§5 marked as the baseline snapshot; iter 7 continuation drift reconciled. |
+| MASTER-IMPLEMENTATION-PLAN | 95 | 94 | 92 | Current-codebase checkpoint, conflict-resolution table, phase order, minimum-slice framing, and explicit non-goals. Capped by execution still pending and owner/provider gates carried rather than closed. |
 
 **Pack-weighted honest score: Strategy ~95 · Quality ~94 · Impl-Ready ~91.** (The delta vs the
 recalled 100/100/100 is the D-5 correction: the substance docs land in the 91–96 band, and the
@@ -337,7 +341,7 @@ recalled 100/100/100 is the D-5 correction: the substance docs land in the 91–
 | 2. Cross-link integrity = 100 % | ✅ PASS | The grep in `10-CANONICAL-DOC-MAP.md` §4 returns zero stale aliases; zero standalone `\brate_limit\b`; the recalled "100/100/100" string survives only in this §7 history. |
 | 3. Every dimension has an owning doc | ✅ PASS | `10-CANONICAL-DOC-MAP.md` §5 lists 26 dimensions (incl. **Auth experience → 23**), all owned by an existing doc. |
 | 4. Every ⚠️ GATED ON item is carried in LOOP_LEDGER | ✅ PASS | `LOOP_LEDGER.md` §2 consolidates every gated item — incl. the newly-registered L-DES-6/7, L-REM-6, L-A11Y-1, L-CRM-1, L-PEG-1..4, L-CLM-1/2/3; none silently dropped, none silently closed. |
-| 5. The originally-missing docs exist + `23-AUTH` exists | ✅ PASS | All 27 docs on disk (8 + 16 + 3 meta); `23-AUTH-EXPERIENCE.md` created 2026-06-22. |
+| 5. The originally-missing docs exist + `23-AUTH` + `MASTER-IMPLEMENTATION-PLAN` exist | ✅ PASS | All 28 markdown docs on disk (24 numbered + 4 meta/execution); `23-AUTH-EXPERIENCE.md` and `MASTER-IMPLEMENTATION-PLAN.md` integrated 2026-06-22. |
 | 6. The 10 cross-cutting strategic gaps are closed | ✅ PASS | §5 X-1..X-10 each have an owning doc + a decision/owner-carried status. |
 
 ### 7.3 Two-rubric verdict (the honest "is it 100 %?" answer)
@@ -346,7 +350,7 @@ recalled 100/100/100 is the D-5 correction: the substance docs land in the 91–
   dimension owned; cross-links resolve; the five decisions ratified. **The pack is planning-complete
   and implementation-ready.**
 - **Rubric B — Execution-inclusive: ~91 %.** Implementation-Readiness is capped below 100 by the
-  carried owner gates (L-FUN-1/2, L-FND-1, L-ENG-1/2, L-A11Y-1, L-PEG-1, L-PRC-1, L-LEG-2/3, L-I18N-1).
+  carried owner/provider/runtime gates (L-FUN-2, L-FND-1, L-ENG-1/2, L-A11Y-1, L-PEG-1, L-PRC-1, L-LEG-2/3, L-I18N-1; L-FUN-1 remains only as a superseded route record).
   Per D-5 this is a **PASS** (carried openly), not a fail — a planning pack cannot close owner
   decisions, and pretending it could was the recalled defect.
 

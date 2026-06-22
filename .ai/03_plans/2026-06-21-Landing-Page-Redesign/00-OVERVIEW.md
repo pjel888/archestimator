@@ -91,7 +91,8 @@ against them but **must not reopen them**. This is a HARD CROSS-DOC CONTRACT.
 **Kept from the prior locked-decisions set** (these were #2/#3/#4 before the pivot and remain in
 force, folded into D-1/D-2 above and restated here for visibility):
 
-- **Primary CTA = "Start free"** (self-serve Free-tier signup; routing gated L-FUN-1/L-FUN-2);
+- **Primary CTA = "Start free"** (self-serve Free-tier signup; route path settled as `/signup`,
+  while self-serve behavior remains gated on L-FUN-2);
   **Secondary = "Book a walkthrough".** This makes beta-onboarding + demo-data/reset rules
   (§7.5 launch gate), abuse guardrails (durable rate limiting, POST-only invite acceptance,
   token hashing with a server pepper — the P1 items, §8.6, §18.1), and the first-run flow
@@ -130,6 +131,33 @@ force, folded into D-1/D-2 above and restated here for visibility):
   Record → The Proposal Handoff. Building: Surfacing. Planned: Supplier Bridge (full spec in
   `04-COMMERCIAL-GRAPH-ARCHITECTURE-PLATE.md`).
 
+### 3.1 Feature spine that must appear on the landing
+
+These are the concrete product features the public landing cannot bury. They should appear across
+the hero support copy, "What you get," "How it works," `/features`, and the claims ledger.
+
+| Feature | Claim status | Landing expression |
+|---|---|---|
+| **Domain-shaped estimate tree** | Live | Organize projects as estimates → Groups → Areas → rows, so complex work stays understandable instead of becoming a flat spreadsheet. |
+| **Reusable components** | Live | Components, suppliers, brands, variants, prices, images, attachments, and cost entries become a reusable library. |
+| **Drag/drop into the estimate sheet** | Live | Drag reusable components and templates into the estimate sheet instead of rebuilding line items by hand. |
+| **Share for comment and approval** | Live | Shared proposal links carry comments, decisions, password protection, and export alongside the estimate record. |
+| **One workflow from estimate creation to client approval** | Live foundation | Create → organize as a tree → reuse components/templates → track revisions → share for comment/approval. Roadmap surfacing stays marked Building/Planned. |
+
+### 3.2 Brand-introduction / liquid-glass hint contract
+
+The landing is **not** a detached brochure. It is the visitor's first step into the app and the
+brand, so the first viewport and the main proof surfaces must feel like the same product family as
+the Workshop Dashboard, Estimate Sheet, and auth surface.
+
+| Contract | Landing implication |
+|---|---|
+| **Introduce the app material.** | Use the warm grey canvas, frosted glass masthead, hero glass panel, signal-orange logo slab, Doto display, Roboto Mono numerals, SF Pro chrome, and the 3px/8px/12px radius scale the app already uses. |
+| **Use hints of liquid glass, not generic glassmorphism.** | Glass appears as chrome and proof surfaces: header, hero material panel, commercial-graph plate, claims ledger, auth left panel, final CTA. Do **not** turn every section into a frosted card grid. |
+| **Let product mechanics lead.** | The glass treatment frames real mechanics — estimate tree, reusable library, activity record, proposal handoff — rather than decorative blur. |
+| **Protect readability and performance.** | Blur is deferred through `data-glass="ready"`, capped to ≤4 simultaneous blur panels per viewport, and falls back to opaque surfaces for reduced transparency / unsupported browsers. |
+| **No fake app screenshots.** | Use abstract material compositions and the real commercial-graph plate unless real product screenshots are intentionally captured later. No redrawn browser chrome, stock dashboard art, or invented product state. |
+
 ---
 
 ## 4. Scope: the routes and their jobs
@@ -145,8 +173,8 @@ section taxonomy per `02-SECTION-TAXONOMY-AND-NARRATIVE-ARC.md`. **Auth is in sc
 | `/about` | Trust — founder intro §11.5, the company | introduction energy, human | `05` (⚠️ GATED on founder bio — L-FND-1) |
 | `/contact` | Conversion — "Book a walkthrough" + reach | steady, direct | `05` (copy) + `15` (form/abuse) |
 | `/trust` (NEW) | Trust — claims ledger + private-by-design + the named architecture | steady, protected, honest | `06` (claims + privacy) + `04` (the plate) |
-| `/login` | Conversion — returning-user auth (Google OAuth + magic link; NO password) | steady, direct, brand-forward | `23` (⚠️ GATED L-FUN-1) |
-| `/signup` | Conversion — new-user auth (Google OAuth + magic link; NO password). **Self-serve is GATED** on L-FUN-1/L-FUN-2; until then "Start free" routes to `/login` or `/contact` | steady, direct, brand-forward | `23` (⚠️ GATED L-FUN-1/L-FUN-2) |
+| `/login` | Conversion — returning-user auth (Google OAuth + magic link; NO password) | steady, direct, brand-forward | `23` |
+| `/signup` | Conversion — new-user auth (Google OAuth + magic link; NO password). **Route path is settled** by D-2 / L-FUN-1; **self-serve is GATED** on L-FUN-2. Until self-serve is enabled, "Start free" routes to `/login` or `/signup` rendering `ClosedBetaGate` / `/contact?intent=beta-request` depending on the launch slice. | steady, direct, brand-forward | `23` (⚠️ GATED L-FUN-2) |
 
 Funnel CTAs follow §12.1: View features → Explore MVP preview → Request/Start free → Learn more
 → Book a walkthrough / Contact. **Both `/login` and `/signup` are `noindex,nofollow`** (not
@@ -199,7 +227,7 @@ is corrected here).
 | **`20-CONTENT-WORKFLOW-AND-GOVERNANCE.md`** | Who writes/reviews/signs off, where copy lives (repo Markdown vs CMS), update cadence, bilingual workflow. |
 | **`21-BLAST-RADIUS-AND-MIGRATION-PLAN.md`** | File-level change inventory, deletion rail, migration order (7 phases), risk register, rollback playbook. |
 | **`22-PEG-STUDY-DEEP-DIVE.md`** | Full DNA extraction from Intercom + Amigo with URLs + dates for evidence; backs `01-DESIGN-DIRECTION.md` §4. |
-| **`23-AUTH-EXPERIENCE.md`** | The full-page 2-column auth surface (D-2): `/login` + `/signup` layout, brand glass panel, Google OAuth + magic link (NO password), `noindex,nofollow`, mobile single-column collapse, "Start free" routing gated L-FUN-1/L-FUN-2. |
+| **`23-AUTH-EXPERIENCE.md`** | The full-page 2-column auth surface (D-2): `/login` + settled `/signup` layout, brand glass panel, Google OAuth + magic link (NO password), `noindex,nofollow`, mobile single-column collapse, "Start free" closed-beta routing gated by L-FUN-2. |
 
 ### 5.3 Pack-level meta docs
 
@@ -208,10 +236,12 @@ is corrected here).
 | **`README.md`** | Pack entry point: doc-order, dimension ownership, the Definition of 100 %. |
 | **`LOOP_LEDGER.md`** | The open-decision queue + iteration state + owner-decision queue. Every `⚠️ GATED ON` item has a row here; no gate is silently dropped. |
 | **`MASTER-AUDIT-AND-SCORECARD.md`** | The audit + scorecard (this pack's quality gate). **The prior "100/100/100" claim is recalled per D-5**; re-scored honestly. |
+| **`MASTER-IMPLEMENTATION-PLAN.md`** | Execution-layer handoff that reconciles current repo facts, phase order, and plan conflicts before code. |
 
-**Doc count:** 8 original (00–07) + 16 additional (08–23) + 3 meta (README, LOOP_LEDGER,
-MASTER-AUDIT) = **27 docs** total. (§5.2 lists 16 numbered additional docs 08–23; the prior
-"9 additional docs" miscount — which actually listed 15 — is corrected here.)
+**Doc count:** 8 original (00–07) + 16 additional (08–23) + 4 meta/execution docs
+(README, LOOP_LEDGER, MASTER-AUDIT, MASTER-IMPLEMENTATION) = **28 markdown docs** total.
+(§5.2 lists 16 numbered additional docs 08–23; the prior "9 additional docs" miscount —
+which actually listed 15 — is corrected here.)
 
 ---
 
@@ -264,8 +294,8 @@ owner sign-off and mapped to the docs/routes it blocks. Items marked ⚠️ NEED
 | Gate | Decision needed | Blocks (docs / routes) | Ledger ID | Status |
 |---|---|---|---|---|
 | **G-1 Brand ratification (R-items)** | R1 Lead category, R2 Uniqueness claim, R3 Hook vs MVP, R4 Brand promise, R9 Voice principles, R10 Privacy stance — keep assumed. | Hero copy (`01`, `05` §1); `04` Supplier Bridge node; `06` claims ledger + Surfacing node; `05` §4 benefit blocks; `05` §10.4 lines; `/trust` + `06` privacy block. | L-RAT-1…6 | ⚠️ GATED ON owner ratify (keep assumed) |
-| **G-2 "Start free" routing** | Auth route for "Start free" (`/signup` vs `/auth/signup` vs `/start`). | Hero CTA href; footer sitemap href (`05`); `23` sign-off. | L-FUN-1 | ⚠️ GATED ON — recommend `/signup` |
-| **G-3 Beta onboarding + reset** | Demo-data/reset rules before self-serve signup. | Self-serve `/signup` activation; moat metric; `23` self-serve readiness. | L-FUN-2 | ⚠️ GATED ON |
+| **G-2 "Start free" route shape** | Settled by D-2 / `LOOP_LEDGER`: top-level `/signup`. | Keeps hero/footer/auth/SEO docs from reopening `/auth/signup` or `/start`. | L-FUN-1 | 🔁 SUPERSEDED — `/signup` settled |
+| **G-3 Beta onboarding + reset** | Demo-data/reset rules before self-serve signup. | Self-serve `/signup` activation; whether launch uses `ClosedBetaGate`, `/login`, or request-access fallback; moat metric; `23` self-serve readiness. | L-FUN-2 | ⚠️ GATED ON |
 | **G-4 First-run flow** | Signup → demo project → first estimate → first reuse → first share. | Activation quality; `23` post-signup path. | L-FUN-3 | ⚠️ NEEDS INPUT |
 | **G-5 Abuse guardrails (P1)** | Durable rate limiting (**Postgres `security_rate_limit_events`, NOT Redis**), POST-only invite acceptance, token hashing + server pepper. | Any public self-serve `/signup`; `/contact` form; `15`; `23`. | L-FUN-4 | ⚠️ GATED ON |
 | **G-6 Founder bio assets** | Credentials, photo, links. | Homepage §9 founder section; `/about` richness (`05`). | L-FND-1 | ⚠️ NEEDS INPUT — ship §11.5 paragraph without it meanwhile |
@@ -355,7 +385,7 @@ README ─┐
         │                            │                          │
         │                            ├─► 03-VISUAL-LANGUAGE ────┤  (D-1, D-3 tokens)
         │                            │                          │
-        │                            ├─► 23-AUTH-EXPERIENCE ────┤  (D-2; gated L-FUN-1/2)
+        │                            ├─► 23-AUTH-EXPERIENCE ────┤  (D-2; path settled, L-FUN-2 gated)
         │                            │                          │
         │                            ├─► 02-SECTION-TAXONOMY ──┐│
         │                            │                        ├┤
@@ -420,7 +450,7 @@ gates for THIS doc are:
 - **G-1…G-12** (§7) — every gate maps to a `LOOP_LEDGER.md` L-* ID.
 - **D-1 pivot ratification** — the Glass Brand pivot is ratified (Philip, 2026-06-22); the
   rendered visual result wants one owner look (G-11 / L-DES-1…5) before `03`/`04`/`23` finalize.
-- **D-2 auth routing** — "Start free" → `/signup` is gated L-FUN-1/L-FUN-2; the 2-col design is
+- **D-2 auth routing** — "Start free" → `/signup` uses the settled route path; self-serve behavior is gated on L-FUN-2; the 2-col design is
   agnostic to the routing decision.
 - **Source Serif 4 DEFERRED** (D-1) — the proposal export is `.xlsx`; the continuity claim is
   aspirational; tracked as L-DES-3. The Glass Brand ships Doto + Roboto Mono + SF Pro instead.

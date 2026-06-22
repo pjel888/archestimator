@@ -11,7 +11,7 @@ bindings:
   - README gate #4 (genuinely owner-gated items carried in LOOP_LEDGER, never silently closed)
   - PROJECT POSITION: rate-limiting is Postgres (`security_rate_limit_events`), NOT Redis. Turnstile is NOT yet built (planned); CAPTCHA is escalation-only.
 verified-against:
-  - supabase/migrations/20260601003000_security_rate_limit_events.sql  (the rate_limit table + indexes + RLS)
+  - supabase/migrations/20260601003000_security_rate_limit_events.sql  (the `security_rate_limit_events` table + indexes + RLS)
   - supabase/migrations/20260621133000_shared_link_atomic_publish_and_digest_slot.sql  (`reserve_security_rate_limit_slot` RPC — fixed-window slot reservation)
   - src/lib/ai/rate-limit.ts  (proven sliding-window rate-limit lib pattern to clone — `checkAiAskQuota`)
   - src/lib/publication/security.ts  (`getClientIp` — x-forwarded-for reader)
@@ -22,7 +22,7 @@ verified-against:
   - src/components/landing/ContactForm.tsx  (current client form — fields today)
   - src/app/globals.css  (brand tokens for the error/feedback states — see §8)
 verified-absent:
-  - src/app/signup/*  (no signup route — NEW, gated L-FUN-1)
+  - src/app/signup/*  (no signup route on disk — NEW implementation deliverable; path settled by L-FUN-1)
   - src/lib/landing/contact-actions.ts  (no contact server-action file — NEW, this doc names the path)
   - any Redis / Upstash / ioredis dependency in package.json  (Postgres is the rate-limit store)
   - any Turnstile / hCaptcha / reCAPTCHA integration  (CAPTCHA not built; escalation-only)
@@ -57,8 +57,8 @@ CTA, `--brand-orange-dark #C63804` for AA small text, `--danger #b91c1c` for har
 of paper. The auth surface is a **full-page 2-column route** (D-2, owned by `23-AUTH-EXPERIENCE.md`);
 this doc treats `/signup` purely as a submission endpoint that needs the same abuse defense as
 `/contact`, regardless of which visual variant ships. Scoring is honest (D-5): the prior
-self-assessed "100/100/100" is recalled; the genuinely owner-gated items (L-FUN-1 `/signup` route,
-L-FUN-2 beta-onboarding, L-FUN-4 abuse-guardrail P1, L-ENG-2 email provider, L-LEG-2 Privacy
+self-assessed "100/100/100" is recalled; the genuinely owner-gated items (L-FUN-2 beta-onboarding,
+L-FUN-4 abuse-guardrail P1, L-ENG-2 email provider, L-LEG-2 Privacy
 Policy) are carried in `LOOP_LEDGER.md` and cap the Implementation-Readiness score below 100 until
 they close.
 
@@ -70,7 +70,7 @@ The two public submission surfaces are:
 
 1. **`/contact` form** — captures name, role, email, current-workflow text. Routes to a founder
    inbox + the design-partner pipeline. Low-volume, high-signal target.
-2. **`/signup` funnel** (when it ships per L-FUN-1) — Free-tier account creation via Google OAuth
+2. **`/signup` funnel** (path settled by L-FUN-1; implementation still new) — Free-tier account creation via Google OAuth
    + magic link (no password — D-2). Higher-volume; the activation path to the moat metric.
 
 **Threats (defense-in-depth, named):**
@@ -96,7 +96,7 @@ surface is the **server-action endpoint**, not the page.
 > **HARD PROJECT POSITION (verified).** Archestimator rate-limits on the **Supabase Postgres
 > `security_rate_limit_events` table**, not Redis/Upstash. There is **no Redis dependency** in
 > `package.json` (verified absent: no `ioredis`, `redis`, `@upstash/*`). Every prior reference in
-> this doc to "Redis or the Supabase rate_limit table" is **corrected here**: Redis is NOT a
+> this doc to "Redis or a Supabase rate-limit table" is **corrected here**: Redis is NOT a
 > shipped option and is NOT planned for the landing. If a future hot-path needs sub-ms limits, that
 > is a separate, owner-gated infra decision (L-ENG-x); it does not change this doc's default.
 
@@ -156,6 +156,23 @@ The rate-limit helper for the landing surfaces lives in a new shared module that
 migration is only needed if we later adopt the fixed-window RPC, and even then the RPC already
 exists from the shared-link work, so no new migration is required). **No schema change is in scope
 for this redesign.** This is the lowest-blast-radius path.
+
+### 2.4 Contact / waitlist data-flow contract (PII handling)
+
+Before any public `/contact`, beta-request, walkthrough, or closed-beta waitlist form accepts real
+visitor data, the implementation must pin this data flow:
+
+| Item | Required contract |
+|---|---|
+| Storage destination | One of: a Postgres `landing_leads` table, the founder inbox, or an approved CRM. No silent third-party sink. |
+| Access | Founder/admin-only during closed beta; no public dashboard, no broad workspace member access. |
+| Retention | Default 12 months for rejected/idle leads, or shorter if legal chooses. Deletion path must be documented before public launch. |
+| Provider readiness | Privacy Policy live (L-LEG-2); vendor DPA / Data Privacy Act posture checked before any CRM/PostHog Cloud lead sync (L-LEG-3). |
+| Export/deletion | Manual owner-run export/deletion process is acceptable for closed beta; public launch requires a written runbook. |
+| Support loop | Beta requests route to the owner support channel named in the launch runbook; no form should promise response timing until that channel is staffed. |
+
+This table is a launch-readiness blocker for public signup/contact forms, not for static preview
+routes. It closes the ambiguity between "form fields exist" and "PII processing is approved."
 
 ---
 
@@ -328,6 +345,22 @@ not signup). This is a **recommendation**, not a hard contract; the implementer 
 Memory `use-server-exports-only-async`: both files export **only async functions** under
 `"use server"` — adding a non-async export breaks `next build` (not `tsc`/`vitest`).
 
+### 5.6 Pending, duplicate-submit, and retry contract
+
+Every public form leaf (`ContactForm`, `LoginForm`, `SignupForm`, `ClosedBetaGate`) must expose
+a deterministic pending state:
+
+| State | Required behavior |
+|---|---|
+| Initial | Submit button enabled; `aria-describedby` points to field help/error text; honeypot hidden from AT. |
+| Pending | Use `useFormStatus()` or the local equivalent inside the submit-button leaf; disable the submit button; set `aria-busy="true"` on the form region; preserve field values; do not change layout height. |
+| Duplicate click while pending | No second server action call. If the platform still receives a second POST, the Postgres quota layer catches it and returns the same public-safe result. |
+| Success | Render the existing `?sent=1` / thank-you path in an `aria-live="polite"` region; never clear the message on re-render until navigation or a new submission. |
+| Rate-limited / fail-closed | Render one public-safe retry message with `Retry-After` if available; keep the submit button disabled only until the visible retry window expires or the user edits the form. |
+
+This is a UX + safety contract, not a new library requirement. It exists so `16-TEST-AND-
+VERIFICATION-PLAN.md` can assert pending behavior without hard-coding component internals.
+
 ---
 
 ## 6. Audit logging + monitoring + alerting
@@ -347,6 +380,11 @@ Every submission, every rate-limit hit, every rejection is logged via
 
 This is the **security audit layer**, distinct from product analytics (`17-ANALYTICS-AND-
 OBSERVABILITY.md`). The two layers are kept separate per doc 23 §9.2.
+
+**Implementation contract update:** add the `landing_*` event names to the server-side audit-event
+type surface (`src/lib/auth/account-data.ts`) or route them through an explicit landing audit writer
+before implementation. Do not rely on prose-only event names; type drift would silently drop the
+audit trail.
 
 ### 6.2 Monitoring signals + alert thresholds
 
@@ -521,7 +559,7 @@ This doc owns the **submission-path + defense** delta; the visual delta is owned
 - `23-AUTH-EXPERIENCE.md` — **the visual 2-col form** (`AuthLayout`, `LoginForm`, `SignupForm`,
   `ClosedBetaGate`); the closed error-code set (§2.4); the closed-beta-gate-as-content-variant
   pattern (§3.2). This doc (15) owns the **server defense** that wraps those forms.
-- `LOOP_LEDGER.md` — L-FUN-1 (`/signup` route), L-FUN-2 (beta onboarding), L-FUN-4 (abuse
+- `LOOP_LEDGER.md` — L-FUN-1 (superseded `/signup` route decision), L-FUN-2 (beta onboarding), L-FUN-4 (abuse
   guardrails P1), L-LEG-2 (Privacy Policy), L-ENG-2 (email provider / analytics tool), L-RAT-6
   (R10 private-by-design stance that rejects reCAPTCHA).
 
@@ -536,8 +574,9 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
   fully public. A temporary `/contact` with honeypot-only is acceptable pre-launch (low-volume,
   founder-monitored); a public `/signup` without rate-limiting is **not** acceptable (it is the
   account-creation surface).
-- **G — The `/signup` route (L-FUN-1).** Blocks the `/signup` defense scope. The server-action
-  file (`src/lib/auth/signup-actions.ts`) is named but not written until the route exists.
+- **G — The `/signup` implementation.** L-FUN-1 settles the route path as `/signup`, but the
+  source route does not exist yet. The server-action file (`src/lib/auth/signup-actions.ts`) is
+  named but not written until the route implementation starts.
 - **G — Beta onboarding + self-serve (L-FUN-2).** Decides whether `/signup` runs `SignupForm`
   (real account creation) or `ClosedBetaGate` (request-access variant). The defense wraps both;
   the routing is gated.
@@ -581,10 +620,10 @@ Per D-5, no gate is silently marked closed. The load-bearing gates for THIS doc:
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **96 / 100** | The threat model is complete (bots, email bombing, SSRF, enumeration, token abuse, backend-unreachable), the storage decision is the canonical project position (Postgres, verified — not Redis), the defense-in-depth is coherent (honeypot → rate-limit → validation → fail-closed → CAPTCHA-escalation), and the scope split with doc 23 is explicit. The fail-closed rule is the load-bearing safety property and is stated unambiguously. Not 100 because L-FUN-1/L-FUN-2/L-FUN-4 are genuinely open and the `/signup` defense scope depends on them; the Turnstile-escalation triggers are policy I assert, not yet owner-confirmed in their exact numeric thresholds. |
+| **Strategy** | **96 / 100** | The threat model is complete (bots, email bombing, SSRF, enumeration, token abuse, backend-unreachable), the storage decision is the canonical project position (Postgres, verified — not Redis), the defense-in-depth is coherent (honeypot → rate-limit → validation → fail-closed → CAPTCHA-escalation), and the scope split with doc 23 is explicit. The fail-closed rule is the load-bearing safety property and is stated unambiguously. Not 100 because L-FUN-2/L-FUN-4 are genuinely open and the `/signup` launch behavior depends on them; the Turnstile-escalation triggers are policy I assert, not yet owner-confirmed in their exact numeric thresholds. |
 | **Quality** | **95 / 100** | Every storage claim is grep-verified against the real migration + the real `src/lib/ai/rate-limit.ts` + the real RPC; every threshold is justified; every cross-link resolves to a canonical filename; the server-action file paths are named and follow the verified `src/lib/auth/actions.ts` pattern; the SSRF section names the exact headers + char whitelist; the composite-key hash cites the real implementation. No `#AA412A`, no Redis-as-default, no paper/serif-as-default. Not 100 because: (a) the exact honeypot field name (`company_url` / `phone`) is a recommendation the implementer may tune; (b) the fail-closed error message wording is a suggestion, not copy-locked (doc 05 owns final copy); (c) the sliding-vs-RPC choice is deferred to monitoring, which is correct but leaves one architectural decision open. |
-| **Implementation-Readiness** | **92 / 100** | An engineer can start: the table + RPC already ship (no migration needed), the rate-limit lib pattern is proven and clonable (`src/lib/ai/rate-limit.ts`), the server-action files are named with their imports identified, the fail-closed path is concrete, and the thresholds are deploy-ready numbers. Not 100 because: (a) `src/lib/landing/rate-limit.ts`, `src/lib/landing/contact-actions.ts`, and `src/lib/auth/signup-actions.ts` do not exist yet (they are the deliverable); (b) `/signup` does not exist (gated L-FUN-1); (c) the Privacy Policy is not live (gated L-LEG-2, blocks the consent copy); (d) the fail-closed UX needs a live test that a real Supabase outage produces the error state, not an open accept — this is an honest implementation-time verification, not a doc gap. Per D-5 these open gates cap readiness below 100 rather than being silently closed. |
+| **Implementation-Readiness** | **92 / 100** | An engineer can start: the table + RPC already ship (no migration needed), the rate-limit lib pattern is proven and clonable (`src/lib/ai/rate-limit.ts`), the server-action files are named with their imports identified, the pending/duplicate-submit contract is testable, the fail-closed path is concrete, and the thresholds are deploy-ready numbers. Not 100 because: (a) `src/lib/landing/rate-limit.ts`, `src/lib/landing/contact-actions.ts`, and `src/lib/auth/signup-actions.ts` do not exist yet (they are the deliverable); (b) `/signup` does not exist on disk even though its route path is settled; (c) the Privacy Policy is not live (gated L-LEG-2, blocks the consent copy); (d) the fail-closed UX needs a live test that a real Supabase outage produces the error state, not an open accept — this is an honest implementation-time verification, not a doc gap. Per D-5 these open gates cap readiness below 100 rather than being silently closed. |
 
-**Carried to LOOP_LEDGER (not silent):** L-FUN-1, L-FUN-2, L-FUN-4, L-LEG-2, L-ENG-2, L-RAT-6
+**Carried to LOOP_LEDGER (not silent):** L-FUN-2, L-FUN-4, L-LEG-2, L-ENG-2, L-RAT-6
 (R10 → rejects reCAPTCHA). Open (no L-ID until triggered): CAPTCHA escalation, disposable-email
 blocking, MX validation, sliding-vs-RPC upgrade.

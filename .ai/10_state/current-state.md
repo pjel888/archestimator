@@ -42,6 +42,319 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Landing redesign planning packet updated for app/brand introduction (2026-06-22):**
+
+- `.ai/03_plans/2026-06-21-Landing-Page-Redesign/` is a 28-markdown-doc planning
+  packet. Current iteration adds two explicit landing contracts: the public
+  feature spine (reusable components/templates, drag/drop into the estimate
+  sheet, domain-shaped estimate tree, shared comment/approval, one workflow
+  from estimate to client approval) and the brand-continuity/liquid-glass hint
+  contract.
+- Liquid glass is now specified as a restrained app-continuity cue, not generic
+  glassmorphism: frosted masthead, first-viewport `HeroMaterialPanel`,
+  commercial graph plate, claims ledger/final CTA, and auth handoff. Visual
+  Ralph/design-qa are implementation-time evidence gates because no rendered
+  landing/reference exists yet.
+- Docs-only validation passed: `git diff --check
+  .ai/03_plans/2026-06-21-Landing-Page-Redesign`, markdown doc count = 28, and
+  targeted greps confirmed feature-spine/liquid-glass coverage with no stale
+  `28-agent`/`lighthouserc.json`/self-serve route-gate drift except the
+  deliberate superseded `L-FUN-1` route record.
+
+**Library validation green; Chromium dense/perf/glass proof passed, release still NO-GO (2026-06-22):**
+
+- Full `bun run validate` passed after closing the lint/design/source-contract
+  blockers: type-check, lint, design-system lint, strict design lint, unit
+  tests, and full DOM Vitest all completed green. Final DOM summary: 415 files /
+  3024 tests passed, 1 file skipped, 4 tests skipped, 5 todo.
+- Evidence:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/validate-pass-20260622T075913Z.md`
+  and
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/adv-release-status-20260622T075913Z.md`.
+- Fresh Chromium provider-backed dense proof also passed after adding the shared
+  `WORKSHOP_VIRTUALIZATION_FLAGS` / `WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION`
+  fallback in `ComponentLibraryManager`: the functional run seeded 500
+  disposable provider rows, captured 1280x900 and 390x844 screenshots, proved
+  `virtualActive=true`, `totalCount=500`, `mountedCount=25`, and cleanup
+  returned fixture rows to 0. The timing run passed the 500-row budget with
+  dense toggle p95 146.5ms, search narrow p95 80.8ms, and search restore p95
+  105.3ms. Evidence:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-5/dense-mode/provider-virtualized-perf-proof-20260622T091332Z.md`.
+- Chromium desktop glass-shell proof also passed:
+  `e2e/workshop-library-routes.spec.ts -g "proves library glass shell"` asserted
+  `data-glass="ready"`, one outer workspace blur, and no nested Library
+  backdrop blur. Evidence:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-1/glass-shell/glass-shell-browser-proof-20260622T081457Z.md`.
+- Fresh copy-deck drift closure also passed:
+  `bunx vitest run tests/vitest/library-copy-contract.test.ts tests/vitest/library-source-trust.test.ts tests/vitest/library-overview.test.tsx tests/vitest/template-gallery.test.tsx tests/vitest/component-library-manager.test.tsx tests/vitest/workshop-library-consolidation-ui.test.tsx --maxWorkers=1`
+  passed 6 files / 54 tests. It locks the audited source-trust labels/tooltips
+  and Library/template empty-state copy. Evidence:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/copy-contract-pass-20260622T082151Z.md`.
+- Release remains NO-GO because Safari/iOS/Android/RTL visual coverage, the
+  full glass matrix/paint-time proof, the separate 5,000-row keystroke tier,
+  cross-browser portal/focus proof, and final all-flow copy-deck review remain
+  partial or unproven.
+
+**Full-app UX audit planning-readiness layer added (2026-06-22):**
+
+- Access-path/persona correction added after owner clarification. The packet is
+  now an 18-file planning packet with
+  `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/10-access-path-and-persona-taxonomy.md`
+  and
+  `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/11-access-path-rbac-ux-review.md`.
+  Canonical access paths are Anonymous Visitor, Primary App User, Project
+  Collaborator, Shared-Link Recipient, and Off-Platform Source Contact.
+  Contractor / Builder and Field Operator are product personas/workflows that
+  can appear through multiple access paths; they are not automatically DB/RLS
+  permission roles. `DEC-UX-031-FIELD-WORKFLOWS` is accepted for MVP workflow
+  coverage, but new permission roles remain blocked unless existing access paths
+  are proven insufficient with a written RBAC/RLS plan.
+- Fresh docs/CSV proof after the correction passed: CSV shape
+  `headers=22 rows=93 dupes=0`, controlled vocabulary `ok`, 44 issue IDs
+  cross-linked to issue log and post-fix scenarios, CSV source paths `ok`,
+  stale contractor/field role wording scan returned no matches, and
+  `git diff --check -- .ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit .ai/10_state/current-state.md`
+  passed. A direct trailing-whitespace scan over the audit `.md`/`.csv` files
+  and this state file was also clean, covering the new untracked taxonomy docs.
+
+- Upgraded `.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/`
+  from a six-file audit inventory into a 16-file base planning packet, later
+  extended to the current 18-file packet by the access-path/persona correction.
+  Added
+  scorecard, beta thesis/prioritization, implementation decomposition,
+  sequencing/conflict matrix, UX state/a11y/content contracts,
+  security/data/provider blast-radius plan, verification/provider proof
+  runbook, agent execution brief, CSV schema contract, and decision ledger.
+- `canonical-feature-status.csv` remains the only spreadsheet tracker with 93
+  rows / 22 columns. Renamed `Issue Severity` to `Row Impact Severity` to make
+  row-level impact explicit and avoid conflict with issue-log severity.
+- Current repo inventory for this packet is 425 Vitest files, 21 Playwright/e2e
+  files, and 5 Bun unit files. Raw `agent-reports/` remain evidence inputs and
+  can be stale; use the canonical packet docs as current truth.
+- Focused document validation passed: CSV shape `headers=22 rows=93 dupes=0`,
+  controlled vocabulary check, 44 issue IDs cross-linked to issue log and
+  post-fix scenarios, referenced proof paths exist, CSV source-evidence paths
+  resolve, and
+  `git diff --check -- .ai/16_user-experience` passed.
+
+**Library lint/copy-contract slice passed; release still NO-GO (2026-06-22):**
+
+- Fixed direct Library lint errors in the template insert picker/browse manager
+  and aligned audited Library destructive/trust copy with doc 22: `New folder`,
+  `Save name`, `Discard this draft?`, count-aware delete-folder copy with
+  `Keep folder`, recoverable archive copy, `Not linked`, `Local override`,
+  `Detached`, and `No source confidence recorded.`
+- Focused proof passed: template insert/template cache tests passed 4 files / 22
+  tests; copy/a11y/source-trust/Quick Add/insert suite passed 8 files / 58
+  tests; focused ESLint, `bun run type-check`, and `git diff --check` passed.
+  Source-only stale-copy scan returned zero hits for the audited old strings.
+- Latest release export:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/adv-release-status-20260622T070955Z.md`.
+  Overall release remains NO-GO because full lint still fails outside the
+  Library lint/copy slice and browser/provider/glass visual proof remains
+  incomplete.
+
+**Library folder failure-recovery proof added; release still NO-GO (2026-06-22):**
+
+- Extended `tests/vitest/component-library-manager-ui.test.tsx` so the test
+  harness follows the current History API route-state implementation and proves
+  folder rename/delete server failures remain recoverable in the Add Component
+  tree.
+- Focused proof passed:
+  `bunx vitest run tests/vitest/component-library-manager-ui.test.tsx
+  tests/vitest/component-library-folder-actions.test.ts --maxWorkers=1` passed 2
+  files / 26 tests; `bunx eslint
+  tests/vitest/component-library-manager-ui.test.tsx` passed.
+- Updated the Library plan evidence docs to mark `ADV-FOLDER-DELETE-FAIL` and
+  `ADV-CONCURRENT-RENAME` PASS for jsdom coverage. Overall release status
+  remains NO-GO because full `bun run validate` is still red and the browser /
+  provider / glass visual matrix remains incomplete.
+
+**Library Page P0 telemetry/authz evidence added; full validate still red (2026-06-22):**
+
+- Added the closed-beta Library telemetry substrate at
+  `src/lib/component-library/library-telemetry.ts` plus route-state/Quick Add
+  event wiring. The runtime sanitizer keeps event payloads ID/metadata-only and
+  drops raw/free-text/private fields.
+- Hardened component route-state and estimate insert-target authz evidence:
+  invalid/foreign `?component=<id>` strips the param before detail disclosure,
+  and `resolveEstimateTemplateInsertTarget` now checks
+  `rpc("can_edit_estimate",{target_estimate_id})` before node lookup.
+- Fixed the shared `CreatableCombobox` Escape path so nested listboxes prevent
+  the parent modal Escape handler from also closing the dialog. Added Add modal
+  regression coverage for nested Escape + dirty discard dialog, and Quick Add
+  validation now rejects spreadsheet formula prefixes in free-text fields.
+- Focused proof passed: `bunx vitest run
+  tests/vitest/workshop-library-consolidation-ui.test.tsx
+  tests/vitest/library-telemetry-emit.test.ts
+  tests/vitest/library-route-state-authz.test.tsx
+  tests/vitest/estimate-insert-target-authz.test.tsx
+  tests/vitest/library-viewer-authz.test.tsx
+  tests/vitest/library-workspace-switch-cache.test.ts
+  tests/vitest/share-snapshot-redaction.test.tsx --maxWorkers=1` passed 7
+  files / 30 tests; `bun run type-check` passed; touched-file ESLint passed.
+  Additional Add/Quick Add/folder proof:
+  `bunx vitest run tests/vitest/library-add-component-modal-a11y.test.tsx
+  tests/vitest/library-quick-add-validation.test.ts
+  tests/vitest/component-library-folder-actions.test.ts --maxWorkers=1` passed 3
+  files / 11 tests.
+  Bulk/filter/insert proof:
+  `bunx vitest run tests/vitest/bulk-destructive-preview-modal.test.tsx
+  tests/vitest/library-applied-filters.test.tsx
+  tests/vitest/library-template-insert-picker.test.tsx
+  tests/vitest/template-gallery.test.tsx
+  tests/vitest/library-templates-cache.test.tsx
+  tests/vitest/library-source-trust.test.ts --maxWorkers=1` passed 6 files / 32
+  tests.
+  Overview/deep-link proof:
+  `bunx vitest run tests/vitest/library-overview.test.tsx
+  tests/vitest/library-tab-a11y.test.tsx tests/vitest/library-tabs-layout.test.tsx
+  tests/vitest/library-overview-skeleton.test.tsx
+  tests/vitest/workshop-library-consolidation-ui.test.tsx --maxWorkers=1`
+  passed 5 files / 33 tests.
+- Added deterministic local perf baseline:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-0a/library-phase0a-perf-baseline-20260622T062635Z.{md,json}`.
+  It is synthetic/local evidence, not provider/browser React Profiler proof.
+- Full `bun run validate` remains red at `bun run lint` after `tsc --noEmit`
+  passes (79 lint problems across existing/generated/project-wide areas).
+  Evidence:
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/validate-baseline-20260622T064146Z.md`.
+  The matching ADV status export is
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/adv-release-status-20260622T064146Z.md`
+  and is a NO-GO matrix.
+
+**Library Page Phase 5 Dense mode implemented + Chromium-proven (2026-06-22):**
+
+- Plan pack `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/` now has
+  Phase 5 dense maintenance mode implemented behind
+  `NEXT_PUBLIC_LIBRARY_DENSE_MODE` (default-off rollback path). Components can
+  switch between cards and a native dense table; the table persists the
+  `cards`/`dense` preference, includes name/folder/supplier/brand/cost/pricing
+  source/pricing date/confidence/lifecycle/usage/actions, supports column sort,
+  and preserves select/inspect/promote parity plus row Space/Enter keyboard
+  paths.
+- Library dense virtualization is represented in the shared
+  `WORKSHOP_VIRTUALIZATION_FLAGS` / `WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION`
+  surface; no parallel virtualizer or schema/RLS/RPC migration was added.
+- Fresh proof: `bunx vitest run tests/vitest/workshop-library-consolidation-ui.test.tsx tests/vitest/library-tab-a11y.test.tsx tests/vitest/estimate-sheet-column-resize-flag.test.ts --maxWorkers=1`
+  passed 3 files / 17 tests; `bun run type-check` passed; touched-file
+  `git diff --check` passed. Native-dialog guard still shows only the tracked
+  Phase-later residuals in `src/components/workshop/component-library/index.tsx`.
+- Browser proof: `ARCHESTIMATOR_DEV_AUTH_BYPASS=1
+  ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1
+  ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=<local-dev-auth-bypass-secret>
+  ARCHESTIMATOR_E2E_LIBRARY_DENSE_PROOF=1 NEXT_PUBLIC_LIBRARY_DENSE_MODE=1
+  NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED=1 PLAYWRIGHT_PORT=3065 bun run
+  test:e2e -- e2e/workshop-library-routes.spec.ts --project=chromium -g
+  "proves dense component table"` passed 1 Chromium test with 500 disposable
+  `cost_library_items`; artifacts live under
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-5/dense-mode/`.
+  Cleanup left fixture rows at 0 and no Next dev server running.
+- Perf budgets remain provisional: this pass proves 500-row functional dense
+  behavior, shallow `?component=<id>` inspector state, and mobile geometry, not
+  the Phase 0A median/p95 timing baseline or 5,000/10,000-row budgets.
+
+**Estimate Sheet right-sidebar Project tab implemented and archived (2026-06-22):**
+
+- Estimate Sheet right sidebar now presents `Library`, `Project`, and `Templates`.
+  `Project` is an ownership/scope tab, not a new component type: it displays
+  only rows with valid `projectComponentProjection` metadata, while reusable
+  workspace components stay in `Library` and project-derived reusable estimate
+  sources remain in `Templates`.
+- Implementation uses the existing project-scoped lite loader path and splits
+  the loaded `libraryItems` in the sidebar/tree view-model. Project rows reuse
+  the library row/tree renderer for preview, insert, drag, and bulk add, but
+  suppress Library management actions: no add folder/component, edit, duplicate,
+  favorite, delete, bulk delete, or reorder in the Project tab.
+- Archived the completed plan pack from
+  `.ai/03_plans/2026-06-22-Estimate-Sheet-Right-Sidebar-Restructuring/` to
+  `.ai/09_archive/2026-06-22-Estimate-Sheet-Right-Sidebar-Restructuring/`.
+- Fresh proof: `bunx vitest run tests/vitest/component-library-ui.test.tsx
+  tests/vitest/component-library-helpers.test.ts
+  tests/vitest/project-component-projection.test.ts
+  tests/vitest/estimate-sheet-library-lazy-load.test.tsx --maxWorkers=1`
+  passed 4 files / 105 tests; `bun run type-check` passed; touched-file
+  `bunx eslint ...` passed; touched-file `git diff --check` passed.
+- Browser/visual proof was intentionally skipped per owner direction to verify
+  directly from code/tests and reuse existing Library/Templates sidebar formats.
+
+**Library Page Phase 4 Templates clarity implemented (2026-06-22):**
+
+- Plan pack `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/` now has
+  Phase 4 target disclosure, submit-time target re-resolution, template
+  dependency gating, creatable-combobox template moves, and scoped templates
+  query invalidation implemented.
+- `resolveEstimateTemplateInsertTarget` still returns the insert contract
+  `targetParentNodeId` and now also returns display metadata for the picker:
+  target name, kind, and path.
+- Fresh proof: `bunx vitest run tests/vitest/library-template-insert-picker.test.tsx tests/vitest/estimate-insert-target-authz.test.tsx tests/vitest/template-gallery.test.tsx tests/vitest/library-templates-cache.test.tsx tests/vitest/library-source-trust.test.ts tests/vitest/template-browse-project-sources.test.tsx --maxWorkers=1`
+  passed 6 files / 28 tests; `bun run type-check` passed. Provider-backed smoke
+  was not run because this pass made no live Supabase/RLS claim beyond the
+  server-action authz unit proof.
+
+**Library Page Phase 3 Quick Add implemented (2026-06-22):**
+
+- Plan pack `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/` now has Phase 3
+  Add/Edit Component Flow Split implemented in source: Quick Add exposes required
+  `name`, `category`, `unit`, and `unit_cost`; optional supplier/brand,
+  `pricing_date`, `pricing_source`, confidence free text, and folder; advanced
+  measurement/description/attachment fields sit behind `Advanced catalog details`.
+- Shared validation lives in `src/lib/component-library/quick-add-validation.ts`
+  and is used by Add, Edit, and server actions. Create checks `is_workspace_editor`
+  before validation so viewers are denied before write paths or validation detail leaks.
+- Fresh proof: `bunx vitest run tests/vitest/library-viewer-authz.test.tsx tests/vitest/library-add-component-modal-a11y.test.tsx tests/vitest/library-quick-add-validation.test.ts tests/vitest/component-library-manager-ui.test.tsx tests/vitest/workshop-library-consolidation-ui.test.tsx --maxWorkers=1`
+  passed 5 files / 40 tests; `bun run type-check` passed; touched-file
+  `git diff --check` passed. Native-dialog guard still reports only the two
+  known legacy residuals in `src/components/workshop/component-library/index.tsx`.
+
+**Estimate Sheet right-sidebar Project tab plan pack created (2026-06-22):**
+
+- Added `.ai/03_plans/2026-06-22-Estimate-Sheet-Right-Sidebar-Restructuring/` as the code-backed plan/readiness pack for splitting the Estimate Sheet right sidebar into `Library`, `Project`, and `Templates`.
+- Scope is planning only: no app code, migrations, browser proof, or visual QA. The owner explicitly redirected this pass to code inspection and existing sidebar patterns.
+- Key contract: owner confirmed `Project` is an ownership/scope tab, not a new component type. `Project` contains projected project-owned components only; reusable workspace rows stay in `Library`, and Templates project-derived sources stay in `Templates`. V1 should reuse `loadProjectComponentLibraryLite(projectId)` and split `libraryItems` in the sidebar view-model.
+
+**Estimate Sheet Loading Performance archived (2026-06-22):**
+
+- Archived completed plan pack from
+  `.ai/03_plans/2026-06-21-Estimate-Sheet-Loading-Performance/` to
+  `.ai/09_archive/2026-06-21-Estimate-Sheet-Loading-Performance/`.
+- Archive basis: route-local implementation phases 0-5 completed; Phase 6 recorded as no-go because
+  no evidence justified shared layout/auth/cache edits. Evidence includes the focused estimate/loading/
+  component-library/cache Vitest matrix, `bun run type-check`, `bun run build`, touched-file ESLint,
+  `git diff --check`, authenticated Chromium skeleton smoke, independent code-reviewer `APPROVE`,
+  architect `CLEAR`, and ai-slop cleanup.
+- Boundary preserved: this archive does not claim provider, preview, Vercel, or Supabase latency wins
+  because no live route trace, hosted timing, or provider timing was captured.
+
+**Estimate Sheet Loading Performance implementation pass (2026-06-22):**
+
+- Branch `codex/estimate-sheet-loading-performance` implements the route-local plan pack now archived at
+  `.ai/09_archive/2026-06-21-Estimate-Sheet-Loading-Performance/`: sheet-node `loading.tsx`,
+  `EstimateSheetRouteSkeleton`, a `Suspense`-wrapped inline server-tail split for
+  `workshop.estimate-sheet-tail`, dynamic `EstimateRightSidebar` loading, and cache-hydration
+  regression tests.
+- Fresh proof: focused estimate/loading/component-library/cache matrix passed 12 files / 114 tests;
+  `bun run type-check`, `bun run build`, touched-file ESLint, and `git diff --check` passed.
+- Evidence is in the plan `evidence/` folder. Authenticated Chromium browser smoke passed using
+  Supabase owner-session cookie setup and observed the sheet route skeleton during delayed client
+  navigation without observing the parent estimates-list skeleton. Do not claim provider, preview,
+  Vercel, or Supabase latency wins from this pass because no live route trace, hosted timing, or
+  provider timing was captured.
+- Repo-wide `bun run lint` remains red on unrelated baseline files; touched-file ESLint passed.
+
+**Library Page implementation guide created (2026-06-22):**
+
+- Added
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/36-CODEBASE-AI-IMPLEMENTATION-GUIDE.md`
+  as the future-AI front door for implementing the Library Page Overall Improvement pack.
+- Scope: docs-only synthesis from five independent audit lanes (product/user flow, repo surface,
+  data/security, QA/perf/a11y, sequencing/ownership); no application code changed in this pass.
+- Key implementation guidance: doc 19 remains the keystone, doc 36 is the execution guide;
+  pre-code errata must reconcile `_evidence/` paths, missing evidence IDs, template telemetry
+  route drift, PII-safe telemetry payloads, browser-matrix status, phase aliases, and known
+  `bun run validate` baseline reds before app code.
+- README and LOOP_LEDGER in the plan folder were updated to route future codebase AI through doc 36.
+
 **Shared-Link Feature archived (updated 2026-06-22):**
 
 - Archived completed plan pack from

@@ -36,8 +36,8 @@ segment fit + proposal-to-approval + client record + supplier bridge + private-b
   `--brand-orange #F24405`; **AA small text / icons on light is `--brand-orange-dark #C63804`**
   (~5.3:1 on white, `globals.css:38`). Clay `#AA412A` is NOT a token and NOT used.
 - CTAs follow the ratified decision D-1: **Primary = "Start free"** (self-serve Free-tier
-  signup); **Secondary = "Book a walkthrough"**. "Start free" routes to `/signup` is **GATED on
-  L-FUN-1/L-FUN-2** (auth routing + beta-onboarding); until resolved it routes to `/login`
+  signup); **Secondary = "Book a walkthrough"**. The `/signup` route path is resolved by D-2 /
+  L-FUN-1; whether it renders self-serve is **GATED on L-FUN-2**. Until L-FUN-2 resolves, it routes to `/login`
   (magic-link handles signup via `shouldCreateUser:true`) or `/contact`. See
   `23-AUTH-EXPERIENCE.md`. Where MASTER shows `[Request early access]`, ship **"Start free"**
   as primary and **"Book a walkthrough"** as secondary.
@@ -87,15 +87,23 @@ From cost proposal to client approval.` `[Claims: Live]` (§11.6).
 
 **Subhead (shortened per §10.2 principle 2 — "one intriguing idea surrounded by plain words"; the
 prior ~50-word version is retired):**
-> Estimates from your own prices and suppliers. Every revision on the record. Proposals your
-> clients can actually approve. `[Claims: Live]` (§11.1)
+> Estimates from your own prices, reusable components, and templates. Drag work into a structured
+> sheet, keep every revision on the record, and share proposals your clients can approve.
+> `[Claims: Live]` (§11.1, §7.2)
 
-**Primary CTA:** **Start free** `[Claims: Live — Free tier, §9.2]` (routing gated L-FUN-1/L-FUN-2;
-routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see `23`)
+**Primary CTA:** **Start free** `[Claims: Live — Free tier, §9.2]` (`/signup` path settled;
+self-serve behavior gated on L-FUN-2; route to `/login`/`/contact` only until self-serve is enabled — see `23`)
 **Secondary CTA:** Book a walkthrough `[Claims: Live — founder-led motion, §9.4]`
 
 **Maturity tag (under the CTAs, small `--secondary #5D5D5D`):**
 > Pre-launch MVP preview. `[Claims: Live]` (§7.4, §15)
+
+**Visual contract for the first viewport (not visible copy):**
+> The hero must introduce the app's material language before the visitor clicks: frosted glass
+> masthead, warm grey canvas, signal-orange logo slab/CTA, and a restrained glass material panel
+> hinting at the estimate tree, reusable component library, Activity record, and proposal handoff.
+> This is a brand-continuity cue, not a fake dashboard screenshot and not decorative glassmorphism.
+> `[Design: D-1, 03 §1.1]`
 
 **Optional one-line "plain anchor" for SEO/screen-readers (visually `--muted-foreground`, semantically H1-supporting):**
 > A construction cost estimating platform where every estimate becomes reusable commercial knowledge. `[Claims: Live]` (§0 plain-language anchor, §4.1)
@@ -167,19 +175,25 @@ routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see 
 > Stop starting from zero. `[Claims: Live]` (§11.2)
 
 **Benefit 1 — body:**
-> Your prices, suppliers, brands, and line items live in one reusable library. Every estimate you build adds to it, so the next one starts ahead instead of from a blank file. `[Claims: Live]` (§11.2, §6.5)
+> Your reusable components, templates, prices, suppliers, brands, and variants live in one library.
+> Drag them into the estimate sheet instead of rebuilding line items by hand; every estimate you
+> finish makes the next one faster. `[Claims: Live]` (§11.2, §6.5, §7.2)
 
 **Benefit 2 — H3:**
 > Defend every number. `[Claims: Live]` (§11.2)
 
 **Benefit 2 — body:**
-> Activity and version history track what changed, when, and why. When a client questions a line, the record answers for you. `[Claims: Live]` (§11.2; Activity/Node Activity/row Version History per §7.2)
+> The estimate stays organized as a domain-shaped tree — Groups, Areas, rows, rollups, and the
+> activity behind them. When a client questions a line, the record answers for you.
+> `[Claims: Live]` (§11.2; Activity/Node Activity/row Version History per §7.2)
 
 **Benefit 3 — H3:**
 > From estimate to approval. `[Claims: Live]` (§11.2)
 
 **Benefit 3 — body:**
-> Turn a structured estimate into a client-ready proposal, then share it with comments, decisions, and password protection, all in one place. `[Claims: Live — shared links, comments, decisions, password; .xlsx export]` (§11.2, §7.2)
+> Turn a structured estimate into a client-ready proposal, then share it for comments, decisions,
+> and approval with password protection, all in one place.
+> `[Claims: Live — shared links, comments, decisions, password; .xlsx export]` (§11.2, §7.2)
 
 > **Honesty footnote (`--secondary`, small, under this section):** Proposal export is a working
 > document today; an issued, immutable snapshot is an open policy decision, not a current
@@ -202,11 +216,11 @@ routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see 
 > From first line item to client approval, in one structured workspace. `[Claims: Live]` (§7.3, §12.2)
 
 **Step copy (one line each, present tense):**
-1. **Create a project estimate.** Organize it as a hierarchy: Groups → Areas → rows. `[Claims: Live]` (§7.3)
-2. **Reuse components from your library.** Your prices, suppliers, brands, variants, and attachments carry across projects. `[Claims: Live]` (§7.2, §6.5)
-3. **Track options and revisions.** Activity, Node Activity, and row version history keep every change on the record. `[Claims: Live]` (§7.2, §7.3)
-4. **Produce proposal-ready output.** Publish a shared link with comments, decisions, and password protection, or export a clean `.xlsx` workbook. `[Claims: Live]` (§7.3, §7.2)
-5. **Compare and learn.** Project charts (donut, bubble) help you see the shape of your estimates. `[Claims: Live]` (§7.2)
+1. **Create a project estimate.** Organize the job as a domain-shaped tree: Groups → Areas → rows. `[Claims: Live]` (§7.3)
+2. **Drag reusable components into the sheet.** Your prices, suppliers, brands, variants, images, and attachments carry across projects. `[Claims: Live]` (§7.2, §6.5)
+3. **Start faster from templates.** Drop a saved template when a familiar scope comes back, then tune the quantities and options. `[Claims: Live]` (§7.2)
+4. **Track options and revisions.** Activity, Node Activity, and row version history keep every change on the record. `[Claims: Live]` (§7.2, §7.3)
+5. **Share for comment and approval.** Publish a shared link with comments, decisions, and password protection, or export a clean `.xlsx` workbook. `[Claims: Live]` (§7.3, §7.2)
 
 **Honest line at the end of the sequence:**
 > No BIM or drawing ingestion today (a takeoff bridge is on the roadmap), and no AI-generated pricing — your numbers come from your library and your inputs. Archestimator structures, stores, and totals them. `[Claims: Live — limitations, honest]` (§7.4, §8.4)
@@ -379,7 +393,7 @@ routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see 
 **Subhead:**
 > Build your first estimate from a reusable library, keep every revision on the record, and send a proposal your client can actually review and approve. `[Claims: Live]` (§11.1, §11.2)
 
-**Primary CTA:** **Start free** `[Claims: Live — Free tier]` (routing gated L-FUN-1/L-FUN-2)
+**Primary CTA:** **Start free** `[Claims: Live — Free tier]` (`/signup` path settled; self-serve behavior gated on L-FUN-2)
 **Secondary CTA:** Book a walkthrough `[Claims: Live]`
 
 **Maturity tag (persistent):**
@@ -399,7 +413,7 @@ routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see 
 
 | Column | Links (label → href) | Notes |
 |---|---|---|
-| **Product** | Features → `/features` · Pricing → `/pricing` · Trust → `/trust` · Start free → `/signup` | `/signup` self-serve **GATED L-FUN-1/L-FUN-2**; until resolved, "Start free" href → `/login` (magic-link handles signup) or `/contact`. See `23`. |
+| **Product** | Features → `/features` · Pricing → `/pricing` · Trust → `/trust` · Start free → `/signup` | `/signup` route path resolved; self-serve **GATED L-FUN-2**. Until resolved, "Start free" href → `/login` (magic-link handles signup) or `/contact`. See `23`. |
 | **Company** | About → `/about` · Contact → `/contact` · Book a walkthrough → `/contact?intent=walkthrough` | `/about` richness GATED L-FND-1. |
 | **Account** | Sign in → `/login` · Start free → `/signup` | Both `noindex,nofollow` per `13`; canonical-self. `/signup` gated as above. |
 | **Legal** | Privacy → `/privacy` (L-LEG-2) · Terms → `/terms` (L-LEG-2) | GATED on legal publish (L-LEG-1…4); render labels only, no dead links. |
@@ -428,8 +442,8 @@ routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see 
 - **Secondary button (magic link):** `Email me a sign-in link` `[Claims: Live]` (label from
   `MagicLinkButton` `label` prop; the email field sits above it with `autocomplete="email"`)
 - **Email field label:** `Email` `[Claims: Live]`
-- **Cross-link to twin:** `New to Archestimator? Start free →` (routes to `/signup`; gated
-  L-FUN-1/L-FUN-2 — until self-serve is on, this renders as `New to Archestimator? Request access →`
+- **Cross-link to twin:** `New to Archestimator? Start free →` (routes to `/signup`; self-serve
+  gated on L-FUN-2 — until self-serve is on, this renders as `New to Archestimator? Request access →`
   routing to `/contact?intent=beta-request`. See `23` §3.2.)
 - **Legal row:** `By continuing you agree to our [Terms](/terms) and [Privacy Policy](/privacy).`
   `[Claims: Live]` (links GATED L-LEG-2; render text only until live)
@@ -443,7 +457,7 @@ routes to `/signup`, or `/login`/`/contact` until self-serve is enabled — see 
   - `callback_exchange_failed` → `We could not finish signing you in. Request a new link or try Google again.`
   - `invalid_redirect` → `We reset the sign-in destination to keep your account safe.`
 
-### `/signup` right column (GATED L-FUN-1/L-FUN-2)
+### `/signup` right column (path settled; self-serve GATED L-FUN-2)
 
 - **H1:** `Start free` `[Claims: Live]` (matches the primary CTA label; brand-continuous)
 - **Subhead:** `Build your cost library free. No card.` `[Claims: Live — Free tier philosophy, §9.2]`
@@ -654,7 +668,10 @@ RSC.
 
 Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_LEDGER.md`.
 
-1. ⚠️ **GATED ON (L-FUN-1):** the `/signup` route path (`/signup` vs `/auth/signup` vs `/start`) — blocks the "Start free" href target in Section 1, Section 11, the footer, and the `/login` cross-link. MASTER §7.5, §17 #7. Recommend `/signup` (per `23` §10). Until resolved, "Start free" → `/login` or `/contact`.
+1. 🔁 **SUPERSEDED (L-FUN-1):** the `/signup` route path is settled by D-2 / `LOOP_LEDGER`.
+   Do not reopen `/auth/signup` vs `/start`. What remains is L-FUN-2: whether `/signup`
+   renders `SignupForm`, `ClosedBetaGate`, or whether launch temporarily sends "Start free"
+   to `/login` / `/contact?intent=beta-request`.
 2. ⚠️ **GATED ON (L-FUN-2):** beta-onboarding + self-serve enablement — decides whether `/signup` ships `SignupForm` (real self-serve) or `ClosedBetaGate` (request-access variant). Blocks the `/signup` microcopy variant. MASTER §7.5, §18.3, §17 #7. See `23` §3.
 3. ⚠️ **GATED ON (L-FUN-4):** abuse guardrails (durable Postgres rate-limit, POST-only invite acceptance, token hashing w/ pepper, honeypot) for the `/contact` form and the Free-tier signup funnel. MASTER §8.6, §18.1. See `15`.
 4. ⚠️ **GATED ON (L-FND-1):** founder public bio assets (credentials, photo, links) — blocks the founder one-liner in Section 9 and `/about`. MASTER §13.1, §17 #17. Ship the §11.5 paragraphs without it; do not invent credentials.
@@ -683,7 +700,8 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
   argument" framing is removed. Source Serif 4 / `--proposal-paper #fffdf8` appear only as the
   demoted/deferred Direction D context (never the default).
 - **D-2 (Auth):** auth microcopy is full-page 2-column, Google OAuth + magic link, no password;
-  cross-linked to `23-AUTH-EXPERIENCE.md`. `/signup` self-serve gated L-FUN-1/L-FUN-2.
+  cross-linked to `23-AUTH-EXPERIENCE.md`. `/signup` path is settled; self-serve is gated
+  L-FUN-2.
 - **D-3 (Orange):** brand presence = `--brand-orange #F24405`; AA small text/icons =
   `--brand-orange-dark #C63804`. Clay `#AA412A` is NOT referenced as an active token anywhere
   in this doc. Tailwind v4 gotcha (`bg-[color:var(--x)]`) noted for the implementer.
@@ -701,6 +719,6 @@ Per D-5, no gate is silently marked closed. Each item below has a row in `LOOP_L
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **96 / 100** | Every section binds to the ratified Glass Brand (D-1), the hero subhead is shortened to honor §10.2 principle 2, the radical-honesty proof engine and Controlled Confidence voice are preserved, the auth microcopy + footer hrefs + `/trust` Section E + meta forward-pointer close every named gap, and the cement-anchor stays hypothesis-labeled. Not 100 because the rendered visual result of D-1 (L-DES-1…5) and the "Start free" routing (L-FUN-1/L-FUN-2) are genuinely owner-open and cap the strategy lock; the `/trust` H1 voice A/B is owner-owned. |
+| **Strategy** | **96 / 100** | Every section binds to the ratified Glass Brand (D-1), the hero subhead is shortened to honor §10.2 principle 2, the radical-honesty proof engine and Controlled Confidence voice are preserved, the auth microcopy + footer hrefs + `/trust` Section E + meta forward-pointer close every named gap, and the cement-anchor stays hypothesis-labeled. Not 100 because the rendered visual result of D-1 (L-DES-1…5) and the "Start free" self-serve behavior (L-FUN-2) are genuinely owner-open and cap the strategy lock; the `/trust` H1 voice A/B is owner-owned. |
 | **Quality** | **95 / 100** | Every token citation is grep-verified against `globals.css` (`--brand-orange` L37, `--brand-orange-dark` L38, `--secondary` L11, `--muted-foreground` L26, `--warm-canvas` L17, `--proposal-paper` L98, `.dashboard-glass` L1229, `--grad-canvas-wash` L62, `--font-display` L203, `--radius-xs` L100). The sign-off-gate typo (`07-CLAIMS-LEDER` → `09-CLAIMS-LEDGER-SIGN-OFF`) is corrected. "Partial" is unified to "Building" (D-4). Clay `#AA412A` and the superseded `#292929` appear only in "NOT used / retired" contexts. The copy → component map and footer href table are concrete. Not 100 because the auth microcopy success/error strings are bound to `23` §2.4 (sibling-owned) rather than re-verified line-by-line in the source this pass, and the exact wording of the closed-beta-gate subhead is a starting proposal pending owner voice confirmation (L-FUN-2). |
-| **Implementation-Readiness** | **92 / 100** | An implementer can take every section's copy verbatim into the named RSC leaf (`11` §3 map), the auth microcopy lands directly in the `23` component props, the `/trust` Section E placeholder is unambiguous, and the gated items are each mapped to an L-* ID. Not 100 because: (a) `/signup`, `src/components/auth/`, and `/trust` Section E do not exist yet (they are deliverables, not pre-existing surfaces); (b) "Start free" href is genuinely conditional on L-FUN-1/L-FUN-2 — the footer table encodes the fallback but the resolved href is owner-pending; (c) the meta/OG copy is forwarded (correctly) to `13` §3 rather than duplicated, so an implementer pulling only this doc needs `13` in hand. Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |
+| **Implementation-Readiness** | **92 / 100** | An implementer can take every section's copy verbatim into the named RSC leaf (`11` §3 map), the auth microcopy lands directly in the `23` component props, the `/trust` Section E placeholder is unambiguous, and the gated items are each mapped to an L-* ID. Not 100 because: (a) `/signup`, `src/components/auth/`, and `/trust` Section E do not exist yet (they are deliverables, not pre-existing surfaces); (b) "Start free" launch behavior is genuinely conditional on L-FUN-2 — the footer table encodes the fallback but the self-serve state is owner-pending; (c) the meta/OG copy is forwarded (correctly) to `13` §3 rather than duplicated, so an implementer pulling only this doc needs `13` in hand. Per D-5 these open gates honestly cap readiness below 100 rather than being silently closed. |

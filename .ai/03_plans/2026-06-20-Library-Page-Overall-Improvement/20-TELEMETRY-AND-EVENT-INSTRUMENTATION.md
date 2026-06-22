@@ -189,7 +189,7 @@ reading the log + a grep assertion (§11 "Public/share emits nothing" pattern).
 | `idor_attempt` | user attempts resource outside their workspace | `workspaceId`, `resourceId` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
 | `cache_bleed_detected` | cross-workspace data detected in cache | `workspaceAId`, `workspaceBId`, `cacheKey` | Error | `console.warn` | Security lead | 0A | EV-TELEMETRY-SEC |
 | `redaction_regression` | trust chip appears in public snapshot | `snapshotId`, `componentId` | Error | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
-| `xss_attempt` | script tag detected in user input | `workspaceId`, `field`, `inputSnippet` (truncated, no PII) | Warn | `console.warn` | Security lead | 3 | EV-TELEMETRY-SEC |
+| `xss_attempt` | script tag detected in user input | `workspaceId`, `field`, `violationCode`, `inputHash`, `inputLength`, `inputCategory` (no raw or truncated input) | Warn | `console.warn` | Security lead | 3 | EV-TELEMETRY-SEC |
 | `formula_injection_detected` | formula detected in import | `workspaceId`, `field` | Warn | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
 | `csrf_attempt` | server action called from wrong origin | `origin`, `action` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-SEC |
 | `rate_limit_exceeded` | user exceeds rate limit | `workspaceId`, `endpoint`, `count` | Info | `console.warn` | Security lead | Phase-later | EV-TELEMETRY-SEC |
@@ -221,8 +221,9 @@ reading the log + a grep assertion (§11 "Public/share emits nothing" pattern).
 
 ## 6B. Route-state and cache-recovery telemetry (source: doc 13 §"Telemetry hooks for route-state", EV-TELEMETRY-ROUTE)
 
-Doc 13 §"Telemetry hooks for route-state" defines 6 events for the `?component=<id>` /
-`?template=<templateId>` route-state lifecycle and the workspace-switch cache-bleed
+Doc 13 §"Telemetry hooks for route-state" defines 6 events for the `?component=<id>`
+component lifecycle, the `/workshop/library/templates/[templateId]` segment-route
+template lifecycle, and the workspace-switch cache-bleed
 recovery path. They are REGISTERED HERE so the schema/version, sink, sampling, i18n-label,
 and code-owner rules in §§3-5/10 apply uniformly. These are **net-new** (no call sites
 today; Phase 0B insertion targets, per §6 "Instrumentation status" note). Closed beta
@@ -235,8 +236,8 @@ verified by DOM/e2e test spies (§11).
 | `component_route_not_found` | `?component=<id>` resolves to not-found / permission-denied | `workspaceId`, `surface`, `reason` (action-error code: `not_found`/`permission_denied`) | Warn | `console.warn` | Frontend lead | 0B | EV-TELEMETRY-ROUTE |
 | `route_state_authz_denied` | route-state load rejected by object-level authz | `workspaceId`, `resourceKind='component'`, `reason` | Warn | `console.warn` | Security lead | 0B | EV-TELEMETRY-ROUTE |
 | `workspace_switch_cache_recovery` | workspace switch clears `WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY` before stale data renders | `workspaceAId`, `workspaceBId`, `cacheKey` (hashed), `recovered: true` | Info | `console.warn` | Backend lead | 0A | EV-TELEMETRY-ROUTE |
-| `library_template_opened` | user opens template via `?template=<templateId>` | `workspaceId`, `surface='templates'`, `kind='template'`, `itemId` | Info | `console.warn` | Frontend lead | 4 | EV-TELEMETRY-ROUTE |
-| `template_route_not_found` | `?template=<templateId>` resolves to not-found / permission-denied | `workspaceId`, `surface='templates'`, `reason` | Warn | `console.warn` | Frontend lead | 4 | EV-TELEMETRY-ROUTE |
+| `library_template_opened` | user opens template via `/workshop/library/templates/[templateId]` | `workspaceId`, `surface='templates'`, `kind='template'`, `itemId` | Info | `console.warn` | Frontend lead | 4 | EV-TELEMETRY-ROUTE |
+| `template_route_not_found` | `/workshop/library/templates/[templateId]` resolves to not-found / permission-denied | `workspaceId`, `surface='templates'`, `reason` | Warn | `console.warn` | Frontend lead | 4 | EV-TELEMETRY-ROUTE |
 
 ### Route-state event rules
 

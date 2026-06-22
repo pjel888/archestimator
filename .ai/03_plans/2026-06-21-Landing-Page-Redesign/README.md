@@ -36,7 +36,9 @@ If you are new to the pack, read in this order:
 4. **`10-CANONICAL-DOC-MAP.md`** — the canonical filenames (every cross-link reconciles to this).
 5. **`MASTER-AUDIT-AND-SCORECARD.md`** — the **honest** scorecard (post-2026-06-22 re-audit) + the
    honest two-rubric verdict.
-6. Then pull the rest on demand per the entry-order in `10-CANONICAL-DOC-MAP.md` §3.
+6. **`MASTER-IMPLEMENTATION-PLAN.md`** — the execution-layer handoff, current-codebase checkpoint,
+   minimum shippable slice, and agent coordination protocol. Read this immediately before code.
+7. Then pull the rest on demand per the entry-order in `10-CANONICAL-DOC-MAP.md` §3.
 
 ---
 
@@ -95,6 +97,7 @@ Every dimension the redesign touches has exactly one owning doc. The full table 
 | Content workflow / governance | `20-CONTENT-WORKFLOW-AND-GOVERNANCE.md` |
 | Blast radius / migration | `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` |
 | Peg-study deep dive (evidence) | `22-PEG-STUDY-DEEP-DIVE.md` |
+| Implementation execution handoff | `MASTER-IMPLEMENTATION-PLAN.md` |
 | Cross-link integrity | `10-CANONICAL-DOC-MAP.md` |
 | Audit / scorecard | `MASTER-AUDIT-AND-SCORECARD.md` |
 | Loop state / open decisions | `LOOP_LEDGER.md` |
@@ -120,8 +123,9 @@ rubrics** because the two answer different questions:
 4. **Every ⚠️ GATED ON item is carried as an open owner decision in `LOOP_LEDGER.md`.** No gate is
    silently dropped; no gate is silently closed.
 5. **The originally-missing docs exist** (M-1 → M-17 + `README`, `LOOP_LEDGER`,
-   `10-CANONICAL-DOC-MAP` — all created 2026-06-21) **and `23-AUTH-EXPERIENCE.md` exists**
-   (created 2026-06-22).
+   `10-CANONICAL-DOC-MAP` — all created 2026-06-21), **`23-AUTH-EXPERIENCE.md` exists**
+   (created 2026-06-22), and **`MASTER-IMPLEMENTATION-PLAN.md` is integrated as the execution
+   layer** rather than an untracked sidecar.
 6. **The cross-cutting strategic gaps** (X-1 → X-10 in `MASTER-AUDIT-AND-SCORECARD.md` §5) **are
    closed** (each has an owning doc + a documented decision or owner-carried status).
 
@@ -129,7 +133,7 @@ rubrics** because the two answer different questions:
 
 Implementation-Readiness across the pack sits at **~91 %** because a small set of genuinely-open
 **owner** gates cannot be closed in planning (by D-5): the auth-route/beta-onboarding decisions
-(`L-FUN-1`/`L-FUN-2`), the founder bio assets (`L-FND-1`), the perf-target ratification + analytics
+(`L-FUN-2`), the founder bio assets (`L-FND-1`), the perf-target ratification + analytics
 tool (`L-ENG-1`/`L-ENG-2`), the live 30 fps a11y verify (`L-A11Y-1`), the competitive-scan
 hypothesis (`L-PEG-1`), pricing validation (`L-PRC-1`), legal/DPA posture (`L-LEG-2`/`L-LEG-3`),
 and the locale decision (`L-I18N-1`). These cap the pack below 100 % on execution — and that is a

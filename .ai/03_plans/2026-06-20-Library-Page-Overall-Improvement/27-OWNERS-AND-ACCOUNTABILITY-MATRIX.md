@@ -106,13 +106,13 @@ Closes the §3 gap "ensure the 12 roles each have phase-level + workstream-level
 | Role | Phase(s) led (§4) | Workstream(s) owned (§5) | Doc(s) owned (§3) | Fully covered? |
 |---|---|---|---|---|
 | Planning lead | Phase-later | Conflict resolution; Evidence ledger (via QA) | 00, 01, 05, 07, 08, 09, 19, 25, 26, 27, 34, README | ✓ |
-| Design lead | 1, 5b (supporting) | Design system | 04, 23, 35 | ✓ |
-| Frontend lead | 1, 2, 4, 5, 5b | Overlay behavior; Search/filter; Quick add; Templates; Dense mode | 02, 03, 10 | ✓ |
+| Design lead | 1, Phase 5 dense-mode subtrack (formerly 5b, supporting) | Design system | 04, 23, 35 | ✓ |
+| Frontend lead | 1, 2, 4, 5 including dense-mode subtrack (formerly 5b) | Overlay behavior; Search/filter; Quick add; Templates; Dense mode | 02, 03, 10 | ✓ |
 | Backend lead | 0B, 3 | Contract lock; Route state; Cache policy; Trust chips | 11, 13, 15 | ✓ |
 | DB lead | 0B (supporting) | (DB policy edits feed Backend-led workstreams) | 33 | ✓ |
 | Security lead | 0B (supporting), 4 (supporting) | RLS / authz | 14, 32 | ✓ |
-| Perf lead | 0A, 5b | Perf budget | 16, 30 | ✓ |
-| A11y lead | 1, 5b (supporting) | Keyboard / a11y | 12, 31 | ✓ |
+| Perf lead | 0A, Phase 5 dense-mode subtrack (formerly 5b) | Perf budget | 16, 30 | ✓ |
+| A11y lead | 1, Phase 5 dense-mode subtrack (formerly 5b, supporting) | Keyboard / a11y | 12, 31 | ✓ |
 | i18n lead | 0A–5 (cross-cutting) | i18n / RTL | 28 | ✓ |
 | QA lead | 6 | Browser proof; Adversarial QA; Evidence ledger | 06, 18, 24, 29 | ✓ |
 | Telemetry lead | 0A–5 (cross-cutting) | Telemetry | 20 | ✓ |
@@ -128,7 +128,7 @@ Closes the §3 gap "ensure the 12 roles each have phase-level + workstream-level
 The three matrices (§3 docs, §4 phases, §5 workstreams) intentionally overlap: a doc is the *artifact*; a workstream is the *activity*; a phase is the *time-box*. They must reconcile:
 
 - 36 docs (§3) → all 36 have a named owner ✓
-- 9 phases (0A, 0B, 1, 2, 3, 4, 5, 5b, 6) + Phase-later (§4) → all 10 have a named lead ✓
+- Canonical build phases are 0A, 0B, 1, 2, 3, 4, 5. Historical `5b` means the Phase 5 dense-mode subtrack, and historical `6` means the final release-gate alias; both have named leads below. ✓
 - 22 workstreams (§5) → all 22 have a named owner ✓
 - Every gate row in every doc (per doc 34 §3) inherits its Owner from one of the 12 roles above, via the doc that owns it.
 
@@ -147,8 +147,8 @@ If a gate row's owner is unclear, the resolution rule is: **the owner of the doc
 | 3 — Trust (chips, freshness) | Backend lead | Frontend lead, Copy lead | Trust state machine, chip rendering, copy keys |
 | 4 — Quick add | Frontend lead | Backend lead, DB lead | Quick add form, validation, server action |
 | 5 — Templates | Frontend lead | Backend lead | Template preview, insert flow, route state |
-| 5b — Dense mode | Frontend lead | Perf lead, A11y lead | Dense rendering, virtualization, keyboard, a11y |
-| 6 — Browser proof | QA lead | All leads | Playwright runs, visual QA, evidence ledger rows |
+| 5 dense-mode subtrack (formerly `5b`) | Frontend lead | Perf lead, A11y lead | Dense rendering, virtualization, keyboard, a11y |
+| Final release gate alias (formerly `Phase 6`) | QA lead | All leads | Playwright runs only for browser-only claims, visual QA, evidence ledger rows |
 | Phase-later | Planning lead | — | Residual tracking, no active work |
 
 **Coverage:** All phases 0A–6 + Phase-later have a named lead. ✓
@@ -164,18 +164,18 @@ If a gate row's owner is unclear, the resolution rule is: **the owner of the doc
 | Cache policy | Backend lead | 0B | 13, 14, 19 | Cache-bleed test pass |
 | RLS / authz | Security lead | 0B | 14, 32, 33 | Authz tests pass, redaction verified |
 | Overlay behavior | Frontend lead | 1 | 03, 10, 12, 23 | Overlay focus tests, stacking tests |
-| Keyboard / a11y | A11y lead | 1, 5b | 12, 31 | Keyboard tests, screen reader tests, axe (post-0A) |
+| Keyboard / a11y | A11y lead | 1, Phase 5 dense-mode subtrack (formerly 5b) | 12, 31 | Keyboard tests, screen reader tests, axe (post-0A) |
 | Search / filter | Frontend lead | 2 | 02, 10, 16 | Search UX tests, debounce tests |
 | Trust chips | Backend lead | 3 | 11, 14, 22, 23 | Trust state tests, chip rendering tests |
 | Quick add | Frontend lead | 4 | 09, 10, 19 | Quick add form tests, validation tests |
 | Templates | Frontend lead | 5 | 10, 13, 19 | Template preview tests, insert flow tests |
-| Dense mode | Frontend lead | 5b | 10, 12, 16, 23 | Dense mode tests, virtualization tests, a11y tests |
-| Perf budget | Perf lead | 0A, 5b | 16, 30 | Perf measurements within budget |
+| Dense mode | Frontend lead | Phase 5 dense-mode subtrack (formerly 5b) | 10, 12, 16, 23 | Dense mode tests, virtualization tests, a11y tests |
+| Perf budget | Perf lead | 0A, Phase 5 dense-mode subtrack (formerly 5b) | 16, 30 | Perf measurements within budget |
 | Telemetry | Telemetry lead | 0A–5 | 20, 24 | Event emission tests, schema validation |
 | Feature flags | Release lead | 0A–5 | 17, 21 | Flag flip tests, rollback verification |
 | Rollback | Release lead | 0A–5 | 17, 21 | Rollback tests, redeploy verification |
 | Copy | Copy lead | 0A–5 | 22 | Copy reviews, completeness checks |
-| Design system | Design lead | 1, 5b | 23, 29 | Primitive mapping, token usage, AA checks |
+| Design system | Design lead | 1, Phase 5 dense-mode subtrack (formerly 5b) | 23, 29 | Primitive mapping, token usage, AA checks |
 | i18n / RTL | i18n lead | 0A–5 | 28 | i18n tests, RTL tests, pluralization tests |
 | Browser proof | QA lead | 6 | 06, 18, 24, 29 | Playwright runs, visual QA artifacts |
 | Adversarial QA | QA lead | 6 | 06, 18 | ADV scenarios all pass |

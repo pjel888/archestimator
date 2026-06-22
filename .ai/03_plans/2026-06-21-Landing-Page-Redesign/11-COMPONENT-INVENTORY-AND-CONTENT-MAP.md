@@ -160,8 +160,8 @@ replaces the current chrome.
 
 Renders: the Doto wordmark (links to `/`), the nav items (`Features · Pricing · About · Contact ·
 Trust`), the persistent `MaturityTag`, and the two CTAs (`Start free` primary → `/signup`
-⚠️ GATED on L-FUN-1/L-FUN-2; until resolved it routes to `/login` (magic link handles signup) or
-`/contact`; `Book a walkthrough` secondary → `/contact`). Sticky on scroll; responsive collapse
+path settled; self-serve behavior gated on L-FUN-2; until enabled it routes to `/login` (magic link
+handles signup) or `/contact`; `Book a walkthrough` secondary → `/contact`). Sticky on scroll; responsive collapse
 to a hamburger at ≤768px (doc 02 §3, doc 07 §2).
 
 ```ts
@@ -215,7 +215,7 @@ are **static server components** by default; the only client JS is the `ScrollRe
 
 | Component | Section (per `02`) | Copy source | RSC? | Notes |
 |---|---|---|---|---|
-| `HeroSection` | 1 | `05` §1 | **Client** (`"use client"` — preserves the existing `variant`/`isLoggedIn` interactivity, `HeroSection.tsx:249`) | LCP element = H1 text headline; no image. Receives `variant` + `isLoggedIn` from the RSC page. |
+| `HeroSection` | 1 | `05` §1 | **RSC parent + client CTA leaf** | LCP element = server-rendered H1 text headline. Includes a server-rendered `HeroMaterialPanel` local subcomponent: a restrained glass material specimen hinting at the estimate tree, reusable component library, Activity record, and proposal handoff. No fake screenshots, no redrawn browser chrome, no stock dashboard art. The existing client interactivity is narrowed to a small CTA/analytics leaf so the hero does not carry the whole route's JS budget. |
 | `ProblemSection` | 2 | `05` §2 | RSC | — |
 | `LayerSection` | 3 (prose) | `05` §3 | RSC | Wraps `<ArchitecturePlate />` as children. |
 | `WhatYouGetSection` | 4 | `05` §4 | RSC | Three `<BenefitBlock>` sub-components. |
@@ -277,7 +277,7 @@ export interface PlateNode {
   subLabel?: string;         // "Group · Area · rows" (dropped at ≤360px per doc 04 §4.6)
   status: PlateNodeStatus;   // D-4 subset — imported, not redefined
   publicLabel: string;       // "A structured estimate, not a flat sheet."
-  edges: { to: PlateNode["id"]; kind: "solid" | "lighter" | "dashed-redline" }[];
+  edges: { to: PlateNode["id"]; kind: "solid" | "solid-strong" | "accent-dashed" }[];
 }
 
 export interface ArchitecturePlateProps {
@@ -421,9 +421,9 @@ changes to the server actions** (`src/lib/auth/actions.ts`), the callback
 |---|---|---|---|---|
 | `AuthLayout` | `src/components/auth/AuthLayout.tsx` | **RSC** | `{ children: ReactNode; route: "login" \| "signup"; next: string; sent?: string; errorCode?: string }` | Renders the 2-col grid (D-2): `AuthGlassPanel` (left) + a right column that renders the error/success live regions (from `errorCode`/`sent`) and `children` (the form). Sets the document shell (`min-h-screen`, `--grad-canvas-wash`). |
 | `AuthGlassPanel` | `src/components/auth/AuthGlassPanel.tsx` | **RSC** (pure presentational) | `{ variant: "full" \| "compact" }` | The decorative brand surface. `aria-hidden="true"`. Uses `.dashboard-glass-warm`, the logo slab (`--glass-logo-orange #F24405`, `globals.css:131` — D-2/D-3), and the material-frost + `--grad-hero-continue`/`--grad-hero-create` composition. **NO fake product screenshots, NO stock photos** (D-2, radical honesty doc 06). |
-| `SignupForm` | `src/components/auth/SignupForm.tsx` | **Client** (`"use client"`) | `{ next: string }` | Visually near-identical to `LoginForm` (same two server actions — `shouldCreateUser:true` makes them signup-capable). Copy differs ("Create your account"). Renders the beta-gate variant (`ClosedBetaGate`) when self-serve is off (doc 23 §3.2). Cross-links to `/login`. ⚠️ GATED L-FUN-1/L-FUN-2. |
+| `SignupForm` | `src/components/auth/SignupForm.tsx` | **Client** (`"use client"`) | `{ next: string }` | Visually near-identical to `LoginForm` (same two server actions — `shouldCreateUser:true` makes them signup-capable). Copy differs ("Create your account"). Renders the beta-gate variant (`ClosedBetaGate`) when self-serve is off (doc 23 §3.2). Cross-links to `/login`. ⚠️ Self-serve GATED L-FUN-2. |
 | `LoginForm` | `src/components/auth/LoginForm.tsx` | **Client** (`"use client"`) | `{ next: string }` | Two `<form action={signInWithGoogle}>` and `<form action={signInWithEmail}>` leaves (server actions). Renders `GoogleButton` + divider + email field + submit. `autocomplete` attrs set (doc 23 §5). Cross-links to `/signup`. |
-| `MagicLinkButton` | `src/components/auth/MagicLinkButton.tsx` | **Client** (`"use client"`) | `{ next: string; label: string }` | The submit button for the email `<form action={signInWithEmail}>`, co-located with the email `ControlInput`. `variant="primary"`, brand-orange fill (`--brand-orange #F24405`, `globals.css:37` — D-3 allows fill on primary CTAs). |
+| `MagicLinkButton` | `src/components/auth/MagicLinkButton.tsx` | **Client** (`"use client"`) | `{ next: string; label: string }` | The submit button for the email `<form action={signInWithEmail}>`, co-located with the email `ControlInput`. Use `variant="brand"` after extending `ButtonVariant`; do **not** use `variant="primary"` because today's primary maps to dark ink, not signal orange. |
 | `GoogleButton` | `src/components/auth/GoogleButton.tsx` | **Client** (`"use client"`) | `{ next: string; label: string }` | A submit button inside the Google `<form action={signInWithGoogle}>`. `variant="secondary"`. Carries the Google "G" mark (asset — doc 19) + `label` ("Continue with Google"). |
 | `ClosedBetaGate` | `src/components/auth/ClosedBetaGate.tsx` | **RSC** | `{ status?: ClosedBetaAccessStatus }` | The request-access variant that replaces `SignupForm` when self-serve is off (doc 23 §3.2). Routes the email capture to `/contact?intent=beta-request` (or waitlist — L-CRM-1). Reuses the same `AuthLayout` shell. |
 
@@ -447,7 +447,7 @@ keeps the copy and the components in sync.
 | §0 Masthead | Wordmark | `LandingHeader` | (hardcoded; Doto wordmark) |
 | §0 Masthead | Persistent tag | `MaturityTag` | `size="sm"` |
 | §0 Masthead | Nav items | `LandingHeader` | (hardcoded) |
-| §0 Masthead | CTAs | `LandingHeader` | (hardcoded; `Start free` href from L-FUN-1 — defaults to `/login` or `/contact` until resolved) |
+| §0 Masthead | CTAs | `LandingHeader` | (`Start free` href follows doc 23 §3.4: `/signup` path settled, with `/login` or `/contact` fallback until self-serve is enabled) |
 | §1 Hero | H1 + subhead + CTAs + maturity tag + plain anchor | `HeroSection` | `variant`, `isLoggedIn` (from RSC page) |
 | §2 Problem | H2 + body + client-side line | `ProblemSection` | — |
 | §3 Layer | H2 + lead + plate intro + honesty anchor + what-this-is-not | `LayerSection` | `children=<ArchitecturePlate />` |
@@ -589,7 +589,7 @@ drops the in-hero toggle, it can return to RSC — a build-time call, not gated.
 Per D-5, no gate is silently marked closed. Each has a row in `LOOP_LEDGER.md`.
 
 - **G — Owner confirmation of the removals (§4.1).** L-REM-1 → L-REM-5.
-- **G — The `/signup` route + "Start free" routing (L-FUN-1/L-FUN-2).** Blocks the `Start free`
+- **G — The `/signup` route + "Start free" launch behavior (L-FUN-2; L-FUN-1 superseded).** Blocks the `Start free`
   CTA `href` and the `SignupForm` vs `ClosedBetaGate` choice. Until resolved, "Start free" routes
   to `/login` (magic link handles signup) or `/contact`.
 - **G — Founder bio assets (L-FND-1).** Blocks the `FounderSection` portrait/credentials/one-liner.
@@ -647,11 +647,11 @@ Per D-5, no gate is silently marked closed. Each has a row in `LOOP_LEDGER.md`.
 
 | Dimension | Score | Justification |
 |---|---|---|
-| **Strategy** | **95 / 100** | The component tree fully encodes the Glass Brand pivot (D-1), the single-ClaimStatus-type contract (D-4), the auth component set (D-2, cross-linked to doc 23), and the A/B SSR-vs-client split pinned to the real `getVariant`/`ABExperimentProvider` recon. The "single client boundary + 5 hydrating leaves" posture mirrors the proven Workshop Dashboard RSC pattern. Not 100 because L-FUN-1/L-FUN-2 (signup routing) and L-FND-1 (founder bio) genuinely affect final copy/flow and are owner-open, not doc-resolvable; and the §2.1 RSC-split alternative for `LandingHeader` is deferred to a build-time perf call (honestly open, not silently closed). |
+| **Strategy** | **95 / 100** | The component tree fully encodes the Glass Brand pivot (D-1), the single-ClaimStatus-type contract (D-4), the auth component set (D-2, cross-linked to doc 23), and the A/B SSR-vs-client split pinned to the real `getVariant`/`ABExperimentProvider` recon. The "single client boundary + 5 hydrating leaves" posture mirrors the proven Workshop Dashboard RSC pattern. Not 100 because L-FUN-2 (self-serve behavior) and L-FND-1 (founder bio) genuinely affect final copy/flow and are owner-open, not doc-resolvable; and the §2.1 RSC-split alternative for `LandingHeader` is deferred to a build-time perf call (honestly open, not silently closed). |
 | **Quality** | **95 / 100** | Every token citation is grep-verified against `globals.css` with anchors (`--ink` L10, `--secondary` L11, `--brand-orange` L37, `--success` L92, `--warning` L94, `--glass-logo-orange` L131, `MotionReveal.tsx:5`, `ABExperimentProvider.tsx:13`, `page.tsx:4,26`). The D-4 type is defined once and narrowed via `Exclude<ClaimStatus,"NotUs">` — no divergent definitions. Every cross-link resolves to a canonical filename. No `#AA412A`/clay, no paper/serif default, no `#292929` positive use. Not 100 because the §4.2 barrel patch is a planning sketch (the implementer reconciles it against the actual `index.ts` at build time), and the exact glass composition inside `AuthGlassPanel` is specified as constraints (gradients, frost, no screenshots) but not pixel-designed — correctly deferred per DESIGN.md-as-alpha. |
-| **Implementation-Readiness** | **92 / 100** | An implementer can start: real source bindings (§0), exact component paths, RSC/client designations, designation rationale, the concrete `FounderSection` fallback (§2.2.1), the A/B assignment pinned to the RSC page (§2.1), and the barrel patch (§4.2). The new `src/components/auth/` dir and `/signup` route do not exist yet (they are the deliverable, owned by doc 23); the §1 sub-dirs (`shell/`, `sections/`, etc.) are a proposed reorg the implementer executes. Not 100 because L-FUN-1/L-FUN-2 honestly block the `SignupForm` vs `ClosedBetaGate` choice and the `Start free` href, and the RSC-vs-client designation of `HeroSection` (client today) is a build-time call that depends on whether the in-hero interactivity survives the redesign. Per D-5 these open gates cap readiness below 100 rather than being silently closed. |
+| **Implementation-Readiness** | **92 / 100** | An implementer can start: real source bindings (§0), exact component paths, RSC/client designations, designation rationale, the concrete `FounderSection` fallback (§2.2.1), the A/B assignment pinned to the RSC page (§2.1), and the barrel patch (§4.2). The new `src/components/auth/` dir and `/signup` route do not exist yet (they are the deliverable, owned by doc 23); the §1 sub-dirs (`shell/`, `sections/`, etc.) are a proposed reorg the implementer executes. Not 100 because L-FUN-2 honestly blocks the `SignupForm` vs `ClosedBetaGate` choice and the final `Start free` launch behavior, and the RSC-vs-client designation of `HeroSection` (client today) is a build-time call that depends on whether the in-hero interactivity survives the redesign. Per D-5 these open gates cap readiness below 100 rather than being silently closed. |
 
-**Carried to LOOP_LEDGER (not silent):** L-REM-1…5 (removals), L-FUN-1 (signup route), L-FUN-2
+**Carried to LOOP_LEDGER (not silent):** L-REM-1…5 (removals), L-FUN-1 (superseded route record), L-FUN-2
 (beta onboarding/self-serve), L-FND-1 (founder bio), L-CRM-1 (waitlist destination for
 `ClosedBetaGate`). Plus the open implementation calls (O-items in §7) that are not owner-gated.
 

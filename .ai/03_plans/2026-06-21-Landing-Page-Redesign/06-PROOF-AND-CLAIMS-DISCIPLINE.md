@@ -215,6 +215,7 @@ site.** This is the canonical ledger; `05-COPY-SKELETON.md` consumes it row-for-
 |---|---|---|---|
 | Estimate workspace with a hierarchical tree (Group / Area / rows; drag-drop reorder) | Live | §7.2, §8.3 | The Estimate Tree node on the plate (`04-COMMERCIAL-GRAPH-ARCHITECTURE-PLATE.md`). |
 | Reusable component library: components, brands, suppliers, variants, pricing, images, attachments; `misc_cost` | Live | §7.2, §6.5 | The Component Library node. |
+| Drag reusable components and templates into the estimate sheet | Live | §7.2, §6.5 | Verified by estimate-sheet/component-library test coverage; market as workflow speed, not automation. |
 | Inline sheet editing (optimistic, UUID-safe rows) | Live | §7.2 | — |
 | Estimate templates | Live | §7.2 | — |
 | D3 comparison charts (donut + bubble) | Live | §7.2 | "Project charts," not "analytics." |
@@ -527,7 +528,7 @@ honest limitations.
 | **D. Maturity & limitations** | The §7.4 honest list: pre-launch MVP, not production-hardened; AI deferred; exports are working documents; no procurement/ERP/payment execution; no BIM/takeoff ingestion yet; English UI, no localization yet. | Live (honest limitations) | §7.4 |
 | **E. Data residency & cross-border** | Plain statement: workspace data sits on Supabase in `ap-southeast-2` (Australia); a cross-border transfer. **BUILD-TIME CONDITIONAL — ships only when the DPA safeguards are in place** (§6.5). | Live (fact) / GATED on DPA | §8.2, §18.2 |
 | **F. What's next (roadmap, honestly)** | The Planned rows from §3.3, restated as direction. Includes the deferred AI copilot with the privacy note. | Planned | §3.3 |
-| **G. Contact / CTA** | "Start free" (routes to `/signup` or `/login` per L-FUN-1/L-FUN-2) + "Book a walkthrough." | Live | `05` `/trust`; `23-AUTH-EXPERIENCE.md` |
+| **G. Contact / CTA** | "Start free" (`/signup` path settled; `/login` or `/contact` fallback only until self-serve is enabled) + "Book a walkthrough." | Live | `05` `/trust`; `23-AUTH-EXPERIENCE.md` |
 
 ### 6.3 The AI disclosure rule on `/trust`
 
@@ -722,7 +723,7 @@ its lines are in the §3.7 forbidden regex.
 - `21-BLAST-RADIUS-AND-MIGRATION-PLAN.md` — the file-level change inventory + migration order for
   the §4 REMOVALS; read before any deletion.
 - `23-AUTH-EXPERIENCE.md` — owns the `/login` + `/signup` routes the "Start free" CTA routes to
-  (L-FUN-1/L-FUN-2); the auth glass panel imports `StatusPill` if it ever carries a claim (D-4).
+  (L-FUN-1 superseded route record; L-FUN-2 self-serve gate); the auth glass panel imports `StatusPill` if it ever carries a claim (D-4).
 - `LOOP_LEDGER.md` — plan loop state; every Gated item below is a row there.
 
 ---
