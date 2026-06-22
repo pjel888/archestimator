@@ -72,15 +72,21 @@ function createUnparsedFormRequest() {
   } as unknown as Request & { formData: ReturnType<typeof vi.fn> };
 }
 
-function mockStorageClient() {
+function mockStorageClient(attachmentRows: Array<Record<string, unknown>> = []) {
   const remove = vi.fn(async () => ({ error: null }));
   const upload = vi.fn(async () => ({ error: null }));
   const download = vi.fn(async () => ({ data: new Blob(["image"], { type: "image/webp" }), error: null }));
   const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://cdn.example/file" } }));
-  const from = vi.fn(() => ({ remove, upload, download, getPublicUrl }));
-  const client = { storage: { from } };
+  const storageFrom = vi.fn(() => ({ remove, upload, download, getPublicUrl }));
+  const attachmentQuery = {
+    select: vi.fn(() => attachmentQuery),
+    eq: vi.fn(() => attachmentQuery),
+    in: vi.fn(async () => ({ data: attachmentRows, error: null })),
+  };
+  const dbFrom = vi.fn(() => attachmentQuery);
+  const client = { from: dbFrom, storage: { from: storageFrom } };
   supabaseJsMocks.createClient.mockReturnValue(client);
-  return { client, from, remove, upload, download, getPublicUrl };
+  return { client, from: storageFrom, dbFrom, remove, upload, download, getPublicUrl };
 }
 
 function mockProjectLookup(data: { id: string; workspace_id: string } | null = null) {
@@ -259,6 +265,26 @@ describe("sensitive API auth boundaries", () => {
       "workspace-1/user-1/spec.pdf",
       "workspace-1/user-1/schedule.xlsx",
     ]);
+  });
+
+  it("blocks draft cleanup from deleting reviewed Library attachments", async () => {
+    const storage = mockStorageClient([{
+      storage_path: "workspace-1/user-1/spec.pdf",
+      review_status: "accepted",
+      is_current_approved: true,
+    }]);
+    const { DELETE } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await DELETE(createJsonRequest({
+      paths: ["workspace-1/user-1/spec.pdf"],
+    }));
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "Reviewed Library attachments cannot be removed from draft cleanup.",
+    });
+    expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
+    expect(storage.remove).not.toHaveBeenCalled();
   });
 
   it("rejects component attachment delete requests with no owned paths before storage writes", async () => {

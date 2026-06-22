@@ -37,9 +37,19 @@ describe("share snapshot redaction", () => {
       pricingSource: "Private supplier quote label",
       confidence: "supplier quote under NDA",
       priceHistory: [{ summary: "Private historical cost" }],
+      sourceUrl: "https://supplier.example/private-quote?token=secret",
+      storage_bucket: "component-library-attachments",
+      storage_path: "workspace/project/private-quote.pdf",
+      fileName: "Client private quote.pdf",
+      signedUrl: "https://storage.example/private-quote.pdf?signature=secret",
+      reviewStatus: "accepted",
+      reviewNotes: "Internal reviewer note",
+      lockReason: "Private cost review",
       sourceSnapshot: {
         pricing_source: "Private source snapshot URL",
         confidence: "Internal confidence note",
+        storage_path: "workspace/project/private-snapshot.pdf",
+        signedUrl: "https://storage.example/private-snapshot.pdf?token=secret",
       },
     };
 
@@ -74,9 +84,19 @@ describe("share snapshot redaction", () => {
     expect(serialized).not.toContain("pricingSource");
     expect(serialized).not.toContain("confidence");
     expect(serialized).not.toContain("priceHistory");
+    expect(serialized).not.toContain("sourceUrl");
+    expect(serialized).not.toContain("storage_bucket");
+    expect(serialized).not.toContain("storage_path");
+    expect(serialized).not.toContain("fileName");
+    expect(serialized).not.toContain("signedUrl");
+    expect(serialized).not.toContain("reviewStatus");
+    expect(serialized).not.toContain("reviewNotes");
+    expect(serialized).not.toContain("lockReason");
     expect(serialized).not.toContain("sourceSnapshot");
     expect(serialized).not.toContain("Private supplier quote");
     expect(serialized).not.toContain("Internal confidence note");
+    expect(serialized).not.toContain("private-quote.pdf");
+    expect(serialized).not.toContain("signature=secret");
   });
 
   it("strips legacy trust fields before public snapshot reads", () => {
@@ -114,9 +134,19 @@ describe("share snapshot redaction", () => {
               pricingSource: "Legacy private quote label",
               confidence: "Legacy internal confidence",
               priceHistory: [{ summary: "Legacy private price" }],
+              sourceUrl: "https://supplier.example/legacy-private-quote?token=secret",
+              storage_bucket: "component-library-attachments",
+              storage_path: "workspace/project/legacy-private-quote.pdf",
+              fileName: "Legacy private quote.pdf",
+              signedUrl: "https://storage.example/legacy-private-quote.pdf?signature=secret",
+              reviewStatus: "accepted",
+              reviewNotes: "Legacy internal reviewer note",
+              lockReason: "Legacy private lock",
               sourceSnapshot: {
                 pricing_source: "Legacy source snapshot URL",
                 confidence: "Legacy source confidence",
+                storage_path: "workspace/project/legacy-private-snapshot.pdf",
+                signedUrl: "https://storage.example/legacy-private-snapshot.pdf?token=secret",
               },
             },
           ],
@@ -146,8 +176,18 @@ describe("share snapshot redaction", () => {
     expect(serialized).not.toContain("pricingSource");
     expect(serialized).not.toContain("confidence");
     expect(serialized).not.toContain("priceHistory");
+    expect(serialized).not.toContain("sourceUrl");
+    expect(serialized).not.toContain("storage_bucket");
+    expect(serialized).not.toContain("storage_path");
+    expect(serialized).not.toContain("fileName");
+    expect(serialized).not.toContain("signedUrl");
+    expect(serialized).not.toContain("reviewStatus");
+    expect(serialized).not.toContain("reviewNotes");
+    expect(serialized).not.toContain("lockReason");
     expect(serialized).not.toContain("sourceSnapshot");
     expect(serialized).not.toContain("Legacy private");
     expect(serialized).not.toContain("Legacy source");
+    expect(serialized).not.toContain("legacy-private-quote.pdf");
+    expect(serialized).not.toContain("signature=secret");
   });
 });

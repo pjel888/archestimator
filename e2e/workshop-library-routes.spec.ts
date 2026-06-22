@@ -14,15 +14,19 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const denseBrowserProofEnabled = process.env.ARCHESTIMATOR_E2E_LIBRARY_DENSE_PROOF === "1";
 const densePerfProofEnabled = process.env.ARCHESTIMATOR_E2E_LIBRARY_DENSE_PERF === "1";
+const releaseBrowserProofEnabled = process.env.ARCHESTIMATOR_E2E_LIBRARY_RELEASE_PROOF === "1";
 const denseFixtureRowCount = readPositiveInteger(process.env.ARCHESTIMATOR_E2E_LIBRARY_DENSE_ROWS, 500);
 const densePerfSampleCount = readPositiveInteger(process.env.ARCHESTIMATOR_E2E_LIBRARY_DENSE_PERF_SAMPLES, 3);
+const denseFiveThousandRowKeystrokeBudgetMs = 150;
 const densePerfBudgets = {
   denseToggleMedianMs: 500,
-  searchNarrowMedianMs: 100,
+  searchNarrowMedianMs: denseFixtureRowCount >= 5_000 ? denseFiveThousandRowKeystrokeBudgetMs : 100,
   searchRestoreMedianMs: 500,
 };
+const denseProofTimeoutMs = denseFixtureRowCount >= 5_000 ? 240_000 : 120_000;
 
 const devAuthReady = devAuthEnabled && Boolean(devAuthSecret);
+const releaseProofReady = releaseBrowserProofEnabled && devAuthReady && devAdminDbEnabled;
 const denseProofReady = Boolean(
   denseBrowserProofEnabled &&
     devAuthReady &&
@@ -33,7 +37,27 @@ const denseProofReady = Boolean(
 );
 const denseEvidenceRoot = ".ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-5/dense-mode";
 const glassEvidenceRoot = ".ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-1/glass-shell";
+const releaseEvidenceRoot = ".ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/browser-matrix";
 const denseFixtureMarker = "phase-5-dense-browser-proof";
+const mobileProjectNamePattern = /mobile|iphone|ipad|pixel|galaxy/i;
+
+const releaseRouteSpecs = [
+  {
+    name: "overview",
+    path: "/workshop/library",
+    readySelector: "[data-library-overview='true']",
+  },
+  {
+    name: "components",
+    path: "/workshop/library/components",
+    readySelector: "[data-component-library-workspace='true']",
+  },
+  {
+    name: "templates",
+    path: "/workshop/library/templates",
+    readySelector: "[data-template-gallery='true']",
+  },
+] as const;
 
 type FixtureWorkspace = {
   workspaceId: string;
@@ -385,6 +409,22 @@ async function waitForDenseRowDomCount(page: Page, count: number, timeoutMs = 15
   await waitForTwoAnimationFrames(page);
 }
 
+async function waitForLibraryRouteReady(page: Page, readySelector: string, timeoutMs = 20_000) {
+  await expect(page.locator(readySelector)).toBeVisible({ timeout: timeoutMs });
+  await waitForTwoAnimationFrames(page);
+}
+
+function getDenseDisplayModeButton(page: Page) {
+  return page.getByLabel("Component display mode").getByRole("button", { name: "Dense", exact: true });
+}
+
+async function waitForGlassReady(page: Page) {
+  await page.waitForFunction(() => document.documentElement.dataset.glass === "ready", null, {
+    timeout: 3_000,
+  });
+  await page.waitForTimeout(260);
+}
+
 async function readDenseTableState(page: Page) {
   return page.evaluate(() => {
     const table = document.querySelector<HTMLElement>("[data-component-dense-table='true']");
@@ -396,6 +436,133 @@ async function readDenseTableState(page: Page) {
       totalCount,
       mountedCount,
       domRowCount,
+    };
+  });
+}
+
+async function readReleaseGlassState(page: Page) {
+  return page.evaluate(() => {
+    const readFilter = (element: Element | null) => {
+      if (!element) return null;
+      const style = window.getComputedStyle(element);
+      return style.backdropFilter || style.webkitBackdropFilter || "none";
+    };
+    const readRect = (element: Element | null) => {
+      const rect = element?.getBoundingClientRect();
+      if (!rect) return null;
+      return {
+        x: Math.round(rect.x * 100) / 100,
+        y: Math.round(rect.y * 100) / 100,
+        width: Math.round(rect.width * 100) / 100,
+        height: Math.round(rect.height * 100) / 100,
+      };
+    };
+    const structuralSelectors = [
+      ".estimate-glass-well",
+      ".estimate-glass-rail",
+      ".estimate-glass-paper",
+      ".estimate-glass-chrome",
+      "[data-library-overview='true']",
+      "[data-template-gallery='true']",
+      "[data-component-library-workspace='true']",
+    ];
+    const chromeSelectors = [
+      ".workshop-liquid-button",
+      ".workshop-project-card-glass",
+    ];
+    const structuralSurfaces = structuralSelectors.flatMap((selector) =>
+      Array.from(document.querySelectorAll(selector)).map((element) => ({
+        selector,
+        filter: readFilter(element),
+        rect: readRect(element),
+      })),
+    );
+    const chromeSurfaces = chromeSelectors.flatMap((selector) =>
+      Array.from(document.querySelectorAll(selector)).map((element) => ({
+        selector,
+        filter: readFilter(element),
+        rect: readRect(element),
+      })),
+    );
+    const paintEntries = performance.getEntriesByType("paint").map((entry) => ({
+      name: entry.name,
+      startTime: Math.round(entry.startTime * 100) / 100,
+      duration: Math.round(entry.duration * 100) / 100,
+    }));
+    const navigationEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+
+    return {
+      dataGlass: document.documentElement.dataset.glass ?? null,
+      outerFilter: readFilter(document.querySelector("[data-workshop-workspace-surface]")),
+      surfaceVariant: document.querySelector("[data-library-surface='glass']")?.getAttribute("data-library-surface") ?? null,
+      structuralSurfaces,
+      blurredStructuralSurfaces: structuralSurfaces.filter((surface) => surface.filter && surface.filter !== "none"),
+      chromeSurfaces,
+      paintEntries,
+      navigation: navigationEntry
+        ? {
+            domContentLoadedMs: Math.round(navigationEntry.domContentLoadedEventEnd * 100) / 100,
+            loadEventEndMs: Math.round(navigationEntry.loadEventEnd * 100) / 100,
+            transferSize: navigationEntry.transferSize,
+            decodedBodySize: navigationEntry.decodedBodySize,
+          }
+        : null,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+      },
+    };
+  });
+}
+
+async function readPortalFocusState(page: Page) {
+  return page.evaluate(() => {
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    const workspaceShell = document.querySelector<HTMLElement>("[data-workshop-page-shell-root]");
+    const dialogRect = dialog?.getBoundingClientRect();
+    return {
+      activeRole: active?.getAttribute("role") ?? active?.tagName.toLowerCase() ?? null,
+      activeAriaLabel: active?.getAttribute("aria-label") ?? null,
+      activeName: active instanceof HTMLInputElement ? active.value : active?.textContent?.trim().slice(0, 80) ?? null,
+      bodyOverflow: document.body.style.overflow || window.getComputedStyle(document.body).overflow,
+      workspaceShellInert: workspaceShell?.hasAttribute("inert") ?? null,
+      dialogZIndex: dialog ? window.getComputedStyle(dialog).zIndex : null,
+      dialogRect: dialogRect
+        ? {
+            x: Math.round(dialogRect.x * 100) / 100,
+            y: Math.round(dialogRect.y * 100) / 100,
+            width: Math.round(dialogRect.width * 100) / 100,
+            height: Math.round(dialogRect.height * 100) / 100,
+          }
+        : null,
+    };
+  });
+}
+
+async function readRtlMobileState(page: Page) {
+  return page.evaluate(() => {
+    const readRect = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        ariaLabel: element.getAttribute("aria-label") ?? element.textContent?.trim().slice(0, 80) ?? null,
+        width: Math.round(rect.width * 100) / 100,
+        height: Math.round(rect.height * 100) / 100,
+        left: Math.round(rect.left * 100) / 100,
+        right: Math.round(rect.right * 100) / 100,
+      };
+    };
+    const touchTargets = Array.from(document.querySelectorAll<HTMLElement>(".workshop-liquid-button")).map(readRect);
+    return {
+      documentDir: document.documentElement.dir || document.body.dir || "ltr",
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      documentClientWidth: document.documentElement.clientWidth,
+      touchTargets,
+      undersizedTouchTargets: touchTargets.filter((target) => target.width < 44 || target.height < 44),
     };
   });
 }
@@ -561,8 +728,169 @@ test.describe("unified library routes", () => {
     console.log(JSON.stringify({ glassBrowserProof: evidence }, null, 2));
   });
 
+  test("release matrix proves library route glass arming and paint evidence", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    test.skip(
+      !releaseProofReady,
+      "Requires ARCHESTIMATOR_E2E_LIBRARY_RELEASE_PROOF=1 plus dev auth admin DB bypass env.",
+    );
+
+    const routeEvidence = [];
+
+    for (const route of releaseRouteSpecs) {
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+      await waitForLibraryRouteReady(page, route.readySelector);
+      await waitForGlassReady(page);
+
+      const glassState = await readReleaseGlassState(page);
+      expect(glassState.dataGlass).toBe("ready");
+      expect(glassState.outerFilter).toMatch(/blur\(/);
+      expect(glassState.blurredStructuralSurfaces).toEqual([]);
+
+      routeEvidence.push(
+        await captureEvidence(
+          page,
+          testInfo,
+          `library-release-glass-${route.name}`,
+          {
+            scenario: "ADV-VISUAL-GLASS release route matrix with paint/navigation evidence",
+            route: route.name,
+            path: route.path,
+            glassState,
+            verdict: "pass",
+          },
+          releaseEvidenceRoot,
+        ),
+      );
+    }
+
+    console.log(JSON.stringify({ releaseGlassMatrixProof: { routeEvidence } }, null, 2));
+  });
+
+  test("release matrix proves Add Component portal focus and Escape layering", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    test.skip(
+      !releaseProofReady,
+      "Requires ARCHESTIMATOR_E2E_LIBRARY_RELEASE_PROOF=1 plus dev auth admin DB bypass env.",
+    );
+
+    await page.goto("/workshop/library/components", { waitUntil: "domcontentloaded" });
+    await waitForLibraryRouteReady(page, "[data-component-library-workspace='true']");
+
+    const addButton = page.getByRole("button", { name: /^add component$/i }).first();
+    await expect(addButton).toBeVisible({ timeout: 10_000 });
+    await addButton.scrollIntoViewIfNeeded();
+    await addButton.focus();
+    await expect(addButton).toBeFocused({ timeout: 5_000 });
+    const activationMode = mobileProjectNamePattern.test(testInfo.project.name) ? "touch" : "keyboard";
+    const dialog = page.getByRole("dialog", { name: "Add Component" });
+    let activationPath = activationMode;
+    if (activationMode === "touch") {
+      await addButton.tap();
+      try {
+        await expect(dialog).toBeVisible({ timeout: 2_000 });
+        activationPath = "touch-tap";
+      } catch {
+        await addButton.click();
+        activationPath = "touch-click";
+      }
+    } else {
+      await addButton.press("Enter");
+    }
+
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const nameInput = dialog.getByRole("textbox", { name: "Name", exact: true });
+    await expect(nameInput).toBeFocused({ timeout: 5_000 });
+
+    const openedState = await readPortalFocusState(page);
+    expect(openedState.bodyOverflow).toBe("hidden");
+    expect(openedState.workspaceShellInert).toBe(true);
+
+    const unitCombobox = dialog.getByRole("combobox", { name: "Unit", exact: true });
+    await unitCombobox.scrollIntoViewIfNeeded();
+    await unitCombobox.click();
+    const unitOptions = dialog.getByRole("listbox", { name: "Unit options" });
+    await expect(unitOptions).toBeVisible({ timeout: 5_000 });
+
+    await page.keyboard.press("Escape");
+    await expect(unitOptions).toBeHidden();
+    await expect(dialog).toBeVisible();
+
+    const popupClosedState = await readPortalFocusState(page);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(addButton).toBeFocused({ timeout: 5_000 });
+
+    const closedState = await readPortalFocusState(page);
+    const evidence = await writeJsonEvidence(
+      page,
+      testInfo,
+      "library-release-add-component-portal-focus",
+      {
+        scenario: `ADV-KEYBOARD-MGMT Add Component ${activationMode} activation, portal focus, scroll lock, inert shell, and nested Escape layering`,
+        activationMode,
+        activationPath,
+        openedState,
+        popupClosedState,
+        closedState,
+        verdict: "pass",
+      },
+      releaseEvidenceRoot,
+    );
+
+    console.log(JSON.stringify({ releasePortalFocusProof: evidence }, null, 2));
+  });
+
+  test("release matrix proves RTL containment and coarse-pointer touch targets", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    test.skip(
+      !releaseProofReady,
+      "Requires ARCHESTIMATOR_E2E_LIBRARY_RELEASE_PROOF=1 plus dev auth admin DB bypass env.",
+    );
+
+    await page.addInitScript(() => {
+      document.documentElement.dir = "rtl";
+      window.addEventListener("DOMContentLoaded", () => {
+        document.documentElement.dir = "rtl";
+        document.body.dir = "rtl";
+      });
+    });
+    await page.goto("/workshop/library/components", { waitUntil: "domcontentloaded" });
+    await waitForLibraryRouteReady(page, "[data-component-library-workspace='true']");
+    await page.evaluate(() => {
+      document.documentElement.dir = "rtl";
+      document.body.dir = "rtl";
+    });
+    await waitForTwoAnimationFrames(page);
+
+    const rtlState = await readRtlMobileState(page);
+    expect(rtlState.documentDir).toBe("rtl");
+    expect(rtlState.documentScrollWidth).toBeLessThanOrEqual(rtlState.viewportWidth + 2);
+
+    const isMobileMatrixProject = mobileProjectNamePattern.test(testInfo.project.name);
+    if (isMobileMatrixProject) {
+      expect(rtlState.touchTargets.length).toBeGreaterThan(0);
+      expect(rtlState.undersizedTouchTargets).toEqual([]);
+    }
+
+    const evidence = await captureEvidence(
+      page,
+      testInfo,
+      "library-release-rtl-touch-targets",
+      {
+        scenario: "ADV-VISUAL-DENSE-MOBILE RTL containment and coarse-pointer touch-target proof",
+        rtlState,
+        assertedTouchTargets: isMobileMatrixProject,
+        verdict: "pass",
+      },
+      releaseEvidenceRoot,
+    );
+
+    console.log(JSON.stringify({ releaseRtlTouchProof: evidence }, null, 2));
+  });
+
   test("proves dense component table browser geometry and keyboard paths", async ({ page }, testInfo) => {
-    test.setTimeout(120_000);
+    test.setTimeout(denseProofTimeoutMs);
     test.skip(
       !denseProofReady,
       "Requires ARCHESTIMATOR_E2E_LIBRARY_DENSE_PROOF=1, dev auth admin DB bypass, service-role Supabase env, and dev auth email.",
@@ -593,7 +921,7 @@ test.describe("unified library routes", () => {
       await page.keyboard.press("Escape");
 
       const table = page.getByRole("table", { name: "All Components dense component table" });
-      const denseButton = page.getByRole("button", { name: "Dense", exact: true });
+      const denseButton = getDenseDisplayModeButton(page);
       await expect(denseButton).toBeVisible({ timeout: 5_000 });
       await denseButton.evaluate((button) => {
         (button as HTMLButtonElement).click();
@@ -702,7 +1030,7 @@ test.describe("unified library routes", () => {
   });
 
   test("measures dense component table provider timing budgets", async ({ page }, testInfo) => {
-    test.setTimeout(120_000);
+    test.setTimeout(denseProofTimeoutMs);
     test.skip(
       !denseProofReady || !densePerfProofEnabled,
       "Requires dense browser proof env plus ARCHESTIMATOR_E2E_LIBRARY_DENSE_PERF=1.",
@@ -731,7 +1059,7 @@ test.describe("unified library routes", () => {
       await searchbox.fill(`Dense Proof ${runId}`);
 
       const table = page.getByRole("table", { name: "All Components dense component table" });
-      const denseButton = page.getByRole("button", { name: "Dense", exact: true });
+      const denseButton = getDenseDisplayModeButton(page);
       await expect(denseButton).toBeVisible({ timeout: 5_000 });
       const initialDenseToggleMs = await measurePageDuration(
         page,
@@ -765,10 +1093,14 @@ test.describe("unified library routes", () => {
         denseToggleMedian: (perfProof.denseToggleMs?.median ?? Number.POSITIVE_INFINITY) <= densePerfBudgets.denseToggleMedianMs,
         searchNarrowMedian: perfProof.searchNarrowMs.median <= densePerfBudgets.searchNarrowMedianMs,
         searchRestoreMedian: perfProof.searchRestoreMs.median <= densePerfBudgets.searchRestoreMedianMs,
+        fiveThousandRowKeystrokeTier: denseFixtureRowCount < 5_000 || perfProof.searchNarrowMs.median <= denseFiveThousandRowKeystrokeBudgetMs,
       };
       const perfEvidence = await writeJsonEvidence(page, testInfo, "library-phase5-dense-perf", {
         scenario: "ADV-DENSE-500 provider-backed Chromium dense timing proof",
         rowCount: denseFixtureRowCount,
+        fiveThousandRowKeystrokeTier: denseFixtureRowCount >= 5_000
+          ? { budgetMs: denseFiveThousandRowKeystrokeBudgetMs, measuredMedianMs: perfProof.searchNarrowMs.median }
+          : null,
         perfProof,
         resourceSummary,
         capturedResponses,

@@ -1,100 +1,70 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { HeroSection, heroCopyVariants } from "@/components/landing/HeroSection";
-import { LandingFooter } from "@/components/landing/LandingFooter";
-import { ProductShowcaseSection } from "@/components/landing/ProductShowcaseSection";
-import { SolutionSection } from "@/components/landing/SolutionSection";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-vi.mock("@/components/landing/NeatWireframeBackground", () => ({
-  NeatWireframeBackground: () => <div data-testid="neat-wireframe-background" />,
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import { RedesignedLandingPage } from "@/components/landing/gpt-taste/RedesignedLandingPage";
+
+vi.mock("@/components/landing/gpt-taste/LandingGsapMotion", () => ({
+  LandingGsapMotion: () => <div data-testid="landing-gsap-motion" />,
 }));
 
-describe("landing page below-hero interactivity", () => {
-  it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
-    render(<HeroSection />);
+vi.mock("@/components/landing/gpt-taste/HeroSignalField", () => ({
+  HeroSignalField: () => <div data-testid="hero-signal-field" />,
+}));
 
-    expect(screen.getByRole("heading", { name: /fastest path from proposal to approval/i })).toBeInTheDocument();
-    expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
-      expect.arrayContaining([
-        "The fastest path from proposal to approval.",
-        "Estimate with Precision. Win with Clarity.",
-      ]),
-    );
-    expect(heroCopyVariants.map((variant) => variant.evidenceGate).join(" ")).toMatch(
-      /closed beta/i,
-    );
-    expect(heroCopyVariants.map((variant) => variant.headline).join(" ")).not.toMatch(
-      /smart ones|competitors are already/i,
-    );
-    expect(screen.queryByRole("heading", { name: /competitors are already/i })).not.toBeInTheDocument();
+const readProjectFile = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+
+describe("landing page motion and interaction contract", () => {
+  it("renders launched-feeling navigation, action links, and footer links", () => {
+    render(<RedesignedLandingPage isLoggedIn={false} />);
+
+    expect(screen.getByRole("link", { name: "Archestimator home" })).toHaveAttribute("href", "/");
+    expect(screen.getAllByRole("link", { name: "Start free" })[0]).toHaveAttribute("href", "/signup");
+    expect(screen.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    for (const label of ["Features", "Pricing", "Trust", "Contact"]) {
+      expect(screen.getAllByRole("link", { name: label }).length).toBeGreaterThan(0);
+    }
   });
 
-  it("switches product preview content through accessible product tabs", async () => {
-    const user = userEvent.setup();
+  it("uses a horizontal accordion and hover physics for audience slices", () => {
+    const source = readProjectFile("src/components/landing/gpt-taste/RedesignedLandingPage.tsx");
 
-    render(<ProductShowcaseSection />);
-
-    const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate Workspace" });
-    const componentLibraryTab = screen.getByRole("tab", { name: "Component Library" });
-    const revisionIntelligenceTab = screen.getByRole("tab", { name: "Revision Intelligence" });
-
-    expect(estimateWorkspaceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Estimate Workspace" })).toBeInTheDocument();
-
-    await user.click(componentLibraryTab);
-
-    expect(componentLibraryTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Component Library" })).toBeInTheDocument();
-    expect(screen.getByText(/reuse repeated assemblies/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /insert/i })).not.toBeInTheDocument();
-
-    await user.click(revisionIntelligenceTab);
-
-    expect(revisionIntelligenceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Revision Intelligence" })).toHaveTextContent(/planned preview/i);
-    expect(screen.getByText(/in the planned workflow/i)).toBeInTheDocument();
+    expect(source).toContain("hover:flex-[1.55]");
+    expect(source).toContain("transition-[flex]");
+    expect(source).toContain("group-hover:scale-105");
+    expect(source).toContain("gsap-role-card");
+    expect(source).not.toContain("picsum.photos");
   });
 
-  it("supports arrow-key movement across the product tabs", async () => {
-    const user = userEvent.setup();
+  it("registers real GSAP ScrollTrigger behavior with reduced-motion fallback", () => {
+    const motion = readProjectFile("src/components/landing/gpt-taste/LandingGsapMotion.tsx");
 
-    render(<ProductShowcaseSection />);
-
-    const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate Workspace" });
-    estimateWorkspaceTab.focus();
-
-    await user.keyboard("{ArrowRight}");
-
-    const componentLibraryTab = screen.getByRole("tab", { name: "Component Library" });
-    expect(componentLibraryTab).toHaveFocus();
-    expect(componentLibraryTab).toHaveAttribute("aria-selected", "true");
+    expect(motion).toContain('import gsap from "gsap"');
+    expect(motion).toContain('from "@gsap/react"');
+    expect(motion).toContain('from "gsap/ScrollTrigger"');
+    expect(motion).toContain("gsap.registerPlugin(useGSAP, ScrollTrigger)");
+    expect(motion).toContain("(prefers-reduced-motion: reduce)");
+    expect(motion).toContain("pin: pinTitle");
+    expect(motion).toContain("scrub: true");
+    expect(motion).toContain("gsap-stack-card");
+    expect(motion).toContain("gsap-image-scale");
+    expect(motion).toContain("gsap-hero-visual");
   });
 
-  it("replaces the public solution placeholder with a credible quote workflow visual", () => {
-    render(<SolutionSection />);
+  it("keeps the Three.js hero field client-only and low-risk for unsupported devices", () => {
+    const field = readProjectFile("src/components/landing/gpt-taste/HeroSignalField.tsx");
 
-    expect(screen.queryByText(/placeholder/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/connected quote workflow/i)).toBeInTheDocument();
-    expect(screen.getByText(/line-item structure drives connected quote logic/i)).toBeInTheDocument();
-  });
-
-  it("renders a professional footer with grounded quote-and-proposal navigation", () => {
-    render(<LandingFooter />);
-
-    const footer = screen.getByRole("contentinfo");
-    expect(footer).toBeInTheDocument();
-    expect(footer).toHaveAttribute("data-visual-reference", "amigo-footer");
-    expect(footer).toHaveStyle({ backgroundColor: "rgb(8, 50, 65)" });
-    expect(screen.getByRole("link", { name: "Archestimator home" })).toHaveAttribute(
-      "href",
-      "/",
-    );
-    expect(screen.queryByRole("link", { name: "Workspace" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Platform" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Contact us" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Privacy policy" })).not.toBeInTheDocument();
-    expect(footer).not.toHaveTextContent(new RegExp(`© ${new Date().getFullYear()} Archestimator`));
-    expect(footer).not.toHaveTextContent(/Trusted by|Used by|Customers include|testimonial|MVP preview|Less file hunting/i);
+    expect(field).toContain('"use client"');
+    expect(field).toContain('from "three"');
+    expect(field).toContain("(max-width: 1023px)");
+    expect(field).toContain("(prefers-reduced-motion: reduce)");
+    expect(field).toContain("requestAnimationFrame");
+    expect(field).toContain("0xf24405");
+    expect(field).toContain("0xffb27c");
+    expect(field).toContain("pointermove");
+    expect(field).toContain("renderer.dispose()");
   });
 });

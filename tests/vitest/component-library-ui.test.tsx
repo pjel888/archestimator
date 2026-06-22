@@ -725,7 +725,7 @@ describe("component library UI", () => {
   it("uses the shared ui Tree rows for folders and component rows", () => {
     renderSidebar();
 
-    expect(screen.getByRole("tree", { name: "Library components" })).toBeInTheDocument();
+    expect(screen.getByRole("tree", { name: "Library sources" })).toBeInTheDocument();
 
     const folder = screen.getByRole("treeitem", { name: "Administration" });
     expect(folder).toHaveClass("min-h-7", "text-[10px]");

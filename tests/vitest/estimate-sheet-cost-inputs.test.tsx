@@ -746,6 +746,8 @@ describe("estimate sheet cost inputs", () => {
     libraryDrop.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(estimateLibraryItems[2]));
     fireEvent.dragOver(expressCell, { dataTransfer: libraryDrop });
     fireEvent.drop(expressCell, { dataTransfer: libraryDrop });
+    const reviewDialog = await screen.findByRole("dialog", { name: "Review source before replacing row" });
+    fireEvent.click(within(reviewDialog).getByRole("button", { name: "Continue with replace" }));
 
     await waitFor(() => {
       expect(screen.queryByLabelText("Express Sink replaceable estimate component")).not.toBeInTheDocument();
@@ -880,6 +882,8 @@ describe("estimate sheet cost inputs", () => {
     fireEvent.dragOver(targetComponent, { dataTransfer });
     expect(targetComponent).toHaveAttribute("data-replace-target-active", "true");
     fireEvent.drop(targetComponent, { dataTransfer });
+    const reviewDialog = await screen.findByRole("dialog", { name: "Review source before replacing row" });
+    await user.click(within(reviewDialog).getByRole("button", { name: "Continue with replace" }));
 
     await waitFor(() => {
       expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();

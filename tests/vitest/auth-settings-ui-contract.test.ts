@@ -79,9 +79,9 @@ describe("auth onboarding and settings route contracts", () => {
 });
 
 describe("canonical auth routes", () => {
-  it("keeps /login canonical and does not add /signup", () => {
+  it("keeps /login canonical and exposes the closed-beta /signup request gate", () => {
     expect(existsSync(join(process.cwd(), "src/app/login/page.tsx"))).toBe(true);
-    expect(existsSync(join(process.cwd(), "src/app/signup"))).toBe(false);
+    expect(existsSync(join(process.cwd(), "src/app/signup/page.tsx"))).toBe(true);
     expect(existsSync(join(process.cwd(), "src/app/sign-up"))).toBe(false);
     expect(existsSync(join(process.cwd(), "src/app/sign-in"))).toBe(false);
   });

@@ -5,6 +5,44 @@ loadEnvConfig(process.cwd(), true);
 
 const port = process.env.PLAYWRIGHT_PORT ?? "3020";
 const baseURL = `http://127.0.0.1:${port}`;
+const libraryBrowserMatrixEnabled = process.env.ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX === "1";
+
+const defaultProjects = [
+  {
+    name: "chromium",
+    use: { ...devices["Desktop Chrome"] },
+  },
+];
+
+const libraryBrowserMatrixProjects = [
+  {
+    name: "firefox",
+    use: { ...devices["Desktop Firefox"] },
+  },
+  {
+    name: "webkit",
+    use: { ...devices["Desktop Safari"] },
+  },
+  {
+    name: "mobile-safari",
+    use: { ...devices["iPhone 15"] },
+  },
+  {
+    name: "iphone-se",
+    use: { ...devices["iPhone SE"] },
+  },
+  {
+    name: "ipad",
+    use: { ...devices["iPad Pro 11"] },
+  },
+  {
+    name: "pixel-8-chrome",
+    use: {
+      ...devices["Pixel 7"],
+      viewport: { width: 412, height: 915 },
+    },
+  },
+];
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,10 +60,7 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000,
   },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
+  projects: libraryBrowserMatrixEnabled
+    ? [...defaultProjects, ...libraryBrowserMatrixProjects]
+    : defaultProjects,
 });

@@ -79,6 +79,47 @@ describe("library telemetry", () => {
     );
   });
 
+  it("redacts unsafe values even when they are sent through allowed keys", () => {
+    const records: LibraryTelemetryRecord[] = [];
+    setLibraryTelemetrySink((record) => {
+      records.push(record);
+    });
+
+    recordLibraryEvent("telemetry_pii_leak", {
+      workspaceId: "workspace-1",
+      projectId: "https://example.com/private-source",
+      cacheKey: "component-library/storage_path/workspace/file.pdf",
+      origin: "https://supplier.example/quote.pdf?token=secret",
+      endpoint: "/api/private/download?signature=abc",
+      attemptedValue: "private note: supplier quoted client-only terms",
+      pattern: "supplier quoted client only terms",
+      field: "source review note",
+      componentId: "component-1",
+      reason: "redaction_regression",
+      nested: { sourceUrl: "https://example.com" },
+      list: ["invoice.pdf"],
+    } as LibraryTelemetryPayload & Record<string, unknown>);
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      schemaVersion: "v1",
+      event: "telemetry_pii_leak",
+      workspaceId: "workspace-1",
+      componentId: "component-1",
+      reason: "redaction_regression",
+    });
+    const serialized = JSON.stringify(records[0]);
+    expect(serialized).not.toContain("https://");
+    expect(serialized).not.toContain("storage_path");
+    expect(serialized).not.toContain("quote.pdf");
+    expect(serialized).not.toContain("signature=");
+    expect(serialized).not.toContain("private note");
+    expect(serialized).not.toContain("supplier quoted client");
+    expect(serialized).not.toContain("source review note");
+    expect(serialized).not.toContain("invoice.pdf");
+    expect(Object.keys(records[0] ?? {})).not.toEqual(expect.arrayContaining(["nested", "list"]));
+  });
+
   it("keeps Library telemetry out of public share routes", () => {
     expect(source("src/app/share/[token]/page.tsx")).not.toContain("recordLibraryEvent");
     expect(source("src/app/api/share/[token]/route.ts")).not.toContain("recordLibraryEvent");

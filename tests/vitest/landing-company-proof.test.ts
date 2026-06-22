@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 import {
   getRenderableCompanyProofItems,
@@ -7,8 +8,7 @@ import {
 } from "../../src/components/landing/company-proof-data";
 
 const root = process.cwd();
-const readProjectFile = (path: string) =>
-  readFileSync(join(root, path), "utf8");
+const readProjectFile = (path: string) => readFileSync(join(root, path), "utf8");
 
 function readTextFilesRecursively(directory: string): string[] {
   if (!existsSync(directory)) return [];
@@ -17,63 +17,23 @@ function readTextFilesRecursively(directory: string): string[] {
     const entryPath = join(directory, entry);
     const stats = statSync(entryPath);
 
-    if (stats.isDirectory()) {
-      return readTextFilesRecursively(entryPath);
-    }
-
-    if (!/\.(ts|tsx)$/.test(entryPath)) {
-      return [];
-    }
-
+    if (stats.isDirectory()) return readTextFilesRecursively(entryPath);
+    if (!/\.(ts|tsx)$/.test(entryPath)) return [];
     return readFileSync(entryPath, "utf8");
   });
 }
 
-describe("landing page company proof and Lenis integration", () => {
-  it("keeps the locked hero first and preserves the simplified launch sequence", () => {
-    const page = readProjectFile("src/app/page.tsx");
-
-    expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
-    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
-      page.indexOf("<HeroSection"),
-    );
-    expect(page.indexOf("<SecondaryClaimSection />")).toBeGreaterThan(
-      page.indexOf("<CompanyProofCarouselSection />"),
-    );
-    expect(page.indexOf("<FinalCTASection />")).toBeGreaterThan(
-      page.indexOf("<SecondaryClaimSection />"),
-    );
-    expect(page.indexOf("<LandingFooter />")).toBeGreaterThan(
-      page.indexOf("<FinalCTASection />"),
-    );
-    expect(page).toContain("LandingSmoothScrollProvider");
-    expect(page).not.toContain("<ProductShowcaseSection />");
-    expect(page).not.toContain("<PricingSection />");
-    expect(page).not.toContain("<FAQSection />");
-  });
-
-  it("keeps company proof data fail-closed while the public section remains empty", () => {
-    const data = readProjectFile(
-      "src/components/landing/company-proof-data.ts",
-    );
-    const section = readProjectFile(
-      "src/components/landing/CompanyProofCarouselSection.tsx",
-    );
+describe("landing page proof boundaries", () => {
+  it("keeps company proof data fail-closed and unused by the active homepage", () => {
+    const data = readProjectFile("src/components/landing/company-proof-data.ts");
+    const activePage = readProjectFile("src/components/landing/gpt-taste/RedesignedLandingPage.tsx");
 
     expect(data).toContain('relationship: "placeholder"');
     expect(data).toContain("permissionConfirmed: false");
     expect(data).toContain("isPlaceholder: true");
-    expect(data).toContain(
-      "Real customer proof will replace this rail before any public trust claim",
-    );
-    expect(section).toContain('data-company-proof-state="empty"');
-    expect(section).not.toContain("getRenderableCompanyProofItems");
-    expect(section).not.toContain("placeholderCompanyProof");
-    expect(section).not.toContain("permissionConfirmed");
-    expect(section).not.toContain("data-placeholder=");
-    expect(section).not.toContain("Pause rail");
-    expect(section).not.toContain("Resume rail");
-    expect(section).not.toMatch(/Trusted by|Used by|Customers include/);
+    expect(activePage).not.toContain("getRenderableCompanyProofItems");
+    expect(activePage).not.toContain("placeholderCompanyProof");
+    expect(activePage).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
   });
 
   it("fails closed to placeholder-only data when candidate proof is unconfirmed", () => {
@@ -103,9 +63,7 @@ describe("landing page company proof and Lenis integration", () => {
       workflowFit: "Confirmed proof",
     };
 
-    expect(
-      getRenderableCompanyProofItems([unconfirmedCustomer, placeholder]),
-    ).toEqual({
+    expect(getRenderableCompanyProofItems([unconfirmedCustomer, placeholder])).toEqual({
       items: [placeholder],
       state: "placeholder",
     });
@@ -113,121 +71,30 @@ describe("landing page company proof and Lenis integration", () => {
       items: [],
       state: "placeholder",
     });
-    expect(
-      getRenderableCompanyProofItems([
-        placeholder,
-        verifiedCustomer,
-        unconfirmedCustomer,
-      ]),
-    ).toEqual({
+    expect(getRenderableCompanyProofItems([placeholder, verifiedCustomer, unconfirmedCustomer])).toEqual({
       items: [verifiedCustomer],
       state: "verified",
     });
   });
 
-  it("keeps landing header hash links pointed at rendered below-hero sections", () => {
-    const header = readProjectFile("src/components/landing/LandingHeader.tsx");
-    const landingSources = [
-      readProjectFile("src/components/landing/SecondaryClaimSection.tsx"),
-      readProjectFile("src/components/landing/FinalCTASection.tsx"),
-    ].join("\n");
-    const hashHrefs = Array.from(
-      header.matchAll(/href: "#([^"]+)"/g),
-      (match) => match[1],
-    ).filter(
-      (hash): hash is string => typeof hash === "string",
-    );
-
-    expect(hashHrefs).toEqual(["method", "contact"]);
-    for (const hash of hashHrefs) {
-      expect(landingSources).toMatch(new RegExp(`id=['\"]${hash}['\"]`));
-    }
-  });
-
-  it("uses CSS testimonial motion with reduced-motion fallback after removing the empty logo rail", () => {
-    const section = readProjectFile(
-      "src/components/landing/CompanyProofCarouselSection.tsx",
-    );
-    const globals = readProjectFile("src/app/globals.css");
-
-    expect(section).not.toContain("landing-company-carousel-viewport");
-    expect(section).toContain("landing-testimonial-rotator");
-    expect(section).toContain('aria-label="Closed beta testimonial carousel"');
-    expect(section).not.toContain("landing-company-marquee");
-    expect(section).not.toContain("useState");
-    expect(globals).not.toContain("@keyframes landing-company-marquee");
-    expect(globals).not.toContain("landing-company-marquee");
-    expect(globals).toContain("@keyframes landing-testimonial-crossfade");
-    expect(globals).toContain(".landing-testimonial-slide:first-child");
-    expect(globals).toContain("prefers-reduced-motion: reduce");
-    expect(globals).toContain("animation: none");
-  });
-
-  it("scopes Lenis to the home landing wrapper and preserves native non-home scrolling", () => {
-    const provider = readProjectFile(
-      "src/components/landing/LandingSmoothScrollProvider.tsx",
-    );
-    const homePage = readProjectFile("src/app/page.tsx");
-    const publicShell = readProjectFile("src/components/landing/PublicPageShell.tsx");
-    const layout = readProjectFile("src/app/layout.tsx");
-    const globals = readProjectFile("src/app/globals.css");
-    const packageJson = readProjectFile("package.json");
-
-    expect(packageJson).toContain('"lenis"');
-    expect(layout).not.toContain('import "lenis/dist/lenis.css";');
-    expect(homePage).toContain("<LandingSmoothScrollProvider>");
-    expect(publicShell).not.toContain("LandingSmoothScrollProvider");
-    expect(publicShell).toContain('<main data-landing-page-root="true">');
-    expect(provider).toMatch(
-      /import \{[^}]*ReactLenis[^}]*\} from "lenis\/react"/,
-    );
-    expect(provider).toContain("(prefers-reduced-motion: reduce)");
-    expect(provider).toContain("if (prefersReducedMotion)");
-    expect(provider).toContain("lerp: 0.105");
-    expect(provider).toContain("wheelMultiplier: 0.86");
-    expect(provider).toContain("<ReactLenis");
-    expect(provider).toContain("root");
-    expect(provider).toContain("options={landingLenisOptions}");
-    expect(provider).toContain("data-lenis-prevent");
-
-    // Settle/snap controller should be removed for smooth free scrolling
-    expect(
-      existsSync(
-        join(root, "src/components/landing/LandingSnapController.tsx"),
-      ),
-    ).toBe(false);
-    expect(provider).not.toContain("LandingSnapController");
-
-    expect(globals).not.toContain("scroll-snap-type: y mandatory");
-    expect(globals).not.toContain("scroll-snap-stop: always");
-    expect(globals).toContain("scroll-snap-type: none");
-    expect(globals).toContain("scroll-margin-top: 68px");
-  });
-
-  it("keeps the Neat hero canvas off the mobile/reduced-motion critical path", () => {
-    const neat = readProjectFile(
-      "src/components/landing/NeatWireframeBackground.tsx",
-    );
-
-    expect(neat).toContain("shouldUseStaticNeatFallback");
-    expect(neat).toContain("(prefers-reduced-motion: reduce)");
-    expect(neat).toContain("(pointer: coarse)");
-    expect(neat).toContain("(max-width: 767px)");
-    expect(neat).toContain("requestIdleCallback");
-    expect(neat).toContain("cancelIdleCallback");
-    expect(neat).toContain("setTimeout");
-    expect(neat).toContain("await import('@firecms/neat')");
-    expect(neat).toContain("data-neat-static-fallback");
-    expect(neat).toContain("gradient?.destroy()");
-  });
-
-  it("does not import the landing Lenis provider from workshop surfaces", () => {
+  it("keeps landing-specific GSAP off workshop surfaces", () => {
     const workshopSource = [
       ...readTextFilesRecursively(join(root, "src/app/workshop")),
       ...readTextFilesRecursively(join(root, "src/components/workshop")),
     ].join("\n");
 
-    expect(workshopSource).not.toContain("LandingSmoothScrollProvider");
-    expect(workshopSource).not.toContain("lenis/react");
+    expect(workshopSource).not.toContain("LandingGsapMotion");
+    expect(workshopSource).not.toContain("HeroSignalField");
+    expect(workshopSource).not.toContain("gsap/ScrollTrigger");
+  });
+
+  it("does not use the rejected home Lenis wrapper in the active page", () => {
+    const page = readProjectFile("src/app/page.tsx");
+    const packageJson = readProjectFile("package.json");
+
+    expect(packageJson).toContain('"gsap"');
+    expect(packageJson).toContain('"@gsap/react"');
+    expect(page).not.toContain("LandingSmoothScrollProvider");
+    expect(page).toContain("RedesignedLandingPage");
   });
 });

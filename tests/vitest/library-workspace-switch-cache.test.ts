@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   workspaceComponentLibraryLiteQueryKey,
   workspaceComponentLibraryQueryKey,
+  workspaceComponentRowsLibraryQueryKey,
 } from "@/lib/component-library/query-keys";
 
 const CACHE_CALL_SITE_FILES = [
@@ -47,6 +48,22 @@ describe("workspace component-library cache scoping", () => {
     ]);
   });
 
+  it("partitions project component-row keys by workspace and project", () => {
+    expect(workspaceComponentRowsLibraryQueryKey("workspace-a", "project-a")).toEqual([
+      "workspace-component-rows-library",
+      "workspace",
+      "workspace-a",
+      "project",
+      "project-a",
+    ]);
+    expect(workspaceComponentRowsLibraryQueryKey("workspace-a", "project-a")).not.toEqual(
+      workspaceComponentRowsLibraryQueryKey("workspace-a", "project-b"),
+    );
+    expect(workspaceComponentRowsLibraryQueryKey("workspace-a", "project-a")).not.toEqual(
+      workspaceComponentRowsLibraryQueryKey("workspace-b", "project-a"),
+    );
+  });
+
   it("removes unscoped full-library query keys from all known call sites", () => {
     for (const file of CACHE_CALL_SITE_FILES) {
       const text = source(file);
@@ -67,5 +84,15 @@ describe("workspace component-library cache scoping", () => {
     expect(source("src/components/workshop/EstimateSheetContent.tsx")).toContain(
       "workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)",
     );
+  });
+
+  it("uses scoped rows-library invalidation at known project mutation call sites", () => {
+    const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
+    const mutationHookSource = source("src/hooks/use-estimate-row-mutations.ts");
+    const libraryPageSource = source("src/components/workshop/LibraryPageClient.tsx");
+
+    expect(sheetSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, projectId)");
+    expect(mutationHookSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, input.projectId || projectId)");
+    expect(libraryPageSource).not.toContain("invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY })");
   });
 });

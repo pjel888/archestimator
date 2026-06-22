@@ -97,6 +97,7 @@ function makeSupabase({
   sourceLibraryItemId = "33333333-3333-4333-8333-333333333333",
   rowMetadata = {},
   canEditEstimate = true,
+  librarySource = { id: "11111111-1111-4111-8111-111111111111", updated_at: null, lifecycle_state: "available" },
   rpcData,
   rpcError = null,
 }: {
@@ -104,6 +105,7 @@ function makeSupabase({
   sourceLibraryItemId?: string | null;
   rowMetadata?: Record<string, unknown>;
   canEditEstimate?: boolean;
+  librarySource?: Record<string, unknown> | null;
   rpcData?: unknown;
   rpcError?: (Error & { code?: string }) | null;
 } = {}) {
@@ -130,6 +132,7 @@ function makeSupabase({
     error: null,
   });
   const existingRowsQuery = queryResult({ data: [{ sort_order: 4 }], error: null });
+  const librarySourceQuery = queryResult({ data: librarySource, error: null });
   const supabase = {
     rpc: vi.fn(async (fn: string) => {
       if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
@@ -156,11 +159,13 @@ function makeSupabase({
     from: vi.fn((table: string) => {
       if (table === "estimate_row_items") return rowQuery;
       if (table === "estimate_nodes") return targetNodeQuery;
+      if (table === "cost_library_items") return librarySourceQuery;
       throw new Error(`Unexpected table ${table}`);
     }),
     rowQuery,
     targetNodeQuery,
     existingRowsQuery,
+    librarySourceQuery,
   };
   rowQuery.order.mockImplementation(() => existingRowsQuery);
   existingRowsQuery.limit.mockImplementation(() => existingRowsQuery);
@@ -365,6 +370,27 @@ describe("estimate sheet version control server actions", () => {
       contingencyPercentage: 0,
       linkState: "linked-clean",
     });
+  });
+
+  it("blocks stale library source commits before the history RPC", async () => {
+    const supabase = makeSupabase({
+      librarySource: {
+        id: "11111111-1111-4111-8111-111111111111",
+        updated_at: "2026-06-22T08:00:00.000Z",
+        lifecycle_state: "available",
+      },
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
+
+    await expect(replaceEstimateRowItemWithLibrary({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowId: "row-1",
+      libraryItem: makeLibraryItem({ updatedAt: "2026-06-21T08:00:00.000Z" }),
+    })).rejects.toThrow(/library source changed/i);
+
+    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
   });
 
   it("replaces express row source through the history RPC with the existing row revision", async () => {

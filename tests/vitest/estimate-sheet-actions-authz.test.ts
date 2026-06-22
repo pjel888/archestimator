@@ -230,11 +230,12 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   it("insertEstimateRowItemFromLibrary returns the canonical row when the RPC returns it", async () => {
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_nodes") return chain({ id: NODE_ID, estimate_id: ESTIMATE_ID, kind: "area", estimates: { project_id: PROJECT_ID } });
-      if (table === "estimate_row_items") return chain({ sort_order: 4 });
-      return chain(null);
-    });
+		if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+		if (table === "estimate_nodes") return chain({ id: NODE_ID, estimate_id: ESTIMATE_ID, kind: "area", estimates: { project_id: PROJECT_ID } });
+		if (table === "estimate_row_items") return chain({ sort_order: 4 });
+		if (table === "cost_library_items") return chain({ id: libraryItem.id, updated_at: null, lifecycle_state: "available" });
+		return chain(null);
+	});
     rpcSpy.mockImplementation((fn: string) => {
       if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
       if (fn === "insert_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({ rowRevision: 1 }), error: null });
@@ -252,9 +253,10 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   it("replaceEstimateRowItemWithLibrary replaces express rows through the history RPC", async () => {
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
-      if (table === "estimate_row_items") {
-        return chain({
+		if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+		if (table === "cost_library_items") return chain({ id: libraryItem.id, updated_at: null, lifecycle_state: "available" });
+		if (table === "estimate_row_items") {
+			return chain({
           id: ROW_ID,
           node_id: NODE_ID,
           estimate_id: ESTIMATE_ID,

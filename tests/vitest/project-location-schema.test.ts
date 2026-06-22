@@ -16,7 +16,7 @@ const projectActivityRepository = readFileSync("src/lib/repositories/project-act
 const projectLocationRepository = readFileSync("src/lib/repositories/project-location-repository.ts", "utf8");
 const projectLocationActions = readFileSync("src/lib/projects/location-actions.ts", "utf8");
 const migrationRunbook = readFileSync(
-  ".ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/10-MIGRATION-RLS-QA-RUNBOOK.md",
+  ".ai/09_archive/2026-06-19-Project-Dashboard-Command-Surface/10-MIGRATION-RLS-QA-RUNBOOK.md",
   "utf8",
 );
 

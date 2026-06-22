@@ -143,8 +143,11 @@ describe("project component projection", () => {
     expect(workspaceRoute).not.toContain("getProjectComponentRowsLibrary");
     expect(libraryPage).toContain("projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary()");
     expect(projection).toContain("if (!project) return fallbackComponentRowsLibraryDataset");
-    expect(projection).toContain("options: { includeDetailGraph?: boolean } = {}");
+    expect(projection).toContain("options: ProjectComponentRowsLibraryOptions = {}");
     expect(projection).toContain("includeDetailGraph: options.includeDetailGraph");
+    expect(projection).toContain("itemLimit: options.itemLimit");
+    expect(projection).toContain("projectRowLimit?: number");
+    expect(projection).toContain("projectRowsQuery.limit(projectRowLimit)");
     expect(projection).toContain(".eq(\"estimate_nodes.estimates.project_id\", project.id)");
     expect(getProjectComponentsFolderId("project-1")).toBe("project-components-project-1");
     expect(getProjectEstimateComponentsFolderId("project-1", "estimate-1")).toBe("project-components-project-1-estimate-estimate-1");

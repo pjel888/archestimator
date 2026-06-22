@@ -23,30 +23,50 @@ describe("ProjectDataClient accessibility and URL state", () => {
     navigationMocks.searchParams = new URLSearchParams("left=legacy-a&right=legacy-b");
   });
 
-  it("keeps one h1 and exposes the comparison ledger as the primary table", () => {
+  it("keeps one h1 named Cost breakdown", () => {
     render(<ProjectDataClient summary={summary()} />);
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1, name: "Cost comparison" })).toBeInTheDocument();
-
-    expect(screen.getByRole("combobox", { name: "Baseline estimate sheet" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Add sheet to compare" })).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: "Cost comparison by category" })).toHaveAttribute(
-      "id",
-      "project-data-cost-comparison-table",
-    );
+    expect(screen.getByRole("heading", { level: 1, name: "Cost breakdown" })).toBeInTheDocument();
   });
 
-  it("surfaces per-sheet totals and composition in aligned columns", () => {
+  it("removes the shared cost comparison table", () => {
     render(<ProjectDataClient summary={summary()} />);
 
-    const table = screen.getByRole("table", { name: "Cost comparison by category" });
-    expect(table).toHaveTextContent("Original Estimate");
-    expect(table).toHaveTextContent("Tender Estimate");
-    expect(table).toHaveTextContent("Materials");
-    expect(screen.getAllByText(/^Direct /)).toHaveLength(2);
-    expect(screen.getAllByText(/^Misc /)).toHaveLength(2);
-    expect(screen.getAllByText(/^Adj /)).toHaveLength(2);
+    expect(screen.queryByRole("table", { name: /cost comparison/i })).not.toBeInTheDocument();
+    expect(document.querySelector("#project-data-cost-comparison-table")).not.toBeInTheDocument();
+  });
+
+  it("renders one donut chart per selected estimate column", () => {
+    render(<ProjectDataClient summary={summary()} />);
+
+    expect(screen.getAllByTestId("d3-donut-chart")).toHaveLength(2);
+  });
+
+  it("describes each donut by its own in-column breakdown list", () => {
+    render(<ProjectDataClient summary={summary()} />);
+
+    const charts = screen.getAllByTestId("d3-donut-chart");
+    expect(charts.map((chart) => chart.getAttribute("aria-describedby"))).toEqual([
+      "estimate-estimate-a-breakdown",
+      "estimate-estimate-b-breakdown",
+    ]);
+    expect(document.getElementById("estimate-estimate-a-breakdown")).toBeInTheDocument();
+    expect(document.getElementById("estimate-estimate-b-breakdown")).toBeInTheDocument();
+  });
+
+  it("exposes a plus tile for adding the next estimate column", () => {
+    render(<ProjectDataClient summary={summary()} />);
+
+    expect(screen.getByRole("combobox", { name: "Add estimate to compare" })).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Add sheet to compare" })).not.toBeInTheDocument();
+  });
+
+  it("exposes per-column sheet swap controls instead of a global baseline picker", () => {
+    render(<ProjectDataClient summary={summary()} />);
+
+    expect(screen.queryByRole("combobox", { name: "Baseline estimate sheet" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Change Original Estimate sheet" })).toBeInTheDocument();
   });
 
   it("canonicalizes legacy left/right params when grouping changes", async () => {
@@ -78,7 +98,7 @@ describe("ProjectDataClient accessibility and URL state", () => {
     const user = userEvent.setup();
     render(<ProjectDataClient summary={summary()} />);
 
-    await user.click(screen.getByRole("combobox", { name: "Baseline estimate sheet" }));
+    await user.click(screen.getByRole("combobox", { name: "Change Original Estimate sheet" }));
     await user.click(screen.getByRole("option", { name: "Tender Estimate (EST-002)" }));
 
     expect(navigationMocks.replace).toHaveBeenCalledWith(
@@ -92,7 +112,7 @@ describe("ProjectDataClient accessibility and URL state", () => {
     navigationMocks.searchParams = new URLSearchParams("sheet=estimate-a&compare=estimate-b&mode=timeline");
     render(<ProjectDataClient summary={summary()} />);
 
-    await user.click(screen.getByRole("combobox", { name: "Baseline estimate sheet" }));
+    await user.click(screen.getByRole("combobox", { name: "Change Original Estimate sheet" }));
     await user.click(screen.getByRole("option", { name: "Tender Estimate (EST-002)" }));
 
     expect(navigationMocks.replace).toHaveBeenCalledWith(
@@ -105,7 +125,7 @@ describe("ProjectDataClient accessibility and URL state", () => {
     const user = userEvent.setup();
     render(<ProjectDataClient summary={summary()} />);
 
-    await user.click(screen.getByRole("combobox", { name: "Add sheet to compare" }));
+    await user.click(screen.getByRole("combobox", { name: "Add estimate to compare" }));
     await user.click(screen.getByRole("option", { name: "Value Engineering (EST-003)" }));
 
     expect(navigationMocks.replace).toHaveBeenLastCalledWith(
@@ -162,7 +182,7 @@ describe("ProjectDataClient accessibility and URL state", () => {
     expect(screen.queryByLabelText(/versus baseline/)).not.toBeInTheDocument();
   });
 
-  it("keeps the largest driver from the second comparison sheet visible", () => {
+  it("keeps the largest driver from the second comparison sheet visible in its breakdown list", () => {
     const estimateSheets = [
       estimateSheet("estimate-a", "Original Estimate", 1000, "EST-001"),
       estimateSheet("estimate-b", "Tender Estimate", 1000, "EST-002"),
@@ -187,7 +207,7 @@ describe("ProjectDataClient accessibility and URL state", () => {
     expect(screen.getByText("Major C Delta")).toBeInTheDocument();
   });
 
-  it("uses the same hidden bucket set for Other totals and line counts", () => {
+  it("uses the same hidden bucket set for Other list totals and line counts", () => {
     const estimateSheets = [
       estimateSheet("estimate-a", "Original Estimate", 901, "EST-001"),
       estimateSheet("estimate-b", "Tender Estimate", 1901, "EST-002"),
@@ -206,9 +226,12 @@ describe("ProjectDataClient accessibility and URL state", () => {
       />,
     );
 
-    const otherRow = screen.getByRole("row", { name: /Other/ });
-    expect(within(otherRow).getAllByText("5 lines")).toHaveLength(2);
-    expect(within(otherRow).queryByText("77 lines")).not.toBeInTheDocument();
+    const otherItems = screen.getAllByText("Other").map((label) => label.closest("li")!);
+    expect(otherItems).toHaveLength(2);
+    for (const item of otherItems) {
+      expect(within(item).getByText("6 lines")).toBeInTheDocument();
+      expect(within(item).queryByText("77 lines")).not.toBeInTheDocument();
+    }
   });
 });
 

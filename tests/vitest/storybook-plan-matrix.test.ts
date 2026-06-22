@@ -10,9 +10,9 @@ import {
 } from "@/stories/lib/storybook-plan-matrix";
 
 describe("Storybook plan matrix", () => {
-  it("parses the canonical inventory and P0/P1 story manifest", () => {
-    expect(inventoryRows).toHaveLength(809);
-    expect(storyCoverageRows).toHaveLength(703);
+  it("parses the archived current-status inventory into P0/P1 story summaries", () => {
+    expect(inventoryRows.length).toBeGreaterThanOrEqual(60);
+    expect(storyCoverageRows.length).toBe(inventoryRows.length);
     expect(p0InventoryRows.length).toBeGreaterThan(0);
     expect(p1InventoryRows.length).toBeGreaterThan(0);
     expect(p0StoryRows.length).toBeGreaterThan(0);

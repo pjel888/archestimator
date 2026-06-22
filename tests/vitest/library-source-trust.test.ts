@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 import {
   componentMatchesPricingFreshness,
+  getLibraryCommitTrustGate,
   getComponentPricingFreshness,
   getComponentSourceTrustChips,
   getTemplateSourceTrustChips,
@@ -96,7 +97,7 @@ describe("library source trust model", () => {
       { pricingDate: "", pricingSource: "", confidence: "", lifecycleState: "archived" },
       { now: NOW },
     );
-    expect(missingChips.map((chip) => chip.label)).toEqual(["No price date", "No confidence", "Archived", "No source"]);
+    expect(missingChips.map((chip) => chip.label)).toEqual(["Missing price source", "No confidence", "Archived", "Missing price source"]);
     expect(missingChips.find((chip) => chip.id === "pricing-missing")).toMatchObject({
       tone: "neutral",
       title: "No pricing date recorded. Add one to track freshness.",
@@ -108,6 +109,50 @@ describe("library source trust model", () => {
     expect(missingChips.find((chip) => chip.id === "lifecycle-archived")).toMatchObject({
       tone: "neutral",
     });
+  });
+
+  it("classifies insert and replace trust gates before estimate commit", () => {
+    const archived = makeRow({
+      id: "archived-component",
+      material: "Archived component",
+      lifecycleState: "archived",
+    });
+
+    expect(getLibraryCommitTrustGate(archived, { action: "insert", now: NOW })).toMatchObject({
+      severity: "block",
+      title: "Cannot commit archived source",
+    });
+
+    const staleReplacement = makeRow({
+      id: "stale-component",
+      material: "Stale replacement",
+      pricingDate: "2025-12-01",
+      pricingSource: "",
+      confidence: "low",
+      linkState: "source-changed",
+      imageUrl: "/component-thumbnails/new.png",
+    });
+    const currentRow = makeRow({
+      id: "row-1",
+      material: "Current row",
+      imageUrl: "/component-thumbnails/current.png",
+    });
+
+    const gate = getLibraryCommitTrustGate(staleReplacement, {
+      action: "replace",
+      existingRow: currentRow,
+      now: NOW,
+    });
+
+    expect(gate.severity).toBe("warn");
+    expect(gate.confirmLabel).toBe("Continue with replace");
+    expect(gate.reasons.map((reason) => reason.id)).toEqual(expect.arrayContaining([
+      "very-stale-price",
+      "missing-pricing-source",
+      "low-confidence",
+      "source-changed",
+      "thumbnail-mismatch",
+    ]));
   });
 
   it("computes template trust from row links, link state, and row pricing dates", () => {
@@ -143,7 +188,7 @@ describe("library source trust model", () => {
 
     expect(getTemplateSourceTrustChips(template, { now: NOW }).map((chip) => chip.label)).toEqual([
       "2/2 linked rows",
-      "Very stale",
+      "Very stale price",
       "Source changed",
     ]);
   });

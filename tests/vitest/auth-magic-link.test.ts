@@ -35,14 +35,16 @@ describe("magic-link auth callback", () => {
   it("supports Google OAuth through the same callback route while keeping email as fallback", () => {
     const authActions = readProjectFile("src/lib/auth/actions.ts");
     const loginPage = readProjectFile("src/app/login/page.tsx");
+    const loginForm = readProjectFile("src/components/auth/LoginForm.tsx");
+    const loginSurface = `${loginPage}\n${loginForm}`;
 
     expect(authActions).toContain("signInWithGoogle");
     expect(authActions).toContain("signInWithOAuth");
     expect(authActions).toContain('provider: "google"');
     expect(authActions).toContain("redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`");
-    expect(loginPage).toContain("Continue with Google");
-    expect(loginPage).toContain("signInWithGoogle");
-    expect(loginPage).toContain("signInWithEmail");
+    expect(loginSurface).toContain("Continue with Google");
+    expect(loginSurface).toContain("signInWithGoogle");
+    expect(loginSurface).toContain("signInWithEmail");
   });
 
   it("keeps the local dev auth bypass explicit, localhost-gated, and server-only", () => {

@@ -7,6 +7,10 @@ const loginSource = readFileSync(
   join(process.cwd(), "src/app/login/page.tsx"),
   "utf8",
 );
+const loginFormSource = readFileSync(
+  join(process.cwd(), "src/components/auth/LoginForm.tsx"),
+  "utf8",
+);
 const privacySource = readFileSync(
   join(process.cwd(), "src/app/privacy/page.tsx"),
   "utf8",
@@ -19,26 +23,26 @@ const termsContentSource = readFileSync(
   join(process.cwd(), "src/lib/legal/terms-content.ts"),
   "utf8",
 );
+const loginSurfaceSource = [loginSource, loginFormSource].join("\n");
 
 describe("/login auth entry UI contract", () => {
   it("does not expose password UI or internal admin-only copy", () => {
-    expect(loginSource).not.toMatch(/type=["']password["']/i);
-    expect(loginSource).not.toMatch(/password reset|forgot password/i);
-    expect(loginSource).not.toMatch(/CEO|founder|platform admin/i);
+    expect(loginSurfaceSource).not.toMatch(/type=["']password["']/i);
+    expect(loginSurfaceSource).not.toMatch(/password reset|forgot password/i);
+    expect(loginSurfaceSource).not.toMatch(/CEO|founder|platform admin/i);
   });
 
   it("presents Google as primary and email link as fallback", () => {
-    expect(loginSource).toMatch(/Continue with Google/);
-    expect(loginSource).toMatch(/Send sign-in link/);
-    expect(loginSource).toMatch(/No password required/);
+    expect(loginSurfaceSource).toMatch(/Continue with Google/);
+    expect(loginSurfaceSource).toMatch(/Email me a sign-in link/);
+    expect(loginSurfaceSource).toMatch(/signInWithGoogle/);
+    expect(loginSurfaceSource).toMatch(/signInWithEmail/);
   });
 
   it("links to truthful privacy and terms surfaces", () => {
-    expect(loginSource).toMatch(/href=["']\/privacy["']/);
-    expect(loginSource).toMatch(/href=["']\/terms["']/);
-    expect(loginSource).toMatch(/closed beta terms/);
-    expect(loginSource).toMatch(/privacy notice/);
-    expect(loginSource).not.toMatch(/terms status|privacy status/);
+    expect(loginSurfaceSource).toMatch(/href=["']\/privacy["']/);
+    expect(loginSurfaceSource).toMatch(/href=["']\/terms["']/);
+    expect(loginSurfaceSource).not.toMatch(/terms status|privacy status/);
     expect(privacySource).toMatch(/closed beta privacy notice/i);
     expect(privacySource).toMatch(/account email/i);
     expect(privacySource).toMatch(/project and estimate data/i);

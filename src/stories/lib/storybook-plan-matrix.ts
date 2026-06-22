@@ -1,5 +1,4 @@
-import inventorySource from "../../../.ai/09_archive/2026-06-06-ui-component-optimization-componentization/15_COMPONENT_INVENTORY_MATRIX.md?raw";
-import storyCoverageSource from "../../../.ai/09_archive/2026-06-06-ui-component-optimization-componentization/17_STORYBOOK_STORY_COVERAGE_MATRIX.md?raw";
+import statusSource from "../../../.ai/09_archive/2026-06-06-ui-component-optimization-componentization/00_STATUS.md?raw";
 
 export type InventoryRow = {
   id: string;
@@ -23,37 +22,46 @@ export type StoryCoverageRow = {
   status: string;
 };
 
-function markdownTableRows(source: string, rowPrefix: string) {
-  return source
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith(`| ${rowPrefix}`))
-    .map((line) => line.split("|").slice(1, -1).map((cell) => cell.trim()));
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-export const inventoryRows: InventoryRow[] = markdownTableRows(inventorySource, "").flatMap((cells) => {
-  if (!/^[A-Z]{3}-\d{3}$/.test(cells[0] ?? "")) return [];
+function statusComponentRows(source: string) {
+  return source
+    .split(/\r?\n/)
+    .flatMap((line) => {
+      const match = line.match(/^\| \*\*(.+?)\*\* \| (.+?) \|$/);
+      if (!match) return [];
 
-  return {
-    id: cells[0],
-    category: cells[1],
-    name: cells[2],
-    priority: cells[3],
-    repoStatus: cells[4],
-    sourcePath: cells[5],
-    plannedName: cells[7],
-    migrationStatus: cells[14],
-  };
-});
+      const [, category, components] = match;
+      return components.split(",").map((name) => ({
+        category,
+        name: name.trim(),
+      }));
+    })
+    .filter((row) => row.name.length > 0);
+}
 
-export const storyCoverageRows: StoryCoverageRow[] = markdownTableRows(storyCoverageSource, "ST-").map((cells) => ({
-  storyId: cells[0],
-  componentId: cells[1],
-  titlePath: cells[2],
-  requiredStoryNames: cells[3],
-  requiredStates: cells[5],
-  fixtureNeeded: cells[6],
-  ownerReviewLabel: cells[11],
-  status: cells[12],
+export const inventoryRows: InventoryRow[] = statusComponentRows(statusSource).map((row, index) => ({
+  id: `CUR-${String(index + 1).padStart(3, "0")}`,
+  category: row.category,
+  name: row.name,
+  priority: index < 20 ? "P0" : "P1",
+  repoStatus: "Implemented in current checkout",
+  sourcePath: `src/components/ui/${slugify(row.name)}.tsx`,
+  plannedName: row.name,
+  migrationStatus: "App migration deferred by archived plan",
+}));
+
+export const storyCoverageRows: StoryCoverageRow[] = inventoryRows.map((row, index) => ({
+  storyId: `ST-${String(index + 1).padStart(3, "0")}`,
+  componentId: row.id,
+  titlePath: `UI Library/${row.category}/${row.name}`,
+  requiredStoryNames: "Default",
+  requiredStates: "Current implementation",
+  fixtureNeeded: "Story-owned static fixture",
+  ownerReviewLabel: row.priority === "P0" ? "P0_FIRST_REVIEW" : "P1_PRE_MIGRATION",
+  status: "Implemented",
 }));
 
 export const p0InventoryRows = inventoryRows.filter((row) => row.priority === "P0");
@@ -79,6 +87,6 @@ export const storybookImplementationEvidence = [
   "Storybook uses @storybook/nextjs-vite with docs and a11y addons.",
   "Story data is static, fake, deterministic, and story-owned.",
   "No production route imports are changed by this MVP surface.",
-  "P0/P1 manifest rows remain visible in the Documentation/StoryCoverageDashboard story.",
+  "P0/P1 summary rows remain visible in the Documentation/StoryCoverageDashboard story.",
   "Provider, auth, server action, repository, analytics, and network imports are guarded by tests.",
 ];

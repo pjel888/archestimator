@@ -6,6 +6,7 @@ import {
   projectDataLoading,
   projectDataClient,
   projectDataComparisonBoard,
+  projectDataEstimateColumn,
   projectDataInsightHeader,
   projectDataCostBreakdown,
   projectDataCostLedger,
@@ -38,18 +39,19 @@ describe("project charts UI governance", () => {
   it("uses a comparison-first data board, not detached analysis panels", () => {
     expect(projectDataClient).toContain("CostComparisonBoard");
     expect(projectDataClient).not.toContain("ProjectDataInsightHeader");
-    expect(projectDataClient).not.toContain("CostCompositionSection");
     expect(projectDataClient).not.toContain("CostAcrossSheetsSection");
-    expect(projectDataComparisonBoard).toContain("Cost comparison");
-    expect(projectDataComparisonBoard).toContain("Baseline estimate sheet");
-    expect(projectDataComparisonBoard).toContain("Add sheet to compare");
-    expect(projectDataComparisonBoard).toContain("project-data-cost-comparison-table");
+    expect(projectDataComparisonBoard).toContain("Cost breakdown");
+    expect(projectDataComparisonBoard).toContain("EstimateColumn");
+    expect(projectDataComparisonBoard).toContain("AddEstimateColumn");
+    expect(projectDataComparisonBoard).toContain("collapseProjectChartBuckets");
     expect(projectDataComparisonBoard).toContain("buildProjectChartComparisonView");
     expect(projectDataComparisonBoard).toContain("buildInsightSentence");
-    expect(projectDataInsightHeader).toContain("Estimate sheet");
-    expect(projectDataCostBreakdown).toContain("CostLedger");
-    expect(projectDataCostLedger).toContain("hidden w-full px-2 py-1.5 font-medium sm:table-cell");
-    expect(projectDataCostAcrossSheets).toContain("Cost across sheets");
+    expect(projectDataEstimateColumn).toContain("CostDonutChart");
+    expect(projectDataComparisonBoard).not.toContain("project-data-cost-comparison-table");
+    expect(projectDataInsightHeader).toBe("");
+    expect(projectDataCostBreakdown).toBe("");
+    expect(projectDataCostLedger).toBe("");
+    expect(projectDataCostAcrossSheets).toBe("");
     expect(projectDataClient).not.toContain("ProjectVarianceSpine");
   });
 
@@ -65,6 +67,7 @@ describe("project charts UI governance", () => {
   it("keeps d3-shape isolated in the shared donut implementation", () => {
     expect(projectDataClient).not.toContain('from "d3');
     expect(projectDataComparisonBoard).not.toContain('from "d3');
+    expect(projectDataEstimateColumn).not.toContain('from "d3');
     expect(projectDataCostBreakdown).not.toContain('from "d3');
     expect(projectDataCostAcrossSheets).not.toContain('from "d3');
     expect(sharedCostDonutChart).toContain('from "d3-shape"');

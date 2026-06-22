@@ -18,16 +18,28 @@ function collectTemplateNodeIds(nodes: Array<{ id: string; children?: Array<{ id
 }
 
 describe("component-library template repository helpers", () => {
-  it("chunks item-id detail graph reads so large component libraries do not exceed PostgREST query limits", () => {
+  it("pages full workspace detail graph reads and keeps the sidebar path bounded by item ids", () => {
     const source = readFileSync(
       join(process.cwd(), "src/lib/repositories/component-library-repository.ts"),
       "utf8",
     );
 
-    expect(source).toContain("const COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE = 100;");
-    expect(source).toContain("collectComponentLibraryRowsInItemChunks");
-    expect(source.match(/collectComponentLibraryRowsInItemChunks</g)?.length ?? 0).toBeGreaterThanOrEqual(6);
-    expect(source).not.toContain('.in("item_id", itemIds)');
+    expect(source).toContain("SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50");
+    expect(source).toContain("SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100");
+    expect(source).toContain("SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS");
+    expect(source).toContain(".select(SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS)");
+    expect(source).toContain(".limit(limit)");
+    expect(source).toContain("const isBoundedItemPage = boundedItemLimit !== undefined");
+    expect(source).toContain("collectComponentLibraryRowsForSelectedItems");
+    expect(source.match(/\.in\("item_id", itemIds\)/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(source).toContain("collectComponentLibraryWorkspaceRowsForItems");
+    expect(source.match(/collectComponentLibraryWorkspaceRowsForItems</g)?.length ?? 0).toBeGreaterThanOrEqual(7);
+    expect(source).toContain("const itemIdSet = new Set(itemIds);");
+    expect(source).toContain("pageRows.filter((row) => itemIdSet.has(row.item_id))");
+    expect(source.match(/\.range\(from, to\)/g)?.length ?? 0).toBeGreaterThanOrEqual(7);
+    expect(source).not.toContain("collectComponentLibraryRowsInItemChunks");
+    expect(source).not.toContain("COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE");
+    expect(source).not.toContain('.in("item_id", chunk)');
   });
 
   it("exposes separate component-only, template-only, and combined helper contracts", () => {
