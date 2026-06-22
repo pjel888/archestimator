@@ -35,6 +35,31 @@ The active homepage reset is the GPT Taste landing direction:
 
 Implementation anchor: `src/components/landing/gpt-taste/RedesignedLandingPage.tsx`.
 
+## Professional Software Stance
+
+Archestimator is professional software with financial implications. The landing
+page can feel forward-looking, progressive, a little fun, and innovative, but it
+must still read as serious commercial tooling for estimating decisions.
+
+For this 2026-06-22 landing direction:
+
+- keep the page predominantly light, off-white, or cool/warm gray;
+- use Signal orange as the precision accent, not the page's dominant wash;
+- avoid black-site art direction except for small, deliberate product or media
+  frames;
+- avoid very large hero typography. Oversized poster type reads less
+  professional here;
+- favor moderate, confident hero type, strong spacing, product proof, and clear
+  software interface hierarchy;
+- preserve some technical charm through Doto/mono accents, motion, and product
+  details instead of through loud scale.
+
+Effective hero type guidance for this plan: target roughly `42px` to `56px` on
+desktop, with a practical ceiling near `64px` unless Philip explicitly asks for a
+campaign/poster register. The older landing token that can reach `5.5rem` exists
+in the codebase, but it should not be treated as the default for this new
+professional direction.
+
 ## Brand Color
 
 Use Archestimator Signal orange. Do not revive clay/terracotta as the brand
@@ -115,12 +140,50 @@ Landing type scale from live tokens:
 
 Typography discipline:
 
-- Landing pages may be editorial and large; app/workshop 12px caps do not apply.
+- Landing pages may be editorial, but this plan should avoid huge poster-sized
+  headings. App/workshop 12px caps do not apply, yet the public site still needs
+  finance-grade restraint.
 - Keep body copy short, calm, and readable.
 - Use Doto only at sizes where its technical/robotic form remains legible.
 - Use Roboto Mono for numeric/status texture, not paragraph prose.
 - Avoid Poppins, generic heavy marketing display type, and arbitrary one-off
   font stacks.
+- Mixed-font hero emphasis is approved when restrained: one short word or phrase
+  can switch into Doto/Roboto Mono style to create the "technical" effect,
+  similar to the Save.design hero treatment. Do not set an entire headline in the
+  robotic font.
+
+## Frosted / Liquid Glass
+
+The landing page should reuse the app's frosted background / liquid-glass
+vocabulary. This is part of the Archestimator product feel, not a random
+glassmorphism trend.
+
+Implementation anchors:
+
+- `src/components/system/LiquidGlassReady.tsx` defers glass arming until after a
+  cheap first paint and idle time.
+- `src/app/globals.css` defines `--glass-bg`, `--glass-blur`, `--glass-border`,
+  `--glass-shadow`, `.dashboard-glass`, `.workshop-workspace-glass-surface`,
+  `.workshop-liquid-button`, and estimate-sheet glass variants.
+- `--glass-bg` is a frosted white surface, currently `rgba(255, 255, 255, 0.72)`.
+- `--glass-blur` is capped at `18px`.
+- `--glass-shadow` is the soft float shadow:
+  `0 8px 28px rgba(30,35,50,0.12), 0 2px 8px rgba(30,35,50,0.07)`.
+
+Landing usage:
+
+- Use frosted panels, nav, product frames, and browser/sheet surfaces on the
+  light/gray canvas.
+- Carry the app's drop shadow, edge highlight, and soft blur language into the
+  hero and product proof sections.
+- Prefer one meaningful frost layer per region. Children inside a glass surface
+  should use translucent fills and edge highlights, not stacked backdrop blurs.
+- Keep `backdrop-filter` deferred or scoped so glass does not slow first paint.
+- Provide solid/translucent fallbacks for reduced transparency or unsupported
+  browsers.
+- Use the Estimate Sheet / Cost Library proof surfaces as the most important
+  glass showcase later.
 
 ## Layout, Shape, And Motion
 

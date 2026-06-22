@@ -59,6 +59,7 @@ Every phase is independently revertible; the design favors additive-first so rol
 3. **Depth-counter z-fight** with a non-`AppModal` overlay (tooltips, popovers) that hardcodes a z value. Mitigation: the modal z stays ≥1000; verify popovers/toasts (which should be higher in the z scale) still stack above.
 4. **Client-side expiry countdown drift** vs server truth under clock skew. Mitigation: the countdown only *flips the UI state*; the server remains authoritative on the next refetch; reconcile still auto-expires.
 5. **Busy-boundary deadlock** — `runExclusive` rejecting a legitimate concurrent action (e.g. viewing activity while publishing). Mitigation: scope `runExclusive` to mutating lifecycle/recipient actions only; reads (activity feed, copy) are not exclusive.
+6. **`formatExpiry` move-vs-dup (QA FZ-6):** `formatExpiry` is a **non-exported local** in `ProjectTeamspaceHeader.tsx:88` (consumed only at `:886`). **Decision: duplicate (do not move)** into `lib/publication/format.ts` to keep the blast confined to this pack. A "move" would add `ProjectTeamspaceHeader.tsx` to the blast map (cross-file change to a second share surface) — avoid it; the function is ~10 lines. Revisit dedup only if a third consumer appears.
 
 ## 6. Not in scope (explicit)
 

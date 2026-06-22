@@ -56,7 +56,7 @@
 
 | Case | Message |
 |------|---------|
-| No estimates on generate (server `actions.ts:566/637` "Select at least one estimate…") | "Pick at least one estimate first — your client would otherwise see a blank page." (Intercept at `runPublicationAction :519-520` on the no-estimates sentinel, OR gate client-side via `generateDisabled`.) |
+| No estimates on generate (server `actions.ts:566/637` "Select at least one estimate…") | "Pick at least one estimate first — your client would otherwise see a blank page." (QA C-A-02: the real client-side gate is **`generateDisabled` (`:630`, `!hasSelectedEstimates`)** — surface this copy there; the server message surfaces via the shared `!result.ok` branch at `:519-520`, there is no dedicated no-estimates "intercept".) |
 | Rotate optimistic-concurrency conflict (`actions.ts:723`) | "This link changed in another window before the new link was created. Refresh and create the new link again — the old link is unaffected until you do." |
 | Regenerate password-missing (client gate `:596-601`) | Keep current `:598` ("Enter a new password before creating a new protected link.") — it meets the bar. |
 | Recipient resend conflict (`actions.ts:1307`) | Keep; optionally sharpen: "This recipient's link changed since you opened the modal. Resend from the Recipients tab to send the current link." |
