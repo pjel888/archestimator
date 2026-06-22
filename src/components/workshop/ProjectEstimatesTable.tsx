@@ -1643,7 +1643,7 @@ function ProjectEstimatesTableComponent({
                 columnCount={table.getAllLeafColumns().length}
                 rowCount={fillerRowCount}
                 emptyMessage={emptyMessage}
-                showEmptyMessage={visibleRows.length === 0}
+                showEmptyMessage={false}
                 canCreateEstimates={canCreateEstimates}
                 isCreatingEstimate={isCreatingEstimate}
                 onCreateEstimateFromName={onCreateEstimateFromName}

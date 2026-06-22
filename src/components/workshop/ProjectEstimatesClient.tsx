@@ -6,10 +6,8 @@ import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   CalendarBlank,
   ClockCounterClockwise,
-  FileText,
   FunnelSimple,
   NewspaperClipping,
-  Plus,
   SortAscending,
   SortDescending,
   Star,
@@ -18,7 +16,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
-import { EmptyState } from "@/components/ui/empty-state";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
@@ -214,8 +211,6 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
   const sortDirectionOptions = useMemo(() => getEstimateSortDirectionOptions(sortField), [sortField]);
   const hasActiveListFilter = filter !== "all" || searchQuery.trim().length > 0;
   const emptyMessage = hasActiveListFilter ? "No matching estimates" : "No estimates yet";
-  const hasEstimates = sourceEstimates.length > 0;
-  const hasFilteredEstimates = filteredEstimates.length > 0;
 
   function createDraftEstimate(requestedName: string) {
     return requestedName
@@ -352,48 +347,19 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-xs border border-white/45 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)]">
-        {hasFilteredEstimates ? (
-          <ProjectEstimatesTable
-            projectId={projectId}
-            estimates={filteredEstimates}
-            canEditEstimateById={canEditEstimateById}
-            emptyMessage={emptyMessage}
-            store={OPTIMISTIC_ESTIMATE_LIST_ENABLED ? store : undefined}
-            optimistic={OPTIMISTIC_ESTIMATE_LIST_ENABLED}
-            parentProject={parentProject}
-            scope={scope}
-            canCreateEstimates={canCreateEstimates}
-            isCreatingEstimate={isCreating}
-            onCreateEstimateFromName={handleCreateEstimateSheet}
-          />
-        ) : (
-          <EmptyState
-            icon={<FileText size={18} weight="regular" aria-hidden="true" />}
-            title={hasEstimates ? "No matching estimates" : "Create the first estimate"}
-            description={
-              hasEstimates
-                ? "Adjust filters or clear search to return to more estimates."
-                : "Start an estimate before adding groups, inserting components, or exporting a bid workbook."
-            }
-            action={
-              hasEstimates ? null : (
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => { handleCreateEstimateSheet(); }}
-                  disabled={!canCreateEstimates || isCreating}
-                  aria-label={isCreating ? "Creating first estimate" : "Create first estimate"}
-                  title={canCreateEstimates ? undefined : "View-only project."}
-                >
-                  <Plus size={12} weight="regular" aria-hidden="true" />
-                  {isCreating ? "Creating" : "Create estimate"}
-                </Button>
-              )
-            }
-            className="h-full border-0 bg-white"
-          />
-        )}
+        <ProjectEstimatesTable
+          projectId={projectId}
+          estimates={filteredEstimates}
+          canEditEstimateById={canEditEstimateById}
+          emptyMessage={emptyMessage}
+          store={OPTIMISTIC_ESTIMATE_LIST_ENABLED ? store : undefined}
+          optimistic={OPTIMISTIC_ESTIMATE_LIST_ENABLED}
+          parentProject={parentProject}
+          scope={scope}
+          canCreateEstimates={canCreateEstimates}
+          isCreatingEstimate={isCreating}
+          onCreateEstimateFromName={handleCreateEstimateSheet}
+        />
       </div>
     </section>
   );

@@ -3,10 +3,9 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Blueprint, Package, Plus } from "@phosphor-icons/react/dist/ssr";
+import { Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
@@ -195,8 +194,6 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
   const router = useNavigationRouter();
   const [newTemplateOpen, setNewTemplateOpen] = useState(false);
 
-  const isEmptyWorkspace = overview.componentCount === 0 && overview.templateCount === 0;
-
   const openTemplateEditor = (templateId: string) => {
     router.push(`/workshop/library/templates/${templateId}`);
   };
@@ -207,32 +204,6 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
 
   const componentsMeta = `${overview.componentCount} in ${pluralize(overview.categoryCount, "category", "categories")} · ${pluralize(overview.supplierCount, "supplier")} · ${pluralize(overview.brandCount, "brand")}`;
   const templatesMeta = `${overview.templateCount} in ${pluralize(overview.templateGroupCount, "group")}`;
-
-  const componentsEmptyState = (
-    <EmptyState
-      icon={<Package size={18} weight="regular" aria-hidden="true" />}
-      title="Your library is empty."
-      description="Add a component to reuse it across estimates."
-      action={
-        <Button type="button" variant="primary" size="xs" onClick={() => router.push("/workshop/library/components?add=component")}>
-          Add component
-        </Button>
-      }
-    />
-  );
-
-  const templatesEmptyState = (
-    <EmptyState
-      icon={<Blueprint size={18} weight="regular" aria-hidden="true" />}
-      title="No templates yet."
-      description="Save a template to reuse line items."
-      action={
-        <Button type="button" variant="secondary" size="xs" onClick={() => setNewTemplateOpen(true)}>
-          New template
-        </Button>
-      }
-    />
-  );
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-white" data-library-overview="true">
@@ -254,54 +225,37 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
           </div>
         </div>
 
-        {isEmptyWorkspace ? (
-          <div className="grid gap-3 md:grid-cols-2" data-library-overview-empty-workspace="true">
-            {componentsEmptyState}
-            {templatesEmptyState}
-          </div>
-        ) : (
-          <>
-            <section aria-labelledby="library-overview-components-heading" className="flex flex-col gap-2">
-              <SectionHeader
-                headingId="library-overview-components-heading"
-                title="Components"
-                meta={overview.componentCount > 0 ? componentsMeta : undefined}
-                linkHref="/workshop/library/components"
-                linkLabel="Open components"
-              />
-              {overview.componentCount === 0 ? (
-                componentsEmptyState
-              ) : (
-                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                  {overview.recentComponents.map((component) => (
-                    <RecentComponentCard key={component.id} component={component} />
-                  ))}
-                </ul>
-              )}
-            </section>
+        <section aria-labelledby="library-overview-components-heading" className="flex flex-col gap-2">
+          <SectionHeader
+            headingId="library-overview-components-heading"
+            title="Components"
+            meta={componentsMeta}
+            linkHref="/workshop/library/components"
+            linkLabel="Open components"
+          />
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {overview.recentComponents.map((component) => (
+              <RecentComponentCard key={component.id} component={component} />
+            ))}
+          </ul>
+        </section>
 
-            <section aria-labelledby="library-overview-templates-heading" className="flex flex-col gap-2">
-              <SectionHeader
-                headingId="library-overview-templates-heading"
-                title="Templates"
-                meta={overview.templateCount > 0 ? templatesMeta : undefined}
-                linkHref="/workshop/library/templates"
-                linkLabel="Open templates"
-              />
-              {overview.templateCount === 0 ? (
-                templatesEmptyState
-              ) : (
-                <ul className="flex flex-col gap-1.5">
-                  {overview.recentTemplates.map((template) => (
-                    <RecentTemplateRow key={template.id} template={template} onOpen={openTemplateEditor} />
-                  ))}
-                </ul>
-              )}
-            </section>
+        <section aria-labelledby="library-overview-templates-heading" className="flex flex-col gap-2">
+          <SectionHeader
+            headingId="library-overview-templates-heading"
+            title="Templates"
+            meta={templatesMeta}
+            linkHref="/workshop/library/templates"
+            linkLabel="Open templates"
+          />
+          <ul className="flex flex-col gap-1.5">
+            {overview.recentTemplates.map((template) => (
+              <RecentTemplateRow key={template.id} template={template} onOpen={openTemplateEditor} />
+            ))}
+          </ul>
+        </section>
 
-            <LibraryHealthLine health={overview.health} />
-          </>
-        )}
+        <LibraryHealthLine health={overview.health} />
       </div>
 
       {newTemplateOpen ? (

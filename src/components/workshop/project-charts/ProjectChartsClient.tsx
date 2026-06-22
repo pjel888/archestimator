@@ -9,7 +9,6 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { collapseProjectChartBuckets, getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
 import { buildProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
@@ -162,169 +161,155 @@ export function ProjectChartsClient({
     .filter((estimate): estimate is NonNullable<typeof estimate> => Boolean(estimate))
     .map((estimate) => ({ value: estimate.id, label: estimate.name }));
 
-  const showEmpty = data.estimateOptions.length === 0;
-
   return (
     <section data-project-charts-page className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
       <div className="flex shrink-0 flex-col gap-2 border-b border-hairline px-3 py-2">
         <ProjectComparisonHeader view={view} projectName={data.projectName} />
 
-        {!showEmpty ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="project-charts-controls">
-            <ControlField label="Break down by">
-              <SegmentedControl
-                ariaLabel="Break down by"
-                options={GROUPING_OPTIONS}
-                value={groupingMode}
-                onValueChange={setGroupingMode}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="project-charts-controls">
+          <ControlField label="Break down by">
+            <SegmentedControl
+              ariaLabel="Break down by"
+              options={GROUPING_OPTIONS}
+              value={groupingMode}
+              onValueChange={setGroupingMode}
+            />
+          </ControlField>
+
+          {selectedEstimateIds.length >= 2 ? (
+            <ControlField label="Baseline">
+              <DropdownSelect
+                aria-label="Baseline estimate"
+                options={estimateSelectOptions}
+                value={baselineEstimateId ?? undefined}
+                onValueChange={setPreferredBaselineEstimateId}
               />
             </ControlField>
+          ) : null}
 
-            {selectedEstimateIds.length >= 2 ? (
-              <ControlField label="Baseline">
-                <DropdownSelect
-                  aria-label="Baseline estimate"
-                  options={estimateSelectOptions}
-                  value={baselineEstimateId ?? undefined}
-                  onValueChange={setPreferredBaselineEstimateId}
-                />
-              </ControlField>
-            ) : null}
+          <ControlField label="Estimates">
+            <div className="flex flex-wrap items-center gap-1">
+              {selectedEstimateIds.map((id) => {
+                const estimate = data.estimateOptions.find((option) => option.id === id);
+                if (!estimate) return null;
+                return (
+                  <Chip
+                    key={id}
+                    active={id === baselineEstimateId}
+                    removable={selectedEstimateIds.length > 1}
+                    onRemove={() => removeEstimate(id)}
+                    removeLabel={`Remove ${estimate.name}`}
+                    onClick={() => setPreferredBaselineEstimateId(id)}
+                  >
+                    {estimate.name}
+                  </Chip>
+                );
+              })}
+              {canAddEstimate ? (
+                <Button variant="outline" size="xs" onClick={addEstimate} className="min-w-0">
+                  <Plus size={12} weight="regular" aria-hidden="true" />
+                  Add estimate
+                </Button>
+              ) : null}
+            </div>
+          </ControlField>
 
-            <ControlField label="Estimates">
-              <div className="flex flex-wrap items-center gap-1">
-                {selectedEstimateIds.map((id) => {
-                  const estimate = data.estimateOptions.find((option) => option.id === id);
-                  if (!estimate) return null;
-                  return (
-                    <Chip
-                      key={id}
-                      active={id === baselineEstimateId}
-                      removable={selectedEstimateIds.length > 1}
-                      onRemove={() => removeEstimate(id)}
-                      removeLabel={`Remove ${estimate.name}`}
-                      onClick={() => setPreferredBaselineEstimateId(id)}
-                    >
-                      {estimate.name}
-                    </Chip>
-                  );
-                })}
-                {canAddEstimate ? (
-                  <Button variant="outline" size="xs" onClick={addEstimate} className="min-w-0">
-                    <Plus size={12} weight="regular" aria-hidden="true" />
-                    Add estimate
-                  </Button>
-                ) : null}
-              </div>
-            </ControlField>
-
-            <ControlField label="View">
-              <SegmentedControl
-                ariaLabel="Chart view"
-                options={viewOptions}
-                value={effectiveViewMode}
-                onValueChange={(next) => setViewMode(next)}
-              />
-            </ControlField>
-          </div>
-        ) : null}
+          <ControlField label="View">
+            <SegmentedControl
+              ariaLabel="Chart view"
+              options={viewOptions}
+              value={effectiveViewMode}
+              onValueChange={(next) => setViewMode(next)}
+            />
+          </ControlField>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3" data-testid="project-charts-body">
-        {showEmpty ? (
-          <EmptyState
-            title="No estimates yet"
-            description="Create at least two estimates to compare project costs."
-            action={<CreateEstimateLink projectId={data.projectId} />}
+        {data.didTruncate ? (
+          <Banner
+            tone="warning"
+            title="Totals may be incomplete"
+            description="An estimate exceeded the row limit, so these figures are based on a partial set."
           />
+        ) : data.requiresSelectedPair ? (
+          <Banner
+            tone="info"
+            title="Showing only the estimates you picked"
+            description="This project is large, so totals are limited to the estimates selected above."
+          />
+        ) : null}
+
+        {!hasComparison && selectedEstimateIds.length > 0 ? (
+          <Banner
+            tone="info"
+            title="Add a second estimate to compare costs"
+            description="A cost comparison needs at least two estimates. Showing this estimate on its own."
+            actions={<CreateEstimateLink projectId={data.projectId} />}
+          />
+        ) : null}
+
+        {effectiveViewMode === "variance" ? (
+          <ProjectVarianceSpine
+            view={view}
+            tableId={COMPARISON_TABLE_ID}
+            activeBucketId={activeBucketId}
+            onActiveBucketChange={setActiveBucket}
+            onTogglePin={togglePin}
+          />
+        ) : null}
+
+        {effectiveViewMode === "composition" ? (
+          <ProjectCompositionBars
+            view={view}
+            activeBucketId={activeBucketId}
+            onActiveBucketChange={setActiveBucket}
+            onTogglePin={togglePin}
+          />
+        ) : null}
+
+        {effectiveViewMode === "share" && shareSeries ? (
+          <section
+            aria-label={`${shareSeries.estimateName} share of cost by ${groupingMode}. A data table with the same figures follows.`}
+            aria-describedby={COMPARISON_TABLE_ID}
+            className="rounded-xs border border-hairline bg-white p-3"
+            data-testid="project-share-view"
+          >
+            <ProjectCostDonutChart
+              buckets={shareSeries.buckets}
+              currencyCode={view.currencyCode}
+              label={`${shareSeries.estimateName} ${groupingMode} cost distribution`}
+              total={shareSeries.total}
+              compact
+            />
+          </section>
+        ) : null}
+
+        {/* Secondary band: composition alongside the detail table when variance is primary. */}
+        {effectiveViewMode === "variance" ? (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <ProjectCompositionBars
+              view={view}
+              activeBucketId={activeBucketId}
+              onActiveBucketChange={setActiveBucket}
+              onTogglePin={togglePin}
+            />
+            <ProjectComparisonTable
+              view={view}
+              id={COMPARISON_TABLE_ID}
+              activeBucketId={activeBucketId}
+              onActiveBucketChange={setActiveBucket}
+              onTogglePin={togglePin}
+            />
+          </div>
         ) : (
-          <>
-            {data.didTruncate ? (
-              <Banner
-                tone="warning"
-                title="Totals may be incomplete"
-                description="An estimate exceeded the row limit, so these figures are based on a partial set."
-              />
-            ) : data.requiresSelectedPair ? (
-              <Banner
-                tone="info"
-                title="Showing only the estimates you picked"
-                description="This project is large, so totals are limited to the estimates selected above."
-              />
-            ) : null}
-
-            {!hasComparison ? (
-              <Banner
-                tone="info"
-                title="Add a second estimate to compare costs"
-                description="A cost comparison needs at least two estimates. Showing this estimate on its own."
-                actions={<CreateEstimateLink projectId={data.projectId} />}
-              />
-            ) : null}
-
-            {effectiveViewMode === "variance" ? (
-              <ProjectVarianceSpine
-                view={view}
-                tableId={COMPARISON_TABLE_ID}
-                activeBucketId={activeBucketId}
-                onActiveBucketChange={setActiveBucket}
-                onTogglePin={togglePin}
-              />
-            ) : null}
-
-            {effectiveViewMode === "composition" ? (
-              <ProjectCompositionBars
-                view={view}
-                activeBucketId={activeBucketId}
-                onActiveBucketChange={setActiveBucket}
-                onTogglePin={togglePin}
-              />
-            ) : null}
-
-            {effectiveViewMode === "share" && shareSeries ? (
-              <section
-                aria-label={`${shareSeries.estimateName} share of cost by ${groupingMode}. A data table with the same figures follows.`}
-                aria-describedby={COMPARISON_TABLE_ID}
-                className="rounded-xs border border-hairline bg-white p-3"
-                data-testid="project-share-view"
-              >
-                <ProjectCostDonutChart
-                  buckets={shareSeries.buckets}
-                  currencyCode={view.currencyCode}
-                  label={`${shareSeries.estimateName} ${groupingMode} cost distribution`}
-                  total={shareSeries.total}
-                  compact
-                />
-              </section>
-            ) : null}
-
-            {/* Secondary band: composition alongside the detail table when variance is primary. */}
-            {effectiveViewMode === "variance" ? (
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <ProjectCompositionBars
-                  view={view}
-                  activeBucketId={activeBucketId}
-                  onActiveBucketChange={setActiveBucket}
-                  onTogglePin={togglePin}
-                />
-                <ProjectComparisonTable
-                  view={view}
-                  id={COMPARISON_TABLE_ID}
-                  activeBucketId={activeBucketId}
-                  onActiveBucketChange={setActiveBucket}
-                  onTogglePin={togglePin}
-                />
-              </div>
-            ) : (
-              <ProjectComparisonTable
-                view={view}
-                id={COMPARISON_TABLE_ID}
-                activeBucketId={activeBucketId}
-                onActiveBucketChange={setActiveBucket}
-                onTogglePin={togglePin}
-              />
-            )}
-          </>
+          <ProjectComparisonTable
+            view={view}
+            id={COMPARISON_TABLE_ID}
+            activeBucketId={activeBucketId}
+            onActiveBucketChange={setActiveBucket}
+            onTogglePin={togglePin}
+          />
         )}
       </div>
     </section>

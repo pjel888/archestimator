@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { ContextActionMenuContent } from "@/components/ui/action-menu";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
@@ -52,11 +51,9 @@ import type {
 } from "@/lib/repositories/workspace-repository";
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
-import { ProjectCard } from "./ProjectCard";
 import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
 import { ProjectGroupSection } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
-import { sampleProjects } from "./workshop-sample-projects";
 
 type ProjectsPageClientProps = {
   projects: Array<Tables<"projects"> | ProjectListItem>;
@@ -84,7 +81,6 @@ export type ProjectListItem = {
 
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
 const EMPTY_PROJECT_GROUPS: ProjectGroupSummary[] = [];
-const EMPTY_PROJECT_LIST_ITEMS: ProjectListItem[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
 
@@ -737,22 +733,7 @@ export function ProjectsPageClient({
     return [...searchedProjects].sort((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
   }, [activeBaseProjects, deferredSearchQuery, sortDirection, sortField, sortTouched]);
 
-  const filteredSamples = useMemo(() => {
-    const q = deferredSearchQuery.trim().toLowerCase();
-    if (!q) return sampleProjects;
-    return sampleProjects.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.client.toLowerCase().includes(q) ||
-        p.location.toLowerCase().includes(q),
-    );
-  }, [deferredSearchQuery]);
-
-  const hasLiveProjects = projectItems.length > 0;
-  const hasActiveProjects = activeBaseProjects.length > 0;
-  const projectControlsDisabled = !hasActiveProjects;
-  const displayLiveProjects = hasLiveProjects ? displayProjects : EMPTY_PROJECT_LIST_ITEMS;
-  const displaySamples = filteredSamples;
+  const displayLiveProjects = displayProjects;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
   const projectDateFlagLayoutClassName = getProjectDateFlagLayoutClassName(projectViewMode);
   // D4 decouple: grouping is gated on the organizeBy axis, NOT on the sort field.
@@ -789,11 +770,7 @@ export function ProjectsPageClient({
         : [],
     [organizeBy, groupItemsWithOverrides, projectGroups, isSearching],
   );
-  const isUserGroupOrganize = organizeBy === "group" && displayLiveProjects.length > 0;
-  // LD-10: groups exist but the active search hid them all (and nothing is Ungrouped) ⇒
-  // reuse the standard search-empty surface rather than a blank Group-mode wall.
-  const groupModeHasNoVisibleSections =
-    isUserGroupOrganize && projectGroups.length > 0 && groupedByUserGroup.length === 0;
+  const isUserGroupOrganize = organizeBy === "group";
   const selectableDisplayProjectIds = useMemo(
     () => displayLiveProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
     [displayLiveProjects],
@@ -1104,21 +1081,6 @@ export function ProjectsPageClient({
     );
   }
 
-  function renderCreateProjectAction(ariaLabel: string) {
-    return (
-      <Button
-        type="button"
-        variant="primary"
-        size="sm"
-        onClick={() => setIsModalOpen(true)}
-        aria-label={ariaLabel}
-      >
-        <Plus size={12} weight="regular" aria-hidden="true" />
-        Create project
-      </Button>
-    );
-  }
-
   // D8 card kebab: the per-card "Move to group" menu (owned cards in Group mode only) is built
   // inside the memoized ProjectCardRow from the primitive inputs computed here — see
   // ProjectCardRow for why this preserves memo while keeping the override-aware checkmark (LD-10).
@@ -1147,64 +1109,6 @@ export function ProjectsPageClient({
         effectiveGroupId={effectiveGroupId}
         groupBusy={pendingGroupProjectId === item.project.id}
         onAssignToGroup={stableAssignProjectToGroup}
-      />
-    );
-  }
-
-  function renderTabEmptyState() {
-    const hasSearch = Boolean(searchQuery.trim());
-
-    if (activeTab === "shared-to-you") {
-      return (
-        <EmptyState
-          icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-          title={hasSearch && hasActiveProjects ? "No shared projects match your search" : "No projects shared to you yet"}
-          description={
-            hasSearch && hasActiveProjects
-              ? "Try a project name, owner, invite code, role, or shared sheet."
-              : "When someone invites you as a viewer, editor, admin, or sheet collaborator, the project will appear here."
-          }
-          className="border-0 bg-white"
-        />
-      );
-    }
-
-    return (
-      <EmptyState
-        icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-        title={hasSearch && hasActiveProjects ? "No projects match your search" : "No projects created yet"}
-        description={
-          hasSearch && hasActiveProjects
-            ? "Try an owned project name, client, code, or location."
-            : "Create your first project here, or switch to shared projects to open work others invited you into."
-        }
-        action={hasSearch ? undefined : renderCreateProjectAction("Create your first project")}
-        className="border-0 bg-white"
-      />
-    );
-  }
-
-  // P0-1: when the user is in Group mode but has created NO groups yet, lead with a
-  // CTA EmptyState ABOVE the single Ungrouped flag so the mode is discoverable and
-  // never reads as broken. The CTA opens the same controlled Manage-groups popover.
-  function renderZeroGroupsEmptyState() {
-    return (
-      <EmptyState
-        icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
-        title="Organize projects into groups"
-        description="Create a group to start sorting your projects. Until then, everything stays under Ungrouped."
-        action={
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => setManageGroupsOpen(true)}
-          >
-            <Plus size={12} weight="regular" aria-hidden="true" />
-            Create your first group
-          </Button>
-        }
-        className="border-0 bg-white"
       />
     );
   }
@@ -1322,11 +1226,10 @@ export function ProjectsPageClient({
       filterSlot={
         <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
           <DropdownSelect
-            aria-label={projectControlsDisabled ? "View, disabled until this tab has projects" : "View"}
+            aria-label="View"
             options={VIEW_SELECT_OPTIONS}
             value={projectViewMode}
             onValueChange={(next) => writeProjectViewModePreference(next as ProjectCardViewMode)}
-            disabled={projectControlsDisabled}
             variant="boxed"
             triggerDisplay="icon"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
@@ -1336,58 +1239,54 @@ export function ProjectsPageClient({
             className="h-4 w-px shrink-0 bg-hairline"
             data-project-toolbar-view-divider=""
           />
-          {projectControlsDisabled ? null : (
-            <>
-              <DropdownSelect
-                aria-label={
-                  activeTab === "shared-to-you"
-                    ? "Organize by, grouping unavailable on shared projects"
-                    : "Organize by"
-                }
-                options={
-                  activeTab === "shared-to-you"
-                    ? PROJECT_ORGANIZE_BY_OPTIONS.map((option) =>
-                        option.value === "group" ? { ...option, disabled: true } : option,
-                      )
-                    : PROJECT_ORGANIZE_BY_OPTIONS
-                }
-                value={organizeBy}
-                onValueChange={handleOrganizeByChange}
-                variant="boxed"
-                triggerDisplay="icon"
-                className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
-              />
-              <DropdownSelect
-                aria-label="Sort field"
-                options={PROJECT_SORT_FIELD_OPTIONS}
-                value={sortField}
-                onValueChange={handleSortFieldChange}
-                variant="boxed"
-                triggerDisplay="icon"
-                className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
-              />
-              <DropdownSelect
-                aria-label="Sort direction"
-                options={sortDirectionOptions}
-                value={sortDirection}
-                onValueChange={handleSortDirectionChange}
-                variant="boxed"
-                triggerDisplay="icon"
-                className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
-              />
-              {organizeBy === "group" && activeTab === "your-projects" ? (
-                <ManageGroupsPopover
-                  groups={projectGroups}
-                  onCreate={handleCreateGroup}
-                  onRename={handleRenameGroup}
-                  onRecolor={handleRecolorGroup}
-                  onDelete={handleDeleteGroup}
-                  open={manageGroupsOpen}
-                  onOpenChange={setManageGroupsOpen}
-                />
-              ) : null}
-            </>
-          )}
+          <DropdownSelect
+            aria-label={
+              activeTab === "shared-to-you"
+                ? "Organize by, grouping unavailable on shared projects"
+                : "Organize by"
+            }
+            options={
+              activeTab === "shared-to-you"
+                ? PROJECT_ORGANIZE_BY_OPTIONS.map((option) =>
+                    option.value === "group" ? { ...option, disabled: true } : option,
+                  )
+                : PROJECT_ORGANIZE_BY_OPTIONS
+            }
+            value={organizeBy}
+            onValueChange={handleOrganizeByChange}
+            variant="boxed"
+            triggerDisplay="icon"
+            className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
+          />
+          <DropdownSelect
+            aria-label="Sort field"
+            options={PROJECT_SORT_FIELD_OPTIONS}
+            value={sortField}
+            onValueChange={handleSortFieldChange}
+            variant="boxed"
+            triggerDisplay="icon"
+            className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
+          />
+          <DropdownSelect
+            aria-label="Sort direction"
+            options={sortDirectionOptions}
+            value={sortDirection}
+            onValueChange={handleSortDirectionChange}
+            variant="boxed"
+            triggerDisplay="icon"
+            className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
+          />
+          {organizeBy === "group" && activeTab === "your-projects" ? (
+            <ManageGroupsPopover
+              groups={projectGroups}
+              onCreate={handleCreateGroup}
+              onRename={handleRenameGroup}
+              onRecolor={handleRecolorGroup}
+              onDelete={handleDeleteGroup}
+              open={manageGroupsOpen}
+              onOpenChange={setManageGroupsOpen}
+            />
+          ) : null}
         </div>
       }
       addActions={projectToolbarActions}
@@ -1441,94 +1340,50 @@ export function ProjectsPageClient({
           onClear={() => setSelectedProjectIds(new Set())}
           onSelectVisible={() => setSelectedProjectIds(new Set(selectableDisplayProjectIds))}
         />
-        {hasLiveProjects ? (
-          displayLiveProjects.length > 0 ? (
-            <section
-              aria-label="Live projects"
-              data-project-view-mode={projectViewMode}
-              className={shouldGroupProjects || isUserGroupOrganize ? "space-y-4" : projectLayoutClassName}
-            >
-              {isUserGroupOrganize && groupModeHasNoVisibleSections ? (
-                // LD-10: groups exist but the active search hid them all ⇒ standard search-empty surface.
-                renderTabEmptyState()
-              ) : isUserGroupOrganize ? (
-                <>
-                  {/* P0-1: zero-groups Group-mode CTA, ABOVE the single Ungrouped flag. */}
-                  {projectGroups.length === 0 ? renderZeroGroupsEmptyState() : null}
-                  {groupedByUserGroup.map((group) => (
-                    <ProjectGroupSection
-                      key={group.key}
-                      mode="group"
-                      group={{ key: group.key, label: group.label, accentId: group.accentId, isVirtual: group.isVirtual }}
-                      items={group.items}
-                      viewMode={projectViewMode}
-                      renderCard={renderLiveProjectCard}
-                      layoutClassName={projectLayoutClassName}
-                      flagLayoutClassName={projectDateFlagLayoutClassName}
-                      collapsed={collapsedGroupKeys.has(group.key)}
-                      onToggleCollapse={toggleGroupCollapsed}
-                      headerMenuSlot={group.isVirtual ? undefined : renderGroupHeaderMenu(group.key)}
-                    />
-                  ))}
-                </>
-              ) : shouldGroupProjects ? (
-                groupedLiveProjects.map((group) => (
-                  <ProjectGroupSection
-                    key={group.key}
-                    mode={group.kind === "client" ? "client" : "date"}
-                    group={{ key: group.key, label: group.label }}
-                    items={group.items}
-                    viewMode={projectViewMode}
-                    renderCard={renderLiveProjectCard}
-                    layoutClassName={projectLayoutClassName}
-                    flagLayoutClassName={projectDateFlagLayoutClassName}
-                    legacyHeaderDataAttr={group.kind === "date" ? "data-project-date-group-label" : undefined}
-                    legacySectionDataAttr={
-                      group.kind === "date"
-                        ? { "data-project-date-group": group.key }
-                        : { "data-project-client-group": group.key }
-                    }
-                  />
-                ))
-              ) : (
-                displayLiveProjects.map(renderLiveProjectCard)
-              )}
-            </section>
+        <section
+          aria-label="Live projects"
+          data-project-view-mode={projectViewMode}
+          className={shouldGroupProjects || isUserGroupOrganize ? "space-y-4" : projectLayoutClassName}
+        >
+          {isUserGroupOrganize ? (
+            groupedByUserGroup.map((group) => (
+              <ProjectGroupSection
+                key={group.key}
+                mode="group"
+                group={{ key: group.key, label: group.label, accentId: group.accentId, isVirtual: group.isVirtual }}
+                items={group.items}
+                viewMode={projectViewMode}
+                renderCard={renderLiveProjectCard}
+                layoutClassName={projectLayoutClassName}
+                flagLayoutClassName={projectDateFlagLayoutClassName}
+                collapsed={collapsedGroupKeys.has(group.key)}
+                onToggleCollapse={toggleGroupCollapsed}
+                headerMenuSlot={group.isVirtual ? undefined : renderGroupHeaderMenu(group.key)}
+              />
+            ))
+          ) : shouldGroupProjects ? (
+            groupedLiveProjects.map((group) => (
+              <ProjectGroupSection
+                key={group.key}
+                mode={group.kind === "client" ? "client" : "date"}
+                group={{ key: group.key, label: group.label }}
+                items={group.items}
+                viewMode={projectViewMode}
+                renderCard={renderLiveProjectCard}
+                layoutClassName={projectLayoutClassName}
+                flagLayoutClassName={projectDateFlagLayoutClassName}
+                legacyHeaderDataAttr={group.kind === "date" ? "data-project-date-group-label" : undefined}
+                legacySectionDataAttr={
+                  group.kind === "date"
+                    ? { "data-project-date-group": group.key }
+                    : { "data-project-client-group": group.key }
+                }
+              />
+            ))
           ) : (
-            renderTabEmptyState()
-          )
-        ) : activeTab === "your-projects" ? (
-          <section aria-label="Sample project references" className="space-y-2">
-            <EmptyState
-              icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-              title={searchQuery ? "No sample references match" : "Create the first live project"}
-              description={
-                searchQuery
-                  ? "Clear search or create a live project to start estimating from your own scope."
-                  : "Sample cards below are references only. Start a project to create estimates, insert components, and export a bid workbook."
-              }
-              action={renderCreateProjectAction("Create the first project")}
-              className="bg-white"
-            />
-            <div
-              data-project-view-mode={projectViewMode}
-              className={cn(
-                "grid",
-                projectViewMode === "small" || projectViewMode === "list"
-                  ? "grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2"
-                  : projectViewMode === "medium"
-                    ? "grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3"
-                    : "grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3",
-              )}
-            >
-              {displaySamples.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          </section>
-        ) : (
-          renderTabEmptyState()
-        )}
+            displayLiveProjects.map(renderLiveProjectCard)
+          )}
+        </section>
       </section>
       {inactiveAccessTabs.map((tab) => (
         <section

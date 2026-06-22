@@ -1,10 +1,7 @@
 "use client";
 
-import { Plus } from "@phosphor-icons/react/dist/ssr";
-
 import { Banner } from "@/components/ui/banner";
 import type { DropdownSelectOption } from "@/components/ui/dropdown-select";
-import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { AddEstimateColumn } from "@/components/workshop/project-data/AddEstimateColumn";
 import { EstimateColumn } from "@/components/workshop/project-data/EstimateColumn";
@@ -141,72 +138,55 @@ export function CostComparisonBoard({
         </div>
       </div>
 
-      {!baselineEstimate ? (
-        <EmptyState
-          title="No estimate sheets yet."
-          description="Create an estimate sheet to analyze project cost by category, supplier, or space."
-          action={
-            <a
-              href={`/workshop/projects/${summary.projectId}/estimates`}
-              className="inline-flex min-h-7 items-center justify-center gap-1 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium leading-none text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            >
-              <Plus size={12} weight="regular" />
-              Create estimate sheet
-            </a>
-          }
-          className="m-3 flex-1"
-        />
-      ) : (
-        <div className="min-h-0 flex-1 overflow-auto p-3">
-          <div className="flex min-w-max gap-3">
-            {displayEstimates.map((estimate, index) => {
-              const columnData = getColumnData(summary, estimate, groupingMode, comparisonBucketOrder);
-              const baseline = index === 0;
-              const baselineTotal = baselineEstimate?.totalCost ?? null;
-              const delta = !baseline && !isMixedCurrency && baselineEstimate ? estimate.totalCost - baselineEstimate.totalCost : null;
-              const swapOptions = getSwapOptions(estimateOptions, displayEstimateIds, estimate.id, baseline);
-              const canSwap = swapOptions.length > 1;
+      <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="flex min-w-max gap-3">
+          {displayEstimates.map((estimate, index) => {
+            const columnData = getColumnData(summary, estimate, groupingMode, comparisonBucketOrder);
+            const baseline = index === 0;
+            const baselineTotal = baselineEstimate?.totalCost ?? null;
+            const delta = !baseline && !isMixedCurrency && baselineEstimate ? estimate.totalCost - baselineEstimate.totalCost : null;
+            const swapOptions = getSwapOptions(estimateOptions, displayEstimateIds, estimate.id, baseline);
+            const canSwap = swapOptions.length > 1;
 
-              return (
-                <EstimateColumn
-                  key={estimate.id}
-                  estimate={estimate}
-                  baseline={baseline}
-                  groupingMode={groupingMode}
-                  buckets={columnData.buckets}
-                  total={columnData.total}
-                  currencyCode={columnData.currencyCode}
-                  delta={delta}
-                  baselineTotal={baselineTotal}
-                  activeBucketId={activeBucketId}
-                  swapOptions={swapOptions}
-                  canSwap={canSwap}
-                  onActiveBucketChange={onActiveBucketChange}
-                  onSwapEstimate={(nextId) => {
-                    if (nextId === estimate.id) return;
-                    if (baseline) {
-                      onBaselineChange(nextId);
-                      return;
-                    }
-                    const nextCompareIds = displayEstimateIds.slice(1);
-                    nextCompareIds[index - 1] = nextId;
-                    onCompareEstimateIdsChange(nextCompareIds.slice(0, MAX_COMPARE_COLUMNS - 1));
-                  }}
-                  onRemove={baseline ? undefined : () => onCompareEstimateIdsChange(compareEstimateIds.filter((id) => id !== estimate.id))}
-                />
-              );
-            })}
-            <AddEstimateColumn
-              remainingOptions={remainingOptions}
-              canAdd={canAddSheet}
-              onAdd={(estimateId) => onCompareEstimateIdsChange([...compareEstimateIds, estimateId].slice(0, MAX_COMPARE_COLUMNS - 1))}
-            />
-          </div>
-          <p className="mt-2 text-[9px] leading-4 text-secondary">
-            Each donut uses the selected grouping mode and its own breakdown list. Deltas compare each sheet against the baseline column.
-          </p>
+            return (
+              <EstimateColumn
+                key={estimate.id}
+                estimate={estimate}
+                baseline={baseline}
+                groupingMode={groupingMode}
+                buckets={columnData.buckets}
+                total={columnData.total}
+                currencyCode={columnData.currencyCode}
+                delta={delta}
+                baselineTotal={baselineTotal}
+                activeBucketId={activeBucketId}
+                swapOptions={swapOptions}
+                canSwap={canSwap}
+                onActiveBucketChange={onActiveBucketChange}
+                onSwapEstimate={(nextId) => {
+                  if (nextId === estimate.id) return;
+                  if (baseline) {
+                    onBaselineChange(nextId);
+                    return;
+                  }
+                  const nextCompareIds = displayEstimateIds.slice(1);
+                  nextCompareIds[index - 1] = nextId;
+                  onCompareEstimateIdsChange(nextCompareIds.slice(0, MAX_COMPARE_COLUMNS - 1));
+                }}
+                onRemove={baseline ? undefined : () => onCompareEstimateIdsChange(compareEstimateIds.filter((id) => id !== estimate.id))}
+              />
+            );
+          })}
+          <AddEstimateColumn
+            remainingOptions={remainingOptions}
+            canAdd={canAddSheet}
+            onAdd={(estimateId) => onCompareEstimateIdsChange([...compareEstimateIds, estimateId].slice(0, MAX_COMPARE_COLUMNS - 1))}
+          />
         </div>
-      )}
+        <p className="mt-2 text-[9px] leading-4 text-secondary">
+          Each donut uses the selected grouping mode and its own breakdown list. Deltas compare each sheet against the baseline column.
+        </p>
+      </div>
     </section>
   );
 }

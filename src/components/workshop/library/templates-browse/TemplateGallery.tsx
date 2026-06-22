@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DotsThree, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { DotsThree, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import { EmptyState } from "@/components/ui/empty-state";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import {
@@ -272,68 +271,21 @@ export function TemplateGallery({
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
-        {visibleTemplates.length > 0 ? (
-          <ul className="flex flex-col gap-1.5" aria-label={`${scopeLabel} template rows`}>
-            {visibleTemplates.map((template) => (
-              <TemplateGalleryRow
-                key={template.id}
-                template={template}
-                selected={selectedTemplateId === template.id}
-                onSelect={onSelectTemplate}
-                onOpen={onOpenTemplate}
-                onInsert={onInsertIntoEstimate}
-                onRename={onRenameTemplate}
-                onDuplicate={onDuplicateTemplate}
-                onRequestDelete={onRequestDeleteTemplate}
-              />
-            ))}
-          </ul>
-        ) : totalTemplateCount === 0 ? (
-          <EmptyState
-            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title="No templates yet."
-            description="Save a template to reuse line items."
-            action={
-              <Button type="button" variant="primary" size="xs" className="min-w-0 px-2" onClick={onNewTemplate}>
-                New template
-              </Button>
-            }
-            className="h-full border-0 bg-white"
-          />
-        ) : searchQuery ? (
-          <EmptyState
-            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title={scopeLabel}
-            description={`No templates match "${searchQuery}".`}
-            action={
-              <Button
-                type="button"
-                variant="secondary"
-                size="xs"
-                className="min-w-0 px-2"
-                onClick={() => {
-                  setSearchQuery("");
-                  searchInputRef.current?.focus();
-                }}
-              >
-                Clear search
-              </Button>
-            }
-            className="h-full border-0 bg-white"
-          />
-        ) : (
-          <EmptyState
-            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title={scopeLabel}
-            description="No templates in this group yet."
-            action={
-              <Button type="button" variant="primary" size="xs" className="min-w-0 px-2" onClick={onNewTemplate}>
-                New template
-              </Button>
-            }
-            className="h-full border-0 bg-white"
-          />
-        )}
+        <ul className="flex flex-col gap-1.5" aria-label={`${scopeLabel} template rows`}>
+          {visibleTemplates.map((template) => (
+            <TemplateGalleryRow
+              key={template.id}
+              template={template}
+              selected={selectedTemplateId === template.id}
+              onSelect={onSelectTemplate}
+              onOpen={onOpenTemplate}
+              onInsert={onInsertIntoEstimate}
+              onRename={onRenameTemplate}
+              onDuplicate={onDuplicateTemplate}
+              onRequestDelete={onRequestDeleteTemplate}
+            />
+          ))}
+        </ul>
       </div>
     </section>
   );
