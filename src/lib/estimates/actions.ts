@@ -869,6 +869,32 @@ function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
   return libraryItem.source === "library" && isUuid(libraryItem.id) ? libraryItem.id : null;
 }
 
+async function assertCurrentLibrarySourceForEstimateCommit(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  libraryItem: EstimateRowItem,
+) {
+  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
+  if (!sourceLibraryItemId) return;
+
+  const { data, error } = await supabase
+    .from("cost_library_items")
+    .select("id, updated_at, lifecycle_state")
+    .eq("id", sourceLibraryItemId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    throw new Error("Library source changed. Refresh the estimate before committing this component.");
+  }
+  if (data.lifecycle_state === "archived") {
+    throw new Error("Library source is archived. Refresh the estimate before committing this component.");
+  }
+  const sourceUpdatedAt = typeof data.updated_at === "string" ? data.updated_at : null;
+  if (libraryItem.updatedAt && sourceUpdatedAt && sourceUpdatedAt !== libraryItem.updatedAt) {
+    throw new Error("Library source changed. Refresh the estimate before committing this component.");
+  }
+}
+
 async function insertEstimateWithSheetCodeFallback(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   payload: TablesInsert<"estimates">,
@@ -2483,6 +2509,8 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   if (nodeError) throw nodeError;
   if (!targetNode) throw new Error("Target estimate node not found in the current project.");
 
+  await assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem);
+
   const quantity = libraryItem.quantity || 1;
   const sourceSnapshot = getSourceSnapshot(libraryItem);
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
@@ -2560,6 +2588,7 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   const quantity = libraryItem.quantity || 1;
+  await assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem);
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const { data, error } = await supabase.rpc("replace_estimate_row_item_with_history", {
     target_project_id: project.id,

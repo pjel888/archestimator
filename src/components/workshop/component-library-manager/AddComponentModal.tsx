@@ -1731,6 +1731,7 @@ export function AddComponentModal({
                     <ControlInput
                       ref={initialFocusRef}
                       aria-label="Name"
+                      data-dialog-initial-focus
                       value={draft.name}
                       onBlur={scheduleDuplicateCheck}
                       onChange={(event) => updateQuickAddIdentity({ name: event.target.value })}

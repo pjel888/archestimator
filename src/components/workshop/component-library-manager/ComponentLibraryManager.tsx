@@ -1267,7 +1267,7 @@ function ComponentLibrarySheet({
   status: SheetStatus;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
-  onAddComponent: () => void;
+  onAddComponent: (trigger?: HTMLElement | null) => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
@@ -1348,6 +1348,12 @@ function ComponentLibrarySheet({
   );
   const denseCatalogueCards = useMemo(() => sortDenseCatalogueCards(flattenCatalogueOutline(catalogueOutline), denseSort), [catalogueOutline, denseSort]);
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
+  const cardScaleFallbackActive = Boolean(
+    denseModeEnabled &&
+      WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.enabled &&
+      effectiveDisplayMode === "cards" &&
+      visibleItems.length >= WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows,
+  );
   const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
   const resultSummary = getCatalogueScopeSummary(sheetItems.length);
   const toggleCatalogueBranch = (branchId: string) => {
@@ -1424,7 +1430,7 @@ function ComponentLibrarySheet({
               visibleLabel: "Add component",
               showVisibleLabel: true,
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
-              onClick: onAddComponent,
+              onClick: (event) => onAddComponent(event.currentTarget),
               className: surfaceVariant === "glass"
                 ? "workshop-liquid-button border px-2 text-secondary hover:text-ink"
                 : undefined,
@@ -1528,24 +1534,46 @@ function ComponentLibrarySheet({
               onPromote={onPromoteItem}
               promotingItemId={promotingItemId}
             />
+          ) : cardScaleFallbackActive ? (
+            <div
+              className="grid h-full min-h-[240px] place-items-center rounded-xs border border-dashed border-hairline bg-white p-4 text-center"
+              data-component-card-scale-fallback="true"
+              data-component-card-scale-fallback-count={visibleItems.length}
+              data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
+              data-library-virtualization-min-rows={WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows}
+            >
+              <div className="grid justify-items-center gap-2">
+                <p className="text-[10px] font-medium leading-4 text-ink">
+                  {String(visibleItems.length)} components match.
+                </p>
+                <button
+                  type="button"
+                  className="inline-flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  onClick={() => changeDisplayMode("dense")}
+                >
+                  <Rows size={12} weight="regular" aria-hidden="true" />
+                  Dense
+                </button>
+              </div>
+            </div>
           ) : (
-          <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
-            {catalogueOutline.branches.map((branch) => (
-              <ComponentCatalogueBranch
-                key={branch.id}
-                branch={branch}
-                collapsedBranchIds={collapsedCatalogueBranchIds}
-                onToggleBranch={toggleCatalogueBranch}
-                selectedItemIds={selectedItemIds}
-                inspectorItemId={inspectorItemId}
-                onToggleSelected={onToggleSelected}
-                onInspect={onInspectItem}
-                onPromote={onPromoteItem}
-                promotingItemId={promotingItemId}
-              />
-            ))}
-            {catalogueOutline.items.length > 0 ? (
-              <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
+            <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
+              {catalogueOutline.branches.map((branch) => (
+                <ComponentCatalogueBranch
+                  key={branch.id}
+                  branch={branch}
+                  collapsedBranchIds={collapsedCatalogueBranchIds}
+                  onToggleBranch={toggleCatalogueBranch}
+                  selectedItemIds={selectedItemIds}
+                  inspectorItemId={inspectorItemId}
+                  onToggleSelected={onToggleSelected}
+                  onInspect={onInspectItem}
+                  onPromote={onPromoteItem}
+                  promotingItemId={promotingItemId}
+                />
+              ))}
+              {catalogueOutline.items.length > 0 ? (
+                <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
                 <div className="flex min-h-[72px] min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-3 py-2.5">
                   <SquaresFour size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                   <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -1620,7 +1648,7 @@ function ComponentLibrarySheetPanel({
   status: SheetStatus;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
-  onAddComponent: () => void;
+  onAddComponent: (trigger?: HTMLElement | null) => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
@@ -1804,8 +1832,8 @@ export function ComponentLibraryManager({
     setSelectedBrandNodeId(nodeId);
   }
 
-  function openAddComponentModal() {
-    addButtonReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  function openAddComponentModal(trigger?: HTMLElement | null) {
+    addButtonReturnRef.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     quickAddSessionCounterRef.current += 1;
     quickAddSessionRef.current = { id: `quick-add-${quickAddSessionCounterRef.current}` };
     recordLibraryEvent("quick_add_started", {
@@ -1816,11 +1844,25 @@ export function ComponentLibraryManager({
     setAddComponentOpen(true);
   }
 
+  function restoreAddComponentTriggerFocus() {
+    const target = addButtonReturnRef.current;
+    if (!target) return;
+
+    const focusTarget = () => {
+      if (!target.isConnected) return;
+      target.focus({ preventScroll: true });
+    };
+
+    requestAnimationFrame(() => {
+      focusTarget();
+      window.setTimeout(focusTarget, 0);
+    });
+  }
 
   function setAddComponentOpenWithFocus(open: boolean) {
     setAddComponentOpen(open);
     if (!open) {
-      requestAnimationFrame(() => addButtonReturnRef.current?.focus());
+      restoreAddComponentTriggerFocus();
     }
   }
 

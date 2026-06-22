@@ -1,6 +1,11 @@
 import { classifyEstimateRowSource, isExpressComponentProjectFolderEnabled, readEstimateRowMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
-import { fallbackComponentRowsLibraryDataset, getCurrentWorkspaceComponentRowsLibrary, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import {
+  SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT,
+  fallbackComponentRowsLibraryDataset,
+  getCurrentWorkspaceComponentRowsLibrary,
+  type ComponentRowsLibraryDataset,
+} from "@/lib/repositories/component-library-repository";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EstimateRowItem } from "@/lib/estimates/types";
@@ -41,6 +46,12 @@ export type ProjectComponentProjectionRow = {
   } | null;
 };
 
+export type ProjectComponentRowsLibraryOptions = {
+  includeDetailGraph?: boolean;
+  itemLimit?: number;
+  projectRowLimit?: number;
+};
+
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -52,6 +63,12 @@ function readNumber(value: unknown) {
 
 function readString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function normalizeProjectComponentRowLimit(limit: number | undefined): number | undefined {
+  if (limit === undefined) return undefined;
+  if (!Number.isFinite(limit)) return SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT;
+  return Math.max(1, Math.min(SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT, Math.floor(limit)));
 }
 
 export function getProjectComponentsFolderId(projectId: string) {
@@ -152,22 +169,27 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
 
 export async function getProjectComponentRowsLibrary(
   projectId: string,
-  options: { includeDetailGraph?: boolean } = {},
+  options: ProjectComponentRowsLibraryOptions = {},
 ): Promise<ComponentRowsLibraryDataset> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return fallbackComponentRowsLibraryDataset;
 
   const library = await getCurrentWorkspaceComponentRowsLibrary({
     includeDetailGraph: options.includeDetailGraph,
+    itemLimit: options.itemLimit,
   });
   if (!isExpressComponentProjectFolderEnabled()) return library;
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
+  let projectRowsQuery = supabase
     .from("estimate_row_items")
     .select("id, material, description, supplier, supplier_id, unit, unit_cost, quantity, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at, estimate_nodes!inner(id, name, estimates!inner(id, name, project_id))")
     .eq("estimate_nodes.estimates.project_id", project.id)
     .order("created_at", { ascending: false });
+  if (projectRowLimit !== undefined) projectRowsQuery = projectRowsQuery.limit(projectRowLimit);
+
+  const { data, error } = await projectRowsQuery;
 
   if (error) throw error;
 

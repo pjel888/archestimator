@@ -155,12 +155,64 @@ export function setLibraryTelemetrySink(next: LibraryTelemetrySink | null) {
   sink = next;
 }
 
+const MAX_TELEMETRY_STRING_LENGTH = 120;
+const UNSAFE_TELEMETRY_STRING_PATTERN =
+  /(?:https?:|\/{2}|[/?\\#]|(?:^|[&?])(?:token|signature|expires|apikey|key)=|storage[_-]?path|signed[_-]?url|source[_-]?url|file[_-]?name|private note|review note|\.pdf\b|\.xlsx?\b|\.csv\b|\.jpe?g\b|\.png\b|\.webp\b)/i;
+const ENUM_LIKE_TELEMETRY_STRING_PATTERN = /^[a-zA-Z0-9_.:-]+(?:,[a-zA-Z0-9_.:-]+)*$/;
+const ENUM_TEXT_TELEMETRY_VALUES = new Set(["very stale"]);
+const FREE_TEXT_PRONE_TELEMETRY_KEYS = new Set<keyof LibraryTelemetryPayload>([
+  "reason",
+  "action",
+  "role",
+  "cacheKey",
+  "eventName",
+  "field",
+  "rule",
+  "violationCode",
+  "inputCategory",
+  "origin",
+  "endpoint",
+  "window",
+  "pattern",
+  "attemptedValue",
+  "mimeType",
+  "extension",
+  "format",
+]);
+
+function sanitizeLibraryTelemetryString(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return undefined;
+  if (UNSAFE_TELEMETRY_STRING_PATTERN.test(trimmed)) return undefined;
+  return trimmed.slice(0, MAX_TELEMETRY_STRING_LENGTH);
+}
+
+function sanitizeLibraryTelemetryValue(
+  key: keyof LibraryTelemetryPayload,
+  value: LibraryTelemetryPayload[keyof LibraryTelemetryPayload],
+) {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "string") {
+    const safeString = sanitizeLibraryTelemetryString(value);
+    if (!safeString) return undefined;
+    if (FREE_TEXT_PRONE_TELEMETRY_KEYS.has(key) && !ENUM_LIKE_TELEMETRY_STRING_PATTERN.test(safeString)) {
+      return ENUM_TEXT_TELEMETRY_VALUES.has(safeString) ? safeString : undefined;
+    }
+    return safeString;
+  }
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value === "boolean") return value;
+  return undefined;
+}
+
 function sanitizeLibraryTelemetryPayload(payload: LibraryTelemetryPayload): LibraryTelemetryPayload {
   const safePayload: LibraryTelemetryPayload = {};
   const entries = Object.entries(payload) as Array<[keyof LibraryTelemetryPayload, LibraryTelemetryPayload[keyof LibraryTelemetryPayload]]>;
   for (const [key, value] of entries) {
     if (!SAFE_PAYLOAD_KEYS.has(key) || value === undefined) continue;
-    safePayload[key] = value as never;
+    const safeValue = sanitizeLibraryTelemetryValue(key, value);
+    if (safeValue !== undefined) safePayload[key] = safeValue as never;
   }
   return safePayload;
 }

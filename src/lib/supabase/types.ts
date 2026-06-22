@@ -1168,8 +1168,129 @@ export type Database = {
           },
         ]
       }
+      cost_library_attachment_review_events: {
+        Row: {
+          actor_id: string | null
+          applicable_cost_entry_id: string | null
+          attachment_id: string
+          created_at: string
+          event_type: Database["public"]["Enums"]["cost_library_attachment_review_event_type"]
+          from_status: Database["public"]["Enums"]["cost_library_attachment_review_status"] | null
+          id: string
+          item_id: string
+          metadata: Json
+          price_option_id: string
+          reason: string | null
+          to_status: Database["public"]["Enums"]["cost_library_attachment_review_status"] | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          applicable_cost_entry_id?: string | null
+          attachment_id: string
+          created_at?: string
+          event_type: Database["public"]["Enums"]["cost_library_attachment_review_event_type"]
+          from_status?: Database["public"]["Enums"]["cost_library_attachment_review_status"] | null
+          id?: string
+          item_id: string
+          metadata?: Json
+          price_option_id: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["cost_library_attachment_review_status"] | null
+          workspace_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          applicable_cost_entry_id?: string | null
+          attachment_id?: string
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["cost_library_attachment_review_event_type"]
+          from_status?: Database["public"]["Enums"]["cost_library_attachment_review_status"] | null
+          id?: string
+          item_id?: string
+          metadata?: Json
+          price_option_id?: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["cost_library_attachment_review_status"] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_library_attachment_review_events_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "cost_library_item_variant_attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_library_attachment_review_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_library_cost_review_events: {
+        Row: {
+          actor_id: string | null
+          cost_entry_id: string
+          created_at: string
+          event_type: Database["public"]["Enums"]["cost_library_cost_review_event_type"]
+          from_status: Database["public"]["Enums"]["cost_library_cost_review_status"] | null
+          id: string
+          metadata: Json
+          price_option_id: string
+          reason: string | null
+          to_status: Database["public"]["Enums"]["cost_library_cost_review_status"] | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          cost_entry_id: string
+          created_at?: string
+          event_type: Database["public"]["Enums"]["cost_library_cost_review_event_type"]
+          from_status?: Database["public"]["Enums"]["cost_library_cost_review_status"] | null
+          id?: string
+          metadata?: Json
+          price_option_id: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["cost_library_cost_review_status"] | null
+          workspace_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          cost_entry_id?: string
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["cost_library_cost_review_event_type"]
+          from_status?: Database["public"]["Enums"]["cost_library_cost_review_status"] | null
+          id?: string
+          metadata?: Json
+          price_option_id?: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["cost_library_cost_review_status"] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_library_cost_review_events_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cost_library_item_variant_cost_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_library_cost_review_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_library_item_variant_attachments: {
         Row: {
+          applicable_cost_entry_id: string | null
           attachment_kind: string
           content_type: string
           created_at: string
@@ -1177,15 +1298,23 @@ export type Database = {
           file_name: string
           id: string
           item_id: string
+          is_current_approved: boolean
           metadata: Json
           price_option_id: string
+          review_note: string | null
+          review_revision: number
+          review_status: Database["public"]["Enums"]["cost_library_attachment_review_status"]
+          reviewed_at: string | null
+          reviewed_by: string | null
           size_bytes: number
           storage_bucket: string
           storage_path: string
+          superseded_by: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          applicable_cost_entry_id?: string | null
           attachment_kind: string
           content_type: string
           created_at?: string
@@ -1193,15 +1322,23 @@ export type Database = {
           file_name: string
           id?: string
           item_id: string
+          is_current_approved?: boolean
           metadata?: Json
           price_option_id: string
+          review_note?: string | null
+          review_revision?: number
+          review_status?: Database["public"]["Enums"]["cost_library_attachment_review_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           size_bytes: number
           storage_bucket?: string
           storage_path: string
+          superseded_by?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          applicable_cost_entry_id?: string | null
           attachment_kind?: string
           content_type?: string
           created_at?: string
@@ -1209,11 +1346,18 @@ export type Database = {
           file_name?: string
           id?: string
           item_id?: string
+          is_current_approved?: boolean
           metadata?: Json
           price_option_id?: string
+          review_note?: string | null
+          review_revision?: number
+          review_status?: Database["public"]["Enums"]["cost_library_attachment_review_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           size_bytes?: number
           storage_bucket?: string
           storage_path?: string
+          superseded_by?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -1257,6 +1401,7 @@ export type Database = {
       }
       cost_library_item_variant_cost_entries: {
         Row: {
+          assigned_to: string | null
           confidence: string | null
           created_at: string
           created_by: string | null
@@ -1265,17 +1410,28 @@ export type Database = {
           id: string
           is_current: boolean
           item_id: string
+          lock_reason: string | null
+          locked_at: string | null
+          locked_by: string | null
           misc_cost: number
           notes: string
           price_option_id: string
           pricing_date: string
           pricing_source: string | null
+          review_due_at: string | null
+          review_note: string | null
+          review_revision: number
+          review_status: Database["public"]["Enums"]["cost_library_cost_review_status"]
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_url: string | null
+          superseded_by: string | null
           unit_cost: number
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          assigned_to?: string | null
           confidence?: string | null
           created_at?: string
           created_by?: string | null
@@ -1284,17 +1440,28 @@ export type Database = {
           id?: string
           is_current?: boolean
           item_id: string
+          lock_reason?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           misc_cost?: number
           notes?: string
           price_option_id: string
           pricing_date?: string
           pricing_source?: string | null
+          review_due_at?: string | null
+          review_note?: string | null
+          review_revision?: number
+          review_status?: Database["public"]["Enums"]["cost_library_cost_review_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_url?: string | null
+          superseded_by?: string | null
           unit_cost?: number
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          assigned_to?: string | null
           confidence?: string | null
           created_at?: string
           created_by?: string | null
@@ -1303,12 +1470,22 @@ export type Database = {
           id?: string
           is_current?: boolean
           item_id?: string
+          lock_reason?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           misc_cost?: number
           notes?: string
           price_option_id?: string
           pricing_date?: string
           pricing_source?: string | null
+          review_due_at?: string | null
+          review_note?: string | null
+          review_revision?: number
+          review_status?: Database["public"]["Enums"]["cost_library_cost_review_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_url?: string | null
+          superseded_by?: string | null
           unit_cost?: number
           updated_at?: string
           workspace_id?: string
@@ -3775,6 +3952,33 @@ export type Database = {
         }
         Returns: Json
       }
+      accept_cost_library_cost_entry: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          target_cost_entry_id: string
+        }
+        Returns: Json
+      }
+      approve_cost_library_attachment: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          target_applicable_cost_entry_id?: string
+          target_attachment_id: string
+        }
+        Returns: Json
+      }
+      assign_cost_library_cost_refresh: {
+        Args: {
+          assignee_id: string
+          expected_review_revision: number
+          reason?: string
+          target_cost_entry_id: string
+          target_review_due_at: string
+        }
+        Returns: Json
+      }
       create_ai_package_library_components_with_history: {
         Args: {
           component_payloads: Json
@@ -3799,6 +4003,60 @@ export type Database = {
           component: Json
           price_options: Json
           target_workspace_id: string
+        }
+        Returns: Json
+      }
+      lock_cost_library_cost_entry: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          target_cost_entry_id: string
+        }
+        Returns: Json
+      }
+      reject_cost_library_attachment: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          target_attachment_id: string
+        }
+        Returns: Json
+      }
+      reject_cost_library_cost_entry: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          target_cost_entry_id: string
+        }
+        Returns: Json
+      }
+      require_cost_library_governance_admin: {
+        Args: { target_workspace_id: string }
+        Returns: string
+      }
+      supersede_cost_library_attachment: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          replacement_attachment_id: string
+          target_attachment_id: string
+        }
+        Returns: Json
+      }
+      supersede_cost_library_cost_entry: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          replacement_cost_entry_id: string
+          target_cost_entry_id: string
+        }
+        Returns: Json
+      }
+      unlock_cost_library_cost_entry: {
+        Args: {
+          expected_review_revision: number
+          reason?: string
+          target_cost_entry_id: string
         }
         Returns: Json
       }
@@ -4539,6 +4797,32 @@ export type Database = {
         | "available"
         | "discontinued"
         | "archived"
+      cost_library_attachment_review_event_type:
+        | "uploaded"
+        | "approved"
+        | "rejected"
+        | "superseded"
+        | "download_url_issued"
+      cost_library_attachment_review_status:
+        | "uploaded"
+        | "approved"
+        | "rejected"
+        | "superseded"
+      cost_library_cost_review_event_type:
+        | "proposed"
+        | "marked_needs_review"
+        | "assigned"
+        | "accepted"
+        | "locked"
+        | "unlocked"
+        | "rejected"
+        | "superseded"
+      cost_library_cost_review_status:
+        | "proposed"
+        | "needs_review"
+        | "accepted"
+        | "rejected"
+        | "superseded"
       cost_library_item_kind:
         | "material"
         | "labor"
@@ -4711,6 +4995,36 @@ export const Constants = {
         "available",
         "discontinued",
         "archived",
+      ],
+      cost_library_attachment_review_event_type: [
+        "uploaded",
+        "approved",
+        "rejected",
+        "superseded",
+        "download_url_issued",
+      ],
+      cost_library_attachment_review_status: [
+        "uploaded",
+        "approved",
+        "rejected",
+        "superseded",
+      ],
+      cost_library_cost_review_event_type: [
+        "proposed",
+        "marked_needs_review",
+        "assigned",
+        "accepted",
+        "locked",
+        "unlocked",
+        "rejected",
+        "superseded",
+      ],
+      cost_library_cost_review_status: [
+        "proposed",
+        "needs_review",
+        "accepted",
+        "rejected",
+        "superseded",
       ],
       cost_library_item_kind: [
         "material",

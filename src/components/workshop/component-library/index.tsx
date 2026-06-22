@@ -53,6 +53,7 @@ import {
   EMPTY_COMPONENT_FACET_FILTERS,
   type ComponentFacetFilters,
 } from "@/components/workshop/library/component-facet-filter";
+import { SourceTrustChips, getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { NewComponentForm } from "./NewComponentForm";
 import { NewTemplateModal } from "./NewTemplateModal";
 import {
@@ -259,6 +260,7 @@ function PreviewPanel({
   const stalenessTone = getStalenessTone(item.pricingDate);
   const stalenessLabel = getStalenessLabel(item.pricingDate);
   const sourceHref = sanitizeComponentSourceUrl(item.sourceUrl);
+  const trustChips = getComponentSourceTrustChips(item);
   const hasManagementActions = Boolean(onEdit || onDuplicate || onFavorite || onDelete);
   const stalenessClass =
     stalenessTone === "danger"
@@ -298,9 +300,15 @@ function PreviewPanel({
             {pesoFormatter.format(getComponentPrice(item))} / {item.unit}
           </p>
           <p className={cn("mt-0.5 truncate text-[8px] font-medium leading-3", stalenessClass)}>
-            {item.pricingSource || item.supplier || "Library"}
+            Library · {item.pricingSource || item.supplier || "Missing price source"}
             {stalenessLabel ? ` · ${stalenessLabel}` : ""}
           </p>
+          <SourceTrustChips
+            chips={trustChips}
+            ariaLabel={`${getComponentName(item)} preview source trust`}
+            className="mt-1"
+            maxChips={4}
+          />
         </div>
       </div>
       <div className="px-2 pb-2">
@@ -2151,6 +2159,8 @@ function EstimateRightSidebarBase({
   const activeSearchLabel = isProjectTab ? "Search Project Components" : isTemplatesTab ? "Search Templates" : "Search Library";
   const activeToolsLabel = isProjectTab ? "Project tools" : isTemplatesTab ? "Template tools" : "Library tools";
   const activeExpandedNodeIds = isProjectTab ? projectExpandedNodeIds : expandedNodeIdsByViewMode[componentViewMode];
+  const activeLibraryTreeAriaLabel = isProjectTab ? "Project sources" : "Library sources";
+  const activeSourceScopeLabel = isProjectTab ? "Project" : "Library";
 
   return (
     <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={560} minWidth={360} maxWidth={560}>
@@ -2314,6 +2324,8 @@ function EstimateRightSidebarBase({
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
                 showThumbnails
+                treeAriaLabel={activeLibraryTreeAriaLabel}
+                sourceScopeLabel={activeSourceScopeLabel}
                 selectable
                 checkedIds={bulkSelectedIds}
                 onCheckToggle={handleBulkCheckToggle}
@@ -2507,9 +2519,15 @@ function EstimateRightSidebarBase({
           </div>
         ) : null}
 
-        <div aria-live="polite" aria-atomic="true" className="sr-only">
-          {lastActionMessage}
-        </div>
+        {lastActionMessage ? (
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            className="absolute bottom-2 left-2 z-30 max-w-80 rounded-xs border border-hairline bg-white px-2 py-1.5 text-[9px] font-medium leading-4 text-ink shadow-lg"
+          >
+            {lastActionMessage}
+          </div>
+        ) : null}
 
         {/* Bulk delete confirmation */}
         {bulkDeleteConfirmOpen && isLibraryTab ? (

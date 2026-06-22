@@ -20,59 +20,42 @@ export default function Loading() {
                 <Skeleton className="h-2.5 w-20" />
                 <Skeleton className="h-4 w-36" />
                 <Skeleton className="h-3 w-80 max-w-full" />
+                <Skeleton className="h-3 w-44" />
               </div>
               <div className="flex flex-col gap-2 lg:flex-row">
                 <Skeleton className="h-7 w-full sm:w-[216px]" />
-                <Skeleton className="h-7 w-full sm:w-[240px]" />
-                <Skeleton className="h-7 w-full sm:w-[180px]" />
               </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-6 w-44" />
             </div>
 
             <Skeleton className="mt-3 h-4 w-8/12" />
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-3">
-            <div className="overflow-x-auto rounded-xs border border-hairline bg-white">
-              <div className="grid grid-cols-[15rem_repeat(2,minmax(17rem,1fr))] border-b border-hairline bg-surfaceMuted/60">
-                <div className="p-2">
-                  <Skeleton className="h-3 w-20" />
-                </div>
-                <div className="border-l border-hairline p-2">
-                  <Skeleton className="h-3 w-44" />
-                  <Skeleton className="mt-2 h-4 w-28" />
-                </div>
-                <div className="border-l border-hairline p-2">
-                  <Skeleton className="h-3 w-40" />
-                  <Skeleton className="mt-2 h-4 w-32" />
-                </div>
-              </div>
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-[15rem_repeat(2,minmax(17rem,1fr))] border-b border-hairline last:border-b-0">
-                  <div className="flex items-center gap-2 p-2">
-                    <Skeleton className="size-2 rounded-xs" />
-                    <Skeleton className="h-3 w-28" />
+            <div className="flex min-w-max gap-3">
+              {Array.from({ length: 2 }).map((_, columnIndex) => (
+                <div key={columnIndex} className="flex min-w-[280px] flex-1 flex-col rounded-xs border border-hairline bg-surface px-4 py-3">
+                  <div className="flex min-h-6 items-center justify-between gap-2">
+                    <Skeleton className="h-4 w-20" />
+                    {columnIndex > 0 ? <Skeleton className="size-6" /> : null}
                   </div>
-                  <div className="space-y-2 border-l border-hairline p-2">
-                    <div className="flex justify-between gap-2">
-                      <Skeleton className="h-3 w-24" />
-                      <Skeleton className="h-3 w-10" />
-                    </div>
-                    <Skeleton className="h-2 w-full" />
+                  <Skeleton className="mt-3 h-4 w-44" />
+                  <Skeleton className="mt-2 h-6 w-32" />
+                  <Skeleton className="mt-1 h-3 w-24" />
+                  <Skeleton className="mx-auto mt-3 h-[180px] w-[180px] rounded-xs" />
+                  <div className="mt-3 space-y-2">
+                    {Array.from({ length: 6 }).map((_, rowIndex) => (
+                      <div key={rowIndex} className="flex items-center gap-2">
+                        <Skeleton className="size-2 rounded-xs" />
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="ml-auto h-3 w-16" />
+                        <Skeleton className="h-3 w-10" />
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-2 border-l border-hairline p-2">
-                    <div className="flex justify-between gap-2">
-                      <Skeleton className="h-3 w-24" />
-                      <Skeleton className="h-3 w-10" />
-                    </div>
-                    <Skeleton className="h-2 w-10/12" />
-                  </div>
+                  <Skeleton className="mt-auto h-8 w-full" />
                 </div>
               ))}
+              <Skeleton className="min-h-full w-[132px] rounded-xs border border-dashed border-hairline" />
             </div>
             <Skeleton className="mt-2 h-3 w-80 max-w-full" />
           </div>

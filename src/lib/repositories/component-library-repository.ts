@@ -56,6 +56,7 @@ export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templat
 type EstimateTemplateRow = Tables<"estimate_templates">;
 type EstimateTemplateNodeRow = Tables<"estimate_template_nodes">;
 type EstimateTemplateRowItemRow = Tables<"estimate_template_row_items">;
+type CostLibraryItemRow = Tables<"cost_library_items">;
 type ComponentPriceOptionRow = Tables<"cost_library_item_price_options">;
 type ComponentVersionRow = Tables<"cost_library_item_versions">;
 type ComponentPriceHistoryRow = Tables<"cost_library_item_price_history">;
@@ -75,7 +76,16 @@ type BuildEstimateTemplatesInput = {
 
 type ComponentLibraryRepositoryClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
-const COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE = 100;
+const COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE = 1000;
+export const SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50;
+export const SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100;
+export const SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS =
+  "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, confidence, metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
+
+type ComponentRowsLibraryLoadOptions = {
+  includeDetailGraph?: boolean;
+  itemLimit?: number;
+};
 
 function readMetadataRecord(metadata: Json): Record<string, Json> {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
@@ -86,27 +96,84 @@ function readString(value: Json | undefined): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function chunkArray<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
-}
-
-async function collectComponentLibraryRowsInItemChunks<T>(
+async function collectComponentLibraryWorkspaceRowsForItems<T extends { item_id: string }>(
   itemIds: string[],
-  loadChunk: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { code?: string | null; message?: string | null } | null }>,
+  loadPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { code?: string | null; message?: string | null } | null }>,
 ): Promise<ComponentLibraryChunkedResult<T>> {
   const data: T[] = [];
+  const itemIdSet = new Set(itemIds);
 
-  for (const chunk of chunkArray(itemIds, COMPONENT_LIBRARY_ITEM_ID_QUERY_CHUNK_SIZE)) {
-    const result = await loadChunk(chunk);
+  for (let from = 0;; from += COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) {
+    const to = from + COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE - 1;
+    const result = await loadPage(from, to);
     if (result.error) return { data: [], error: result.error };
-    data.push(...(result.data ?? []));
+
+    const pageRows = result.data ?? [];
+    data.push(...pageRows.filter((row) => itemIdSet.has(row.item_id)));
+    if (pageRows.length < COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) return { data, error: null };
+  }
+}
+
+async function collectComponentLibraryRowsForSelectedItems<T>(
+  itemIds: string[],
+  loadRows: (itemIds: string[]) => PromiseLike<{ data: T[] | null; error: { code?: string | null; message?: string | null } | null }>,
+): Promise<ComponentLibraryChunkedResult<T>> {
+  if (itemIds.length === 0) return { data: [], error: null };
+
+  const result = await loadRows(itemIds);
+  if (result.error) return { data: [], error: result.error };
+  return { data: result.data ?? [], error: null };
+}
+
+function normalizeComponentLibraryItemLimit(limit: number | undefined): number | undefined {
+  if (limit === undefined) return undefined;
+  if (!Number.isFinite(limit)) return SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT;
+  return Math.max(1, Math.min(SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT, Math.floor(limit)));
+}
+
+async function loadWorkspaceCostLibraryItemRows({
+  supabase,
+  workspaceId,
+  itemLimit,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+  itemLimit?: number;
+}): Promise<CostLibraryItemRow[]> {
+  const limit = normalizeComponentLibraryItemLimit(itemLimit);
+  if (limit !== undefined) {
+    const result = await supabase
+      .from("cost_library_items")
+      .select(SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS)
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(limit);
+
+    if (result.error) throw result.error;
+    return (result.data ?? []) as CostLibraryItemRow[];
   }
 
-  return { data, error: null };
+  const rows: CostLibraryItemRow[] = [];
+
+  for (let from = 0;; from += COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) {
+    const to = from + COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE - 1;
+    const result = await supabase
+      .from("cost_library_items")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .order("category", { ascending: true })
+      .order("name", { ascending: true })
+      .range(from, to);
+
+    if (result.error) throw result.error;
+
+    const pageRows = (result.data ?? []) as CostLibraryItemRow[];
+    rows.push(...pageRows);
+    if (pageRows.length < COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) return rows;
+  }
 }
 
 function readStringArray(value: Json | undefined): string[] | undefined {
@@ -562,6 +629,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   supabase,
   workspaceId,
   includeDetailGraph = true,
+  itemLimit,
 }: {
   supabase: ComponentLibraryRepositoryClient;
   workspaceId: string;
@@ -573,8 +641,10 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   // the panel cost stays byte-identical to the full loader. The Library
   // management surfaces pass true for the complete graph.
   includeDetailGraph?: boolean;
+  itemLimit?: number;
 }): Promise<ComponentRowsLibraryDataset> {
-  const [categoriesResult, suppliersResult, brandsResult, itemsResult] = await Promise.all([
+  const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
+  const [categoriesResult, suppliersResult, brandsResult, itemRows] = await Promise.all([
     supabase.from("component_category_nodes").select("*").order("sort_order", { ascending: true }),
     supabase
       .from("component_suppliers")
@@ -588,26 +658,18 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
       .eq("workspace_id", workspaceId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
-    supabase
-      .from("cost_library_items")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .order("category", { ascending: true })
-      .order("name", { ascending: true }),
+    loadWorkspaceCostLibraryItemRows({ supabase, workspaceId, itemLimit: boundedItemLimit }),
   ]);
 
   if (categoriesResult.error) throw categoriesResult.error;
   if (suppliersResult.error) throw suppliersResult.error;
   if (brandsResult.error && !isMissingRelationError(brandsResult.error, "component_brands")) throw brandsResult.error;
-  if (itemsResult.error) throw itemsResult.error;
 
   const categoryRows = (categoriesResult.data ?? []) as ComponentLibraryCategoryRow[];
   const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
   const libraryFolders = await ensureWorkspaceLibraryFolders({ supabase, workspaceId, categoryRows });
   const suppliers = suppliersResult.data ?? [];
   const persistedBrands = (brandsResult.error ? [] : (brandsResult.data ?? [])) as ComponentLibraryBrand[];
-  const itemRows = itemsResult.data ?? [];
   const fallbackBrandMap = new Map<string, ComponentLibraryBrand>();
   for (const row of itemRows) {
     const brandName = row.brand?.trim();
@@ -625,6 +687,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
     ? persistedBrands
     : [...fallbackBrandMap.values()].sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name));
   const itemIds = itemRows.map((row) => row.id);
+  const isBoundedItemPage = boundedItemLimit !== undefined;
   // U18 cost fidelity: the slim EstimateRowItem cost derives from the default
   // price option and its current cost entry (normalizeComponentLibraryItem +
   // normalizePriceOption). These two queries are ALWAYS loaded so the lite panel
@@ -632,27 +695,50 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   // (potentially lagging) denormalized cost_library_items columns alone.
   const [priceOptionsResult, costEntriesResult] = itemIds.length > 0
     ? await Promise.all([
-        collectComponentLibraryRowsInItemChunks<ComponentPriceOptionRow>(itemIds, (chunk) =>
-          supabase
-            .from("cost_library_item_price_options")
-            .select("*")
-            .eq("workspace_id", workspaceId)
-            .in("item_id", chunk)
-            .order("is_default", { ascending: false })
-            .order("variant_sort_order", { ascending: true })
-            .order("created_at", { ascending: true }),
-        ),
-        collectComponentLibraryRowsInItemChunks<ComponentVariantCostEntryRow>(itemIds, (chunk) =>
-          supabase
-            .from("cost_library_item_variant_cost_entries")
-            .select("*")
-            .eq("workspace_id", workspaceId)
-            .in("item_id", chunk)
-            .is("deleted_at", null)
-            .order("is_current", { ascending: false })
-            .order("pricing_date", { ascending: false })
-            .order("created_at", { ascending: false }),
-        ),
+        isBoundedItemPage
+          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceOptionRow>(itemIds, (itemIds) =>
+              supabase
+                .from("cost_library_item_price_options")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .in("item_id", itemIds)
+                .order("is_default", { ascending: false })
+                .order("variant_sort_order", { ascending: true })
+                .order("created_at", { ascending: true }),
+            )
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceOptionRow>(itemIds, (from, to) =>
+              supabase
+                .from("cost_library_item_price_options")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .order("is_default", { ascending: false })
+                .order("variant_sort_order", { ascending: true })
+                .order("created_at", { ascending: true })
+                .range(from, to),
+            ),
+        isBoundedItemPage
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantCostEntryRow>(itemIds, (itemIds) =>
+              supabase
+                .from("cost_library_item_variant_cost_entries")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .in("item_id", itemIds)
+                .is("deleted_at", null)
+                .order("is_current", { ascending: false })
+                .order("pricing_date", { ascending: false })
+                .order("created_at", { ascending: false }),
+            )
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantCostEntryRow>(itemIds, (from, to) =>
+              supabase
+                .from("cost_library_item_variant_cost_entries")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .is("deleted_at", null)
+                .order("is_current", { ascending: false })
+                .order("pricing_date", { ascending: false })
+                .order("created_at", { ascending: false })
+                .range(from, to),
+            ),
       ])
     : [
         { data: [], error: null },
@@ -664,38 +750,74 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   // management surfaces (includeDetailGraph: true) keep the full set.
   const [versionsResult, priceHistoryResult, stateHistoryResult, attachmentsResult] = (itemIds.length > 0 && includeDetailGraph)
     ? await Promise.all([
-        collectComponentLibraryRowsInItemChunks<ComponentVersionRow>(itemIds, (chunk) =>
-          supabase
-            .from("cost_library_item_versions")
-            .select("*")
-            .eq("workspace_id", workspaceId)
-            .in("item_id", chunk)
-            .order("version_number", { ascending: false }),
-        ),
-        collectComponentLibraryRowsInItemChunks<ComponentPriceHistoryRow>(itemIds, (chunk) =>
-          supabase
-            .from("cost_library_item_price_history")
-            .select("*")
-            .eq("workspace_id", workspaceId)
-            .in("item_id", chunk)
-            .order("effective_at", { ascending: false }),
-        ),
-        collectComponentLibraryRowsInItemChunks<ComponentStateHistoryRow>(itemIds, (chunk) =>
-          supabase
-            .from("cost_library_item_state_history")
-            .select("*")
-            .eq("workspace_id", workspaceId)
-            .in("item_id", chunk)
-            .order("effective_at", { ascending: false }),
-        ),
-        collectComponentLibraryRowsInItemChunks<ComponentVariantAttachmentRow>(itemIds, (chunk) =>
-          supabase
-            .from("cost_library_item_variant_attachments")
-            .select("*")
-            .eq("workspace_id", workspaceId)
-            .in("item_id", chunk)
-            .order("created_at", { ascending: false }),
-        ),
+        isBoundedItemPage
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVersionRow>(itemIds, (itemIds) =>
+              supabase
+                .from("cost_library_item_versions")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .in("item_id", itemIds)
+                .order("version_number", { ascending: false }),
+            )
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVersionRow>(itemIds, (from, to) =>
+              supabase
+                .from("cost_library_item_versions")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .order("version_number", { ascending: false })
+                .range(from, to),
+            ),
+        isBoundedItemPage
+          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceHistoryRow>(itemIds, (itemIds) =>
+              supabase
+                .from("cost_library_item_price_history")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .in("item_id", itemIds)
+                .order("effective_at", { ascending: false }),
+            )
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceHistoryRow>(itemIds, (from, to) =>
+              supabase
+                .from("cost_library_item_price_history")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .order("effective_at", { ascending: false })
+                .range(from, to),
+            ),
+        isBoundedItemPage
+          ? collectComponentLibraryRowsForSelectedItems<ComponentStateHistoryRow>(itemIds, (itemIds) =>
+              supabase
+                .from("cost_library_item_state_history")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .in("item_id", itemIds)
+                .order("effective_at", { ascending: false }),
+            )
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentStateHistoryRow>(itemIds, (from, to) =>
+              supabase
+                .from("cost_library_item_state_history")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .order("effective_at", { ascending: false })
+                .range(from, to),
+            ),
+        isBoundedItemPage
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantAttachmentRow>(itemIds, (itemIds) =>
+              supabase
+                .from("cost_library_item_variant_attachments")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .in("item_id", itemIds)
+                .order("created_at", { ascending: false }),
+            )
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantAttachmentRow>(itemIds, (from, to) =>
+              supabase
+                .from("cost_library_item_variant_attachments")
+                .select("*")
+                .eq("workspace_id", workspaceId)
+                .order("created_at", { ascending: false })
+                .range(from, to),
+            ),
       ])
     : [
         { data: [], error: null },
@@ -835,13 +957,14 @@ async function loadCurrentWorkspaceEstimateTemplates({
   return libraryTemplates;
 }
 
-export async function getCurrentWorkspaceComponentRowsLibrary(options: { includeDetailGraph?: boolean } = {}): Promise<ComponentRowsLibraryDataset> {
+export async function getCurrentWorkspaceComponentRowsLibrary(options: ComponentRowsLibraryLoadOptions = {}): Promise<ComponentRowsLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   return loadCurrentWorkspaceComponentRowsLibrary({
     supabase,
     workspaceId: workspace.id,
     includeDetailGraph: options.includeDetailGraph,
+    itemLimit: options.itemLimit,
   });
 }
 
@@ -1294,7 +1417,12 @@ export async function getCurrentWorkspaceComponentLibraryLite(): Promise<Compone
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   const [componentRows, templates] = await Promise.all([
-    loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id, includeDetailGraph: false }),
+    loadCurrentWorkspaceComponentRowsLibrary({
+      supabase,
+      workspaceId: workspace.id,
+      includeDetailGraph: false,
+      itemLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
+    }),
     loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
   ]);
 

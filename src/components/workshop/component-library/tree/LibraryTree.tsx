@@ -22,6 +22,7 @@ import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTre
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
+import { SourceTrustChips, getComponentSourceTrustChips } from "../../library/source-trust-chips";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
 import { getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";
@@ -150,6 +151,7 @@ function LibraryItemRowContent({
   addLabel,
   showAddAction,
   showThumbnail,
+  sourceScopeLabel = "Library",
   onAdd,
 }: {
   item: EstimateRowItem;
@@ -157,10 +159,12 @@ function LibraryItemRowContent({
   addLabel?: string;
   showAddAction: boolean;
   showThumbnail: boolean;
+  sourceScopeLabel?: string;
   onAdd: () => void;
 }) {
   const name = getComponentName(item);
   const price = getComponentPrice(item);
+  const trustChips = getComponentSourceTrustChips(item);
   const resolvedAddLabel = addDisabled
     ? `Select an area before adding ${name}`
     : addLabel
@@ -174,7 +178,15 @@ function LibraryItemRowContent({
         <span data-component-library-tree-label className="truncate text-[10px] font-medium leading-4 text-ink">
           {name}
         </span>
-        <span className="truncate text-[9px] leading-3 text-tertiary">{item.supplier}</span>
+        <span className="truncate text-[9px] leading-3 text-tertiary">
+          {sourceScopeLabel} · {item.supplier || "No supplier"}
+        </span>
+        <SourceTrustChips
+          chips={trustChips}
+          ariaLabel={`${name} source trust`}
+          className="mt-0.5"
+          maxChips={3}
+        />
       </span>
       <span className="flex shrink-0 flex-col items-end">
         <span className="text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(price)}</span>
@@ -324,6 +336,8 @@ export function LibraryTree({
   showItemAddAction,
   onItemDragStart,
   showThumbnails = false,
+  treeAriaLabel = "Library components",
+  sourceScopeLabel = "Library",
   selectable = false,
   checkedIds,
   onCheckToggle,
@@ -459,11 +473,12 @@ export function LibraryTree({
           addLabel={addLabel}
           showAddAction={canShowAddAction}
           showThumbnail={showThumbnails}
+          sourceScopeLabel={sourceScopeLabel}
           onAdd={() => onItemAdd?.(item)}
         />
       );
     },
-    [addDisabled, addLabel, canShowAddAction, onItemAdd, showThumbnails],
+    [addDisabled, addLabel, canShowAddAction, onItemAdd, showThumbnails, sourceScopeLabel],
   );
 
   if (nodes.length === 0) {
@@ -489,7 +504,7 @@ export function LibraryTree({
         >
           <Tree
             nodes={uiNodes}
-            ariaLabel="Library components"
+            ariaLabel={treeAriaLabel}
             className="relative min-h-7 overflow-visible"
             expandedIds={effectiveExpandedIds}
             onToggle={(nodeId) => onToggle(nodeId)}

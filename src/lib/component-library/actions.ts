@@ -12,7 +12,7 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, getCurrentWorkspaceComponentRowsLibrary, getCurrentWorkspaceEstimateTemplates, type ComponentLibraryDataset, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import { SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT, buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, getCurrentWorkspaceComponentRowsLibrary, getCurrentWorkspaceEstimateTemplates, type ComponentLibraryDataset, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { getProjectComponentRowsLibrary } from "@/lib/component-library/project-component-projection";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
@@ -512,7 +512,11 @@ export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<Compon
 export async function loadProjectComponentLibraryLite(projectId: string): Promise<ComponentLibraryDataset> {
   await requireCurrentUserContext();
   const [componentRows, templates] = await Promise.all([
-    getProjectComponentRowsLibrary(projectId, { includeDetailGraph: false }),
+    getProjectComponentRowsLibrary(projectId, {
+      includeDetailGraph: false,
+      itemLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
+      projectRowLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
+    }),
     getCurrentWorkspaceEstimateTemplates(),
   ]);
 

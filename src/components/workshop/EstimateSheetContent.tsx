@@ -6,6 +6,7 @@ import { FunnelSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { FilterPopover } from "@/components/ui/overlays/popover";
@@ -18,7 +19,8 @@ import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
 import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
-import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey } from "@/lib/component-library/query-keys";
+import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
+import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
@@ -38,6 +40,8 @@ import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-fla
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
+import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { getLibraryCommitTrustGate, type LibraryCommitTrustGateResult } from "@/components/workshop/library/source-trust-model";
 import { useToast } from "@/components/ui/toast";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
@@ -244,6 +248,24 @@ function computeNodeCode(nodes: EstimateTreeNode[], targetId: string): string {
     }
   }
   return "";
+}
+
+type PendingLibraryCommitGate = {
+  id: string;
+  action: "insert" | "replace";
+  targetNodeId?: string;
+  rowItemId?: string;
+  libraryItem: EstimateRowItem;
+  existingRow?: EstimateRowItem | null;
+  gate: LibraryCommitTrustGateResult;
+};
+
+function shouldGateLibraryCommit(item: EstimateRowItem) {
+  return item.source === "library" || item.source === "supplier" || Boolean(item.sourceLibraryItemId);
+}
+
+function libraryCommitEventAction(action: PendingLibraryCommitGate["action"]) {
+  return action === "replace" ? "replace_row" : "insert_row";
 }
 
 
@@ -1159,7 +1181,7 @@ export function EstimateSheetContent({
     promoteRow,
     deleteRow,
     updateRow,
-  } = useEstimateRowMutations(estimateId, dataTabId, workspaceId);
+  } = useEstimateRowMutations(estimateId, dataTabId, workspaceId, projectId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1192,6 +1214,7 @@ export function EstimateSheetContent({
   const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>({});
   const [expressInsertDrafts, setExpressInsertDraftsState] = useState<Record<string, ExpressInsertDraft>>({});
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
+  const [pendingLibraryCommitGate, setPendingLibraryCommitGate] = useState<PendingLibraryCommitGate | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [collapsedNodeIdsByScope, setCollapsedNodeIdsByScope] = useState<Record<string, string[]>>({});
   const [bulkSelectedRowIds, setBulkSelectedRowIds] = useState<Set<string>>(() => new Set());
@@ -1311,7 +1334,11 @@ export function EstimateSheetContent({
   });
   const refetchProjectComponentProjection = useStableCallback(() => {
     if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
+    if (workspaceId && projectId) {
+      void queryClient.invalidateQueries({ queryKey: workspaceComponentRowsLibraryQueryKey(workspaceId, projectId), refetchType: "active" });
+    } else {
+      void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
+    }
   });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
@@ -2064,9 +2091,9 @@ export function EstimateSheetContent({
     recordExpressComponentEvent("draft_deleted", { projectId, estimateId, rowId: rowItemId });
   });
 
-  const insertLibraryItem = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
+  const commitLibraryItemInsert = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
     const targetNode = findEstimateNode(estimateTree, targetNodeId);
-    if (!targetNode) return;
+    if (!targetNode) return false;
 
     const previousTree = estimateTree;
     const previousRows = editableRows;
@@ -2111,13 +2138,35 @@ export function EstimateSheetContent({
         onError: isExpressInsert ? (error) => handleExpressInsertError(newItem.id, error) : undefined,
       });
     }
+    return true;
+  });
+
+  const insertLibraryItem = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
+    if (!shouldGateLibraryCommit(libraryItem)) return commitLibraryItemInsert(targetNodeId, libraryItem);
+    const gate = getLibraryCommitTrustGate(libraryItem, { action: "insert" });
+    if (gate.severity === "pass") return commitLibraryItemInsert(targetNodeId, libraryItem);
+    recordLibraryEvent(gate.severity === "block" ? "trust_insert_gate_blocked" : "trust_insert_gate_warned", {
+      workspaceId,
+      projectId,
+      estimateId,
+      itemId: libraryItem.id,
+      action: libraryCommitEventAction("insert"),
+      reason: gate.reasons.map((reason) => reason.id).join(","),
+    });
+    setPendingLibraryCommitGate({
+      id: `${libraryItem.id}:insert:${targetNodeId}:${Date.now()}`,
+      action: "insert",
+      targetNodeId,
+      libraryItem,
+      gate,
+    });
+    return true;
   });
 
   const insertIntoSelectedNode = useCallback(
     (libraryItem: EstimateRowItem) => {
       if (!insertTargetNodeId) return false;
-      insertLibraryItem(insertTargetNodeId, libraryItem);
-      return true;
+      return insertLibraryItem(insertTargetNodeId, libraryItem);
     },
     [insertLibraryItem, insertTargetNodeId],
   );
@@ -2412,7 +2461,7 @@ export function EstimateSheetContent({
     return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
   }, [insertProjectSourceIntoParentById]);
 
-  const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
+  const commitReplaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const editableReplacement = previousRows[rowItemId];
@@ -2449,6 +2498,74 @@ export function EstimateSheetContent({
         onSuccess: () => refetchProjectComponentProjection(),
         onError: () => toast({ tone: "error", message: "Couldn't replace the component. Try again." }),
       });
+    }
+    return true;
+  });
+
+  const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
+    if (!shouldGateLibraryCommit(libraryItem)) return commitReplaceRowItem(rowItemId, libraryItem);
+    const existingRow = findEstimateRowItem(estimateTree, rowItemId);
+    const editableReplacement = editableRows[rowItemId];
+    const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
+    const gate = getLibraryCommitTrustGate(replacementLibraryItem, {
+      action: "replace",
+      existingRow,
+    });
+    if (gate.severity === "pass") return commitReplaceRowItem(rowItemId, libraryItem);
+    recordLibraryEvent(gate.severity === "block" ? "trust_insert_gate_blocked" : "trust_insert_gate_warned", {
+      workspaceId,
+      projectId,
+      estimateId,
+      itemId: libraryItem.id,
+      rowId: rowItemId,
+      action: libraryCommitEventAction("replace"),
+      reason: gate.reasons.map((reason) => reason.id).join(","),
+    });
+    setPendingLibraryCommitGate({
+      id: `${libraryItem.id}:replace:${rowItemId}:${Date.now()}`,
+      action: "replace",
+      rowItemId,
+      libraryItem,
+      existingRow,
+      gate,
+    });
+    return true;
+  });
+
+  const cancelPendingLibraryCommit = useStableCallback(() => {
+    if (pendingLibraryCommitGate) {
+      recordLibraryEvent("trust_insert_gate_blocked", {
+        workspaceId,
+        projectId,
+        estimateId,
+        itemId: pendingLibraryCommitGate.libraryItem.id,
+        rowId: pendingLibraryCommitGate.rowItemId,
+        action: libraryCommitEventAction(pendingLibraryCommitGate.action),
+        reason: "cancelled",
+      });
+    }
+    setPendingLibraryCommitGate(null);
+  });
+
+  const confirmPendingLibraryCommit = useStableCallback(() => {
+    if (!pendingLibraryCommitGate || pendingLibraryCommitGate.gate.severity === "block") return;
+    const { action, targetNodeId, rowItemId, libraryItem } = pendingLibraryCommitGate;
+    setPendingLibraryCommitGate(null);
+    recordLibraryEvent("trust_insert_gate_confirmed", {
+      workspaceId,
+      projectId,
+      estimateId,
+      itemId: libraryItem.id,
+      rowId: rowItemId,
+      action: libraryCommitEventAction(action),
+      reason: pendingLibraryCommitGate.gate.reasons.map((reason) => reason.id).join(","),
+    });
+    if (action === "insert" && targetNodeId) {
+      commitLibraryItemInsert(targetNodeId, libraryItem);
+      return;
+    }
+    if (action === "replace" && rowItemId) {
+      commitReplaceRowItem(rowItemId, libraryItem);
     }
   });
 
@@ -2746,6 +2863,71 @@ export function EstimateSheetContent({
           onInsert={insertIntoSelectedNode}
         />
       ) : null}
+      {pendingLibraryCommitGate ? (
+        <Modal
+          open
+          title={pendingLibraryCommitGate.gate.title}
+          description={pendingLibraryCommitGate.gate.summary}
+          tone={pendingLibraryCommitGate.gate.severity === "block" ? "danger" : "warning"}
+          size="sm"
+          closeLabel="Cancel source review"
+          onOpenChange={(open) => {
+            if (!open) cancelPendingLibraryCommit();
+          }}
+          footer={(
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={cancelPendingLibraryCommit}>
+                {pendingLibraryCommitGate.gate.cancelLabel}
+              </Button>
+              {pendingLibraryCommitGate.gate.severity !== "block" ? (
+                <Button type="button" size="sm" onClick={confirmPendingLibraryCommit}>
+                  {pendingLibraryCommitGate.gate.confirmLabel}
+                </Button>
+              ) : null}
+            </div>
+          )}
+        >
+          <div className="grid gap-3 text-[10px] leading-4">
+            <div className="grid gap-1 rounded-xs border border-hairline bg-surfaceMuted p-2">
+              <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">
+                Incoming Library source
+              </p>
+              <p className="font-medium text-ink">
+                {pendingLibraryCommitGate.libraryItem.name || pendingLibraryCommitGate.libraryItem.material}
+              </p>
+              <p className="text-tertiary">
+                {pendingLibraryCommitGate.libraryItem.supplier || "No supplier"} · {pesoFormatter.format(pendingLibraryCommitGate.libraryItem.itemCost)} / {pendingLibraryCommitGate.libraryItem.unit}
+              </p>
+            </div>
+            {pendingLibraryCommitGate.existingRow ? (
+              <div className="grid gap-1 rounded-xs border border-hairline bg-white p-2">
+                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">
+                  Current estimate row
+                </p>
+                <p className="font-medium text-ink">
+                  {pendingLibraryCommitGate.existingRow.name || pendingLibraryCommitGate.existingRow.material}
+                </p>
+                <p className="text-tertiary">
+                  {pendingLibraryCommitGate.existingRow.supplier || "No supplier"} · {pesoFormatter.format(pendingLibraryCommitGate.existingRow.itemCost)} / {pendingLibraryCommitGate.existingRow.unit}
+                </p>
+              </div>
+            ) : null}
+            <SourceTrustChips
+              chips={pendingLibraryCommitGate.gate.reasons}
+              ariaLabel="Library source review warnings"
+              maxChips={6}
+            />
+            <ul className="grid gap-1">
+              {pendingLibraryCommitGate.gate.reasons.map((reason) => (
+                <li key={reason.id} className="rounded-xs border border-hairline bg-white px-2 py-1">
+                  <span className="font-medium text-ink">{reason.label}</span>
+                  <span className="text-tertiary"> · {reason.description}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Modal>
+      ) : null}
       {isProposalPreviewOpen ? (
         <ProposalExportPreviewDialog
           open={isProposalPreviewOpen}
@@ -2947,6 +3129,23 @@ export function EstimateSheetContent({
             onTabsChange={onEstimateTabsChange}
             onCreateTabStateChange={setCreateTabState}
           />
+        ) : null}
+        {saveState === "saving" || saveState === "saved" || saveState === "failed" ? (
+          <div
+            className={cn(
+              "mx-2 mt-2 rounded-xs border px-2 py-1 text-[10px] font-medium leading-4",
+              saveState === "failed"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : saveState === "saving"
+                  ? "border-warningSoft bg-warningSoft/40 text-warning"
+                  : "border-successSoft bg-successSoft/40 text-success",
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : "Could not save"}
+            {rowMutationError?.message.includes("refreshed") ? " · Recovered edit" : ""}
+          </div>
         ) : null}
         {rowMutationError ? (
           <div className="mx-2 mt-2 flex items-start gap-2 rounded-xs border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] leading-4 text-red-700" role="alert">

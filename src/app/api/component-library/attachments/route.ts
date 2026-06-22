@@ -92,6 +92,10 @@ function readStoragePaths(value: unknown) {
   return paths.filter((path): path is string => typeof path === "string" && path.trim().length > 0).map((path) => path.trim());
 }
 
+function isMissingAttachmentGovernanceColumnError(error: { code?: string | null; message?: string | null }) {
+  return error.code === "42703" || /review_status|is_current_approved/i.test(error.message ?? "");
+}
+
 function safeUploadName(name: string) {
   const stem = name
     .replace(/\.[^.]+$/, "")
@@ -179,6 +183,27 @@ export async function DELETE(request: Request) {
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");
 
   const supabase = await createStorageSupabaseClient();
+  const { data: attachmentRows, error: attachmentLookupError } = await supabase
+    .from("cost_library_item_variant_attachments")
+    .select("storage_path, review_status, is_current_approved")
+    .eq("workspace_id", workspace.id)
+    .in("storage_path", paths);
+
+  if (attachmentLookupError && !isMissingAttachmentGovernanceColumnError(attachmentLookupError)) {
+    return jsonError("Could not verify attachment review state.", 500);
+  }
+
+  if (!attachmentLookupError) {
+    const reviewedAttachment = ((attachmentRows ?? []) as Array<{
+      storage_path: string | null;
+      review_status?: string | null;
+      is_current_approved?: boolean | null;
+    }>).find((row) => row.is_current_approved === true || (row.review_status && row.review_status !== "uploaded"));
+    if (reviewedAttachment) {
+      return jsonError("Reviewed Library attachments cannot be removed from draft cleanup.", 409);
+    }
+  }
+
   const { error } = await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).remove(paths);
   if (error) return jsonError("Could not remove uploaded attachment.", 500);
   return NextResponse.json({ removedPaths: paths });

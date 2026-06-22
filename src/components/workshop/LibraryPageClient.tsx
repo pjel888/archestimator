@@ -126,7 +126,6 @@ export function LibraryPageClient({
   };
   const onProjectPromotionSucceeded = () => {
     void queryClient.invalidateQueries({ queryKey: componentRowsQueryKey });
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY });
     if (library?.workspaceId) {
       void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(library.workspaceId) });
     }

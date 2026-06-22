@@ -17,8 +17,8 @@ export const COMPONENT_LIFECYCLE_FACET_LABELS: Record<ComponentLifecycleState, s
 export const COMPONENT_PRICING_FRESHNESS_LABELS: Record<Exclude<ComponentPricingFreshness, "any">, string> = {
   fresh: "Current",
   stale: "Stale price",
-  "very-stale": "Very stale",
-  missing: "No price date",
+  "very-stale": "Very stale price",
+  missing: "Missing price source",
 };
 
 export type SourceTrustChipTone = "neutral" | "success" | "warning" | "danger";
@@ -28,6 +28,24 @@ export type SourceTrustChipSpec = {
   label: string;
   tone: SourceTrustChipTone;
   title?: string;
+};
+
+export type LibraryCommitTrustGateAction = "insert" | "replace";
+
+export type LibraryCommitTrustGateReason = {
+  id: string;
+  label: string;
+  tone: SourceTrustChipTone;
+  description: string;
+};
+
+export type LibraryCommitTrustGateResult = {
+  severity: "pass" | "warn" | "block";
+  title: string;
+  summary: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  reasons: LibraryCommitTrustGateReason[];
 };
 
 export type TemplateDependencyHealthSeverity = "healthy" | "warning" | "blocked";
@@ -82,6 +100,13 @@ function confidenceChipCopy(confidence: string): Pick<SourceTrustChipSpec, "labe
       label: "Verified source",
       tone: "success",
       title: "Marked as a verified or trusted source.",
+    };
+  }
+  if (/^(accepted|accepted cost|reviewed|approved)/.test(normalized)) {
+    return {
+      label: "Accepted cost",
+      tone: "success",
+      title: "Marked as an accepted or reviewed cost source.",
     };
   }
   if (/^(low|unknown|unpriced)/.test(normalized)) {
@@ -173,9 +198,140 @@ function sourcePresenceChip(input: Pick<ComponentSourceTrustInput, "pricingSourc
   if (normalizeTrimmed(input.pricingSource)) return null;
   return {
     id: "source-missing",
-    label: "No source",
+    label: "Missing price source",
     tone: "warning",
     title: "Pricing source is not set",
+  };
+}
+
+function addGateReason(
+  reasons: LibraryCommitTrustGateReason[],
+  reason: LibraryCommitTrustGateReason,
+) {
+  if (reasons.some((candidate) => candidate.id === reason.id)) return;
+  reasons.push(reason);
+}
+
+function normalizedCompareValue(value?: string | null) {
+  return value?.trim() ?? "";
+}
+
+export function getLibraryCommitTrustGate(
+  item: EstimateRowItem,
+  options: {
+    action: LibraryCommitTrustGateAction;
+    existingRow?: EstimateRowItem | null;
+    now?: number;
+  },
+): LibraryCommitTrustGateResult {
+  const reasons: LibraryCommitTrustGateReason[] = [];
+  const freshness = getComponentPricingFreshness(item, options.now);
+  const lifecycle = item.lifecycleState ?? "available";
+  const confidence = normalizeTrimmed(item.confidence).toLowerCase();
+  const pricingSource = normalizeTrimmed(item.pricingSource);
+
+  if (lifecycle === "archived") {
+    addGateReason(reasons, {
+      id: "archived-component",
+      label: "Archived component",
+      tone: "danger",
+      description: "Archived Library components are blocked from new estimate commits.",
+    });
+  } else if (lifecycle === "discontinued") {
+    addGateReason(reasons, {
+      id: "discontinued-component",
+      label: "Discontinued component",
+      tone: "warning",
+      description: "This component is discontinued. Confirm it still belongs in the estimate.",
+    });
+  } else if (lifecycle === "draft" || lifecycle === "in_production") {
+    addGateReason(reasons, {
+      id: `lifecycle-${lifecycle}`,
+      label: COMPONENT_LIFECYCLE_FACET_LABELS[lifecycle],
+      tone: "warning",
+      description: "This component is not marked available. Review before committing it to cost.",
+    });
+  }
+
+  if (freshness === "very-stale") {
+    addGateReason(reasons, {
+      id: "very-stale-price",
+      label: "Very stale price",
+      tone: "danger",
+      description: "The pricing date is older than the very-stale threshold.",
+    });
+  } else if (freshness === "stale") {
+    addGateReason(reasons, {
+      id: "stale-price",
+      label: "Stale price",
+      tone: "warning",
+      description: "The pricing date is outside the current review window.",
+    });
+  } else if (freshness === "missing") {
+    addGateReason(reasons, {
+      id: "missing-price-date",
+      label: "Missing price source",
+      tone: "warning",
+      description: "The pricing date is missing or unreadable.",
+    });
+  }
+
+  if (!pricingSource) {
+    addGateReason(reasons, {
+      id: "missing-pricing-source",
+      label: "Missing price source",
+      tone: "warning",
+      description: "No pricing source is recorded for this Library item.",
+    });
+  }
+
+  if (!confidence || /^(low|unknown|unpriced)/.test(confidence)) {
+    addGateReason(reasons, {
+      id: "low-confidence",
+      label: "Low confidence",
+      tone: "warning",
+      description: "The source confidence is missing or low.",
+    });
+  }
+
+  if (item.linkState === "source-changed" || options.existingRow?.linkState === "source-changed") {
+    addGateReason(reasons, {
+      id: "source-changed",
+      label: "Source changed",
+      tone: "warning",
+      description: "The linked source changed after this row was last reviewed.",
+    });
+  }
+
+  const existingImage = normalizedCompareValue(options.existingRow?.imageUrl);
+  const incomingImage = normalizedCompareValue(item.imageUrl);
+  if (existingImage && incomingImage && existingImage !== incomingImage) {
+    addGateReason(reasons, {
+      id: "thumbnail-mismatch",
+      label: "Thumbnail mismatch",
+      tone: "warning",
+      description: "The current row thumbnail differs from the incoming Library item.",
+    });
+  }
+
+  const hasBlockingReason = reasons.some((reason) => reason.id === "archived-component");
+  const severity: LibraryCommitTrustGateResult["severity"] = hasBlockingReason ? "block" : reasons.length ? "warn" : "pass";
+  const isReplace = options.action === "replace";
+  return {
+    severity,
+    title: hasBlockingReason
+      ? "Cannot commit archived source"
+      : isReplace
+        ? "Review source before replacing row"
+        : "Review source before inserting row",
+    summary: hasBlockingReason
+      ? "This Library item cannot be committed to the estimate until it is restored or inserted as a project-specific manual row."
+      : reasons.length
+        ? "This source has trust warnings. Confirm before committing it to the estimate."
+        : "This source is ready to commit.",
+    confirmLabel: isReplace ? "Continue with replace" : "Continue with insert",
+    cancelLabel: "Cancel",
+    reasons,
   };
 }
 
@@ -400,7 +556,7 @@ export function getTemplateDependencyHealth(
   if (missingDateCount > 0) {
     issues.push(makeDependencyIssue({
       id: "missing-price-date",
-      label: "Missing price date",
+      label: "Missing price source",
       tone: "warning",
       severity: "warning",
       count: missingDateCount,
