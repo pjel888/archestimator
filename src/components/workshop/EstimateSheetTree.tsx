@@ -1434,86 +1434,76 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto">
-          <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
-          {localNodes.length === 0 ? (
-            <div className={cn("rounded-xs border border-dashed p-2 text-[10px] leading-4 text-tertiary", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surface-muted")}>
-              This estimate is empty. Add an area to begin.
-            </div>
-          ) : uiTreeNodes.length === 0 ? (
-            <div className={cn("rounded-xs border border-dashed p-2 text-[10px] leading-4 text-tertiary", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
-              No tree nodes match &quot;{treeSearchQuery}&quot;.
-            </div>
-          ) : (
-            <nav aria-label={`${projectName} estimate areas`}>
-              <ContextMenu onOpenChange={setContextMenuOpen}>
-                <ContextMenuTrigger asChild>
-                  <div
-                    className="block w-full"
-                    onContextMenu={(event) => {
-                      // Only rows open the node menu; right-clicks on empty
-                      // tree space keep the menu closed.
-                      if (!(event.target instanceof Element) || !event.target.closest("[data-tree-row]")) {
-                        event.preventDefault();
-                      }
-                    }}
+          <div className="min-h-0 flex-1 overflow-auto">
+            <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
+              <nav aria-label={`${projectName} estimate areas`}>
+                <ContextMenu onOpenChange={setContextMenuOpen}>
+                  <ContextMenuTrigger asChild>
+                    <div
+                      className="block w-full"
+                      onContextMenu={(event) => {
+                        // Only rows open the node menu; right-clicks on empty
+                        // tree space keep the menu closed.
+                        if (!(event.target instanceof Element) || !event.target.closest("[data-tree-row]")) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <Tree
+                        nodes={uiTreeNodes}
+                        ariaLabel={`${projectName} estimate areas`}
+                        className="relative min-h-7 overflow-visible"
+                        expandedIds={treeExpandedIds}
+                        onExpandedChange={setExpandedNodeIds}
+                        selectedIds={bulkSelectedIds}
+                        onCheckboxToggle={handleCheckboxToggle}
+                        currentId={activeSelectedNodeId}
+                        railsPinned={contextMenuOpen}
+                        draggable
+                        selectable
+                        allowInsideOnLeaves
+                        dragDataType={ESTIMATE_TREE_DRAG_MIME_TYPE}
+                        canDrag={handleTreeCanDrag}
+                        canDrop={handleTreeCanDrop}
+                        onDrop={handleTreeDrop}
+                        externalDrop={treeExternalDrop}
+                        onNodeDragStart={suppressPrimaryActionAfterDrag}
+                        onRowClick={handlePrimaryAction}
+                        onContextMenu={handleTreeContextMenu}
+                        rootDropZones={{ edges: ["bottom"] }}
+                        renderRow={renderEstimateTreeRowLabel}
+                        virtualization={WORKSHOP_TREE_VIRTUALIZATION}
+                        emptyState={<span aria-hidden="true" />}
+                      />
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent
+                    data-estimate-tree-context-menu="true"
+                    alignOffset={4}
+                    onCloseAutoFocus={handleContextMenuCloseAutoFocus}
                   >
-                    <Tree
-                      nodes={uiTreeNodes}
-                      ariaLabel={`${projectName} estimate areas`}
-                      className="relative min-h-7 overflow-visible"
-                      expandedIds={treeExpandedIds}
-                      onExpandedChange={setExpandedNodeIds}
-                      selectedIds={bulkSelectedIds}
-                      onCheckboxToggle={handleCheckboxToggle}
-                      currentId={activeSelectedNodeId}
-                      railsPinned={contextMenuOpen}
-                      draggable
-                      selectable
-                      allowInsideOnLeaves
-                      dragDataType={ESTIMATE_TREE_DRAG_MIME_TYPE}
-                      canDrag={handleTreeCanDrag}
-                      canDrop={handleTreeCanDrop}
-                      onDrop={handleTreeDrop}
-                      externalDrop={treeExternalDrop}
-                      onNodeDragStart={suppressPrimaryActionAfterDrag}
-                      onRowClick={handlePrimaryAction}
-                      onContextMenu={handleTreeContextMenu}
-                      rootDropZones={{ edges: ["bottom"] }}
-                      renderRow={renderEstimateTreeRowLabel}
-                      virtualization={WORKSHOP_TREE_VIRTUALIZATION}
-                    />
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent
-                  data-estimate-tree-context-menu="true"
-                  alignOffset={4}
-                  onCloseAutoFocus={handleContextMenuCloseAutoFocus}
-                >
-                  <ContextActionMenuContent groups={contextMenuGroups} />
-                </ContextMenuContent>
-              </ContextMenu>
-            </nav>
-          )}
+                    <ContextActionMenuContent groups={contextMenuGroups} />
+                  </ContextMenuContent>
+                </ContextMenu>
+              </nav>
+            </div>
           </div>
-        </div>
-        <BulkActionToolbar
-          placement="bottom-dock"
-          dockTo="container"
-          selectedCount={bulkSelectionCount}
-          selectedLabel={bulkSelectionCount === 1 ? "Area selected" : "Areas selected"}
-          onClear={clearBulkSelection}
-          actions={[
-            {
-              label: "Delete selected",
-              icon: <Trash size={12} weight="regular" />,
-              variant: "danger",
-              disabled: isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0,
-              onClick: () => setBulkDeleteConfirmOpen(true),
-            },
-          ]}
-        />
-        </div>
+          <BulkActionToolbar
+            placement="bottom-dock"
+            dockTo="container"
+            selectedCount={bulkSelectionCount}
+            selectedLabel={bulkSelectionCount === 1 ? "Area selected" : "Areas selected"}
+            onClear={clearBulkSelection}
+            actions={[
+              {
+                label: "Delete selected",
+                icon: <Trash size={12} weight="regular" />,
+                variant: "danger",
+                disabled: isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0,
+                onClick: () => setBulkDeleteConfirmOpen(true),
+              },
+            ]}
+          />
         </div>
       </ResizableSidePanel>
       <Modal

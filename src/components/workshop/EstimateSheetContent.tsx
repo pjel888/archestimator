@@ -3227,11 +3227,7 @@ export function EstimateSheetContent({
                       nodeTotals={displayedNodeTotals}
                     />
                   </EstimateSheetExpansionContext.Provider>
-                ) : (
-                  <div className={cn("mt-4 rounded-xs border border-dashed p-3 text-center text-[10px] leading-4 text-tertiary", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
-                    No rows in this tab match &quot;{sheetSearchQuery}&quot;.
-                  </div>
-                )}
+                ) : null}
               </div>
               <BulkActionToolbar
                 placement="bottom-dock"
@@ -3252,33 +3248,8 @@ export function EstimateSheetContent({
           </>
         ) : (
           <>
-            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2 pt-2" data-estimate-pointer-surface>
+            <div className="relative flex min-h-0 flex-1 overflow-auto px-2 pb-2 pt-2" data-estimate-pointer-surface>
               <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
-              <div className={cn("max-w-md rounded-xs border border-dashed p-3 text-center", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surface-muted")}>
-                {dataTabId ? (
-                  <>
-                    <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty tab</p>
-                    <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">This tab is empty</h2>
-                    <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                      Add an Area to start, or drag a template or project content here.
-                    </p>
-                    {canEditEstimate ? (
-                      <div className="mt-3 flex justify-center gap-2">
-                        <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Area</Button>
-                        <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
-                    <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>
-                    <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                      This estimate is empty. Add an Area, then add cost rows to it.
-                    </p>
-                  </>
-                )}
-              </div>
             </div>
           </>
         )}

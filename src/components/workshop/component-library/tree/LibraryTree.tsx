@@ -481,14 +481,6 @@ export function LibraryTree({
     [addDisabled, addLabel, canShowAddAction, onItemAdd, showThumbnails, sourceScopeLabel],
   );
 
-  if (nodes.length === 0) {
-    return (
-      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
-        No matches for &quot;{searchQuery}&quot;.
-      </div>
-    );
-  }
-
   return (
     <ContextMenu onOpenChange={setContextMenuOpen}>
       <ContextMenuTrigger asChild>
@@ -525,6 +517,7 @@ export function LibraryTree({
             onContextMenu={handleTreeContextMenu}
             renderRow={renderLibraryRowLabel}
             virtualization={WORKSHOP_TREE_VIRTUALIZATION}
+            emptyState={<span aria-hidden="true" />}
           />
         </div>
       </ContextMenuTrigger>

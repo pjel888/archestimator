@@ -16,7 +16,6 @@ import {
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ControlInput } from "@/components/ui/control-input";
 import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
@@ -450,51 +449,42 @@ function TemplatesBrowseTreePanel({
         />
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
-          {templates.length === 0 ? (
-            <EmptyState
-              icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
-              title="No templates yet."
-              description="Save a template to reuse line items."
-              className="min-h-24 rounded-xs"
-            />
-          ) : (
-            <ContextMenu onOpenChange={setContextMenuOpen}>
-              <ContextMenuTrigger asChild>
-                <div
-                  className="block w-full"
-                  onContextMenu={(event) => {
-                    // Only rows open the menu; right-clicks on empty tree
-                    // space keep the menu closed.
-                    if (!(event.target instanceof Element) || !event.target.closest("[data-tree-row]")) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <Tree
-                    nodes={treeNodes}
-                    ariaLabel="Template library tree"
-                    className="relative min-h-7 overflow-visible"
-                    expandedIds={expandedIds}
-                    onToggle={handleTreeToggle}
-                    currentId={currentNodeId}
-                    railsPinned={contextMenuOpen}
-                    draggable
-                    canDrag={handleCanDrag}
-                    canDrop={handleCanDrop}
-                    onDrop={handleTreeDrop}
-                    onRowClick={handleRowClick}
-                    onRowDoubleClick={handleRowDoubleClick}
-                    onContextMenu={(nodeId) => setContextMenuNodeId(nodeId)}
-                    renderRow={renderBrowseRow}
-                    virtualization={WORKSHOP_TREE_VIRTUALIZATION}
-                  />
-                </div>
-              </ContextMenuTrigger>
-              <ContextMenuContent data-templates-browse-tree-context-menu="true" alignOffset={4}>
-                <ContextActionMenuContent groups={contextMenuGroups} />
-              </ContextMenuContent>
-            </ContextMenu>
-          )}
+          <ContextMenu onOpenChange={setContextMenuOpen}>
+            <ContextMenuTrigger asChild>
+              <div
+                className="block w-full"
+                onContextMenu={(event) => {
+                  // Only rows open the menu; right-clicks on empty tree
+                  // space keep the menu closed.
+                  if (!(event.target instanceof Element) || !event.target.closest("[data-tree-row]")) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                <Tree
+                  nodes={treeNodes}
+                  ariaLabel="Template library tree"
+                  className="relative min-h-7 overflow-visible"
+                  expandedIds={expandedIds}
+                  onToggle={handleTreeToggle}
+                  currentId={currentNodeId}
+                  railsPinned={contextMenuOpen}
+                  draggable
+                  canDrag={handleCanDrag}
+                  canDrop={handleCanDrop}
+                  onDrop={handleTreeDrop}
+                  onRowClick={handleRowClick}
+                  onRowDoubleClick={handleRowDoubleClick}
+                  onContextMenu={(nodeId) => setContextMenuNodeId(nodeId)}
+                  renderRow={renderBrowseRow}
+                  virtualization={WORKSHOP_TREE_VIRTUALIZATION}
+                />
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent data-templates-browse-tree-context-menu="true" alignOffset={4}>
+              <ContextActionMenuContent groups={contextMenuGroups} />
+            </ContextMenuContent>
+          </ContextMenu>
         </div>
       </div>
     </ResizableSidePanel>

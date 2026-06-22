@@ -7,7 +7,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
-import { EmptyState } from "@/components/ui/empty-state";
 import { ControlInput } from "@/components/ui/control-input";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
@@ -950,24 +949,6 @@ function ComponentCatalogueDenseTable({
   );
 }
 
-function CatalogueEmptyRow({ label }: { label: string }) {
-  return (
-    <div
-      className={cn(CATALOGUE_CARD_GRID_CLASS, "relative")}
-      aria-label={`${label} empty component catalogue row`}
-      data-component-catalogue-empty-row="true"
-    >
-      <div className="invisible min-h-[236px]" aria-hidden="true" data-component-catalogue-empty-row-spacer="true">
-        <div className="aspect-square w-full" />
-        <div className={CATALOGUE_CARD_BODY_HEIGHT_CLASS} />
-      </div>
-      <p className="absolute inset-0 flex items-center justify-center border border-dashed border-hairline bg-surfaceMuted/30 px-2 text-center text-[10px] font-normal leading-3 text-tertiary opacity-50 transition-opacity hover:opacity-100">
-        No components in this folder yet.
-      </p>
-    </div>
-  );
-}
-
 function ComponentCatalogueBranch({
   branch,
   collapsedBranchIds,
@@ -990,7 +971,6 @@ function ComponentCatalogueBranch({
   promotingItemId?: string | null;
 }) {
   const collapsed = collapsedBranchIds.has(branch.id);
-  const empty = branch.totalItemCount === 0;
   const eyebrow = branch.parentPathLabel || "Component Library";
 
   return (
@@ -1026,9 +1006,6 @@ function ComponentCatalogueBranch({
       </div>
       {!collapsed ? (
         <>
-          {empty ? (
-            <CatalogueEmptyRow label={branch.pathLabel} />
-          ) : null}
           <CatalogueCardGrid
             cards={branch.directItems}
             label={branch.pathLabel}
@@ -1520,60 +1497,59 @@ function ComponentLibrarySheet({
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
-        {hasCatalogueResults ? (
-          effectiveDisplayMode === "dense" ? (
-            <ComponentCatalogueDenseTable
-              cards={denseCatalogueCards}
-              label={selectedLabel}
-              sort={denseSort}
-              selectedItemIds={selectedItemIds}
-              inspectorItemId={inspectorItemId}
-              onSort={changeDenseSort}
-              onToggleSelected={onToggleSelected}
-              onInspect={onInspectItem}
-              onPromote={onPromoteItem}
-              promotingItemId={promotingItemId}
-            />
-          ) : cardScaleFallbackActive ? (
-            <div
-              className="grid h-full min-h-[240px] place-items-center rounded-xs border border-dashed border-hairline bg-white p-4 text-center"
-              data-component-card-scale-fallback="true"
-              data-component-card-scale-fallback-count={visibleItems.length}
-              data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
-              data-library-virtualization-min-rows={WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows}
-            >
-              <div className="grid justify-items-center gap-2">
-                <p className="text-[10px] font-medium leading-4 text-ink">
-                  {String(visibleItems.length)} components match.
-                </p>
-                <button
-                  type="button"
-                  className="inline-flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  onClick={() => changeDisplayMode("dense")}
-                >
-                  <Rows size={12} weight="regular" aria-hidden="true" />
-                  Dense
-                </button>
-              </div>
+        {effectiveDisplayMode === "dense" ? (
+          <ComponentCatalogueDenseTable
+            cards={denseCatalogueCards}
+            label={selectedLabel}
+            sort={denseSort}
+            selectedItemIds={selectedItemIds}
+            inspectorItemId={inspectorItemId}
+            onSort={changeDenseSort}
+            onToggleSelected={onToggleSelected}
+            onInspect={onInspectItem}
+            onPromote={onPromoteItem}
+            promotingItemId={promotingItemId}
+          />
+        ) : cardScaleFallbackActive && hasCatalogueResults ? (
+          <div
+            className="grid h-full min-h-[240px] place-items-center rounded-xs border border-dashed border-hairline bg-white p-4 text-center"
+            data-component-card-scale-fallback="true"
+            data-component-card-scale-fallback-count={visibleItems.length}
+            data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
+            data-library-virtualization-min-rows={WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows}
+          >
+            <div className="grid justify-items-center gap-2">
+              <p className="text-[10px] font-medium leading-4 text-ink">
+                {String(visibleItems.length)} components match.
+              </p>
+              <button
+                type="button"
+                className="inline-flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                onClick={() => changeDisplayMode("dense")}
+              >
+                <Rows size={12} weight="regular" aria-hidden="true" />
+                Dense
+              </button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
-              {catalogueOutline.branches.map((branch) => (
-                <ComponentCatalogueBranch
-                  key={branch.id}
-                  branch={branch}
-                  collapsedBranchIds={collapsedCatalogueBranchIds}
-                  onToggleBranch={toggleCatalogueBranch}
-                  selectedItemIds={selectedItemIds}
-                  inspectorItemId={inspectorItemId}
-                  onToggleSelected={onToggleSelected}
-                  onInspect={onInspectItem}
-                  onPromote={onPromoteItem}
-                  promotingItemId={promotingItemId}
-                />
-              ))}
-              {catalogueOutline.items.length > 0 ? (
-                <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
+            {catalogueOutline.branches.map((branch) => (
+              <ComponentCatalogueBranch
+                key={branch.id}
+                branch={branch}
+                collapsedBranchIds={collapsedCatalogueBranchIds}
+                onToggleBranch={toggleCatalogueBranch}
+                selectedItemIds={selectedItemIds}
+                inspectorItemId={inspectorItemId}
+                onToggleSelected={onToggleSelected}
+                onInspect={onInspectItem}
+                onPromote={onPromoteItem}
+                promotingItemId={promotingItemId}
+              />
+            ))}
+            {catalogueOutline.items.length > 0 ? (
+              <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
                 <div className="flex min-h-[72px] min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-3 py-2.5">
                   <SquaresFour size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                   <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -1598,14 +1574,6 @@ function ComponentLibrarySheet({
               </section>
             ) : null}
           </div>
-          )
-        ) : (
-          <EmptyState
-            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title={selectedLabel}
-            description={searchQuery ? `No components match "${searchQuery}".` : "No components in this view yet."}
-            className="h-full border-0 bg-white"
-          />
         )}
       </div>
     </section>

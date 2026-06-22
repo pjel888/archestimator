@@ -1181,26 +1181,6 @@ export function TemplatesTree({
     [onPrefetchNode, categoryTotals, templateTotals, templateNodeTotals],
   );
 
-  if (templates.length === 0 && projectSources.length === 0 && customTemplateCategories.length === 0) {
-    return (
-      <>
-        {emptyState ?? (
-          <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-            No templates yet. Select an Area in the estimate tree, then use Add Template to save its structure for reuse.
-          </div>
-        )}
-      </>
-    );
-  }
-
-  if (uiNodes.length === 0) {
-    return (
-      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
-        No reusable sources match &quot;{searchQuery}&quot;.
-      </div>
-    );
-  }
-
   return (
     <ContextMenu
       onOpenChange={(open) => {
@@ -1241,6 +1221,7 @@ export function TemplatesTree({
             onContextMenu={handleTreeContextMenu}
             renderRow={renderTemplatesRowLabel}
             virtualization={WORKSHOP_TREE_VIRTUALIZATION}
+            emptyState={emptyState ?? <span aria-hidden="true" />}
           />
         </div>
       </ContextMenuTrigger>
