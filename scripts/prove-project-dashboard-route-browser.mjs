@@ -247,8 +247,8 @@ function evaluateProof(viewportProofs) {
     if (!metrics.shellBox || !metrics.surfaceBox || !metrics.commandSurfaceBox) {
       failures.push(`${name}: route shell or command surface missing`);
     }
-    for (const module of metrics.modules) {
-      if (!module.box) failures.push(`${name}: ${module.label} module missing`);
+    for (const dashboardModule of metrics.modules) {
+      if (!dashboardModule.box) failures.push(`${name}: ${dashboardModule.label} module missing`);
     }
     if (name === "desktop" && metrics.projectIdentityBox && metrics.projectDashboardBox) {
       const beside = metrics.projectDashboardBox.x > metrics.projectIdentityBox.x + metrics.projectIdentityBox.width - 2;

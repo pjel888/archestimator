@@ -52,6 +52,7 @@
     "perf:check-routes": "bun run scripts/check-route-transition-readiness.ts",
     "perf:dashboard-query-count": "bun run scripts/measure-workshop-dashboard-query-count.ts",
     "perf:seed-fixture": "bun run scripts/seed-performance-test-data.ts",
+    "perf:library-baseline": "bun run scripts/measure-library-performance-baseline.ts",
     "perf:profile-peak-load": "vitest run tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1",
     "perf:collect-live-evidence": "bun run scripts/collect-live-db-performance-evidence.ts",
     "validate": "bun run type-check && bun run lint && bun run lint:design-system && bun run lint:design && bun run test && bun run test:dom",
