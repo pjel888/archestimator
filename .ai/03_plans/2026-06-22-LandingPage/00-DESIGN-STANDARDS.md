@@ -41,6 +41,18 @@ Archestimator is professional software with financial implications. The landing
 page can feel forward-looking, progressive, a little fun, and innovative, but it
 must still read as serious commercial tooling for estimating decisions.
 
+## AEC-First Product Identity
+
+The landing page must treat Archestimator as an AEC-first cost intelligence and
+cost proposal product. It is not contractor-first, and it is not a generic quote
+tool with construction examples.
+
+Contractors are an important Tier 1 wedge, but the public identity is broader:
+architects, engineers, contractors, estimators, quantity surveyors, specialty and
+fit-out firms, suppliers, and the clients/project teams who review and approve
+cost proposals. Any older "contractor-first" wording is stale and must not steer
+new landing copy or hero narrative.
+
 For this 2026-06-22 landing direction:
 
 - keep the page predominantly light, off-white, or cool/warm gray;

@@ -18,6 +18,7 @@ Live sites inspected:
 - Save.design: <https://save.design/>
 - Paper: <https://paper.design/>
 - Interfere: <https://interfere.com/>
+- Verichain AI Framer reference: <https://verichainai.framer.website/>
 
 Local browser snapshots captured at `1440x1200`:
 
@@ -459,3 +460,41 @@ Use this reference-informed sequence unless a newer plan supersedes it:
 - Do not let inspiration from Paper turn the page into a creative canvas product.
 - Do not let inspiration from Interfere make Archestimator look like bug tracking
   or incident software; borrow the interface-first proof structure.
+
+## Verichain AI Framer Reference
+
+Reference role: simple full-page flow and homepage pacing.
+
+Observed live-text flow:
+
+- Nav exposes How It Works, Features, Pricing, Contact, Docs, and Use Cases.
+- Hero states the category and value proposition, then offers two CTAs.
+- Quick value snapshot introduces three core benefits.
+- How It Works breaks the product into a simple numbered 3-step process.
+- Core Features follows with feature blocks and product-like code/data snippets.
+- A credibility/testimonial beat appears before more ecosystem/product sections.
+- Integrations, Pricing, Use Cases, and Community appear later in the page.
+
+Archestimator translation:
+
+- Borrow the progression, not the exact content: hero -> quick product value ->
+  how it works -> feature/product proof -> use cases -> community/final CTA.
+- Use the "quick value snapshot" idea for Archestimator's three immediate
+  proofs: Estimate Sheet, Cost Library, Proposal Record.
+- Use a numbered "How it works" sequence for the estimate-to-proposal loop:
+  build, source, revise, share/export, reuse.
+- Keep use cases on the homepage as a sneak peek only. Detailed role and feature
+  breakdowns should live on `/features`, `/trust`, `/about`, `/contact`, and
+  other public pages.
+- Do not copy Verichain's homepage pricing section. Archestimator pricing belongs
+  on `/pricing` as a separate evaluation page.
+- The Community placement is useful: include lightweight social/contact channels
+  near the footer or final CTA so people can follow along even before requesting
+  access.
+
+Avoid:
+
+- Blockchain/AI proof language.
+- Overloading the homepage with pricing cards.
+- Turning community into fake social proof. Only show real channels and label
+  inactive or planned channels honestly.

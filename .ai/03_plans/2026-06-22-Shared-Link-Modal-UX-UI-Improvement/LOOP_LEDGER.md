@@ -43,3 +43,20 @@ Loop: `DISCOVER -> PLAN -> EXECUTE(next doc) -> VERIFY(anchor to code) -> RECORD
 
 ### [STARTED] Phase E — adversarial QA of the plan (5 reviewers)
 - coherence, feasibility/design-lens, a11y, scope-guard, code-anchoring — each reads docs 00–10 + spot-checks real code; returns a verdict. Reconcile into `11-ADVERSARIAL-QA-LEDGER.md`.
+
+### [COMPLETE] Phase E — adversarial QA + reconciliation
+- Workflow `shared-link-modal-qa` (run `wf_11639c61-875`): 5 reviewers; 446K subagent tokens, 128 tool uses, ~22 min.
+- **Verdicts: 0 blockers; all `pass`/`pass-with-residuals`.** 25 findings; every major reconciled back into the docs:
+  - C-01 (PROB-23/24 orphan rows) → added to `02`. C-02 (tab IA contradiction) → doc 03 canonicalized across 04/07/08. C-03 (success-router action label) → elevated to Phase-5 task (client-only). C-04 (counts) → fixed.
+  - FZ-1 (portaled-sibling mechanism) → doc 05 A5 + 07 re-specified as open-stack. FZ-2 (reuse `ConfirmDialog`) → doc 07/08. FZ-3 (8 ControlField consumers) → doc 08 gate strengthened. FZ-4/5/6 → fixed.
+  - A11Y-01/02/03/05/06/07 → doc 05 A6 added. FZ-4 → doc 05 A6.
+  - SCOPE-1 (Phase 4 descope) → doc 08. SCOPE-2 (primitive scope honesty) → `00`. SCOPE-3 (drafts = move not redesign) → doc 07. SCOPE-4 (refetch overstatement) → doc 01/02. SCOPE-5 (deliverables) → resolved.
+  - C-A-01/02/03 (anchors) → fixed.
+- Wrote `11-ADVERSARIAL-QA-LEDGER.md` + `README.md` index.
+
+### [COMPLETE] PACK — verified, planning-only
+- 13 artifacts: `00-PLAN`, `LOOP_LEDGER`, `01-AUDIT`, `02-REGISTER`, `03-UX`, `04-UI`, `05-A11Y`, `06-COPY`, `07-FILE-PLAN`, `08-IMPL-GUIDE`, `09-VERIFY`, `10-BLAST-RADIUS`, `11-QA-LEDGER`, `README`.
+- Acceptance criteria (`00` §6) all met: problems code-anchored + severity-rated; P0/P1 resolved; file plan names real files + fixed contract; a11y is a concrete spec; impl guide lowest-risk-first with rollback; adversarial QA green (residuals recorded); DESIGN.md honored.
+- **Two P0s:** PROB-01 (first-publish flow) + PROB-02 (WCAG-AA contrast) — ship first (doc 08 Phase 0 + 5c).
+- Open owner decisions (not blockers): Philip's PROB-13 A/B sidebar (P0s decoupled); whether Phase 4 ships minimal-in-pack or full.
+- No code changed. Implementation is a separate, later pass against this plan.

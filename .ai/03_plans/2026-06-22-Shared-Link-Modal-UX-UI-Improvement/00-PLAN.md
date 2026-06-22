@@ -1,7 +1,9 @@
 # 00 — PLAN · Shared-Link Modal UX/UI Improvement
 
-**Status:** PLANNING (no code changes — this pack is an audit + target design + implementation plan only)
+**Status:** ✅ **VERIFIED — planning complete.** Adversarial QA PASS (0 blockers; 25 findings reconciled — see `11-ADVERSARIAL-QA-LEDGER.md`). No code changes — this pack is an audit + target design + implementation plan for a later execution pass.
 **Date opened:** 2026-06-22
+
+> **Scope-honesty note (QA SCOPE-2):** the share modal's two hardest bugs (the WCAG-AA contrast failure and the nested-modal focus/stacking bug) live in **shared primitives** (`dialog.tsx`/`modal.tsx`/`control-input.tsx`) used by *every* modal/field in the app, not in the publication component itself. So this pack honestly includes **app-wide primitive a11y hardening** alongside the modal-specific UX/UI redesign. An implementer should expect blast across all modals for Phases 0/2 (see `10-BLAST-RADIUS-AND-ROLLBACK.md`); splitting the primitive work into its own pack is an owner option.
 **Owner (lead):** Claude (product judgment / planning / integration)
 **Surface in focus:** the share modal that opens from the share icon — `src/components/workshop/ProjectPublicationHeader.tsx` (the `<Modal>` rendered on `open`) and its supporting surface (`RecipientEmailComposer`, `SharedLinkActivityFeed`, the `Modal` primitive, `control-input`).
 
