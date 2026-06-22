@@ -59,7 +59,6 @@ describe("workshop dashboard baseline", () => {
       "RecentProjectsList",
       "RecentSheetsList",
       "FavoritesTree",
-      "DashboardEmptyState",
     ]) {
       expect(dashboard).toContain(moduleName);
     }
@@ -69,7 +68,8 @@ describe("workshop dashboard baseline", () => {
     expect(dashboard).toContain("dashboard-project-card-panel");
     expect(dashboard).toContain("dashboard-component-card-panel");
     expect(dashboard).toContain("dashboard-bignum-value");
-    expect(dashboard).toContain("isFirstRun");
+    expect(dashboard).not.toContain("DashboardEmptyState");
+    expect(dashboard).not.toContain("isFirstRun");
   });
 
   test("main sidebar preserves archestimator sidebar measurements with overlay expansion", async () => {

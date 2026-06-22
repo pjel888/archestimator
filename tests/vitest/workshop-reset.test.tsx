@@ -151,7 +151,14 @@ const favoriteProjectsFixture = [
 const librarySpotlightFixture = {
   componentCount: 128,
   templateCount: 7,
-  recentTemplates: [{ id: "tmpl-1", name: "Two-Storey Residential", category: "Residential", rowCount: 240 }],
+  recentTemplates: [
+    {
+      id: "tmpl-1",
+      name: "Two-Storey Residential",
+      category: "Residential",
+      rowCount: 240,
+    },
+  ],
 };
 
 const emptyWorkshopHomebase = {
@@ -172,8 +179,12 @@ afterEach(() => {
 });
 
 function renderWithQueryClient(ui: ReactNode) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
 }
 
 function renderWorkshopDashboard({
@@ -195,7 +206,6 @@ function renderWorkshopDashboard({
         favoriteProjects={favoriteProjects}
         librarySpotlight={librarySpotlight}
         favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
-        userDisplayName="Philip Lewis"
       />
     </WorkshopHomebaseClient>,
   );
@@ -211,25 +221,43 @@ describe("workshop sidebar shell", () => {
         breadcrumbs: ["Workshop"],
         contentClassName: "",
         sidebarStatus: { projectsBadgeCount: 3 },
-        children: <div className="h-full bg-white" aria-label="Workshop empty canvas" />,
+        children: (
+          <div className="h-full bg-white" aria-label="Workshop empty canvas" />
+        ),
       }),
     );
 
     expect(screen.getByRole("main", { name: "Workshop" })).toBeTruthy();
-    const navigation = screen.getByRole("navigation", { name: "Main navigation" });
+    const navigation = screen.getByRole("navigation", {
+      name: "Main navigation",
+    });
     expect(navigation).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
-    expect(screen.getByRole("link", { name: "Projects, 3 pending invites" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Expand sidebar" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+    expect(
+      screen.getByRole("link", { name: "Projects, 3 pending invites" }),
+    ).toBeTruthy();
     const headerFrame = navigation.querySelector("[data-sidebar-header-frame]");
     expect(headerFrame).toBeTruthy();
     expect(headerFrame).toHaveClass("sidebar-logo-frame");
-    const primaryNavGroup = navigation.querySelector("[data-sidebar-primary-nav-group]");
+    const primaryNavGroup = navigation.querySelector(
+      "[data-sidebar-primary-nav-group]",
+    );
     expect(primaryNavGroup).toBeTruthy();
-    const sectionDividers = navigation.querySelectorAll("[data-sidebar-section-divider]");
+    const sectionDividers = navigation.querySelectorAll(
+      "[data-sidebar-section-divider]",
+    );
     expect(sectionDividers).toHaveLength(3);
-    expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
+    expect(
+      screen.getByLabelText("Workshop empty canvas").childElementCount,
+    ).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Send beta feedback" })).toHaveAttribute("aria-haspopup", "dialog");
+    expect(
+      screen.getByRole("button", { name: "Send beta feedback" }),
+    ).toHaveAttribute("aria-haspopup", "dialog");
   });
 
   test("keeps project-aligned chrome padding symmetrical", async () => {
@@ -240,7 +268,9 @@ describe("workshop sidebar shell", () => {
         breadcrumbs: ["Workshop", "Projects", "Lewis Residence"],
         alignChromeToProjectSidebar: true,
         contentClassName: "",
-        children: <div className="h-full bg-white" aria-label="Project canvas" />,
+        children: (
+          <div className="h-full bg-white" aria-label="Project canvas" />
+        ),
       }),
     );
 
@@ -261,29 +291,43 @@ describe("workshop dashboard homebase", () => {
     expect(screen.getByText("Component Count")).toBeInTheDocument();
 
     // Quick links into the primary surfaces.
-    expect(screen.getByRole("link", { name: "Open Projects" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Templates" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Projects" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Templates" }),
+    ).toBeInTheDocument();
 
     // Recent ledgers wired to real homebase data ("Makati Office" appears as both a
     // project and the parent of a recent sheet, so assert at least one).
-    expect(screen.getByRole("heading", { name: "Projects" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Makati Office").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Sheets" })).toBeInTheDocument();
     expect(screen.getByText("Makati Office - Tender")).toBeInTheDocument();
 
     // Favorites tree (per-sheet favoriting → real nested tree).
-    const favoritesTree = screen.getByRole("tree", { name: "Favorite projects" });
-    expect(within(favoritesTree).getByText("Lewis Residence")).toBeInTheDocument();
+    const favoritesTree = screen.getByRole("tree", {
+      name: "Favorite projects",
+    });
+    expect(
+      within(favoritesTree).getByText("Lewis Residence"),
+    ).toBeInTheDocument();
 
     // Continue-where-you-left-off deep link into the most recent sheet's editor.
-    const continueLink = screen.getByRole("link", { name: /Continue editing Lewis Residence - 001/ });
+    const continueLink = screen.getByRole("link", {
+      name: /Continue editing Lewis Residence - 001/,
+    });
     expect(continueLink).toHaveAttribute(
       "href",
       "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/88888888-8888-4888-8888-888888888888",
     );
 
     // Primary creation entry point.
-    expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "New project" }),
+    ).toBeInTheDocument();
   });
 
   test("exposes keyboard-reachable shared-link quick actions in the dashboard published list", async () => {
@@ -306,37 +350,67 @@ describe("workshop dashboard homebase", () => {
 
     renderWorkshopDashboard();
 
-    const publishedList = screen.getByRole("list", { name: "Recent published project shared links" });
-    const actionGroup = within(publishedList).getByLabelText("Shared link quick actions for Lewis Residence");
-    const copyButton = within(actionGroup).getByRole("button", { name: "Copy Lewis Residence shared link" });
-    const previewLink = within(actionGroup).getByRole("link", { name: "Preview Lewis Residence shared link" });
-    const rotateButton = within(actionGroup).getByRole("button", { name: "Create new shared link for Lewis Residence" });
-    const revokeButton = within(actionGroup).getByRole("button", { name: "Turn off Lewis Residence shared link" });
+    const publishedList = screen.getByRole("list", {
+      name: "Recent published project shared links",
+    });
+    const actionGroup = within(publishedList).getByLabelText(
+      "Shared link quick actions for Lewis Residence",
+    );
+    const copyButton = within(actionGroup).getByRole("button", {
+      name: "Copy Lewis Residence shared link",
+    });
+    const previewLink = within(actionGroup).getByRole("link", {
+      name: "Preview Lewis Residence shared link",
+    });
+    const rotateButton = within(actionGroup).getByRole("button", {
+      name: "Create new shared link for Lewis Residence",
+    });
+    const revokeButton = within(actionGroup).getByRole("button", {
+      name: "Turn off Lewis Residence shared link",
+    });
 
     copyButton.focus();
-    expect(await screen.findByRole("tooltip", { name: "Copy link" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("tooltip", { name: "Copy link" }),
+    ).toBeInTheDocument();
 
     await user.click(copyButton);
-    expect(clipboardWrite).toHaveBeenCalledWith("http://localhost:3000/share/client-token");
-    expect(await screen.findByRole("status")).toHaveTextContent("Copied shared link for Lewis Residence.");
+    expect(clipboardWrite).toHaveBeenCalledWith(
+      "http://localhost:3000/share/client-token",
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Copied shared link for Lewis Residence.",
+    );
 
     expect(previewLink).toHaveAttribute("href", "/share/client-token");
     expect(previewLink).toHaveAttribute("target", "_blank");
 
     await user.click(rotateButton);
-    expect(publicationActions.rotateProjectPublicationLink).not.toHaveBeenCalled();
-    const rotateDialog = await screen.findByRole("dialog", { name: "Create a new shared link?" });
-    await user.click(within(rotateDialog).getByRole("button", { name: "Create new link" }));
+    expect(
+      publicationActions.rotateProjectPublicationLink,
+    ).not.toHaveBeenCalled();
+    const rotateDialog = await screen.findByRole("dialog", {
+      name: "Create a new shared link?",
+    });
+    await user.click(
+      within(rotateDialog).getByRole("button", { name: "Create new link" }),
+    );
     await waitFor(() =>
-      expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledWith({
+      expect(
+        publicationActions.rotateProjectPublicationLink,
+      ).toHaveBeenCalledWith({
         projectId: "22222222-2222-4222-8222-222222222222",
       }),
     );
 
     await user.click(revokeButton);
     expect(publicationActions.revokeProjectPublication).not.toHaveBeenCalled();
-    const revokeDialog = await screen.findByRole("dialog", { name: "Turn off this shared link?" });
-    await user.click(within(revokeDialog).getByRole("button", { name: "Turn off link" }));
+    const revokeDialog = await screen.findByRole("dialog", {
+      name: "Turn off this shared link?",
+    });
+    await user.click(
+      within(revokeDialog).getByRole("button", { name: "Turn off link" }),
+    );
     await waitFor(() =>
       expect(publicationActions.revokeProjectPublication).toHaveBeenCalledWith({
         projectId: "22222222-2222-4222-8222-222222222222",
@@ -360,15 +434,33 @@ describe("workshop dashboard homebase", () => {
       },
     });
 
-    const publishedList = screen.getByRole("list", { name: "Recent published project shared links" });
-    const actionGroup = within(publishedList).getByLabelText("Shared link quick actions for Lewis Residence");
+    const publishedList = screen.getByRole("list", {
+      name: "Recent published project shared links",
+    });
+    const actionGroup = within(publishedList).getByLabelText(
+      "Shared link quick actions for Lewis Residence",
+    );
 
-    expect(within(actionGroup).getByRole("button", { name: "Copy Lewis Residence shared link" })).toBeInTheDocument();
-    expect(within(actionGroup).getByRole("link", { name: "Preview Lewis Residence shared link" })).toBeInTheDocument();
     expect(
-      within(actionGroup).queryByRole("button", { name: "Create new shared link for Lewis Residence" }),
+      within(actionGroup).getByRole("button", {
+        name: "Copy Lewis Residence shared link",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(actionGroup).getByRole("link", {
+        name: "Preview Lewis Residence shared link",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(actionGroup).queryByRole("button", {
+        name: "Create new shared link for Lewis Residence",
+      }),
     ).toBeNull();
-    expect(within(actionGroup).queryByRole("button", { name: "Turn off Lewis Residence shared link" })).toBeNull();
+    expect(
+      within(actionGroup).queryByRole("button", {
+        name: "Turn off Lewis Residence shared link",
+      }),
+    ).toBeNull();
   });
 
   test("renders failed shared-link quick-action results as errors without refreshing", async () => {
@@ -381,12 +473,24 @@ describe("workshop dashboard homebase", () => {
 
     renderWorkshopDashboard();
 
-    const publishedList = screen.getByRole("list", { name: "Recent published project shared links" });
-    const actionGroup = within(publishedList).getByLabelText("Shared link quick actions for Lewis Residence");
+    const publishedList = screen.getByRole("list", {
+      name: "Recent published project shared links",
+    });
+    const actionGroup = within(publishedList).getByLabelText(
+      "Shared link quick actions for Lewis Residence",
+    );
 
-    await user.click(within(actionGroup).getByRole("button", { name: "Create new shared link for Lewis Residence" }));
-    const rotateDialog = await screen.findByRole("dialog", { name: "Create a new shared link?" });
-    await user.click(within(rotateDialog).getByRole("button", { name: "Create new link" }));
+    await user.click(
+      within(actionGroup).getByRole("button", {
+        name: "Create new shared link for Lewis Residence",
+      }),
+    );
+    const rotateDialog = await screen.findByRole("dialog", {
+      name: "Create a new shared link?",
+    });
+    await user.click(
+      within(rotateDialog).getByRole("button", { name: "Create new link" }),
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Shared link changed while rotating. Refresh and try again.",
@@ -394,22 +498,61 @@ describe("workshop dashboard homebase", () => {
     expect(mocks.routerRefresh).not.toHaveBeenCalled();
   });
 
-  test("first-run homebase shows a purposeful empty state, not a blank canvas", () => {
+  test("zero-data homebase keeps the normal bento dashboard with empty ledgers", () => {
     renderWorkshopDashboard({
       homebase: emptyWorkshopHomebase,
       favoriteProjects: [],
       librarySpotlight: null,
     });
 
-    const getStarted = screen.getByRole("region", { name: "Get started" });
-    expect(within(getStarted).getByText("First run")).toBeInTheDocument();
-    expect(within(getStarted).getByText("Philip Lewis, let's build your first estimate")).toBeInTheDocument();
+    // The full bento stays visible even when project/sheet lists are empty.
+    expect(screen.getByText("Project Count")).toBeInTheDocument();
+    expect(screen.getByText("Published Projects")).toBeInTheDocument();
+    expect(screen.getByText("Component Count")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Projects" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Templates" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Library" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "New project" }),
+    ).toBeInTheDocument();
 
-    // The first-run state drives the first project, and the full grid is hidden.
-    expect(screen.getByText(/build your first estimate/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
-    expect(screen.queryByText("Recent projects")).toBeNull();
-    expect(screen.queryByRole("tree", { name: "Favorite projects" })).toBeNull();
+    // Lists remain in place as blank ledgers with zero rows.
+    expect(
+      screen.getByRole("list", {
+        name: "Recent published project shared links",
+      }).childElementCount,
+    ).toBe(0);
+    expect(
+      screen.getByRole("list", { name: "Recently added components" })
+        .childElementCount,
+    ).toBe(0);
+    expect(
+      screen.getByRole("tree", { name: "Favorite projects" }).childElementCount,
+    ).toBe(0);
+    expect(
+      screen.getByRole("heading", { name: "Projects" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Recent projects" }).childElementCount,
+    ).toBe(0);
+    expect(screen.getByRole("heading", { name: "Sheets" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Recent estimate sheets" })
+        .childElementCount,
+    ).toBe(0);
+    expect(screen.queryByText("No shared links yet")).toBeNull();
+    expect(screen.queryByText("No recent components yet")).toBeNull();
+    expect(screen.queryByText("Star a project to pin it here.")).toBeNull();
+    expect(screen.queryByText("No recent projects yet")).toBeNull();
+    expect(screen.queryByText("No recent estimate sheets yet")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Get started" })).toBeNull();
+    expect(screen.queryByText("First run")).toBeNull();
   });
 
   test("renders removed favorite project banner and lets the user clear the stale favorite", async () => {
@@ -433,19 +576,27 @@ describe("workshop dashboard homebase", () => {
       </WorkshopHomebaseClient>,
     );
 
-    const banner = screen.getByRole("region", { name: "Project access removed" });
-    expect(within(banner).getByText("Project access removed")).toBeInTheDocument();
+    const banner = screen.getByRole("region", {
+      name: "Project access removed",
+    });
+    expect(
+      within(banner).getByText("Project access removed"),
+    ).toBeInTheDocument();
     expect(
       within(banner).getByText(
         "You no longer have access to Shared Clinic Fit-Out. The project owner may have changed your access.",
       ),
     ).toBeInTheDocument();
 
-    await user.click(within(banner).getByRole("button", { name: "Remove from favorites" }));
+    await user.click(
+      within(banner).getByRole("button", { name: "Remove from favorites" }),
+    );
     expect(mocks.setProjectFavorite).toHaveBeenCalledWith({
       projectId: "44444444-4444-4444-8444-444444444444",
       favorite: false,
     });
-    expect(mocks.routerReplace).toHaveBeenCalledWith("/workshop", { scroll: false });
+    expect(mocks.routerReplace).toHaveBeenCalledWith("/workshop", {
+      scroll: false,
+    });
   });
 });

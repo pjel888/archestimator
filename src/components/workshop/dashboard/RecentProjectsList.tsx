@@ -29,10 +29,16 @@ const ROW_FOCUS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0";
 
 function favoriteErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Could not update project favorite.";
+  return error instanceof Error
+    ? error.message
+    : "Could not update project favorite.";
 }
 
-export function RecentProjectsList({ projects, favoritesScope, embedded = false }: RecentProjectsListProps) {
+export function RecentProjectsList({
+  projects,
+  favoritesScope,
+  embedded = false,
+}: RecentProjectsListProps) {
   const rows = projects.slice(0, 6);
 
   return (
@@ -49,46 +55,56 @@ export function RecentProjectsList({ projects, favoritesScope, embedded = false 
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {rows.length === 0 ? (
-          <p className="px-2 py-2 text-[10px] text-secondary">
-            No recent projects yet
-          </p>
-        ) : (
-          <ul>
-            {rows.map((project) => {
-              const meta = project.client_name ?? project.location;
-              return (
-                <li key={project.id} className="flex items-stretch gap-2 px-2 py-2 hover:bg-surface-muted">
-                  <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center justify-items-center">
-                    <Folder size={12} weight="regular" className="text-secondary" aria-hidden="true" />
-                    <FavoriteProjectButton project={project} favoritesScope={favoritesScope} />
+        <ul aria-label="Recent projects">
+          {rows.map((project) => {
+            const meta = project.client_name ?? project.location;
+            return (
+              <li
+                key={project.id}
+                className="flex items-stretch gap-2 px-2 py-2 hover:bg-surface-muted"
+              >
+                <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center justify-items-center">
+                  <Folder
+                    size={12}
+                    weight="regular"
+                    className="text-secondary"
+                    aria-hidden="true"
+                  />
+                  <FavoriteProjectButton
+                    project={project}
+                    favoritesScope={favoritesScope}
+                  />
+                </span>
+                <Link
+                  href={projectHref(project.id)}
+                  className={cn(
+                    "grid min-w-0 flex-1 grid-rows-[12px_14px]",
+                    ROW_FOCUS,
+                  )}
+                >
+                  <span className="flex min-w-0 items-start gap-1.5">
+                    <span
+                      className="truncate text-[11px] leading-3 text-ink"
+                      title={project.name}
+                    >
+                      {project.name}
+                    </span>
                   </span>
-                  <Link
-                    href={projectHref(project.id)}
-                    className={cn(
-                      "grid min-w-0 flex-1 grid-rows-[12px_14px]",
-                      ROW_FOCUS,
-                    )}
-                  >
-                    <span className="flex min-w-0 items-start gap-1.5">
-                      <span className="truncate text-[11px] leading-3 text-ink" title={project.name}>
-                        {project.name}
+                  <span className="flex min-w-0 items-center">
+                    {meta ? (
+                      <span className="truncate text-[10px] leading-[14px] text-secondary">
+                        {meta}
                       </span>
-                    </span>
-                    <span className="flex min-w-0 items-center">
-                      {meta ? (
-                        <span className="truncate text-[10px] leading-[14px] text-secondary">{meta}</span>
-                      ) : null}
-                    </span>
-                  </Link>
-                  <time className="self-center shrink-0 font-numeric text-[9px] text-secondary">
-                    {formatShortDate(project.updated_at)}
-                  </time>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    ) : null}
+                  </span>
+                </Link>
+                <time className="self-center shrink-0 font-numeric text-[9px] text-secondary">
+                  {formatShortDate(project.updated_at)}
+                </time>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </section>
   );
@@ -102,7 +118,9 @@ function FavoriteProjectButton({
   favoritesScope: { workspaceId: string; userId: string };
 }) {
   const { toggle, isPending } = useToggleProjectFavorite(favoritesScope);
-  const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(null);
+  const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const isFavorite = favoriteOverride ?? project.isFavorite;
 
@@ -140,14 +158,25 @@ function FavoriteProjectButton({
           "grid size-4 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
           isFavorite ? "text-secondary" : null,
         )}
-        aria-label={isFavorite ? `Remove ${project.name} from favorites` : `Add ${project.name} to favorites`}
+        aria-label={
+          isFavorite
+            ? `Remove ${project.name} from favorites`
+            : `Add ${project.name} to favorites`
+        }
         aria-pressed={isFavorite}
         aria-busy={isPending}
         disabled={isPending}
-        title={errorMessage ?? (isFavorite ? "Remove from favorites" : "Add to favorites")}
+        title={
+          errorMessage ??
+          (isFavorite ? "Remove from favorites" : "Add to favorites")
+        }
         onClick={toggleFavorite}
       >
-        <Star size={10} weight={isFavorite ? "fill" : "regular"} aria-hidden="true" />
+        <Star
+          size={10}
+          weight={isFavorite ? "fill" : "regular"}
+          aria-hidden="true"
+        />
       </button>
       {errorMessage ? <span className="sr-only">{errorMessage}</span> : null}
     </>

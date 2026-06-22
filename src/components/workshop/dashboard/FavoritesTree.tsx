@@ -19,9 +19,7 @@ import {
 import { cn } from "@/lib/ui/cn";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 
-import type {
-  MainSidebarFavoriteProject,
-} from "@/components/sidebar/sidebar-types";
+import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 
 type FavoritesTreeProps = {
   favoriteProjects: MainSidebarFavoriteProject[];
@@ -35,7 +33,11 @@ const FOCUS_RING =
 const ROW_LINK =
   "flex min-w-0 flex-1 items-center gap-2 rounded-xs px-2 py-2 hover:bg-surface-muted";
 
-export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = false }: FavoritesTreeProps) {
+export function FavoritesTree({
+  favoriteProjects,
+  favoritesScope,
+  embedded = false,
+}: FavoritesTreeProps) {
   const favoritesQuery = useSidebarFavoritesQuery({
     scope: favoritesScope,
     initialData: favoriteProjects,
@@ -65,7 +67,9 @@ export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = fal
     previousSheetProjectIdsRef.current = sheetProjectIds;
     if (!previousSheetProjectIds) return;
 
-    const newlySheetfulProjectIds = Array.from(sheetProjectIds).filter((id) => !previousSheetProjectIds.has(id));
+    const newlySheetfulProjectIds = Array.from(sheetProjectIds).filter(
+      (id) => !previousSheetProjectIds.has(id),
+    );
     if (newlySheetfulProjectIds.length === 0) return;
 
     setOpenIds((current) => {
@@ -93,7 +97,8 @@ export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = fal
       }
     }
   }
-  const visibleActiveIndex = flatItems.length === 0 ? 0 : Math.min(activeIndex, flatItems.length - 1);
+  const visibleActiveIndex =
+    flatItems.length === 0 ? 0 : Math.min(activeIndex, flatItems.length - 1);
 
   const toggle = (id: string) => {
     setOpenIds((prev) => {
@@ -107,7 +112,9 @@ export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = fal
     });
     // Keep the roving focus on the toggled project row so collapsing never strands
     // the active index on a now-hidden sheet (the project's own index is stable).
-    const projectIndex = flatItems.findIndex((item) => item.key === `project:${id}`);
+    const projectIndex = flatItems.findIndex(
+      (item) => item.key === `project:${id}`,
+    );
     if (projectIndex >= 0) setActiveIndex(projectIndex);
   };
 
@@ -146,7 +153,11 @@ export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = fal
         if (item?.key.startsWith("project:")) {
           const id = item.key.slice("project:".length);
           const project = projects.find((candidate) => candidate.id === id);
-          if (project && project.favoriteEstimateSheets.length > 0 && !openIds.has(id)) {
+          if (
+            project &&
+            project.favoriteEstimateSheets.length > 0 &&
+            !openIds.has(id)
+          ) {
             event.preventDefault();
             toggle(id);
           }
@@ -189,136 +200,132 @@ export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = fal
         </h2>
       </div>
 
-      {projects.length === 0 ? (
-        <p className="border-t border-hairline px-2 py-2 text-[10px] text-secondary">
-          Star a project to pin it here.
-        </p>
-      ) : (
-        <div
-          ref={treeRef}
-          role="tree"
-          aria-label="Favorite projects"
-          onKeyDown={handleKeyDown}
-          className="min-h-0 flex-1 overflow-y-auto border-t border-hairline py-0"
-        >
-          {projects.map((project) => {
-            const hasSheets = project.favoriteEstimateSheets.length > 0;
-            const open = openIds.has(project.id);
-            const projectKey = `project:${project.id}`;
-            const projectIndex = flatItems.findIndex(
-              (item) => item.key === projectKey,
-            );
-            const isActive = projectIndex === visibleActiveIndex;
+      <div
+        ref={treeRef}
+        role="tree"
+        aria-label="Favorite projects"
+        onKeyDown={handleKeyDown}
+        className="min-h-0 flex-1 overflow-y-auto border-t border-hairline py-0"
+      >
+        {projects.map((project) => {
+          const hasSheets = project.favoriteEstimateSheets.length > 0;
+          const open = openIds.has(project.id);
+          const projectKey = `project:${project.id}`;
+          const projectIndex = flatItems.findIndex(
+            (item) => item.key === projectKey,
+          );
+          const isActive = projectIndex === visibleActiveIndex;
 
-            return (
-              <div
-                key={project.id}
-                role="treeitem"
-                aria-expanded={hasSheets ? open : undefined}
-                aria-selected={false}
-                aria-label={project.name}
-              >
-                <div className="flex items-center gap-2 px-2">
-                  {hasSheets ? (
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      onClick={() => toggle(project.id)}
-                      className="flex size-4 shrink-0 items-center justify-center rounded-xs text-tertiary hover:bg-surface-muted hover:text-secondary"
-                    >
-                      {open ? (
-                        <CaretDown size={11} weight="regular" />
-                      ) : (
-                        <CaretRight size={11} weight="regular" />
-                      )}
-                    </button>
-                  ) : (
-                    <span aria-hidden="true" className="size-4 shrink-0" />
-                  )}
+          return (
+            <div
+              key={project.id}
+              role="treeitem"
+              aria-expanded={hasSheets ? open : undefined}
+              aria-selected={false}
+              aria-label={project.name}
+            >
+              <div className="flex items-center gap-2 px-2">
+                {hasSheets ? (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    onClick={() => toggle(project.id)}
+                    className="flex size-4 shrink-0 items-center justify-center rounded-xs text-tertiary hover:bg-surface-muted hover:text-secondary"
+                  >
+                    {open ? (
+                      <CaretDown size={11} weight="regular" />
+                    ) : (
+                      <CaretRight size={11} weight="regular" />
+                    )}
+                  </button>
+                ) : (
+                  <span aria-hidden="true" className="size-4 shrink-0" />
+                )}
 
-                  {/* The row link is the single roving focus target for this treeitem:
+                {/* The row link is the single roving focus target for this treeitem:
                       one Tab stop, arrow-reachable whether or not the project has
                       sheets; ArrowRight/Left (handled on the tree) expand/collapse. */}
-                  <Link
-                    href={project.href}
-                    data-tree-key={projectKey}
-                    tabIndex={isActive ? 0 : -1}
-                    onFocus={() => projectIndex >= 0 && setActiveIndex(projectIndex)}
-                    className={cn(ROW_LINK, FOCUS_RING)}
+                <Link
+                  href={project.href}
+                  data-tree-key={projectKey}
+                  tabIndex={isActive ? 0 : -1}
+                  onFocus={() =>
+                    projectIndex >= 0 && setActiveIndex(projectIndex)
+                  }
+                  className={cn(ROW_LINK, FOCUS_RING)}
+                >
+                  <Folder
+                    size={13}
+                    weight="regular"
+                    className="shrink-0 text-tertiary"
+                  />
+                  <span
+                    className="truncate text-[11px] text-ink"
+                    title={project.name}
                   >
-                    <Folder
-                      size={13}
-                      weight="regular"
-                      className="shrink-0 text-tertiary"
-                    />
-                    <span
-                      className="truncate text-[11px] text-ink"
-                      title={project.name}
-                    >
-                      {project.name}
+                    {project.name}
+                  </span>
+                  {project.projectCode ? (
+                    <span className="shrink-0 font-numeric text-[9px] text-secondary">
+                      {project.projectCode}
                     </span>
-                    {project.projectCode ? (
-                      <span className="shrink-0 font-numeric text-[9px] text-secondary">
-                        {project.projectCode}
-                      </span>
-                    ) : null}
-                  </Link>
-                </div>
-
-                {hasSheets && open ? (
-                  <div role="group" className="pl-16">
-                    {project.favoriteEstimateSheets.map((sheet) => {
-                      const sheetKey = `sheet:${sheet.id}`;
-                      const sheetIndex = flatItems.findIndex(
-                        (item) => item.key === sheetKey,
-                      );
-                      const sheetActive = sheetIndex === visibleActiveIndex;
-
-                      return (
-                        <div
-                          key={sheet.id}
-                          role="treeitem"
-                          aria-selected={false}
-                          aria-label={sheet.name}
-                          className="flex items-center"
-                        >
-                          <Link
-                            href={sheet.href}
-                            data-tree-key={sheetKey}
-                            tabIndex={sheetActive ? 0 : -1}
-                            onFocus={() =>
-                              sheetIndex >= 0 && setActiveIndex(sheetIndex)
-                            }
-                            className={cn(ROW_LINK, FOCUS_RING)}
-                          >
-                            <FileText
-                              size={11}
-                              weight="regular"
-                              className="shrink-0 text-tertiary"
-                            />
-                            <span
-                              className="truncate text-[10px] text-secondary"
-                              title={sheet.name}
-                            >
-                              {sheet.name}
-                            </span>
-                            {sheet.sheetCode ? (
-                              <span className="shrink-0 font-numeric text-[9px] text-secondary">
-                                {sheet.sheetCode}
-                              </span>
-                            ) : null}
-                          </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                  ) : null}
+                </Link>
               </div>
-            );
-          })}
-        </div>
-      )}
+
+              {hasSheets && open ? (
+                <div role="group" className="pl-16">
+                  {project.favoriteEstimateSheets.map((sheet) => {
+                    const sheetKey = `sheet:${sheet.id}`;
+                    const sheetIndex = flatItems.findIndex(
+                      (item) => item.key === sheetKey,
+                    );
+                    const sheetActive = sheetIndex === visibleActiveIndex;
+
+                    return (
+                      <div
+                        key={sheet.id}
+                        role="treeitem"
+                        aria-selected={false}
+                        aria-label={sheet.name}
+                        className="flex items-center"
+                      >
+                        <Link
+                          href={sheet.href}
+                          data-tree-key={sheetKey}
+                          tabIndex={sheetActive ? 0 : -1}
+                          onFocus={() =>
+                            sheetIndex >= 0 && setActiveIndex(sheetIndex)
+                          }
+                          className={cn(ROW_LINK, FOCUS_RING)}
+                        >
+                          <FileText
+                            size={11}
+                            weight="regular"
+                            className="shrink-0 text-tertiary"
+                          />
+                          <span
+                            className="truncate text-[10px] text-secondary"
+                            title={sheet.name}
+                          >
+                            {sheet.name}
+                          </span>
+                          {sheet.sheetCode ? (
+                            <span className="shrink-0 font-numeric text-[9px] text-secondary">
+                              {sheet.sheetCode}
+                            </span>
+                          ) : null}
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }

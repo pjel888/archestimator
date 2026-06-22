@@ -31,12 +31,22 @@ const ROW_FOCUS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0";
 
 function favoriteErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Could not update estimate favorite.";
+  return error instanceof Error
+    ? error.message
+    : "Could not update estimate favorite.";
 }
 
-export function RecentSheetsList({ estimates, favoriteProjects, favoritesScope, embedded = false }: RecentSheetsListProps) {
+export function RecentSheetsList({
+  estimates,
+  favoriteProjects,
+  favoritesScope,
+  embedded = false,
+}: RecentSheetsListProps) {
   const rows = estimates.slice(0, 6);
-  const favoriteProjectIds = useMemo(() => new Set(favoriteProjects.map((project) => project.id)), [favoriteProjects]);
+  const favoriteProjectIds = useMemo(
+    () => new Set(favoriteProjects.map((project) => project.id)),
+    [favoriteProjects],
+  );
 
   return (
     <section
@@ -52,47 +62,54 @@ export function RecentSheetsList({ estimates, favoriteProjects, favoritesScope, 
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {rows.length === 0 ? (
-          <p className="px-2 py-2 text-[10px] text-secondary">
-            No recent estimate sheets yet
-          </p>
-        ) : (
-          <ul>
-            {rows.map((estimate) => (
-              <li key={estimate.id} className="flex items-stretch gap-2 px-2 py-2 hover:bg-surface-muted">
-                <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center justify-items-center">
-                  <FileText size={12} weight="regular" className="text-secondary" aria-hidden="true" />
-                  <FavoriteSheetButton
-                    estimate={estimate}
-                    favoritesScope={favoritesScope}
-                    isProjectSidebarFavorite={favoriteProjectIds.has(estimate.project_id)}
-                  />
-                </span>
-                <Link
-                  href={estimateHref(estimate)}
-                  className={cn(
-                    "grid min-w-0 flex-1 grid-rows-[12px_14px]",
-                    ROW_FOCUS,
+        <ul aria-label="Recent estimate sheets">
+          {rows.map((estimate) => (
+            <li
+              key={estimate.id}
+              className="flex items-stretch gap-2 px-2 py-2 hover:bg-surface-muted"
+            >
+              <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center justify-items-center">
+                <FileText
+                  size={12}
+                  weight="regular"
+                  className="text-secondary"
+                  aria-hidden="true"
+                />
+                <FavoriteSheetButton
+                  estimate={estimate}
+                  favoritesScope={favoritesScope}
+                  isProjectSidebarFavorite={favoriteProjectIds.has(
+                    estimate.project_id,
                   )}
-                >
-                  <span className="flex min-w-0 items-start gap-1.5">
-                    <span className="truncate text-[11px] leading-3 text-ink" title={estimate.name}>
-                      {estimate.name}
-                    </span>
+                />
+              </span>
+              <Link
+                href={estimateHref(estimate)}
+                className={cn(
+                  "grid min-w-0 flex-1 grid-rows-[12px_14px]",
+                  ROW_FOCUS,
+                )}
+              >
+                <span className="flex min-w-0 items-start gap-1.5">
+                  <span
+                    className="truncate text-[11px] leading-3 text-ink"
+                    title={estimate.name}
+                  >
+                    {estimate.name}
                   </span>
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate text-[10px] leading-[14px] text-secondary">
-                      {estimate.projectName}
-                    </span>
+                </span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-[10px] leading-[14px] text-secondary">
+                    {estimate.projectName}
                   </span>
-                </Link>
-                <time className="self-center shrink-0 font-numeric text-[9px] text-secondary">
-                  {formatShortDate(estimate.updated_at)}
-                </time>
-              </li>
-            ))}
-          </ul>
-        )}
+                </span>
+              </Link>
+              <time className="self-center shrink-0 font-numeric text-[9px] text-secondary">
+                {formatShortDate(estimate.updated_at)}
+              </time>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -108,7 +125,9 @@ function FavoriteSheetButton({
   isProjectSidebarFavorite: boolean;
 }) {
   const { toggle, isPending } = useToggleEstimateFavorite(favoritesScope);
-  const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(null);
+  const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const isFavorite = favoriteOverride ?? estimate.isFavorite;
 
@@ -154,14 +173,27 @@ function FavoriteSheetButton({
           "grid size-4 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
           isFavorite ? "text-secondary" : null,
         )}
-        aria-label={isFavorite ? `Remove ${estimate.name} from favorite estimate sheets` : `Add ${estimate.name} to favorite estimate sheets`}
+        aria-label={
+          isFavorite
+            ? `Remove ${estimate.name} from favorite estimate sheets`
+            : `Add ${estimate.name} to favorite estimate sheets`
+        }
         aria-pressed={isFavorite}
         aria-busy={isPending}
         disabled={isPending}
-        title={errorMessage ?? (isFavorite ? "Remove from favorite estimate sheets" : "Add to favorite estimate sheets")}
+        title={
+          errorMessage ??
+          (isFavorite
+            ? "Remove from favorite estimate sheets"
+            : "Add to favorite estimate sheets")
+        }
         onClick={toggleFavorite}
       >
-        <Star size={10} weight={isFavorite ? "fill" : "regular"} aria-hidden="true" />
+        <Star
+          size={10}
+          weight={isFavorite ? "fill" : "regular"}
+          aria-hidden="true"
+        />
       </button>
       {errorMessage ? <span className="sr-only">{errorMessage}</span> : null}
     </>

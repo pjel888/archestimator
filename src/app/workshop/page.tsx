@@ -135,7 +135,6 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
           favoriteProjects={favoriteProjects}
           favoritesScope={favoritesScope}
           librarySpotlight={librarySpotlight}
-          userDisplayName={currentUser.displayName}
         />
       </WorkshopHomebaseClient>
     </WorkshopPageShell>

@@ -73,9 +73,4 @@ export function pickContinueEstimate(homebase: WorkshopHomebaseData): WorkshopEs
   return homebase.estimates[0] ?? null;
 }
 
-/** True when the workspace has no projects and no sheets — drives the first-run state. */
-export function isFirstRun(homebase: WorkshopHomebaseData): boolean {
-  return homebase.projects.length === 0 && homebase.estimates.length === 0;
-}
-
 export type { WorkshopProjectSummary, WorkshopEstimateSummary, MainSidebarFavoriteProject };
