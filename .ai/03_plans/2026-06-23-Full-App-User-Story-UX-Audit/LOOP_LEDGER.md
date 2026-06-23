@@ -150,6 +150,29 @@ Stop conditions (any one):
 - All plans are READ-ONLY planning artifacts — no code changes within this pack.
   Implementation happens in separate branches/sessions after a plan is selected.
 
+## Phase Organization (2026-06-23, redistributed for balanced implementation)
+
+All 44 UX issue folders physically moved into 6 balanced phase directories (6-8 issues each).
+Designed for one-phase-per-session execution.
+
+| Phase | Dir | Issues | P0 | P1 | P2 | Focus |
+|-------|-----|--------|----|----|-----|-------|
+| 1 | [phase-1/](phase-1/) | 6 | 5 | 1 | 0 | Auth & Shell (beta gate) |
+| 2 | [phase-2/](phase-2/) | 7 | 3 | 3 | 1 | Projects & QA |
+| 3 | [phase-3/](phase-3/) | 7 | 2 | 4 | 1 | Estimates Core |
+| 4 | [phase-4/](phase-4/) | 8 | 3 | 3 | 2 | Share & Export |
+| 5 | [phase-5/](phase-5/) | 8 | 2 | 6 | 0 | Collab, Maps, Feedback |
+| 6 | [phase-6/](phase-6/) | 8 | 2 | 5 | 1 | Provider & New Foundations |
+
+**Key documents:**
+- [PHASE-ANALYSIS.md](PHASE-ANALYSIS.md) — comprehensive phase breakdown with IU mapping, conflict groups, decision gates, and implementation order
+- Each `phase-N/README.md` — per-phase issue list, dependencies, exit gates
+
+**Navigation:**
+- Each `phase-N/` directory contains symlinks to the original UX folders
+- Original UX folders remain at the root level (all relative paths preserved)
+- To implement: pick a phase → pick a wave → pick an unclaimed conflict group → implement
+
 ## Blockers
 
 None currently.
