@@ -43,19 +43,25 @@ export function Chip({
 }) {
   useChipCss();
   const cls = active ? "ae-chip ae-chip--active" : `ae-chip ae-chip--${tone}`;
-  return (
-    <button type={type} aria-pressed={active || undefined} className={`${cls} ${className}`} {...props}>
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{children}</span>
-      {removable && (
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={removeLabel}
-          className="ae-chip__x"
-          onClick={(e) => { e.stopPropagation(); onRemove && onRemove(); }}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onRemove && onRemove(); } }}
-        >×</span>
-      )}
-    </button>
+  const buttonProps = {
+    ...props,
+    "aria-pressed": active || undefined,
+    className: `${cls} ${className}`,
+  };
+  const labelContent = (
+    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{children}</span>
   );
+  const removeButton = removable && (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={removeLabel}
+      className="ae-chip__x"
+      onClick={(e) => { e.stopPropagation(); onRemove && onRemove(); }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onRemove && onRemove(); } }}
+    >×</span>
+  );
+  if (type === "submit") return <button {...buttonProps} type="submit">{labelContent}{removeButton}</button>;
+  if (type === "reset") return <button {...buttonProps} type="reset">{labelContent}{removeButton}</button>;
+  return <button {...buttonProps} type="button">{labelContent}{removeButton}</button>;
 }

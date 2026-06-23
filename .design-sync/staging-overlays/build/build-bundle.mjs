@@ -50,7 +50,7 @@ for (const c of COMPONENTS) {
   const raw = fs.readFileSync(`${COMP_DIR}/${c.file}`, "utf8");
   const sourcePath = `components/overlays/${c.file}`;
   let compiled = compile(raw);
-  const helper = compiled.includes("_extends(") ? EXTENDS_HELPER + "\n" : "";
+  const helper = /_extends\(/.test(compiled) ? EXTENDS_HELPER + "\n" : "";
   const assign = `Object.assign(__ds_scope, { ${c.exports.join(", ")} });`;
   const block =
     `// ${sourcePath}\n` +

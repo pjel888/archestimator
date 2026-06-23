@@ -6,7 +6,11 @@
   function Button(props) {
     var rest = Object.assign({}, props);
     delete rest.children;
-    return React.createElement("button", rest, props.children);
+    var buttonType = rest.type;
+    delete rest.type;
+    if (buttonType === "submit") return React.createElement("button", { ...rest, type: "submit" }, props.children);
+    if (buttonType === "reset") return React.createElement("button", { ...rest, type: "reset" }, props.children);
+    return React.createElement("button", { ...rest, type: "button" }, props.children);
   }
   window.ArchestimatorDesignSystem_3fbb6f = { Button: Button };
 })();

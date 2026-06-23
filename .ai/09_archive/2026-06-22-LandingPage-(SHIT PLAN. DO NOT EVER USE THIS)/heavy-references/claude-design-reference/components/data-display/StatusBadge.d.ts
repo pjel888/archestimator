@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 /**
  * Semantic estimate/proposal status chip with optional leading dot.
@@ -8,4 +8,4 @@ export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   status: "approved" | "review" | "danger" | "draft" | "active" | "inactive";
   showDot?: boolean;
 }
-export declare function StatusBadge(props: StatusBadgeProps): JSX.Element;
+export declare function StatusBadge(props: StatusBadgeProps): ReactNode;

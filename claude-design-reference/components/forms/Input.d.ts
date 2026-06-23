@@ -16,5 +16,5 @@ export interface FieldProps {
   children: ReactNode;
   className?: string;
 }
-export declare function Input(props: InputProps): JSX.Element;
-export declare function Field(props: FieldProps): JSX.Element;
+export declare function Input(props: InputProps): ReactNode;
+export declare function Field(props: FieldProps): ReactNode;

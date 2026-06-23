@@ -10,4 +10,4 @@ export interface SwitchProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   label?: ReactNode;
   disabled?: boolean;
 }
-export declare function Switch(props: SwitchProps): JSX.Element;
+export declare function Switch(props: SwitchProps): ReactNode;

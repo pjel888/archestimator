@@ -30,6 +30,7 @@ export function Checkbox({ checked = false, onChange, label, disabled = false, c
   return (
     <label className={`ae-check ${className}`} data-disabled={disabled}>
       <button
+        {...props}
         type="button"
         role="checkbox"
         aria-checked={checked}
@@ -37,7 +38,6 @@ export function Checkbox({ checked = false, onChange, label, disabled = false, c
         data-on={checked}
         className="ae-check__box"
         onClick={() => !disabled && onChange && onChange(!checked)}
-        {...props}
       >
         {checked && (
           <svg className="ae-check__tick" viewBox="0 0 12 12" fill="none" aria-hidden="true">

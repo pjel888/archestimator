@@ -13,4 +13,4 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   children?: ReactNode;
 }
 
-export declare function IconButton(props: IconButtonProps): JSX.Element;
+export declare function IconButton(props: IconButtonProps): ReactNode;

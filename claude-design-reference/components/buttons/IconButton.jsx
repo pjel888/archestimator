@@ -41,13 +41,11 @@ export function IconButton({
   ...props
 }) {
   useIconBtnCss();
-  return (
-    <button
-      type={type}
-      className={`ae-iconbtn ae-iconbtn--${variant} ae-iconbtn--${size} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
+  const buttonProps = {
+    ...props,
+    className: `ae-iconbtn ae-iconbtn--${variant} ae-iconbtn--${size} ${className}`,
+  };
+  if (type === "submit") return <button {...buttonProps} type="submit">{children}</button>;
+  if (type === "reset") return <button {...buttonProps} type="reset">{children}</button>;
+  return <button {...buttonProps} type="button">{children}</button>;
 }

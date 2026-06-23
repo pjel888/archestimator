@@ -28,4 +28,4 @@ export interface ModalProps {
   className?: string;
   children?: ReactNode;
 }
-export declare function Modal(props: ModalProps): JSX.Element | null;
+export declare function Modal(props: ModalProps): ReactNode | null;

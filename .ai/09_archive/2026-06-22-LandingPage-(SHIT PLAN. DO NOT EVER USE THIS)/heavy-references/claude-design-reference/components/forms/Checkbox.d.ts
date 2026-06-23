@@ -10,4 +10,4 @@ export interface CheckboxProps extends Omit<ButtonHTMLAttributes<HTMLButtonEleme
   label?: ReactNode;
   disabled?: boolean;
 }
-export declare function Checkbox(props: CheckboxProps): JSX.Element;
+export declare function Checkbox(props: CheckboxProps): ReactNode;

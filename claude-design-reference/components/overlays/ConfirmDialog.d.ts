@@ -24,4 +24,4 @@ export interface ConfirmDialogProps {
   inline?: boolean;
   children?: ReactNode;
 }
-export declare function ConfirmDialog(props: ConfirmDialogProps): JSX.Element | null;
+export declare function ConfirmDialog(props: ConfirmDialogProps): ReactNode | null;

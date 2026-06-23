@@ -56,13 +56,11 @@ export function Button({
   ...props
 }) {
   useButtonCss();
-  return (
-    <button
-      type={type}
-      className={`ae-btn ae-btn--${variant} ae-btn--${size} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
+  const buttonProps = {
+    ...props,
+    className: `ae-btn ae-btn--${variant} ae-btn--${size} ${className}`,
+  };
+  if (type === "submit") return <button {...buttonProps} type="submit">{children}</button>;
+  if (type === "reset") return <button {...buttonProps} type="reset">{children}</button>;
+  return <button {...buttonProps} type="button">{children}</button>;
 }

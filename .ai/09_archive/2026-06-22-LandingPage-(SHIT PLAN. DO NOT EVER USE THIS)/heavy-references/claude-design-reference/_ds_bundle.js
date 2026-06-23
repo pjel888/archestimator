@@ -66,10 +66,13 @@ function Button({
   ...props
 }) {
   useButtonCss();
-  return /*#__PURE__*/React.createElement("button", _extends({
-    type: type,
+  const buttonProps = {
+    ...props,
     className: `ae-btn ae-btn--${variant} ae-btn--${size} ${className}`
-  }, props), children);
+  };
+  if (type === "submit") return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "submit" }, children);
+  if (type === "reset") return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "reset" }, children);
+  return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "button" }, children);
 }
 Object.assign(__ds_scope, { Button });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/buttons/Button.jsx", error: String((e && e.message) || e) }); }
@@ -117,10 +120,13 @@ function IconButton({
   ...props
 }) {
   useIconBtnCss();
-  return /*#__PURE__*/React.createElement("button", _extends({
-    type: type,
+  const buttonProps = {
+    ...props,
     className: `ae-iconbtn ae-iconbtn--${variant} ae-iconbtn--${size} ${className}`
-  }, props), children);
+  };
+  if (type === "submit") return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "submit" }, children);
+  if (type === "reset") return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "reset" }, children);
+  return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "button" }, children);
 }
 Object.assign(__ds_scope, { IconButton });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/buttons/IconButton.jsx", error: String((e && e.message) || e) }); }
@@ -144,7 +150,7 @@ function useAvatarCss() {
     overflow:hidden;flex:none;border:1px solid var(--hairline);border-radius:var(--radius-xs,3px);
     background:var(--surface-muted);color:var(--ink);font-family:var(--font-sf-pro);font-weight:500;
     text-transform:uppercase;letter-spacing:0;}
-  .ae-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+  .ae-avatar__image{width:100%;height:100%;background-position:center;background-size:cover;background-repeat:no-repeat;display:block;}
   .ae-avatar--xs{width:20px;height:20px;font-size:9px;}
   .ae-avatar--sm{width:28px;height:28px;font-size:10px;}
   .ae-avatar--md{width:36px;height:36px;font-size:12px;}
@@ -162,12 +168,29 @@ function Avatar({
 }) {
   useAvatarCss();
   const [err, setErr] = React.useState(false);
+  const safeSrc = typeof src === "string" ? src : "";
+  React.useEffect(() => {
+    if (!safeSrc || typeof window === "undefined") return;
+    let mounted = true;
+    setErr(false);
+    const probe = new window.Image();
+    probe.onerror = () => {
+      if (mounted) setErr(true);
+    };
+    probe.src = safeSrc;
+    return () => {
+      mounted = false;
+    };
+  }, [safeSrc]);
   return /*#__PURE__*/React.createElement("div", _extends({
     className: `ae-avatar ae-avatar--${size} ${className}`
-  }, props), src && !err ? /*#__PURE__*/React.createElement("img", {
-    src: src,
-    alt: alt || "Avatar",
-    onError: () => setErr(true)
+  }, props), safeSrc && !err ? /*#__PURE__*/React.createElement("span", {
+    className: "ae-avatar__image",
+    role: "img",
+    "aria-label": alt || "Avatar",
+    style: {
+      backgroundImage: `url(${JSON.stringify(safeSrc)})`
+    }
   }) : /*#__PURE__*/React.createElement("span", null, (initials || "?").slice(0, 2)));
 }
 Object.assign(__ds_scope, { Avatar });
@@ -261,17 +284,19 @@ function Chip({
 }) {
   useChipCss();
   const cls = active ? "ae-chip ae-chip--active" : `ae-chip ae-chip--${tone}`;
-  return /*#__PURE__*/React.createElement("button", _extends({
-    type: type,
+  const buttonProps = {
+    ...props,
     "aria-pressed": active || undefined,
     className: `${cls} ${className}`
-  }, props), /*#__PURE__*/React.createElement("span", {
+  };
+  const labelContent = /*#__PURE__*/React.createElement("span", {
     style: {
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, children), removable && /*#__PURE__*/React.createElement("span", {
+  }, children);
+  const removeButton = removable && /*#__PURE__*/React.createElement("span", {
     role: "button",
     tabIndex: 0,
     "aria-label": removeLabel,
@@ -287,7 +312,10 @@ function Chip({
         onRemove && onRemove();
       }
     }
-  }, "\xD7"));
+  }, "\xD7");
+  if (type === "submit") return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "submit" }, labelContent, removeButton);
+  if (type === "reset") return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "reset" }, labelContent, removeButton);
+  return /*#__PURE__*/React.createElement("button", { ...buttonProps, type: "button" }, labelContent, removeButton);
 }
 Object.assign(__ds_scope, { Chip });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/data-display/Chip.jsx", error: String((e && e.message) || e) }); }
@@ -381,7 +409,8 @@ function Checkbox({
   return /*#__PURE__*/React.createElement("label", {
     className: `ae-check ${className}`,
     "data-disabled": disabled
-  }, /*#__PURE__*/React.createElement("button", _extends({
+  }, /*#__PURE__*/React.createElement("button", {
+    ...props,
     type: "button",
     role: "checkbox",
     "aria-checked": checked,
@@ -389,7 +418,7 @@ function Checkbox({
     "data-on": checked,
     className: "ae-check__box",
     onClick: () => !disabled && onChange && onChange(!checked)
-  }, props), checked && /*#__PURE__*/React.createElement("svg", {
+  }, checked && /*#__PURE__*/React.createElement("svg", {
     className: "ae-check__tick",
     viewBox: "0 0 12 12",
     fill: "none",
@@ -603,7 +632,8 @@ function Switch({
   return /*#__PURE__*/React.createElement("label", {
     className: `ae-switch ${className}`,
     "data-disabled": disabled
-  }, /*#__PURE__*/React.createElement("button", _extends({
+  }, /*#__PURE__*/React.createElement("button", {
+    ...props,
     type: "button",
     role: "switch",
     "aria-checked": checked,
@@ -611,7 +641,7 @@ function Switch({
     "data-on": checked,
     className: "ae-switch__track",
     onClick: () => !disabled && onChange && onChange(!checked)
-  }, props), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
     className: "ae-switch__knob"
   })), label && /*#__PURE__*/React.createElement("span", {
     className: "ae-switch__label"
@@ -1126,54 +1156,54 @@ function useSettingsCss() {
   `;
   document.head.appendChild(el);
 }
+const GLYPH_COMMON_PROPS = {
+  width: 14,
+  height: 14,
+  viewBox: "0 0 256 256",
+  fill: "none",
+  "aria-hidden": "true"
+};
+const GLYPH_STROKE_PROPS = {
+  stroke: "currentColor",
+  strokeWidth: 14,
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+};
 function Glyph({
   name
 }) {
-  const common = {
-    width: 14,
-    height: 14,
-    viewBox: "0 0 256 256",
-    fill: "none",
-    "aria-hidden": "true"
-  };
-  const stroke = {
-    stroke: "currentColor",
-    strokeWidth: 14,
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  };
-  if (name === "account") return /*#__PURE__*/React.createElement("svg", common, /*#__PURE__*/React.createElement("circle", _extends({
+  if (name === "account") return /*#__PURE__*/React.createElement("svg", GLYPH_COMMON_PROPS, /*#__PURE__*/React.createElement("circle", _extends({
     cx: "128",
     cy: "128",
     r: "88"
-  }, stroke)), /*#__PURE__*/React.createElement("circle", _extends({
+  }, GLYPH_STROKE_PROPS)), /*#__PURE__*/React.createElement("circle", _extends({
     cx: "128",
     cy: "108",
     r: "30"
-  }, stroke)), /*#__PURE__*/React.createElement("path", _extends({
+  }, GLYPH_STROKE_PROPS)), /*#__PURE__*/React.createElement("path", _extends({
     d: "M70 198a72 72 0 0 1 116 0"
-  }, stroke)));
-  if (name === "support") return /*#__PURE__*/React.createElement("svg", common, /*#__PURE__*/React.createElement("circle", _extends({
+  }, GLYPH_STROKE_PROPS)));
+  if (name === "support") return /*#__PURE__*/React.createElement("svg", GLYPH_COMMON_PROPS, /*#__PURE__*/React.createElement("circle", _extends({
     cx: "128",
     cy: "128",
     r: "88"
-  }, stroke)), /*#__PURE__*/React.createElement("circle", _extends({
+  }, GLYPH_STROKE_PROPS)), /*#__PURE__*/React.createElement("circle", _extends({
     cx: "128",
     cy: "128",
     r: "36"
-  }, stroke)), /*#__PURE__*/React.createElement("path", _extends({
+  }, GLYPH_STROKE_PROPS)), /*#__PURE__*/React.createElement("path", _extends({
     d: "M70 70l33 33M186 70l-33 33M70 186l33-33M186 186l-33-33"
-  }, stroke)));
-  if (name === "beta") return /*#__PURE__*/React.createElement("svg", common, /*#__PURE__*/React.createElement("path", _extends({
+  }, GLYPH_STROKE_PROPS)));
+  if (name === "beta") return /*#__PURE__*/React.createElement("svg", GLYPH_COMMON_PROPS, /*#__PURE__*/React.createElement("path", _extends({
     d: "M148 56a40 40 0 0 0 52 52l-92 92a28 28 0 0 1-40-40z"
-  }, stroke)));
-  if (name === "arrow") return /*#__PURE__*/React.createElement("svg", _extends({}, common, {
+  }, GLYPH_STROKE_PROPS)));
+  if (name === "arrow") return /*#__PURE__*/React.createElement("svg", _extends({}, GLYPH_COMMON_PROPS, {
     width: "13",
     height: "13"
   }), /*#__PURE__*/React.createElement("path", _extends({
     d: "M96 84h76v76M168 88 84 172"
-  }, stroke)));
-  if (name === "briefcase") return /*#__PURE__*/React.createElement("svg", _extends({}, common, {
+  }, GLYPH_STROKE_PROPS)));
+  if (name === "briefcase") return /*#__PURE__*/React.createElement("svg", _extends({}, GLYPH_COMMON_PROPS, {
     width: "12",
     height: "12"
   }), /*#__PURE__*/React.createElement("rect", _extends({
@@ -1182,9 +1212,9 @@ function Glyph({
     width: "176",
     height: "120",
     rx: "8"
-  }, stroke)), /*#__PURE__*/React.createElement("path", _extends({
+  }, GLYPH_STROKE_PROPS)), /*#__PURE__*/React.createElement("path", _extends({
     d: "M96 80V64a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v16"
-  }, stroke)));
+  }, GLYPH_STROKE_PROPS)));
   return null;
 }
 const ACCOUNT_ITEMS = [{
@@ -2363,8 +2393,8 @@ function GroupBar({
     className: "group-total"
   }, peso(total)));
 }
+const SHEET_COLUMNS = ["#", "", "Materials", "Qty", "Subtotal", "Adjustment", "Misc Cost", "Total Item Cost"];
 function SheetTable() {
-  const cols = ["#", "", "Materials", "Qty", "Subtotal", "Adjustment", "Misc Cost", "Total Item Cost"];
   return /*#__PURE__*/React.createElement("div", {
     className: "area-block"
   }, /*#__PURE__*/React.createElement("div", {
@@ -2393,7 +2423,7 @@ function SheetTable() {
     className: "breadcrumb-mini"
   }, "Lot \xB7 House \xB7 Ground Floor \xB7 Living Room"), /*#__PURE__*/React.createElement("table", {
     className: "sheet"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, cols.map((c, i) => /*#__PURE__*/React.createElement("th", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, SHEET_COLUMNS.map((c, i) => /*#__PURE__*/React.createElement("th", {
     key: i,
     className: i >= 3 ? "num" : ""
   }, c)))), /*#__PURE__*/React.createElement("tbody", null, ROWS.map(r => /*#__PURE__*/React.createElement("tr", {
@@ -2444,12 +2474,17 @@ function Workshop() {
     className: "rail ae-glass"
   }, /*#__PURE__*/React.createElement("div", {
     className: "logo"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: "../../assets/archestimator_logo_white.svg",
+  }, /*#__PURE__*/React.createElement("svg", {
     width: "22",
     height: "22",
-    alt: ""
-  })), NAV.map(n => /*#__PURE__*/React.createElement("button", {
+    viewBox: "0 0 22 22",
+    "aria-hidden": "true",
+    focusable: "false"
+  }, /*#__PURE__*/React.createElement("image", {
+    href: "../../assets/archestimator_logo_white.svg",
+    width: "22",
+    height: "22"
+  }))), NAV.map(n => /*#__PURE__*/React.createElement("button", {
     key: n.key,
     className: "navitem" + (n.key === "projects" ? " is-active" : ""),
     "aria-label": n.key

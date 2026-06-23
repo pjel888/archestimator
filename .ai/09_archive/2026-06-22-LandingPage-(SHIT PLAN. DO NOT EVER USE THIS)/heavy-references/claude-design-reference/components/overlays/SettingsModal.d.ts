@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /**
  * Workshop settings surface — wide Modal with a two-pane nav + sections layout.
  * A composed pattern built on Modal + Button, not a single primitive.
@@ -11,4 +13,4 @@ export interface SettingsModalProps {
   /** Reveal the closed-beta operations group (platform admins). */
   canManagePlatform?: boolean;
 }
-export declare function SettingsModal(props: SettingsModalProps): JSX.Element | null;
+export declare function SettingsModal(props: SettingsModalProps): ReactNode | null;

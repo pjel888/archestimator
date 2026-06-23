@@ -67,6 +67,8 @@ const ROWS = [
   { n: "04", mat: "TV console allowance", thumb: "#c2b09c", qty: 1, sub: 7200, misc: 1000, total: 8200 },
 ];
 
+const SHEET_COLUMNS = ["#", "", "Materials", "Qty", "Subtotal", "Adjustment", "Misc Cost", "Total Item Cost"];
+
 function LiquidButton({ className = "", children, ...rest }) {
   return (
     <button type="button" className={"liquid-btn " + className} {...rest}>{children}</button>
@@ -101,7 +103,6 @@ function GroupBar({ code, name, total }) {
 }
 
 function SheetTable() {
-  const cols = ["#", "", "Materials", "Qty", "Subtotal", "Adjustment", "Misc Cost", "Total Item Cost"];
   return (
     <div className="area-block">
       <div className="area-head">
@@ -112,7 +113,7 @@ function SheetTable() {
       </div>
       <div className="breadcrumb-mini">Lot · House · Ground Floor · Living Room</div>
       <table className="sheet">
-        <thead><tr>{cols.map((c, i) => <th key={i} className={i >= 3 ? "num" : ""}>{c}</th>)}</tr></thead>
+        <thead><tr>{SHEET_COLUMNS.map((c, i) => <th key={i} className={i >= 3 ? "num" : ""}>{c}</th>)}</tr></thead>
         <tbody>
           {ROWS.map((r) => (
             <tr key={r.n} className={r.sel ? "sel" : ""}>
@@ -145,9 +146,9 @@ function Workshop() {
     <div className="ws">
       {/* Floating glass nav rail (the live sidebar, collapsed). */}
       <nav className="rail ae-glass">
-        <div className="logo"><img src="../../assets/archestimator_logo_white.svg" width="22" height="22" alt="" /></div>
+        <div className="logo" aria-hidden="true" />
         {NAV.map((n) => (
-          <button key={n.key} className={"navitem" + (n.key === "projects" ? " is-active" : "")} aria-label={n.key}>
+          <button type="button" key={n.key} className={"navitem" + (n.key === "projects" ? " is-active" : "")} aria-label={n.key}>
             <i className={"ph " + n.icon} />
           </button>
         ))}
@@ -224,8 +225,8 @@ function Workshop() {
             <LiquidButton className="icon add" aria-label="Add component"><i className="ph ph-plus" /></LiquidButton>
           </div>
           <div className="dock-tabs">
-            <button className={"dock-tab" + (tab === "components" ? " is-active" : "")} onClick={() => setTab("components")}>Components</button>
-            <button className={"dock-tab" + (tab === "templates" ? " is-active" : "")} onClick={() => setTab("templates")}>Templates</button>
+            <button type="button" className={"dock-tab" + (tab === "components" ? " is-active" : "")} onClick={() => setTab("components")}>Components</button>
+            <button type="button" className={"dock-tab" + (tab === "templates" ? " is-active" : "")} onClick={() => setTab("templates")}>Templates</button>
           </div>
           <div className="viewby">
             <span className="viewby-label">View by</span>

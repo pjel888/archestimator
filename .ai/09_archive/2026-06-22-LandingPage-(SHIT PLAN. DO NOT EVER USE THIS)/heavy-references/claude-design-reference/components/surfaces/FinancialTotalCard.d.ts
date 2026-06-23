@@ -10,4 +10,4 @@ export interface FinancialTotalCardProps extends HTMLAttributes<HTMLDivElement> 
   sublabel?: ReactNode;
   variant?: "primary" | "default";
 }
-export declare function FinancialTotalCard(props: FinancialTotalCardProps): JSX.Element;
+export declare function FinancialTotalCard(props: FinancialTotalCardProps): ReactNode;

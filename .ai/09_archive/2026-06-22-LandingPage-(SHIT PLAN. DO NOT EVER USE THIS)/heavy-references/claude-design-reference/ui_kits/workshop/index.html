@@ -33,6 +33,7 @@
   /* ── Floating glass nav rail (sidebar) ────────────────────────────────── */
   .rail { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; height: 100%; box-sizing: border-box; }
   .logo { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; background: var(--glass-logo-bg); box-shadow: var(--glass-logo-shadow); margin-bottom: 8px; }
+  .logo::after { content: ""; width: 22px; height: 22px; background: url("../../assets/archestimator_logo_white.svg") center / contain no-repeat; }
   .navitem { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 8px; color: var(--secondary); font-size: 19px; display: grid; place-items: center; cursor: pointer; transition: background .15s; }
   .navitem:hover { background: var(--glass-nav-hover-bg); color: var(--ink); }
   .navitem.is-active { background: var(--glass-nav-active-bg); box-shadow: var(--glass-nav-active-shadow); color: var(--brand-orange-dark); }

@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 /**
  * Square avatar with initials fallback.
@@ -10,4 +10,4 @@ export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   initials?: string;
   size?: "xs" | "sm" | "md" | "lg";
 }
-export declare function Avatar(props: AvatarProps): JSX.Element;
+export declare function Avatar(props: AvatarProps): ReactNode;

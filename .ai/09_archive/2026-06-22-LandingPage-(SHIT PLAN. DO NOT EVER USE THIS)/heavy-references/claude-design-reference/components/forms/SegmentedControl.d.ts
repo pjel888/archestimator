@@ -15,4 +15,4 @@ export interface SegmentedControlProps<T extends string> {
   onValueChange: (value: T) => void;
   className?: string;
 }
-export declare function SegmentedControl<T extends string>(props: SegmentedControlProps<T>): JSX.Element;
+export declare function SegmentedControl<T extends string>(props: SegmentedControlProps<T>): ReactNode;

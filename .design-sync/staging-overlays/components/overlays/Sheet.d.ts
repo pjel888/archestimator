@@ -23,4 +23,4 @@ export interface SheetProps {
   bodyClassName?: string;
   children?: ReactNode;
 }
-export declare function Sheet(props: SheetProps): JSX.Element | null;
+export declare function Sheet(props: SheetProps): ReactNode | null;

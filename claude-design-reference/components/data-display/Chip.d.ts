@@ -12,4 +12,4 @@ export interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   removeLabel?: string;
   children: ReactNode;
 }
-export declare function Chip(props: ChipProps): JSX.Element;
+export declare function Chip(props: ChipProps): ReactNode;

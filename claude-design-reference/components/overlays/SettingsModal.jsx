@@ -61,42 +61,43 @@ function useSettingsCss() {
   document.head.appendChild(el);
 }
 
+const GLYPH_COMMON_PROPS = { width: 14, height: 14, viewBox: "0 0 256 256", fill: "none", "aria-hidden": "true" };
+const GLYPH_STROKE_PROPS = { stroke: "currentColor", strokeWidth: 14, strokeLinecap: "round", strokeLinejoin: "round" };
+
 function Glyph({ name }) {
-  const common = { width: 14, height: 14, viewBox: "0 0 256 256", fill: "none", "aria-hidden": "true" };
-  const stroke = { stroke: "currentColor", strokeWidth: 14, strokeLinecap: "round", strokeLinejoin: "round" };
   if (name === "account")
     return (
-      <svg {...common}>
-        <circle cx="128" cy="128" r="88" {...stroke} />
-        <circle cx="128" cy="108" r="30" {...stroke} />
-        <path d="M70 198a72 72 0 0 1 116 0" {...stroke} />
+      <svg {...GLYPH_COMMON_PROPS}>
+        <circle cx="128" cy="128" r="88" {...GLYPH_STROKE_PROPS} />
+        <circle cx="128" cy="108" r="30" {...GLYPH_STROKE_PROPS} />
+        <path d="M70 198a72 72 0 0 1 116 0" {...GLYPH_STROKE_PROPS} />
       </svg>
     );
   if (name === "support")
     return (
-      <svg {...common}>
-        <circle cx="128" cy="128" r="88" {...stroke} />
-        <circle cx="128" cy="128" r="36" {...stroke} />
-        <path d="M70 70l33 33M186 70l-33 33M70 186l33-33M186 186l-33-33" {...stroke} />
+      <svg {...GLYPH_COMMON_PROPS}>
+        <circle cx="128" cy="128" r="88" {...GLYPH_STROKE_PROPS} />
+        <circle cx="128" cy="128" r="36" {...GLYPH_STROKE_PROPS} />
+        <path d="M70 70l33 33M186 70l-33 33M70 186l33-33M186 186l-33-33" {...GLYPH_STROKE_PROPS} />
       </svg>
     );
   if (name === "beta")
     return (
-      <svg {...common}>
-        <path d="M148 56a40 40 0 0 0 52 52l-92 92a28 28 0 0 1-40-40z" {...stroke} />
+      <svg {...GLYPH_COMMON_PROPS}>
+        <path d="M148 56a40 40 0 0 0 52 52l-92 92a28 28 0 0 1-40-40z" {...GLYPH_STROKE_PROPS} />
       </svg>
     );
   if (name === "arrow")
     return (
-      <svg {...common} width="13" height="13">
-        <path d="M96 84h76v76M168 88 84 172" {...stroke} />
+      <svg {...GLYPH_COMMON_PROPS} width="13" height="13">
+        <path d="M96 84h76v76M168 88 84 172" {...GLYPH_STROKE_PROPS} />
       </svg>
     );
   if (name === "briefcase")
     return (
-      <svg {...common} width="12" height="12">
-        <rect x="40" y="80" width="176" height="120" rx="8" {...stroke} />
-        <path d="M96 80V64a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v16" {...stroke} />
+      <svg {...GLYPH_COMMON_PROPS} width="12" height="12">
+        <rect x="40" y="80" width="176" height="120" rx="8" {...GLYPH_STROKE_PROPS} />
+        <path d="M96 80V64a16 16 0 0 1 16-16h32a16 16 0 0 1 16 16v16" {...GLYPH_STROKE_PROPS} />
       </svg>
     );
   return null;

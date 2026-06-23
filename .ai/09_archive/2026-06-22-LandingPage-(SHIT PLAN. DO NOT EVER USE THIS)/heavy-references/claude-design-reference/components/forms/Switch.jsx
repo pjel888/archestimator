@@ -33,6 +33,7 @@ export function Switch({ checked = false, onChange, label, disabled = false, cla
   return (
     <label className={`ae-switch ${className}`} data-disabled={disabled}>
       <button
+        {...props}
         type="button"
         role="switch"
         aria-checked={checked}
@@ -40,7 +41,6 @@ export function Switch({ checked = false, onChange, label, disabled = false, cla
         data-on={checked}
         className="ae-switch__track"
         onClick={() => !disabled && onChange && onChange(!checked)}
-        {...props}
       >
         <span className="ae-switch__knob" />
       </button>

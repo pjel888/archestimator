@@ -11,4 +11,4 @@ export interface EstimateCellProps extends HTMLAttributes<HTMLDivElement> {
   numeric?: boolean;
   align?: "left" | "center" | "right";
 }
-export declare function EstimateCell(props: EstimateCellProps): JSX.Element;
+export declare function EstimateCell(props: EstimateCellProps): ReactNode;

@@ -8,4 +8,4 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   interactive?: boolean;
   children?: ReactNode;
 }
-export declare function Card(props: CardProps): JSX.Element;
+export declare function Card(props: CardProps): ReactNode;

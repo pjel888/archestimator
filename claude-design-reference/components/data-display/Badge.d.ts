@@ -9,4 +9,4 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   size?: "xs" | "sm";
   children: ReactNode;
 }
-export declare function Badge(props: BadgeProps): JSX.Element;
+export declare function Badge(props: BadgeProps): ReactNode;
