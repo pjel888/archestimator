@@ -4,20 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { MaturityTag } from "@/components/landing/shell/MaturityTag";
-import { START_FREE_HREF, BOOK_WALKTHROUGH_HREF } from "@/components/landing/sections/LandingCTAs";
+import { REQUEST_EARLY_ACCESS_HREF, BOOK_WALKTHROUGH_HREF } from "@/components/landing/sections/LandingCTAs";
 import { workshopHref, loginHref } from "./constants";
 
 /**
- * LandingHeader — sticky glass nav (doc 02 §3, doc 03 §4.2, doc 05 §Section 0).
- *
- * The SAME glass material as the Workshop top bar (`.dashboard-glass`) floats
- * over the canvas wash at `--landing-z-sticky`, carrying both CTAs site-wide.
- * Nav items: Features · Pricing · About · Contact · Trust (funnel order).
- *
- * The mobile hamburger disclosure is the ONE client leaf in the header
- * (doc 02 §3). The "Start free" primary CTA honors the L-FUN-2 carried
- * default (routes to /login meanwhile). `isLoggedIn` swaps the primary to
- * "Open workspace" → /workshop.
+ * Sticky public nav. Signed-out visitors request access; signed-in visitors
+ * open the workspace.
  */
 const NAV_ITEMS: Array<{ label: string; href: string }> = [
   { label: "Features", href: "/features" },
@@ -29,8 +21,8 @@ const NAV_ITEMS: Array<{ label: string; href: string }> = [
 
 export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: boolean; isHomePage?: boolean }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const primaryHref = isLoggedIn ? workshopHref : START_FREE_HREF;
-  const primaryLabel = isLoggedIn ? "Workspace" : "Start free";
+  const primaryHref = isLoggedIn ? workshopHref : REQUEST_EARLY_ACCESS_HREF;
+  const primaryLabel = isLoggedIn ? "Open workspace" : "Request early access";
 
   return (
     <header
@@ -103,7 +95,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
         </div>
       </div>
 
-      {/* Mobile menu disclosure — the header's one client leaf */}
+      {/* Mobile menu disclosure for the header client leaf. */}
       <div
         id="landing-mobile-menu"
         hidden={!isMenuOpen}

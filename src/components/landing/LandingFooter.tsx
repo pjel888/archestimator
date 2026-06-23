@@ -5,14 +5,10 @@ import { FOOTER_CLAIM_ROWS } from "@/components/landing/claims-ledger/claims-dat
 import { StatusPill } from "@/components/landing/shared/StatusPill";
 
 /**
- * LandingFooter — glass sitemap replacing the logo-only block (doc 02 §4).
- *
- * Three jobs in order: (1) sitemap grouped by intent, (2) the one-liner in
- * Doto, (3) legal + status line. The "Start free" href honors the L-FUN-2
- * carried default (routes to /login meanwhile). RSC.
+ * LandingFooter - glass sitemap for public pages.
  */
 
-const START_FREE_HREF = "/login"; // L-FUN-2 GATED — carried default
+const REQUEST_EARLY_ACCESS_HREF = "/contact?intent=early-access";
 
 const FOOTER_COLUMNS: Array<{ heading: string; links: Array<{ label: string; href: string }> }> = [
   {
@@ -21,7 +17,7 @@ const FOOTER_COLUMNS: Array<{ heading: string; links: Array<{ label: string; hre
       { label: "Features", href: "/features" },
       { label: "Pricing", href: "/pricing" },
       { label: "Trust", href: "/trust" },
-      { label: "Start free", href: START_FREE_HREF },
+      { label: "Request early access", href: REQUEST_EARLY_ACCESS_HREF },
     ],
   },
   {
@@ -36,7 +32,7 @@ const FOOTER_COLUMNS: Array<{ heading: string; links: Array<{ label: string; hre
     heading: "Account",
     links: [
       { label: "Sign in", href: "/login" },
-      { label: "Start free", href: START_FREE_HREF },
+      { label: "Request early access", href: REQUEST_EARLY_ACCESS_HREF },
     ],
   },
   {
@@ -67,7 +63,7 @@ export function LandingFooter() {
             />
           </Link>
           <p className="font-display text-landing-text-body-sm leading-landing-tight text-landing-ink-secondary md:text-right">
-            Archestimator — the cost intelligence layer for AEC teams.
+            Archestimator - the cost intelligence layer for AEC teams.
             <br className="hidden sm:block" />
             From cost proposal to client approval.
           </p>
@@ -99,7 +95,7 @@ export function LandingFooter() {
           ))}
         </nav>
 
-        {/* Honesty abbreviation (3 rows) — doc 06 §2.4 */}
+        {/* Honesty abbreviation. */}
         <dl className="grid grid-cols-1 gap-[var(--landing-space-2xs)] border-t border-landing-hairline pt-[var(--landing-space-lg)] sm:grid-cols-3">
           {FOOTER_CLAIM_ROWS.map((row) => (
             <div key={row.claim} className="flex flex-col gap-[var(--landing-space-3xs)]">
