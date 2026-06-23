@@ -39,13 +39,14 @@ export function WordWallSection() {
     <section className={styles.wordWall} aria-labelledby="wordwall-title">
       <div className={styles.wordWallHead}>
         <RevealOnScroll>
-          <SectionEyebrow ordinal="02" label="BUILT FOR" />
+          <SectionEyebrow label="People around the estimate" />
         </RevealOnScroll>
         <RevealOnScroll as="h2" className={styles.h2} delayMs={60} id="wordwall-title">
           Built for the people around the estimate.
         </RevealOnScroll>
         <RevealOnScroll as="p" className={styles.lede} delayMs={120}>
-          Archestimator serves every role touching a cost proposal across the AEC ecosystem.
+          Estimators, builders, designers, suppliers, and clients stay connected to the same
+          cost record instead of trading disconnected files.
         </RevealOnScroll>
       </div>
       <div className={styles.wordWallTrack}>

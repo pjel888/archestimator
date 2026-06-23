@@ -7,7 +7,7 @@ import {
   LandingNav,
   LongFormFeatureSection,
   ProblemTransitionSection,
-  ProductProofBento,
+  ProductLoopBento,
   WordWallSection,
 } from "./sections";
 import { AsciiDivider } from "./utilities/AsciiDivider";
@@ -29,49 +29,52 @@ export function FrontdoorPage({ isLoggedIn }: FrontdoorPageProps) {
       <HeroSection isLoggedIn={isLoggedIn} />
       <WordWallSection />
       <ProblemTransitionSection />
-      <ProductProofBento />
+      <ProductLoopBento />
       <FeatureTriplet />
 
       <LongFormFeatureSection
-        ordinal="06"
-        eyebrow="WORKFLOW LOOP"
-        heading="Build the estimate once. Reuse the logic. Keep the proposal aligned."
+        idSlug="structure"
+        eyebrow="Estimate structure"
+        heading="Estimate once, then reuse the structure."
         paragraphs={[
-          "Estimate, library, revision, and proposal live in one workspace. No more file drift between tabs and inboxes.",
-          "Start the next estimate with what the last one taught you. The work compounds.",
+          "Project tree, scope rows, quantities, source notes, and proposal state live in one workspace. The next estimate starts from a cleaner record.",
+          "Reusable structure means the team can move faster without losing why the total changed.",
         ]}
         ctaLabel="See the feature tour"
         ctaHref="/features"
-        screenshotTag="WORKFLOW"
+        screenshotTag="Estimate structure"
+        surface="estimate"
         aspect="16:10"
       />
 
       <LongFormFeatureSection
-        ordinal="07"
-        eyebrow="COST INTELLIGENCE DIRECTION"
-        heading="The more you estimate, the more it works for you."
+        idSlug="library"
+        eyebrow="Cost history"
+        heading="Keep cost history attached to the work."
         paragraphs={[
-          "Every estimate teaches Archestimator your prices, your suppliers, and your project patterns.",
-          "Cross-project client and typology recall is roadmap. The compounding foundation is live today.",
+          "Your prices, suppliers, variants, and source notes stay connected to the estimates that used them.",
+          "When scope repeats, your team starts from known commercial logic instead of a copied sheet.",
         ]}
         ctaLabel="Read trust notes"
         ctaHref="/trust"
-        screenshotTag="LIBRARY"
+        screenshotTag="Cost library"
+        surface="library"
         aspect="4:5"
         reverse
       />
 
       <LongFormFeatureSection
-        ordinal="08"
-        eyebrow="TRUST AND RECORDS"
-        heading="Fast is useful only if the number is still explainable."
+        idSlug="record"
+        eyebrow="Proposal record"
+        heading="Turn proposal review into a record."
         paragraphs={[
-          "Activity and row version history keep every revision traceable. The estimate stops being detective work.",
-          "Shared proposal links carry comments, decisions, and a recoverable record. Clients see what they are approving.",
+          "Shared proposal links carry comments, decisions, and exports back to the estimate instead of leaving them in email.",
+          "Clients see what they are approving, and the team keeps a recoverable trail when the work changes.",
         ]}
         ctaLabel="Book a walkthrough"
         ctaHref="/contact?intent=walkthrough"
-        screenshotTag="ACTIVITY"
+        screenshotTag="Proposal handoff"
+        surface="proposal"
         aspect="16:10"
       />
 

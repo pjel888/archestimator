@@ -34,7 +34,7 @@ export function LandingFooter() {
             <span aria-hidden="true">·</span>
             <a href="mailto:hi@archestimator.com">hi@archestimator.com</a>
           </span>
-          <span>Pre-launch MVP &middot; AEC cost intelligence layer</span>
+          <span>AEC estimating workspace &middot; Cost records that stay explainable</span>
         </div>
       </div>
     </footer>

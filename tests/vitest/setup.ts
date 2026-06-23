@@ -27,3 +27,27 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: vi.fn(),
   })),
 });
+
+class MockIntersectionObserver {
+  observe = vi.fn((target: Element) => {
+    target.setAttribute("data-revealed", "true");
+  });
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+Object.defineProperty(window, "IntersectionObserver", {
+  writable: true,
+  value: MockIntersectionObserver,
+});
+
+Object.defineProperty(window, "ResizeObserver", {
+  writable: true,
+  value: MockResizeObserver,
+});

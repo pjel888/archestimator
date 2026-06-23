@@ -9,25 +9,25 @@ type FinalCtaSectionProps = {
   isLoggedIn: boolean;
 };
 
-const REQUEST_ACCESS_HREF = "/contact?intent=early-access";
+const START_HREF = "/contact?intent=walkthrough";
 const WALKTHROUGH_HREF = "/contact?intent=walkthrough";
 const WORKSHOP_HREF = "/workshop";
 
 export function FinalCtaSection({ isLoggedIn }: FinalCtaSectionProps) {
-  const primaryHref = isLoggedIn ? WORKSHOP_HREF : REQUEST_ACCESS_HREF;
-  const primaryLabel = isLoggedIn ? "Open workspace" : "Request early access";
+  const primaryHref = isLoggedIn ? WORKSHOP_HREF : START_HREF;
+  const primaryLabel = isLoggedIn ? "Open workspace" : "Start with an estimate";
 
   return (
     <section className={styles.finalCta} aria-labelledby="final-title">
       <div className={styles.finalInner}>
         <RevealOnScroll>
-          <SectionEyebrow ordinal="10" label="START" />
+          <SectionEyebrow label="Bring one real estimate" />
         </RevealOnScroll>
         <RevealOnScroll as="h2" className={styles.finalHeading} delayMs={60} id="final-title">
           Bring one real estimate. We will show you what it looks like when the next one starts ahead.
         </RevealOnScroll>
         <RevealOnScroll as="p" className={styles.finalSupport} delayMs={120}>
-          Pre-launch MVP preview for AEC estimating teams.
+          We will map the workflow around your prices, suppliers, revisions, and proposal handoff.
         </RevealOnScroll>
         <RevealOnScroll className={styles.ctaRow} delayMs={180} style={{ marginTop: "0.5rem" } as React.CSSProperties}>
           <Link href={primaryHref} className={`${styles.ctaPrimary} ${styles.ctaPrimaryHero}`}>

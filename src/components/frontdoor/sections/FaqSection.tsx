@@ -22,9 +22,9 @@ const ITEMS: ReadonlyArray<FaqItem> = [
   },
   {
     id: "production",
-    question: "Is it ready for production use?",
+    question: "What is available today?",
     answer:
-      "Archestimator is in pre-launch MVP. The estimate workspace, cost library, revisions, and proposal handoff are live. Billing, onboarding, and analytics are still maturing.",
+      "The estimate workspace, cost library, revision records, shared proposal links, and exports are active product areas. Teams that need onboarding can book a walkthrough around a real estimate.",
   },
   {
     id: "audience",
@@ -48,7 +48,7 @@ const ITEMS: ReadonlyArray<FaqItem> = [
     id: "pricing",
     question: "Where does pricing live?",
     answer:
-      "Pricing is being validated through closed beta. We will publish it on the pricing page once it is evidence-backed. For now, request early access.",
+      "Pricing lives on the pricing page. Teams with complex workflows can use a walkthrough to map onboarding, library setup, and proposal handoff before starting.",
   },
 ];
 
@@ -59,12 +59,12 @@ export function FaqSection() {
     <section className={styles.faqSection} aria-labelledby="faq-title">
       <div className={styles.faq}>
         <RevealOnScroll className={styles.faqHead}>
-          <SectionEyebrow ordinal="09" label="ANSWERS" />
+          <SectionEyebrow label="Plain answers" />
           <h2 id="faq-title" className={styles.h2} style={{ marginTop: "0.6rem" } as CSSProperties}>
             Answers
           </h2>
           <p className={styles.lede} style={{ marginTop: "0.4rem" } as CSSProperties}>
-            Honest answers about where Archestimator is today, in plain terms.
+            Practical answers about the workflow, data posture, and first teams Archestimator is built for.
           </p>
         </RevealOnScroll>
 

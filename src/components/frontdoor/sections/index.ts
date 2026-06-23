@@ -2,7 +2,7 @@ export { LandingNav } from "./LandingNav";
 export { HeroSection } from "./HeroSection";
 export { WordWallSection } from "./WordWallSection";
 export { ProblemTransitionSection } from "./ProblemTransitionSection";
-export { ProductProofBento } from "./ProductProofBento";
+export { ProductLoopBento } from "./ProductLoopBento";
 export { FeatureTriplet } from "./FeatureTriplet";
 export { LongFormFeatureSection } from "./LongFormFeatureSection";
 export { FaqSection } from "./FaqSection";

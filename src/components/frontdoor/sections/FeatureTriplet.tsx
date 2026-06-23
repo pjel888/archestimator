@@ -5,7 +5,7 @@ import { SectionEyebrow } from "@/components/frontdoor/utilities/SectionEyebrow"
 import styles from "../FrontdoorPage.module.css";
 
 type TripletCardSpec = {
-  ordinal: string;
+  id: string;
   title: string;
   body: string;
   Icon: typeof Database;
@@ -13,21 +13,21 @@ type TripletCardSpec = {
 
 const CARDS: ReadonlyArray<TripletCardSpec> = [
   {
-    ordinal: "01",
-    title: "Reusable Library",
-    body: "Your prices, suppliers, brands, and variants. Stop rebuilding from scratch.",
+    id: "library",
+    title: "Reuse the prices you already trust.",
+    body: "Keep suppliers, assemblies, variants, and dated rates close to the estimate instead of scattered across sheets.",
     Icon: Database,
   },
   {
-    ordinal: "02",
-    title: "Defensible Numbers",
-    body: "Activity, row version history, and revision context. Every total is explainable.",
+    id: "revisions",
+    title: "Explain how the total changed.",
+    body: "Revision context and activity history make the number easier to defend when scope or assumptions move.",
     Icon: ShieldCheck,
   },
   {
-    ordinal: "03",
-    title: "Proposal Handoff",
-    body: "Shared links with comments, decisions, and password protection. The estimate becomes something a client can approve.",
+    id: "proposal",
+    title: "Send one proposal record.",
+    body: "Share links, comments, decisions, and exports from the same work instead of sending another detached file.",
     Icon: PaperPlaneTilt,
   },
 ];
@@ -37,7 +37,7 @@ export function FeatureTriplet() {
     <section className={styles.tripletSection} aria-labelledby="triplet-title">
       <div className={styles.tripletHead}>
         <RevealOnScroll>
-          <SectionEyebrow ordinal="05" label="WHY IT MATTERS" />
+          <SectionEyebrow label="Why teams switch" />
         </RevealOnScroll>
         <RevealOnScroll as="h2" className={styles.h2} delayMs={60} id="triplet-title" style={{ marginTop: "0.75rem" } as CSSProperties}>
           Less spreadsheet drift. More estimate control.
@@ -47,11 +47,10 @@ export function FeatureTriplet() {
         {CARDS.map((card, index) => {
           const { Icon } = card;
           return (
-            <RevealOnScroll key={card.ordinal} delayMs={index * 70} className={styles.tripletCard}>
+            <RevealOnScroll key={card.id} delayMs={index * 70} className={styles.tripletCard}>
               <span className={styles.tripletIcon} aria-hidden="true">
                 <Icon />
               </span>
-              <span className={styles.tripletOrdinal}>{card.ordinal}</span>
               <h3 className={styles.tripletTitle}>{card.title}</h3>
               <p className={styles.tripletBody}>{card.body}</p>
             </RevealOnScroll>

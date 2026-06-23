@@ -3,41 +3,32 @@ import Link from "next/link";
 import { FrontdoorHeroField } from "../FrontdoorHeroField";
 import { ArrowRight, ArrowUpRight } from "@/components/frontdoor/icons";
 import { RevealOnScroll } from "@/components/frontdoor/utilities/RevealOnScroll";
-import { SectionEyebrow } from "@/components/frontdoor/utilities/SectionEyebrow";
 import styles from "../FrontdoorPage.module.css";
 
 type HeroSectionProps = {
   isLoggedIn: boolean;
 };
 
-const REQUEST_ACCESS_HREF = "/contact?intent=early-access";
+const START_HREF = "/contact?intent=walkthrough";
 const WALKTHROUGH_HREF = "/contact?intent=walkthrough";
 const WORKSHOP_HREF = "/workshop";
 
 export function HeroSection({ isLoggedIn }: HeroSectionProps) {
-  const primaryHref = isLoggedIn ? WORKSHOP_HREF : REQUEST_ACCESS_HREF;
-  const primaryLabel = isLoggedIn ? "Open workspace" : "Request early access";
+  const primaryHref = isLoggedIn ? WORKSHOP_HREF : START_HREF;
+  const primaryLabel = isLoggedIn ? "Open workspace" : "Start with an estimate";
 
   return (
     <section className={styles.hero} aria-labelledby="frontdoor-title">
       <FrontdoorHeroField className={styles.heroField} />
       <div className={styles.heroWash} aria-hidden="true" />
-      <span className={styles.heroEditorial} aria-hidden="true">
-        01<span className={styles.heroEditorialSlash}>/</span>04
-      </span>
       <div className={styles.heroInner}>
-        <RevealOnScroll className={styles.heroEyebrowRow}>
-          <SectionEyebrow ordinal="01" label="COST INTELLIGENCE LAYER" />
-          <span className={styles.maturityPill}>Pre-launch MVP preview</span>
-        </RevealOnScroll>
-
         <div className={styles.heroMain}>
           <RevealOnScroll as="h1" className={styles.heroTitle} delayMs={60} id="frontdoor-title">
-            Your cost intelligence layer.
+            Your cost intelligence workspace.
           </RevealOnScroll>
           <RevealOnScroll as="p" className={styles.heroSupport} delayMs={120}>
-            Build AEC estimates from your own prices and suppliers, keep every revision on the
-            record, and send proposals clients can review and approve.
+            Build from your own prices and suppliers, keep every revision traceable, and send
+            proposal links clients can review without losing the logic behind the number.
           </RevealOnScroll>
         </div>
 

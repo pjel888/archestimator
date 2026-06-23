@@ -11,8 +11,8 @@ type LandingNavProps = {
   isLoggedIn: boolean;
 };
 
-const PRIMARY_HREF = "/contact?intent=early-access";
-const PRIMARY_LABEL = "Request access";
+const PRIMARY_HREF = "/contact?intent=walkthrough";
+const PRIMARY_LABEL = "Start with an estimate";
 const SIGNED_IN_HREF = "/workshop";
 const SIGNED_IN_LABEL = "Open workspace";
 

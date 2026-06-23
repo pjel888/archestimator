@@ -2,18 +2,20 @@ import { RevealOnScroll } from "@/components/frontdoor/utilities/RevealOnScroll"
 import { SectionEyebrow } from "@/components/frontdoor/utilities/SectionEyebrow";
 import { ArrowRight } from "@/components/frontdoor/icons";
 import Link from "next/link";
+import { ProductSurfacePanel, type ProductSurfaceKind } from "./ProductSurfacePanel";
 import styles from "../FrontdoorPage.module.css";
 
 type AspectRatio = "16:10" | "4:5" | "1:1";
 
 type LongFormFeatureSectionProps = {
-  ordinal: string;
+  idSlug: string;
   eyebrow: string;
   heading: string;
   paragraphs: ReadonlyArray<string>;
   ctaLabel: string;
   ctaHref: string;
   screenshotTag: string;
+  surface: ProductSurfaceKind;
   aspect: AspectRatio;
   reverse?: boolean;
 };
@@ -25,20 +27,21 @@ const aspectClass: Record<AspectRatio, string> = {
 };
 
 export function LongFormFeatureSection({
-  ordinal,
+  idSlug,
   eyebrow,
   heading,
   paragraphs,
   ctaLabel,
   ctaHref,
   screenshotTag,
+  surface,
   aspect,
   reverse = false,
 }: LongFormFeatureSectionProps) {
-  const headingId = `lf-${ordinal}-title`;
+  const headingId = `lf-${idSlug}-title`;
   const copyNode = (
     <RevealOnScroll className={styles.longFormCopy}>
-      <SectionEyebrow ordinal={ordinal} label={eyebrow} />
+      <SectionEyebrow label={eyebrow} />
       <RevealOnScroll as="h2" className={styles.h2} delayMs={60} id={headingId}>
         {heading}
       </RevealOnScroll>
@@ -62,7 +65,7 @@ export function LongFormFeatureSection({
     <RevealOnScroll className={`${styles.longFormScreenshot} ${aspectClass[aspect]}`} delayMs={200}>
       <div className={styles.longFormScreenshotInner}>
         <span className={styles.longFormScreenshotTag}>{screenshotTag}</span>
-        <span>Product screenshot placeholder</span>
+        <ProductSurfacePanel kind={surface} compact />
       </div>
     </RevealOnScroll>
   );
