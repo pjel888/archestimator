@@ -38,6 +38,13 @@ const WORKSPACE = {
   created_by: "user-1",
 };
 
+function extractSqlFunctionBlock(sql: string, functionName: string) {
+  const pattern = new RegExp(`create or replace function public\\.${functionName}\\([\\s\\S]*?\\n\\$\\$;`, "i");
+  const match = sql.match(pattern);
+  if (!match) throw new Error(`Could not find SQL function block for ${functionName}.`);
+  return match[0];
+}
+
 function createProject(overrides: Record<string, unknown> = {}) {
   return {
     id: "project-owned",
@@ -248,6 +255,10 @@ describe("workspace_projects_summary RPC contract", () => {
       join(process.cwd(), "supabase/migrations/20260623023000_workspace_projects_summary.sql"),
       "utf8",
     );
+    const fixForwardMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260623163000_fix_workspace_projects_summary_pending_invites_readonly.sql"),
+      "utf8",
+    );
 
     expect(migration).toContain("create or replace function public.workspace_projects_summary");
     for (const key of [
@@ -268,6 +279,15 @@ describe("workspace_projects_summary RPC contract", () => {
       expect(migration).toContain(`'${key}'`);
     }
     expect(migration).toContain("order by pgr.position asc, pgr.created_at asc, pgr.id asc");
+
+    const summaryPendingInviteHelper = extractSqlFunctionBlock(migration, "list_pending_collaboration_invitations");
+    const fixForwardPendingInviteHelper = extractSqlFunctionBlock(fixForwardMigration, "list_pending_collaboration_invitations");
+    for (const helperSql of [summaryPendingInviteHelper, fixForwardPendingInviteHelper]) {
+      expect(helperSql).toContain("language sql");
+      expect(helperSql).toContain("stable");
+      expect(helperSql).toContain("security definer");
+      expect(helperSql).not.toContain("materialize_expired_collaboration_invitations");
+    }
   });
 
   it("parses the JSON payload shape used by the fast projects route", async () => {
