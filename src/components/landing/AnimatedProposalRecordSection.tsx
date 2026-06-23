@@ -447,7 +447,9 @@ function drawMeasuredSketch(
     prepareSketchGroup(outline, step.delay, prefersReducedMotion, sketchClassNameForStep(step.id));
   };
 
-  flowSteps.filter((step) => step.variant === "input").forEach(appendOutline);
+  for (const step of flowSteps) {
+    if (step.variant === "input") appendOutline(step);
+  }
 
   const estimate = measuredSteps.get("estimate");
   const proposal = measuredSteps.get("proposal");
@@ -459,9 +461,11 @@ function drawMeasuredSketch(
   }
 
   const inputOptionsById = new Map(
-    flowSteps
-      .filter((step) => step.variant === "input")
-      .map((step) => [step.id, sketchOptions(step.color, "transparent", step.delay + 80, 0.95)]),
+    flowSteps.flatMap((step) =>
+      step.variant === "input"
+        ? [[step.id, sketchOptions(step.color, "transparent", step.delay + 80, 0.95)] as const]
+        : [],
+    ),
   );
 
   ["projectWorkflow", "componentLibrary", "estimatingExperience"].forEach((stepId, index) => {

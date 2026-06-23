@@ -107,6 +107,7 @@ export function FAQSection() {
                 <MotionReveal key={item.question} staggerIndex={index + 4}>
                   <div className="rounded-[8px] border border-[#ded2c7] bg-white transition duration-300 hover:border-brand-orange">
                     <button
+                      type="button"
                       onClick={() => toggleFAQ(index)}
                       aria-expanded={isOpen}
                       className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left font-medium text-[#171514] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"

@@ -1,3 +1,18 @@
+const COMPONENT_LIBRARY_PREVIEW_ITEMS = [
+  { name: "Ceramic tile package", unit: "sqm", rate: "₱1,240", category: "Finishes" },
+  { name: "Painter day rate", unit: "day", rate: "₱850", category: "Labor" },
+  { name: "Gypsum partition assembly", unit: "lm", rate: "₱3,200", category: "Walls" },
+  { name: "Waterproofing membrane", unit: "sqm", rate: "₱2,100", category: "Wet areas" },
+  { name: "Ceiling framing labor", unit: "sqm", rate: "₱980", category: "Ceiling" },
+] as const;
+
+const REVISION_INTELLIGENCE_CHANGES = [
+  { label: "Quantity", before: "120 sqm", after: "145 sqm", delta: "+25 sqm", type: "up" },
+  { label: "Unit rate", before: "₱1,240", after: "₱1,310", delta: "+₱70", type: "up" },
+  { label: "Scope note", before: "Excludes primer", after: "Includes primer + sealer", delta: "Changed", type: "neutral" },
+  { label: "Assumption", before: "Single supplier", after: "Dual-source pricing", delta: "Changed", type: "neutral" },
+] as const;
+
 export function EstimateWorkspacePreview() {
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
@@ -65,14 +80,6 @@ export function EstimateWorkspacePreview() {
 }
 
 export function ComponentLibraryPreview() {
-  const components = [
-    { name: "Ceramic tile package", unit: "sqm", rate: "₱1,240", category: "Finishes" },
-    { name: "Painter day rate", unit: "day", rate: "₱850", category: "Labor" },
-    { name: "Gypsum partition assembly", unit: "lm", rate: "₱3,200", category: "Walls" },
-    { name: "Waterproofing membrane", unit: "sqm", rate: "₱2,100", category: "Wet areas" },
-    { name: "Ceiling framing labor", unit: "sqm", rate: "₱980", category: "Ceiling" },
-  ];
-
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
       <div className="absolute left-6 top-6 size-2 bg-[#8d7664]" />
@@ -99,7 +106,7 @@ export function ComponentLibraryPreview() {
             ))}
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {components.map((c) => (
+            {COMPONENT_LIBRARY_PREVIEW_ITEMS.map((c) => (
               <div key={c.name} className="rounded-[8px] border border-[#dedbd6] bg-white p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="rounded-[3px] bg-[#faf9f6] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[#7b7b78]">
@@ -127,13 +134,6 @@ export function ComponentLibraryPreview() {
 }
 
 export function RevisionIntelligencePreview() {
-  const changes = [
-    { label: "Quantity", before: "120 sqm", after: "145 sqm", delta: "+25 sqm", type: "up" },
-    { label: "Unit rate", before: "₱1,240", after: "₱1,310", delta: "+₱70", type: "up" },
-    { label: "Scope note", before: "Excludes primer", after: "Includes primer + sealer", delta: "Changed", type: "neutral" },
-    { label: "Assumption", before: "Single supplier", after: "Dual-source pricing", delta: "Changed", type: "neutral" },
-  ];
-
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
       <div className="absolute left-6 top-6 size-2 bg-[#8d7664]" />
@@ -154,7 +154,7 @@ export function RevisionIntelligencePreview() {
             Planned changes since last proposal draft
           </p>
           <div className="grid gap-2">
-            {changes.map((c) => (
+            {REVISION_INTELLIGENCE_CHANGES.map((c) => (
               <div
                 key={c.label}
                 className="flex items-center gap-3 rounded-[8px] border border-[#dedbd6] bg-white p-3"

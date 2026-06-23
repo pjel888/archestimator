@@ -13,17 +13,17 @@ describe("deleted landing page implementation", () => {
     expect(existsSync(join(process.cwd(), deletedHomeFolder))).toBe(false);
   });
 
-  it("keeps the active homepage on the deployed landing shell, not generated variants", () => {
+  it("keeps the active homepage on landing-v3, not generated variants or frontdoor", () => {
     const page = readProjectFile("src/app/page.tsx");
-    const hero = readProjectFile("src/components/landing/HeroSection.tsx");
+    const landingV3 = readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx");
 
-    expect(page).toMatch(/LandingHeader|LandingFooter|HeroSection/);
+    expect(page).toContain("@/components/landing-v3/ArchestimatorLandingPage");
     expect(page).not.toContain("@/components/frontdoor");
     expect(page).not.toMatch(new RegExp("Redesigned" + "LandingPage"));
     expect(page).not.toMatch(new RegExp("gpt" + "-taste"));
-    expect(hero).toMatch(/Close Projects Faster\./);
-    expect(hero).toMatch(/The fastest path from proposal to approval\./);
-    expect(`${page}\n${hero}`).not.toMatch(/Product proof|cost intelligence layer/i);
-    expect(`${page}\n${hero}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
+    expect(landingV3).toMatch(/The estimate that keeps working after you send it\./);
+    expect(landingV3).toMatch(/Signal|commercial record|workflow/i);
+    expect(`${page}\n${landingV3}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
+    expect(`${page}\n${landingV3}`).not.toMatch(/Start Winning|Close Projects Faster/i);
   });
 });

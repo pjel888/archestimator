@@ -3,24 +3,19 @@ import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { cookies } from "next/headers";
 import { parseLandingConsentValue } from "@/lib/landing/consent";
 import { getVariant } from "@/lib/ab-testing/variant-assigner";
+import { ArchestimatorLandingPage } from "@/components/landing-v3/ArchestimatorLandingPage";
+import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import {
-  CompanyProofCarouselSection,
-  FinalCTASection,
-  HeroSection,
-  SecondaryClaimSection,
   PublicPageShell,
-  LandingHeader,
-  LandingFooter,
-  LandingSmoothScrollProvider,
   ABExperimentProvider,
 } from "@/components/landing";
 
-export const metadata: Metadata = {
-  title: "Archestimator | Quote, Proposal & Estimate Workspace",
+export const metadata: Metadata = buildLandingMetadata({
+  title: "Archestimator — Construction estimating, proposals and approvals",
   description:
-    "A workspace for teams that build quotes, estimates, and proposals from reusable line items, supplier context, assumptions, and document-ready handoff steps.",
-  alternates: { canonical: "/" },
-};
+    "Build structured estimates from reusable cost knowledge, send client-ready proposals, capture revisions, and keep approvals on record in one connected workspace.",
+  path: "/",
+});
 
 export default async function LandingPage() {
   const isLoggedIn = await getLandingAuthState();
@@ -37,16 +32,7 @@ export default async function LandingPage() {
   return (
     <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={true}>
       <ABExperimentProvider experimentId="hero-cta-copy" variant={heroVariant}>
-        <LandingHeader isLoggedIn={isLoggedIn} isHomePage={true} />
-        <LandingSmoothScrollProvider>
-          <main data-landing-page-root="true">
-            <HeroSection variant={heroVariant} isLoggedIn={isLoggedIn} />
-            <CompanyProofCarouselSection />
-            <SecondaryClaimSection />
-            <FinalCTASection />
-          </main>
-        </LandingSmoothScrollProvider>
-        <LandingFooter />
+        <ArchestimatorLandingPage isLoggedIn={isLoggedIn} />
       </ABExperimentProvider>
     </PublicPageShell>
   );

@@ -7,16 +7,16 @@ const VIEWPORTS = [
   { name: "narrow", width: 320, height: 812 },
 ] as const;
 
-test.describe("frontdoor landing visual proof", () => {
+test.describe("landing-v3 visual proof", () => {
   for (const viewport of VIEWPORTS) {
-    test(`${viewport.name} renders without overflow and with a live hero field`, async ({ page }) => {
+    test(`${viewport.name} renders without overflow and with a product-led hero`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto("/", { waitUntil: "networkidle" });
 
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: "Your cost intelligence workspace.",
+          name: "The estimate that keeps working after you send it.",
         }),
       ).toBeVisible();
 
@@ -30,25 +30,22 @@ test.describe("frontdoor landing visual proof", () => {
       });
       expect(overflow).toMatchObject({ hasOverflow: false });
 
-      await page.waitForFunction(() => {
-        const canvas = document.querySelector<HTMLCanvasElement>("canvas[data-three-hero]");
-        return canvas?.dataset.threeHero === "ready";
-      });
-
       await page.waitForTimeout(400);
 
-      const canvasBox = await page.locator("canvas[data-three-hero='ready']").boundingBox();
-      expect(canvasBox).not.toBeNull();
-      expect(canvasBox?.width).toBeGreaterThan(0);
-      expect(canvasBox?.height).toBeGreaterThan(0);
+      const stage = page.locator("[class*='productStage']").first();
+      await stage.scrollIntoViewIfNeeded();
+      const stageBox = await stage.boundingBox();
+      expect(stageBox).not.toBeNull();
+      expect(stageBox?.width).toBeGreaterThan(0);
+      expect(stageBox?.height).toBeGreaterThan(0);
 
-      const box = canvasBox!;
+      const box = stageBox!;
       const fieldShot = await page.screenshot({
         clip: {
-          x: box.x + box.width * 0.48,
-          y: box.y + box.height * 0.12,
-          width: Math.max(80, box.width * 0.42),
-          height: Math.max(120, box.height * 0.62),
+          x: Math.max(0, box.x + box.width * 0.1),
+          y: Math.max(0, box.y + box.height * 0.1),
+          width: Math.max(80, box.width * 0.75),
+          height: Math.max(120, box.height * 0.65),
         },
       });
 

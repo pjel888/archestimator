@@ -7,6 +7,7 @@ import type { PieArcDatum } from "d3-shape";
 import type { CostBucket } from "@/lib/charts/types";
 import { formatSvgNumber, roundSvgPath } from "@/lib/charts/svg-rounding";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 
 type CostDonutChartProps = {
   buckets: CostBucket[];
@@ -285,16 +286,18 @@ export function CostDonutChart({
 
   const data: PieDatum[] = useMemo(
     () =>
-      buckets
-        .filter((bucket) => Number.isFinite(bucket.total) && bucket.total > 0)
-        .map((bucket) => ({
+      filterMapBy(
+        buckets,
+        (bucket) => Number.isFinite(bucket.total) && bucket.total > 0,
+        (bucket) => ({
           id: bucket.id,
           label: bucket.label,
           value: bucket.total,
           color: bucket.color,
           share: Number.isFinite(bucket.share) ? bucket.share : 0,
           rowCount: bucket.rowCount,
-        })),
+        }),
+      ),
     [buckets]
   );
 

@@ -19,16 +19,16 @@ const solutionFeatures = [
   ],
 ];
 
-function WorkflowVisual() {
-  const steps = [
-    { label: "Opportunity", sub: "Buyer · Site · Package" },
-    { label: "Scope", sub: "Room · Category · Deliverable" },
-    { label: "Catalog Item", sub: "Product · Service · Labor" },
-    { label: "Quote Logic", sub: "Qty · Rate · Assumption" },
-    { label: "Revision", sub: "Delta · Approval" },
-    { label: "Proposal Handoff", sub: "Planned document path" },
-  ];
+const WORKFLOW_VISUAL_STEPS = [
+  { label: "Opportunity", sub: "Buyer · Site · Package" },
+  { label: "Scope", sub: "Room · Category · Deliverable" },
+  { label: "Catalog Item", sub: "Product · Service · Labor" },
+  { label: "Quote Logic", sub: "Qty · Rate · Assumption" },
+  { label: "Revision", sub: "Delta · Approval" },
+  { label: "Proposal Handoff", sub: "Planned document path" },
+] as const;
 
+function WorkflowVisual() {
   return (
     <div className="relative flex h-full min-h-[420px] flex-col justify-center overflow-hidden rounded-[8px] border border-[#ded2c7] bg-[#f4eee7] p-6 lg:min-h-[520px]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.98),transparent_24%),linear-gradient(135deg,#f4f1ea,#fbfaf7_48%,#e5ded2)]" />
@@ -37,7 +37,7 @@ function WorkflowVisual() {
           Connected quote workflow
         </p>
         <div className="space-y-3">
-          {steps.map((step, i) => (
+          {WORKFLOW_VISUAL_STEPS.map((step, i) => (
             <div key={step.label} className="flex items-center gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#171514] text-[10px] font-bold text-white">
                 {i + 1}
@@ -46,7 +46,7 @@ function WorkflowVisual() {
                 <p className="text-[13px] font-semibold text-[#171514]">{step.label}</p>
                 <p className="text-[11px] text-[#756a61]">{step.sub}</p>
               </div>
-              {i < steps.length - 1 && (
+              {i < WORKFLOW_VISUAL_STEPS.length - 1 && (
                 <div className="hidden h-px w-4 bg-[#ded2c7] lg:block" aria-hidden="true" />
               )}
             </div>

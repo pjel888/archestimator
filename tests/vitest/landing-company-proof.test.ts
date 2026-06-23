@@ -27,6 +27,7 @@ describe("landing page proof boundaries", () => {
   it("keeps company proof data fail-closed and unused by the active homepage", () => {
     const data = readProjectFile("src/components/landing/company-proof-data.ts");
     const activePage = readProjectFile("src/app/page.tsx");
+    const landingV3 = readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx");
     const frontdoor = readProjectFile("src/components/frontdoor/FrontdoorPage.tsx");
 
     expect(data).toContain('relationship: "placeholder"');
@@ -36,7 +37,7 @@ describe("landing page proof boundaries", () => {
     expect(activePage).not.toContain("placeholderCompanyProof");
     expect(frontdoor).not.toContain("getRenderableCompanyProofItems");
     expect(frontdoor).not.toContain("placeholderCompanyProof");
-    expect(activePage).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
+    expect(`${activePage}\n${landingV3}`).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
     expect(frontdoor).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
   });
 
