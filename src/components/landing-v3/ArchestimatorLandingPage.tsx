@@ -1,7 +1,22 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, Books, CheckCircle, ClockCounterClockwise, FileText } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Books,
+  ChartLineUpIcon,
+  ChatCircleTextIcon,
+  CheckCircle,
+  ClockCounterClockwise,
+  CursorClickIcon,
+  FileArrowDownIcon,
+  FileText,
+  LinkSimpleIcon,
+  SealCheckIcon,
+  StackSimpleIcon,
+  TreeStructureIcon,
+} from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { stringifyJsonLd } from "@/lib/landing/json-ld";
 import { cn } from "@/lib/ui/cn";
@@ -42,6 +57,7 @@ type HeroMetricCardProps = {
 
 type HeroMetricFeature = {
   label: string;
+  icon: typeof Books;
   previewTitle: string;
   previewBody: string;
   previewMeta: string;
@@ -181,29 +197,34 @@ function HeroMetricCard({
           </div>
           <p className={styles.heroMetricBody}>{body}</p>
           <ul className={styles.heroMetricFeatureList}>
-            {features.map((feature, featureIndex) => (
-              <li key={feature.label}>
-                <button
-                  type="button"
-                  className={styles.heroMetricFeatureButton}
-                  aria-describedby={`hero-feature-preview-${index}-${featureIndex + 1}`}
-                >
-                  <span>{feature.label}</span>
-                </button>
-                <span id={`hero-feature-preview-${index}-${featureIndex + 1}`} role="tooltip" className={styles.heroMetricPreview}>
-                  <span className={styles.heroMetricPreviewFrame} aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
+            {features.map((feature, featureIndex) => {
+              const FeatureIcon = feature.icon;
+
+              return (
+                <li key={feature.label}>
+                  <button
+                    type="button"
+                    className={styles.heroMetricFeatureButton}
+                    aria-describedby={`hero-feature-preview-${index}-${featureIndex + 1}`}
+                  >
+                    <FeatureIcon size={13} weight="light" aria-hidden="true" className={styles.heroMetricFeatureIcon} />
+                    <span className={styles.heroMetricFeatureLabel}>{feature.label}</span>
+                  </button>
+                  <span id={`hero-feature-preview-${index}-${featureIndex + 1}`} role="tooltip" className={styles.heroMetricPreview}>
+                    <span className={styles.heroMetricPreviewFrame} aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                    <span className={styles.heroMetricPreviewCopy}>
+                      <strong>{feature.previewTitle}</strong>
+                      <span>{feature.previewBody}</span>
+                      <em>{feature.previewMeta}</em>
+                    </span>
                   </span>
-                  <span className={styles.heroMetricPreviewCopy}>
-                    <strong>{feature.previewTitle}</strong>
-                    <span>{feature.previewBody}</span>
-                    <em>{feature.previewMeta}</em>
-                  </span>
-                </span>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -254,18 +275,21 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 features={[
                   {
                     label: "Domain-shaped estimate tree",
+                    icon: TreeStructureIcon,
                     previewTitle: "Project tree preview",
                     previewBody: "Floors, rooms, and areas hold their own quantities and costs.",
                     previewMeta: "Screenshot slot",
                   },
                   {
                     label: "Reusable smart components",
+                    icon: StackSimpleIcon,
                     previewTitle: "Component memory",
                     previewBody: "Saved assemblies carry pricing history and change context.",
                     previewMeta: "GIF/video slot",
                   },
                   {
                     label: "Drag and drop into the selected area",
+                    icon: CursorClickIcon,
                     previewTitle: "Drop-to-estimate flow",
                     previewBody: "Choose an area, drop the component, and totals roll up.",
                     previewMeta: "Motion demo slot",
@@ -284,18 +308,21 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 features={[
                   {
                     label: "Branded proposal links",
+                    icon: LinkSimpleIcon,
                     previewTitle: "Share-link proposal",
                     previewBody: "Client-facing links can carry branding, access, and open tracking.",
                     previewMeta: "Screenshot slot",
                   },
                   {
                     label: "Charts and cost visualizations",
+                    icon: ChartLineUpIcon,
                     previewTitle: "Cost story view",
                     previewBody: "Charts help clients understand where the project cost lives.",
                     previewMeta: "Chart preview slot",
                   },
                   {
                     label: "Industry-standard BOM and BOQ exports",
+                    icon: FileArrowDownIcon,
                     previewTitle: "Export package",
                     previewBody: "Formal BOM and BOQ outputs stay connected to the estimate.",
                     previewMeta: "Document preview slot",
@@ -314,18 +341,21 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 features={[
                   {
                     label: "Client comments, accept, and decline",
+                    icon: ChatCircleTextIcon,
                     previewTitle: "Client response panel",
                     previewBody: "Proposal decisions happen inside the shared link.",
                     previewMeta: "Interaction preview slot",
                   },
                   {
                     label: "Activity history for every response",
+                    icon: ClockCounterClockwise,
                     previewTitle: "Decision timeline",
                     previewBody: "Comments, opens, responses, and next steps stay attached.",
                     previewMeta: "Timeline preview slot",
                   },
                   {
                     label: "Change approvals recorded in the same workflow",
+                    icon: SealCheckIcon,
                     previewTitle: "Change order approval",
                     previewBody: "Approved revisions become part of the same recorded trail.",
                     previewMeta: "Approval preview slot",

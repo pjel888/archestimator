@@ -583,6 +583,7 @@
   block-size: 100%;
   min-width: 0;
   align-items: center;
+  gap: 0.36rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -592,6 +593,20 @@
   letter-spacing: 0;
   padding: 0 0.5rem;
   text-align: start;
+}
+
+.heroMetricFeatureIcon {
+  inline-size: 0.8125rem;
+  block-size: 0.8125rem;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--hero-metric-ink) 74%, transparent);
+}
+
+.heroMetricFeatureLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .heroMetricFeatureButton:focus-visible {
