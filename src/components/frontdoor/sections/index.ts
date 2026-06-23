@@ -1,0 +1,10 @@
+export { LandingNav } from "./LandingNav";
+export { HeroSection } from "./HeroSection";
+export { WordWallSection } from "./WordWallSection";
+export { ProblemTransitionSection } from "./ProblemTransitionSection";
+export { ProductProofBento } from "./ProductProofBento";
+export { FeatureTriplet } from "./FeatureTriplet";
+export { LongFormFeatureSection } from "./LongFormFeatureSection";
+export { FaqSection } from "./FaqSection";
+export { FinalCtaSection } from "./FinalCtaSection";
+export { LandingFooter } from "./LandingFooter";

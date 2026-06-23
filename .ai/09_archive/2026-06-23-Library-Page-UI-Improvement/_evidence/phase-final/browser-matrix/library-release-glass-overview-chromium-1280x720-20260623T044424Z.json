@@ -1,0 +1,92 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "url": "http://127.0.0.1:3020/workshop/library",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "7c125718",
+  "capturedAt": "2026-06-23T04:44:24.383Z",
+  "scenario": "ADV-VISUAL-GLASS release route matrix with paint/navigation evidence",
+  "route": "overview",
+  "path": "/workshop/library",
+  "glassState": {
+    "dataGlass": "ready",
+    "outerFilter": "blur(18px) saturate(1.45)",
+    "surfaceVariant": "glass",
+    "structuralSurfaces": [
+      {
+        "selector": ".estimate-glass-well",
+        "filter": "none",
+        "rect": {
+          "x": 81,
+          "y": 97,
+          "width": 1190,
+          "height": 566
+        }
+      },
+      {
+        "selector": ".estimate-glass-paper",
+        "filter": "none",
+        "rect": {
+          "x": 90,
+          "y": 106,
+          "width": 1172,
+          "height": 548
+        }
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none",
+        "rect": {
+          "x": 91,
+          "y": 107,
+          "width": 1170,
+          "height": 62
+        }
+      },
+      {
+        "selector": "[data-library-overview='true']",
+        "filter": "none",
+        "rect": {
+          "x": 81,
+          "y": 97,
+          "width": 1190,
+          "height": 566
+        }
+      }
+    ],
+    "blurredStructuralSurfaces": [],
+    "chromeSurfaces": [],
+    "paintEntries": [
+      {
+        "name": "first-paint",
+        "startTime": 1092,
+        "duration": 0
+      },
+      {
+        "name": "first-contentful-paint",
+        "startTime": 1092,
+        "duration": 0
+      }
+    ],
+    "navigation": {
+      "domContentLoadedMs": 1851.9,
+      "loadEventEndMs": 1855.2,
+      "transferSize": 27698,
+      "decodedBodySize": 143662
+    },
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "scrollWidth": 1280,
+      "scrollHeight": 720
+    }
+  },
+  "verdict": "pass"
+}

@@ -1,0 +1,56 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "7c125718",
+  "capturedAt": "2026-06-23T03:27:07.463Z",
+  "scenario": "ADV-KEYBOARD-MGMT Add Component keyboard activation, portal focus, scroll lock, inert shell, and nested Escape layering",
+  "activationMode": "keyboard",
+  "activationPath": "keyboard",
+  "openedState": {
+    "activeRole": "input",
+    "activeAriaLabel": "Name",
+    "activeName": "",
+    "bodyOverflow": "hidden",
+    "workspaceShellInert": true,
+    "dialogZIndex": "1001",
+    "dialogRect": {
+      "x": 16,
+      "y": 17.2,
+      "width": 1248,
+      "height": 685.59
+    }
+  },
+  "popupClosedState": {
+    "activeRole": "combobox",
+    "activeAriaLabel": "Unit",
+    "activeName": "unit",
+    "bodyOverflow": "hidden",
+    "workspaceShellInert": true,
+    "dialogZIndex": "1001",
+    "dialogRect": {
+      "x": 16,
+      "y": 17.2,
+      "width": 1248,
+      "height": 685.59
+    }
+  },
+  "closedState": {
+    "activeRole": "button",
+    "activeAriaLabel": "Add component",
+    "activeName": "Add component",
+    "bodyOverflow": "hidden",
+    "workspaceShellInert": false,
+    "dialogZIndex": null,
+    "dialogRect": null
+  },
+  "verdict": "pass"
+}

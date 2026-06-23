@@ -1,0 +1,293 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - navigation "Primary" [ref=e3]:
+      - generic [ref=e4]:
+        - link "Archestimator home" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e7]
+        - generic [ref=e9]:
+          - link "Features" [ref=e10] [cursor=pointer]:
+            - /url: /features
+          - link "Pricing" [ref=e11] [cursor=pointer]:
+            - /url: /pricing
+          - link "About" [ref=e12] [cursor=pointer]:
+            - /url: /about
+          - link "Contact" [ref=e13] [cursor=pointer]:
+            - /url: /contact
+        - link "Open workspace" [ref=e15] [cursor=pointer]:
+          - /url: /workshop
+          - generic [ref=e16]: Open workspace
+          - img [ref=e17]
+    - region "Your cost intelligence layer." [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - paragraph [ref=e22]:
+            - generic [ref=e23]: "01"
+            - generic [ref=e24]: —
+            - generic [ref=e25]: COST INTELLIGENCE LAYER
+          - generic [ref=e26]: Pre-launch MVP preview
+        - generic [ref=e27]:
+          - heading "Your cost intelligence layer." [level=1] [ref=e28]
+          - paragraph [ref=e29]: Build AEC estimates from your own prices and suppliers, keep every revision on the record, and send proposals clients can review and approve.
+        - generic [ref=e30]:
+          - link "Open workspace" [ref=e31] [cursor=pointer]:
+            - /url: /workshop
+            - generic [ref=e32]: Open workspace
+            - img [ref=e34]
+          - link "Book a walkthrough" [ref=e36] [cursor=pointer]:
+            - /url: /contact?intent=walkthrough
+            - generic [ref=e37]: Book a walkthrough
+            - img [ref=e39]
+    - region "Built for the people around the estimate." [ref=e41]:
+      - generic [ref=e42]:
+        - paragraph [ref=e44]:
+          - generic [ref=e45]: "02"
+          - generic [ref=e46]: —
+          - generic [ref=e47]: BUILT FOR
+        - heading "Built for the people around the estimate." [level=2] [ref=e48]
+        - paragraph [ref=e49]: Archestimator serves every role touching a cost proposal across the AEC ecosystem.
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: Cost estimators ·
+          - generic [ref=e53]: Architects ·
+          - generic [ref=e54]: Contractors ·
+          - generic [ref=e55]: Quantity surveyors ·
+          - generic [ref=e56]: Fit-out firms ·
+          - generic [ref=e57]: Suppliers ·
+          - generic [ref=e58]: Cost estimators ·
+          - generic [ref=e59]: Architects ·
+          - generic [ref=e60]: Contractors ·
+          - generic [ref=e61]: Quantity surveyors ·
+          - generic [ref=e62]: Fit-out firms ·
+          - generic [ref=e63]: Suppliers ·
+        - generic [ref=e64]:
+          - generic [ref=e65]: Owners ·
+          - generic [ref=e66]: Project managers ·
+          - generic [ref=e67]: Procurement ·
+          - generic [ref=e68]: Engineers ·
+          - generic [ref=e69]: Interior designers ·
+          - generic [ref=e70]: Design-build studios ·
+          - generic [ref=e71]: Owners ·
+          - generic [ref=e72]: Project managers ·
+          - generic [ref=e73]: Procurement ·
+          - generic [ref=e74]: Engineers ·
+          - generic [ref=e75]: Interior designers ·
+          - generic [ref=e76]: Design-build studios ·
+    - region "Cost intelligence is disconnected from your estimates." [ref=e77]:
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - paragraph [ref=e81]:
+            - generic [ref=e82]: "03"
+            - generic [ref=e83]: —
+            - generic [ref=e84]: THE PROBLEM
+          - heading "Cost intelligence is disconnected from your estimates." [level=2] [ref=e85]
+          - heading "Time to change that." [level=2] [ref=e86]
+          - paragraph [ref=e87]: A spreadsheet resets every project. You copy last time’s file, delete the rates, and rebuild. The logic behind the number is scattered across rows, tabs, emails, and memory.
+        - generic [ref=e90]: Spreadsheet rebuild loop — placeholder
+    - region "The estimate-to-proposal loop, on the record." [ref=e91]:
+      - generic [ref=e92]:
+        - paragraph [ref=e94]:
+          - generic [ref=e95]: "04"
+          - generic [ref=e96]: —
+          - generic [ref=e97]: LIVE PRODUCT PROOF
+        - heading "The estimate-to-proposal loop, on the record." [level=2] [ref=e98]
+        - paragraph [ref=e99]: Every Archestimator surface turns estimating work into reusable commercial infrastructure.
+      - generic [ref=e100]:
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - generic [ref=e104]: "01"
+            - img [ref=e105]
+          - heading "Estimate Sheet" [level=3] [ref=e107]
+          - paragraph [ref=e108]: Build the estimate in project structure. Project tree, Areas, rows, quantities, totals — save state on every line.
+          - generic [ref=e110]: ESTIMATE SHEET · placeholder
+        - generic [ref=e112]:
+          - generic [ref=e113]:
+            - generic [ref=e114]: "02"
+            - img [ref=e115]
+          - heading "Cost Library" [level=3] [ref=e117]
+          - paragraph [ref=e118]: Reuse your prices, suppliers, variants, and templates.
+          - generic [ref=e120]: COST LIBRARY · placeholder
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic [ref=e124]: "03"
+            - img [ref=e125]
+          - heading "Activity" [level=3] [ref=e127]
+          - paragraph [ref=e128]: Keep every revision on the record.
+          - generic [ref=e130]: ACTIVITY · placeholder
+        - generic [ref=e132]:
+          - generic [ref=e133]:
+            - generic [ref=e134]: "04"
+            - img [ref=e135]
+          - heading "Shared Proposal" [level=3] [ref=e137]
+          - paragraph [ref=e138]: Send one review surface for comments and decisions.
+          - generic [ref=e140]: SHARED LINK · placeholder
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - generic [ref=e144]: "05"
+            - img [ref=e145]
+          - heading "XLSX Export" [level=3] [ref=e147]
+          - paragraph [ref=e148]: Package the work for handoff and review.
+          - generic [ref=e150]: EXPORT · placeholder
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - generic [ref=e154]: "06"
+            - img [ref=e155]
+          - heading "Project Charts" [level=3] [ref=e157]
+          - paragraph [ref=e158]: See where the money goes by space, category, or supplier.
+          - generic [ref=e160]: CHARTS · placeholder
+    - region "Less spreadsheet drift. More estimate control." [ref=e161]:
+      - generic [ref=e162]:
+        - paragraph [ref=e164]:
+          - generic [ref=e165]: "05"
+          - generic [ref=e166]: —
+          - generic [ref=e167]: WHY IT MATTERS
+        - heading "Less spreadsheet drift. More estimate control." [level=2] [ref=e168]
+      - generic [ref=e169]:
+        - generic [ref=e170]:
+          - img [ref=e172]
+          - generic [ref=e174]: "01"
+          - heading "Reusable Library" [level=3] [ref=e175]
+          - paragraph [ref=e176]: Your prices, suppliers, brands, and variants. Stop rebuilding from scratch.
+        - generic [ref=e177]:
+          - img [ref=e179]
+          - generic [ref=e181]: "02"
+          - heading "Defensible Numbers" [level=3] [ref=e182]
+          - paragraph [ref=e183]: Activity, row version history, and revision context. Every total is explainable.
+        - generic [ref=e184]:
+          - img [ref=e186]
+          - generic [ref=e188]: "03"
+          - heading "Proposal Handoff" [level=3] [ref=e189]
+          - paragraph [ref=e190]: Shared links with comments, decisions, and password protection. The estimate becomes something a client can approve.
+    - region [ref=e191]:
+      - generic [ref=e192]:
+        - generic [ref=e193]:
+          - paragraph [ref=e194]:
+            - generic [ref=e195]: "06"
+            - generic [ref=e196]: —
+            - generic [ref=e197]: WORKFLOW LOOP
+          - heading "Build the estimate once. Reuse the logic. Keep the proposal aligned." [level=2] [ref=e198]
+          - paragraph [ref=e199]: Estimate, library, revision, and proposal live in one workspace. No more file drift between tabs and inboxes.
+          - paragraph [ref=e200]: Start the next estimate with what the last one taught you. The work compounds.
+          - link "See the feature tour" [ref=e202] [cursor=pointer]:
+            - /url: /features
+            - generic [ref=e203]: See the feature tour
+            - img [ref=e205]
+        - generic [ref=e208]:
+          - generic [ref=e209]: WORKFLOW
+          - generic [ref=e210]: Product screenshot placeholder
+    - region [ref=e211]:
+      - generic [ref=e212]:
+        - generic [ref=e214]:
+          - generic [ref=e215]: LIBRARY
+          - generic [ref=e216]: Product screenshot placeholder
+        - generic [ref=e217]:
+          - paragraph [ref=e218]:
+            - generic [ref=e219]: "07"
+            - generic [ref=e220]: —
+            - generic [ref=e221]: COST INTELLIGENCE DIRECTION
+          - heading "The more you estimate, the more it works for you." [level=2] [ref=e222]
+          - paragraph [ref=e223]: Every estimate teaches Archestimator your prices, your suppliers, and your project patterns.
+          - paragraph [ref=e224]: Cross-project client and typology recall is roadmap. The compounding foundation is live today.
+          - link "Read trust notes" [ref=e226] [cursor=pointer]:
+            - /url: /trust
+            - generic [ref=e227]: Read trust notes
+            - img [ref=e229]
+    - region [ref=e231]:
+      - generic [ref=e232]:
+        - generic [ref=e233]:
+          - paragraph [ref=e234]:
+            - generic [ref=e235]: "08"
+            - generic [ref=e236]: —
+            - generic [ref=e237]: TRUST AND RECORDS
+          - heading "Fast is useful only if the number is still explainable." [level=2] [ref=e238]
+          - paragraph [ref=e239]: Activity and row version history keep every revision traceable. The estimate stops being detective work.
+          - paragraph [ref=e240]: Shared proposal links carry comments, decisions, and a recoverable record. Clients see what they are approving.
+          - link "Book a walkthrough" [ref=e242] [cursor=pointer]:
+            - /url: /contact?intent=walkthrough
+            - generic [ref=e243]: Book a walkthrough
+            - img [ref=e245]
+        - generic [ref=e248]:
+          - generic [ref=e249]: ACTIVITY
+          - generic [ref=e250]: Product screenshot placeholder
+    - region "Answers" [ref=e251]:
+      - generic [ref=e252]:
+        - generic [ref=e253]:
+          - paragraph [ref=e254]:
+            - generic [ref=e255]: "09"
+            - generic [ref=e256]: —
+            - generic [ref=e257]: ANSWERS
+          - heading "Answers" [level=2] [ref=e258]
+          - paragraph [ref=e259]: Honest answers about where Archestimator is today, in plain terms.
+        - generic [ref=e261]:
+          - generic [ref=e262]:
+            - button "Is Archestimator a spreadsheet replacement?" [expanded] [ref=e263] [cursor=pointer]:
+              - generic [ref=e264]: Is Archestimator a spreadsheet replacement?
+            - paragraph [ref=e270]: It replaces the spreadsheet rebuild loop for AEC cost proposals. You still bring your own rates, suppliers, and judgment. Archestimator keeps them connected.
+          - generic [ref=e271]:
+            - button "Is it ready for production use?" [ref=e272] [cursor=pointer]:
+              - generic [ref=e273]: Is it ready for production use?
+            - paragraph [ref=e277]: Archestimator is in pre-launch MVP. The estimate workspace, cost library, revisions, and proposal handoff are live. Billing, onboarding, and analytics are still maturing.
+          - generic [ref=e278]:
+            - button "Who is it for first?" [ref=e279] [cursor=pointer]:
+              - generic [ref=e280]: Who is it for first?
+            - paragraph [ref=e284]: "AEC teams in the Philippines and Southeast Asia: cost estimators, architects, contractors, quantity surveyors, fit-out firms, and the clients and owners who review their proposals."
+          - generic [ref=e285]:
+            - button "Does Archestimator use AI to write estimates?" [ref=e286] [cursor=pointer]:
+              - generic [ref=e287]: Does Archestimator use AI to write estimates?
+            - paragraph [ref=e291]: No. AI features are deferred from launch. The product is for estimators who want their judgment structured, not replaced.
+          - generic [ref=e292]:
+            - button "Is my data private?" [ref=e293] [cursor=pointer]:
+              - generic [ref=e294]: Is my data private?
+            - paragraph [ref=e298]: Yes. Your data is yours. Archestimator does not pool, anonymize, or sell customer data. Cross-customer aggregation is explicitly not part of the model.
+          - generic [ref=e299]:
+            - button "Where does pricing live?" [ref=e300] [cursor=pointer]:
+              - generic [ref=e301]: Where does pricing live?
+            - paragraph [ref=e305]: Pricing is being validated through closed beta. We will publish it on the pricing page once it is evidence-backed. For now, request early access.
+    - region "Bring one real estimate. We will show you what it looks like when the next one starts ahead." [ref=e306]:
+      - generic [ref=e307]:
+        - paragraph [ref=e309]:
+          - generic [ref=e310]: "10"
+          - generic [ref=e311]: —
+          - generic [ref=e312]: START
+        - heading "Bring one real estimate. We will show you what it looks like when the next one starts ahead." [level=2] [ref=e313]
+        - paragraph [ref=e314]: Pre-launch MVP preview for AEC estimating teams.
+        - generic [ref=e315]:
+          - link "Open workspace" [ref=e316] [cursor=pointer]:
+            - /url: /workshop
+            - generic [ref=e317]: Open workspace
+            - img [ref=e319]
+          - link "Book a walkthrough" [ref=e321] [cursor=pointer]:
+            - /url: /contact?intent=walkthrough
+            - generic [ref=e322]: Book a walkthrough
+            - img [ref=e324]
+    - generic [ref=e327]: ·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.·.
+    - generic [ref=e329]:
+      - generic [ref=e330]:
+        - link "Archestimator home" [ref=e331] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e332]:
+            - img [ref=e333]
+            - generic [ref=e336]: archestimator
+          - generic [ref=e337]: © 2026 · Built for AEC teams in PH and SEA
+        - navigation "Footer" [ref=e338]:
+          - link "Features" [ref=e339] [cursor=pointer]:
+            - /url: /features
+          - link "Pricing" [ref=e340] [cursor=pointer]:
+            - /url: /pricing
+          - link "Trust" [ref=e341] [cursor=pointer]:
+            - /url: /trust
+          - link "About" [ref=e342] [cursor=pointer]:
+            - /url: /about
+          - link "Contact" [ref=e343] [cursor=pointer]:
+            - /url: /contact
+      - generic [ref=e344]:
+        - generic [ref=e345]:
+          - generic [ref=e346]: Built by Philip Lewis
+          - generic [ref=e347]: ·
+          - link "hi@archestimator.com" [ref=e348] [cursor=pointer]:
+            - /url: mailto:hi@archestimator.com
+        - generic [ref=e349]: Pre-launch MVP · AEC cost intelligence layer
+  - generic "Notifications"
+  - button "Open Next.js Dev Tools" [ref=e355] [cursor=pointer]:
+    - img [ref=e356]
+  - alert [ref=e359]

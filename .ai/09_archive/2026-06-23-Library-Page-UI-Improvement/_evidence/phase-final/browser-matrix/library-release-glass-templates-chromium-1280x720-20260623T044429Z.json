@@ -1,0 +1,112 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/templates",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "7c125718",
+  "capturedAt": "2026-06-23T04:44:29.414Z",
+  "scenario": "ADV-VISUAL-GLASS release route matrix with paint/navigation evidence",
+  "route": "templates",
+  "path": "/workshop/library/templates",
+  "glassState": {
+    "dataGlass": "ready",
+    "outerFilter": "blur(18px) saturate(1.45)",
+    "surfaceVariant": "glass",
+    "structuralSurfaces": [
+      {
+        "selector": ".estimate-glass-well",
+        "filter": "none",
+        "rect": {
+          "x": 81,
+          "y": 97,
+          "width": 1190,
+          "height": 566
+        }
+      },
+      {
+        "selector": ".estimate-glass-rail",
+        "filter": "none",
+        "rect": {
+          "x": 90,
+          "y": 106,
+          "width": 336,
+          "height": 548
+        }
+      },
+      {
+        "selector": ".estimate-glass-paper",
+        "filter": "none",
+        "rect": {
+          "x": 466,
+          "y": 106,
+          "width": 796,
+          "height": 548
+        }
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none",
+        "rect": {
+          "x": 467,
+          "y": 107,
+          "width": 794,
+          "height": 67
+        }
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none",
+        "rect": {
+          "x": 467,
+          "y": 146,
+          "width": 794,
+          "height": 28
+        }
+      },
+      {
+        "selector": "[data-template-gallery='true']",
+        "filter": "none",
+        "rect": {
+          "x": 466,
+          "y": 106,
+          "width": 796,
+          "height": 548
+        }
+      }
+    ],
+    "blurredStructuralSurfaces": [],
+    "chromeSurfaces": [],
+    "paintEntries": [
+      {
+        "name": "first-paint",
+        "startTime": 1352,
+        "duration": 0
+      },
+      {
+        "name": "first-contentful-paint",
+        "startTime": 1352,
+        "duration": 0
+      }
+    ],
+    "navigation": {
+      "domContentLoadedMs": 1494.1,
+      "loadEventEndMs": 1494.8,
+      "transferSize": 29967,
+      "decodedBodySize": 162094
+    },
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "scrollWidth": 1280,
+      "scrollHeight": 720
+    }
+  },
+  "verdict": "pass"
+}

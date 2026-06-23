@@ -1,0 +1,28 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components?component=6248449d-658a-4e15-a54d-177b7d89f15d",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "7c125718",
+  "capturedAt": "2026-06-23T03:59:02.509Z",
+  "scenario": "ADV-MOBILE-BROWSE mobile dense scroll containment and inspector geometry",
+  "rowCount": 500,
+  "geometry": {
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "denseClientWidth": 334,
+    "denseScrollWidth": 1165,
+    "denseLeft": 27,
+    "denseRight": 363,
+    "dockLeft": 18,
+    "dockRight": 372
+  },
+  "verdict": "pass"
+}

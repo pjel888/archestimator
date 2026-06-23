@@ -1,0 +1,44 @@
+{
+  "browser": "chromium",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "url": "http://127.0.0.1:3020/workshop/library/components",
+  "flagState": {
+    "libraryDenseMode": "1",
+    "libraryVirtualization": "1"
+  },
+  "captureHarness": "e2e/workshop-library-routes.spec.ts",
+  "gitCommit": "7c125718",
+  "capturedAt": "2026-06-23T03:33:45.710Z",
+  "scenario": "ADV-VISUAL-GLASS Chromium shell arming and one-blur boundary",
+  "glassState": {
+    "dataGlass": "ready",
+    "outerFilter": "blur(18px) saturate(1.45)",
+    "surfaceVariant": "glass",
+    "innerSurfaces": [
+      {
+        "selector": ".estimate-glass-well",
+        "filter": "none"
+      },
+      {
+        "selector": ".estimate-glass-rail",
+        "filter": "none"
+      },
+      {
+        "selector": ".estimate-glass-paper",
+        "filter": "none"
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none"
+      },
+      {
+        "selector": ".estimate-glass-chrome",
+        "filter": "none"
+      }
+    ]
+  },
+  "verdict": "pass"
+}
