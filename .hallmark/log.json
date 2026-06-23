@@ -1,6 +1,14 @@
 [
   {
     "date": "2026-06-23",
+    "scope": "src/components/landing-v3",
+    "macrostructure": "Two-row marquee hero",
+    "theme": "Archestimator warm orange frost",
+    "enrichment": "Generated futuristic building illustration",
+    "brief": "Landing hero with headline above, generated orange frosted architectural image below, and blank white liquid-glass software frame placeholder."
+  },
+  {
+    "date": "2026-06-23",
     "scope": "src/app/page.tsx",
     "macrostructure": "Restrained editorial ledger",
     "components": ["Straight brand header", "Editorial hero", "Workflow rows", "Audience list", "Statement footer"],

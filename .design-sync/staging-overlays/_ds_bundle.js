@@ -150,7 +150,7 @@ function useAvatarCss() {
     overflow:hidden;flex:none;border:1px solid var(--hairline);border-radius:var(--radius-xs,3px);
     background:var(--surface-muted);color:var(--ink);font-family:var(--font-sf-pro);font-weight:500;
     text-transform:uppercase;letter-spacing:0;}
-  .ae-avatar__image{width:100%;height:100%;background-position:center;background-size:cover;background-repeat:no-repeat;display:block;}
+  .ae-avatar__image{width:100%;height:100%;display:block;}
   .ae-avatar--xs{width:20px;height:20px;font-size:9px;}
   .ae-avatar--sm{width:28px;height:28px;font-size:10px;}
   .ae-avatar--md{width:36px;height:36px;font-size:12px;}
@@ -168,30 +168,20 @@ function Avatar({
 }) {
   useAvatarCss();
   const [err, setErr] = React.useState(false);
-  const safeSrc = typeof src === "string" ? src : "";
-  React.useEffect(() => {
-    if (!safeSrc || typeof window === "undefined") return;
-    let mounted = true;
-    setErr(false);
-    const probe = new window.Image();
-    probe.onerror = () => {
-      if (mounted) setErr(true);
-    };
-    probe.src = safeSrc;
-    return () => {
-      mounted = false;
-    };
-  }, [safeSrc]);
   return /*#__PURE__*/React.createElement("div", _extends({
     className: `ae-avatar ae-avatar--${size} ${className}`
-  }, props), safeSrc && !err ? /*#__PURE__*/React.createElement("span", {
+  }, props), src && !err ? /*#__PURE__*/React.createElement("svg", {
     className: "ae-avatar__image",
+    viewBox: "0 0 1 1",
     role: "img",
-    "aria-label": alt || "Avatar",
-    style: {
-      backgroundImage: `url(${JSON.stringify(safeSrc)})`
-    }
-  }) : /*#__PURE__*/React.createElement("span", null, (initials || "?").slice(0, 2)));
+    "aria-label": alt || "Avatar"
+  }, /*#__PURE__*/React.createElement("image", {
+    href: src,
+    width: "1",
+    height: "1",
+    preserveAspectRatio: "xMidYMid slice",
+    onError: () => setErr(true)
+  })) : /*#__PURE__*/React.createElement("span", null, (initials || "?").slice(0, 2)));
 }
 Object.assign(__ds_scope, { Avatar });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/data-display/Avatar.jsx", error: String((e && e.message) || e) }); }
@@ -2473,18 +2463,9 @@ function Workshop() {
   }, /*#__PURE__*/React.createElement("nav", {
     className: "rail ae-glass"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "logo"
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "22",
-    height: "22",
-    viewBox: "0 0 22 22",
-    "aria-hidden": "true",
-    focusable: "false"
-  }, /*#__PURE__*/React.createElement("image", {
-    href: "../../assets/archestimator_logo_white.svg",
-    width: "22",
-    height: "22"
-  }))), NAV.map(n => /*#__PURE__*/React.createElement("button", {
+    className: "logo",
+    "aria-hidden": "true"
+  }), NAV.map(n => /*#__PURE__*/React.createElement("button", {
     key: n.key,
     className: "navitem" + (n.key === "projects" ? " is-active" : ""),
     "aria-label": n.key

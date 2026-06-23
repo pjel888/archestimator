@@ -16,7 +16,7 @@ function useAvatarCss() {
     overflow:hidden;flex:none;border:1px solid var(--hairline);border-radius:var(--radius-xs,3px);
     background:var(--surface-muted);color:var(--ink);font-family:var(--font-sf-pro);font-weight:500;
     text-transform:uppercase;letter-spacing:0;}
-  .ae-avatar__image{width:100%;height:100%;background-position:center;background-size:cover;background-repeat:no-repeat;display:block;}
+  .ae-avatar__image{width:100%;height:100%;display:block;}
   .ae-avatar--xs{width:20px;height:20px;font-size:9px;}
   .ae-avatar--sm{width:28px;height:28px;font-size:10px;}
   .ae-avatar--md{width:36px;height:36px;font-size:12px;}
@@ -28,31 +28,12 @@ function useAvatarCss() {
 export function Avatar({ src, alt, initials, size = "md", className = "", ...props }) {
   useAvatarCss();
   const [err, setErr] = React.useState(false);
-  const safeSrc = typeof src === "string" ? src : "";
-
-  React.useEffect(() => {
-    if (!safeSrc || typeof window === "undefined") return;
-    let mounted = true;
-    setErr(false);
-    const probe = new window.Image();
-    probe.onerror = () => {
-      if (mounted) setErr(true);
-    };
-    probe.src = safeSrc;
-    return () => {
-      mounted = false;
-    };
-  }, [safeSrc]);
-
   return (
     <div className={`ae-avatar ae-avatar--${size} ${className}`} {...props}>
-      {safeSrc && !err ? (
-        <span
-          className="ae-avatar__image"
-          role="img"
-          aria-label={alt || "Avatar"}
-          style={{ backgroundImage: `url(${JSON.stringify(safeSrc)})` }}
-        />
+      {src && !err ? (
+        <svg className="ae-avatar__image" viewBox="0 0 1 1" role="img" aria-label={alt || "Avatar"}>
+          <image href={src} width="1" height="1" preserveAspectRatio="xMidYMid slice" onError={() => setErr(true)} />
+        </svg>
       ) : (
         <span>{(initials || "?").slice(0, 2)}</span>
       )}
