@@ -37,7 +37,14 @@ type HeroMetricCardProps = {
   metricIntervalMs?: number;
   ledgerTitle: string;
   body: string;
-  features: readonly string[];
+  features: readonly HeroMetricFeature[];
+};
+
+type HeroMetricFeature = {
+  label: string;
+  previewTitle: string;
+  previewBody: string;
+  previewMeta: string;
 };
 
 const AUDIENCE_INPUT_NODES = [
@@ -174,8 +181,28 @@ function HeroMetricCard({
           </div>
           <p className={styles.heroMetricBody}>{body}</p>
           <ul className={styles.heroMetricFeatureList}>
-            {features.map((feature) => (
-              <li key={feature}>{feature}</li>
+            {features.map((feature, featureIndex) => (
+              <li key={feature.label}>
+                <button
+                  type="button"
+                  className={styles.heroMetricFeatureButton}
+                  aria-describedby={`hero-feature-preview-${index}-${featureIndex + 1}`}
+                >
+                  <span>{feature.label}</span>
+                </button>
+                <span id={`hero-feature-preview-${index}-${featureIndex + 1}`} role="tooltip" className={styles.heroMetricPreview}>
+                  <span className={styles.heroMetricPreviewFrame} aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  <span className={styles.heroMetricPreviewCopy}>
+                    <strong>{feature.previewTitle}</strong>
+                    <span>{feature.previewBody}</span>
+                    <em>{feature.previewMeta}</em>
+                  </span>
+                </span>
+              </li>
             ))}
           </ul>
         </div>
@@ -214,7 +241,7 @@ function Hero({ isLoggedIn }: LandingPageProps) {
               sizes="(max-width: 768px) 100vw, 94vw"
               className={styles.heroIllustrationImage}
             />
-            <div className={styles.heroImageGrid} aria-hidden="true">
+            <div className={styles.heroImageGrid} aria-label="Archestimator feature previews">
               <HeroMetricCard
                 className={styles.heroImageGridBlockSmallA}
                 index="01"
@@ -224,7 +251,26 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricIntervalMs={2400}
                 ledgerTitle="Build estimates around real scope"
                 body="Estimate Smarter is the workspace for shaping, reusing, and assembling project costs before they become a proposal."
-                features={["Domain-shaped estimate tree", "Reusable smart components", "Drag and drop into the selected area"]}
+                features={[
+                  {
+                    label: "Domain-shaped estimate tree",
+                    previewTitle: "Project tree preview",
+                    previewBody: "Floors, rooms, and areas hold their own quantities and costs.",
+                    previewMeta: "Screenshot slot",
+                  },
+                  {
+                    label: "Reusable smart components",
+                    previewTitle: "Component memory",
+                    previewBody: "Saved assemblies carry pricing history and change context.",
+                    previewMeta: "GIF/video slot",
+                  },
+                  {
+                    label: "Drag and drop into the selected area",
+                    previewTitle: "Drop-to-estimate flow",
+                    previewBody: "Choose an area, drop the component, and totals roll up.",
+                    previewMeta: "Motion demo slot",
+                  },
+                ]}
               />
               <HeroMetricCard
                 className={styles.heroImageGridBlockSmallB}
@@ -235,7 +281,26 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricIntervalMs={3200}
                 ledgerTitle="Turn the estimate into a client decision"
                 body="Propose Better is how the estimate becomes a clear, trackable package your client can review without losing the pricing context."
-                features={["Branded proposal links", "Charts and cost visualizations", "Industry-standard BOM and BOQ exports"]}
+                features={[
+                  {
+                    label: "Branded proposal links",
+                    previewTitle: "Share-link proposal",
+                    previewBody: "Client-facing links can carry branding, access, and open tracking.",
+                    previewMeta: "Screenshot slot",
+                  },
+                  {
+                    label: "Charts and cost visualizations",
+                    previewTitle: "Cost story view",
+                    previewBody: "Charts help clients understand where the project cost lives.",
+                    previewMeta: "Chart preview slot",
+                  },
+                  {
+                    label: "Industry-standard BOM and BOQ exports",
+                    previewTitle: "Export package",
+                    previewBody: "Formal BOM and BOQ outputs stay connected to the estimate.",
+                    previewMeta: "Document preview slot",
+                  },
+                ]}
               />
               <HeroMetricCard
                 className={styles.heroImageGridBlockWide}
@@ -246,7 +311,26 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricIntervalMs={4200}
                 ledgerTitle="Record the decision and every change after"
                 body="Win Faster is not only about winning the first bid. It keeps comments, approvals, declined proposals, and later change orders attached to the same record."
-                features={["Client comments, accept, and decline", "Activity history for every response", "Change approvals recorded in the same workflow"]}
+                features={[
+                  {
+                    label: "Client comments, accept, and decline",
+                    previewTitle: "Client response panel",
+                    previewBody: "Proposal decisions happen inside the shared link.",
+                    previewMeta: "Interaction preview slot",
+                  },
+                  {
+                    label: "Activity history for every response",
+                    previewTitle: "Decision timeline",
+                    previewBody: "Comments, opens, responses, and next steps stay attached.",
+                    previewMeta: "Timeline preview slot",
+                  },
+                  {
+                    label: "Change approvals recorded in the same workflow",
+                    previewTitle: "Change order approval",
+                    previewBody: "Approved revisions become part of the same recorded trail.",
+                    previewMeta: "Approval preview slot",
+                  },
+                ]}
               />
             </div>
           </HeroImageZoom>
