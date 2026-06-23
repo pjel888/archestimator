@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   parseBetaFeedbackSubmission,
@@ -37,6 +37,7 @@ async function saveBetaFeedback(formData: FormData) {
     project_id: payload.projectId,
     severity: payload.severity,
     user_email: context.email,
+    // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server action stamps authenticated context.userId; clients cannot choose this value.
     user_id: context.userId,
     workspace_id: context.profile.default_workspace_id,
   });
@@ -49,6 +50,7 @@ async function saveBetaFeedback(formData: FormData) {
 }
 
 export async function submitBetaFeedback(formData: FormData) {
+  await requireAuth();
   const result = await saveBetaFeedback(formData);
   if (!result.ok) {
     if (result.code === "fallback") feedbackRedirect({ fallback: "1" });
@@ -62,6 +64,7 @@ export async function submitBetaFeedbackInline(
   _previousState: BetaFeedbackInlineState,
   formData: FormData,
 ): Promise<BetaFeedbackInlineState> {
+  await requireAuth();
   const result = await saveBetaFeedback(formData);
   if (result.ok) {
     return {

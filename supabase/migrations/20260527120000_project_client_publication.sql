@@ -110,13 +110,6 @@ to authenticated
 using (public.can_manage_project_publication(project_id))
 with check (public.can_manage_project_publication(project_id));
 
-drop policy if exists "project publication service role can insert events" on public.project_publication_events;
-create policy "project publication service role can insert events"
-on public.project_publication_events
-for insert
-to service_role
-with check (true);
-
 revoke all on table public.project_publications from public, anon, authenticated;
 revoke all on table public.project_publication_events from public, anon, authenticated;
 revoke all on function public.can_manage_project_publication(uuid) from public, anon, authenticated;

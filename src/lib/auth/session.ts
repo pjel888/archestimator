@@ -89,3 +89,7 @@ export async function requireCurrentUserContext(_options?: { enforceTermsAccepta
   if (!context) redirect("/login");
   return context;
 }
+
+export async function requireAuth(options?: { enforceTermsAcceptance?: boolean }) {
+  return requireCurrentUserContext(options);
+}

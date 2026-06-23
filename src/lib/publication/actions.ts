@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import {
   createPublicationToken,
@@ -543,6 +543,7 @@ export async function createProjectPublication({
   expiresAt?: string | null;
   locationVisibility?: ProjectPublicationLocationVisibility | null;
 }): Promise<PublicationActionResult> {
+  await requireAuth();
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15/22 (MOD-PW-05): reject any supplied invalid password before any DB write —
   // never hash or persist an invalid password, and never revoke the existing link for one.
@@ -605,6 +606,7 @@ export async function republishProjectPublication({
   expiresAt?: string | null;
   locationVisibility?: ProjectPublicationLocationVisibility | null;
 }): Promise<PublicationActionResult> {
+  await requireAuth();
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15 (MOD-PW-05): a NEW password being set (provided and not clearing) must pass the
   // minimum-length check before any DB write. Clearing has no password; the verify path is elsewhere.
@@ -677,6 +679,7 @@ export async function rotateProjectPublicationLink({
   password?: string;
   clearPassword?: boolean;
 }): Promise<PublicationActionResult> {
+  await requireAuth();
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15 (MOD-PW-05): the live UI rotates with only { projectId } (the existing password_hash
   // is carried forward), but the action still accepts a password for internal callers. Guard the SET
@@ -728,6 +731,7 @@ export async function rotateProjectPublicationLink({
 }
 
 export async function revokeProjectPublication({ projectId }: { projectId: string }): Promise<PublicationActionResult> {
+  await requireAuth();
   const context = await assertProjectPublicationManager(projectId);
   const latest = await readLatestProjectPublication(context);
   const previousClientLinkPath = latest ? readClientLinkPath(latest) : null;
@@ -754,6 +758,7 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
 export async function refreshProjectPublicationSummary(
   projectId: string,
 ): Promise<ProjectPublicationSummary | null> {
+  await requireAuth();
   return getProjectPublicationSummary(projectId);
 }
 
@@ -1034,6 +1039,7 @@ async function getPublicationProjectId(admin: ReturnType<typeof createPublicatio
 }
 
 export async function listSharedLinkRecipients({ publicationId }: { publicationId: string }): Promise<SharedLinkRecipientRow[]> {
+  await requireAuth();
   // Used by manager UI (Recipients tab) to show current status chips.
   // RLS + service role allows; additive helper (not strictly required by P4 bullets but necessary for "display delivery status" and complete feature).
   const admin = createPublicationAdminClient();
@@ -1064,6 +1070,7 @@ export async function addSharedLinkRecipients({
   recipients: RecipientInput[];
   baseClientLink?: string | null;
 }): Promise<AddSharedLinkRecipientsResult> {
+  await requireAuth();
   if (!publicationId || !Array.isArray(inputs) || inputs.length === 0) {
     return { ok: false, message: "No recipients provided.", added: 0, failedEmails: [], emailResults: [] };
   }
@@ -1234,6 +1241,7 @@ export async function resendSharedLinkRecipientEmail({
   recipientId: string;
   baseClientLink?: string | null;
 }): Promise<{ ok: boolean; message: string }> {
+  await requireAuth();
   assertUuid(publicationId, "Publication");
   assertUuid(recipientId, "Recipient");
 
@@ -1324,6 +1332,7 @@ export async function removeSharedLinkRecipient({
   recipientId?: string;
   email?: string;
 }): Promise<{ ok: boolean; message: string }> {
+  await requireAuth();
   if (!publicationId || (!recipientId && !email)) {
     return { ok: false, message: "Missing recipient identifier." };
   }
@@ -1617,7 +1626,8 @@ export async function loadSharedLinkActivity(
   return { activities, hasMore, ...(nextCursor ? { nextCursor } : {}) };
 }
 
-// Internal trigger for P8 email digest (called from comment/decision routes after successful insert)
+// Internal trigger for P8 email digest (called from comment/decision routes after successful insert).
+// react-doctor-disable-next-line react-doctor/server-auth-actions -- Public shared-link routes verify the recipient/publication token before calling this internal digest helper; requiring workspace auth would break recipient comments/decisions.
 export async function maybeTriggerSharedLinkActivityDigest(
   publicationId: string,
   publicationToken: string,

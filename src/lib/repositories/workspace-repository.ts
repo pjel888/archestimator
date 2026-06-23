@@ -80,6 +80,7 @@ export type WorkshopPendingInviteSummary = {
   projectName: string;
   projectCode: string | null;
   estimateName: string | null;
+  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Type-only pending-invite summary role; no client Supabase write occurs here.
   role: CollaborationRole;
   scope: "project" | "estimate";
   inviterLabel: string | null;

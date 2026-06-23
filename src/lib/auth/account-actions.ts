@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
+// react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server action module; service-role client import is never browser-bundled.
 import { createAccountServiceRoleClient } from "@/lib/auth/account-service-role";
 import {
   canManageWorkspaceAccountSettings,

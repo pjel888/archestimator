@@ -32,6 +32,7 @@ export type ProjectInviteDeliveryReadiness = {
 
 type ProjectAccessContext = {
   actorRank: number;
+  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server-only action context field; not a browser Supabase write.
   admin: ReturnType<typeof createCollaborationAdminClient>;
   currentUserId: string;
   project: Pick<Tables<"projects">, "id" | "name" | "workspace_id">;
@@ -42,14 +43,7 @@ type EstimateAccessContext = ProjectAccessContext & {
   estimateActorRank: number;
 };
 
-const roleRank: Record<CollaborationRole, number> = {
-  owner: 40,
-  admin: 30,
-  editor: 20,
-  viewer: 10,
-};
-
-const managerRank = roleRank.admin;
+const managerRank = 30;
 const INVITE_EXPIRATION_DAYS = 14;
 const RATE_LIMIT_ACTION_MESSAGE_PREFIX = "Too many attempts. Please wait";
 
@@ -65,9 +59,16 @@ function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
 }
 
+function collaborationRoleRank(role: CollaborationRole) {
+  if (role === "owner") return 40;
+  if (role === "admin") return managerRank;
+  if (role === "editor") return 20;
+  return 10;
+}
+
 function assertAssignableRole(actorRank: number, role: CollaborationRole) {
   if (actorRank < managerRank) throw new Error("Only owners and admins can manage access.");
-  if (roleRank[role] > actorRank) throw new Error("Cannot assign a role above your own access level.");
+  if (collaborationRoleRank(role) > actorRank) throw new Error("Cannot assign a role above your own access level.");
 }
 
 function rateLimitActionResult(result: { message: string }): CollaborationActionResult {
@@ -136,7 +137,10 @@ async function readProjectActorRank({
   if (workspaceMembership.error) throw workspaceMembership.error;
   if (projectMembership.error) throw projectMembership.error;
 
-  return Math.max(workspaceRoleRank(workspaceMembership.data?.role), roleRank[projectMembership.data?.role ?? "viewer"]);
+  return Math.max(
+    workspaceRoleRank(workspaceMembership.data?.role),
+    collaborationRoleRank(projectMembership.data?.role ?? "viewer"),
+  );
 }
 
 async function assertProjectAccessManager(projectId: string): Promise<ProjectAccessContext> {
@@ -189,7 +193,10 @@ async function readEstimateActorRank(context: ProjectAccessContext, estimateId: 
   if (sheetMembershipResult.error) throw sheetMembershipResult.error;
 
   const inheritsProjectAccess = settingsResult.data?.inherit_project_access ?? true;
-  return Math.max(inheritsProjectAccess ? context.actorRank : 0, roleRank[sheetMembershipResult.data?.role ?? "viewer"]);
+  return Math.max(
+    inheritsProjectAccess ? context.actorRank : 0,
+    collaborationRoleRank(sheetMembershipResult.data?.role ?? "viewer"),
+  );
 }
 
 async function assertEstimateAccessManager(projectId: string, estimateId: string): Promise<EstimateAccessContext> {
@@ -865,7 +872,11 @@ export async function updateProjectCollaboratorRole({
     .maybeSingle();
   if (existingError) throw existingError;
 
-  if (existingMember && roleRank[existingMember.role] >= managerRank && roleRank[role] < managerRank) {
+  if (
+    existingMember &&
+    collaborationRoleRank(existingMember.role) >= managerRank &&
+    collaborationRoleRank(role) < managerRank
+  ) {
     const hasOtherManager = await hasOtherProjectManager(context, userId);
     if (!hasOtherManager) throw new Error("Every project needs at least one owner or admin.");
   }
@@ -952,7 +963,7 @@ export async function removeProjectCollaborator({
   if (existingError) throw existingError;
   if (!existingMember) return { ok: true, message: "Project-specific access already removed." };
 
-  if (roleRank[existingMember.role] >= managerRank) {
+  if (collaborationRoleRank(existingMember.role) >= managerRank) {
     const hasOtherManager = await hasOtherProjectManager(context, userId);
     if (!hasOtherManager) throw new Error("Every project needs at least one owner or admin.");
   }

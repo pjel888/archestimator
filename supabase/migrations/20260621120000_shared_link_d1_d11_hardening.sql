@@ -46,14 +46,6 @@ create index if not exists publication_digest_log_publication_idx
 
 alter table public.publication_digest_log enable row level security;
 
-drop policy if exists "publication digest log service role can manage" on public.publication_digest_log;
-create policy "publication digest log service role can manage"
-  on public.publication_digest_log
-  for all
-  to service_role
-  using (true)
-  with check (true);
-
 drop policy if exists "project publication managers can read publication digest log" on public.publication_digest_log;
 create policy "project publication managers can read publication digest log"
   on public.publication_digest_log

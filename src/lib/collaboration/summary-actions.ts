@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAuth } from "@/lib/auth/session";
 import { getProjectCollaborationSummary } from "@/lib/repositories/workspace-repository";
 import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
 
@@ -15,5 +16,6 @@ import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
 export async function fetchProjectCollaborationSummary(
   projectId: string,
 ): Promise<ProjectCollaborationSummary | null> {
+  await requireAuth();
   return getProjectCollaborationSummary(projectId);
 }

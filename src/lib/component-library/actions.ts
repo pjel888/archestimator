@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import {
   buildRejectedPreviewResult,
   coerceBulkExecutionResult,
@@ -186,6 +186,7 @@ function readFolderName(name: string) {
 
 async function assertCanManageLibraryFolders(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server-side RPC authorization helper; workspace id is verified server-side.
   workspaceId: string,
   action = "manage_library_folders",
 ) {
@@ -785,6 +786,7 @@ export async function createLibraryFolder(parentId: string | null, name: string,
 }
 
 export async function renameLibraryFolder(folderId: string, name: string): Promise<LibraryFolderActionResult> {
+  await requireAuth();
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   await assertCanManageLibraryFolders(supabase, workspace.id);
@@ -802,6 +804,7 @@ export async function renameLibraryFolder(folderId: string, name: string): Promi
 }
 
 export async function deleteLibraryFolder(folderId: string): Promise<void> {
+  await requireAuth();
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   await assertCanManageLibraryFolders(supabase, workspace.id);
@@ -817,6 +820,7 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
 }
 
 export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): Promise<void> {
+  await requireAuth();
   if (!input.updates.length) throw new Error("At least one library folder update is required.");
 
   const { workspace } = await ensureDefaultWorkspace();

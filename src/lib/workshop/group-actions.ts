@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAuth } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeBulkActionIds } from "@/lib/mass-deletion/bulk-action";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
@@ -25,17 +26,23 @@ import {
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
-// --- accent allowlist (mirrors group-accent.ts GroupAccentId; validated here so
-//     the action never persists a junk accent_id even though 7d owns the palette
-//     file). Duplicated as a literal set on purpose: a "use server" action module
-//     must not import a client/UI module, and the 8 tokens are a stable contract.
-//     Task 3/8 source guard keeps the two lists in sync.
-const ALLOWED_ACCENT_IDS = new Set<string>([
-  "slate", "stone", "sage", "teal", "indigo", "plum", "rose", "clay",
-]);
-
 function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
+}
+
+// Mirrors group-accent.ts GroupAccentId while keeping this server action
+// decoupled from the client/UI palette module.
+function isAllowedAccentId(accentId: string) {
+  return (
+    accentId === "slate" ||
+    accentId === "stone" ||
+    accentId === "sage" ||
+    accentId === "teal" ||
+    accentId === "indigo" ||
+    accentId === "plum" ||
+    accentId === "rose" ||
+    accentId === "clay"
+  );
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -64,7 +71,7 @@ function normalizeGroupName(rawName: string): string {
 
 function normalizeAccentId(accentId: string | null | undefined): string | null {
   if (accentId === null || accentId === undefined) return null;
-  if (!ALLOWED_ACCENT_IDS.has(accentId)) {
+  if (!isAllowedAccentId(accentId)) {
     throw new Error("Group accent is invalid.");
   }
   return accentId;
@@ -128,6 +135,7 @@ export async function createProjectGroup(input: {
   name: string;
   accentId?: string | null;
 }): Promise<{ id: string }> {
+  await requireAuth();
   const name = normalizeGroupName(input.name);
   const accentId = normalizeAccentId(input.accentId);
 
@@ -187,6 +195,7 @@ export async function createProjectGroup(input: {
 }
 
 export async function renameProjectGroup(input: { groupId: string; name: string }): Promise<void> {
+  await requireAuth();
   assertUuid(input.groupId, "Group");
   const name = normalizeGroupName(input.name);
 
@@ -214,6 +223,7 @@ export async function recolorProjectGroup(input: {
   groupId: string;
   accentId: string | null;
 }): Promise<void> {
+  await requireAuth();
   assertUuid(input.groupId, "Group");
   const accentId = normalizeAccentId(input.accentId);
 
@@ -232,6 +242,7 @@ export async function recolorProjectGroup(input: {
 }
 
 export async function deleteProjectGroup(input: { groupId: string }): Promise<void> {
+  await requireAuth();
   assertUuid(input.groupId, "Group");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
@@ -252,6 +263,7 @@ export async function deleteProjectGroup(input: { groupId: string }): Promise<vo
 }
 
 export async function reorderProjectGroups(input: { orderedGroupIds: string[] }): Promise<void> {
+  await requireAuth();
   // Bound the batch (mirror the bulk-assign cap) so a caller cannot force an
   // unbounded fan-out of UPDATEs. A user can have at most MAX_PROJECT_GROUPS groups.
   if (input.orderedGroupIds.length > MAX_PROJECT_GROUPS) {
@@ -287,6 +299,7 @@ export async function moveProjectToGroup(input: {
   projectId: string;
   groupId: string | null;
 }): Promise<void> {
+  await requireAuth();
   assertUuid(input.projectId, "Project");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
@@ -351,6 +364,7 @@ export async function bulkAssignProjectsToGroup(input: {
   projectIds: string[];
   groupId: string | null;
 }): Promise<BulkAssignProjectsToGroupResult> {
+  await requireAuth();
   const { ids, issues } = normalizeBulkActionIds(input.projectIds, {
     label: "projects",
     max: MAX_BULK_ASSIGN_PROJECTS,

@@ -284,14 +284,6 @@ using (
   )
 );
 
--- Service role can manage events (for future audit inserts via edge functions / RPCs if needed)
-drop policy if exists "service role can insert shared link events" on public.shared_link_events;
-create policy "service role can insert shared link events"
-on public.shared_link_events
-for insert
-to service_role
-with check (true);
-
 -- ============================================================================
 -- 5. GRANTS / REVOKES (strict default-deny per plan + existing publication migration pattern)
 -- ============================================================================

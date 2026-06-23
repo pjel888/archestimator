@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import type { ProjectLocationActionState } from "@/lib/projects/location-action-state";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -77,6 +77,7 @@ export async function saveProjectLocation(
   _previousState: ProjectLocationActionState,
   formData: FormData,
 ): Promise<ProjectLocationActionState> {
+  await requireAuth();
   let projectId = "";
   try {
     projectId = readRequiredText(formData, "projectId");
@@ -134,6 +135,7 @@ export async function clearProjectLocation(
   _previousState: ProjectLocationActionState,
   formData: FormData,
 ): Promise<ProjectLocationActionState> {
+  await requireAuth();
   let projectId = "";
   try {
     projectId = readRequiredText(formData, "projectId");

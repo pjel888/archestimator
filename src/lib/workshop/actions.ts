@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireAuth } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,6 +24,7 @@ function assertUuid(value: string, label: string) {
 }
 
 export async function setProjectFavorite({ projectId, favorite }: ProjectFavoriteInput) {
+  await requireAuth();
   if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(projectId, "Project");
 
@@ -72,6 +74,7 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
 }
 
 export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavoriteInput) {
+  await requireAuth();
   if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(estimateId, "Estimate");
 

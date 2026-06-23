@@ -1,5 +1,6 @@
 "use server";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
+import { requireAuth } from "@/lib/auth/session";
 import { listMainSidebarFavoriteProjects } from "@/lib/repositories/workspace-repository";
 
 /**
@@ -10,5 +11,6 @@ import { listMainSidebarFavoriteProjects } from "@/lib/repositories/workspace-re
  * ensureDefaultWorkspace() -> requireCurrentUserContext() (13 C1).
  */
 export async function fetchSidebarFavoriteProjects(): Promise<MainSidebarFavoriteProject[]> {
+  await requireAuth();
   return listMainSidebarFavoriteProjects();
 }

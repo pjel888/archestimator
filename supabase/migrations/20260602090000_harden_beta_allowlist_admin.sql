@@ -21,6 +21,7 @@ create table if not exists public.profile_role_hardening_audit (
   created_at timestamptz not null default now()
 );
 
+alter table public.profile_role_hardening_audit enable row level security;
 revoke all on table public.profile_role_hardening_audit from public, anon, authenticated;
 
 alter table public.profiles disable trigger profiles_prevent_role_self_update;

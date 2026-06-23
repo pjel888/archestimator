@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { requireAuth } from "@/lib/auth/session";
 import { DEFAULT_AUTH_DESTINATION, LOGIN_PATH } from "@/lib/auth/redirects";
 import { isUuid } from "@/lib/ids";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -29,12 +30,14 @@ function acceptedInvitePath(result: Record<string, unknown>) {
 }
 
 export async function signOutForPendingInvite() {
+  await requireAuth();
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect(`${LOGIN_PATH}?next=${encodeURIComponent(DEFAULT_AUTH_DESTINATION)}`);
 }
 
 export async function acceptPendingInvitationById(formData: FormData) {
+  await requireAuth();
   const invitationId = formData.get("invitationId");
   if (typeof invitationId !== "string" || !isUuid(invitationId)) {
     redirect(unavailableInvitePath("invalid"));

@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import {
   buildRejectedPreviewResult,
   coerceBulkExecutionResult,
@@ -13,6 +13,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { cleanupStorageTargets, storageCleanupReportToJson } from "@/lib/mass-deletion/storage-cleanup";
+// react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server action module; service-role client import is never browser-bundled.
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
@@ -109,6 +110,7 @@ function applyProjectImageMetadata(metadata: Record<string, Json>, image: Projec
 }
 
 export async function createProjectRecord(formData: FormData) {
+  await requireAuth();
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
@@ -139,11 +141,13 @@ export async function createProjectRecord(formData: FormData) {
 }
 
 export async function createProject(formData: FormData) {
+  await requireAuth();
   const project = await createProjectRecord(formData);
   redirect(`/workshop/projects/${project.id}`);
 }
 
 export async function deleteProject(formData: FormData) {
+  await requireAuth();
   const projectId = readRequiredText(formData, "projectId");
   const expectedPreviewHash = readRequiredText(formData, "expectedPreviewHash");
   const correlationId = readOptionalText(formData, "correlationId") ?? undefined;
@@ -248,6 +252,7 @@ export async function executeBulkDeleteProjects(input: ExecuteBulkDeleteProjects
 }
 
 export async function updateProjectImageMetadata(projectId: string, image: ProjectImageMetadataInput) {
+  await requireAuth();
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
@@ -277,6 +282,7 @@ export async function updateProjectImageMetadata(projectId: string, image: Proje
 }
 
 export async function updateProjectDetails(formData: FormData) {
+  await requireAuth();
   const supabase = await createSupabaseServerClient();
 
   const projectId = readRequiredText(formData, "projectId");

@@ -11,6 +11,7 @@ import {
   resolveAuthOrigin,
   sanitizeNextPath,
 } from "@/lib/auth/redirects";
+import { requireAuth } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 async function getRequestMetadata() {
@@ -132,6 +133,7 @@ export async function signInWithGoogle(formData: FormData) {
 }
 
 export async function signOut() {
+  await requireAuth();
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect("/login");

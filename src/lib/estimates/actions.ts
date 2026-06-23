@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
@@ -1173,16 +1173,19 @@ function revalidateProjectEstimatePaths(projectId: string) {
 }
 
 export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {
+  await requireAuth();
   const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(projectId, estimateId, ESTIMATE_SHEET_TREE_LOAD_LIMITS);
   if (!project || !estimate) throw new Error("Estimate not found in the current project.");
   return tree;
 }
 
 export async function fetchEstimateTabs({ projectId, estimateId }: FetchEstimateTreeInput) {
+  await requireAuth();
   return getEstimateTabs(projectId, estimateId);
 }
 
 export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: FetchEstimateTabTreeInput) {
+  await requireAuth();
   const { project, estimate, tab, tree } = await getEstimateTabTree(projectId, estimateId, tabId, ESTIMATE_SHEET_TREE_LOAD_LIMITS);
   if (!project || !estimate || !tab) throw new Error("Estimate tab not found in the current project.");
   return tree;
@@ -1205,6 +1208,7 @@ export async function fetchEstimateSheetVersionControl({
   nodeCursor,
   scope = "both",
 }: FetchEstimateSheetVersionControlInput): Promise<EstimateSheetVersionControlData> {
+  await requireAuth();
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
@@ -1343,6 +1347,7 @@ export async function fetchEstimateActivityRetentionMetrics({
 }: {
   projectId: string;
 }): Promise<EstimateActivityRetentionMetrics> {
+  await requireAuth();
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
@@ -1369,6 +1374,7 @@ export async function reorderEstimateTreeNodes(
   estimateId: string,
   input: ReorderEstimateTreeNodesInput,
 ): Promise<ReorderEstimateTreeNodesResult> {
+  await requireAuth();
   if (!input.updates.length) throw new Error("At least one estimate tree node update is required.");
 
   const updateIds = new Set<string>();
@@ -1816,6 +1822,7 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
 }
 
 export async function deleteEstimateSheet(input: DeleteEstimateSheetInput): Promise<BulkActionExecutionResult> {
+  await requireAuth();
   return executeBulkDeleteEstimateSheets({
     projectId: input.projectId,
     estimateIds: [input.estimateId],
@@ -1930,6 +1937,7 @@ async function getProjectScopedEstimateActionContext(projectId: string, estimate
 }
 
 export async function createEstimateTab(input: CreateEstimateTabInput): Promise<EstimateTabMutationResult> {
+  await requireAuth();
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
   const { data, error } = await supabase.rpc("create_estimate_tab_with_history", {
@@ -1944,6 +1952,7 @@ export async function createEstimateTab(input: CreateEstimateTabInput): Promise<
 }
 
 export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<EstimateTabMutationResult> {
+  await requireAuth();
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
   const { data, error } = await supabase.rpc("rename_estimate_tab_with_history", {
@@ -1959,6 +1968,7 @@ export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<
 }
 
 export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Promise<EstimateTabMutationResult> {
+  await requireAuth();
   if (input.updates.length === 0) throw new Error("At least one estimate tab update is required.");
   const seen = new Set<string>();
   for (const update of input.updates) {
@@ -1979,6 +1989,7 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
 }
 
 export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Promise<EstimateTabMutationResult> {
+  await requireAuth();
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const nextName = input.name ? normalizeEditableText(input.name, "Estimate tab name") : undefined;
   const { data, error } = await supabase.rpc("duplicate_estimate_tab_with_history", {
@@ -1994,6 +2005,7 @@ export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Pr
 }
 
 export async function archiveEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
+  await requireAuth();
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const { data, error } = await supabase.rpc("archive_estimate_tab_with_history", {
     target_project_id: project.id,
@@ -2007,6 +2019,7 @@ export async function archiveEstimateTab(input: EstimateTabActionInput): Promise
 }
 
 export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
+  await requireAuth();
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const { data, error } = await supabase.rpc("delete_estimate_tab_with_history", {
     target_project_id: project.id,
@@ -2177,6 +2190,7 @@ export async function deleteEstimateNodesBulk(
   nodeIds: string[],
   targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
+  await requireAuth();
   const requestedNodeIds = [...new Set(nodeIds.flatMap((nodeId) => {
     const trimmed = nodeId.trim();
     return trimmed ? [trimmed] : [];

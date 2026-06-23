@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { isExpressComponentPromotionEnabled } from "@/lib/estimates/express-components";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
@@ -85,5 +85,6 @@ export async function promoteEstimateRowToLibraryComponent({
 }
 
 export async function promoteExpressRowToLibraryComponent(input: PromoteExpressRowToLibraryComponentInput) {
+  await requireAuth();
   return promoteEstimateRowToLibraryComponent(input);
 }
