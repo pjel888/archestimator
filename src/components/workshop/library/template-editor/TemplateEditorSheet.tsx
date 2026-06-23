@@ -25,6 +25,7 @@ import {
 } from "../../component-library/templates";
 import {
   librarySurfaceClass,
+  type LibrarySurfaceVariant,
   useLibrarySurfaceVariant,
 } from "../library-surface-variant";
 import { getTemplateSourceTrustChips, SourceTrustChips } from "../source-trust-chips";
@@ -258,12 +259,14 @@ function TemplateSheetBranch({
   collapsedNodeIds,
   onToggleCollapsed,
   handlers,
+  surfaceVariant,
 }: {
   node: EstimateTreeNode;
   depth: number;
   collapsedNodeIds: Set<string>;
   onToggleCollapsed: (nodeId: string) => void;
   handlers: TemplateSheetHandlers;
+  surfaceVariant: LibrarySurfaceVariant;
 }) {
   const collapsed = collapsedNodeIds.has(node.id);
   const isGroup = node.kind === "group";
@@ -421,10 +424,11 @@ function TemplateSheetBranch({
               collapsedNodeIds={collapsedNodeIds}
               onToggleCollapsed={onToggleCollapsed}
               handlers={handlers}
+              surfaceVariant={surfaceVariant}
             />
           ))}
           {node.kind === "area" ? (
-            <div className="overflow-hidden border border-hairline bg-white">
+            <div className={cn("overflow-hidden border border-hairline", librarySurfaceClass(surfaceVariant, "denseTable"))}>
               {(node.estimateRowItems ?? []).map((item) => (
                 <TemplateEditableRow
                   key={item.id}
@@ -657,6 +661,7 @@ export function TemplateEditorSheet({
                 collapsedNodeIds={collapsedNodeIds}
                 onToggleCollapsed={toggleCollapsed}
                 handlers={handlers}
+                surfaceVariant={surfaceVariant}
               />
             ))}
             {rootTemplateDropZone}
