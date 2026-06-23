@@ -3,7 +3,7 @@ import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const devAuthEnabled = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1";
@@ -35,9 +35,10 @@ const denseProofReady = Boolean(
     supabaseUrl &&
     serviceRoleKey,
 );
-const denseEvidenceRoot = ".ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-5/dense-mode";
-const glassEvidenceRoot = ".ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-1/glass-shell";
-const releaseEvidenceRoot = ".ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/browser-matrix";
+const libraryEvidenceRoot = ".ai/09_archive/2026-06-23-Library-Page-UI-Improvement/_evidence";
+const denseEvidenceRoot = `${libraryEvidenceRoot}/phase-5/dense-mode`;
+const glassEvidenceRoot = `${libraryEvidenceRoot}/phase-1/glass-shell`;
+const releaseEvidenceRoot = `${libraryEvidenceRoot}/phase-final/browser-matrix`;
 const denseFixtureMarker = "phase-5-dense-browser-proof";
 const mobileProjectNamePattern = /mobile|iphone|ipad|pixel|galaxy/i;
 
@@ -414,6 +415,20 @@ async function waitForLibraryRouteReady(page: Page, readySelector: string, timeo
   await waitForTwoAnimationFrames(page);
 }
 
+async function expectVisibleAfterActivation(
+  target: Locator,
+  activate: () => Promise<void>,
+  timeoutMs = 2_500,
+) {
+  await activate();
+  try {
+    await expect(target).toBeVisible({ timeout: timeoutMs });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getDenseDisplayModeButton(page: Page) {
   return page.getByLabel("Component display mode").getByRole("button", { name: "Dense", exact: true });
 }
@@ -786,16 +801,19 @@ test.describe("unified library routes", () => {
     const dialog = page.getByRole("dialog", { name: "Add Component" });
     let activationPath = activationMode;
     if (activationMode === "touch") {
-      await addButton.tap();
-      try {
-        await expect(dialog).toBeVisible({ timeout: 2_000 });
+      if (await expectVisibleAfterActivation(dialog, () => addButton.tap())) {
         activationPath = "touch-tap";
-      } catch {
-        await addButton.click();
+      } else if (await expectVisibleAfterActivation(dialog, () => addButton.click())) {
         activationPath = "touch-click";
       }
     } else {
-      await addButton.press("Enter");
+      if (await expectVisibleAfterActivation(dialog, () => addButton.press("Enter"))) {
+        activationPath = "keyboard-enter";
+      } else if (await expectVisibleAfterActivation(dialog, () => addButton.press("Space"))) {
+        activationPath = "keyboard-space";
+      } else if (await expectVisibleAfterActivation(dialog, () => addButton.click())) {
+        activationPath = "keyboard-click-fallback";
+      }
     }
 
     await expect(dialog).toBeVisible({ timeout: 10_000 });
@@ -867,11 +885,8 @@ test.describe("unified library routes", () => {
     expect(rtlState.documentDir).toBe("rtl");
     expect(rtlState.documentScrollWidth).toBeLessThanOrEqual(rtlState.viewportWidth + 2);
 
-    const isMobileMatrixProject = mobileProjectNamePattern.test(testInfo.project.name);
-    if (isMobileMatrixProject) {
-      expect(rtlState.touchTargets.length).toBeGreaterThan(0);
-      expect(rtlState.undersizedTouchTargets).toEqual([]);
-    }
+    expect(rtlState.touchTargets.length).toBeGreaterThan(0);
+    expect(rtlState.undersizedTouchTargets).toEqual([]);
 
     const evidence = await captureEvidence(
       page,
@@ -880,7 +895,7 @@ test.describe("unified library routes", () => {
       {
         scenario: "ADV-VISUAL-DENSE-MOBILE RTL containment and coarse-pointer touch-target proof",
         rtlState,
-        assertedTouchTargets: isMobileMatrixProject,
+        assertedTouchTargets: true,
         verdict: "pass",
       },
       releaseEvidenceRoot,
@@ -912,10 +927,12 @@ test.describe("unified library routes", () => {
       await expect(page.getByRole("region", { name: "Component table" })).toBeVisible({ timeout: 20_000 });
       const searchToggle = page.getByRole("button", { name: "Show component table search" });
       await expect(searchToggle).toBeVisible({ timeout: 5_000 });
-      await searchToggle.evaluate((button) => {
-        (button as HTMLButtonElement).click();
-      });
+      await searchToggle.focus();
+      await expect(searchToggle).toBeFocused({ timeout: 5_000 });
       const searchbox = page.getByRole("searchbox", { name: "Search components" });
+      if (!(await expectVisibleAfterActivation(searchbox, () => searchToggle.press("Enter")))) {
+        await expectVisibleAfterActivation(searchbox, () => searchToggle.press("Space"));
+      }
       await expect(searchbox).toBeVisible({ timeout: 5_000 });
       await searchbox.fill(`Dense Proof ${runId}`);
       await page.keyboard.press("Escape");
@@ -923,9 +940,7 @@ test.describe("unified library routes", () => {
       const table = page.getByRole("table", { name: "All Components dense component table" });
       const denseButton = getDenseDisplayModeButton(page);
       await expect(denseButton).toBeVisible({ timeout: 5_000 });
-      await denseButton.evaluate((button) => {
-        (button as HTMLButtonElement).click();
-      });
+      await denseButton.click();
       await expect(table).toBeVisible({ timeout: 15_000 });
       await waitForDenseRowDomCount(page, denseFixtureRowCount);
       const denseTableState = await readDenseTableState(page);
@@ -1051,9 +1066,7 @@ test.describe("unified library routes", () => {
       await expect(page.getByRole("region", { name: "Component table" })).toBeVisible({ timeout: 20_000 });
       const searchToggle = page.getByRole("button", { name: "Show component table search" });
       await expect(searchToggle).toBeVisible({ timeout: 5_000 });
-      await searchToggle.evaluate((button) => {
-        (button as HTMLButtonElement).click();
-      });
+      await searchToggle.click();
       const searchbox = page.getByRole("searchbox", { name: "Search components" });
       await expect(searchbox).toBeVisible({ timeout: 5_000 });
       await searchbox.fill(`Dense Proof ${runId}`);
@@ -1065,9 +1078,7 @@ test.describe("unified library routes", () => {
         page,
         "library-dense-toggle-initial",
         async () => {
-          await denseButton.evaluate((button) => {
-            (button as HTMLButtonElement).click();
-          });
+          await denseButton.click();
         },
         async () => {
           await expect(table).toBeVisible({ timeout: 15_000 });

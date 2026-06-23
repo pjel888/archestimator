@@ -1267,10 +1267,11 @@ function ComponentLibrarySheet({
   );
   // Health-line deep links re-target this route with new facet params while
   // the manager stays mounted; re-seed the facet state when they change.
-  if (facetParamsKey !== appliedFacetParamsKey) {
+  useEffect(() => {
+    if (facetParamsKey === appliedFacetParamsKey) return;
     setAppliedFacetParamsKey(facetParamsKey);
     setFacetFilters(parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)));
-  }
+  }, [appliedFacetParamsKey, facetParamsKey]);
   const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
   const denseModeEnabled = isLibraryDenseModeEnabled();
   const [displayMode, setDisplayMode] = useState<ComponentLibraryDisplayMode>(() => {
@@ -1411,7 +1412,7 @@ function ComponentLibrarySheet({
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               onClick: (event) => onAddComponent(event.currentTarget),
               className: surfaceVariant === "glass"
-                ? "workshop-liquid-button border px-2 text-secondary hover:text-ink"
+                ? "workshop-liquid-button min-h-11 border px-3 text-secondary hover:text-ink"
                 : undefined,
             },
           ]}
@@ -1761,11 +1762,11 @@ export function ComponentLibraryManager({
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [isDuplicatePending, startDuplicateTransition] = useTransition();
 
-  let localLibraryItems = libraryItemState.items;
-  if (libraryItemState.source !== libraryItems) {
-    localLibraryItems = libraryItems;
+  const localLibraryItems = libraryItemState.source === libraryItems ? libraryItemState.items : libraryItems;
+  useEffect(() => {
+    if (libraryItemState.source === libraryItems) return;
     setLibraryItemState({ source: libraryItems, items: libraryItems });
-  }
+  }, [libraryItemState.source, libraryItems]);
 
   const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;
   const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive 1 component?" : `Archive ${archiveComponentTargetIds.length} components?`;

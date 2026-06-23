@@ -23,6 +23,7 @@ export type TabStripProps<TTab extends string = string> = {
   ariaLabel: string;
   onTabChange?: (tab: TTab) => void;
   className?: string;
+  variant?: "folder" | "modal";
   /**
    * Opt-in tabpanel wiring. When provided, each tab gets a stable `id` and an
    * `aria-controls` pointing at the panel with the matching id. Consumers that
@@ -48,12 +49,16 @@ export function getTabStripPanelId(idBase: string, tabId: string) {
  * estimate sheet tabs) render pixel-identical tabs without re-deriving the look.
  * Height comes from the container (`h-full`).
  */
-export const tabStripTabClassName = (isActive: boolean) =>
+export const tabStripTabClassName = (isActive: boolean, variant: "folder" | "modal" = "folder") =>
   cn(
     "relative inline-flex h-full items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-    isActive
-      ? "z-10 bg-white text-ink border-hairline -mb-px"
-      : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline",
+    variant === "modal"
+      ? isActive
+        ? "z-10 border-ink bg-white text-ink -mb-px"
+        : "border-transparent bg-white text-secondary hover:border-hairline hover:text-ink"
+      : isActive
+        ? "z-10 bg-white text-ink border-hairline -mb-px"
+        : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline",
   );
 
 const tabClassName = tabStripTabClassName;
@@ -88,6 +93,7 @@ export function TabStrip<TTab extends string>({
   ariaLabel,
   onTabChange,
   className,
+  variant = "folder",
   idBase,
 }: TabStripProps<TTab>) {
   // Roving tabIndex: keep a handle on each tab DOM node so Arrow/Home/End can
@@ -146,7 +152,7 @@ export function TabStrip<TTab extends string>({
             aria-controls={panelId}
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
-            className={tabClassName(isActive)}
+            className={tabClassName(isActive, variant)}
             onClick={() => onTabChange?.(tab.id)}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
           >
@@ -164,7 +170,7 @@ export function TabStrip<TTab extends string>({
             aria-controls={panelId}
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
-            className={tabClassName(isActive)}
+            className={tabClassName(isActive, variant)}
             onClick={() => onTabChange?.(tab.id)}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
           >

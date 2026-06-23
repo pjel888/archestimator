@@ -19,6 +19,7 @@ export type ConfirmDialogProps = {
   tone?: ConfirmTone;
   busy?: boolean;
   error?: ReactNode;
+  initialFocus?: "cancel" | "confirm" | "content" | "first";
   onConfirm?: () => void;
   onCancel?: () => void;
 };
@@ -41,10 +42,14 @@ export function ConfirmDialog({
   tone = "default",
   busy,
   error,
+  initialFocus,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const destructive = tone === "danger" || tone === "destructive";
+  const cancelHasInitialFocus = initialFocus === "cancel" || (!initialFocus && destructive);
+  const confirmHasInitialFocus = initialFocus === "confirm";
+  const modalInitialFocus = initialFocus === "content" ? "content" : "first";
 
   return (
     <AppModal
@@ -54,12 +59,14 @@ export function ConfirmDialog({
       description={description}
       tone={modalToneByConfirmTone[tone]}
       size="sm"
+      initialFocus={modalInitialFocus}
       bodyClassName="space-y-3"
       footer={
         <>
           <Button
             variant="ghost"
-            autoFocus={!destructive}
+            autoFocus={!destructive && !initialFocus}
+            data-dialog-initial-focus={cancelHasInitialFocus ? "" : undefined}
             onClick={() => {
               onCancel?.();
               onOpenChange(false);
@@ -71,6 +78,7 @@ export function ConfirmDialog({
             variant={destructive ? "danger" : "primary"}
             aria-busy={busy ? "true" : undefined}
             disabled={busy}
+            data-dialog-initial-focus={confirmHasInitialFocus ? "" : undefined}
             onClick={() => {
               if (busy) return;
               onConfirm?.();

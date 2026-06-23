@@ -11,7 +11,7 @@ type SharedLinkActivityFeedProps = {
   onActivitySeen?: () => void;
 };
 
-export default function SharedLinkActivityFeed({ publicationToken, publicationId: _publicationId = null, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
+export default function SharedLinkActivityFeed({ publicationToken, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -172,7 +172,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
           {loadingMore ? "Loading…" : "Load older activity"}
         </Button>
       ) : null}
-      <p className="mt-2 text-[8px] text-secondary">Activity refreshes when you reopen this tab. Use Refresh for the latest.</p>
+      <p className="mt-2 text-[9px] text-secondary">Activity refreshes when you reopen this tab. Use Refresh for the latest.</p>
     </section>
   );
 }

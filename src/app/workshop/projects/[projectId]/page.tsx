@@ -46,17 +46,35 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     currencyCode: "PHP",
   };
 
-  const [canEdit, estimateCount, recentEstimateSheets, projectActivityPage] = project
-    ? await withPerfTraceRequest("workshop.project-dashboard", () =>
-        Promise.all([
-          traced("project-dashboard.can-edit", () => canEditProject(project.id)),
+  const dashboardData = project
+    ? await withPerfTraceRequest("workshop.project-dashboard", async () => {
+        const canEditPromise = traced("project-dashboard.can-edit", () => canEditProject(project.id));
+        const projectLocationPromise = canEditPromise.then((canEdit) => (
+          canEdit ? traced("project-dashboard.location", () => getProjectLocation(project.id)) : null
+        ));
+        const [canEdit, estimateCount, recentEstimateSheets, projectActivityPage, projectLocation] = await Promise.all([
+          canEditPromise,
           traced("project-dashboard.estimate-count", () => countProjectEstimateSheetsForProject(project.id)),
           traced("project-dashboard.recent-estimates", () => listRecentProjectEstimateSheets(project.id)),
           traced("project-dashboard.activity", () => listProjectActivityPage({ projectId: project.id, limit: 16 })),
-        ]),
-      )
-    : ([false, 0, [], createEmptyProjectActivityPage()] as const);
-  const projectLocation = project && canEdit ? await getProjectLocation(project.id) : null;
+          projectLocationPromise,
+        ]);
+
+        return {
+          canEdit,
+          estimateCount,
+          recentEstimateSheets,
+          projectActivityPage,
+          projectLocation,
+        };
+      })
+    : {
+        canEdit: false,
+        estimateCount: 0,
+        recentEstimateSheets: [],
+        projectActivityPage: createEmptyProjectActivityPage(),
+        projectLocation: null,
+      };
   const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const googleMapsMapId = process.env.GOOGLE_MAPS_MAP_ID ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? null;
 
@@ -64,11 +82,11 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     <ProjectDashboardClient
       project={project}
       fallback={fallback}
-      estimateCount={estimateCount}
-      recentEstimateSheets={recentEstimateSheets}
-      canEditProject={canEdit}
-      projectLocation={projectLocation}
-      projectActivityPage={projectActivityPage}
+      estimateCount={dashboardData.estimateCount}
+      recentEstimateSheets={dashboardData.recentEstimateSheets}
+      canEditProject={dashboardData.canEdit}
+      projectLocation={dashboardData.projectLocation}
+      projectActivityPage={dashboardData.projectActivityPage}
       googleMapsApiKey={googleMapsApiKey}
       googleMapsMapId={googleMapsMapId}
     />

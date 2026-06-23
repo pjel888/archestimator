@@ -95,12 +95,19 @@ export function ComponentInspectorDock({
   }>({ itemId: item.id, counts: null, error: false });
   const [historyState, setHistoryState] = useState({ itemId: item.id, showAll: false });
   const [compactViewport, setCompactViewport] = useState(false);
-  // Selection moves reset both panels during render, not in an effect.
-  if (usageState.itemId !== item.id) setUsageState({ itemId: item.id, counts: null, error: false });
-  if (historyState.itemId !== item.id) setHistoryState({ itemId: item.id, showAll: false });
   const usage = usageState.itemId === item.id ? usageState.counts : null;
   const usageError = usageState.itemId === item.id ? usageState.error : false;
   const showAllHistory = historyState.itemId === item.id ? historyState.showAll : false;
+
+  useEffect(() => {
+    if (usageState.itemId === item.id) return;
+    setUsageState({ itemId: item.id, counts: null, error: false });
+  }, [item.id, usageState.itemId]);
+
+  useEffect(() => {
+    if (historyState.itemId === item.id) return;
+    setHistoryState({ itemId: item.id, showAll: false });
+  }, [historyState.itemId, item.id]);
 
   useEffect(() => {
     let stale = false;

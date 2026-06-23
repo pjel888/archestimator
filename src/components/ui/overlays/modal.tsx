@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { cn } from "@/lib/ui/cn";
 import {
@@ -65,6 +65,22 @@ const titleToneClasses: Record<ModalTone, string> = {
   destructive: "text-danger",
 };
 
+let modalRootStack: HTMLElement[] = [];
+
+function syncModalRootStack() {
+  modalRootStack.forEach((element, index) => {
+    const isTop = index === modalRootStack.length - 1;
+    element.style.zIndex = String(1000 + index * 2);
+    if (isTop) {
+      element.removeAttribute("inert");
+      element.setAttribute("data-archestimator-modal-top", "true");
+    } else {
+      element.setAttribute("inert", "");
+      element.removeAttribute("data-archestimator-modal-top");
+    }
+  });
+}
+
 export function AppModal({
   open,
   onOpenChange,
@@ -84,6 +100,23 @@ export function AppModal({
   contentClassName,
   className,
 }: AppModalProps) {
+  const modalRootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open || !modalRootRef.current) return;
+    const root = modalRootRef.current;
+    modalRootStack = modalRootStack.filter((element) => element !== root);
+    modalRootStack.push(root);
+    syncModalRootStack();
+    return () => {
+      modalRootStack = modalRootStack.filter((element) => element !== root);
+      root.removeAttribute("inert");
+      root.removeAttribute("data-archestimator-modal-top");
+      root.style.zIndex = "";
+      syncModalRootStack();
+    };
+  }, [open]);
+
   return (
     <Dialog
       open={open}
@@ -95,6 +128,7 @@ export function AppModal({
     >
       <DialogPortal>
         <div
+          ref={modalRootRef}
           data-archestimator-modal-root
           className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
         >
@@ -137,7 +171,7 @@ export function AppModal({
               className="flex min-h-[33px] items-center justify-start border-t border-hairline bg-white px-2 py-1"
             >
               {location ? (
-                <div className="min-w-0 truncate text-[10px] font-medium leading-4 tracking-normal text-tertiary">
+                <div className="min-w-0 truncate text-[10px] font-medium leading-4 tracking-normal text-secondary">
                   {location}
                 </div>
               ) : (

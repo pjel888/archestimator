@@ -21,7 +21,7 @@ const landingAllowlist = new Set([
 // Public auth routes share the landing/public brand surface, not the compact
 // app/workshop tool surface. Keep this path-scoped so dashboard/workshop rules
 // do not silently weaken elsewhere.
-const landingAllowlistPrefixes = ["src/components/landing/", "src/components/auth/"];
+const landingAllowlistPrefixes = ["src/components/landing/", "src/components/auth/", "src/components/frontdoor/"];
 // The public /share proposal surface is a documented "Client Portal" exception: it is
 // allowed a larger type scale (label floor 12px, prose body ~15-16px) than the compact
 // app/workshop system. It is EXEMPT ONLY from the three px-threshold rules

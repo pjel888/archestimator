@@ -6,7 +6,7 @@ type FrontdoorHeroFieldProps = {
   className?: string;
 };
 
-const PARTICLE_COUNT = 150;
+const PARTICLE_COUNT = 250;
 
 function createSeededRandom(seed: number) {
   let value = seed % 2147483647;
@@ -56,7 +56,7 @@ export function FrontdoorHeroField({ className }: FrontdoorHeroFieldProps) {
       const textureContext = textureCanvas.getContext("2d");
       if (textureContext) {
         textureContext.clearRect(0, 0, 48, 48);
-        textureContext.strokeStyle = "rgba(255,255,255,0.82)";
+        textureContext.strokeStyle = "rgba(20,22,26,1.0)";
         textureContext.lineWidth = 4;
         textureContext.lineCap = "square";
         textureContext.beginPath();
@@ -80,10 +80,10 @@ export function FrontdoorHeroField({ className }: FrontdoorHeroFieldProps) {
         positions[offset + 1] = (random() - 0.5) * 6.8;
         positions[offset + 2] = (random() - 0.5) * 2;
 
-        const accent = random() > 0.88;
-        colors[offset] = accent ? 1 : 0.56 + random() * 0.18;
-        colors[offset + 1] = accent ? 0.28 : 0.56 + random() * 0.18;
-        colors[offset + 2] = accent ? 0.04 : 0.56 + random() * 0.18;
+        const accent = random() > 0.45; // ~55% accent (signal orange)
+        colors[offset] = accent ? 0.95 : 0.14 + random() * 0.12;
+        colors[offset + 1] = accent ? 0.27 : 0.15 + random() * 0.12;
+        colors[offset + 2] = accent ? 0.04 : 0.17 + random() * 0.12;
       }
 
       const particleGeometry = new THREE.BufferGeometry();
@@ -94,8 +94,8 @@ export function FrontdoorHeroField({ className }: FrontdoorHeroFieldProps) {
         alphaTest: 0.04,
         depthWrite: false,
         map: symbolTexture,
-        opacity: 0.38,
-        size: 0.11,
+        opacity: 0.85,
+        size: 0.18,
         sizeAttenuation: true,
         transparent: true,
         vertexColors: true,
@@ -106,8 +106,8 @@ export function FrontdoorHeroField({ className }: FrontdoorHeroFieldProps) {
 
       const slabGeometry = new THREE.PlaneGeometry(3.8, 2.35, 14, 8);
       const slabMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        opacity: 0.045,
+        color: 0x1a1d22,
+        opacity: 0.08,
         transparent: true,
         wireframe: true,
       });
@@ -137,9 +137,13 @@ export function FrontdoorHeroField({ className }: FrontdoorHeroFieldProps) {
 
       const render = (time: number) => {
         const seconds = time / 1000;
-        particles.rotation.z = seconds * 0.016;
-        particles.position.x = Math.sin(seconds * 0.18) * 0.12;
-        slab.rotation.z = -0.1 + Math.sin(seconds * 0.28) * 0.035;
+        particles.rotation.z = seconds * 0.05;
+        particles.rotation.x = Math.sin(seconds * 0.08) * 0.08;
+        particles.position.x = Math.sin(seconds * 0.25) * 0.32;
+        particles.position.y = Math.cos(seconds * 0.22) * 0.18;
+        slab.rotation.z = -0.1 + Math.sin(seconds * 0.35) * 0.06;
+        slab.rotation.x = Math.sin(seconds * 0.3) * 0.04;
+        slab.material.opacity = 0.08 + Math.sin(seconds * 0.5) * 0.03;
         slab.rotation.y = -0.18 + Math.sin(seconds * 0.22) * 0.04;
         renderer.render(scene, camera);
         animationFrame = window.requestAnimationFrame(render);

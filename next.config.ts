@@ -99,6 +99,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/workshop/templates",
+        destination: "/workshop/library/templates",
+        permanent: false,
+      },
+      {
+        source: "/workshop/components",
+        destination: "/workshop/library",
+        permanent: false,
+      },
+      {
         source: "/workshop/projects/:projectId/charts",
         destination: "/workshop/projects/:projectId/data",
         permanent: true,

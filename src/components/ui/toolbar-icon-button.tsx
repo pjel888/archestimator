@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, FocusEvent, MouseEvent, PointerEvent, ReactNode } from "react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ToolbarTooltip } from "@/components/ui/toolbar-tooltip";
@@ -38,41 +38,101 @@ export function ToolbarIconButton({
   onBlur,
   onClick,
   onFocus,
+  onMouseUp,
+  onPointerDown,
   onPointerEnter,
   onPointerLeave,
+  onPointerUp,
   ...props
 }: ToolbarIconButtonProps) {
   const hasVisibleLabel = Boolean(visibleLabel);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const wrapperRef = useRef<HTMLSpanElement>(null);
+  const hoverTooltipTimerRef = useRef<number | null>(null);
+  const manualActivationRef = useRef(false);
+  const pointerActivationRef = useRef(false);
   const tooltipId = useId();
   const describedBy = hasVisibleLabel
     ? props["aria-describedby"]
     : [props["aria-describedby"], tooltipId].filter(Boolean).join(" ");
 
+  function clearHoverTooltipTimer() {
+    if (hoverTooltipTimerRef.current === null) return;
+    window.clearTimeout(hoverTooltipTimerRef.current);
+    hoverTooltipTimerRef.current = null;
+  }
+
+  useEffect(() => () => clearHoverTooltipTimer(), []);
+
   function handlePointerEnter(event: PointerEvent<HTMLButtonElement>) {
     onPointerEnter?.(event);
-    if (!hasVisibleLabel) setTooltipOpen(true);
+    if (!hasVisibleLabel) {
+      clearHoverTooltipTimer();
+      hoverTooltipTimerRef.current = window.setTimeout(() => {
+        setTooltipOpen(true);
+        hoverTooltipTimerRef.current = null;
+      }, 250);
+    }
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    onPointerDown?.(event);
+    pointerActivationRef.current = true;
+    clearHoverTooltipTimer();
+    if (event.button === 0) activateFromPointer(event);
   }
 
   function handlePointerLeave(event: PointerEvent<HTMLButtonElement>) {
     onPointerLeave?.(event);
+    clearHoverTooltipTimer();
     setTooltipOpen(false);
+  }
+
+  function activateFromPointer(event: MouseEvent<HTMLButtonElement> | PointerEvent<HTMLButtonElement>) {
+    if (props.disabled || manualActivationRef.current) return;
+    manualActivationRef.current = true;
+    clearHoverTooltipTimer();
+    setTooltipOpen(false);
+    onClick?.(event as MouseEvent<HTMLButtonElement>);
+    window.setTimeout(() => {
+      manualActivationRef.current = false;
+    }, 1_000);
+  }
+
+  function handlePointerUp(event: PointerEvent<HTMLButtonElement>) {
+    onPointerUp?.(event);
+    if (event.pointerType !== "mouse") activateFromPointer(event);
+    pointerActivationRef.current = false;
+  }
+
+  function handleMouseUp(event: MouseEvent<HTMLButtonElement>) {
+    onMouseUp?.(event);
+    if (event.button === 0) activateFromPointer(event);
   }
 
   function handleFocus(event: FocusEvent<HTMLButtonElement>) {
     onFocus?.(event);
-    if (!hasVisibleLabel) setTooltipOpen(true);
+    clearHoverTooltipTimer();
+    if (!hasVisibleLabel && !pointerActivationRef.current) setTooltipOpen(true);
   }
 
   function handleBlur(event: FocusEvent<HTMLButtonElement>) {
     onBlur?.(event);
+    pointerActivationRef.current = false;
+    clearHoverTooltipTimer();
     setTooltipOpen(false);
   }
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    clearHoverTooltipTimer();
     setTooltipOpen(false);
+    if (manualActivationRef.current) {
+      manualActivationRef.current = false;
+      pointerActivationRef.current = false;
+      return;
+    }
     onClick?.(event);
+    pointerActivationRef.current = false;
   }
 
   return (
@@ -94,10 +154,13 @@ export function ToolbarIconButton({
         onBlur={handleBlur}
         onClick={handleClick}
         onFocus={handleFocus}
+        onMouseUpCapture={handleMouseUp}
+        onPointerDownCapture={handlePointerDown}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
+        onPointerUpCapture={handlePointerUp}
       >
-        {children}
+        <span className="pointer-events-none inline-flex shrink-0 items-center justify-center">{children}</span>
         {visibleLabel ? <span className="whitespace-nowrap">{visibleLabel}</span> : null}
       </Button>
       <ToolbarTooltip id={tooltipId} label={label} open={!hasVisibleLabel && tooltipOpen} anchorRef={wrapperRef} />

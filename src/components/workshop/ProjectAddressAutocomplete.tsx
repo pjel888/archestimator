@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
 
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownPopupPanel, scrollPopupItemIntoView, useDropdownPopup } from "@/components/ui/dropdown-popup";
@@ -100,6 +100,7 @@ export function ProjectAddressAutocomplete({
   const [suggestions, setSuggestions] = useState<GoogleAutocompleteSuggestion[]>([]);
   const [status, setStatus] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [shouldLoadPlaces, setShouldLoadPlaces] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();
   const sessionTokenRef = useRef<unknown>(null);
@@ -121,9 +122,12 @@ export function ProjectAddressAutocomplete({
     onClose: () => setActiveIndex(-1),
   });
   const activeOptionId = open && activeIndex >= 0 ? suggestionOptionId(listboxId, activeIndex) : undefined;
+  const requestPlacesLoad = useCallback(() => {
+    setShouldLoadPlaces(true);
+  }, []);
 
   useEffect(() => {
-    if (!canUseGooglePlaces) return;
+    if (!canUseGooglePlaces || !shouldLoadPlaces) return;
     let cancelled = false;
     loadGoogleMapsApi(apiKey)
       .then((api) => api.importLibrary("places"))
@@ -140,7 +144,7 @@ export function ProjectAddressAutocomplete({
     return () => {
       cancelled = true;
     };
-  }, [apiKey, canUseGooglePlaces]);
+  }, [apiKey, canUseGooglePlaces, shouldLoadPlaces]);
 
   useEffect(() => {
     if (!placesLibrary || readOnly || value.trim().length < 3) {
@@ -241,6 +245,7 @@ export function ProjectAddressAutocomplete({
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (!canUseGooglePlaces) return;
+    requestPlacesLoad();
 
     if (event.key === "Escape" && (open || suggestions.length > 0)) {
       event.preventDefault();
@@ -283,6 +288,7 @@ export function ProjectAddressAutocomplete({
         role={canUseGooglePlaces ? "combobox" : undefined}
         autoComplete="off"
         onFocus={() => {
+          requestPlacesLoad();
           setIsFocused(true);
           if (suggestions.length > 0) openPopup();
         }}
@@ -292,10 +298,12 @@ export function ProjectAddressAutocomplete({
           setIsFocused(false);
         }}
         onClick={() => {
+          requestPlacesLoad();
           if (suggestions.length > 0) openPopup();
         }}
         onKeyDown={handleInputKeyDown}
         onChange={(event) => {
+          requestPlacesLoad();
           setStatus("");
           onValueChange(event.currentTarget.value);
         }}

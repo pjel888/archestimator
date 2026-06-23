@@ -9,7 +9,10 @@ import {
   ControlInput,
   CONTROL_INPUT_SURFACE_CLASS,
 } from "@/components/ui/control-input";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { Modal } from "@/components/ui/modal";
+import { SectionLabel } from "@/components/ui/section-label";
+import { TabStrip, getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip";
 import { cn } from "@/lib/ui/cn";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import {
@@ -21,8 +24,18 @@ import {
 } from "@/lib/publication/actions";
 import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
+import { SheetPickerList } from "./publication/SheetPickerList";
+export { SheetPickerList };
+export type { SheetPickerListProps } from "./publication/SheetPickerList";
+import {
+  readPublicationServerSignature,
+  shouldUseOptimisticPublicationResult,
+} from "./publication/publication-optimistic";
+export {
+  readPublicationServerSignature,
+  shouldUseOptimisticPublicationResult,
+} from "./publication/publication-optimistic";
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
-import { WorkshopTreeTabs, getTabStripPanelId, getTabStripTabId } from "./workshop-tree";
 import {
   PROJECT_HEADER_ACTION_BUTTON_CLASS,
   PROJECT_HEADER_ACTION_DOT_CLASS,
@@ -67,8 +80,16 @@ type PublicationLocalResult = {
   baseServerSignature: string;
 };
 
-type PublicationTabId = "link" | "sheets" | "access" | "recipients" | "activity";
+type PublicationTabId = "content" | "recipients" | "activity";
 type DestructivePublicationAction = "clear-password" | "revoke" | "rotate" | "regenerate";
+type PublicationSuccessIntent =
+  | "generate"
+  | "republish"
+  | "rotate"
+  | "regenerate"
+  | "revoke"
+  | "reactivate"
+  | "clear-password";
 // AC-MOD-12: owner-action feedback carries a tone so a thrown action error renders as a
 // danger alert instead of reading like a success in the neutral status box.
 type ActionFeedback = { text: string; tone: "success" | "error" };
@@ -157,42 +178,6 @@ function readSummaryKey(summary: ProjectPublicationSummary | null) {
   return summary?.projectId ?? "no-project";
 }
 
-/**
- * Server "signature" of the publication summary at a moment in time. The
- * optimistic `localResult` is only honored while the *live* summary still
- * carries the signature captured when the optimistic result was created.
- * When revalidation lands — or the link is revoked/expired elsewhere — this
- * signature changes, so the optimistic result is dropped and the modal falls
- * back to server truth (AC-MOD-05).
- */
-export function readPublicationServerSignature(summary: ProjectPublicationSummary | null): string {
-  if (!summary) return "none";
-  return [
-    summary.status ?? "unpublished",
-    summary.clientLinkPath ?? "",
-    summary.snapshotVersion ?? 0,
-    summary.passwordRequired ?? false,
-  ].join("|");
-}
-
-/**
- * Whether the optimistic owner-action result should still be preferred over
- * server truth. True only while the optimistic result targets the mounted
- * summary (same projectId) AND the live server signature is unchanged from the
- * one captured when the optimistic result was created.
- */
-export function shouldUseOptimisticPublicationResult(
-  localResult: { summaryKey: string; baseServerSignature: string } | null,
-  summaryKey: string,
-  serverSignature: string,
-): boolean {
-  return Boolean(
-    localResult &&
-      localResult.summaryKey === summaryKey &&
-      localResult.baseServerSignature === serverSignature,
-  );
-}
-
 function readActivitySeenStorageKey(summary: ProjectPublicationSummary | null, summaryKey: string) {
   return `${SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX}:${summary?.publicationId ?? summaryKey}`;
 }
@@ -238,7 +223,7 @@ function readDestructivePublicationActionCopy(action: DestructivePublicationActi
       description: "The current shared link will stop working.",
       // AC-MOD-14 (MOD-SHEET-03): rotation re-publishes the currently-published estimates and
       // existing password, not any unsaved picker/password edits — make that explicit.
-      body: "The current shared link will stop working immediately. Existing recipients are kept — re-send them the new link from the Recipients tab. The new link keeps the currently-published estimates and password; unsaved picker or password changes are not applied. Password-protected links require recipients to re-enter the password.",
+      body: "The current shared link will stop working immediately. Existing recipients are kept — re-send them the new link from Recipients. The new link keeps the currently-published estimates and password; unsaved picker or password changes are not applied. Password-protected links require recipients to re-enter the password.",
       confirmLabel: "Create new link",
     };
   }
@@ -267,6 +252,17 @@ function readDestructivePublicationActionCopy(action: DestructivePublicationActi
     body: "Recipients will lose access to this shared page immediately. You can generate a new shared link later.",
     confirmLabel: "Turn off link",
   };
+}
+
+function readPublicationSuccessMessage(intent: PublicationSuccessIntent, fallback: string) {
+  if (intent === "generate") return "Shared link ready. Copy it or send recipient links from Recipients.";
+  if (intent === "republish") return "Shared page updated. Clients now see the saved content and access settings.";
+  if (intent === "rotate") return "New shared link ready. Copy it, then resend recipient links from Recipients.";
+  if (intent === "regenerate") return "Brand-new shared link ready. Previous recipient links no longer work.";
+  if (intent === "revoke") return "Shared link turned off. Clients can no longer open the shared page.";
+  if (intent === "reactivate") return "Link reactivated with the same URL and password. Expiry was cleared.";
+  if (intent === "clear-password") return "Password removed. Anyone with this link can now open the shared page.";
+  return fallback;
 }
 
 function subscribeToOriginChange() {
@@ -315,12 +311,16 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     summaryKey,
   }));
   const [isPending, startTransition] = useTransition();
+  const [confirmInFlight, setConfirmInFlight] = useState(false);
   // AC-MOD-21: synchronous in-flight latch so a rapid double-click on the destructive confirm
   // dispatches at most one action (the `isPending` transition flag updates a tick too late to
   // stop a second click in the same event loop).
   const confirmInFlightRef = useRef(false);
+  const linkInputRef = useRef<HTMLInputElement | null>(null);
+  const focusSharedLinkAfterActionRef = useRef(false);
+  const publicationBusy = isPending || confirmInFlight;
 
-  // P1: selected estimates for the Estimates tab picker (defaults to all when estimates provided)
+  // P1: selected estimates for the Content picker (defaults to all when estimates provided)
   const summarySelectedEstimateIds = summary?.selectedEstimateIds ?? EMPTY_ESTIMATE_IDS;
   const defaultSelectedEstimateIds = useMemo(() => {
     const allEstimateIds = projectEstimateSheets.map((estimate) => estimate.id);
@@ -353,8 +353,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     summary?.status === "published" &&
     !areStringSetsEqual(selectedEstimateIds, summarySelectedEstimateIds);
 
-  // P1/P4/P8: 5-tab navigation (Link / Estimates / Access / Recipients / Activity owner-only)
-  const [activeTab, setActiveTab] = useState<PublicationTabId>("link");
+  const [activeTab, setActiveTab] = useState<PublicationTabId>("content");
   const browserOrigin = useSyncExternalStore(subscribeToOriginChange, readBrowserOrigin, readServerOrigin);
   const serverSignature = readPublicationServerSignature(summary);
   const hasLocalResult = shouldUseOptimisticPublicationResult(localResult, summaryKey, serverSignature);
@@ -416,13 +415,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const shareTriggerStateLabel = hasLiveClientLink
     ? `Live, ${metadataSource?.openCount ?? 0} opened`
     : "Draft";
-  // AC-MOD-16 (MOD-PW-03): the chip reflects the SAVED server state, never the optimistic draft, so
+  // AC-MOD-16 (MOD-PW-03): the chip reflects the SAVED publication state, never the unsaved draft, so
   // it does not flip to "Open access" the instant the box is unchecked. Source of truth is the actual
-  // server value — `summary?.passwordRequired` — which equals the reconciled effective value when no
-  // optimistic owner action is in flight, and stays on server truth while only the draft has changed.
-  const serverPasswordRequired = Boolean(summary?.passwordRequired);
+  // server value until an owner action succeeds optimistically, then the reconciled local result.
+  const serverPasswordRequired = Boolean(effectivePasswordRequired);
   const passwordStateLabel = serverPasswordRequired ? "Password on" : "Open access";
-  // AC-MOD-16 (MOD-PWDRAFT-CHECK-02): the Access tab's password draft is "unsaved" when it diverges
+  // AC-MOD-16 (MOD-PWDRAFT-CHECK-02): the password draft is "unsaved" when it diverges
   // from the saved server state — the require toggle differs, or a new password is typed while the
   // box is checked. (Clearing/typing on an open link with the box unchecked is covered by the toggle
   // comparison.) Only meaningful while there is a draft for this summary.
@@ -487,6 +485,16 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     // Re-run on modal open and on Activity-tab selection (activeTab) for this project.
   }, [shouldRefreshMetadata, projectId, activeTab]);
 
+  useEffect(() => {
+    if (!open || !focusSharedLinkAfterActionRef.current || !clientLinkPath) return;
+    const frame = window.requestAnimationFrame(() => {
+      linkInputRef.current?.focus({ preventScroll: true });
+      linkInputRef.current?.select();
+      focusSharedLinkAfterActionRef.current = false;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [clientLinkPath, open]);
+
   async function copyClientLink() {
     if (!clientLinkPath) {
       setActionFeedback({ text: "Create a shared link first.", tone: "error" });
@@ -511,7 +519,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     window.open(clientLinkPath, "_blank", "noopener,noreferrer");
   }
 
-  function runPublicationAction(action: () => Promise<{ ok: boolean; message: string; clientLinkPath?: string | null }>) {
+  function runPublicationAction(
+    action: () => Promise<{ ok: boolean; message: string; clientLinkPath?: string | null }>,
+    successIntent: PublicationSuccessIntent,
+    options?: { nextPasswordRequired?: boolean },
+  ) {
     setActionFeedback(null);
     startTransition(async () => {
       try {
@@ -521,9 +533,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           return;
         }
         if (result.clientLinkPath !== undefined) {
+          const nextPasswordRequired = options?.nextPasswordRequired ?? requirePassword;
+          setActiveTab("content");
+          focusSharedLinkAfterActionRef.current = Boolean(result.clientLinkPath);
           setLocalResult({
             clientLinkPath: result.clientLinkPath,
-            passwordRequired: result.clientLinkPath ? requirePassword : false,
+            passwordRequired: result.clientLinkPath ? nextPasswordRequired : false,
             status: result.clientLinkPath ? "published" : "revoked",
             summaryKey,
             // Capture the server signature of the *pre-revalidation* summary so
@@ -533,7 +548,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         }
         setPasswordDraft({
           password: "",
-          requirePassword: result.clientLinkPath === null ? false : requirePassword,
+          requirePassword: result.clientLinkPath === null ? false : options?.nextPasswordRequired ?? requirePassword,
           summaryKey,
         });
         // AC-MOD-10: drop the expiry draft on success so the input re-syncs to the freshly
@@ -544,7 +559,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         // revalidated summary's selection instead of showing stale pre-publish
         // edits (MOD-SHEET-01). Success path only — never in catch.
         setSelectedEstimateOverride(null);
-        setActionFeedback({ text: result.message, tone: "success" });
+        setActionFeedback({ text: readPublicationSuccessMessage(successIntent, result.message), tone: "success" });
       } catch (error) {
         // AC-MOD-12: a thrown action error renders as a danger alert, never as success.
         setActionFeedback({
@@ -554,6 +569,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
       } finally {
         // AC-MOD-21: release the destructive-confirm latch once the transition settles.
         confirmInFlightRef.current = false;
+        setConfirmInFlight(false);
       }
     });
   }
@@ -565,6 +581,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     // released in runPublicationAction's `finally` once the transition settles.
     if (confirmInFlightRef.current) return;
     confirmInFlightRef.current = true;
+    setConfirmInFlight(true);
     const action = destructiveAction;
     setDestructiveAction(null);
 
@@ -577,23 +594,26 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           clearPassword: true,
           locationVisibility,
         }),
+        "clear-password",
+        { nextPasswordRequired: false },
       );
       return;
     }
 
     if (action === "rotate") {
       // AC-MOD-13 (MOD-ROTATE-PWDRAFT-01): rotation re-mints the token only — it must NOT apply
-      // the unsaved Access-tab password draft. Passing just { projectId } keeps the server's
+      // the unsaved Content password draft. Passing just { projectId } keeps the server's
       // existing `latest.password_hash` (the safe default); password changes flow through the
-      // Access tab + Update, never through rotation. (The confirm copy already tells recipients
+      // Content controls + Update, never through rotation. (The confirm copy already tells recipients
       // they must re-enter the existing password.)
-      runPublicationAction(() => rotateProjectPublicationLink({ projectId: summary.projectId }));
+      runPublicationAction(() => rotateProjectPublicationLink({ projectId: summary.projectId }), "rotate");
       return;
     }
 
     if (action === "regenerate") {
       if (freshTokenPasswordRequired) {
         confirmInFlightRef.current = false;
+        setConfirmInFlight(false);
         setActionFeedback({
           text: "Enter a new password before creating a new protected link.",
           tone: "error",
@@ -614,11 +634,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           expiresAt: freshExpiresAt,
           locationVisibility,
         }),
+        "regenerate",
       );
       return;
     }
 
-    runPublicationAction(() => revokeProjectPublication({ projectId: summary.projectId }));
+    runPublicationAction(() => revokeProjectPublication({ projectId: summary.projectId }), "revoke");
   }
 
   const hasSelectedEstimates = selectedEstimateIds.length > 0;
@@ -627,7 +648,142 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   // brand-new row, otherwise createProjectPublication would receive an empty string and create an
   // open link while the UI still shows password protection.
   const freshTokenPasswordRequired = isExpiredLink && requirePassword && !password.trim();
-  const generateDisabled = !canManagePublication || !summary?.projectId || isPending || passwordRequiredForSubmit || !hasSelectedEstimates;
+  const generateDisabled = !canManagePublication || !summary?.projectId || publicationBusy || passwordRequiredForSubmit || !hasSelectedEstimates;
+  const destructiveCopy = readDestructivePublicationActionCopy(destructiveAction);
+  const destructiveTone = "danger";
+
+  function handlePrimaryPublicationAction() {
+    if (!summary?.projectId) return;
+    runPublicationAction(
+      () =>
+        hasLiveClientLink
+          ? republishProjectPublication({
+              projectId: summary.projectId,
+              selectedEstimateIds,
+              password: requirePassword && password.trim() ? password.trim() : undefined,
+              clearPassword: false,
+              expiresAt: expiresAtForAction,
+              locationVisibility,
+            })
+          : createProjectPublication({
+              projectId: summary.projectId,
+              selectedEstimateIds,
+              password: requirePassword ? password.trim() : undefined,
+              expiresAt: expiresAtForAction,
+              locationVisibility,
+            }),
+      hasLiveClientLink ? "republish" : "generate",
+    );
+  }
+
+  function handleReactivateLink() {
+    if (!summary?.projectId) return;
+    runPublicationAction(
+      () =>
+        republishProjectPublication({
+          projectId: summary.projectId,
+          selectedEstimateIds,
+          expiresAt: null,
+          locationVisibility,
+        }),
+      "reactivate",
+    );
+  }
+
+  function renderPublicationFooter() {
+    if (isExpiredLink) {
+      return (
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="min-h-8 rounded-xs px-2 text-[10px]"
+              aria-label="Reactivate link"
+              disabled={!canManagePublication || !summary?.projectId || publicationBusy || !hasSelectedEstimates}
+              onClick={handleReactivateLink}
+            >
+              <ArrowClockwise size={11} aria-hidden="true" />
+              Reactivate link
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-8 rounded-xs px-2 text-[10px]"
+              aria-label="Create new link instead"
+              disabled={!canManagePublication || !summary?.projectId || publicationBusy || !hasSelectedEstimates || freshTokenPasswordRequired}
+              onClick={() => setDestructiveAction("regenerate")}
+            >
+              <LinkBreak size={11} aria-hidden="true" />
+              Create new link instead
+            </Button>
+          </div>
+          {freshTokenPasswordRequired ? (
+            <p className="text-right text-[9px] leading-3 text-warning">
+              Enter a new password in Content before creating a brand-new protected link.
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          className="min-h-8 rounded-xs px-2 text-[10px]"
+          aria-label={hasLiveClientLink ? "Update shared page" : "Generate shared link"}
+          disabled={generateDisabled}
+          onClick={handlePrimaryPublicationAction}
+        >
+          <ArrowClockwise size={11} aria-hidden="true" />
+          {hasLiveClientLink ? "Update shared page" : "Generate shared link"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="min-h-8 rounded-xs px-2 text-[10px]"
+          aria-label="Create new shared link"
+          disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || publicationBusy || passwordRequiredForSubmit}
+          onClick={() => setDestructiveAction("rotate")}
+        >
+          <LinkBreak size={11} aria-hidden="true" />
+          New link
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          size="sm"
+          className="min-h-8 rounded-xs px-2 text-[10px]"
+          aria-label="Turn off shared link"
+          disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || publicationBusy}
+          onClick={() => setDestructiveAction("revoke")}
+        >
+          <Prohibit size={11} aria-hidden="true" />
+          Turn off link
+        </Button>
+      </div>
+    );
+  }
+
+  const modalLocation = actionFeedback ? (
+    <span
+      className={cn(
+        "rounded-xs px-2 py-0.5",
+        actionFeedback.tone === "error" ? "bg-dangerSoft text-danger" : "text-secondary",
+      )}
+      role={actionFeedback.tone === "error" ? "alert" : "status"}
+    >
+      {actionFeedback.text}
+    </span>
+  ) : (
+    <span>{overviewStatusMessage}</span>
+  );
 
   return (
     <>
@@ -642,7 +798,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         title={`Shared link: ${shareTriggerStateLabel}`}
         data-workshop-layout="project-publication-header"
         onClick={() => {
-          setActiveTab("link");
+          setActiveTab("content");
           setOpen(true);
         }}
       >
@@ -671,72 +827,25 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         description="View-only project page"
         onOpenChange={(next) => {
           if (!next) {
-            setActiveTab("link");
+            setActiveTab("content");
             // AC-MOD-12: clear feedback in the close handler (never synchronously in an effect)
             // so stale success/error tone doesn't persist into the next open.
             setActionFeedback(null);
           }
           setOpen(next);
         }}
-        className="max-w-5xl"
+        size="xl"
+        className="max-w-[760px]"
         bodyClassName="p-0"
+        footer={renderPublicationFooter()}
+        location={modalLocation}
       >
-        <div className="grid min-h-[600px] grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]">
-          {/* Sidebar */}
-          <aside className="border-b border-hairline bg-surfaceMuted p-4 lg:border-b-0 lg:border-r lg:p-6">
-            <div className="space-y-4">
-              <div>
-                <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Shared link</p>
-                <p className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
-                <p className="mt-1 text-[10px] leading-3 text-secondary">
-                  {summary?.selectedEstimateCount ?? 0} estimates · version {summary?.snapshotVersion ?? 0}
-                </p>
-                {summary?.staleSnapshotWarning ? (
-                  <div className="mt-3 rounded-xs border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] leading-4 text-amber-950">
-                    Snapshot is {summary.staleSnapshotWarning.daysBehind} days behind current data. Update shared page.
-                  </div>
-                ) : null}
-              </div>
-              <div className="border-t border-hairline pt-4 space-y-3">
-                <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Opened</p>
-                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">
-                    <span className="font-medium text-ink">{metadataSource?.openCount ?? 0}</span> times
-                  </p>
-                </div>
-                {latestRecipientOpen && recipientOpenIsLatest ? (
-                  <div>
-                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Last opened by</p>
-                    <p className="mt-0.5 text-[10px] leading-3 text-secondary">
-                      <span className="block text-ink">{latestRecipientOpen.displayName || latestRecipientOpen.email}</span>
-                      <span className="block">{latestRecipientOpen.email}</span>
-                      <span className="block">{formatDate(latestRecipientOpen.openedAt)}</span>
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Last opened</p>
-                    <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(latestAnonymousOpenedAt)}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Published</p>
-                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.publishedAt ?? null)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Expires</p>
-                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.expiresAt ?? null)}</p>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* Content */}
+        <div className="flex min-h-0 flex-col bg-white">
           <div className="min-w-0 flex flex-col bg-white">
             <div className="border-b border-hairline p-4 sm:p-6" data-testid="publication-manager-overview">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Publishing overview</h3>
+                  <SectionLabel>Publishing overview</SectionLabel>
                   <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
                   <p className="mt-1 text-[10px] leading-4 text-secondary">{overviewStatusMessage}</p>
                 </div>
@@ -746,43 +855,126 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   </span>
                 ) : null}
               </div>
-              <dl className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-                <div className="min-w-0 border-l border-hairline pl-2">
-                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Estimates</dt>
-                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{selectedEstimateStatusLabel}</dd>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <div className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                  {selectedEstimateStatusLabel}
                 </div>
-                <div className="min-w-0 border-l border-hairline pl-2">
-                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Access</dt>
-                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{accessOverviewLabel}</dd>
+                <div className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                  {accessOverviewLabel}
                 </div>
-                <div className="min-w-0 border-l border-hairline pl-2">
-                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Location</dt>
-                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{locationOverviewLabel}</dd>
+                <div className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                  {locationOverviewLabel}
                 </div>
-                <div className="min-w-0 border-l border-hairline pl-2">
-                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Expiry</dt>
-                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{expiryOverviewLabel}</dd>
+                <div className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                  {expiryOverviewLabel}
                 </div>
-                <div className="min-w-0 border-l border-hairline pl-2">
-                  <dt className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Latest activity</dt>
-                  <dd className="mt-0.5 truncate text-[10px] leading-4 text-ink">{latestActivityOverviewLabel}</dd>
+                <div className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                  {metadataSource?.openCount ?? 0}
                 </div>
-              </dl>
+                <div className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                  {latestActivityOverviewLabel}
+                </div>
+              </div>
+              {recipientOpenIsLatest && latestRecipientOpen ? (
+                <div className="mt-3 text-[10px] leading-4 text-secondary">
+                  <p className="font-medium text-ink">Last opened by</p>
+                  <p>
+                    {latestRecipientOpen.displayName ?? latestRecipientOpen.email}
+                    {latestRecipientOpen.displayName ? ` (${latestRecipientOpen.email})` : null}
+                  </p>
+                </div>
+              ) : latestAnonymousOpenedAt ? (
+                <div className="mt-3 text-[10px] leading-4 text-secondary">
+                  <p className="font-medium text-ink">Last opened</p>
+                  <p>{formatDate(latestAnonymousOpenedAt)}</p>
+                </div>
+              ) : null}
+              {summary?.staleSnapshotWarning ? (
+                <div className="mt-3 rounded-xs border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] leading-4 text-amber-950">
+                  Snapshot is {summary.staleSnapshotWarning.daysBehind} days behind current data. Update shared page.
+                </div>
+              ) : null}
             </div>
 
-            <WorkshopTreeTabs
+            {summary !== null ? (
+              <div className="border-b border-hairline p-4 sm:p-5">
+                {hasLiveClientLink ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <SectionLabel>Live client link</SectionLabel>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="rounded-xs bg-successSoft px-1.5 py-0.5 text-[9px] font-medium leading-3 text-success">Live</span>
+                        <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary">
+                          {passwordStateLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-1">
+                      <ControlInput
+                        ref={linkInputRef}
+                        id="project-publication-client-link"
+                        className={cn("min-h-9 !text-[15px]", CONTROL_INPUT_SURFACE_CLASS)}
+                        aria-label="Shared link"
+                        readOnly
+                        placeholder="Create a shared link"
+                        value={absoluteClientLink}
+                        onFocus={(event) => event.currentTarget.select()}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-9 rounded-xs px-2 text-[10px]"
+                        aria-label="Open shared link"
+                        disabled={!clientLinkPath}
+                        onClick={openClientLink}
+                      >
+                        <ArrowSquareOut size={11} aria-hidden="true" />
+                        Open
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-9 rounded-xs px-2 text-[10px]"
+                        aria-label="Copy shared link"
+                        disabled={!clientLinkPath}
+                        onClick={() => void copyClientLink()}
+                      >
+                        <LinkSimple size={11} aria-hidden="true" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-[9px] leading-3 text-secondary">
+                      Anyone with this link can open the shared page{serverPasswordRequired ? " after entering the password" : ""}. {summary?.expiresAt ? `Access ends ${formatDate(summary.expiresAt)}.` : "No expiry is set."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-[10px] leading-4 text-secondary">
+                    <p className="font-medium text-ink">{isExpiredLink ? "Link expired" : "Link is off"}</p>
+                    <p className="mt-0.5">
+                      {isExpiredLink
+                        ? "Reactivate keeps the same URL and password, or create a brand-new link for a clean reset."
+                        : "Generate a shared link when the client-facing content and access settings are ready."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <TabStrip
               tabs={(
                 [
-                  { id: "link", label: "Link" },
-                  { id: "sheets", label: "Estimates" },
-                  { id: "access", label: "Access" },
+                  { id: "content", label: "Content" },
                   { id: "recipients", label: "Recipients" },
                   { id: "activity", label: "Activity" },
                 ] as const
               ).filter((tab) => tab.id !== "activity" || canManagePublication)}
               activeTab={activeTab}
-              ariaLabel="Shared link settings"
+              ariaLabel="Shared link sections"
               onTabChange={handlePublicationTabChange}
+              className="bg-white px-4 sm:px-5"
+              variant="modal"
               idBase="project-publication"
             />
 
@@ -790,7 +982,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                 tab — correct because only the active panel renders. tabIndex={0} makes the
                 panel focusable for keyboard users moving off the tablist. */}
             <div
-              className="flex-1 overflow-auto p-6"
+              className="min-h-[320px] flex-1 space-y-5 overflow-auto p-4 sm:p-5"
               role="tabpanel"
               id={getTabStripPanelId("project-publication", activeTab)}
               aria-labelledby={getTabStripTabId("project-publication", activeTab)}
@@ -798,7 +990,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
             >
               {activeTab === "activity" && canManagePublication && (
                 <div className="space-y-2">
-                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Shared link activity</h3>
+                  <SectionLabel>Shared link activity</SectionLabel>
                   <p className="text-[9px] text-secondary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
                   {/* AC-MOD-19 (MOD-ACTIVITY-TOKEN-01): only mount the feed for a genuinely live link
                       with a non-empty token. A revoked/expired link has a null clientLinkPath → an
@@ -807,23 +999,19 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   {effectiveStatus === "published" && activityPublicationToken ? (
                     <SharedLinkActivityFeed publicationToken={activityPublicationToken} publicationId={summary?.publicationId ?? null} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
                   ) : (
-                    <p
-                      className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-[10px] leading-4 text-secondary"
-                      role="status"
-                    >
+                    <p className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-[10px] leading-4 text-secondary">
                       Activity is available while the link is live. Reactivate or create a shared link to see recipient activity.
                     </p>
                   )}
                 </div>
               )}
 
-              {activeTab === "link" && summary === null && (
+              {activeTab === "content" && summary === null && (
                 // AC-MOD-19 (MOD-EMPTY-NOPROJECT-01): a null summary is NOT an unpublished zeroed
                 // link — there is no shareable publication context for this project yet. Render an
                 // explicit, calm info state instead of the ambiguous "Create a shared link" zeroed UI.
                 <div
                   className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-4 text-[10px] leading-4 text-secondary"
-                  role="status"
                 >
                   <p className="font-medium text-ink">No shareable publication yet</p>
                   <p className="mt-1 text-secondary">
@@ -833,65 +1021,14 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                 </div>
               )}
 
-              {activeTab === "link" && summary !== null && (
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <ControlField
-                      label="Shared link"
-                      helperText="Anyone with this link can view this project page."
-                      className="min-w-0 flex-1"
-                    >
-                      <div className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-1">
-                        <ControlInput
-                          id="project-publication-client-link"
-                          className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
-                          aria-label="Shared link"
-                          readOnly
-                          placeholder="Create a shared link"
-                          value={absoluteClientLink}
-                          onFocus={(event) => event.currentTarget.select()}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="min-h-7 rounded-xs px-2 text-[10px]"
-                          aria-label="Open shared link"
-                          disabled={!clientLinkPath}
-                          onClick={openClientLink}
-                        >
-                          <ArrowSquareOut size={11} aria-hidden="true" />
-                          Open
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="min-h-7 rounded-xs px-2 text-[10px]"
-                          aria-label="Copy shared link"
-                          disabled={!clientLinkPath}
-                          onClick={() => void copyClientLink()}
-                        >
-                          <LinkSimple size={11} aria-hidden="true" />
-                          Copy
-                        </Button>
-                      </div>
-                    </ControlField>
-                    <span className="mt-5 shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-secondary">
-                      {passwordStateLabel}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "sheets" && (
+              {activeTab === "content" && summary !== null && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Estimates to include</h3>
+                    <SectionLabel>Estimates the client will see</SectionLabel>
                     {/* AC-MOD-14 (MOD-SHEET-02): the published link still shows its saved estimates
                         until the owner presses Update; this hint surfaces the pending change. */}
                     {estimateSelectionDirty && (
-                      <span className="text-[9px] font-medium leading-3 text-warning" role="status">
+                      <span className="text-[9px] font-medium leading-3 text-warning">
                         Unsaved — Update to apply
                       </span>
                     )}
@@ -901,36 +1038,38 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                     selectedIds={selectedEstimateIds}
                     onChange={setSelectedEstimateIds}
                     aria-label="Select estimates to include in shared link"
-                    disabled={isPending}
+                    disabled={publicationBusy}
                   />
                   {!hasSelectedEstimates && projectEstimateSheets.length > 0 && (
-                    <p className="text-[9px] text-secondary" role="status">0 estimates selected — generate is disabled</p>
+                    <p className="text-[9px] text-warning">No estimates selected — your client would see a blank page, so generate is disabled.</p>
                   )}
                 </div>
               )}
 
-              {activeTab === "access" && (
+              {activeTab === "content" && summary !== null && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Access</h3>
-                    {/* AC-MOD-16 (MOD-PWDRAFT-CHECK-02): same unsaved-hint styling as the Estimates tab
+                    <SectionLabel>Access</SectionLabel>
+                    {/* AC-MOD-16 (MOD-PWDRAFT-CHECK-02): same unsaved-hint styling as the estimates picker
                         (AC-MOD-14) — surfaces a pending password change before Update is pressed. */}
                     {(passwordDraftDirty || expiryDraftDirty || locationVisibilityDirty) && (
-                      <span className="text-[9px] font-medium leading-3 text-warning" role="status">
+                      <span className="text-[9px] font-medium leading-3 text-warning">
                         Unsaved — Update to apply
                       </span>
                     )}
                   </div>
                   {/* AC-MOD-16 (MOD-PW-04): state the SAVED server password state explicitly so a
                       checked box with a blank field is never ambiguous about whether one is set. */}
-                  <p className="text-[10px] leading-3 text-secondary" role="status">
+                  <p className="text-[10px] leading-3 text-secondary">
                     {serverPasswordRequired ? "Password is currently set" : "No password set"}
                   </p>
                   <label className="flex min-h-7 items-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary transition hover:border-tertiary cursor-pointer">
                     <input
                       type="checkbox"
+                      aria-label="Require password"
                       className="size-3 accent-ink"
                       checked={requirePassword}
+                      disabled={publicationBusy || serverPasswordRequired}
                       onChange={(event) =>
                         setPasswordDraft({
                           password: event.currentTarget.checked ? password : "",
@@ -940,7 +1079,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                       }
                     />
                     <LockSimple size={11} aria-hidden="true" />
-                    Require password
+                    Clients must enter a password
                   </label>
                   {requirePassword ? (
                     <ControlField label="Link password" className="max-w-sm">
@@ -949,6 +1088,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                         className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
                         aria-label="Link password"
                         type="password"
+                        disabled={publicationBusy}
                         placeholder={summary?.passwordRequired ? "Enter a new password to change it" : "Set a link password"}
                         value={password}
                         onChange={(event) =>
@@ -961,10 +1101,28 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                       />
                     </ControlField>
                   ) : null}
-                  <div className="max-w-xl">
-                    <p className="text-[10px] font-medium leading-3 text-ink">Project location</p>
-                    <p className="mt-0.5 text-[9px] leading-3 text-secondary">
-                      Controls how much of the saved project location appears on the shared page.
+                  {serverPasswordRequired ? (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      className="min-h-7 rounded-xs px-2 text-[10px]"
+                      aria-label="Remove shared-link password"
+                      disabled={publicationBusy || !hasLiveClientLink}
+                      onClick={() => setDestructiveAction("clear-password")}
+                    >
+                      Remove password
+                    </Button>
+                  ) : null}
+                  <div
+                    className="max-w-xl"
+                    role="radiogroup"
+                    aria-labelledby="project-publication-location-label"
+                    aria-describedby="project-publication-location-help"
+                  >
+                    <p id="project-publication-location-label" className="text-[10px] font-medium leading-3 text-ink">Project location</p>
+                    <p id="project-publication-location-help" className="mt-0.5 text-[9px] leading-3 text-secondary">
+                      Choose how much address detail appears on the shared page.
                     </p>
                     <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
                       {LOCATION_VISIBILITY_OPTIONS.map((option) => (
@@ -984,7 +1142,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                               name="project-publication-location-visibility"
                               value={option.value}
                               checked={locationVisibility === option.value}
-                              disabled={isPending}
+                              disabled={publicationBusy}
                               onChange={() =>
                                 setLocationVisibilityDraft({
                                   value: option.value,
@@ -1002,36 +1160,43 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   {/* AC-MOD-10: owner-set expiry. Empty = no expiry. Applied on Generate/Update. */}
                   <ControlField
                     label="Link expiry"
+                    controlId="project-publication-expiry"
                     helperText={
                       expiresAtForAction
-                        ? "Recipients lose access after this time. Clear the field for no expiry."
+                        ? "Clients lose access after this time. Clear the field for no expiry."
                         : "No expiry — the link stays live until you turn it off or rotate it."
                     }
+                    as="div"
                     className="max-w-sm"
                   >
-                    <div className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1">
-                      <ControlInput
-                        id="project-publication-expiry"
-                        className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
-                        aria-label="Link expiry"
-                        type="datetime-local"
-                        value={expiryInputValue}
-                        onChange={(event) =>
-                          setExpiryDraft({ value: event.currentTarget.value, summaryKey })
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="min-h-7 rounded-xs px-2 text-[10px]"
-                        aria-label="Clear link expiry"
-                        disabled={!expiryInputValue}
-                        onClick={() => setExpiryDraft({ value: "", summaryKey })}
-                      >
-                        Clear
-                      </Button>
-                    </div>
+                    {({ controlId, labelId, describedBy, invalid }) => (
+                      <div className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1">
+                        <ControlInput
+                          id={controlId}
+                          className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
+                          aria-labelledby={labelId}
+                          aria-describedby={describedBy}
+                          invalid={invalid}
+                          type="datetime-local"
+                          disabled={publicationBusy}
+                          value={expiryInputValue}
+                          onChange={(event) =>
+                            setExpiryDraft({ value: event.currentTarget.value, summaryKey })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-7 rounded-xs px-2 text-[10px]"
+                          aria-label="Clear link expiry"
+                          disabled={publicationBusy || !expiryInputValue}
+                          onClick={() => setExpiryDraft({ value: "", summaryKey })}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    )}
                   </ControlField>
                 </div>
               )}
@@ -1042,6 +1207,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   baseClientLink={clientLinkPath}
                   currentUserEmail={currentUserEmail}
                   projectName={null}
+                  isPublicationBusy={publicationBusy}
                   onMessage={(m) => setActionFeedback(m)}
                 />
               )}
@@ -1051,279 +1217,25 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                 </div>
               )}
             </div>
-
-            {/* Link controls — always visible below tabs so Generate can be disabled from Estimates tab state */}
-            <div className="border-t border-hairline p-6">
-              <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Link controls</h3>
-              {isExpiredLink ? (
-                <>
-                  <p className="mt-2 text-[9px] leading-3 text-secondary">
-                    This link has expired. Reactivate it to keep the same URL and password, or create a brand-new link.
-                  </p>
-                  {freshTokenPasswordRequired && (
-                    <p className="mt-2 text-[9px] leading-3 text-warning" role="status">
-                      Enter a new password on the Access tab before creating a brand-new protected link.
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {/* AC-MOD-10: safe primary — reactivate in place (same token + password, clears expiry). */}
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="min-h-7 rounded-xs px-2 text-[10px]"
-                      aria-label="Reactivate link"
-                      disabled={!canManagePublication || !summary?.projectId || isPending || !hasSelectedEstimates}
-                      onClick={() => {
-                        if (!summary?.projectId) return;
-                        runPublicationAction(() =>
-                          republishProjectPublication({
-                            projectId: summary.projectId,
-                            selectedEstimateIds,
-                            expiresAt: null,
-                            locationVisibility,
-                          }),
-                        );
-                      }}
-                    >
-                      <ArrowClockwise size={11} aria-hidden="true" />
-                      Reactivate link
-                    </Button>
-                    {/* Confirm-gated fresh-token mint — breaks existing recipient links. */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-7 rounded-xs px-2 text-[10px]"
-                      aria-label="Create new link instead"
-                      disabled={!canManagePublication || !summary?.projectId || isPending || !hasSelectedEstimates || freshTokenPasswordRequired}
-                      onClick={() => setDestructiveAction("regenerate")}
-                    >
-                      <LinkBreak size={11} aria-hidden="true" />
-                      Create new link instead
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="min-h-7 rounded-xs px-2 text-[10px]"
-                    aria-label={hasLiveClientLink ? "Update shared page" : "Generate shared link"}
-                    disabled={generateDisabled}
-                    onClick={() => {
-                      if (!summary?.projectId) return;
-                      if (hasLiveClientLink && effectivePasswordRequired && !requirePassword) {
-                        setDestructiveAction("clear-password");
-                        return;
-                      }
-                      runPublicationAction(() =>
-                        hasLiveClientLink
-                          ? republishProjectPublication({
-                              projectId: summary.projectId,
-                              selectedEstimateIds,
-                              password: requirePassword && password.trim() ? password.trim() : undefined,
-                              clearPassword: !requirePassword,
-                              expiresAt: expiresAtForAction,
-                              locationVisibility,
-                            })
-                          : createProjectPublication({
-                              projectId: summary.projectId,
-                              selectedEstimateIds,
-                              password: requirePassword ? password.trim() : undefined,
-                              expiresAt: expiresAtForAction,
-                              locationVisibility,
-                            }),
-                      );
-                    }}
-                  >
-                    <ArrowClockwise size={11} aria-hidden="true" />
-                    {hasLiveClientLink ? "Update shared page" : "Generate shared link"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-7 rounded-xs px-2 text-[10px]"
-                    aria-label="Create new shared link"
-                    disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending || passwordRequiredForSubmit}
-                    onClick={() => setDestructiveAction("rotate")}
-                  >
-                    <LinkBreak size={11} aria-hidden="true" />
-                    New link
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    className="min-h-7 rounded-xs px-2 text-[10px]"
-                    aria-label="Turn off shared link"
-                    disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending}
-                    onClick={() => setDestructiveAction("revoke")}
-                  >
-                    <Prohibit size={11} aria-hidden="true" />
-                    Turn off link
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {actionFeedback ? (
-              <div className="border-t border-hairline p-6">
-                {/* AC-MOD-12: error feedback renders as a danger alert; success keeps the neutral
-                    status styling so a thrown action error never reads like a success. */}
-                <p
-                  className={cn(
-                    "rounded-xs px-2 py-1.5 text-[9px] leading-3",
-                    actionFeedback.tone === "error"
-                      ? "border border-dangerSoft bg-dangerSoft text-danger"
-                      : "bg-surfaceMuted text-secondary",
-                  )}
-                  role={actionFeedback.tone === "error" ? "alert" : "status"}
-                >
-                  {actionFeedback.text}
-                </p>
-              </div>
-            ) : null}
           </div>
         </div>
       </Modal>
 
-      <Modal
+      <ConfirmDialog
         open={destructiveAction !== null}
-        title={readDestructivePublicationActionCopy(destructiveAction).title}
-        description={readDestructivePublicationActionCopy(destructiveAction).description}
+        title={destructiveCopy.title}
+        description={destructiveCopy.description}
+        confirmLabel={destructiveCopy.confirmLabel}
+        tone={destructiveTone}
+        busy={isPending}
+        initialFocus="cancel"
         onOpenChange={(next) => {
           if (!next) setDestructiveAction(null);
         }}
-        className="max-w-sm"
+        onConfirm={runConfirmedDestructiveAction}
       >
-        <div className="space-y-3">
-          <p className="text-[10px] leading-4 text-secondary">
-            {readDestructivePublicationActionCopy(destructiveAction).body}
-          </p>
-          <div className="flex justify-end gap-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-7 rounded-xs px-2 text-[10px]"
-              onClick={() => setDestructiveAction(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant={destructiveAction === "revoke" || destructiveAction === "regenerate" ? "danger" : "secondary"}
-              size="sm"
-              className="min-h-7 rounded-xs px-2 text-[10px]"
-              disabled={isPending}
-              onClick={runConfirmedDestructiveAction}
-            >
-              {readDestructivePublicationActionCopy(destructiveAction).confirmLabel}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        <p>{destructiveCopy.body}</p>
+      </ConfirmDialog>
     </>
-  );
-}
-
-/* P1: SheetPickerList — compact, a11y, keyboard-friendly picker for estimates.
- * Used exclusively inside the "Estimates" tab of the publication modal.
- * Design: SF Pro via parent, 10-12px text, rounded-xs (3px), regular Phosphor if needed, native checkboxes for max keyboard.
- */
-export type SheetPickerListProps = {
-  estimates: ProjectEstimateSheet[];
-  selectedIds: string[];
-  onChange: (ids: string[]) => void;
-  disabled?: boolean;
-  "aria-label"?: string;
-};
-
-export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "aria-label": ariaLabel = "Select estimates to include in shared link" }: SheetPickerListProps) {
-  const selectedSet = new Set(selectedIds);
-  const allIds = estimates.map((e) => e.id);
-  const allSelected = estimates.length > 0 && selectedIds.length === estimates.length;
-
-  function toggle(id: string) {
-    if (disabled) return;
-    const next = selectedSet.has(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
-    onChange(next);
-  }
-
-  function selectAll() {
-    if (disabled) return;
-    onChange(allIds);
-  }
-
-  function clearAll() {
-    if (disabled) return;
-    onChange([]);
-  }
-
-  if (estimates.length === 0) {
-    return (
-      <div className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center text-[10px] text-secondary">
-        No estimates in this project.
-      </div>
-    );
-  }
-
-  return (
-    <div aria-label={ariaLabel} className="text-[10px]">
-      <div className="mb-1 flex items-center gap-2 text-[9px]">
-        <button
-          type="button"
-          onClick={selectAll}
-          disabled={disabled || allSelected}
-          className="rounded-xs px-1.5 py-0.5 text-secondary hover:text-ink disabled:opacity-50"
-        >
-          Select all
-        </button>
-        <button
-          type="button"
-          onClick={clearAll}
-          disabled={disabled || selectedIds.length === 0}
-          className="rounded-xs px-1.5 py-0.5 text-secondary hover:text-ink disabled:opacity-50"
-        >
-          Clear
-        </button>
-        <span className="ml-auto text-secondary tabular-nums">
-          {selectedIds.length} / {estimates.length} selected
-        </span>
-      </div>
-
-      <div className="max-h-40 overflow-auto rounded-xs border border-hairline bg-white p-1 text-[10px] leading-4">
-        {estimates.map((est) => {
-          const checked = selectedSet.has(est.id);
-          const label = est.sheetCode ? `${est.sheetCode} — ${est.name}` : est.name;
-          return (
-            <label
-              key={est.id}
-              className="flex cursor-pointer items-center gap-1.5 rounded-xs px-1 py-0.5 hover:bg-surfaceMuted/70"
-            >
-              <input
-                type="checkbox"
-                className="size-3 accent-ink"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => toggle(est.id)}
-                aria-label={label}
-              />
-              <span className="truncate">{label}</span>
-            </label>
-          );
-        })}
-      </div>
-
-      {selectedIds.length === 0 && (
-        <p className="mt-1 text-[9px] text-secondary" role="status">
-          0 estimates selected
-        </p>
-      )}
-    </div>
   );
 }

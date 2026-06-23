@@ -20,9 +20,11 @@ import { cn } from "@/lib/ui/cn";
 type DialogContextValue = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  dialogId: string;
   titleId: string;
   descriptionId: string;
   closeLabel: string;
+  closeOnEscape: boolean;
   closeOnOverlayClick: boolean;
   modal: boolean;
 };
@@ -39,6 +41,11 @@ type DialogProps = {
 };
 
 const DialogContext = createContext<DialogContextValue | null>(null);
+let openDialogStack: string[] = [];
+let modalLockCount = 0;
+let lockedShells = new Set<Element>();
+let originalBodyOverflow = "";
+let originalBodyPaddingRight = "";
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
@@ -71,6 +78,7 @@ export function Dialog({
   modal = true,
   returnFocusOnClose = true,
 }: DialogProps) {
+  const dialogId = useId();
   const titleId = useId();
   const descriptionId = useId();
   const openerRef = useRef<HTMLElement | null>(null);
@@ -90,43 +98,65 @@ export function Dialog({
   }, [open, returnFocusOnClose]);
 
   useEffect(() => {
+    if (!open) return;
+    openDialogStack = openDialogStack.filter((id) => id !== dialogId);
+    openDialogStack.push(dialogId);
+    return () => {
+      openDialogStack = openDialogStack.filter((id) => id !== dialogId);
+    };
+  }, [dialogId, open]);
+
+  useEffect(() => {
     if (!open || !closeOnEscape) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       // Popups hosted in the dialog (dropdown listboxes/menus) own Escape
       // while open: they prevent-default on the native event, so a handled
       // press must close only the popup, never the dialog underneath it.
-      if (event.key === "Escape" && !event.defaultPrevented) onOpenChange(false);
+      if (event.key === "Escape" && !event.defaultPrevented && openDialogStack.at(-1) === dialogId) {
+        onOpenChange(false);
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [closeOnEscape, onOpenChange, open]);
+  }, [closeOnEscape, dialogId, onOpenChange, open]);
 
   // Body scroll lock + inert on background content
   useEffect(() => {
-    if (!open) return;
+    if (!open || !modal) return;
 
     const body = document.body;
-    const originalOverflow = body.style.overflow;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    if (modalLockCount === 0) {
+      originalBodyOverflow = body.style.overflow;
+      originalBodyPaddingRight = body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      body.style.overflow = "hidden";
+      if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    modalLockCount += 1;
 
     // Add inert to main app shells so background content is hidden from assistive tech
     const shells = document.querySelectorAll("[data-workshop-page-shell-root], [data-public-page-shell-root]");
-    shells.forEach((el) => el.setAttribute("inert", ""));
+    shells.forEach((el) => {
+      lockedShells.add(el);
+      el.setAttribute("inert", "");
+    });
 
     return () => {
-      body.style.overflow = originalOverflow;
-      body.style.paddingRight = "";
-      shells.forEach((el) => el.removeAttribute("inert"));
+      modalLockCount = Math.max(0, modalLockCount - 1);
+      if (modalLockCount === 0) {
+        body.style.overflow = originalBodyOverflow;
+        body.style.paddingRight = originalBodyPaddingRight;
+        lockedShells.forEach((el) => el.removeAttribute("inert"));
+        lockedShells = new Set<Element>();
+      }
     };
-  }, [open]);
+  }, [modal, open]);
 
   const value = useMemo(
-    () => ({ open, onOpenChange, titleId, descriptionId, closeLabel, closeOnOverlayClick, modal }),
-    [closeLabel, closeOnOverlayClick, descriptionId, modal, onOpenChange, open, titleId],
+    () => ({ open, onOpenChange, dialogId, titleId, descriptionId, closeLabel, closeOnEscape, closeOnOverlayClick, modal }),
+    [closeLabel, closeOnEscape, closeOnOverlayClick, descriptionId, dialogId, modal, onOpenChange, open, titleId],
   );
 
   return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>;
@@ -195,7 +225,7 @@ export function DialogContent({
   onKeyDown,
   ...props
 }: DialogContentProps) {
-  const { titleId, descriptionId, modal } = useDialogContext("DialogContent");
+  const { titleId, descriptionId, modal, closeOnEscape, onOpenChange, dialogId } = useDialogContext("DialogContent");
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -216,7 +246,13 @@ export function DialogContent({
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     onKeyDown?.(event);
-    if (event.defaultPrevented || event.key !== "Tab") return;
+    if (event.defaultPrevented) return;
+    if (event.key === "Escape" && closeOnEscape && openDialogStack.at(-1) === dialogId) {
+      event.preventDefault();
+      onOpenChange(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
 
     const content = contentRef.current;
     if (!content) return;
@@ -286,7 +322,7 @@ export function DialogDescription({ className, children, ...props }: HTMLAttribu
   const { descriptionId } = useDialogContext("DialogDescription");
 
   return (
-    <p id={descriptionId} className={cn("mt-0.5 text-[10px] font-medium leading-4 tracking-normal text-tertiary", className)} {...props}>
+    <p id={descriptionId} className={cn("mt-0.5 text-[10px] font-medium leading-4 tracking-normal text-secondary", className)} {...props}>
       {children}
     </p>
   );
@@ -338,7 +374,7 @@ export function DialogCloseButton({ className }: DialogCloseButtonProps) {
       size="icon-sm"
       className={cn(
         "size-6 shrink-0 rounded-xs p-0",
-        "bg-transparent text-tertiary",
+        "bg-transparent text-secondary",
         "hover:!bg-[#FBE8E8] hover:!text-[#B84646]",
         className
       )}

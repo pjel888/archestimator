@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { hasGoogleMapsApiKey, loadGoogleMapsApi } from "@/lib/google-maps/loader";
 import { PROJECT_LOCATION_MAP_STYLES } from "@/lib/google-maps/project-location-map-style";
@@ -66,14 +66,45 @@ export function ProjectLocationMap({
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const [status, setStatus] = useState<MapStatus>("idle");
   const [fallbackReason, setFallbackReason] = useState("Google Maps loading");
+  const [shouldLoadMap, setShouldLoadMap] = useState(false);
   const hasMapsApiKey = hasGoogleMapsApiKey(apiKey);
   const renderedStatus: MapStatus = hasMapsApiKey ? status : "fallback";
   const renderedFallbackReason = hasMapsApiKey ? fallbackReason : "Google Maps API key missing";
   const center = useMemo(() => toMapPosition(pin), [pin]);
   const coordinateLabel = pin ? `${formatCoordinate(pin.latitude)}, ${formatCoordinate(pin.longitude)}` : null;
+  const requestMapLoad = useCallback(() => {
+    setShouldLoadMap(true);
+  }, []);
 
   useEffect(() => {
-    if (!hasMapsApiKey) return;
+    if (!hasMapsApiKey || shouldLoadMap) return;
+
+    let cancelled = false;
+    let idleHandle: number | null = null;
+    let timeoutHandle: number | null = null;
+    const scheduleLoad = () => {
+      if (!cancelled) setShouldLoadMap(true);
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleHandle = window.requestIdleCallback(scheduleLoad, { timeout: 2500 });
+    } else {
+      timeoutHandle = window.setTimeout(scheduleLoad, 1200);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleHandle != null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle != null) {
+        window.clearTimeout(timeoutHandle);
+      }
+    };
+  }, [hasMapsApiKey, shouldLoadMap]);
+
+  useEffect(() => {
+    if (!hasMapsApiKey || !shouldLoadMap) return;
 
     const container = containerRef.current;
     if (!container) return;
@@ -120,7 +151,7 @@ export function ProjectLocationMap({
       cancelled = true;
       mapRef.current = null;
     };
-  }, [apiKey, hasMapsApiKey]);
+  }, [apiKey, hasMapsApiKey, shouldLoadMap]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -141,7 +172,12 @@ export function ProjectLocationMap({
   }
 
   return (
-    <div className="relative h-full min-h-[320px] overflow-hidden rounded-xs border border-[color:var(--glass-border)] bg-white/45">
+    <div
+      data-testid="project-location-map-frame"
+      className="relative h-full min-h-[320px] overflow-hidden rounded-xs border border-[color:var(--glass-border)] bg-white/45"
+      onFocusCapture={requestMapLoad}
+      onPointerEnter={requestMapLoad}
+    >
       <div
         ref={containerRef}
         data-testid="project-location-google-map"

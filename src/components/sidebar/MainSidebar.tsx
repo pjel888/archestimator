@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -124,14 +124,19 @@ export function MainSidebar({
   user,
 }: MainSidebarProps) {
   const pathname = usePathname();
+  const [favoritesHydrationRequested, setFavoritesHydrationRequested] = useState(favoriteProjectsFresh);
+  const favoritesQueryEnabled = Boolean(favoritesScope) && (favoriteProjectsFresh || favoritesHydrationRequested);
+  const requestFavoritesHydration = useCallback(() => {
+    if (favoritesScope) setFavoritesHydrationRequested(true);
+  }, [favoritesScope]);
   const favoritesQuery = useSidebarFavoritesQuery({
     scope: favoritesScope ?? { workspaceId: "none", userId: "none" }, // hook always called; null scope reads initialData
     initialData: favoriteProjects,
     initialDataFresh: favoriteProjectsFresh,
-    enabled: Boolean(favoritesScope), // null scope (loading shells/unauth): read initialData, don't refetch a junk key
+    enabled: favoritesQueryEnabled, // stale shell seeds hydrate only after hover/focus/expand
   });
   const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
-  const showEmptyHint = (favoriteProjectsFresh || !favoritesQuery.isFetching) && !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
+  const showEmptyHint = favoritesQueryEnabled && !favoritesQuery.isFetching && !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
   const { politeText, assertiveText } = useSidebarFavoritesAnnouncer();
   const navRef = useRef<HTMLElement | null>(null);
   // Tracks which favorite link (by href) currently holds focus, plus the previous
@@ -197,6 +202,10 @@ export function MainSidebar({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
     typeof window === "undefined" ? false : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
+
+  useEffect(() => {
+    setFavoritesHydrationRequested(favoriteProjectsFresh);
+  }, [favoritesScope?.userId, favoritesScope?.workspaceId, favoriteProjectsFresh]);
   const resolvedSidebarNavItems = useMemo(() => {
     const projectsBadgeCount = status?.projectsBadgeCount ?? 0;
     return sidebarNavItems.map((item) => {
@@ -220,6 +229,7 @@ export function MainSidebar({
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
         event.preventDefault();
+        requestFavoritesHydration();
         setExpanded((value) => !value);
         return;
       }
@@ -230,7 +240,7 @@ export function MainSidebar({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [requestFavoritesHydration]);
 
   const { refractionEnabled } = useLiquidGlassRefraction();
   const clippedWidth = SIDEBAR_WIDTH_EXPANDED - SIDEBAR_WIDTH_COLLAPSED;
@@ -284,6 +294,8 @@ export function MainSidebar({
         data-refraction={refractionEnabled ? "true" : "false"}
         className="sidebar-glass fixed left-2 top-2 z-[100] hidden h-[calc(100dvh-16px)] flex-col overflow-hidden will-change-[clip-path] lg:flex"
         style={sidebarStyle}
+        onFocusCapture={requestFavoritesHydration}
+        onMouseEnter={requestFavoritesHydration}
       >
         <div
           aria-hidden="true"
@@ -322,7 +334,10 @@ export function MainSidebar({
           <div className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
             <button
               type="button"
-              onClick={() => setExpanded((value) => !value)}
+              onClick={() => {
+                requestFavoritesHydration();
+                setExpanded((value) => !value);
+              }}
               aria-expanded={expanded}
               aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
               className={TOGGLE_ROW_CLASSNAME}

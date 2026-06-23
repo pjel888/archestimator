@@ -29,6 +29,7 @@ export type RecipientEmailComposerProps = {
   baseClientLink?: string | null;
   currentUserEmail?: string | null;
   projectName?: string | null;
+  isPublicationBusy?: boolean;
   onMessage?: (msg: RecipientComposerMessage | null) => void;
 };
 
@@ -112,7 +113,7 @@ function applyRecipientEmailResults(
   return updated;
 }
 
-export function RecipientEmailComposer({ publicationId, baseClientLink, currentUserEmail, projectName, onMessage }: RecipientEmailComposerProps) {
+export function RecipientEmailComposer({ publicationId, baseClientLink, currentUserEmail, projectName, isPublicationBusy = false, onMessage }: RecipientEmailComposerProps) {
   const [input, setInput] = useState("");
   const [chips, setChips] = useState<LocalRecipient[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -179,6 +180,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   }, [publicationId]);
 
   function parseAndAddEmails(raw: string) {
+    if (emailDeliveryConfigured !== true || isPublicationBusy) return;
     const parts = raw.split(/[,;\s]+/).flatMap((part) => {
       const trimmed = part.trim();
       return trimmed ? [trimmed] : [];
@@ -331,14 +333,16 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   }
 
   const pendingCount = chips.filter((c) => !c.email_unsubscribed_at && c.delivery_status === "pending").length;
-  const emailDisabled = emailDeliveryConfigured !== true;
+  const emailDisabled = emailDeliveryConfigured !== true || isPublicationBusy;
   const canSend = pendingCount > 0 && !isSending && !emailDisabled;
 
   return (
     <div className="text-[10px]">
-      <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Email recipients</h3>
-      <p className="text-[9px] leading-3 text-tertiary mb-2">
-        {emailDisabled
+      <h3 className="text-[10px] font-medium uppercase leading-3 tracking-normal text-secondary">Email recipients</h3>
+      <p className="text-[10px] leading-3 text-secondary mb-2">
+        {isPublicationBusy
+          ? "Publication updates are in progress. Recipient sending is paused until the link state is settled."
+          : emailDisabled
           ? emailDeliveryMessage ?? "Checking email delivery configuration..."
           : `Add emails to receive the unique share link for ${projectLabel}. Delivery is best-effort; link creation always succeeds.`}
       </p>
@@ -354,8 +358,8 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
             ? "already invited"
             : chip.email_unsubscribed_at ? "unsubscribed" : isFailed ? "failed" : status;
           const statusClass =
-            chip.isDuplicate ? "bg-surfaceMuted text-tertiary" :
-            chip.email_unsubscribed_at ? "bg-surfaceMuted text-tertiary" :
+            chip.isDuplicate ? "bg-surfaceMuted text-secondary" :
+            chip.email_unsubscribed_at ? "bg-surfaceMuted text-secondary" :
             status === "sent" ? "bg-successSoft text-success" :
             isFailed ? "bg-dangerSoft text-danger" :
             status === "opened" ? "bg-accentSoft text-ink" :
@@ -383,7 +387,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                   variant="ghost"
                   size="sm"
                   aria-label={`Resend ${chip.email}`}
-                  className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-ink"
+                  className="h-5 px-1 py-0 text-[9px] text-secondary hover:text-ink"
                   onClick={() => {
                     // AC-MOD-13 (MOD-REC-06): opened/responded recipients confirm first; the rest resend now.
                     if (resendNeedsConfirm(chip)) {
@@ -402,7 +406,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                 variant="ghost"
                 size="sm"
                 aria-label={`Remove ${chip.email}`}
-                className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-danger"
+                className="h-5 px-1 py-0 text-[9px] text-secondary hover:text-danger"
                 onClick={() => {
                   // Persisted chips can destroy a recorded decision (cascade
                   // DELETE on shared_link_responses) — gate behind a confirm.
@@ -413,7 +417,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                     removeChip(chip.email);
                   }
                 }}
-                disabled={isSending}
+                disabled={emailDisabled || isSending}
               >
                 ×
               </Button>
@@ -421,7 +425,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
           );
         })}
         <input
-          className="min-w-[120px] flex-1 bg-transparent text-[10px] leading-4 outline-none placeholder:text-tertiary px-1"
+          className="min-w-[120px] flex-1 bg-transparent text-[10px] leading-4 outline-none placeholder:text-secondary px-1"
           placeholder="name@company.com, another@..."
           value={input}
           onChange={(e) => setInput(e.currentTarget.value)}
@@ -465,12 +469,12 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
             setInput("");
             clearRecipientMessage();
           }}
-          disabled={isSending || chips.every((c) => Boolean(c.id))}
+          disabled={emailDisabled || isSending || chips.every((c) => Boolean(c.id))}
           className="min-h-6 px-1.5 py-0 text-[9px]"
         >
           Clear
         </Button>
-        {isLoadingList && <span className="text-[9px] text-tertiary">Loading…</span>}
+        {isLoadingList && <span className="text-[9px] text-secondary">Loading…</span>}
       </div>
 
       {localMessage && (
@@ -487,7 +491,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       )}
 
       {chips.length === 0 && !isLoadingList && (
-        <p className="mt-1 text-[9px] text-tertiary">No recipients yet. Add emails above and send.</p>
+        <p className="mt-1 text-[9px] text-secondary">No recipients yet. Add emails above and send.</p>
       )}
 
       <Modal
