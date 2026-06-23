@@ -76,9 +76,11 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardPage).toContain('traced("project-dashboard.estimate-count"');
     expect(projectDashboardPage).not.toContain("createPublicationDashboardStatus");
     expect(projectDashboardPage).toContain("listProjectActivityPage");
-    expect(projectDashboardPage).toContain("projectActivityPage={projectActivityPage}");
+    expect(projectDashboardPage).toContain("projectActivityPage={dashboardData.projectActivityPage}");
     expect(projectDashboardPage).toContain("getProjectLocation");
-    expect(projectDashboardPage).toContain("project && canEdit ? await getProjectLocation(project.id) : null");
+    expect(projectDashboardPage).toContain("const projectLocationPromise = canEditPromise.then");
+    expect(projectDashboardPage).toContain('canEdit ? traced("project-dashboard.location"');
+    expect(projectDashboardPage).toContain("projectLocation={dashboardData.projectLocation}");
     expect(projectDashboardPage).toContain("GOOGLE_MAPS_API_KEY");
     expect(projectDashboardLayout).toContain('className="flex h-full min-h-0 overflow-hidden"');
     expect(projectDashboardLayout).not.toContain("overflow-hidden bg-white");

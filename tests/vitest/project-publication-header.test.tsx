@@ -119,6 +119,8 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(within(overview).getByText("Shared page matches saved settings.")).toBeInTheDocument();
     expect(within(dialog).getByRole("textbox", { name: "Shared link" })).toHaveValue("http://localhost:3000/share/client-token");
     expect(within(dialog).getByText("Password on")).toBeInTheDocument();
+    expect(within(dialog).getByRole("tab", { name: "Recipients" })).toHaveClass("text-secondary");
+    expect(within(dialog).getByRole("tab", { name: "Recipients" })).not.toHaveClass("text-tertiary");
     expect(within(dialog).getByRole("button", { name: "Update shared page" })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
     expect(within(dialog).queryByText("Project share link")).not.toBeInTheDocument();
@@ -137,7 +139,7 @@ describe("ProjectPublicationHeader publication control", () => {
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
 
-    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     await user.click(within(dialog).getByRole("button", { name: "Clear" }));
 
     const overview = within(dialog).getByTestId("publication-manager-overview");
@@ -145,7 +147,7 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(within(overview).getByText("Pending changes")).toBeInTheDocument();
     expect(within(overview).getByText("1 pending change — use Update shared page to apply.")).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Recipients" }));
     expect(within(overview).getByText("0 of 2 estimates")).toBeInTheDocument();
     expect(within(overview).getByText("Pending changes")).toBeInTheDocument();
   });
@@ -153,8 +155,14 @@ describe("ProjectPublicationHeader publication control", () => {
   it("keeps the shared-link modal responsive instead of forcing a desktop grid on mobile", () => {
     const headerSource = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
 
-    expect(headerSource).toContain("grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]");
-    expect(headerSource).toContain("border-b border-hairline bg-surfaceMuted p-4 lg:border-b-0 lg:border-r lg:p-6");
+    expect(headerSource).toContain('className="max-w-[760px]"');
+    expect(headerSource).toContain("footer={renderPublicationFooter()}");
+    expect(headerSource).toContain("location={modalLocation}");
+    expect(headerSource).toContain('variant="modal"');
+    expect(headerSource).not.toContain("WorkshopTreeTabs");
+    expect(headerSource).toContain('{ id: "content", label: "Content" }');
+    expect(headerSource).not.toContain("grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]");
+    expect(headerSource).not.toContain("border-b border-hairline bg-surfaceMuted p-4 lg:border-b-0 lg:border-r lg:p-6");
     expect(headerSource).not.toContain('className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]"');
   });
 
@@ -301,7 +309,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     await user.click(within(dialog).getByLabelText("Require password"));
     await user.type(within(dialog).getByLabelText("Link password"), "client-pass-1");
     await user.click(within(dialog).getByRole("button", { name: "Generate shared link" }));
@@ -314,8 +322,8 @@ describe("ProjectPublicationHeader publication control", () => {
       expiresAt: null,
       locationVisibility: "locality",
     });
-    // Switch back to Link tab to see the populated input (generate works from any tab)
-    await user.click(within(dialog).getByRole("tab", { name: "Link" }));
+    // The promoted link panel updates immediately after generate.
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/generated-token")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Copy shared link" })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
@@ -341,7 +349,7 @@ describe("ProjectPublicationHeader publication control", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
 
     expect(publicationActions.rotateProjectPublicationLink).not.toHaveBeenCalled();
-    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Create new shared link?" });
     expect(within(confirmDialog).getAllByText(/current shared link will stop working/i).length).toBeGreaterThan(0);
     await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
 
@@ -445,8 +453,8 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    // The Estimates picker shows the curated subset selected (1 / 2), not all sheets.
-    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    // The Content picker shows the curated subset selected (1 / 2), not all sheets.
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     expect(within(dialog).getByText("1 / 2 selected")).toBeInTheDocument();
     expect(within(dialog).getByRole("checkbox", { name: "S-100 — Foundation" })).toBeChecked();
     expect(within(dialog).getByRole("checkbox", { name: "S-200 — Framing" })).not.toBeChecked();
@@ -482,12 +490,12 @@ describe("ProjectPublicationHeader publication control", () => {
     await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
 
     expect(publicationActions.revokeProjectPublication).not.toHaveBeenCalled();
-    const confirmDialog = screen.getByRole("dialog", { name: "Turn off shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Turn off shared link?" });
     expect(within(confirmDialog).getAllByText(/recipients will lose access/i).length).toBeGreaterThan(0);
     await user.click(within(confirmDialog).getByRole("button", { name: "Turn off link" }));
 
     expect(publicationActions.revokeProjectPublication).toHaveBeenCalledWith({ projectId: "project-1" });
-    expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared link turned off.");
+    expect(await within(dialog).findByText(/Shared link turned off\. Clients can no longer open/)).toBeInTheDocument();
   });
 
   it("confirms before clearing an existing shared-link password", async () => {
@@ -507,12 +515,11 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
-    await user.click(within(dialog).getByLabelText("Require password"));
-    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
+    await user.click(within(dialog).getByRole("button", { name: "Remove shared-link password" }));
 
     expect(publicationActions.republishProjectPublication).not.toHaveBeenCalled();
-    const confirmDialog = screen.getByRole("dialog", { name: "Clear shared-link password?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Clear shared-link password?" });
     expect(within(confirmDialog).getByText(/anyone with the link can view it without a password/i)).toBeInTheDocument();
     await user.click(within(confirmDialog).getByRole("button", { name: "Clear password" }));
 
@@ -523,6 +530,10 @@ describe("ProjectPublicationHeader publication control", () => {
       clearPassword: true,
       locationVisibility: "locality",
     });
+    expect(await within(dialog).findByText(/Password removed\. Anyone with this link can now open/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Open access", { selector: "span" })).toBeInTheDocument();
+    expect(within(dialog).getByText("No password set")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Remove shared-link password" })).not.toBeInTheDocument();
   });
 
   // AC-MOD-10 — expired links reactivate in place (same token + password), no protected→open downgrade.
@@ -588,10 +599,10 @@ describe("ProjectPublicationHeader publication control", () => {
     const createNewLinkButton = within(dialog).getByRole("button", { name: "Create new link instead" });
     expect(createNewLinkButton).toBeDisabled();
     expect(
-      within(dialog).getByText(/enter a new password on the access tab before creating a brand-new protected link/i),
+      within(dialog).getByText(/enter a new password in content before creating a brand-new protected link/i),
     ).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     await user.type(within(dialog).getByLabelText("Link password"), "replacement-pass");
 
     expect(createNewLinkButton).toBeEnabled();
@@ -633,7 +644,7 @@ describe("ProjectPublicationHeader publication control", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create new link instead" }));
     // Confirm required before minting a new token — create must not fire yet.
     expect(publicationActions.createProjectPublication).not.toHaveBeenCalled();
-    const confirmDialog = screen.getByRole("dialog", { name: "Create a brand-new shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Create a brand-new shared link?" });
     expect(within(confirmDialog).getAllByText(/recipient links will stop working/i).length).toBeGreaterThan(0);
     await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
 
@@ -660,7 +671,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
     const expiryInput = within(dialog).getByLabelText("Link expiry");
     // datetime-local value (local wall-clock) → component converts to an ISO string.
@@ -694,7 +705,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
     const expiryInput = within(dialog).getByLabelText("Link expiry");
     await user.clear(expiryInput);
@@ -716,7 +727,7 @@ describe("ProjectPublicationHeader publication control", () => {
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     // Switch to Estimates (starts default empty when no sheets)
-    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     const generateBtn = within(dialog).getByRole("button", { name: "Generate shared link" });
     expect(generateBtn).toBeDisabled();
   });
@@ -863,7 +874,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
     // Drive an owner action so the optimistic localResult is set ("Link live").
     await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
-    expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared page updated.");
+    expect(await within(dialog).findByText(/Shared page updated\. Clients now see/)).toBeInTheDocument();
     expect(within(within(dialog).getByTestId("publication-manager-overview")).getByText("Link live")).toBeInTheDocument();
 
     // The layout later passes a fresh summary whose link was revoked elsewhere
@@ -918,7 +929,7 @@ describe("ProjectPublicationHeader publication control", () => {
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
 
     // Override the picker: deselect est-2 so only est-1 remains selected.
-    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     const framing = within(dialog).getByRole("checkbox", { name: /S-200.*Framing/ });
     expect(framing).toBeChecked();
     await user.click(framing);
@@ -927,9 +938,9 @@ describe("ProjectPublicationHeader publication control", () => {
     // Publish: the override should be cleared on success, re-syncing the picker
     // to the (unchanged) summary's full selection — est-2 checked again.
     await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
-    expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared page updated.");
+    expect(await within(dialog).findByText(/Shared page updated\. Clients now see/)).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     expect(within(dialog).getByRole("checkbox", { name: /S-200.*Framing/ })).toBeChecked();
   });
 });
@@ -1120,10 +1131,11 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
     expect(`${headerSrc}\n${recipientComposerSrc}`).toMatch(/isPending|startTransition|loading|disabled.*send/i);
   });
 
-  it("Recipients tab integrates cleanly without breaking Link/Estimates/Access (backwards compat RED gate)", () => {
+  it("Recipients tab integrates cleanly with the Content and Activity sections", () => {
     expect(headerSrc).toContain("activeTab");
-    // Existing 3 tabs still present; 4th added without removal
-    expect(headerSrc).toMatch(/"link"|"sheets"|"access"/);
+    expect(headerSrc).toContain('{ id: "content", label: "Content" }');
+    expect(headerSrc).toContain('{ id: "recipients", label: "Recipients" }');
+    expect(headerSrc).toContain('{ id: "activity", label: "Activity" }');
     // No breakage to runPublicationAction or existing controls
     expect(headerSrc).toContain("runPublicationAction");
   });
@@ -1232,10 +1244,20 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
   beforeEach(() => {
     window.localStorage.clear();
     publicationActions.createProjectPublication.mockReset();
+    publicationActions.addSharedLinkRecipients.mockReset();
+    publicationActions.listSharedLinkRecipients.mockReset();
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockReset();
     publicationActions.refreshProjectPublicationSummary.mockReset();
+    publicationActions.removeSharedLinkRecipient.mockReset();
     publicationActions.republishProjectPublication.mockReset();
+    publicationActions.resendSharedLinkRecipientEmail.mockReset();
     publicationActions.revokeProjectPublication.mockReset();
     publicationActions.rotateProjectPublicationLink.mockReset();
+    publicationActions.listSharedLinkRecipients.mockResolvedValue([]);
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockResolvedValue({
+      configured: true,
+      message: "Email delivery is configured.",
+    });
     publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -1253,7 +1275,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
-    const confirmDialog = screen.getByRole("dialog", { name: "Turn off shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Turn off shared link?" });
     await user.click(within(confirmDialog).getByRole("button", { name: "Turn off link" }));
 
     // The failed action surfaces as an alert in the modal body with danger styling.
@@ -1276,10 +1298,10 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
-    await user.click(within(screen.getByRole("dialog", { name: "Turn off shared link?" })).getByRole("button", { name: "Turn off link" }));
+    await user.click(within(screen.getByRole("alertdialog", { name: "Turn off shared link?" })).getByRole("button", { name: "Turn off link" }));
 
-    const status = await within(dialog).findByRole("status");
-    expect(status).toHaveTextContent("Shared link turned off.");
+    const status = await within(dialog).findByText(/Shared link turned off\. Clients can no longer open/);
+    expect(status).toHaveAttribute("role", "status");
     expect(status).not.toHaveClass("text-danger");
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -1303,7 +1325,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
-    const confirmDialog = screen.getByRole("dialog", { name: "Turn off shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Turn off shared link?" });
     const confirmButton = within(confirmDialog).getByRole("button", { name: "Turn off link" });
 
     // Two clicks dispatched inside a single act() — React does NOT re-render between them, so both
@@ -1318,7 +1340,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     expect(publicationActions.revokeProjectPublication).toHaveBeenCalledTimes(1);
 
     resolveRevoke?.({ ok: true, message: "Shared link turned off.", clientLinkPath: null });
-    await within(dialog).findByText("Shared link turned off.");
+    await within(dialog).findByText(/Shared link turned off\. Clients can no longer open/);
     expect(publicationActions.revokeProjectPublication).toHaveBeenCalledTimes(1);
   });
 
@@ -1337,7 +1359,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
-    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Create new shared link?" });
     const confirmButton = within(confirmDialog).getByRole("button", { name: "Create new link" });
 
     act(() => {
@@ -1348,8 +1370,40 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledTimes(1);
 
     resolveRotate?.({ ok: true, message: "New shared link ready.", clientLinkPath: "/share/rotated-token" });
-    await within(dialog).findByText("New shared link ready.");
+    await within(dialog).findByText(/New shared link ready\. Copy it/);
     expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledTimes(1);
+  });
+
+  it("locks recipient controls immediately after a rotate confirm while the new link is pending", async () => {
+    let resolveRotate: ((value: { ok: boolean; message: string; clientLinkPath: string }) => void) | undefined;
+    publicationActions.rotateProjectPublicationLink.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRotate = resolve;
+        }),
+    );
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Recipients" }));
+    const emailInput = await within(dialog).findByPlaceholderText("name@company.com, another@...");
+    await waitFor(() => expect(emailInput).not.toBeDisabled());
+    await user.type(emailInput, "pending@example.com,");
+    expect(await within(dialog).findByText("pending@example.com")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Send to 1 recipient/ })).toBeEnabled();
+
+    await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
+    await user.click(within(screen.getByRole("alertdialog", { name: "Create new shared link?" })).getByRole("button", { name: "Create new link" }));
+
+    await waitFor(() => expect(within(dialog).getByPlaceholderText("name@company.com, another@...")).toBeDisabled());
+    expect(within(dialog).getByRole("button", { name: /Send to 1 recipient/ })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Remove pending@example.com" })).toBeDisabled();
+
+    resolveRotate?.({ ok: true, message: "New shared link ready.", clientLinkPath: "/share/rotated-token" });
+    await within(dialog).findByText(/New shared link ready\. Copy it/);
   });
 
   it("disables the destructive confirm button while the action is pending", async () => {
@@ -1364,7 +1418,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
-    const confirmButton = within(screen.getByRole("dialog", { name: "Turn off shared link?" })).getByRole("button", {
+    const confirmButton = within(screen.getByRole("alertdialog", { name: "Turn off shared link?" })).getByRole("button", {
       name: "Turn off link",
     });
     await user.click(confirmButton);
@@ -1390,12 +1444,12 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
 
-    // Edit the password draft on the Access tab (should NOT be threaded into rotation).
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    // Edit the password draft in Content (should NOT be threaded into rotation).
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     await user.type(within(dialog).getByLabelText("Link password"), "draft-secret");
 
     await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
-    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Create new shared link?" });
     await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
 
     // Only the projectId is passed — no password / clearPassword from the draft.
@@ -1414,7 +1468,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
 
-    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    const confirmDialog = screen.getByRole("alertdialog", { name: "Create new shared link?" });
     expect(within(confirmDialog).getByText(/keeps the currently-published estimates/i)).toBeInTheDocument();
   });
 
@@ -1425,7 +1479,7 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
     // Initially the picker matches the published selection → no dirty hint.
     expect(within(dialog).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
@@ -1442,8 +1496,8 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
 });
 
 // AC-MOD-16 (MOD-PW-03 + MOD-PW-04 + MOD-PWDRAFT-CHECK-02) — password-state clarity.
-// The Link-tab chip must reflect SERVER truth (summary.passwordRequired), not the optimistic
-// draft. The Access tab must show a "currently set" / "no password set" line from server truth
+// The persistent link chip must reflect SERVER truth (summary.passwordRequired), not the optimistic
+// draft. Content must show a "currently set" / "no password set" line from server truth
 // plus an "Unsaved — Update to apply" cue when the draft diverges from the saved state.
 describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
   beforeEach(() => {
@@ -1460,11 +1514,10 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
     });
   });
 
-  // MOD-PW-03 — the chip tracks the SAVED server state, not the unsaved draft.
-  // Non-vacuous: the summary has passwordRequired:true; after the owner unchecks "Require
-  // password" (draft → open) the chip must STILL read "Password on" because nothing was saved.
-  // If the chip read the draft it would flip to "Open access" instantly — this asserts it does not.
-  it("keeps the Link-tab chip on server truth ('Password on') after the draft toggles password off", async () => {
+  // MOD-PW-03 — the chip tracks the saved publication state, not an unsaved draft.
+  // Existing protected links cannot clear the password through the primary draft checkbox;
+  // the explicit Remove password confirm is the only clear-password path.
+  it("keeps protected-link password removal out of the primary password draft checkbox", async () => {
     const user = userEvent.setup();
     render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
 
@@ -1474,12 +1527,12 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
     // Server truth: a password is set → chip reads "Password on".
     expect(within(dialog).getByText("Password on")).toBeInTheDocument();
 
-    // Owner unchecks "Require password" on the Access tab (optimistic draft only — not saved).
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
-    await user.click(within(dialog).getByLabelText("Require password"));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
+    const requirePasswordCheckbox = within(dialog).getByLabelText("Require password");
+    expect(requirePasswordCheckbox).toBeChecked();
+    expect(requirePasswordCheckbox).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Remove shared-link password" })).toBeEnabled();
 
-    // Back on the Link tab the chip must STILL show server truth until Update is pressed.
-    await user.click(within(dialog).getByRole("tab", { name: "Link" }));
     expect(within(dialog).getByText("Password on")).toBeInTheDocument();
     expect(within(dialog).queryByText("Open access")).not.toBeInTheDocument();
   });
@@ -1494,63 +1547,59 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     expect(within(dialog).getByText("Open access", { selector: "span" })).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     await user.click(within(dialog).getByLabelText("Require password"));
     await user.type(within(dialog).getByLabelText("Link password"), "new-pass");
 
-    await user.click(within(dialog).getByRole("tab", { name: "Link" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
     // The saved state is still open → chip unchanged until Update.
     expect(within(dialog).getByText("Open access", { selector: "span" })).toBeInTheDocument();
     expect(within(dialog).queryByText("Password on")).not.toBeInTheDocument();
   });
 
-  // MOD-PW-04 — Access tab states the current SAVED password state explicitly.
-  it("shows 'Password is currently set' on the Access tab when the summary has a password", async () => {
+  // MOD-PW-04 — Content states the current SAVED password state explicitly.
+  it("shows 'Password is currently set' in Content when the summary has a password", async () => {
     const user = userEvent.setup();
     render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
     expect(within(dialog).getByText("Password is currently set")).toBeInTheDocument();
     expect(within(dialog).queryByText("No password set")).not.toBeInTheDocument();
   });
 
-  it("shows 'No password set' on the Access tab for an open-access summary", async () => {
+  it("shows 'No password set' in Content for an open-access summary", async () => {
     const user = userEvent.setup();
     const openSummary: ProjectPublicationSummary = { ...publicationSummary, passwordRequired: false };
     render(<ProjectPublicationHeader summary={openSummary} projectEstimateSheets={sampleEstimateSheets} />);
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
     expect(within(dialog).getByText("No password set")).toBeInTheDocument();
     expect(within(dialog).queryByText("Password is currently set")).not.toBeInTheDocument();
   });
 
-  // MOD-PWDRAFT-CHECK-02 — an "Unsaved — Update to apply" cue when the draft diverges from
-  // the saved state. Starts hidden (draft matches server), shows when the box is unchecked
-  // (server has a password but the draft would remove it), and hides again when re-checked.
-  it("toggles the Access-tab 'Unsaved' password cue as the draft diverges from / matches the saved state", async () => {
+  // MOD-PWDRAFT-CHECK-02 — existing protected links use the explicit Remove password flow;
+  // the primary draft checkbox cannot create a hidden clear-password pending change.
+  it("does not show an unsaved password-clear cue from the disabled protected-link checkbox", async () => {
     const user = userEvent.setup();
     render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
-    // Initially the draft matches the saved state (require=on, no new password typed) → no cue.
     const accessPanel = within(dialog).getByRole("tabpanel");
     expect(within(accessPanel).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
 
-    // Uncheck "Require password" → the draft (open) diverges from the saved (protected) state.
-    await user.click(within(dialog).getByLabelText("Require password"));
-    expect(within(accessPanel).getByText("Unsaved — Update to apply")).toBeInTheDocument();
-
-    // Re-check → draft matches the saved state again → cue hides.
-    await user.click(within(dialog).getByLabelText("Require password"));
+    const requirePasswordCheckbox = within(dialog).getByLabelText("Require password");
+    expect(requirePasswordCheckbox).toBeChecked();
+    expect(requirePasswordCheckbox).toBeDisabled();
+    await user.click(requirePasswordCheckbox);
     expect(within(accessPanel).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
   });
 
@@ -1560,7 +1609,7 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByRole("tab", { name: "Content" }));
 
     const accessPanel = within(dialog).getByRole("tabpanel");
     // Require stays checked (matches server) but a new password typed = a pending change.
@@ -1709,14 +1758,14 @@ describe("ProjectPublicationHeader tab a11y (AC-MOD-11)", () => {
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
 
-    // The Link tab is active on open; the panel must reference its id.
-    const linkTab = within(dialog).getByRole("tab", { name: "Link" });
-    expect(linkTab).toHaveAttribute("id", "project-publication-tab-link");
-    expect(linkTab).toHaveAttribute("aria-controls", "project-publication-panel-link");
+    // The Content tab is active on open; the panel must reference its id.
+    const contentTab = within(dialog).getByRole("tab", { name: "Content" });
+    expect(contentTab).toHaveAttribute("id", "project-publication-tab-content");
+    expect(contentTab).toHaveAttribute("aria-controls", "project-publication-panel-content");
 
     const panel = within(dialog).getByRole("tabpanel");
-    expect(panel).toHaveAttribute("id", "project-publication-panel-link");
-    expect(panel).toHaveAttribute("aria-labelledby", "project-publication-tab-link");
+    expect(panel).toHaveAttribute("id", "project-publication-panel-content");
+    expect(panel).toHaveAttribute("aria-labelledby", "project-publication-tab-content");
     expect(panel).toHaveAttribute("tabindex", "0");
   });
 
@@ -1727,20 +1776,20 @@ describe("ProjectPublicationHeader tab a11y (AC-MOD-11)", () => {
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
 
-    const linkTab = within(dialog).getByRole("tab", { name: "Link" });
-    linkTab.focus();
-    fireEvent.keyDown(linkTab, { key: "ArrowRight" });
+    const contentTab = within(dialog).getByRole("tab", { name: "Content" });
+    contentTab.focus();
+    fireEvent.keyDown(contentTab, { key: "ArrowRight" });
 
-    // Focus and selection move to "Estimates"; the panel relabels to track it.
-    const estimatesTab = within(dialog).getByRole("tab", { name: "Estimates" });
-    expect(document.activeElement).toBe(estimatesTab);
-    expect(estimatesTab).toHaveAttribute("aria-selected", "true");
-    expect(linkTab).toHaveAttribute("aria-selected", "false");
+    // Focus and selection move to "Recipients"; the panel relabels to track it.
+    const recipientsTab = within(dialog).getByRole("tab", { name: "Recipients" });
+    expect(document.activeElement).toBe(recipientsTab);
+    expect(recipientsTab).toHaveAttribute("aria-selected", "true");
+    expect(contentTab).toHaveAttribute("aria-selected", "false");
 
     const panel = within(dialog).getByRole("tabpanel");
-    expect(panel).toHaveAttribute("id", "project-publication-panel-sheets");
-    expect(panel).toHaveAttribute("aria-labelledby", "project-publication-tab-sheets");
-    // The Estimates panel content rendered (proves the switch is real, not cosmetic).
-    expect(within(panel).getByText("Estimates to include")).toBeInTheDocument();
+    expect(panel).toHaveAttribute("id", "project-publication-panel-recipients");
+    expect(panel).toHaveAttribute("aria-labelledby", "project-publication-tab-recipients");
+    // The Recipients panel content rendered (proves the switch is real, not cosmetic).
+    expect(within(panel).getByRole("heading", { name: "Email recipients" })).toBeInTheDocument();
   });
 });

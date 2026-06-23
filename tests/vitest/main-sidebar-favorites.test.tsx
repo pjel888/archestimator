@@ -28,6 +28,26 @@ function renderWithClient(ui: ReactElement) {
 }
 const scope = { workspaceId: "ws-1", userId: "user-1" };
 
+function favoriteProject(overrides: Partial<MainSidebarFavoriteProject> = {}): MainSidebarFavoriteProject {
+  return {
+    favoriteCreatedAt: "2026-06-16T00:00:00.000Z",
+    favoriteEstimateSheets: [],
+    href: "/workshop/projects/project-1",
+    id: "project-1",
+    name: "Lewis Residence",
+    projectCode: "AE-LR-001",
+    ...overrides,
+  };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
 beforeEach(() => {
   fetchSidebarFavoriteProjectsMock.mockReset();
   fetchSidebarFavoriteProjectsMock.mockResolvedValue([]);
@@ -103,6 +123,59 @@ describe("MainSidebar favorites", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
+  });
+
+  it("defers stale sidebar favorites until the collapsed rail is hovered", async () => {
+    fetchSidebarFavoriteProjectsMock.mockResolvedValue([
+      favoriteProject({ id: "project-hover", href: "/workshop/projects/project-hover", name: "Hover Project" }),
+    ]);
+
+    renderWithClient(
+      <MainSidebar
+        favoritesScope={scope}
+        favoriteProjects={[]}
+        favoriteProjectsFresh={false}
+        user={{ displayName: "Philip Lewis", email: "philip@example.com" }}
+      />,
+    );
+
+    await act(async () => { await Promise.resolve(); });
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
+
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    await userEvent.hover(nav);
+    await waitFor(() => expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
+    expect(within(nav).getByRole("link", { name: "Hover Project" })).toHaveAttribute("href", "/workshop/projects/project-hover");
+  });
+
+  it("hydrates deferred favorites on expand without showing the empty hint while loading", async () => {
+    const deferred = createDeferred<MainSidebarFavoriteProject[]>();
+    fetchSidebarFavoriteProjectsMock.mockReturnValue(deferred.promise);
+
+    renderWithClient(
+      <MainSidebar
+        favoritesScope={scope}
+        favoriteProjects={[]}
+        favoriteProjectsFresh={false}
+        user={{ displayName: "Philip Lewis", email: "philip@example.com" }}
+      />,
+    );
+
+    await act(async () => { await Promise.resolve(); });
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalledTimes(1);
+    expect(within(nav).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
+
+    await act(async () => {
+      deferred.resolve([]);
+      await deferred.promise;
+    });
     expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
   });
 

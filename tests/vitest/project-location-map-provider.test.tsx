@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectLocationMap } from "@/components/workshop/ProjectLocationMap";
@@ -39,8 +39,22 @@ vi.mock("@/lib/google-maps/loader", () => ({
   loadGoogleMapsApi: googleMocks.loadGoogleMapsApi,
 }));
 
+type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void;
+
+const idleCallbacks: IdleCallback[] = [];
+
+function flushIdleCallback(index = 0) {
+  idleCallbacks[index]?.({ didTimeout: false, timeRemaining: () => 50 });
+}
+
 describe("ProjectLocationMap", () => {
   beforeEach(() => {
+    idleCallbacks.length = 0;
+    vi.stubGlobal("requestIdleCallback", vi.fn((callback: IdleCallback) => {
+      idleCallbacks.push(callback);
+      return idleCallbacks.length;
+    }));
+    vi.stubGlobal("cancelIdleCallback", vi.fn());
     googleMocks.loadGoogleMapsApi.mockReset();
     googleMocks.importLibrary.mockReset();
     googleMocks.mapConstructor.mockClear();
@@ -71,7 +85,7 @@ describe("ProjectLocationMap", () => {
     expect(googleMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
   });
 
-  it("loads the Maps library and renders a saved project pin overlay", async () => {
+  it("defers the Maps library until idle and renders a saved project pin overlay", async () => {
     render(
       <ProjectLocationMap
         apiKey="test-google-browser-key"
@@ -82,6 +96,10 @@ describe("ProjectLocationMap", () => {
     );
 
     expect(screen.getByTestId("project-location-google-map")).toBeInTheDocument();
+    expect(googleMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
+    await waitFor(() => expect(idleCallbacks).toHaveLength(1));
+    flushIdleCallback();
+
     await waitFor(() => expect(googleMocks.mapConstructor).toHaveBeenCalledTimes(1));
     expect(googleMocks.loadGoogleMapsApi).toHaveBeenCalledWith("test-google-browser-key");
     expect(googleMocks.importLibrary).toHaveBeenCalledWith("maps");
@@ -162,6 +180,22 @@ describe("ProjectLocationMap", () => {
     expect(googleMocks.mapSetZoom).toHaveBeenCalledWith(15);
   });
 
+  it("loads the Maps library immediately on map intent", async () => {
+    render(
+      <ProjectLocationMap
+        apiKey="test-google-browser-key"
+        pin={{ latitude: 14.599512, longitude: 120.984222 }}
+        addressLabel="Quezon City"
+      />,
+    );
+
+    expect(googleMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
+    fireEvent.pointerEnter(screen.getByTestId("project-location-map-frame"));
+
+    await waitFor(() => expect(googleMocks.loadGoogleMapsApi).toHaveBeenCalledWith("test-google-browser-key"));
+    expect(googleMocks.importLibrary).toHaveBeenCalledWith("maps");
+  });
+
   it("initializes an unpinned map centered on the default project market", async () => {
     render(
       <ProjectLocationMap
@@ -172,6 +206,8 @@ describe("ProjectLocationMap", () => {
     );
 
     expect(screen.getByText("No exact pin saved")).toBeInTheDocument();
+    await waitFor(() => expect(idleCallbacks).toHaveLength(1));
+    flushIdleCallback();
     await waitFor(() => expect(googleMocks.mapConstructor).toHaveBeenCalledTimes(1));
     expect(googleMocks.mapConstructor).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -193,7 +229,9 @@ describe("ProjectLocationMap", () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByTestId("project-location-map-pin")).toBeInTheDocument());
+    await waitFor(() => expect(idleCallbacks).toHaveLength(1));
+    flushIdleCallback();
+    await waitFor(() => expect(googleMocks.mapConstructor).toHaveBeenCalledTimes(1));
     googleMocks.mapSetCenter.mockClear();
     googleMocks.mapSetZoom.mockClear();
     rerender(

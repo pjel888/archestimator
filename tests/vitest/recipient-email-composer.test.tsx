@@ -2,7 +2,10 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RecipientEmailComposer } from "@/components/workshop/publication/RecipientEmailComposer";
+import {
+  RecipientEmailComposer,
+  type RecipientEmailComposerProps,
+} from "@/components/workshop/publication/RecipientEmailComposer";
 
 // AC-MOD-04 — confirmation before recipient removal (UI-only guard against
 // irreversible decision loss via the cascade DELETE on shared_link_responses).
@@ -18,8 +21,8 @@ vi.mock("@/lib/publication/actions", () => publicationActions);
 
 const PUBLICATION_ID = "publication-1";
 
-function renderComposer() {
-  return render(<RecipientEmailComposer publicationId={PUBLICATION_ID} />);
+function renderComposer(props: Partial<RecipientEmailComposerProps> = {}) {
+  return render(<RecipientEmailComposer publicationId={PUBLICATION_ID} {...props} />);
 }
 
 describe("RecipientEmailComposer — recipient removal confirmation (AC-MOD-04)", () => {
@@ -205,6 +208,28 @@ describe("RecipientEmailComposer — interaction guards (AC-MOD-13)", () => {
     expect(screen.getByRole("button", { name: "Clear" })).toBeDisabled();
   });
 
+  it("locks add, remove, resend, and clear controls while the publication is updating", async () => {
+    publicationActions.listSharedLinkRecipients.mockResolvedValue([
+      { id: "recipient-1", email: "persisted@example.com", display_name: null, delivery_status: "sent" },
+    ]);
+    const user = userEvent.setup();
+    const { rerender } = renderComposer();
+
+    const emailInput = await screen.findByPlaceholderText("name@company.com, another@...");
+    await waitFor(() => expect(emailInput).not.toBeDisabled());
+    await user.type(emailInput, "typed@example.com,");
+    expect(await screen.findByText("typed@example.com")).toBeInTheDocument();
+
+    rerender(<RecipientEmailComposer publicationId={PUBLICATION_ID} isPublicationBusy />);
+
+    expect(screen.getByPlaceholderText("name@company.com, another@...")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Resend persisted@example.com" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove persisted@example.com" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove typed@example.com" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Clear" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Send to 1 recipient/ })).toBeDisabled();
+  });
+
   // MOD-REC-06 — resending a pending recipient fires immediately; an opened recipient confirms first.
   it("resends a pending recipient directly without a confirm", async () => {
     publicationActions.listSharedLinkRecipients.mockResolvedValue([
@@ -309,7 +334,7 @@ describe("RecipientEmailComposer — recipient-result merge (AC-MOD-17)", () => 
 
     // The duplicate status renders with the neutral treatment and the "already invited" label.
     const badge = await screen.findByText("already invited");
-    expect(badge).toHaveClass("bg-surfaceMuted", "text-tertiary");
+    expect(badge).toHaveClass("bg-surfaceMuted", "text-secondary");
     // It must NOT pick up the green success styling.
     expect(badge).not.toHaveClass("bg-successSoft");
     expect(badge).not.toHaveClass("text-success");

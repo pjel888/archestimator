@@ -87,17 +87,28 @@ describe("ProjectAddressAutocomplete", () => {
     });
   });
 
+  it("does not load Google Places before address field intent", () => {
+    render(<AddressHarness onPlaceSelect={vi.fn()} />);
+
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(placesMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
+    expect(placesMocks.importLibrary).not.toHaveBeenCalled();
+  });
+
   it("renders Google suggestions in the shared fixed popup layer and selects by keyboard", async () => {
     const onPlaceSelect = vi.fn(async () => undefined);
     render(<AddressHarness onPlaceSelect={onPlaceSelect} />);
 
     const input = screen.getByRole("combobox");
     expect(input).toHaveClass("bg-transparent", "hover:bg-white/35", "focus:bg-white/85");
+    expect(placesMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
 
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "Quezon City" } });
 
     const listbox = await screen.findByRole("listbox", { name: "Project address suggestions" });
+    expect(placesMocks.loadGoogleMapsApi).toHaveBeenCalledWith("test-google-browser-key");
+    expect(placesMocks.importLibrary).toHaveBeenCalledWith("places");
     expect(placesMocks.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
       expect.objectContaining({
         input: "Quezon City",

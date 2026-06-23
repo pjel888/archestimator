@@ -859,13 +859,13 @@ describe("component library manager UI", () => {
     expect(within(manager).getByText("Variant 1 cost data")).toBeInTheDocument();
     expect(within(manager).getByText("Current entry")).toBeInTheDocument();
     expect(within(manager).getByText("All cost entries")).toBeInTheDocument();
-    expect(within(manager).getByRole("textbox", { name: "Cost manager unit cost" })).toBeInTheDocument();
-    expect(within(manager).getByRole("textbox", { name: "Cost manager misc cost" })).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Cost manager pricing source")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Cost manager pricing date")).toBeInTheDocument();
+    expect(within(manager).getByRole("textbox", { name: "Unit cost" })).toBeInTheDocument();
+    expect(within(manager).getByRole("textbox", { name: "Misc cost" })).toBeInTheDocument();
+    expect(within(manager).getByLabelText("Pricing source")).toBeInTheDocument();
+    expect(within(manager).getByLabelText("Date")).toBeInTheDocument();
     expect(within(manager).getByLabelText("Cost manager confidence")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Cost manager source URL")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Cost manager notes")).toBeInTheDocument();
+    expect(within(manager).getByLabelText("Source URL")).toBeInTheDocument();
+    expect(within(manager).getByLabelText("Notes")).toBeInTheDocument();
 
     fireEvent.click(within(manager).getByRole("button", { name: "Add cost entry" }));
 

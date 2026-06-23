@@ -1,13 +1,15 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { ControlField, ControlInput } from "@/components/ui/control-input";
 import { AppModal } from "@/components/ui/overlays/modal";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { InspectorDrawer } from "@/components/ui/overlays/sheet-drawer";
 import { Modal } from "@/components/ui/modal";
 import { ResizableModal } from "@/components/ui/overlays/resizable-modal";
+import { SectionLabel } from "@/components/ui/section-label";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 
@@ -77,6 +79,97 @@ describe("shared modal and toolbar tooltip primitives", () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("focuses cancel first for destructive confirm dialogs", async () => {
+    render(
+      <ConfirmDialog
+        open
+        tone="destructive"
+        onOpenChange={() => undefined}
+        onConfirm={() => undefined}
+        title="Delete estimate?"
+        description="This cannot be undone."
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
+  });
+
+  it("binds ControlField labels/help/errors without broad descendant traversal", () => {
+    render(
+      <>
+        <ControlField label="Client name" helperText="Shown on the proposal">
+          <ControlInput />
+        </ControlField>
+        <ControlField label="Expiry" as="div" helperText="Use local time" errorText="Expiry is required">
+          {({ controlId, labelId, describedBy, invalid }) => (
+            <input
+              id={controlId}
+              aria-labelledby={labelId}
+              aria-describedby={describedBy}
+              aria-invalid={invalid}
+            />
+          )}
+        </ControlField>
+        <SectionLabel data-testid="section-label">Access</SectionLabel>
+      </>,
+    );
+
+    const clientName = screen.getByRole("textbox", { name: "Client name" });
+    expect(clientName).toHaveAttribute("aria-describedby");
+    expect(screen.getByText("Shown on the proposal")).toHaveAttribute("id", clientName.getAttribute("aria-describedby"));
+
+    const expiryGroup = screen.getByRole("group", { name: "Expiry field" });
+    const expiryInput = screen.getByRole("textbox", { name: "Expiry" });
+    expect(expiryGroup).toContainElement(expiryInput);
+    expect(expiryInput).toHaveAttribute("aria-invalid", "true");
+    expect(expiryInput.getAttribute("aria-describedby")).toContain(screen.getByText("Expiry is required").id);
+    expect(screen.getByText("Expiry is required")).toHaveAttribute("role", "alert");
+    expect(screen.getByTestId("section-label")).toHaveClass("text-[10px]", "text-secondary", "tracking-normal");
+  });
+
+  it("keeps only the top stacked modal interactive and closes only the top modal on Escape", () => {
+    const closeFirst = vi.fn();
+    const closeSecond = vi.fn();
+
+    function StackHarness({ first = true, second = true }: { first?: boolean; second?: boolean }) {
+      return (
+        <>
+          <main data-workshop-page-shell-root>Workspace shell</main>
+          <Modal open={first} title="First modal" onOpenChange={closeFirst}>
+            <button type="button">First action</button>
+          </Modal>
+          <Modal open={second} title="Second modal" onOpenChange={closeSecond}>
+            <button type="button">Second action</button>
+          </Modal>
+        </>
+      );
+    }
+
+    const { rerender } = render(<StackHarness />);
+    const roots = Array.from(document.body.querySelectorAll<HTMLElement>("[data-archestimator-modal-root]"));
+    const shell = screen.getByText("Workspace shell");
+
+    expect(roots).toHaveLength(2);
+    expect(roots[0]).toHaveAttribute("inert");
+    expect(roots[1]).toHaveAttribute("data-archestimator-modal-top", "true");
+    expect(roots[1]).toHaveStyle({ zIndex: "1002" });
+    expect(shell).toHaveAttribute("inert");
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(closeSecond).toHaveBeenCalledWith(false);
+    expect(closeFirst).not.toHaveBeenCalled();
+
+    rerender(<StackHarness second={false} />);
+    expect(shell).toHaveAttribute("inert");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.querySelector("[data-archestimator-modal-root]")).toHaveAttribute("data-archestimator-modal-top", "true");
+
+    rerender(<StackHarness first={false} second={false} />);
+    expect(shell).not.toHaveAttribute("inert");
+    expect(document.body.style.overflow).toBe("");
   });
 
   it("renders inspector drawers without blur or scrim overlays", () => {
