@@ -50,6 +50,12 @@ describe("landing-v3 homepage contract", () => {
     expect(screen.getByRole("heading", { name: /Every completed estimate makes the next one stronger/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Flexible enough for the way your team scopes work/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Questions teams ask/i })).toBeInTheDocument();
+    expect(screen.getByText(/Domain-Shaped Estimates/i)).toBeInTheDocument();
+    expect(screen.getByText(/Client-Ready Proposals/i)).toBeInTheDocument();
+    expect(screen.getByText(/Decisions Stay Attached/i)).toBeInTheDocument();
+    expect(screen.getByText(/floor, room, area, or trade/i)).toBeInTheDocument();
+    expect(screen.getByText(/BOM or BOQ exports/i)).toBeInTheDocument();
+    expect(screen.getByText(/change order/i)).toBeInTheDocument();
 
     container.querySelectorAll<HTMLElement>("section[aria-labelledby]").forEach((section) => {
       const id = section.getAttribute("aria-labelledby");

@@ -212,11 +212,11 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 className={styles.heroImageGridBlockSmallA}
                 index="01"
                 title="Estimate Smarter"
-                metricLabel="Estimates Made"
+                metricLabel="Areas Priced"
                 metricValue={248}
                 metricIntervalMs={2400}
-                ledgerTitle="Reusable Cost Memory"
-                body="Turn scope, quantities, rates, notes, and revisions into one estimate record your team can keep improving."
+                ledgerTitle="Domain-Shaped Estimates"
+                body="Shape estimates by floor, room, area, or trade. Reuse smart components with pricing history, drag them into place, and let totals roll up."
               />
               <HeroMetricCard
                 className={styles.heroImageGridBlockSmallB}
@@ -225,8 +225,8 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricLabel="Proposals Submitted"
                 metricValue={67}
                 metricIntervalMs={3200}
-                ledgerTitle="Proposal-Ready Detail"
-                body="Package pricing with scope, assumptions, and approval context so clients understand exactly what they are deciding."
+                ledgerTitle="Client-Ready Proposals"
+                body="Send branded proposal links with password access, view tracking, visual cost breakdowns, and BOM or BOQ exports clients can understand."
               />
               <HeroMetricCard
                 className={styles.heroImageGridBlockWide}
@@ -235,8 +235,8 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricLabel="Bids Won"
                 metricValue={19}
                 metricIntervalMs={4200}
-                ledgerTitle="Approvals Stay Attached"
-                body="Keep comments, changes, client decisions, and next steps connected to the estimate so work can move forward without chasing context."
+                ledgerTitle="Decisions Stay Attached"
+                body="Let clients comment, accept, decline, and approve revisions in one link so every decision, change order, and next step stays recorded."
               />
             </div>
           </HeroImageZoom>
