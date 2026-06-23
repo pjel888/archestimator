@@ -25,12 +25,66 @@ import {
   type CreateProjectStatus,
 } from "./NewProjectFormSections";
 import { ProjectImagePanel } from "./NewProjectImagePanel";
+import type { ProjectCardSetupStatus } from "./LiveProjectCard";
+import type { Tables } from "@/lib/supabase/types";
 
 type NewProjectFormProps = {
   onSuccess?: () => void;
+  onOptimisticProjectChange?: (snapshot: NewProjectOptimisticSnapshot) => void;
 };
 
-export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
+export type NewProjectOptimisticSnapshot = {
+  clientId: string;
+  project: Tables<"projects">;
+  setupStatus: ProjectCardSetupStatus | null;
+  setupNavigationDisabled: boolean;
+  remove?: boolean;
+  errorMessage?: string;
+};
+
+function createProjectClientId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function readDraftText(formData: FormData, key: string) {
+  const value = String(formData.get(key) ?? "").trim();
+  return value || null;
+}
+
+function createOptimisticProject(formData: FormData, clientId: string, createdAt: string): Tables<"projects"> {
+  return {
+    id: `pending-project-${clientId}`,
+    workspace_id: "pending-workspace",
+    created_by: null,
+    name: String(formData.get("name") ?? "").trim(),
+    client_name: readDraftText(formData, "clientName"),
+    location: readDraftText(formData, "location"),
+    project_code: readDraftText(formData, "projectCode"),
+    currency_code: "PHP",
+    metadata: {},
+    created_at: createdAt,
+    updated_at: createdAt,
+  };
+}
+
+function applyUploadedProjectImage(project: Tables<"projects">, image: ProjectImageDraft): Tables<"projects"> {
+  return {
+    ...project,
+    metadata: {
+      ...(project.metadata && typeof project.metadata === "object" && !Array.isArray(project.metadata) ? project.metadata : {}),
+      projectImageUrl: image.url,
+      ...(image.thumbnailUrl ? { projectImageThumbnailUrl: image.thumbnailUrl } : {}),
+      ...(image.bucket ? { projectImageBucket: image.bucket } : {}),
+      ...(image.path ? { projectImagePath: image.path } : {}),
+      ...(image.thumbnailPath ? { projectImageThumbnailPath: image.thumbnailPath } : {}),
+    },
+  };
+}
+
+export function NewProjectForm({ onSuccess, onOptimisticProjectChange }: NewProjectFormProps) {
   const router = useNavigationRouter();
   const imageInputId = useId();
   const statusId = useId();
@@ -81,6 +135,26 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
     if (isSubmitting) return;
 
     let uploadedImage: ProjectImageDraft | null = null;
+    let clientId: string | null = null;
+    let optimisticProject: Tables<"projects"> | null = null;
+    let projectCreated = false;
+    const optimisticEnabled = Boolean(onOptimisticProjectChange);
+
+    function reportOptimisticProject(
+      setupStatus: ProjectCardSetupStatus | null,
+      setupNavigationDisabled: boolean,
+      errorMessage?: string,
+    ) {
+      if (!clientId || !optimisticProject) return;
+      onOptimisticProjectChange?.({
+        clientId,
+        project: optimisticProject,
+        setupStatus,
+        setupNavigationDisabled,
+        errorMessage,
+      });
+    }
+
     try {
       const formData = new FormData(event.currentTarget);
       const projectName = String(formData.get("name") ?? "").trim();
@@ -95,8 +169,18 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
         return;
       }
 
+      clientId = createProjectClientId();
+      optimisticProject = createOptimisticProject(formData, clientId, new Date().toISOString());
+      if (optimisticEnabled) {
+        reportOptimisticProject({ state: "creating", message: "Creating project..." }, true);
+        onSuccess?.();
+      }
+
       setStatus({ state: "creating", message: "Creating project..." });
       const project = await createProjectRecord(formData);
+      projectCreated = true;
+      optimisticProject = project;
+      reportOptimisticProject({ state: "preparing", message: "Preparing project..." }, true);
 
       if (selectedImage) {
         setStatus({
@@ -104,6 +188,7 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
           message: "Uploading project image...",
           progress: 5,
         });
+        reportOptimisticProject({ state: "preparing", message: "Uploading project image..." }, true);
         uploadedImage = await uploadProjectImage(
           selectedImage,
           project.id,
@@ -113,24 +198,48 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
               message: "Uploading project image...",
               progress,
             });
+            reportOptimisticProject({ state: "preparing", message: `Uploading project image (${progress}%)...` }, true);
           },
         );
         setStatus({
           state: "saving",
           message: `Saving image metadata (${formatUploadBytes(uploadedImage.originalBytes)} -> ${formatUploadBytes(uploadedImage.optimizedBytes)}).`,
         });
+        reportOptimisticProject({ state: "preparing", message: "Saving project image..." }, true);
         await updateProjectImageMetadata(project.id, uploadedImage);
+        optimisticProject = applyUploadedProjectImage(project, uploadedImage);
       }
 
+      reportOptimisticProject({ state: "preparing", message: "Creating default estimate..." }, true);
       await createEstimateSheetDraft(project.id);
-      onSuccess?.();
+      reportOptimisticProject({ state: "preparing", message: "Syncing project..." }, true);
+      if (!optimisticEnabled) onSuccess?.();
       router.refresh();
     } catch (error) {
       if (uploadedImage) void removeProjectImageUpload(uploadedImage);
+      const message = error instanceof Error ? error.message : "Could not create project.";
+      if (optimisticEnabled && optimisticProject) {
+        if (!projectCreated) {
+          if (clientId) {
+            onOptimisticProjectChange?.({
+              clientId,
+              project: optimisticProject,
+              setupStatus: null,
+              setupNavigationDisabled: true,
+              remove: true,
+              errorMessage: message,
+            });
+          }
+          return;
+        }
+        const setupErrorMessage = "Project was created, but setup needs attention.";
+        reportOptimisticProject({ state: "error", message: setupErrorMessage }, false, setupErrorMessage);
+        router.refresh();
+        return;
+      }
       setStatus({
         state: "error",
-        message:
-          error instanceof Error ? error.message : "Could not create project.",
+        message,
       });
     }
   }

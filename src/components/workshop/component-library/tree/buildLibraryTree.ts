@@ -390,7 +390,7 @@ function buildSupplierTree(
     suppliersByKey.set(normalizeSupplierKey(supplier.name), supplier);
   }
 
-  const derivedSupplierNames = Array.from(new Set(items.map((item) => item.supplier).filter(Boolean))).sort();
+  const derivedSupplierNames = Array.from(new Set(items.flatMap((item) => item.supplier ? [item.supplier] : []))).sort();
   for (const supplierName of derivedSupplierNames) {
     const normalized = normalizeSupplierKey(supplierName);
     if (!suppliersByKey.has(normalized)) {

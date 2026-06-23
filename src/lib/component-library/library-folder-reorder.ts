@@ -92,6 +92,15 @@ function compareFolders(left: LibraryFolderRecord, right: LibraryFolderRecord) {
   return left.sort_order - right.sort_order || left.name.localeCompare(right.name) || left.id.localeCompare(right.id);
 }
 
+export function getUserLibraryFolders(folders: LibraryFolderRecord[]): LibraryFolderRecord[] {
+  const customFolders = folders.filter((folder) => folder.folder_kind === "custom");
+  const customFolderIds = new Set(customFolders.map((folder) => folder.id));
+  return customFolders.map((folder) => {
+    if (!folder.parent_id || customFolderIds.has(folder.parent_id)) return folder;
+    return { ...folder, parent_id: null };
+  });
+}
+
 export function buildLibraryFolderTree(folders: LibraryFolderRecord[]): LibraryFolderTreeNode[] {
   const foldersByParentId = new Map<string | null, LibraryFolderRecord[]>();
   for (const folder of folders) {
@@ -147,8 +156,10 @@ function findFolderLocation(folders: LibraryFolderRecord[], id: string): FolderL
   }
 
   for (const [parentId, siblings] of siblingsByParentId.entries()) {
-    const index = siblings.findIndex((folder) => folder.id === id);
-    if (index >= 0) return { folder: siblings[index], parentId, index };
+    for (let index = 0; index < siblings.length; index += 1) {
+      const folder = siblings[index];
+      if (folder.id === id) return { folder, parentId, index };
+    }
   }
 
   return null;

@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import type {
   ComponentHistoryEntry,
   ComponentPriceOption,
@@ -25,7 +23,7 @@ import {
   type ComponentLibraryTaxonomyNode,
 } from "@/lib/component-library/taxonomy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables, TablesInsert } from "@/lib/supabase/types";
+import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import type { LibraryFolderKind } from "@/lib/component-library/library-folder-reorder";
 import { isMissingRelationError } from "./estimate-schema-compat";
@@ -432,62 +430,12 @@ async function fetchLibraryFolders(
     .from("library_folders")
     .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
     .eq("workspace_id", workspaceId)
+    .eq("folder_kind", "custom")
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
   if (error) throw error;
   return sortFolders((data ?? []).map(normalizeComponentLibraryFolder));
-}
-
-export async function ensureWorkspaceLibraryFolders({
-  supabase,
-  workspaceId,
-  categoryRows,
-}: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
-  workspaceId: string;
-  categoryRows: ComponentLibraryCategoryRow[];
-}): Promise<ComponentLibraryFolder[]> {
-  const existingFolders = await fetchLibraryFolders(supabase, workspaceId);
-  if (existingFolders.length > 0) return existingFolders;
-
-  const rowsByParentId = new Map<string | null, ComponentLibraryCategoryRow[]>();
-  for (const row of categoryRows) {
-    const siblings = rowsByParentId.get(row.parent_id) ?? [];
-    siblings.push(row);
-    rowsByParentId.set(row.parent_id, siblings);
-  }
-  for (const siblings of rowsByParentId.values()) {
-    siblings.sort((left, right) => left.sort_order - right.sort_order || left.label.localeCompare(right.label));
-  }
-
-  const folderIdByCategoryNodeId = new Map<string, string>();
-  const inserts: TablesInsert<"library_folders">[] = [];
-
-  function stage(parentCategoryNodeId: string | null, parentFolderId: string | null) {
-    for (const row of rowsByParentId.get(parentCategoryNodeId) ?? []) {
-      const folderId = randomUUID();
-      folderIdByCategoryNodeId.set(row.id, folderId);
-      inserts.push({
-        id: folderId,
-        workspace_id: workspaceId,
-        parent_id: parentFolderId,
-        name: row.label,
-        sort_order: row.sort_order,
-        source_category_node_id: row.id,
-        folder_kind: "taxonomy",
-      });
-      stage(row.id, folderId);
-    }
-  }
-
-  stage(null, null);
-  if (inserts.length === 0) return [];
-
-  const { error } = await supabase.from("library_folders").insert(inserts);
-  if (error) throw error;
-
-  return fetchLibraryFolders(supabase, workspaceId);
 }
 
 function getTemplateNodeKind(kind: EstimateTemplateNodeRow["kind"]): EstimateTreeNode["kind"] | null {
@@ -667,7 +615,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
 
   const categoryRows = (categoriesResult.data ?? []) as ComponentLibraryCategoryRow[];
   const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
-  const libraryFolders = await ensureWorkspaceLibraryFolders({ supabase, workspaceId, categoryRows });
+  const libraryFolders = await fetchLibraryFolders(supabase, workspaceId);
   const suppliers = suppliersResult.data ?? [];
   const persistedBrands = (brandsResult.error ? [] : (brandsResult.data ?? [])) as ComponentLibraryBrand[];
   const fallbackBrandMap = new Map<string, ComponentLibraryBrand>();

@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { getCostLibraryComponentUsage } from "@/lib/component-library/actions";
 import type { EstimateRowItem } from "@/lib/estimates/types";
+import { cn } from "@/lib/ui/cn";
 
 const PRICE_HISTORY_PREVIEW_COUNT = 5;
 
@@ -82,6 +87,7 @@ export function ComponentInspectorDock({
   canArchive?: boolean;
   promoteAction?: { label: string; pending?: boolean; onClick: () => void };
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const [usageState, setUsageState] = useState<{
     itemId: string;
     counts: ComponentUsageCounts | null;
@@ -141,11 +147,11 @@ export function ComponentInspectorDock({
 
   const detailsPanel = (
       <section
-        className="flex h-full min-h-0 flex-col overflow-hidden bg-white"
+        className={cn("flex h-full min-h-0 flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "rightDock"))}
         aria-label={`Component details for ${name}`}
         data-component-inspector-dock="true"
       >
-        <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2">
+        <header className={cn("flex h-10 shrink-0 items-center justify-between gap-2 px-2", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}>
           <h2 className="truncate text-[11px] font-medium leading-4 text-ink">Component details</h2>
           <div className="flex items-center gap-1">
             <DropdownMenu
@@ -302,7 +308,10 @@ export function ComponentInspectorDock({
   if (compactViewport) {
     return (
       <aside
-        className="fixed inset-x-2 bottom-2 z-[850] max-h-[46vh] overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_18px_48px_-28px_rgba(17,24,39,0.7)] !text-[10px]"
+        className={cn(
+          "fixed inset-x-2 bottom-2 z-[850] max-h-[46vh] overflow-hidden !text-[10px]",
+          librarySurfaceClass(surfaceVariant, "rightDock"),
+        )}
         aria-label="Component inspector"
       >
         {detailsPanel}

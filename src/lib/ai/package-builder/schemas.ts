@@ -961,6 +961,7 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
   const errors: string[] = [];
   const treeIds = new Set<string>();
   const areaIds = new Set<string>();
+  const treeDraftByClientDraftId = new Map(draft.treeDraft.map((node) => [node.clientDraftId, node]));
 
   for (const node of draft.treeDraft) {
     if (treeIds.has(node.clientDraftId)) errors.push(`Duplicate tree draft id: ${node.clientDraftId}`);
@@ -1063,7 +1064,7 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
     if (!treeIds.has(templateInsert.targetParentClientDraftId)) {
       errors.push(`Template insert ${templateInsert.clientDraftId} must target an existing Group Node draft.`);
     } else {
-      const parentNode = draft.treeDraft.find((node) => node.clientDraftId === templateInsert.targetParentClientDraftId);
+      const parentNode = treeDraftByClientDraftId.get(templateInsert.targetParentClientDraftId);
       if (parentNode?.kind !== "group") errors.push(`Template insert ${templateInsert.clientDraftId} must target a Group Node.`);
     }
     if (templateInsert.expectedNodeCount <= 0) errors.push(`Template insert ${templateInsert.clientDraftId} must include at least one expected node.`);
@@ -1218,7 +1219,7 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
           errors.push(`Operation ${operation.operationId} must identify the tree node to create.`);
           continue;
         }
-        const node = draft.treeDraft.find((candidate) => candidate.clientDraftId === operation.clientDraftId);
+        const node = treeDraftByClientDraftId.get(operation.clientDraftId);
         if (!node) {
           errors.push(`Operation ${operation.operationId} references a missing tree node.`);
           continue;
@@ -1230,7 +1231,7 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
         createTreeNodeIds.add(node.clientDraftId);
       }
       for (const operation of draft.operations.filter((candidate) => candidate.type === "create_tree_node")) {
-        const node = operation.clientDraftId ? draft.treeDraft.find((candidate) => candidate.clientDraftId === operation.clientDraftId) : null;
+        const node = operation.clientDraftId ? treeDraftByClientDraftId.get(operation.clientDraftId) : null;
         if (!node) continue;
         const parentClientDraftId = node.parentClientDraftId;
         if (!parentClientDraftId) {

@@ -50,7 +50,8 @@ import type {
   WorkshopPendingInviteSummary,
 } from "@/lib/repositories/workspace-repository";
 
-import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
+import { LiveProjectCard, type ProjectAccessKind, type ProjectCardSetupStatus, type ProjectCardViewMode } from "./LiveProjectCard";
+import type { NewProjectOptimisticSnapshot } from "./NewProjectForm";
 import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
 import { ProjectGroupSection } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
@@ -71,6 +72,9 @@ export type ProjectListItem = {
   ownerWorkspaceName?: string | null;
   pendingInvite?: WorkshopPendingInviteSummary | null;
   pendingInviteCount?: number;
+  isOptimisticCreate?: boolean;
+  setupStatus?: ProjectCardSetupStatus | null;
+  setupNavigationDisabled?: boolean;
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
@@ -167,6 +171,22 @@ function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectLis
     publicationSummary: null,
     sharedEstimateCount: 0,
     favoriteEstimateSheets: [],
+  };
+}
+
+function optimisticProjectSnapshotToListItem(snapshot: NewProjectOptimisticSnapshot): ProjectListItem {
+  return {
+    project: snapshot.project,
+    accessKind: "owned",
+    currentUserRole: "owner",
+    pendingInviteCount: 0,
+    publicationSummary: null,
+    sharedEstimateCount: 0,
+    favoriteEstimateSheets: [],
+    groupId: null,
+    isOptimisticCreate: true,
+    setupStatus: snapshot.setupStatus,
+    setupNavigationDisabled: snapshot.setupNavigationDisabled,
   };
 }
 
@@ -498,7 +518,12 @@ function ProjectAccessTabs({
   );
 }
 
+function isProjectSetupBlocking(status: ProjectCardSetupStatus | null | undefined) {
+  return status?.state === "creating" || status?.state === "preparing";
+}
+
 function canSelectProjectForDeletion(item: ProjectListItem) {
+  if (isProjectSetupBlocking(item.setupStatus)) return false;
   if (item.accessKind === "pending-invite" || item.accessKind === "sheet-member") return false;
   if (item.accessKind === "owned") return true;
   return item.currentUserRole === "owner" || item.currentUserRole === "admin";
@@ -511,7 +536,7 @@ function canSelectProjectForDeletion(item: ProjectListItem) {
 // v1 group scope (D11). This intentionally does NOT consult the delete gate, so an owned
 // project the delete flow would block (e.g. an active shared link) stays bulk-groupable.
 function canAssignProjectToGroup(item: ProjectListItem) {
-  return item.accessKind === "owned";
+  return item.accessKind === "owned" && !isProjectSetupBlocking(item.setupStatus);
 }
 
 type ProjectCardRowProps = {
@@ -523,6 +548,8 @@ type ProjectCardRowProps = {
   selectedForDeletion: boolean;
   selectionActive: boolean;
   canSelect: boolean;
+  setupStatus?: ProjectCardSetupStatus | null;
+  setupNavigationDisabled?: boolean;
   onToggleSelected: (projectId: string) => void;
   onToggleFavorite: (projectId: string, nextFavorite: boolean) => void;
   onExpand: (project: Tables<"projects">) => void;
@@ -549,6 +576,8 @@ const ProjectCardRow = memo(function ProjectCardRow({
   selectedForDeletion,
   selectionActive,
   canSelect,
+  setupStatus,
+  setupNavigationDisabled,
   onToggleSelected,
   onToggleFavorite,
   onExpand,
@@ -603,6 +632,8 @@ const ProjectCardRow = memo(function ProjectCardRow({
       ownerWorkspaceName={item.ownerWorkspaceName}
       pendingInvite={item.pendingInvite}
       pendingInviteCount={item.pendingInviteCount}
+      setupStatus={setupStatus}
+      setupNavigationDisabled={setupNavigationDisabled}
       publicationSummary={item.publicationSummary}
       sharedEstimateCount={item.sharedEstimateCount}
       favoriteEstimateSheets={item.favoriteEstimateSheets}
@@ -632,7 +663,32 @@ export function ProjectsPageClient({
   const [expandedProject, setExpandedProject] =
     useState<Tables<"projects"> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const projectItems = useMemo(() => projects.map(normalizeProjectListItem), [projects]);
+  const [optimisticProjectCreates, setOptimisticProjectCreates] = useState<Record<string, NewProjectOptimisticSnapshot>>({});
+  const serverProjectItems = useMemo(() => projects.map(normalizeProjectListItem), [projects]);
+  const optimisticProjectItems = useMemo(
+    () => Object.values(optimisticProjectCreates).map(optimisticProjectSnapshotToListItem),
+    [optimisticProjectCreates],
+  );
+  const optimisticProjectItemIds = useMemo(
+    () => new Set(optimisticProjectItems.map((item) => item.project.id)),
+    [optimisticProjectItems],
+  );
+  const optimisticRealProjectIds = useMemo(
+    () =>
+      new Set(
+        optimisticProjectItems
+          .map((item) => item.project.id)
+          .filter((id) => !id.startsWith("pending-project-")),
+      ),
+    [optimisticProjectItems],
+  );
+  const projectItems = useMemo(
+    () => [
+      ...optimisticProjectItems,
+      ...serverProjectItems.filter((item) => !optimisticRealProjectIds.has(item.project.id)),
+    ],
+    [optimisticProjectItems, optimisticRealProjectIds, serverProjectItems],
+  );
   const ownedProjectItems = useMemo(
     () => projectItems.filter((item) => item.accessKind === "owned"),
     [projectItems],
@@ -720,6 +776,7 @@ export function ProjectsPageClient({
     const query = deferredSearchQuery.trim().toLowerCase();
     const searchedProjects = !query ? activeBaseProjects : activeBaseProjects.filter(
       (item) =>
+        optimisticProjectItemIds.has(item.project.id) ||
         item.project.name?.toLowerCase().includes(query) ||
         item.project.client_name?.toLowerCase().includes(query) ||
         item.project.project_code?.toLowerCase().includes(query) ||
@@ -731,7 +788,7 @@ export function ProjectsPageClient({
     }
     if (!sortTouched) return searchedProjects;
     return [...searchedProjects].sort((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
-  }, [activeBaseProjects, deferredSearchQuery, sortDirection, sortField, sortTouched]);
+  }, [activeBaseProjects, deferredSearchQuery, optimisticProjectItemIds, sortDirection, sortField, sortTouched]);
 
   const displayLiveProjects = displayProjects;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
@@ -841,6 +898,28 @@ export function ProjectsPageClient({
     () => expandedProject ? projectItems.find((item) => item.project.id === expandedProject.id) ?? null : null,
     [expandedProject, projectItems],
   );
+
+  useEffect(() => {
+    const serverProjectIds = new Set(serverProjectItems.map((item) => item.project.id));
+    // Intentional setState-in-effect: optimistic create rows can only be retired when
+    // refreshed server props prove the project row is present. router.refresh() is
+    // non-awaitable, and clearing earlier would recreate the observed empty-list lag.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOptimisticProjectCreates((current) => {
+      const entries = Object.entries(current);
+      if (entries.length === 0) return current;
+      let changed = false;
+      const next = { ...current };
+      for (const [clientId, snapshot] of entries) {
+        if (!snapshot.project.id.startsWith("pending-project-") && serverProjectIds.has(snapshot.project.id)) {
+          delete next[clientId];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [serverProjectItems]);
+
   const canDeleteExpandedProject = expandedProjectItem ? canSelectProjectForDeletion(expandedProjectItem) : false;
   const deleteProjectPhrase = deleteProjectTargetIds.length === 1 ? "DELETE PROJECT" : `DELETE ${deleteProjectTargetIds.length} PROJECTS`;
   const deleteProjectModalTitle = deleteProjectTargetIds.length === 1 ? "Delete project" : `Delete ${deleteProjectTargetIds.length} projects`;
@@ -886,6 +965,25 @@ export function ProjectsPageClient({
 
   function handleOrganizeByChange(next: string) {
     if (isProjectOrganizeBy(next)) writeProjectOrganizeByPreference(next);
+  }
+
+  function handleOptimisticProjectChange(snapshot: NewProjectOptimisticSnapshot) {
+    setActiveTab("your-projects");
+    if (snapshot.remove) {
+      setOptimisticProjectCreates((current) => {
+        if (!Object.prototype.hasOwnProperty.call(current, snapshot.clientId)) return current;
+        const next = { ...current };
+        delete next[snapshot.clientId];
+        return next;
+      });
+      if (snapshot.errorMessage) toast({ message: snapshot.errorMessage, tone: "error" });
+      return;
+    }
+    if (snapshot.errorMessage) toast({ message: snapshot.errorMessage, tone: "error" });
+    setOptimisticProjectCreates((current) => ({
+      ...current,
+      [snapshot.clientId]: snapshot,
+    }));
   }
 
   function toggleGroupCollapsed(key: string) {
@@ -1086,7 +1184,8 @@ export function ProjectsPageClient({
   // ProjectCardRow for why this preserves memo while keeping the override-aware checkmark (LD-10).
   function renderLiveProjectCard(item: ProjectListItem) {
     const canFavoriteProject = item.accessKind === "owned";
-    const showGroupMenu = item.accessKind === "owned" && organizeBy === "group";
+    const isProjectSetupPending = isProjectSetupBlocking(item.setupStatus);
+    const showGroupMenu = item.accessKind === "owned" && organizeBy === "group" && !isProjectSetupPending;
     const override = groupOverrides[item.project.id];
     const effectiveGroupId = override !== undefined ? override : item.groupId ?? null;
 
@@ -1095,12 +1194,14 @@ export function ProjectsPageClient({
         key={item.project.id}
         item={item}
         viewMode={projectViewMode}
-        canFavorite={canFavoriteProject}
+        canFavorite={canFavoriteProject && !isProjectSetupPending}
         isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
         favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
         selectedForDeletion={selectedProjectIds.has(item.project.id)}
         selectionActive={selectedVisibleProjectIds.length > 0}
-        canSelect={canSelectProjectForDeletion(item)}
+        canSelect={canSelectProjectForDeletion(item) && !isProjectSetupPending}
+        setupStatus={item.setupStatus}
+        setupNavigationDisabled={item.setupNavigationDisabled}
         onToggleSelected={stableToggleProjectSelection}
         onToggleFavorite={stableToggleProjectFavorite}
         onExpand={setExpandedProject}
@@ -1397,7 +1498,12 @@ export function ProjectsPageClient({
       ))}
 
       <Suspense fallback={null}>
-        {isModalOpen && <NewProjectModal onClose={() => setIsModalOpen(false)} />}
+        {isModalOpen && (
+          <NewProjectModal
+            onClose={() => setIsModalOpen(false)}
+            onOptimisticProjectChange={handleOptimisticProjectChange}
+          />
+        )}
         {expandedProject ? (
           <ProjectDetailsModal
             project={expandedProject}

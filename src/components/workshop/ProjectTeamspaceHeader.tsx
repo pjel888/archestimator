@@ -75,8 +75,10 @@ const PENDING_INVITE_PREVIEW_COUNT = 3;
 function getInitials(name: string) {
   const parts = name
     .split(/\s+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
+    .flatMap((part) => {
+      const trimmed = part.trim();
+      return trimmed ? [trimmed] : [];
+    });
   const initials = parts.length > 1 ? `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}` : name.slice(0, 2);
   return initials.toUpperCase();
 }

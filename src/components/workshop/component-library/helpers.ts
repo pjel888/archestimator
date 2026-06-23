@@ -260,8 +260,10 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
       designation: form.designation,
       tags: form.tags
         .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+        .flatMap((tag) => {
+          const trimmed = tag.trim();
+          return trimmed ? [trimmed] : [];
+        }),
       imageUrl: form.imageUrl.trim() || getComponentImageUrl({
         material: form.material.trim(),
         category: form.category.trim(),
@@ -347,11 +349,16 @@ function normalizeImportRecord(record: Record<string, unknown>, index: number, s
   const now = new Date().toISOString();
   const tagsValue = firstValue(record, ["tags"]);
   const tags = Array.isArray(tagsValue)
-    ? tagsValue.map(String).map((tag) => tag.trim()).filter(Boolean)
+    ? tagsValue.flatMap((tag) => {
+        const trimmed = String(tag).trim();
+        return trimmed ? [trimmed] : [];
+      })
     : firstString(record, ["tags"])
         .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean);
+        .flatMap((tag) => {
+          const trimmed = tag.trim();
+          return trimmed ? [trimmed] : [];
+        });
 
   const item: EstimateRowItem = {
     id: firstString(record, ["id"]) || `import-${slugify(material) || "component"}-${Date.now()}-${index}`,
@@ -416,7 +423,10 @@ function normalizeHeader(header: string) {
 }
 
 export function parseLibraryCsv(text: string): LibraryImportResult {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n/).flatMap((line) => {
+    const trimmed = line.trim();
+    return trimmed ? [trimmed] : [];
+  });
   if (lines.length < 2) return { items: [], bundles: [], errors: ["CSV import requires a header row and at least one component row."] };
   const headers = splitCsvLine(lines[0]).map(normalizeHeader);
   const items: EstimateRowItem[] = [];
@@ -562,7 +572,10 @@ function normalizeImportedBundles(values: unknown[]) {
         name,
         description: firstString(record, ["description"]) || `Imported ${kind}.`,
         items: entries,
-        tags: Array.isArray(tagsValue) ? tagsValue.map(String).filter(Boolean) : undefined,
+        tags: Array.isArray(tagsValue) ? tagsValue.flatMap((tag) => {
+          const text = String(tag);
+          return text ? [text] : [];
+        }) : undefined,
         isCustom: true,
         createdAt: firstString(record, ["createdAt", "created at"]) || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -590,7 +603,7 @@ export function createDefaultLibraryBundles(items: EstimateRowItem[]): LibraryBu
       name,
       description,
       items: sourceItems.map((item) => bundleItem(item.id, quantity)),
-      tags: sourceItems.map((item) => item.category).filter(Boolean).slice(0, 3),
+      tags: sourceItems.flatMap((item) => item.category ? [item.category] : []).slice(0, 3),
       createdAt: "2026-05-21T00:00:00.000Z",
     };
   };

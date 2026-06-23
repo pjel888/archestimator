@@ -227,8 +227,9 @@ function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTree
 
 function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItem | null {
   for (const node of nodes) {
-    const rowItem = node.estimateRowItems?.find((item) => item.id === rowItemId);
-    if (rowItem) return rowItem;
+    for (const item of node.estimateRowItems ?? []) {
+      if (item.id === rowItemId) return item;
+    }
     if (node.children) {
       const childRowItem = findEstimateRowItem(node.children, rowItemId);
       if (childRowItem) return childRowItem;
@@ -510,9 +511,10 @@ type EstimateRowItemLocation = {
 
 function findEstimateRowItemLocation(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItemLocation | null {
   for (const node of nodes) {
-    const rowIndex = node.estimateRowItems?.findIndex((item) => item.id === rowItemId) ?? -1;
-    if (rowIndex >= 0 && node.estimateRowItems) {
-      return { nodeId: node.id, index: rowIndex, item: node.estimateRowItems[rowIndex] };
+    const rowItems = node.estimateRowItems ?? [];
+    for (let rowIndex = 0; rowIndex < rowItems.length; rowIndex += 1) {
+      const item = rowItems[rowIndex];
+      if (item.id === rowItemId) return { nodeId: node.id, index: rowIndex, item };
     }
     if (node.children) {
       const childLocation = findEstimateRowItemLocation(node.children, rowItemId);

@@ -10,11 +10,17 @@ import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import {
+  LibrarySurfaceVariantProvider,
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import type {
   LibraryOverview as LibraryOverviewPayload,
   LibraryOverviewHealth,
   LibraryOverviewTemplate,
 } from "@/lib/repositories/component-library-repository";
+import { cn } from "@/lib/ui/cn";
 import { LibraryOverviewSearch } from "./LibraryOverviewSearch";
 import { RecentComponentCard } from "./RecentComponentCard";
 
@@ -65,6 +71,7 @@ function RecentTemplateRow({
   template: LibraryOverviewTemplate;
   onOpen: (templateId: string) => void;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const counts = [
     // One node type: groups + areas read as a single "area" count.
     pluralize(template.groupCount + template.areaCount, "area"),
@@ -74,7 +81,11 @@ function RecentTemplateRow({
   return (
     <li
       data-library-overview-recent-template={template.id}
-      className="group flex cursor-pointer items-center gap-2 rounded-xs border border-hairline bg-white px-3 py-2 transition hover:border-divider"
+      className={cn(
+        "group flex cursor-pointer items-center gap-2 px-3 py-2 transition",
+        librarySurfaceClass(surfaceVariant, "contentTile"),
+        surfaceVariant === "glass" ? "hover:border-white/80 hover:bg-white/90" : "hover:border-divider",
+      )}
       onClick={(event) => {
         if ((event.target as HTMLElement).closest("button, a")) return;
         onOpen(template.id);
@@ -112,6 +123,7 @@ function RecentTemplateRow({
 }
 
 function LibraryHealthLine({ health }: { health: LibraryOverviewHealth }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const stats: Array<{ id: string; value: string; label: string; href?: string }> = [];
   if (health.staleComponentCount > 0) {
     stats.push({
@@ -151,7 +163,10 @@ function LibraryHealthLine({ health }: { health: LibraryOverviewHealth }) {
 
   return (
     <div
-      className="flex flex-wrap items-start gap-x-10 gap-y-3 border-t border-hairline pt-4"
+      className={cn(
+        "flex flex-wrap items-start gap-x-10 gap-y-3 p-3",
+        librarySurfaceClass(surfaceVariant, "contentTile"),
+      )}
       aria-label="Library health"
       data-library-overview-health="true"
     >
@@ -191,8 +206,17 @@ export type LibraryOverviewProps = {
  * `getLibraryOverview()` payload; it never fetches the full datasets.
  */
 export function LibraryOverview({ overview }: LibraryOverviewProps) {
+  return (
+    <LibrarySurfaceVariantProvider variant="glass">
+      <LibraryOverviewSurface overview={overview} />
+    </LibrarySurfaceVariantProvider>
+  );
+}
+
+function LibraryOverviewSurface({ overview }: LibraryOverviewProps) {
   const router = useNavigationRouter();
   const [newTemplateOpen, setNewTemplateOpen] = useState(false);
+  const surfaceVariant = useLibrarySurfaceVariant();
 
   const openTemplateEditor = (templateId: string) => {
     router.push(`/workshop/library/templates/${templateId}`);
@@ -206,9 +230,27 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
   const templatesMeta = `${overview.templateCount} in ${pluralize(overview.templateGroupCount, "group")}`;
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto bg-white" data-library-overview="true">
-      <div className="mx-auto flex w-full flex-col gap-6 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div
+      className={cn(
+        "flex h-full min-h-0 overflow-hidden rounded-xs border border-[color:var(--glass-border)]",
+        surfaceVariant === "glass" && "p-2",
+        librarySurfaceClass(surfaceVariant, "root"),
+      )}
+      data-library-overview="true"
+      data-library-surface={surfaceVariant}
+    >
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          librarySurfaceClass(surfaceVariant, "centerColumn"),
+        )}
+      >
+        <div
+          className={cn(
+            "sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3",
+            librarySurfaceClass(surfaceVariant, "sheetHeader"),
+          )}
+        >
           <LibraryOverviewSearch />
           <div className="flex shrink-0 items-center gap-2">
             <Button type="button" variant="ghost" size="xs" onClick={() => setNewTemplateOpen(true)}>
@@ -225,6 +267,8 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
           </div>
         </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="mx-auto flex w-full flex-col gap-5">
         <section aria-labelledby="library-overview-components-heading" className="flex flex-col gap-2">
           <SectionHeader
             headingId="library-overview-components-heading"
@@ -256,6 +300,8 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
         </section>
 
         <LibraryHealthLine health={overview.health} />
+      </div>
+        </div>
       </div>
 
       {newTemplateOpen ? (

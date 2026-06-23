@@ -24,8 +24,8 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "bg-primary text-white hover:bg-accentDark focus-visible:ring-focus",
-  // `brand` = the Glass Brand signal-orange CTA (keystone decision D-3 / MASTER-IMPLEMENTATION-PLAN §C-3).
-  // Use this for the orange "Start free" primary CTA on the landing + auth — `variant="primary"`
+  // `brand` = the Glass Brand signal-orange CTA (keystone decision D-3 / MASTER-IMPLEMENTATION-PLAN section C-3).
+  // Use this for signal-orange primary CTAs. `variant="primary"`
   // yields #3D3D3D ink, NOT orange. White text on #F24405 is AA-pass; hover steps to #C63804.
   brand: "bg-brand-orange text-white hover:bg-brand-orange-dark focus-visible:ring-brand-orange",
   secondary: "border border-divider bg-surface text-ink hover:bg-surfaceMuted focus-visible:ring-focus",

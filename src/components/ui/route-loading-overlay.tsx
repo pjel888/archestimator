@@ -17,9 +17,10 @@ export function RouteLoadingOverlay() {
   useEffect(() => {
     if (!isNavigating) return;
 
-    const mains = MAIN_CONTENT_SELECTORS
-      .map((sel) => document.querySelector(sel))
-      .filter(Boolean) as HTMLElement[];
+    const mains = MAIN_CONTENT_SELECTORS.flatMap((sel) => {
+      const element = document.querySelector<HTMLElement>(sel);
+      return element ? [element] : [];
+    });
 
     mains.forEach((el) => el.setAttribute("aria-hidden", "true"));
 

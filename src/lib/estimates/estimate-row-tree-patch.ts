@@ -37,8 +37,9 @@ type EstimateRowMutationResultPatchInput = {
 
 export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: string): EstimateRowItem | null {
   for (const node of tree) {
-    const item = node.estimateRowItems?.find((rowItem) => rowItem.id === rowId);
-    if (item) return item;
+    for (const item of node.estimateRowItems ?? []) {
+      if (item.id === rowId) return item;
+    }
     const childItem = node.children ? findEstimateRowItemInTree(node.children, rowId) : null;
     if (childItem) return childItem;
   }

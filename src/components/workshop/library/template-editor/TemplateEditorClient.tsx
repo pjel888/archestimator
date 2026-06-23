@@ -10,11 +10,17 @@ import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
+import {
+  LibrarySurfaceVariantProvider,
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
 import { workspaceComponentLibraryQueryKey } from "@/lib/component-library/query-keys";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "../../component-library";
 import { filterTemplatesByQuery, type EstimateTemplate } from "../../component-library/templates";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
@@ -27,16 +33,18 @@ import { TemplateEditorSheet, type TemplateSheetHandlers } from "./TemplateEdito
 import { useTemplateEditor } from "./use-template-editor";
 
 function TemplateEditorDockFallback() {
+  const surfaceVariant = useLibrarySurfaceVariant();
+
   return (
     <div
-      className="hidden w-[380px] shrink-0 border-l border-hairline bg-white p-2 lg:block"
+      className={cn("hidden w-[380px] shrink-0 p-2 lg:block", librarySurfaceClass(surfaceVariant, "rightDock"))}
       role="status"
       aria-label="Loading components dock"
     >
-      <Skeleton className="h-8 w-full" />
+      <Skeleton className={cn("h-8 w-full", librarySurfaceClass(surfaceVariant, "skeleton"))} />
       <div className="mt-2 space-y-1" aria-hidden="true">
         {Array.from({ length: 10 }, (_, index) => (
-          <Skeleton key={index} className="h-6 w-full" />
+          <Skeleton key={index} className={cn("h-6 w-full", librarySurfaceClass(surfaceVariant, "skeleton"))} />
         ))}
       </div>
       <span className="sr-only">Loading components dock</span>
@@ -50,8 +58,17 @@ function TemplateEditorDockFallback() {
  * arrives with the editor's drag/drop phase.
  */
 export function TemplateEditorClient({ template: serverTemplate, workspaceId }: { template: EstimateTemplate; workspaceId: string }) {
+  return (
+    <LibrarySurfaceVariantProvider variant="glass">
+      <TemplateEditorSurface template={serverTemplate} workspaceId={workspaceId} />
+    </LibrarySurfaceVariantProvider>
+  );
+}
+
+function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { template: EstimateTemplate; workspaceId: string }) {
   const editor = useTemplateEditor(serverTemplate);
   const template = editor.template;
+  const surfaceVariant = useLibrarySurfaceVariant();
   const setBreadcrumb = useLibraryEditorChrome((state) => state.setBreadcrumb);
   const clearBreadcrumb = useLibraryEditorChrome((state) => state.clearBreadcrumb);
   const setSaveState = useLibraryEditorChrome((state) => state.setSaveState);
@@ -222,7 +239,15 @@ export function TemplateEditorClient({ template: serverTemplate, workspaceId }: 
   );
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden bg-white" data-template-editor-workspace="true">
+    <div
+      className={cn(
+        "flex h-full min-h-0 overflow-hidden rounded-xs",
+        surfaceVariant === "glass" ? "gap-2 border border-[color:var(--glass-border)] p-2" : "bg-white",
+        librarySurfaceClass(surfaceVariant, "root"),
+      )}
+      data-template-editor-workspace="true"
+      data-library-surface={surfaceVariant}
+    >
       <ResizableSidePanel
         side="left"
         ariaLabel="Template structure panel"
@@ -232,15 +257,21 @@ export function TemplateEditorClient({ template: serverTemplate, workspaceId }: 
         maxWidth={432}
         widthOffset={104}
       >
-        <div className="flex h-full min-h-0 flex-col overflow-hidden border-r border-hairline bg-white">
+        <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "treeRail"))}>
           <Link
             href="/workshop/library/templates"
-            className="flex h-7 shrink-0 items-center gap-1 border-b border-hairline px-2 text-[10px] leading-4 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className={cn(
+              "flex h-7 shrink-0 items-center gap-1 px-2 text-[10px] leading-4 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              librarySurfaceClass(surfaceVariant, "railPanelHeader"),
+            )}
           >
             <CaretLeft size={11} weight="regular" aria-hidden="true" />
             All templates
           </Link>
           <TreePanelHeader
+            className={cn("bg-transparent", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}
+            toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
+            showToolbarBottomBorder={surfaceVariant !== "glass"}
             ariaLabel="Template structure tools"
             labelPrefix="template structure"
             searchValue={treeSearchQuery}

@@ -51,8 +51,10 @@ function normalizeDesignation(designation: string | null | undefined): string[] 
   // Bound split output before allocation can scale with attacker-controlled text.
   const parts = bounded
     .split(DELIMITER_REGEX, MAX_DESIGNATION_SEGMENTS)
-    .map((p) => normalizeDesignationSegment(p))
-    .filter(Boolean);
+    .flatMap((part) => {
+      const normalizedPart = normalizeDesignationSegment(part);
+      return normalizedPart ? [normalizedPart] : [];
+    });
 
   return parts.length > 0 ? parts : [];
 }

@@ -179,7 +179,10 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   }, [publicationId]);
 
   function parseAndAddEmails(raw: string) {
-    const parts = raw.split(/[,;\s]+/).map((p) => p.trim()).filter(Boolean);
+    const parts = raw.split(/[,;\s]+/).flatMap((part) => {
+      const trimmed = part.trim();
+      return trimmed ? [trimmed] : [];
+    });
     const next = [...chips];
     let added = 0;
     for (const p of parts) {

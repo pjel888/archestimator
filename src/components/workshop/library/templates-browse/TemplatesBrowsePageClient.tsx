@@ -6,12 +6,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  LibrarySurfaceVariantProvider,
+  librarySurfaceClass,
+} from "@/components/workshop/library/library-surface-variant";
+import {
   WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY,
   workspaceEstimateTemplatesQueryKey,
   type WorkspaceEstimateTemplatesQueryScope,
 } from "@/lib/component-library/query-keys";
 import { loadCurrentWorkspaceEstimateTemplates } from "@/lib/component-library/actions";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { cn } from "@/lib/ui/cn";
 
 const TemplatesBrowseManager = dynamic(
   () => import("./TemplatesBrowseManager").then((module) => module.TemplatesBrowseManager),
@@ -23,25 +28,28 @@ const TemplatesBrowseManager = dynamic(
 function TemplatesBrowseFallback() {
   return (
     <div
-      className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"
+      className={cn(
+        "flex h-full min-h-0 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2",
+        librarySurfaceClass("glass", "root"),
+      )}
       role="status"
       aria-label="Loading templates"
     >
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-        <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-hidden="true">
-          <div className="hidden w-[312px] shrink-0 border-r border-hairline p-2 lg:block">
-            <Skeleton className="h-7 w-full" />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <section className="flex h-full min-h-0 gap-2 overflow-hidden bg-transparent" aria-hidden="true">
+          <div className={cn("hidden w-[312px] shrink-0 p-2 lg:block", librarySurfaceClass("glass", "treeRail"))}>
+            <Skeleton className={cn("h-7 w-full", librarySurfaceClass("glass", "skeleton"))} />
             <div className="mt-2 space-y-1">
               {Array.from({ length: 8 }, (_, index) => (
-                <Skeleton key={index} className="h-6 w-full" />
+                <Skeleton key={index} className={cn("h-6 w-full", librarySurfaceClass("glass", "skeleton"))} />
               ))}
             </div>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col p-2">
-            <Skeleton className="h-7 w-32" />
+          <div className={cn("flex min-w-0 flex-1 flex-col p-2", librarySurfaceClass("glass", "centerColumn"))}>
+            <Skeleton className={cn("h-7 w-32", librarySurfaceClass("glass", "skeleton"))} />
             <div className="mt-2 space-y-1.5">
               {Array.from({ length: 5 }, (_, index) => (
-                <Skeleton key={index} className="h-[72px] w-full" />
+                <Skeleton key={index} className={cn("h-[72px] w-full", librarySurfaceClass("glass", "skeleton"))} />
               ))}
             </div>
           </div>
@@ -89,10 +97,12 @@ export function TemplatesBrowsePageClient({ templates, queryScope }: TemplatesBr
     void queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
   return (
-    <TemplatesBrowseManager
-      templates={data ?? templates}
-      onTemplatesMutated={onTemplatesMutated}
-      onTemplatesInvalidated={onTemplatesInvalidated}
-    />
+    <LibrarySurfaceVariantProvider variant="glass">
+      <TemplatesBrowseManager
+        templates={data ?? templates}
+        onTemplatesMutated={onTemplatesMutated}
+        onTemplatesInvalidated={onTemplatesInvalidated}
+      />
+    </LibrarySurfaceVariantProvider>
   );
 }

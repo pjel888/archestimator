@@ -23,6 +23,10 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "../../component-library/templates";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "../library-surface-variant";
 import { getTemplateSourceTrustChips, SourceTrustChips } from "../source-trust-chips";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
@@ -481,6 +485,7 @@ export function TemplateEditorSheet({
   selectedNodeId: string | null;
   handlers: TemplateSheetHandlers;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -555,13 +560,18 @@ export function TemplateEditorSheet({
 
   return (
     <section
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+        librarySurfaceClass(surfaceVariant, "centerColumn"),
+      )}
       aria-label="Template content"
       data-template-editor-sheet="true"
     >
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Template content controls">
+      <header className={cn("sticky top-0 z-30", librarySurfaceClass(surfaceVariant, "sheetHeader"))} aria-label="Template content controls">
         <TreePanelHeader
-          className="static z-auto bg-transparent"
+          className={cn("static z-auto bg-transparent", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}
+          toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
+          showToolbarBottomBorder={surfaceVariant !== "glass"}
           ariaLabel="Template content tools"
           labelPrefix="template content"
           searchValue={searchQuery}
@@ -595,7 +605,10 @@ export function TemplateEditorSheet({
           ]}
         />
         <div
-          className="flex min-h-7 items-center border-b border-hairline bg-white px-2"
+          className={cn(
+            "flex min-h-7 items-center px-2",
+            librarySurfaceClass(surfaceVariant, "contextStrip"),
+          )}
           data-template-editor-source-trust="true"
         >
           <SourceTrustChips
@@ -606,7 +619,8 @@ export function TemplateEditorSheet({
         </div>
         <div
           className={cn(
-            "grid min-h-7 items-center border-b border-hairline bg-white text-[8px] font-medium leading-3 text-tertiary",
+            "grid min-h-7 items-center border-b border-hairline text-[8px] font-medium leading-3 text-tertiary",
+            surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
             TEMPLATE_SHEET_ROW_COLUMNS,
           )}
           aria-hidden="true"

@@ -316,15 +316,18 @@ function summarizeProjectActivityItem(item: ProjectActivityItem) {
 
 function groupProjectActivityItems(items: readonly ProjectActivityItem[]): ProjectActivityGroup[] {
   const groups: ProjectActivityGroup[] = [];
+  const groupsByLabel = new Map<string, ProjectActivityGroup>();
 
   for (const item of items) {
     const label = formatActivityDay(item.createdAt);
-    const existingGroup = groups.find((group) => group.label === label);
+    const existingGroup = groupsByLabel.get(label);
     if (existingGroup) {
       existingGroup.items.push(item);
       continue;
     }
-    groups.push({ label, items: [item] });
+    const group = { label, items: [item] };
+    groupsByLabel.set(label, group);
+    groups.push(group);
   }
 
   return groups;

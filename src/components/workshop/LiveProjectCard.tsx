@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { acceptPendingInvitationById } from "@/lib/collaboration/pending-invite-actions";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -26,6 +27,10 @@ import type {
 
 export type ProjectCardViewMode = "list" | "small" | "medium" | "large";
 export type ProjectAccessKind = "owned" | "pending-invite" | "project-member" | "sheet-member";
+export type ProjectCardSetupStatus = {
+  state: "creating" | "preparing" | "error";
+  message: string;
+};
 
 type LiveProjectCardProps = {
   project: Tables<"projects">;
@@ -35,6 +40,8 @@ type LiveProjectCardProps = {
   ownerWorkspaceName?: string | null;
   pendingInvite?: WorkshopPendingInviteSummary | null;
   pendingInviteCount?: number;
+  setupStatus?: ProjectCardSetupStatus | null;
+  setupNavigationDisabled?: boolean;
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
@@ -138,6 +145,8 @@ function LiveProjectCardImpl({
   ownerWorkspaceName = null,
   pendingInvite = null,
   pendingInviteCount = 0,
+  setupStatus = null,
+  setupNavigationDisabled = false,
   sharedEstimateCount = 0,
   favoriteEstimateSheets = [],
   isFavorite = false,
@@ -162,6 +171,7 @@ function LiveProjectCardImpl({
   const prefetchRoutes = useMemo(() => [{ pathname: projectHref }], [projectHref]);
   const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
   const motif = getProjectMotif(project);
+  const setupBusy = setupStatus?.state === "creating" || setupStatus?.state === "preparing";
 
   // Density ladder: view modes change card width/content density, while every
   // project thumbnail keeps the same 4:3 architectural image frame.
@@ -274,8 +284,12 @@ function LiveProjectCardImpl({
           reveal ? REVEAL_ON_INTENT : "pointer-events-auto opacity-100",
         )}
         aria-label={`Expand ${project.name} details`}
+        aria-disabled={setupNavigationDisabled}
         data-project-card-details-action=""
-        onClick={() => onExpand?.(project)}
+        onClick={() => {
+          if (setupNavigationDisabled) return;
+          onExpand?.(project);
+        }}
       >
         <DotsThreeVertical size={15} weight="regular" aria-hidden="true" />
       </Button>
@@ -483,6 +497,22 @@ function LiveProjectCardImpl({
   }
 
   function renderFooterAction(): ReactNode {
+    if (setupNavigationDisabled && !isPendingInvite) {
+      return (
+        <span
+          aria-disabled="true"
+          className={cn("cursor-wait opacity-70", OPEN_CONTROL_LINK)}
+        >
+          <ArrowSquareOut
+            size={15}
+            data-project-card-open-icon="square-out"
+            className="shrink-0"
+            aria-hidden="true"
+          />
+        </span>
+      );
+    }
+
     if (isExpiredPendingInvite) {
       return (
         <Button type="button" variant="secondary" size="sm" className="min-h-7 shrink-0 px-2.5 text-[10px]" disabled>
@@ -528,6 +558,37 @@ function LiveProjectCardImpl({
     );
   }
 
+  function renderSetupOverlay() {
+    if (!setupStatus) return null;
+    const isError = setupStatus.state === "error";
+
+    return (
+      <div
+        data-project-card-setup-overlay=""
+        className={cn(
+          "pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-white/72 p-3 backdrop-blur-[2px]",
+          isError ? "bg-white/82" : null,
+        )}
+      >
+        <div
+          role={isError ? "alert" : "status"}
+          aria-live="polite"
+          className={cn(
+            "flex max-w-full items-center gap-2 rounded-xs border bg-white/95 px-2.5 py-2 text-[10px] font-medium leading-3 shadow-sm",
+            isError ? "border-danger/30 text-danger" : "border-hairline text-ink",
+          )}
+        >
+          {setupBusy ? (
+            <Spinner size="xs" decorative className="shrink-0" />
+          ) : (
+            <span className="size-2 shrink-0 rounded-full bg-danger" aria-hidden="true" />
+          )}
+          <span className="min-w-0 text-balance">{setupStatus.message}</span>
+        </div>
+      </div>
+    );
+  }
+
   const cardLabel = getAccessibleAccessLabel({
     accessKind,
     projectName: project.name,
@@ -541,7 +602,9 @@ function LiveProjectCardImpl({
         data-project-card-view={viewMode}
         data-project-access-kind={accessKind}
         data-project-card-selected={selectedForDeletion ? "true" : undefined}
+        data-project-card-setup-state={setupStatus?.state}
         aria-label={cardLabel}
+        aria-busy={setupBusy || undefined}
         className={cn(
           "workshop-project-card-glass group relative flex min-w-0 items-center gap-3 px-3 py-2 motion-reduce:transition-none",
           // Perf: skip layout/paint for off-screen list rows too (off-screen borders aren't
@@ -653,7 +716,7 @@ function LiveProjectCardImpl({
         </div>
 
         {/* Whole-row navigation; interactive controls sit above this at z-20. */}
-        {isPendingInvite ? null : (
+        {isPendingInvite || setupNavigationDisabled ? null : (
           <Link
             href={projectHref}
             prefetch={false}
@@ -665,6 +728,7 @@ function LiveProjectCardImpl({
             className="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
           />
         )}
+        {renderSetupOverlay()}
       </article>
     );
   }
@@ -679,7 +743,9 @@ function LiveProjectCardImpl({
       data-project-card-view={viewMode}
       data-project-access-kind={accessKind}
       data-project-card-selected={selectedForDeletion ? "true" : undefined}
+      data-project-card-setup-state={setupStatus?.state}
       aria-label={cardLabel}
+      aria-busy={setupBusy || undefined}
       className={cn(
         "workshop-project-card-glass group group/card relative flex min-w-0 flex-col overflow-hidden rounded-xs border motion-reduce:transition-none",
         selectedForDeletion ? "border-ink" : "border-hairline",
@@ -737,7 +803,7 @@ function LiveProjectCardImpl({
       </div>
 
       {/* Small tiles have no footer link: the whole tile is the navigation target. */}
-      {viewMode === "small" && !isPendingInvite ? (
+      {viewMode === "small" && !isPendingInvite && !setupNavigationDisabled ? (
         <Link
           href={projectHref}
           prefetch={false}
@@ -749,6 +815,7 @@ function LiveProjectCardImpl({
           className="absolute inset-0 z-10 rounded-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         />
       ) : null}
+      {renderSetupOverlay()}
     </article>
   );
 }

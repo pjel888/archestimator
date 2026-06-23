@@ -8,9 +8,12 @@ import { fetchSidebarFavoriteProjects } from "@/lib/favorites/sidebar-favorites-
 type SidebarFavoritesScope = { workspaceId: string; userId: string };
 
 export function useSidebarFavoritesQuery(args: {
-  scope: SidebarFavoritesScope; initialData: MainSidebarFavoriteProject[]; enabled?: boolean;
+  scope: SidebarFavoritesScope;
+  initialData: MainSidebarFavoriteProject[];
+  enabled?: boolean;
+  initialDataFresh?: boolean;
 }): UseQueryResult<MainSidebarFavoriteProject[]> {
-  const { scope, initialData, enabled = true } = args;
+  const { scope, initialData, enabled = true, initialDataFresh = true } = args;
   const queryClient = useQueryClient();
 
   // D12 / C4: a key change alone does NOT evict the old entry (lingers gcTime, 5 min).
@@ -27,6 +30,7 @@ export function useSidebarFavoritesQuery(args: {
     queryKey: favoritesQueryKeys.sidebar(scope),
     queryFn: fetchSidebarFavoriteProjects,
     initialData,
+    initialDataUpdatedAt: initialDataFresh ? undefined : 0,
     // D4 (revised): SSR seeds `initialData` (listMainSidebarFavoriteProjects in WorkshopPageShell),
     // so a `staleTime: 0` mount refetch just re-does the work SSR already did on every workshop
     // navigation. With no `initialDataUpdatedAt`, React Query ages initialData from mount, so a

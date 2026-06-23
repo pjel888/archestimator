@@ -57,7 +57,12 @@ function readCompareEstimateIds(
 
 function parseCompareValues(values: string[], selectedEstimateId: string | null): string[] {
   if (values.some((value) => value.trim().toLowerCase() === "none")) return [];
-  const ids = values.flatMap((value) => value.split(",")).map((value) => value.trim()).filter(Boolean);
+  const ids = values.flatMap((value) =>
+    value.split(",").flatMap((part) => {
+      const trimmed = part.trim();
+      return trimmed ? [trimmed] : [];
+    })
+  );
   const out: string[] = [];
   for (const id of ids) {
     if (id === selectedEstimateId || out.includes(id)) continue;

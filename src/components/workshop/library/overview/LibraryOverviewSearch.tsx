@@ -5,11 +5,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   searchLibraryOverview,
   type LibraryOverviewSearchResult,
 } from "@/lib/component-library/actions";
+import { cn } from "@/lib/ui/cn";
 
 const SEARCH_DEBOUNCE_MS = 150;
 const LISTBOX_ID = "library-overview-search-results";
@@ -36,6 +41,7 @@ function optionDomId(entryId: string) {
  */
 export function LibraryOverviewSearch() {
   const router = useNavigationRouter();
+  const surfaceVariant = useLibrarySurfaceVariant();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const requestIdRef = useRef(0);
@@ -256,7 +262,7 @@ export function LibraryOverviewSearch() {
     <div ref={containerRef} className="relative w-[360px] max-w-full" data-library-overview-search="true">
       <SearchInput
         ref={inputRef}
-        wrapperClassName="w-full rounded-xs border border-hairline"
+        wrapperClassName={cn("w-full", librarySurfaceClass(surfaceVariant, "segmentedControl"))}
         placeholder="Search components and templates"
         aria-label="Search components and templates"
         role="combobox"
@@ -277,7 +283,10 @@ export function LibraryOverviewSearch() {
           id={LISTBOX_ID}
           role="listbox"
           aria-label="Library search results"
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-y-auto rounded-xs border border-hairline bg-white pb-1 shadow-sm"
+          className={cn(
+            "absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-y-auto pb-1",
+            librarySurfaceClass(surfaceVariant, "popup"),
+          )}
           data-library-overview-search-popover="true"
         >
           {hasResults ? (

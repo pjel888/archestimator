@@ -11,7 +11,7 @@ import { WebVitalsProbe } from "@/components/workshop/WebVitalsProbe";
 import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
-import { ensureDefaultWorkspace, listMainSidebarFavoriteProjects } from "@/lib/repositories/workspace-repository";
+import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
 import { WorkshopFeedbackModal } from "./WorkshopFeedbackModal";
@@ -98,13 +98,7 @@ export async function WorkshopPageShell({
     getCurrentUserContext(),
     getSidePanelWidthCssVariables(),
   ]);
-  // ensureDefaultWorkspace() and listMainSidebarFavoriteProjects() are independent here:
-  // the favourites query re-reads the (React-cache()-memoised) default workspace internally
-  // rather than consuming the scope object, so we can await them together instead of
-  // serially. Both run only when there's a signed-in user, matching the prior behaviour.
-  const [workspaceBootstrap, sidebarFavoriteProjects] = currentUser
-    ? await Promise.all([ensureDefaultWorkspace(), listMainSidebarFavoriteProjects()])
-    : [null, []];
+  const workspaceBootstrap = currentUser ? await ensureDefaultWorkspace() : null;
   const sidebarFavoriteScope = currentUser && workspaceBootstrap
     ? { workspaceId: workspaceBootstrap.workspace.id, userId: currentUser.userId }
     : null;
@@ -135,7 +129,8 @@ export async function WorkshopPageShell({
       <WebVitalsProbe />
       <WorkshopGlassBackdrop />
       <MainSidebar
-        favoriteProjects={sidebarFavoriteProjects}
+        favoriteProjects={[]}
+        favoriteProjectsFresh={false}
         favoritesScope={sidebarFavoriteScope}
         status={sidebarStatus}
         user={sidebarUser}

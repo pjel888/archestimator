@@ -49,6 +49,7 @@ import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/l
 import {
   buildLibraryFolderTree,
   getLibraryItemsForFolderNode,
+  getUserLibraryFolders,
   planLibraryFolderDelete,
   type LibraryFolderRecord,
   type LibraryFolderTreeNode,
@@ -448,6 +449,7 @@ function ComponentCatalogueCard({
   onPromote?: (item: EstimateRowItem) => void;
   promotePending?: boolean;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const item = card.item;
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
@@ -466,7 +468,8 @@ function ComponentCatalogueCard({
       className={cn(
         "group cursor-pointer transition hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
         CATALOGUE_CARD_SHELL_CLASS,
-        inspectorSelected && "border-ink bg-surfaceMuted/40",
+        librarySurfaceClass(surfaceVariant, "contentTile"),
+        inspectorSelected && (surfaceVariant === "glass" ? "border-ink bg-white/90" : "border-ink bg-surfaceMuted/40"),
       )}
       onClick={(event) => {
         if ((event.target as HTMLElement).closest("label, button, a, input")) return;
@@ -651,12 +654,17 @@ function DenseSortableHeader({
   onSort: (key: DenseSortKey) => void;
   className?: string;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const active = sort.key === sortKey;
   return (
     <th
       scope="col"
       aria-sort={getDenseAriaSort(sort, sortKey)}
-      className={cn("sticky top-0 z-10 border-b border-hairline bg-white px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary", className)}
+      className={cn(
+        "sticky top-0 z-10 border-b border-hairline px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+        surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
+        className,
+      )}
     >
       <button
         type="button"
@@ -694,6 +702,7 @@ function ComponentCatalogueDenseTable({
   onPromote?: (item: EstimateRowItem) => void;
   promotingItemId?: string | null;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const virtualEnabled = Boolean(
     WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.enabled &&
@@ -747,7 +756,10 @@ function ComponentCatalogueDenseTable({
   return (
     <div
       ref={scrollContainerRef}
-      className="h-full max-h-full min-h-0 overflow-auto rounded-xs border border-hairline bg-white"
+      className={cn(
+        "h-full max-h-full min-h-0 overflow-auto rounded-xs border border-hairline",
+        librarySurfaceClass(surfaceVariant, "denseTable"),
+      )}
       data-component-dense-scroll-container="true"
       data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
       data-library-virtualization-enabled={String(WORKSHOP_VIRTUALIZATION_FLAGS.libraryComponents)}
@@ -783,7 +795,10 @@ function ComponentCatalogueDenseTable({
           <tr>
             <th
               scope="col"
-              className="sticky top-0 z-10 border-b border-hairline bg-white px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary"
+              className={cn(
+                "sticky top-0 z-10 border-b border-hairline px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+                surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
+              )}
             >
               <span className="sr-only">Select</span>
             </th>
@@ -799,7 +814,10 @@ function ComponentCatalogueDenseTable({
             <DenseSortableHeader label="Usage" sortKey="usage" sort={sort} onSort={onSort} />
             <th
               scope="col"
-              className="sticky top-0 z-10 border-b border-hairline bg-white px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary"
+              className={cn(
+                "sticky top-0 z-10 border-b border-hairline px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+                surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
+              )}
             >
               Actions
             </th>
@@ -862,7 +880,10 @@ function ComponentCatalogueDenseTable({
                     onChange={() => onToggleSelected(item.id)}
                   />
                 </td>
-                <th scope="row" className="bg-white px-2 py-1 text-left align-top">
+                <th
+                  scope="row"
+                  className={cn(surfaceVariant === "glass" ? "bg-transparent" : "bg-white", "px-2 py-1 text-left align-top")}
+                >
                   <button
                     type="button"
                     className="block max-w-full truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -970,6 +991,7 @@ function ComponentCatalogueBranch({
   onPromote?: (item: EstimateRowItem) => void;
   promotingItemId?: string | null;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const collapsed = collapsedBranchIds.has(branch.id);
   const eyebrow = branch.parentPathLabel || "Component Library";
 
@@ -982,7 +1004,8 @@ function ComponentCatalogueBranch({
     >
       <div
         className={cn(
-          "flex min-h-[72px] min-w-0 items-center gap-2 border-b border-hairline bg-white px-3 py-2.5",
+          "flex min-h-[72px] min-w-0 items-center gap-2 px-3 py-2.5",
+          librarySurfaceClass(surfaceVariant, "contentTile"),
         )}
       >
         <button
@@ -1040,37 +1063,15 @@ function ComponentCatalogueBranch({
   );
 }
 
-function buildFallbackLibraryFolders(
-  nodes: ComponentLibraryTaxonomyNode[],
-  parentId: string | null = null,
-  workspaceId = "fallback-workspace",
-): LibraryFolderRecord[] {
-  return nodes.flatMap((node, index) => {
-    const folderId = `taxonomy-${node.id}`;
-    return [
-      {
-        id: folderId,
-        workspace_id: workspaceId,
-        parent_id: parentId,
-        name: node.label,
-        sort_order: (index + 1) * 10,
-        source_category_node_id: node.id,
-        folder_kind: "taxonomy",
-      } satisfies LibraryFolderRecord,
-      ...buildFallbackLibraryFolders(node.children ?? [], folderId, workspaceId),
-    ];
-  });
-}
-
 function normalizeLibraryFolderRecords(folders: LibraryFolderRecord[]): LibraryFolderRecord[] {
-  return folders.map((folder) => ({
+  return getUserLibraryFolders(folders).map((folder) => ({
     id: folder.id,
     workspace_id: folder.workspace_id,
     parent_id: folder.parent_id,
     name: folder.name,
     sort_order: folder.sort_order,
     source_category_node_id: folder.source_category_node_id,
-    folder_kind: folder.folder_kind === "taxonomy" ? "taxonomy" : "custom",
+    folder_kind: folder.folder_kind,
   }));
 }
 
@@ -1196,6 +1197,7 @@ function ComponentLibraryTreePanel({
           onCreateFolder={onCreateFolder}
           onRenameFolder={onRenameFolder}
           onDeleteFolder={onDeleteFolder}
+          showAllComponentsRoot={false}
           searchAriaLabel="Search component library tree"
           folderSearchPlaceholder="Search Library Folders"
           supplierSearchPlaceholder="Search Library Tree"
@@ -1429,7 +1431,7 @@ function ComponentLibrarySheet({
               <div
                 role="group"
                 aria-label="Component display mode"
-                className="flex h-6 shrink-0 items-center overflow-hidden rounded-xs border border-hairline bg-white"
+                className={cn("flex h-6 shrink-0 items-center overflow-hidden", librarySurfaceClass(surfaceVariant, "segmentedControl"))}
               >
                 <button
                   type="button"
@@ -1512,7 +1514,10 @@ function ComponentLibrarySheet({
           />
         ) : cardScaleFallbackActive && hasCatalogueResults ? (
           <div
-            className="grid h-full min-h-[240px] place-items-center rounded-xs border border-dashed border-hairline bg-white p-4 text-center"
+            className={cn(
+              "grid h-full min-h-[240px] place-items-center border-dashed p-4 text-center",
+              librarySurfaceClass(surfaceVariant, "emptyState"),
+            )}
             data-component-card-scale-fallback="true"
             data-component-card-scale-fallback-count={visibleItems.length}
             data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
@@ -1550,7 +1555,13 @@ function ComponentLibrarySheet({
             ))}
             {catalogueOutline.items.length > 0 ? (
               <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
-                <div className="flex min-h-[72px] min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-3 py-2.5">
+                <div
+                  className={cn(
+                    "flex min-h-[72px] min-w-0 items-center gap-2 px-3 py-2.5",
+                    librarySurfaceClass(surfaceVariant, "contentTile"),
+                    surfaceVariant === "paper" && "bg-surfaceMuted/70",
+                  )}
+                >
                   <SquaresFour size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                   <div className="flex min-w-0 flex-1 flex-col justify-center">
                     <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary/70">
@@ -1693,10 +1704,9 @@ export function ComponentLibraryManager({
   const quickAddSessionCounterRef = useRef(0);
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
-  const fallbackFolders = useMemo(() => buildFallbackLibraryFolders(categoryTree), [categoryTree]);
   const normalizedPropFolders = useMemo(
-    () => normalizeLibraryFolderRecords(libraryFolders?.length ? libraryFolders : fallbackFolders),
-    [fallbackFolders, libraryFolders],
+    () => normalizeLibraryFolderRecords(libraryFolders ?? []),
+    [libraryFolders],
   );
   const [localFolders, setLocalFolders] = useState<LibraryFolderRecord[]>(normalizedPropFolders);
   // Reorder + any external folder edit goes through here so the warm query cache

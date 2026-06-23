@@ -79,9 +79,10 @@ function filterTreeNodes(
 
   function visit(node: ShareTreeNode): ShareTreeNode | null {
     const labelMatch = node.label.toLowerCase().includes(lower);
-    const filteredChildren = node.children
-      .map(visit)
-      .filter(Boolean) as ShareTreeNode[];
+    const filteredChildren = node.children.flatMap((child) => {
+      const visited = visit(child);
+      return visited ? [visited] : [];
+    });
 
     // Also check rows for description matches (any node may own rows post-unification)
     const rowMatches =
@@ -101,7 +102,10 @@ function filterTreeNodes(
     return null;
   }
 
-  return nodes.map(visit).filter(Boolean) as ShareTreeNode[];
+  return nodes.flatMap((node) => {
+    const visited = visit(node);
+    return visited ? [visited] : [];
+  });
 }
 
 type TreeNodeRendererProps = WorkshopTreeRenderNodeArgs<ShareTreeNode> & {

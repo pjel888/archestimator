@@ -6,6 +6,10 @@ import { ImageSquare } from "@phosphor-icons/react/dist/ssr";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter";
 import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import type { LibraryOverviewComponent } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
@@ -23,6 +27,7 @@ const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
  * the Components tab with the item inspector selected via route state.
  */
 export function RecentComponentCard({ component }: { component: LibraryOverviewComponent }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const subline = [component.category, component.supplier].filter(Boolean).join(" · ");
   const lifecycleBadge = component.lifecycleState !== "available"
     ? {
@@ -37,7 +42,11 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
         href={getComponentDetailsHref(component.id)}
         aria-label={`Open components: ${component.name}`}
         data-library-overview-recent-component={component.id}
-        className="group flex h-full flex-col overflow-hidden rounded-xs border border-hairline bg-white transition hover:border-divider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        className={cn(
+          "group flex h-full flex-col overflow-hidden transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          librarySurfaceClass(surfaceVariant, "contentTile"),
+          surfaceVariant === "glass" ? "hover:border-white/80 hover:bg-white/90" : "hover:border-divider",
+        )}
       >
         <div className="relative h-[72px] w-full shrink-0 overflow-hidden border-b border-hairline bg-surfaceMuted/40">
           {lifecycleBadge ? (

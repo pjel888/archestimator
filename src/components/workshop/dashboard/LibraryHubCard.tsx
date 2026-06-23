@@ -8,6 +8,7 @@ import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { NewProjectModal } from "@/components/workshop/NewProjectModal";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { createEstimateSheetDraft } from "@/lib/estimates/actions";
+import { buildEstimateSheetHref } from "@/lib/workshop/compare-href";
 import { cn } from "@/lib/ui/cn";
 
 import { ContinueCard } from "./ContinueCard";
@@ -84,7 +85,7 @@ export function LibraryHubCard({
     setEstimateError(null);
     startEstimateTransition(() => {
       void createEstimateSheetDraft(estimateTargetProject.id)
-        .then((result) => router.push(`/workshop/projects/${estimateTargetProject.id}/estimates/${result.areaNodeId}`))
+        .then((result) => router.push(buildEstimateSheetHref(estimateTargetProject.id, result.estimateId, result.firstNodeId)))
         .catch((error: unknown) => {
           setEstimateError(error instanceof Error ? error.message : "Could not create estimate sheet.");
           router.push(projectEstimatesHref(estimateTargetProject.id));

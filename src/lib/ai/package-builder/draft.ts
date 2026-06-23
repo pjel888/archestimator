@@ -264,7 +264,10 @@ function buildRoomNames(
     if (bathrooms.length > 0 && ["toilet bath", "bathroom", "bath"].includes(roomId)) return false;
     return true;
   });
-  const providerRooms = providerResult?.suggestion.roomNames?.map((room) => room.trim()).filter(Boolean) ?? [];
+  const providerRooms = providerResult?.suggestion.roomNames?.flatMap((room) => {
+    const trimmed = room.trim();
+    return trimmed ? [trimmed] : [];
+  }) ?? [];
   const rooms: string[] = [];
   const seenRoomIds = new Set<string>();
   for (const roomName of [
@@ -326,7 +329,10 @@ function buildCurrentEstimateTargetTree(readData: PackageBuilderReadToolsData, r
       sortOrder: index,
     };
   });
-  const existingAreaNames = new Set(areaNodes.map((node) => normalizeText(node.name)).filter(Boolean));
+  const existingAreaNames = new Set(areaNodes.flatMap((node) => {
+    const normalizedName = normalizeText(node.name);
+    return normalizedName ? [normalizedName] : [];
+  }));
   const generatedAreaDrafts = roomNames
     .filter((roomName) => {
       const roomId = normalizeText(roomName);
@@ -1153,11 +1159,22 @@ function usedPriorProjectComponentUsage({
   });
 }
 
+const EDITABLE_ROW_NUMBER_PATTERN_CACHE = new Map<string, RegExp>();
+
+function getEditableRowNumberPattern(label: string) {
+  let pattern = EDITABLE_ROW_NUMBER_PATTERN_CACHE.get(label);
+  if (!pattern) {
+    pattern = new RegExp(`\\b${label}\\b\\s*(?:to|is|=)?\\s*([0-9]+(?:\\.[0-9]+)?)\\b`);
+    EDITABLE_ROW_NUMBER_PATTERN_CACHE.set(label, pattern);
+  }
+  return pattern;
+}
+
 function parseEditableRowPatch(message: string) {
   const normalized = normalizeText(message);
   const readLabeledNumber = (labels: string[]) => {
     for (const label of labels) {
-      const match = normalized.match(new RegExp(`\\b${label}\\b\\s*(?:to|is|=)?\\s*([0-9]+(?:\\.[0-9]+)?)\\b`));
+      const match = normalized.match(getEditableRowNumberPattern(label));
       if (match) return Number(match[1]);
     }
     return undefined;
@@ -1884,8 +1901,10 @@ function chooseRevisionComponent({
   const existingMaterialsInArea = new Set(
     baseDraft.rowDraft
       .filter((row) => row.targetAreaClientDraftId === targetAreaClientDraftId)
-      .map((row) => normalizeText(row.material))
-      .filter(Boolean),
+      .flatMap((row) => {
+        const normalizedMaterial = normalizeText(row.material);
+        return normalizedMaterial ? [normalizedMaterial] : [];
+      }),
   );
   return componentMatches
     .filter((component) => !existingMaterialsInArea.has(normalizeText(component.material)))

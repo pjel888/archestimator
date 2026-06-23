@@ -135,7 +135,7 @@ export async function createProjectRecord(formData: FormData) {
   if (error) throw error;
 
   revalidatePath("/workshop/projects");
-  return { id: project.id };
+  return project;
 }
 
 export async function createProject(formData: FormData) {

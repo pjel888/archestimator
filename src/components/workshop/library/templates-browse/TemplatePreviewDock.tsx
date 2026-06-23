@@ -12,8 +12,13 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import { getTemplateSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
+import { cn } from "@/lib/ui/cn";
 
 // One neutral node glyph for every node (single-node model).
 function NodeKindIcon() {
@@ -68,6 +73,7 @@ export type TemplatePreviewDockProps = {
  * the selected row at the call site.
  */
 export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInsertIntoEstimate }: TemplatePreviewDockProps) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.defaultPrevented) return;
@@ -94,11 +100,11 @@ export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInser
       maxWidth={560}
     >
       <section
-        className="flex h-full min-h-0 flex-col overflow-hidden bg-white"
+        className={cn("flex h-full min-h-0 flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "rightDock"))}
         aria-label="Template preview"
         data-template-preview-dock="true"
       >
-        <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2">
+        <header className={cn("flex h-10 shrink-0 items-center justify-between gap-2 px-2", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}>
           <h2 className="truncate text-[11px] font-medium leading-4 text-ink">Template preview</h2>
           <Button
             variant="ghost"

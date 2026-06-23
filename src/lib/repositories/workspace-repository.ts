@@ -194,6 +194,10 @@ type WorkshopHomebaseSummaryRpcResult = {
   data: Json | null;
   error: unknown;
 };
+type WorkshopProjectsSummaryRpcResult = {
+  data: Json | null;
+  error: unknown;
+};
 type WorkshopHomebaseFavoriteProjectRef = Pick<Tables<"project_favorites">, "project_id" | "created_at">;
 type WorkshopHomebaseFavoriteEstimateRef = Pick<Tables<"estimate_favorites">, "estimate_id" | "project_id" | "created_at">;
 type WorkshopHomebaseSummaryPayload = {
@@ -205,6 +209,25 @@ type WorkshopHomebaseSummaryPayload = {
   recentEstimates: WorkshopEstimateRecord[];
   favoriteEstimates: WorkshopEstimateRecord[];
   estimateNodes: WorkshopEstimateNodeRecord[];
+};
+type WorkshopProjectFavoriteRef = Pick<Tables<"project_favorites">, "project_id">;
+type ProjectGroupMembershipRow = Pick<Tables<"project_group_memberships">, "project_id" | "group_id">;
+type WorkspaceMembershipRoleRow = Pick<Tables<"workspace_members">, "role">;
+type SentPendingInviteCountRow = { project_id: string; count: number };
+type WorkshopProjectsSummaryPayload = {
+  ownedProjects: Tables<"projects">[];
+  sharedProjects: Tables<"projects">[];
+  projectFavorites: WorkshopProjectFavoriteRef[];
+  estimateFavorites: WorkshopHomebaseFavoriteEstimateRef[];
+  favoriteEstimates: WorkshopEstimateRecord[];
+  projectMembers: ProjectMemberRow[];
+  sheetMembers: EstimateSheetMemberRow[];
+  workspaceMembership: WorkspaceMembershipRoleRow | null;
+  projectGroups: ProjectGroupSummary[];
+  projectGroupMemberships: ProjectGroupMembershipRow[];
+  publications: ProjectPublicationListRow[];
+  receivedPendingInvites: WorkshopPendingInviteSummary[];
+  sentInviteCounts: SentPendingInviteCountRow[];
 };
 
 type ProjectMemberRow = Pick<Tables<"project_members">, "project_id" | "role" | "user_id" | "workspace_id">;
@@ -881,6 +904,12 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
 });
 
 export const listCurrentWorkspaceProjects = cache(async () => {
+  const rpcResult = await listCurrentWorkspaceProjectsRpcPath();
+  if (rpcResult) return rpcResult;
+  return listCurrentWorkspaceProjectsAppPath();
+});
+
+async function listCurrentWorkspaceProjectsAppPath() {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
@@ -1124,7 +1153,7 @@ export const listCurrentWorkspaceProjects = cache(async () => {
     favoriteProjectIds: (favoritesResult.data ?? []).map((favorite) => favorite.project_id),
     projectGroups,
   };
-});
+}
 
 function mergeHomebaseRecords<T extends { id: string }>(primary: T[], secondary: T[]) {
   const byId = new Map<string, T>();
@@ -1176,7 +1205,7 @@ export function isWorkspaceHomebaseSummaryRolloutError(error: unknown): boolean 
 
 function assertRpcString(value: unknown, path: string): string {
   if (typeof value !== "string") {
-    throw new Error(`workspace_homebase_summary invalid shape: ${path} must be a string`);
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be a string`);
   }
   return value;
 }
@@ -1184,22 +1213,29 @@ function assertRpcString(value: unknown, path: string): string {
 function assertRpcOptionalString(value: unknown, path: string): string | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== "string") {
-    throw new Error(`workspace_homebase_summary invalid shape: ${path} must be a string or null`);
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be a string or null`);
   }
   return value;
 }
 
 function assertRpcNumber(value: unknown, path: string): number {
   if (typeof value !== "number") {
-    throw new Error(`workspace_homebase_summary invalid shape: ${path} must be a number`);
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be a number`);
   }
   return value;
+}
+
+function assertRpcJson(value: unknown, path: string): Json {
+  if (value === undefined) {
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be JSON`);
+  }
+  return value as Json;
 }
 
 function assertEstimateNodeKind(value: unknown, path: string): WorkshopEstimateNodeRecord["kind"] {
   const kind = assertRpcString(value, path);
   if (!WORKSHOP_ESTIMATE_NODE_KINDS.has(kind)) {
-    throw new Error(`workspace_homebase_summary invalid shape: ${path} must be a known estimate node kind`);
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be a known estimate node kind`);
   }
   return kind as WorkshopEstimateNodeRecord["kind"];
 }
@@ -1211,11 +1247,33 @@ function assertProjectFavoriteRef(value: Record<string, unknown>, path: string):
   };
 }
 
+function assertProjectFavoriteProjectRef(value: Record<string, unknown>, path: string): WorkshopProjectFavoriteRef {
+  return {
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+  };
+}
+
 function assertEstimateFavoriteRef(value: Record<string, unknown>, path: string): WorkshopHomebaseFavoriteEstimateRef {
   return {
     estimate_id: assertRpcString(value.estimate_id, `${path}.estimate_id`),
     project_id: assertRpcString(value.project_id, `${path}.project_id`),
     created_at: assertRpcString(value.created_at, `${path}.created_at`),
+  };
+}
+
+function assertProjectListRecord(value: Record<string, unknown>, path: string): Tables<"projects"> {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    workspace_id: assertRpcString(value.workspace_id, `${path}.workspace_id`),
+    created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
+    name: assertRpcString(value.name, `${path}.name`),
+    client_name: assertRpcOptionalString(value.client_name, `${path}.client_name`),
+    location: assertRpcOptionalString(value.location, `${path}.location`),
+    project_code: assertRpcOptionalString(value.project_code, `${path}.project_code`),
+    currency_code: assertRpcString(value.currency_code, `${path}.currency_code`),
+    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
+    created_at: assertRpcString(value.created_at, `${path}.created_at`),
+    updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
   };
 }
 
@@ -1229,6 +1287,87 @@ function assertProjectRecord(value: Record<string, unknown>, path: string): Work
     updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
     workspace_id: assertRpcString(value.workspace_id, `${path}.workspace_id`),
     created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
+  };
+}
+
+function assertProjectMemberRow(value: Record<string, unknown>, path: string): ProjectMemberRow {
+  return {
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    workspace_id: assertRpcString(value.workspace_id, `${path}.workspace_id`),
+    role: normalizeCollaborationRole(assertRpcOptionalString(value.role, `${path}.role`)),
+    user_id: assertRpcString(value.user_id, `${path}.user_id`),
+  };
+}
+
+function assertEstimateSheetMemberRow(value: Record<string, unknown>, path: string): EstimateSheetMemberRow {
+  return {
+    estimate_id: assertRpcString(value.estimate_id, `${path}.estimate_id`),
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    role: normalizeCollaborationRole(assertRpcOptionalString(value.role, `${path}.role`)),
+    user_id: assertRpcString(value.user_id, `${path}.user_id`),
+  };
+}
+
+function assertWorkspaceMembershipRoleRow(value: Record<string, unknown>, path: string): WorkspaceMembershipRoleRow {
+  const role = assertRpcString(value.role, `${path}.role`);
+  return { role: role as Tables<"workspace_members">["role"] };
+}
+
+function assertProjectGroupSummary(value: Record<string, unknown>, path: string): ProjectGroupSummary {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    name: assertRpcString(value.name, `${path}.name`),
+    accentId: assertRpcOptionalString(value.accent_id, `${path}.accent_id`),
+    position: assertRpcNumber(value.position, `${path}.position`),
+  };
+}
+
+function assertProjectGroupMembershipRow(value: Record<string, unknown>, path: string): ProjectGroupMembershipRow {
+  return {
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    group_id: assertRpcString(value.group_id, `${path}.group_id`),
+  };
+}
+
+function assertProjectPublicationListRow(value: Record<string, unknown>, path: string): ProjectPublicationListRow {
+  return {
+    encrypted_token: assertRpcString(value.encrypted_token, `${path}.encrypted_token`),
+    expires_at: assertRpcOptionalString(value.expires_at, `${path}.expires_at`),
+    id: assertRpcString(value.id, `${path}.id`),
+    latest_opened_at: assertRpcOptionalString(value.latest_opened_at, `${path}.latest_opened_at`),
+    location_visibility: assertRpcOptionalString(value.location_visibility, `${path}.location_visibility`) as ProjectPublicationListRow["location_visibility"],
+    open_count: assertRpcNumber(value.open_count, `${path}.open_count`),
+    password_hash: assertRpcOptionalString(value.password_hash, `${path}.password_hash`),
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    published_at: assertRpcString(value.published_at, `${path}.published_at`),
+    revoked_at: assertRpcOptionalString(value.revoked_at, `${path}.revoked_at`),
+    snapshot_version: assertRpcNumber(value.snapshot_version, `${path}.snapshot_version`),
+    status: assertRpcString(value.status, `${path}.status`) as ProjectPublicationListRow["status"],
+  };
+}
+
+function assertReceivedPendingInvite(value: Record<string, unknown>, path: string): WorkshopPendingInviteSummary {
+  const projectId = assertRpcString(value.project_id, `${path}.project_id`);
+  return {
+    id: assertRpcString(value.invitation_id, `${path}.invitation_id`),
+    projectId,
+    estimateId: assertRpcOptionalString(value.estimate_id, `${path}.estimate_id`),
+    projectName: assertRpcString(value.project_name, `${path}.project_name`),
+    projectCode: assertRpcOptionalString(value.project_code, `${path}.project_code`),
+    estimateName: assertRpcOptionalString(value.estimate_name, `${path}.estimate_name`),
+    role: normalizeCollaborationRole(assertRpcOptionalString(value.role, `${path}.role`)),
+    scope: normalizePendingInviteScope(assertRpcOptionalString(value.scope, `${path}.scope`)),
+    inviterLabel: assertRpcOptionalString(value.inviter_label, `${path}.inviter_label`),
+    state: assertRpcOptionalString(value.state, `${path}.state`) === "expired" ? "expired" : "pending",
+    expiresAt: assertRpcOptionalString(value.expires_at, `${path}.expires_at`),
+    lastOpenedAt: assertRpcOptionalString(value.last_opened_at, `${path}.last_opened_at`),
+  };
+}
+
+function assertSentPendingInviteCount(value: Record<string, unknown>, path: string): SentPendingInviteCountRow {
+  return {
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    count: assertRpcNumber(value.count, `${path}.count`),
   };
 }
 
@@ -1254,16 +1393,29 @@ function assertEstimateNodeRecord(value: Record<string, unknown>, path: string):
 
 function readRpcArray<T>(
   payload: Record<string, unknown>,
-  key: keyof WorkshopHomebaseSummaryPayload,
+  key: string,
   guard: (value: Record<string, unknown>, path: string) => T,
+  source = "workspace_homebase_summary",
 ): T[] {
   const value = payload[key];
   const keyName = String(key);
-  if (!Array.isArray(value)) throw new Error(`workspace_homebase_summary invalid shape: ${keyName} is not an array`);
+  if (!Array.isArray(value)) throw new Error(`${source} invalid shape: ${keyName} is not an array`);
   return value.map((item, index) => {
-    if (!isRecord(item)) throw new Error(`workspace_homebase_summary invalid array element: ${keyName}[${index}] is not an object`);
+    if (!isRecord(item)) throw new Error(`${source} invalid array element: ${keyName}[${index}] is not an object`);
     return guard(item, `${keyName}[${index}]`);
   });
+}
+
+function readRpcOptionalObject<T>(
+  payload: Record<string, unknown>,
+  key: string,
+  guard: (value: Record<string, unknown>, path: string) => T,
+  source: string,
+): T | null {
+  const value = payload[key];
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value)) throw new Error(`${source} invalid shape: ${key} is not an object`);
+  return guard(value, key);
 }
 
 export function parseWorkshopHomebaseSummaryPayload(value: unknown): WorkshopHomebaseSummaryPayload {
@@ -1278,6 +1430,156 @@ export function parseWorkshopHomebaseSummaryPayload(value: unknown): WorkshopHom
     favoriteEstimates: readRpcArray(value, "favoriteEstimates", assertEstimateRecord),
     estimateNodes: readRpcArray(value, "estimateNodes", assertEstimateNodeRecord),
   };
+}
+
+export function parseWorkshopProjectsSummaryPayload(value: unknown): WorkshopProjectsSummaryPayload {
+  const source = "workspace_projects_summary";
+  if (!isRecord(value)) throw new Error(`${source} invalid payload`);
+  return {
+    ownedProjects: readRpcArray(value, "ownedProjects", assertProjectListRecord, source),
+    sharedProjects: readRpcArray(value, "sharedProjects", assertProjectListRecord, source),
+    projectFavorites: readRpcArray(value, "projectFavorites", assertProjectFavoriteProjectRef, source),
+    estimateFavorites: readRpcArray(value, "estimateFavorites", assertEstimateFavoriteRef, source),
+    favoriteEstimates: readRpcArray(value, "favoriteEstimates", assertEstimateRecord, source),
+    projectMembers: readRpcArray(value, "projectMembers", assertProjectMemberRow, source),
+    sheetMembers: readRpcArray(value, "sheetMembers", assertEstimateSheetMemberRow, source),
+    workspaceMembership: readRpcOptionalObject(value, "workspaceMembership", assertWorkspaceMembershipRoleRow, source),
+    projectGroups: readRpcArray(value, "projectGroups", assertProjectGroupSummary, source),
+    projectGroupMemberships: readRpcArray(value, "projectGroupMemberships", assertProjectGroupMembershipRow, source),
+    publications: readRpcArray(value, "publications", assertProjectPublicationListRow, source),
+    receivedPendingInvites: readRpcArray(value, "receivedPendingInvites", assertReceivedPendingInvite, source),
+    sentInviteCounts: readRpcArray(value, "sentInviteCounts", assertSentPendingInviteCount, source),
+  };
+}
+
+function isWorkspaceProjectsSummaryContractError(error: unknown): error is Error {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.startsWith("workspace_projects_summary invalid") ||
+    error.message.startsWith("workspace summary RPC invalid shape")
+  );
+}
+
+async function listCurrentWorkspaceProjectsRpcPath() {
+  if (process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED === "1") return null;
+  if (await isDevAdminDatabaseBypassActiveForRequest()) return null;
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const summaryResult = await traced("projects.rpc.workspace_projects_summary", () =>
+    (supabase as unknown as {
+      rpc: (
+        functionName: "workspace_projects_summary",
+        args: { target_workspace_id: string },
+      ) => Promise<WorkshopProjectsSummaryRpcResult>;
+    }).rpc("workspace_projects_summary", {
+      target_workspace_id: workspace.id,
+    }),
+  );
+
+  if (summaryResult.error) {
+    if (isWorkspaceHomebaseSummaryRolloutError(summaryResult.error)) {
+      const code = isRecord(summaryResult.error) && typeof summaryResult.error.code === "string" ? summaryResult.error.code : "unknown";
+      const message = isRecord(summaryResult.error) && typeof summaryResult.error.message === "string" ? summaryResult.error.message : "unknown";
+      const details = isRecord(summaryResult.error) && typeof summaryResult.error.details === "string" ? summaryResult.error.details : null;
+      console.warn(`[workspace_projects_summary] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
+      return null;
+    }
+    throw summaryResult.error;
+  }
+
+  try {
+    const payload = parseWorkshopProjectsSummaryPayload(summaryResult.data);
+    const projectMembers = payload.projectMembers;
+    const sheetMembers = payload.sheetMembers;
+    const workspaceRole = payload.workspaceMembership?.role
+      ? mapWorkspaceRoleToCollaborationRole(payload.workspaceMembership.role)
+      : null;
+    const resolveProjectAccess = createWorkshopProjectAccessResolver({
+      profileId: profile.id,
+      projectMembers,
+      sheetMembers,
+      workspace,
+      workspaceRole,
+    });
+
+    const favoriteEstimateById = new Map(payload.favoriteEstimates.map((estimate) => [estimate.id, estimate]));
+    const favoriteEstimateSheetsByProjectId = payload.estimateFavorites.reduce((byProject, favorite) => {
+      const estimate = favoriteEstimateById.get(favorite.estimate_id);
+      if (!estimate) return byProject;
+      const sheets = byProject.get(favorite.project_id) ?? [];
+      if (sheets.length >= 5) return byProject;
+      sheets.push({
+        ...estimate,
+        favoriteCreatedAt: favorite.created_at,
+      });
+      byProject.set(favorite.project_id, sheets);
+      return byProject;
+    }, new Map<string, ProjectFavoriteEstimateSheetSummary[]>());
+
+    const groupIdByProjectId = new Map<string, string>(
+      payload.projectGroupMemberships.map((membership) => [
+        membership.project_id,
+        membership.group_id,
+      ]),
+    );
+    const publicationByProjectId = new Map<string, ProjectPublicationListRow>();
+    for (const publication of payload.publications) {
+      if (!publicationByProjectId.has(publication.project_id)) {
+        publicationByProjectId.set(publication.project_id, publication);
+      }
+    }
+    const sentPendingInviteCountByProjectId = new Map<string, number>(
+      payload.sentInviteCounts.map((row) => [row.project_id, row.count]),
+    );
+
+    function createProjectListItem(project: Tables<"projects">): WorkshopProjectListItem {
+      const access = resolveProjectAccess(project);
+      return {
+        project: toClientProjectRow(project),
+        ...access,
+        pendingInvite: null,
+        pendingInviteCount: canManageCollaborationRole(access.currentUserRole)
+          ? sentPendingInviteCountByProjectId.get(project.id) ?? 0
+          : 0,
+        publicationSummary: readProjectPublicationListSummary(publicationByProjectId.get(project.id) ?? null),
+        favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
+        groupId: groupIdByProjectId.get(project.id) ?? null,
+      };
+    }
+
+    const projectItems: WorkshopProjectListItem[] = [
+      ...payload.ownedProjects.map(createProjectListItem),
+      ...payload.sharedProjects.map(createProjectListItem),
+    ];
+    const acceptedProjectIds = new Set(projectItems.map((item) => item.project.id));
+    const pendingInviteItemsByProjectId = new Map<string, WorkshopProjectListItem>();
+    for (const invite of payload.receivedPendingInvites) {
+      if (acceptedProjectIds.has(invite.projectId) || pendingInviteItemsByProjectId.has(invite.projectId)) continue;
+      pendingInviteItemsByProjectId.set(
+        invite.projectId,
+        createPendingInviteProjectListItem({
+          invite,
+          profileId: profile.id,
+          workspaceId: workspace.id,
+        }),
+      );
+    }
+
+    return {
+      workspace,
+      projects: [
+        ...projectItems,
+        ...pendingInviteItemsByProjectId.values(),
+      ],
+      favoriteProjectIds: payload.projectFavorites.map((favorite) => favorite.project_id),
+      projectGroups: payload.projectGroups,
+    };
+  } catch (error) {
+    if (!isWorkspaceProjectsSummaryContractError(error)) throw error;
+    console.warn(`[workspace_projects_summary] RPC returned an incompatible payload (${error.message}); using app path`);
+    return null;
+  }
 }
 
 async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | null> {

@@ -4,13 +4,14 @@ import { X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 
-import { NewProjectForm } from "./NewProjectForm";
+import { NewProjectForm, type NewProjectOptimisticSnapshot } from "./NewProjectForm";
 
 type NewProjectModalProps = {
   onClose: () => void;
+  onOptimisticProjectChange?: (snapshot: NewProjectOptimisticSnapshot) => void;
 };
 
-export function NewProjectModal({ onClose }: NewProjectModalProps) {
+export function NewProjectModal({ onClose, onOptimisticProjectChange }: NewProjectModalProps) {
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/25 p-2 backdrop-blur-md">
       <div
@@ -31,7 +32,10 @@ export function NewProjectModal({ onClose }: NewProjectModalProps) {
         </Button>
 
         <div className="min-h-0 flex-1 overflow-auto">
-          <NewProjectForm onSuccess={onClose} />
+          <NewProjectForm
+            onSuccess={onClose}
+            onOptimisticProjectChange={onOptimisticProjectChange}
+          />
         </div>
       </div>
     </div>

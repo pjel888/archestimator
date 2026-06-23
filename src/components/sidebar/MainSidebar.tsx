@@ -38,6 +38,7 @@ export type MainSidebarStatus = {
 
 type MainSidebarProps = {
   favoriteProjects?: MainSidebarFavoriteProject[];
+  favoriteProjectsFresh?: boolean;
   favoritesScope?: { workspaceId: string; userId: string } | null;
   status?: MainSidebarStatus;
   user?: MainSidebarUser;
@@ -115,15 +116,22 @@ function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
   return base.join(" ");
 }
 
-export function MainSidebar({ favoriteProjects = [], favoritesScope, status, user }: MainSidebarProps) {
+export function MainSidebar({
+  favoriteProjects = [],
+  favoriteProjectsFresh = true,
+  favoritesScope,
+  status,
+  user,
+}: MainSidebarProps) {
   const pathname = usePathname();
   const favoritesQuery = useSidebarFavoritesQuery({
     scope: favoritesScope ?? { workspaceId: "none", userId: "none" }, // hook always called; null scope reads initialData
     initialData: favoriteProjects,
+    initialDataFresh: favoriteProjectsFresh,
     enabled: Boolean(favoritesScope), // null scope (loading shells/unauth): read initialData, don't refetch a junk key
   });
   const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
-  const showEmptyHint = !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
+  const showEmptyHint = (favoriteProjectsFresh || !favoritesQuery.isFetching) && !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
   const { politeText, assertiveText } = useSidebarFavoritesAnnouncer();
   const navRef = useRef<HTMLElement | null>(null);
   // Tracks which favorite link (by href) currently holds focus, plus the previous

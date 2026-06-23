@@ -112,8 +112,10 @@ export function sanitizeProjectPublicationLocation(
 
   const parts = normalized
     .split(",")
-    .map((part) => normalizeWhitespace(part))
-    .filter(Boolean);
+    .flatMap((part) => {
+      const normalizedPart = normalizeWhitespace(part);
+      return normalizedPart ? [normalizedPart] : [];
+    });
   const locality = parts.length >= 3 ? parts.slice(-2).join(", ") : parts.join(", ") || normalized;
   return truncateText(locality, 90) || null;
 }

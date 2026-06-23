@@ -38,8 +38,10 @@ function normalizeOrigin(value: string | null | undefined) {
 function readSharedLinkEmailOrigin(env: SharedLinkEmailUrlEnv = process.env) {
   const allowedOrigins = (env.ARCHESTIMATOR_ALLOWED_APP_ORIGINS ?? "")
     .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+    .flatMap((origin) => {
+      const trimmed = origin.trim();
+      return trimmed ? [trimmed] : [];
+    });
   const configured = [
     env.NEXT_PUBLIC_APP_URL,
     env.NEXT_PUBLIC_SITE_URL,

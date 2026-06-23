@@ -556,7 +556,10 @@ function normalizeActivitySearch(value: string | undefined) {
 }
 
 function normalizeActivityReadFilters(input: FetchEstimateSheetVersionControlInput): ActivityReadFilters {
-  const eventTypes = Array.from(new Set((input.eventTypes ?? []).map((eventType) => eventType.trim()).filter(Boolean)));
+  const eventTypes = Array.from(new Set((input.eventTypes ?? []).flatMap((eventType) => {
+    const trimmed = eventType.trim();
+    return trimmed ? [trimmed] : [];
+  })));
   for (const eventType of eventTypes) {
     if (!/^[a-z0-9_]+$/.test(eventType)) throw new Error("Activity event type filter contains unsupported characters.");
     if (DORMANT_NAMED_VERSION_EVENT_TYPES.includes(eventType as (typeof DORMANT_NAMED_VERSION_EVENT_TYPES)[number])) {
@@ -1051,8 +1054,10 @@ async function generateNextEstimateSheetCode(
   const estimateCodes = await listProjectEstimateCodes(supabase, projectId);
   const existingCodes = estimateCodes
     .filter((estimate) => estimate.id !== excludedEstimateId)
-    .map((estimate) => estimate.sheetCode.trim())
-    .filter(Boolean);
+    .flatMap((estimate) => {
+      const sheetCode = estimate.sheetCode.trim();
+      return sheetCode ? [sheetCode] : [];
+    });
   const existingCodeSet = new Set(existingCodes.map((code) => code.toLocaleLowerCase()));
   let candidate = getNextGeneratedSheetCode(existingCodes);
 
@@ -1109,7 +1114,7 @@ async function getEstimateRecordAfterMutation(
   return normalizeEstimateRecord(legacyResult.data as EstimateRecordWithLegacy);
 }
 
-async function createEstimateWithDefaultTree({
+async function createEstimateWithDefaultTab({
   supabase,
   project,
   name,
@@ -1154,106 +1159,7 @@ async function createEstimateWithDefaultTree({
   if (defaultTabError) throw defaultTabError;
   if (!defaultTab?.id) throw new Error("Default estimate tab was not created.");
 
-  const defaultTabId = defaultTab.id;
-
-  const projectGroupInsert: TablesInsert<"estimate_nodes"> = {
-    estimate_id: estimate.id,
-    estimate_tab_id: defaultTabId,
-    parent_id: null,
-    kind: "group",
-    name: "Project Scope",
-    sort_order: 0,
-  };
-
-  const { data: projectGroupNode, error: projectGroupError } = await supabase
-    .from("estimate_nodes")
-    .insert(projectGroupInsert)
-    .select("id")
-    .single();
-
-  if (projectGroupError) throw projectGroupError;
-  if (!projectGroupNode?.id) throw new Error("Default estimate root group was not created.");
-
-  const generalNodeInserts: TablesInsert<"estimate_nodes">[] = [
-    {
-      estimate_id: estimate.id,
-      estimate_tab_id: defaultTabId,
-      parent_id: projectGroupNode.id,
-      kind: "group",
-      name: "General Requirements",
-      sort_order: 0,
-    },
-    {
-      estimate_id: estimate.id,
-      estimate_tab_id: defaultTabId,
-      parent_id: projectGroupNode.id,
-      kind: "group",
-      name: "Site Works",
-      sort_order: 10,
-    },
-  ];
-
-  const { error: generalNodesError } = await supabase.from("estimate_nodes").insert(generalNodeInserts);
-
-  if (generalNodesError) throw generalNodesError;
-
-  const buildingGroupInsert: TablesInsert<"estimate_nodes"> = {
-    estimate_id: estimate.id,
-    estimate_tab_id: defaultTabId,
-    parent_id: projectGroupNode.id,
-    kind: "group",
-    name: project.name,
-    sort_order: 20,
-  };
-
-  const { data: buildingGroupNode, error: buildingGroupError } = await supabase
-    .from("estimate_nodes")
-    .insert(buildingGroupInsert)
-    .select("id")
-    .single();
-
-  if (buildingGroupError) throw buildingGroupError;
-  if (!buildingGroupNode?.id) throw new Error("Default estimate building group was not created.");
-
-  const levelGroupInsert: TablesInsert<"estimate_nodes"> = {
-    estimate_id: estimate.id,
-    estimate_tab_id: defaultTabId,
-    parent_id: buildingGroupNode.id,
-    kind: "group",
-    name: "Ground Floor",
-    sort_order: 0,
-  };
-
-  const { data: levelGroupNode, error: levelGroupError } = await supabase
-    .from("estimate_nodes")
-    .insert(levelGroupInsert)
-    .select("id")
-    .single();
-
-  if (levelGroupError) throw levelGroupError;
-  if (!levelGroupNode?.id) throw new Error("Default estimate level group was not created.");
-
-  const areaNodeInsert: TablesInsert<"estimate_nodes"> = {
-    estimate_id: estimate.id,
-    estimate_tab_id: defaultTabId,
-    parent_id: levelGroupNode.id,
-    kind: "area",
-    name: "Project-wide",
-    sort_order: 0,
-  };
-
-  const { data: areaNode, error: areaError } = await supabase
-    .from("estimate_nodes")
-    .insert(areaNodeInsert)
-    .select("id")
-    .single();
-
-  if (areaError) throw areaError;
-  if (!areaNode?.id) throw new Error("Default estimate area was not created.");
-
-  // project group + general groups + building group + level group + area
-  const nodeCount = 1 + generalNodeInserts.length + 1 + 1 + 1;
-  return { estimate, areaNodeId: areaNode.id, nodeCount };
+  return { estimate, firstNodeId: null, nodeCount: 0 };
 }
 
 function revalidateProjectEstimatePaths(projectId: string) {
@@ -1558,7 +1464,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
   const requestedSheetCode = readOptionalText(formData, "sheetCode") ?? readOptionalText(formData, "revisionLabel");
   const sheetCode = requestedSheetCode ?? (await generateNextEstimateSheetCode(supabase, project.id));
 
-  const { areaNodeId } = await createEstimateWithDefaultTree({
+  const { estimate, firstNodeId } = await createEstimateWithDefaultTab({
     supabase,
     project,
     name,
@@ -1567,7 +1473,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
   });
 
   revalidateProjectEstimatePaths(project.id);
-  redirect(`/workshop/projects/${project.id}/estimates/${areaNodeId}`);
+  redirect(`/workshop/projects/${project.id}/estimates/${firstNodeId ?? estimate.id}`);
 }
 
 export async function createEstimateSheetDraft(projectId: string, input?: { name?: string }) {
@@ -1580,7 +1486,7 @@ export async function createEstimateSheetDraft(projectId: string, input?: { name
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
   const requestedName = typeof input?.name === "string" ? input.name.trim() : "";
 
-  const { estimate, areaNodeId, nodeCount } = await createEstimateWithDefaultTree({
+  const { estimate, firstNodeId, nodeCount } = await createEstimateWithDefaultTab({
     supabase,
     project,
     name: requestedName || `${sheetCode} Estimate`,
@@ -1592,14 +1498,14 @@ export async function createEstimateSheetDraft(projectId: string, input?: { name
   // Return the canonical list row so the client store can reconcile its
   // optimistic placeholder without a full re-render (P-1.2 / P0-3).
   const row = buildProjectEstimateListRow(estimate, {
-    firstNodeId: areaNodeId,
+    firstNodeId,
     nodeCount,
     rowItemCount: 0,
     totalProjectCost: 0,
     isFavorite: false,
     favoriteCreatedAt: null,
   });
-  return { row, estimateId: estimate.id, areaNodeId, sheetCode };
+  return { row, estimateId: estimate.id, firstNodeId, sheetCode };
 }
 
 export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput) {
@@ -1696,7 +1602,14 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   if (!fallbackDuplicatedTabId) throw new Error("Could not duplicate estimate tabs because no tab mapping was created.");
 
   while (pendingNodes.length > 0) {
-    const nextIndex = pendingNodes.findIndex((node) => node.parent_id === null || nodeIdBySourceId.has(node.parent_id));
+    let nextIndex = -1;
+    for (let index = 0; index < pendingNodes.length; index += 1) {
+      const node = pendingNodes[index];
+      if (node.parent_id === null || nodeIdBySourceId.has(node.parent_id)) {
+        nextIndex = index;
+        break;
+      }
+    }
     if (nextIndex === -1) throw new Error("Could not duplicate estimate tree because the source hierarchy is invalid.");
 
     const [node] = pendingNodes.splice(nextIndex, 1);
@@ -2260,7 +2173,10 @@ export async function deleteEstimateNodesBulk(
   nodeIds: string[],
   targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
-  const requestedNodeIds = [...new Set(nodeIds.map((nodeId) => nodeId.trim()).filter(Boolean))];
+  const requestedNodeIds = [...new Set(nodeIds.flatMap((nodeId) => {
+    const trimmed = nodeId.trim();
+    return trimmed ? [trimmed] : [];
+  }))];
   if (requestedNodeIds.length === 0) throw new Error("At least one estimate tree node is required for bulk delete.");
 
   const { project } = await getCurrentWorkspaceProject(projectId);

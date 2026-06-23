@@ -12,6 +12,10 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
+import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
 import { getTemplateSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { cn } from "@/lib/ui/cn";
 
@@ -55,14 +59,16 @@ function TemplateGalleryRow({
   onDuplicate: (template: EstimateTemplate) => void;
   onRequestDelete: (template: EstimateTemplate) => void;
 }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const summary = summarizeEstimateTemplate(template);
 
   return (
     <li
       data-template-gallery-row={template.id}
       className={cn(
-        "cursor-pointer rounded-xs border bg-white px-3 py-2 transition",
-        selected ? "border-ink" : "border-hairline hover:border-divider",
+        "cursor-pointer px-3 py-2 transition",
+        librarySurfaceClass(surfaceVariant, "contentTile"),
+        selected ? "border-ink" : surfaceVariant === "glass" ? "hover:border-white/80 hover:bg-white/90" : "hover:border-divider",
       )}
       onClick={(event) => {
         if ((event.target as HTMLElement).closest("button, a, input, [role='menu']")) return;
@@ -190,6 +196,7 @@ export function TemplateGallery({
   onRequestDeleteTemplate,
   onNewTemplate,
 }: TemplateGalleryProps) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -216,13 +223,18 @@ export function TemplateGallery({
   return (
     <section
       id="template-gallery-center-column"
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white !text-[10px]"
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !text-[10px]",
+        librarySurfaceClass(surfaceVariant, "centerColumn"),
+      )}
       data-template-gallery="true"
       aria-label="Template content"
     >
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Template content controls">
+      <header className={cn("sticky top-0 z-20", librarySurfaceClass(surfaceVariant, "sheetHeader"))} aria-label="Template content controls">
         <TreePanelHeader
-          className="static z-auto bg-transparent"
+          className={cn("static z-auto bg-transparent", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}
+          toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
+          showToolbarBottomBorder={surfaceVariant !== "glass"}
           ariaLabel="Template content tools"
           labelPrefix="template content"
           searchValue={searchQuery}
@@ -244,7 +256,10 @@ export function TemplateGallery({
           ]}
         />
         <div
-          className="flex h-7 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2"
+          className={cn(
+            "flex h-7 shrink-0 items-center justify-between gap-2 px-2",
+            librarySurfaceClass(surfaceVariant, "contextStrip"),
+          )}
           data-template-sheet-context-strip="true"
         >
           <p className="truncate text-[10px] font-normal leading-4 text-secondary">

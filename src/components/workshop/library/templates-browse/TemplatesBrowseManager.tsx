@@ -31,6 +31,10 @@ import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import {
+  librarySurfaceClass,
+  useLibrarySurfaceVariant,
+} from "@/components/workshop/library/library-surface-variant";
+import {
   filterTemplatesByQuery,
   summarizeEstimateTemplate,
   type EstimateTemplate,
@@ -44,6 +48,7 @@ import {
 } from "@/lib/component-library/actions";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
 import { TemplatePreviewDock } from "./TemplatePreviewDock";
+import { cn } from "@/lib/ui/cn";
 
 const NewTemplateModal = dynamic(
   () => import("@/components/workshop/component-library/NewTemplateModal").then((module) => module.NewTemplateModal),
@@ -173,6 +178,7 @@ function TemplatesBrowseTreePanel({
   onRenameCategory,
   onNewTemplate,
 }: TemplatesBrowseTreePanelProps) {
+  const surfaceVariant = useLibrarySurfaceVariant();
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
@@ -428,8 +434,14 @@ function TemplatesBrowseTreePanel({
       maxWidth={432}
       widthOffset={TEMPLATE_LIBRARY_TREE_WIDTH_OFFSET}
     >
-      <div className="flex h-full flex-col overflow-hidden bg-white" data-template-library-tree-panel="true">
+      <div
+        className={cn("flex h-full flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "treeRail"))}
+        data-template-library-tree-panel="true"
+      >
         <TreePanelHeader
+          className={cn("bg-transparent", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}
+          toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
+          showToolbarBottomBorder={surfaceVariant !== "glass"}
           ariaLabel="Template tree tools"
           labelPrefix="template tree"
           searchValue={searchQuery}
@@ -512,6 +524,7 @@ export function TemplatesBrowseManager({
   onTemplatesInvalidated = () => {},
 }: TemplatesBrowseManagerProps = {}) {
   const router = useNavigationRouter();
+  const surfaceVariant = useLibrarySurfaceVariant();
   // Mutations patch the route shell's warm query cache (T4). No-op when bare.
   const syncTemplatesCache = onTemplatesMutated;
   const [templateState, setTemplateState] = useState<{ source: EstimateTemplate[]; items: EstimateTemplate[] }>(() => ({
@@ -787,11 +800,16 @@ export function TemplatesBrowseManager({
 
   return (
     <div
-      className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"
+      className={cn(
+        "flex h-full min-h-0 overflow-hidden rounded-xs",
+        surfaceVariant === "glass" ? "gap-2 border border-[color:var(--glass-border)] p-2" : "border-r border-hairline",
+        librarySurfaceClass(surfaceVariant, "root"),
+      )}
       data-template-library-workspace="true"
+      data-library-surface={surfaceVariant}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-        <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Template library workspace">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <section className="flex h-full min-h-0 overflow-hidden bg-transparent" aria-label="Template library workspace">
         <TemplatesBrowseTreePanel
           templates={localTemplates}
           selectedCategory={selectedCategory}

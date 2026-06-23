@@ -20,7 +20,11 @@ import {
   type ComponentLifecycleState,
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
-import { buildLibraryFolderTree, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
+import {
+  buildLibraryFolderTree,
+  getUserLibraryFolders,
+  type LibraryFolderRecord,
+} from "@/lib/component-library/library-folder-reorder";
 import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { findComponentCategoryPath, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -706,7 +710,10 @@ export function AddComponentModal({
   reorderStatus,
   treeMutationPending,
 }: AddComponentModalProps) {
-  const [draft, setDraft] = useState(() => getInitialDraft({ folders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands }));
+  const userFolders = useMemo(() => getUserLibraryFolders(folders), [folders]);
+  const [draft, setDraft] = useState(() =>
+    getInitialDraft({ folders: userFolders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands }),
+  );
   const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
   const [sharedPreviewUrl, setSharedPreviewUrl] = useState("");
   const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
@@ -738,8 +745,8 @@ export function AddComponentModal({
   const costPickerListboxId = `${tabsId}-cost-picker-listbox`;
   const advancedDetailsId = `${tabsId}-advanced-details`;
 
-  const folderNodes = useMemo(() => buildLibraryFolderTree(folders), [folders]);
-  const selectedFolderPath = useMemo(() => buildFolderPath(folders, draft.libraryFolderId || null), [draft.libraryFolderId, folders]);
+  const folderNodes = useMemo(() => buildLibraryFolderTree(userFolders), [userFolders]);
+  const selectedFolderPath = useMemo(() => buildFolderPath(userFolders, draft.libraryFolderId || null), [draft.libraryFolderId, userFolders]);
   const selectedCategoryPath = useMemo(
     () => (draft.categoryNodeId ? findComponentCategoryPath(categoryTree, draft.categoryNodeId) ?? [] : []),
     [categoryTree, draft.categoryNodeId],
@@ -883,7 +890,7 @@ export function AddComponentModal({
     if (wasOpenRef.current) return;
     wasOpenRef.current = true;
     dirtyRef.current = false;
-    const initialDraft = getInitialDraft({ folders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands });
+    const initialDraft = getInitialDraft({ folders: userFolders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands });
     setDraft(initialDraft);
     setActiveVariantId(initialDraft.variants[0]?.id ?? "");
     setError("");
@@ -907,7 +914,7 @@ export function AddComponentModal({
     setActiveTab("component");
     setNestingViewMode(getInitialNestingViewMode(selectedSupplierId, selectedBrandId));
     requestAnimationFrame(() => initialFocusRef.current?.focus());
-  }, [brands, categoryTree, folders, open, selectedBrandId, selectedFolderId, selectedSupplierId, sharedPreviewUrl, suppliers, variantPreviewUrls]);
+  }, [brands, categoryTree, open, selectedBrandId, selectedFolderId, selectedSupplierId, sharedPreviewUrl, suppliers, userFolders, variantPreviewUrls]);
 
   useEffect(() => {
     variantPreviewUrlsRef.current = variantPreviewUrls;
@@ -959,7 +966,7 @@ export function AddComponentModal({
           placement: options?.placement,
           onCreated: (folder) => {
             options?.onCreated?.(folder);
-            const nextFolders = [...folders.filter((entry) => entry.id !== folder.id), folder];
+            const nextFolders = [...userFolders.filter((entry) => entry.id !== folder.id), folder];
             updateQuickAddIdentity({
               libraryFolderId: folder.id,
               ...getFolderCategoryDraft(nextFolders, folder.id),
@@ -2282,7 +2289,7 @@ export function AddComponentModal({
           <aside className="flex min-h-0 flex-col border-t border-hairline bg-white lg:col-start-3 lg:border-l lg:border-t-0" aria-label="Component nesting">
             <div className="min-h-0 flex-1">
               <LibraryFolderTreePicker
-                folders={folders}
+                folders={userFolders}
                 nodes={folderNodes}
                 libraryItems={libraryItems}
                 selectedFolderId={draft.libraryFolderId}
@@ -2297,7 +2304,7 @@ export function AddComponentModal({
                 onSelectFolder={(folderId) => {
                   updateQuickAddIdentity({
                     libraryFolderId: folderId,
-                    ...getFolderCategoryDraft(folders, folderId),
+                    ...getFolderCategoryDraft(userFolders, folderId),
                   });
                 }}
                 onSelectSupplier={(supplierId, supplierName) => {

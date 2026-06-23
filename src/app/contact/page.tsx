@@ -7,15 +7,29 @@ import { LandingShellClient } from "@/components/landing/shell/LandingShellClien
 import { SectionShell } from "@/components/landing/sections/SectionShell";
 import { FinalCtaSection } from "@/components/landing/sections/FinalCtaSection";
 import { LandingCTAs } from "@/components/landing/sections/LandingCTAs";
+import type { ContactIntent } from "@/components/landing/ContactForm";
 
 export const metadata: Metadata = buildLandingMetadata({
-  title: "Contact — talk to the founder",
+  title: "Contact - talk to the founder",
   description:
-    "Archestimator is founder-led. Book a walkthrough around your own workflow, or send a note. We are looking for design partners who create estimates, quotes, or proposals today — no payment or commitment, just feedback and permission to test the MVP.",
+    "Archestimator is founder-led. Book a walkthrough around your own workflow, or send a note. We are looking for design partners who create estimates, quotes, or proposals today, with no payment or commitment.",
   path: "/contact",
 });
 
-export default async function ContactPage() {
+type ContactPageProps = {
+  searchParams?: Promise<{ intent?: string | string[] }>;
+};
+
+function parseContactIntent(value: string | string[] | undefined): ContactIntent {
+  const intent = Array.isArray(value) ? value[0] : value;
+  if (intent === "walkthrough") return "walkthrough";
+  if (intent === "early-access") return "early-access";
+  return "general";
+}
+
+export default async function ContactPage({ searchParams }: ContactPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialIntent = parseContactIntent(resolvedSearchParams.intent);
   const isLoggedIn = await getLandingAuthState();
   return (
     <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
@@ -28,16 +42,12 @@ export default async function ContactPage() {
             eyebrow="Contact"
             accentRail
             heading="Talk to the founder."
-            lead="Archestimator is founder-led. Book a walkthrough around your own workflow, or send a note. We are looking for design partners who create estimates, quotes, or proposals today — no payment or commitment, just feedback and permission to test the MVP."
+            lead="Archestimator is founder-led. Book a walkthrough around your own workflow, or send a note. We are looking for design partners who create estimates, quotes, or proposals today, with no payment or commitment."
           >
             <LandingCTAs
               layout="stack"
               isLoggedIn={isLoggedIn}
               location="final-cta"
-              // On /contact the primary intent is "Book a walkthrough" (already here),
-              // so invert: secondary = "Start free" for the build-while-you-wait path.
-              // LandingCTAs renders primary then secondary; this page's hero leads with
-              // the form below, so the CTA pair is supplementary.
             />
           </SectionShell>
 
@@ -92,7 +102,7 @@ export default async function ContactPage() {
                 </p>
               </div>
               <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
-                <ContactForm />
+                <ContactForm initialIntent={initialIntent} />
               </div>
             </div>
           </SectionShell>
@@ -105,7 +115,7 @@ export default async function ContactPage() {
 }
 
 const DESIGN_PARTNER_POINTS = [
-  "You create estimates, quotes, or proposals today — on a spreadsheet or an enterprise tool that does not fit.",
+  "You create estimates, quotes, or proposals today on a spreadsheet or an enterprise tool that does not fit.",
   "No payment and no commitment. Twenty minutes of feedback and permission to test the MVP.",
   "You are open to a walkthrough around your real workflow, not a generic demo.",
   "You are in AEC: architecture, engineering, construction, cost estimating, fit-out, interior design, or supply.",
