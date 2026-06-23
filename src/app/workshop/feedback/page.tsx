@@ -30,23 +30,23 @@ export default async function WorkshopFeedbackPage({
     >
       <div className="space-y-3">
         {params.saved ? (
-          <div className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink" role="status">
+          <output className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
             Feedback saved. Philip will review beta issues during the monitoring window.
-          </div>
+          </output>
         ) : null}
         {params.fallback ? (
-          <div className="rounded-xs border border-warning/25 bg-warningSoft p-2 text-[10px] leading-4 text-warning" role="status">
+          <output className="rounded-xs border border-warning/25 bg-warningSoft p-2 text-[10px] leading-4 text-warning">
             Feedback could not be saved in the app.{" "}
             <Link href={fallbackMailto} className="font-medium underline underline-offset-2">
               Open an email draft instead
             </Link>
             .
-          </div>
+          </output>
         ) : null}
         {errorMessage ? (
-          <div className="rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger" role="status">
+          <output className="rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
             {errorMessage}
-          </div>
+          </output>
         ) : null}
 
         <BetaFeedbackForm />

@@ -5,7 +5,7 @@ import {
   type HTMLAttributes,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
-  useContext,
+  use,
   useEffect,
   useId,
   useMemo,
@@ -63,7 +63,7 @@ function getFocusableElements(container: HTMLElement) {
 }
 
 function useDialogContext(component: string) {
-  const context = useContext(DialogContext);
+  const context = use(DialogContext);
   if (!context) throw new Error(`${component} must be used inside Dialog`);
   return context;
 }
@@ -193,6 +193,7 @@ export function DialogOverlay({ className, blur = false, transparent = false, on
   const { onOpenChange, closeOnOverlayClick } = useDialogContext("DialogOverlay");
 
   return (
+    // react-doctor-disable-next-line react-doctor/click-events-have-key-events, react-doctor/no-static-element-interactions -- Overlay click closes the dialog; keyboard close is handled by Escape/focus-trap logic.
     <div
       {...props}
       data-archestimator-dialog-overlay
@@ -281,6 +282,7 @@ export function DialogContent({
   }
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Dialog content owns focus-trap key handling.
     <div
       ref={contentRef}
       role={role}

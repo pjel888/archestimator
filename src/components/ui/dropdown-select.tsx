@@ -431,6 +431,7 @@ export function DropdownSelect({
           const isSelected = option.value === currentValue;
           const isActive = index === activeIndex;
           return (
+            // react-doctor-disable-next-line react-doctor/click-events-have-key-events, react-doctor/interactive-supports-focus -- APG combobox keeps DOM focus on the trigger and uses aria-activedescendant for virtual option focus.
             <div
               key={option.value}
               id={`${listboxId}-option-${index}`}

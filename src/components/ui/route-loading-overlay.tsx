@@ -32,9 +32,8 @@ export function RouteLoadingOverlay() {
   if (!isNavigating || typeof document === "undefined") return null;
 
   return createPortal(
-    <div
+    <output
       data-route-overlay
-      role="status"
       aria-live="polite"
       aria-label="Loading page"
       className={cn(
@@ -45,7 +44,7 @@ export function RouteLoadingOverlay() {
       )}
     >
       <Spinner size="lg" decorative />
-    </div>,
+    </output>,
     document.body,
   );
 }

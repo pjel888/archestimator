@@ -319,7 +319,7 @@ const dropdownRenderer = {
       {children}
     </div>
   ),
-  Separator: () => <div className="-mx-1 my-1 h-px bg-hairline" role="separator" />,
+  Separator: () => <div aria-hidden="true" className="-mx-1 my-1 h-px bg-hairline" />,
   Shortcut: ({ children }: { children: React.ReactNode }) => (
     <span className="ml-auto text-[9px] font-medium leading-3 text-tertiary">{children}</span>
   ),

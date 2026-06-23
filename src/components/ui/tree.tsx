@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  forwardRef,
   Fragment,
   memo,
   useCallback,
@@ -13,6 +12,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type Ref,
   type RefCallback,
   type ReactNode,
 } from "react";
@@ -231,6 +231,7 @@ export interface TreeProps {
   renderItem?: (state: TreeItemState, rowProps: TreeRowDomProps) => ReactNode;
   /** Optional default-off virtual rendering for very large flat trees. */
   virtualization?: TreeVirtualizationOptions;
+  ref?: Ref<HTMLDivElement>;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -536,9 +537,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
 
 // ─── Component ───────────────────────────────────────────────────────
 
-export const Tree = forwardRef<HTMLDivElement, TreeProps>(
-  (
-    {
+export function Tree({
       nodes,
       ariaLabel,
       selectedIds = [],
@@ -571,9 +570,8 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       indentStep = TREE_INDENT_STEP,
       renderItem,
       virtualization,
-    },
-    ref
-  ) => {
+      ref,
+}: TreeProps) {
     const isControlled = controlledExpandedIds !== undefined;
     const treeRootRef = useRef<HTMLDivElement | null>(null);
     useImperativeHandle(ref, () => treeRootRef.current as HTMLDivElement, []);
@@ -591,7 +589,8 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     const [dropTarget, setDropTarget] = useState<{ id: string; position: TreeDropPosition } | null>(null);
     const [activeRootDropEdge, setActiveRootDropEdge] = useState<TreeRootDropEdge | null>(null);
     const [focusId, setFocusId] = useState<string | null>(null);
-    const rowElementsRef = useRef(new Map<string, HTMLElement>());
+    const rowElementsRef = useRef<Map<string, HTMLElement>>(null!);
+    if (rowElementsRef.current === null) rowElementsRef.current = new Map();
 
     const flatNodes = useMemo(
       () => flattenTree(nodes, expandedSet),
@@ -1274,8 +1273,8 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         ref={treeRootRef}
         role="tree"
         aria-label={ariaLabel}
+        tabIndex={0}
         className={cn("group/tree overflow-auto outline-none", className)}
-        aria-multiselectable={selectable || undefined}
         onKeyDown={handleKeyDown}
         onClick={() => flatNodes.length > 0 && !focusId && setFocusId(effectiveFocusId)}
       >
@@ -1322,7 +1321,4 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         )}
       </div>
     );
-  }
-);
-
-Tree.displayName = "Tree";
+}

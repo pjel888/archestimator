@@ -1,15 +1,15 @@
-import { forwardRef, type InputHTMLAttributes, useRef } from "react";
+import { type InputHTMLAttributes, useRef, type Ref } from "react";
 import { Calendar, X } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 import { CONTROL_INPUT_SURFACE_CLASS } from "./control-input";
 
 export type DatePickerProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  ref?: Ref<HTMLInputElement>;
   invalid?: boolean;
   onClear?: () => void;
 };
 
-export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
-  ({ className, invalid, disabled, value, onChange, onClear, ...props }, ref) => {
+export function DatePicker({ className, invalid, disabled, value, onChange, onClear, ref, ...props }: DatePickerProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const hasValue = Boolean(value);
 
@@ -77,7 +77,4 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         )}
       </div>
     );
-  }
-);
-
-DatePicker.displayName = "DatePicker";
+}

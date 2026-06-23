@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 export interface BulkAction {
+  id?: string;
   label: string;
   icon: React.ReactNode;
   onClick: () => void;
@@ -97,8 +98,7 @@ export function BulkActionToolbar({
 
   if (isBottomDock) {
     return (
-      <div
-        role="region"
+      <section
         aria-label="Bulk action toolbar"
         className={cn(
           "pointer-events-none z-40 flex flex-col items-center",
@@ -131,9 +131,9 @@ export function BulkActionToolbar({
               <span className="mx-0.5 h-4 w-px bg-hairline" aria-hidden="true" />
             )}
 
-            {actions.map((action, index) => (
+            {actions.map((action) => (
               <FloatingDockItem
-                key={index}
+                key={action.id ?? action.label}
                 label={action.label}
                 icon={action.icon}
                 onClick={action.onClick}
@@ -167,14 +167,13 @@ export function BulkActionToolbar({
             </span>
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
   // Inline variant
   return (
-    <div
-      role="region"
+    <section
       aria-label="Bulk action toolbar"
       className={cn(
         "flex min-h-7 shrink-0 items-center gap-2 px-2 py-0.5",
@@ -189,9 +188,9 @@ export function BulkActionToolbar({
         <Button type="button" variant="ghost" size="sm" className="h-6 min-h-6 px-1.5 text-[10px]" onClick={onClear}>
           Clear
         </Button>
-        {actions.map((action, index) => (
+        {actions.map((action) => (
           <Button
-            key={index}
+            key={action.id ?? action.label}
             type="button"
             variant={action.variant === "danger" ? "danger" : action.variant === "ghost" ? "ghost" : "secondary"}
             size="sm"
@@ -204,6 +203,6 @@ export function BulkActionToolbar({
           </Button>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

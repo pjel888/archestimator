@@ -185,11 +185,13 @@ export function DataTable<T>({
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skeleton-${i}`} className="h-9">
                   {selectable && (
+                    // react-doctor-disable-next-line react-doctor/control-has-associated-label -- Loading skeleton cell is decorative and not an interactive control.
                     <td className="px-2 py-2">
                       <div className="size-3.5 animate-pulse rounded-xs bg-surfaceMuted" />
                     </td>
                   )}
                   {activeColumns.map((col) => (
+                    // react-doctor-disable-next-line react-doctor/control-has-associated-label -- Loading skeleton cell is decorative and not an interactive control.
                     <td key={`skeleton-${i}-${col.id}`} className="px-2 py-2">
                       <div className="h-3 w-full animate-pulse rounded-xs bg-surfaceMuted" />
                     </td>

@@ -1,17 +1,15 @@
-import { forwardRef, type InputHTMLAttributes, useEffect, useRef, type ReactNode } from "react";
+import { type InputHTMLAttributes, useEffect, useRef, type ReactNode, type Ref } from "react";
 import { Check, Minus } from "@phosphor-icons/react";
 import { cn } from "@/lib/ui/cn";
 
 export type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  ref?: Ref<HTMLInputElement>;
   invalid?: boolean;
   indeterminate?: boolean;
   label?: ReactNode;
 };
 
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
-  { className, invalid, indeterminate, label, children, ...props },
-  forwardedRef,
-) {
+export function Checkbox({ className, invalid, indeterminate, label, children, ref: forwardedRef, ...props }: CheckboxProps) {
   const internalRef = useRef<HTMLInputElement>(null);
   
   const ref = (node: HTMLInputElement) => {
@@ -72,4 +70,4 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
       )}
     </label>
   );
-});
+}

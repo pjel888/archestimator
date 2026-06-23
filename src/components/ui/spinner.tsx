@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 
 export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
+  ref?: React.Ref<HTMLDivElement>;
   size?: "xs" | "sm" | "md" | "lg";
   decorative?: boolean;
 }
@@ -13,22 +14,21 @@ const sizeClasses = {
   lg: "size-8",
 };
 
-export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
-  ({ className, size = "md", decorative = false, role, "aria-hidden": ariaHidden, "aria-label": ariaLabel = "Loading", ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        role={decorative ? undefined : role ?? "status"}
-        aria-hidden={decorative ? true : ariaHidden}
-        aria-label={decorative ? undefined : ariaLabel}
-        className={cn(
-          "inline-flex items-center justify-center text-brand-orange",
-          sizeClasses[size],
-          className
-        )}
-        data-blocks-shuffle-loader=""
-        {...props}
-      >
+export function Spinner({ className, size = "md", decorative = false, role, "aria-hidden": ariaHidden, "aria-label": ariaLabel = "Loading", ref, ...props }: SpinnerProps) {
+  return (
+    <div
+      ref={ref}
+      role={decorative ? undefined : role ?? "status"}
+      aria-hidden={decorative ? true : ariaHidden}
+      aria-label={decorative ? undefined : ariaLabel}
+      className={cn(
+        "inline-flex items-center justify-center text-brand-orange",
+        sizeClasses[size],
+        className
+      )}
+      data-blocks-shuffle-loader=""
+      {...props}
+    >
         <svg
           aria-hidden="true"
           className="size-full"
@@ -150,8 +150,6 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
             <rect className="blocks-shuffle-box" x="25" y="25" rx="1" width="10" height="10" />
           </g>
         </svg>
-      </div>
-    );
-  }
-);
-Spinner.displayName = "Spinner";
+    </div>
+  );
+}

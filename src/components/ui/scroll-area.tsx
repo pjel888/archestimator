@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 
 export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
+  ref?: React.Ref<ScrollAreaHandle>;
   maxHeight?: number | string;
   orientation?: "vertical" | "horizontal" | "both";
   scrollShadows?: boolean;
@@ -16,20 +17,17 @@ export type ScrollAreaHandle = {
   scrollToBottom: () => void;
 };
 
-export const ScrollArea = React.forwardRef<ScrollAreaHandle, ScrollAreaProps>(
-  (
-    {
-      className,
-      children,
-      maxHeight,
-      orientation = "vertical",
-      scrollShadows = false,
-      onScroll,
-      style,
-      ...props
-    },
-    ref
-  ) => {
+export function ScrollArea({
+  className,
+  children,
+  maxHeight,
+  orientation = "vertical",
+  scrollShadows = false,
+  onScroll,
+  style,
+  ref,
+  ...props
+}: ScrollAreaProps) {
     const viewportRef = React.useRef<HTMLDivElement>(null);
     const [shadowState, setShadowState] = React.useState({ top: false, bottom: false });
 
@@ -124,6 +122,4 @@ export const ScrollArea = React.forwardRef<ScrollAreaHandle, ScrollAreaProps>(
         ) : null}
       </div>
     );
-  }
-);
-ScrollArea.displayName = "ScrollArea";
+}

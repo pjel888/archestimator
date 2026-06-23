@@ -1,8 +1,9 @@
-import { forwardRef, useState, useRef, type DragEvent, type ChangeEvent } from "react";
+import { useState, useRef, type DragEvent, type ChangeEvent, type Ref } from "react";
 import { UploadSimple, X, File as FileIcon } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 
 export type FileUploadProps = {
+  ref?: Ref<HTMLInputElement>;
   className?: string;
   accept?: string;
   multiple?: boolean;
@@ -12,8 +13,15 @@ export type FileUploadProps = {
   invalid?: boolean;
 };
 
-export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
-  ({ className, accept, multiple, maxSize, onFilesSelected, disabled, invalid }, ref) => {
+function formatFileSize(bytes: number) {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+export function FileUpload({ className, accept, multiple, maxSize, onFilesSelected, disabled, invalid, ref }: FileUploadProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -87,14 +95,6 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
       }
     };
 
-    const formatFileSize = (bytes: number) => {
-      if (bytes === 0) return "0 B";
-      const k = 1024;
-      const sizes = ["B", "KB", "MB", "GB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-    };
-
     return (
       <div className={cn("flex w-full flex-col gap-1.5", className)}>
         <label
@@ -163,7 +163,4 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
         )}
       </div>
     );
-  }
-);
-
-FileUpload.displayName = "FileUpload";
+}

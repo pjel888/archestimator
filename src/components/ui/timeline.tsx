@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/ui/cn";
 
 export interface TimelineItem {
+  id?: string;
   title: ReactNode;
   description?: ReactNode;
   timestamp?: string;
@@ -14,11 +15,16 @@ export interface TimelineProps {
   className?: string;
 }
 
+function timelineItemKey(item: TimelineItem) {
+  if (item.id) return item.id;
+  if (typeof item.title === "string" || typeof item.title === "number") return String(item.title);
+  return item.timestamp ?? item.status ?? "timeline-item";
+}
+
 export function Timeline({ items, className }: TimelineProps) {
   return (
-    <div 
-      role="list" 
-      className={cn("flex flex-col", className)}
+    <ul
+      className={cn("m-0 flex list-none flex-col p-0", className)}
     >
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
@@ -27,7 +33,7 @@ export function Timeline({ items, className }: TimelineProps) {
         const isActiveOrCompleted = status === "active" || status === "completed";
         
         return (
-          <div key={index} role="listitem" className="relative flex gap-3">
+          <li key={timelineItemKey(item)} className="relative flex gap-3">
             {/* Timeline line & indicator */}
             <div className="flex flex-col items-center">
               <div 
@@ -86,9 +92,9 @@ export function Timeline({ items, className }: TimelineProps) {
                 </div>
               )}
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

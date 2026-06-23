@@ -1,17 +1,15 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, type Ref } from "react";
 import { cn } from "@/lib/ui/cn";
 
 export type SwitchProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "value" | "onChange"> & {
+  ref?: Ref<HTMLButtonElement>;
   checked?: boolean;
   onChange?: (checked: boolean) => void;
   label?: ReactNode;
   invalid?: boolean;
 };
 
-export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch(
-  { className, checked = false, onChange, label, invalid, disabled, ...props },
-  ref,
-) {
+export function Switch({ className, checked = false, onChange, label, invalid, disabled, ref, ...props }: SwitchProps) {
   return (
     <label
       className={cn(
@@ -54,4 +52,4 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch
       )}
     </label>
   );
-});
+}

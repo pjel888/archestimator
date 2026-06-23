@@ -1,9 +1,9 @@
 import {
   Children,
   cloneElement,
-  forwardRef,
   isValidElement,
   type InputHTMLAttributes,
+  type Ref,
   type ReactElement,
   type ReactNode,
   type TextareaHTMLAttributes,
@@ -13,14 +13,12 @@ import {
 import { cn } from "@/lib/ui/cn";
 
 type ControlInputProps = InputHTMLAttributes<HTMLInputElement> & {
+  ref?: Ref<HTMLInputElement>;
   align?: "left" | "center" | "right";
   invalid?: boolean;
 };
 
-export const ControlInput = forwardRef<HTMLInputElement, ControlInputProps>(function ControlInput(
-  { className, align = "left", invalid, ...props },
-  ref,
-) {
+export function ControlInput({ className, align = "left", invalid, ref, ...props }: ControlInputProps) {
   return (
     <input
       ref={ref}
@@ -35,16 +33,14 @@ export const ControlInput = forwardRef<HTMLInputElement, ControlInputProps>(func
       )}
     />
   );
-});
+}
 
 type ControlTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  ref?: Ref<HTMLTextAreaElement>;
   invalid?: boolean;
 };
 
-export const ControlTextarea = forwardRef<HTMLTextAreaElement, ControlTextareaProps>(function ControlTextarea(
-  { className, invalid, ...props },
-  ref,
-) {
+export function ControlTextarea({ className, invalid, ref, ...props }: ControlTextareaProps) {
   return (
     <textarea
       ref={ref}
@@ -57,7 +53,7 @@ export const ControlTextarea = forwardRef<HTMLTextAreaElement, ControlTextareaPr
       )}
     />
   );
-});
+}
 
 type ControlFieldProps = {
   label: ReactNode;

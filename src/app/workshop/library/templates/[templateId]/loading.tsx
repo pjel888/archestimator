@@ -6,12 +6,11 @@ import { cn } from "@/lib/ui/cn";
 
 export default function Loading() {
   return (
-    <div
+    <output
       className={cn(
         "flex h-full min-h-0 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2",
         librarySurfaceClass("glass", "root"),
       )}
-      role="status"
       aria-label="Loading template editor"
     >
       <div className={cn("hidden w-[264px] shrink-0 p-2 lg:block", librarySurfaceClass("glass", "treeRail"))} aria-hidden="true">
@@ -32,6 +31,6 @@ export default function Loading() {
         <Skeleton className={cn("h-9 w-full", librarySurfaceClass("glass", "skeleton"))} />
       </div>
       <span className="sr-only">Loading template editor</span>
-    </div>
+    </output>
   );
 }

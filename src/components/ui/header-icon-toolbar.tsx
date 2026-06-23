@@ -43,6 +43,8 @@ type HeaderIconToolbarProps = {
   className?: string;
 };
 
+const EMPTY_HEADER_ACTIONS: HeaderIconToolbarAddAction[] = [];
+
 export function HeaderIconToolbar({
   ariaLabel,
   labelPrefix,
@@ -50,9 +52,9 @@ export function HeaderIconToolbar({
   onGroup,
   onExpandAll,
   onCollapseAll,
-  startActions = [],
+  startActions = EMPTY_HEADER_ACTIONS,
   startActionsLabel,
-  leadingActions = [],
+  leadingActions = EMPTY_HEADER_ACTIONS,
   leadingActionsLabel,
   onAdd,
   addVisibleLabel,

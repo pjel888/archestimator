@@ -1,4 +1,4 @@
-import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
+import { type HTMLAttributes, type ReactNode, type Ref } from "react";
 import { cn } from "@/lib/ui/cn";
 
 export type RadioOption = {
@@ -8,6 +8,7 @@ export type RadioOption = {
 };
 
 export type RadioGroupProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+  ref?: Ref<HTMLDivElement>;
   options: RadioOption[];
   value?: string;
   onChange?: (value: string) => void;
@@ -17,10 +18,7 @@ export type RadioGroupProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> &
   invalid?: boolean;
 };
 
-export const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(function RadioGroup(
-  { className, options, value, onChange, name, disabled, layout = "vertical", invalid, ...props },
-  ref,
-) {
+export function RadioGroup({ className, options, value, onChange, name, disabled, layout = "vertical", invalid, ref, ...props }: RadioGroupProps) {
   return (
     <div
       ref={ref}
@@ -80,4 +78,4 @@ export const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(function R
       })}
     </div>
   );
-});
+}

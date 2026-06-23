@@ -9,8 +9,8 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -88,7 +88,8 @@ function toastToneClassName(tone: ToastTone) {
 
 export function ToastProvider({ children, viewportClassName }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
-  const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(null!);
+  if (timersRef.current === null) timersRef.current = new Map();
 
   const clearToastTimer = useCallback((id: string) => {
     const timer = timersRef.current.get(id);
@@ -196,7 +197,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
 }
 
 export function useToast() {
-  return useContext(ToastContext);
+  return use(ToastContext);
 }
 
 export type { ToastInput, ToastTone };

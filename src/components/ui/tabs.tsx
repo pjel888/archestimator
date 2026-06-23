@@ -1,5 +1,4 @@
 import {
-  forwardRef,
   useCallback,
   useEffect,
   useRef,
@@ -8,6 +7,7 @@ import {
   type HTMLAttributes,
   type KeyboardEvent,
   type MouseEvent,
+  type Ref,
   type ReactNode,
 } from "react";
 import { filterMapBy } from "@/lib/util/array";
@@ -37,10 +37,23 @@ export type TabsProps = {
     isActive: boolean,
   ) => Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "role" | "aria-selected" | "aria-controls" | "id" | "tabIndex">;
   onTabButtonMount?: (tab: TabItem, index: number, element: HTMLButtonElement | null) => void;
+  ref?: Ref<HTMLDivElement>;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
-export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
-  ({ tabs, activeId, onChange, className, variant = "underline", activationMode = "automatic", ariaLabel, endAction, getTabButtonProps, onTabButtonMount, ...rootProps }, ref) => {
+export function Tabs({
+  tabs,
+  activeId,
+  onChange,
+  className,
+  variant = "underline",
+  activationMode = "automatic",
+  ariaLabel,
+  endAction,
+  getTabButtonProps,
+  onTabButtonMount,
+  ref,
+  ...rootProps
+}: TabsProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
@@ -203,20 +216,17 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
         {endAction ? <div className="ml-1 shrink-0">{endAction}</div> : null}
       </div>
     );
-  }
-);
-
-Tabs.displayName = "Tabs";
+}
 
 export type TabPanelProps = {
   id: string;
   activeId: string;
   children: ReactNode;
   className?: string;
+  ref?: Ref<HTMLDivElement>;
 };
 
-export const TabPanel = forwardRef<HTMLDivElement, TabPanelProps>(
-  ({ id, activeId, children, className, ...props }, ref) => {
+export function TabPanel({ id, activeId, children, className, ref, ...props }: TabPanelProps) {
     if (id !== activeId) return null;
 
     return (
@@ -231,7 +241,4 @@ export const TabPanel = forwardRef<HTMLDivElement, TabPanelProps>(
         {children}
       </div>
     );
-  }
-);
-
-TabPanel.displayName = "TabPanel";
+}

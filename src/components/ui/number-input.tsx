@@ -1,14 +1,14 @@
-import { forwardRef, type InputHTMLAttributes, useRef } from "react";
+import { type InputHTMLAttributes, useRef, type Ref } from "react";
 import { CaretUp, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 import { CONTROL_INPUT_SURFACE_CLASS } from "./control-input";
 
 export type NumberInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  ref?: Ref<HTMLInputElement>;
   invalid?: boolean;
 };
 
-export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
-  ({ className, invalid, disabled, min, max, step = 1, value, onChange, ...props }, ref) => {
+export function NumberInput({ className, invalid, disabled, min, max, step = 1, value, onChange, ref, ...props }: NumberInputProps) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const setRefs = (node: HTMLInputElement) => {
@@ -81,7 +81,4 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         </div>
       </div>
     );
-  }
-);
-
-NumberInput.displayName = "NumberInput";
+}

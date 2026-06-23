@@ -11,12 +11,11 @@ import { cn } from "@/lib/ui/cn";
 // does not shift layout when real content paints (CLS ~0).
 export default function Loading() {
   return (
-    <div
+    <output
       className={cn(
         "flex h-full min-h-0 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2",
         librarySurfaceClass("glass", "root"),
       )}
-      role="status"
       aria-label="Loading library"
     >
       <div
@@ -63,6 +62,6 @@ export default function Loading() {
         </div>
       </div>
       <span className="sr-only">Loading library</span>
-    </div>
+    </output>
   );
 }

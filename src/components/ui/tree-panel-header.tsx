@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  forwardRef,
   useCallback,
   useEffect,
   useId,
   useRef,
   useState,
   type MutableRefObject,
+  type Ref,
   type ReactNode,
 } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
@@ -74,6 +74,7 @@ export type TreePanelHeaderProps = {
   toolbarClassName?: string;
   /** Extra header content (e.g. a view-mode menu) inside the sticky stack. */
   children?: ReactNode;
+  ref?: Ref<HTMLDivElement>;
 };
 
 /**
@@ -81,8 +82,7 @@ export type TreePanelHeaderProps = {
  * search-icon disclosure that drops a `SearchInput` panel over the content
  * below, plus an optional `TabStrip`.
  */
-export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(function TreePanelHeader(
-  {
+export function TreePanelHeader({
     ariaLabel,
     labelPrefix,
     onFilter,
@@ -116,9 +116,8 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     showToolbarBottomBorder,
     toolbarClassName,
     children,
-  },
   ref,
-) {
+}: TreePanelHeaderProps) {
   const surfaceVariant = useEstimateSurfaceVariant();
   const isGlass = surfaceVariant === "glass";
   const searchEnabled = Boolean(onSearchValueChange);
@@ -229,9 +228,8 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
           className={toolbarClassName}
         />
         {open ? (
-          <div
+          <search
             id={panelId}
-            role="search"
             className="absolute left-0 right-0 top-[40px] z-30 rounded-xs border border-hairline bg-white shadow-sm"
             data-tree-search-panel="true"
           >
@@ -250,7 +248,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
                 if (event.key === "Escape") setOpen(false);
               }}
             />
-          </div>
+          </search>
         ) : null}
       </div>
       {tabs && tabs.length > 0 && activeTab !== undefined ? (
@@ -280,4 +278,4 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
       {children}
     </div>
   );
-});
+}
