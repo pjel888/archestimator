@@ -37,6 +37,7 @@ type HeroMetricCardProps = {
   metricIntervalMs?: number;
   ledgerTitle: string;
   body: string;
+  features: readonly string[];
 };
 
 const AUDIENCE_INPUT_NODES = [
@@ -154,6 +155,7 @@ function HeroMetricCard({
   metricIntervalMs,
   ledgerTitle,
   body,
+  features,
 }: HeroMetricCardProps) {
   return (
     <div className={cn(styles.heroImageGridBlock, className)} data-hero-motion="metric-card">
@@ -171,6 +173,11 @@ function HeroMetricCard({
             <span>{ledgerTitle}</span>
           </div>
           <p className={styles.heroMetricBody}>{body}</p>
+          <ul className={styles.heroMetricFeatureList}>
+            {features.map((feature) => (
+              <li key={feature}>{feature}</li>
+            ))}
+          </ul>
         </div>
       </div>
       <div className={styles.heroMetricTitle}>{title}</div>
@@ -215,8 +222,9 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricLabel="Areas Priced"
                 metricValue={248}
                 metricIntervalMs={2400}
-                ledgerTitle="Domain-Shaped Estimates"
-                body="Shape estimates by floor, room, area, or trade. Reuse smart components with pricing history, drag them into place, and let totals roll up."
+                ledgerTitle="Build estimates around real scope"
+                body="Estimate Smarter is the workspace for shaping, reusing, and assembling project costs before they become a proposal."
+                features={["Domain-shaped estimate tree", "Reusable smart components", "Drag and drop into the selected area"]}
               />
               <HeroMetricCard
                 className={styles.heroImageGridBlockSmallB}
@@ -225,8 +233,9 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricLabel="Proposals Submitted"
                 metricValue={67}
                 metricIntervalMs={3200}
-                ledgerTitle="Client-Ready Proposals"
-                body="Send branded proposal links with password access, view tracking, visual cost breakdowns, and BOM or BOQ exports clients can understand."
+                ledgerTitle="Turn the estimate into a client decision"
+                body="Propose Better is how the estimate becomes a clear, trackable package your client can review without losing the pricing context."
+                features={["Branded proposal links", "Charts and cost visualizations", "Industry-standard BOM and BOQ exports"]}
               />
               <HeroMetricCard
                 className={styles.heroImageGridBlockWide}
@@ -235,8 +244,9 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricLabel="Bids Won"
                 metricValue={19}
                 metricIntervalMs={4200}
-                ledgerTitle="Decisions Stay Attached"
-                body="Let clients comment, accept, decline, and approve revisions in one link so every decision, change order, and next step stays recorded."
+                ledgerTitle="Record the decision and every change after"
+                body="Win Faster is not only about winning the first bid. It keeps comments, approvals, declined proposals, and later change orders attached to the same record."
+                features={["Client comments, accept, and decline", "Activity history for every response", "Change approvals recorded in the same workflow"]}
               />
             </div>
           </HeroImageZoom>

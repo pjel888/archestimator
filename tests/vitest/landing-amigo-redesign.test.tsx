@@ -50,12 +50,18 @@ describe("landing-v3 homepage contract", () => {
     expect(screen.getByRole("heading", { name: /Every completed estimate makes the next one stronger/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Flexible enough for the way your team scopes work/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Questions teams ask/i })).toBeInTheDocument();
-    expect(screen.getByText(/Domain-Shaped Estimates/i)).toBeInTheDocument();
-    expect(screen.getByText(/Client-Ready Proposals/i)).toBeInTheDocument();
-    expect(screen.getByText(/Decisions Stay Attached/i)).toBeInTheDocument();
-    expect(screen.getByText(/floor, room, area, or trade/i)).toBeInTheDocument();
-    expect(screen.getByText(/BOM or BOQ exports/i)).toBeInTheDocument();
-    expect(screen.getByText(/change order/i)).toBeInTheDocument();
+    expect(screen.getByText(/Build estimates around real scope/i)).toBeInTheDocument();
+    expect(screen.getByText(/Domain-shaped estimate tree/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reusable smart components/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drag and drop into the selected area/i)).toBeInTheDocument();
+    expect(screen.getByText(/Turn the estimate into a client decision/i)).toBeInTheDocument();
+    expect(screen.getByText(/Branded proposal links/i)).toBeInTheDocument();
+    expect(screen.getByText(/Charts and cost visualizations/i)).toBeInTheDocument();
+    expect(screen.getByText(/Industry-standard BOM and BOQ exports/i)).toBeInTheDocument();
+    expect(screen.getByText(/Record the decision and every change after/i)).toBeInTheDocument();
+    expect(screen.getByText(/Client comments, accept, and decline/i)).toBeInTheDocument();
+    expect(screen.getByText(/Activity history for every response/i)).toBeInTheDocument();
+    expect(screen.getByText(/Change approvals recorded in the same workflow/i)).toBeInTheDocument();
 
     container.querySelectorAll<HTMLElement>("section[aria-labelledby]").forEach((section) => {
       const id = section.getAttribute("aria-labelledby");

@@ -504,7 +504,7 @@
   justify-self: end;
   color: var(--hero-metric-ink);
   font-family: var(--font-numeric), ui-monospace, monospace;
-  font-size: clamp(1.375rem, 7cqi, 2rem);
+  font-size: 1.625rem;
   font-weight: 200;
   line-height: 0.9;
 }
@@ -531,12 +531,42 @@
 
 .heroMetricBody {
   margin: 0;
-  padding: 0.55rem 0.5rem 0;
+  min-height: 3.1rem;
+  border-block-end: 1px solid var(--hero-metric-list-line);
+  padding: 0.5rem 0.5rem 0.45rem;
   color: color-mix(in srgb, var(--hero-metric-ink) 86%, transparent);
-  font-size: clamp(0.66rem, 2.2cqi, 0.82rem);
+  font-size: 0.62rem;
   font-weight: 430;
-  line-height: 1.35;
+  line-height: 1.25;
   text-wrap: balance;
+}
+
+.heroMetricFeatureList {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0.45rem 0 0;
+  padding: 0 0.5rem 0.1rem;
+  color: var(--hero-metric-ink);
+  font-size: 0.61rem;
+  font-weight: 560;
+  line-height: 1.18;
+  list-style: none;
+}
+
+.heroMetricFeatureList li {
+  position: relative;
+  padding-inline-start: 0.62rem;
+}
+
+.heroMetricFeatureList li::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0.45em;
+  inset-inline-start: 0;
+  inline-size: 0.25rem;
+  block-size: 0.25rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--signal) 78%, var(--hero-metric-ink));
 }
 
 .heroMetricTitle {
@@ -546,7 +576,7 @@
   overflow: hidden;
   color: var(--hero-metric-ink);
   font-family: "Doto", "Doto Fallback", "Roboto Mono", "Roboto Mono Fallback", ui-monospace, monospace;
-  font-size: clamp(1.25rem, 6cqi, 2rem);
+  font-size: 1.25rem;
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -577,22 +607,15 @@
 
 @container (max-width: 360px) {
   .heroMetricPanel {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .heroMetricCountPanel {
-    border-block-end: 1px solid var(--hero-metric-line);
-    border-inline-end: 0;
-  }
-
-  .heroMetricLedgerHeader {
-    min-height: 2.4rem;
-    flex-basis: 2.4rem;
+    grid-template-columns: clamp(6.25rem, 32cqi, 12.7rem) minmax(0, 1fr);
   }
 
   .heroMetricBody {
-    font-size: 0.64rem;
     line-height: 1.25;
+  }
+
+  .heroMetricFeatureList {
+    line-height: 1.18;
   }
 }
 
