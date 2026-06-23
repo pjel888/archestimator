@@ -787,7 +787,6 @@ export function AskFlipFooterAssistant({
     <div data-ask-flip-root="true" className="relative flex shrink-0 items-center justify-end">
       {open ? (
         <section
-          role="region"
           aria-label="Ask Flip"
           className="absolute right-0 bottom-[calc(100%+8px)] z-[80] grid h-[min(520px,calc(100dvh-112px))] w-[min(720px,calc(100vw-32px))] grid-cols-1 overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_18px_48px_rgba(17,24,39,0.18)] sm:grid-cols-[188px_minmax(0,1fr)]"
         >
@@ -884,6 +883,7 @@ export function AskFlipFooterAssistant({
             <form className="flex min-h-12 gap-2 border-t border-hairline bg-white p-2" onSubmit={handleSubmit}>
               <input
                 ref={inputRef}
+                aria-label="Ask Flip message"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask Flip"

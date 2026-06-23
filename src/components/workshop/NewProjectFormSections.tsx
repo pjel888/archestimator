@@ -48,12 +48,13 @@ export function ProjectCodeField({
   onGenerate,
 }: ProjectCodeFieldProps) {
   return (
-    <label className="mt-auto w-full space-y-1.5">
+    <label htmlFor="new-project-code" className="mt-auto w-full space-y-1.5">
       <span className="block text-right text-[8px] font-medium uppercase tracking-normal text-tertiary">
         Project Code
       </span>
       <span className="flex min-w-0 items-center gap-1">
         <ControlInput
+          id="new-project-code"
           name="projectCode"
           value={projectCode}
           onChange={(event) => onChange(event.currentTarget.value)}
@@ -90,11 +91,12 @@ export function ProjectFields({
 }: ProjectFieldsProps) {
   return (
     <>
-      <label className="space-y-1.5 md:col-span-2">
+      <label htmlFor="new-project-name" className="space-y-1.5 md:col-span-2">
         <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
           Project name
         </span>
         <ControlInput
+          id="new-project-name"
           name="name"
           placeholder="e.g. Lewis Residence Renovation"
           required
@@ -106,21 +108,23 @@ export function ProjectFields({
           className="h-10 px-2 !text-[12px]"
         />
       </label>
-      <label className="space-y-1.5">
+      <label htmlFor="new-project-client" className="space-y-1.5">
         <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
           Client
         </span>
         <ControlInput
+          id="new-project-client"
           name="clientName"
           placeholder="Client name"
           className="h-10 px-2 !text-[12px]"
         />
       </label>
-      <label className="space-y-1.5 md:col-span-2">
+      <label htmlFor="new-project-location" className="space-y-1.5 md:col-span-2">
         <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
           Location
         </span>
         <ControlInput
+          id="new-project-location"
           name="location"
           placeholder="City / site location"
           className="h-10 px-2 !text-[12px]"

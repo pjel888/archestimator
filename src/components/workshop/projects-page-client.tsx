@@ -787,10 +787,10 @@ export function ProjectsPageClient({
         getProjectAccessSearchText(item).includes(query),
     );
     if (!sortTouched && isDateSortField(sortField)) {
-      return [...searchedProjects].sort((a, b) => compareProjectsByDateOnly(a, b, sortField, sortDirection));
+      return searchedProjects.toSorted((a, b) => compareProjectsByDateOnly(a, b, sortField, sortDirection));
     }
     if (!sortTouched) return searchedProjects;
-    return [...searchedProjects].sort((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
+    return searchedProjects.toSorted((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
   }, [activeBaseProjects, deferredSearchQuery, optimisticProjectItemIds, sortDirection, sortField, sortTouched]);
 
   const displayLiveProjects = displayProjects;

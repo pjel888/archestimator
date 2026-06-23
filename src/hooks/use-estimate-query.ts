@@ -38,7 +38,7 @@ export function useEstimateAreaTreeQuery({
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => estimateQueryKeys.areaTree(estimateId ?? "local-estimate"), [estimateId]);
   const revisionKey = useMemo(() => [...queryKey, "revision"] as const, [queryKey]);
-  const query = useQuery({
+  const { data, ...query } = useQuery({
     queryKey,
     queryFn: () => (projectId && estimateId ? fetchEstimateTree({ projectId, estimateId }) : Promise.resolve(initialNodes)),
     initialData: initialNodes,
@@ -47,7 +47,7 @@ export function useEstimateAreaTreeQuery({
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
-  const tree = query.data ?? initialNodes;
+  const tree = data ?? initialNodes;
   const getTreeRevision = useCallback(() => queryClient.getQueryData<number>(revisionKey) ?? 0, [queryClient, revisionKey]);
   const bumpTreeRevision = useCallback(() => {
     let nextRevision = 0;
@@ -101,7 +101,7 @@ export function useEstimateTabTreeQuery({
   const queryKey = useMemo(() => estimateQueryKeys.tabTree(estimateId ?? "local-estimate", tabId ?? "local-tab"), [estimateId, tabId]);
   const revisionKey = useMemo(() => [...queryKey, "revision"] as const, [queryKey]);
   const fallbackInitialNodes = initialNodes ?? [];
-  const query = useQuery({
+  const { data, ...query } = useQuery({
     queryKey,
     queryFn: () => (projectId && estimateId && tabId ? fetchEstimateTabTree({ projectId, estimateId, tabId }) : Promise.resolve(fallbackInitialNodes)),
     initialData: initialNodes,
@@ -110,7 +110,7 @@ export function useEstimateTabTreeQuery({
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
-  const tree = query.data ?? fallbackInitialNodes;
+  const tree = data ?? fallbackInitialNodes;
   const getTreeRevision = useCallback(() => queryClient.getQueryData<number>(revisionKey) ?? 0, [queryClient, revisionKey]);
   const bumpTreeRevision = useCallback(() => {
     let nextRevision = 0;
@@ -156,7 +156,7 @@ export function useEstimateTabsQuery({
   initialTabs?: EstimateTabSummary[];
   enabled?: boolean;
 }) {
-  const query = useQuery({
+  const { data, ...query } = useQuery({
     queryKey: estimateQueryKeys.tabs(estimateId ?? "local-estimate"),
     queryFn: () => (projectId && estimateId ? fetchEstimateTabs({ projectId, estimateId }) : Promise.resolve(initialTabs)),
     initialData: initialTabs,
@@ -167,7 +167,7 @@ export function useEstimateTabsQuery({
     staleTime: 5 * 60_000,
   });
 
-  return { ...query, tabs: query.data ?? initialTabs };
+  return { ...query, data, tabs: data ?? initialTabs };
 }
 
 export function useMoveEstimateRowItem(estimateId: string) {

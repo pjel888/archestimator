@@ -390,7 +390,7 @@ function ExpressMaterialEditor({
           />
         )}
         unit={(
-          <label className="flex w-full min-w-0 items-center justify-end gap-1" data-estimate-material-unit-label="true">
+          <div className="flex w-full min-w-0 items-center justify-end gap-1" data-estimate-material-unit-label="true">
             <span aria-hidden="true">/</span>
             <ControlInput
               type="text"
@@ -409,7 +409,7 @@ function ExpressMaterialEditor({
               align="right"
               className={cn(cardInputClass, "h-4 w-12 text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
             />
-          </label>
+          </div>
         )}
       />
     </div>

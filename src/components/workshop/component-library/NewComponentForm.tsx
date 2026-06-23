@@ -95,10 +95,10 @@ export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndA
 
       <div className="grid gap-2">
         <Field label="Description">
-          <textarea className={cn(inputClass, "h-16 resize-none py-1.5")} value={form.description} onChange={(e) => update({ description: e.target.value })} />
+          <textarea aria-label="Description" className={cn(inputClass, "h-16 resize-none py-1.5")} value={form.description} onChange={(e) => update({ description: e.target.value })} />
         </Field>
         <Field label="Notes">
-          <textarea className={cn(inputClass, "h-12 resize-none py-1.5")} value={form.notes} onChange={(e) => update({ notes: e.target.value })} />
+          <textarea aria-label="Notes" className={cn(inputClass, "h-12 resize-none py-1.5")} value={form.notes} onChange={(e) => update({ notes: e.target.value })} />
         </Field>
       </div>
 

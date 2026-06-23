@@ -59,9 +59,10 @@ export function ClosedBetaGate({ next }: ClosedBetaGateProps) {
           />
         </div>
 
-        <label className="flex flex-col gap-1.5">
+        <label htmlFor="beta-access-email" className="flex flex-col gap-1.5">
           <span className="text-[14px] font-medium text-landing-ink">Email</span>
           <ControlInput
+            id="beta-access-email"
             name="email"
             type="email"
             autoComplete="email"

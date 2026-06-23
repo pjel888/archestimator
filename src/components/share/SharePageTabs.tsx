@@ -57,7 +57,7 @@ function findShareTreeNodeElement(root: HTMLElement | null, nodeId: string) {
 }
 
 function getOrderedEstimateTabs(estimate: PublicationSnapshotEstimate | undefined): PublicationSnapshotEstimateTab[] {
-  return [...(estimate?.tabs ?? [])].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+  return (estimate?.tabs ?? []).toSorted((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 }
 
 function getDefaultEstimateTabId(tabs: PublicationSnapshotEstimateTab[]): string | null {
@@ -293,13 +293,18 @@ export default function SharePageTabs({
     const el = scrollRef.current;
     if (!el) return;
     updateScrollFades();
+    const resizeObserver = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(updateScrollFades)
+      : null;
+    resizeObserver?.observe(el);
     el.addEventListener("scroll", updateScrollFades, { passive: true });
     window.addEventListener("resize", updateScrollFades);
     return () => {
+      resizeObserver?.disconnect();
       el.removeEventListener("scroll", updateScrollFades);
       window.removeEventListener("resize", updateScrollFades);
     };
-  }, [updateScrollFades, estimates.length]);
+  }, [updateScrollFades]);
 
   // All hooks must be called unconditionally at the top (rules of hooks).
   const wouldBeActiveId = activeId || (estimates[0]?.id ?? "");
@@ -488,6 +493,7 @@ export default function SharePageTabs({
           <div
             role="tablist"
             aria-label="Estimate view mode"
+            tabIndex={-1}
             className="flex items-center gap-0 rounded-xs border border-hairline bg-white"
             onKeyDown={handleSubTabKeyDown}
           >

@@ -294,18 +294,19 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
-              <label className="space-y-1 md:col-span-2">
+              <label htmlFor="project-details-name" className="space-y-1 md:col-span-2">
                 <FieldLabel>Project name</FieldLabel>
-                <ControlInput name="name" defaultValue={project.name} required className="h-8 px-2" />
+                <ControlInput id="project-details-name" name="name" defaultValue={project.name} required className="h-8 px-2" />
               </label>
-              <label className="space-y-1">
+              <label htmlFor="project-details-client" className="space-y-1">
                 <FieldLabel>Client</FieldLabel>
-                <ControlInput name="clientName" defaultValue={project.client_name ?? ""} placeholder="Client name" className="h-8 px-2" />
+                <ControlInput id="project-details-client" name="clientName" defaultValue={project.client_name ?? ""} placeholder="Client name" className="h-8 px-2" />
               </label>
-              <label className="space-y-1">
+              <label htmlFor="project-details-code" className="space-y-1">
                 <FieldLabel>Project code</FieldLabel>
                 <span className="flex min-w-0 items-center gap-1">
                   <ControlInput
+                    id="project-details-code"
                     name="projectCode"
                     value={projectCode}
                     onChange={(event) => setProjectCode(event.currentTarget.value.toUpperCase())}
@@ -325,11 +326,11 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
                   </Button>
                 </span>
               </label>
-              <label className="space-y-1 md:col-span-2">
+              <label htmlFor="project-details-location" className="space-y-1 md:col-span-2">
                 <FieldLabel>Location</FieldLabel>
-                <ControlInput name="location" defaultValue={project.location ?? ""} placeholder="City / site location" className="h-8 px-2" />
+                <ControlInput id="project-details-location" name="location" defaultValue={project.location ?? ""} placeholder="City / site location" className="h-8 px-2" />
               </label>
-              <label className="space-y-1">
+              <div className="space-y-1">
                 <FieldLabel>Currency</FieldLabel>
                 <input type="hidden" name="currencyCode" value={currencyCode} />
                 <CreatableCombobox
@@ -362,7 +363,7 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
                   dropdownPlacement="top"
                   inputClassName="h-8 px-2 uppercase"
                 />
-              </label>
+              </div>
             </div>
           </div>
 

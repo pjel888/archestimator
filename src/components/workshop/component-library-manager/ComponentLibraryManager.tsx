@@ -287,7 +287,7 @@ function buildCatalogueOutline(
 
   function buildBranch(node: LibraryFolderTreeNode, depth: number, parentPath: string[]): CatalogueBranch | null {
     const path = [...parentPath, node.label];
-    const directItems = [...(cardsByFolderId.get(node.folderId) ?? [])].sort((left, right) => (
+    const directItems = (cardsByFolderId.get(node.folderId) ?? []).toSorted((left, right) => (
       getComponentName(left.item).localeCompare(getComponentName(right.item))
     ));
     const children = (node.children ?? [])
@@ -390,7 +390,7 @@ function compareDenseValues(left: string | number, right: string | number) {
 
 function sortDenseCatalogueCards(cards: CatalogueCard[], sort: DenseSortState): CatalogueCard[] {
   const direction = sort.direction === "asc" ? 1 : -1;
-  return [...cards].sort((left, right) => {
+  return cards.toSorted((left, right) => {
     const primary = compareDenseValues(getDenseSortValue(left, sort.key), getDenseSortValue(right, sort.key));
     if (primary !== 0) return primary * direction;
     return getComponentName(left.item).localeCompare(getComponentName(right.item), undefined, { sensitivity: "base" });
@@ -472,14 +472,6 @@ function ComponentCatalogueCard({
         librarySurfaceClass(surfaceVariant, "contentTile"),
         inspectorSelected && (surfaceVariant === "glass" ? "border-ink bg-white/90" : "border-ink bg-surfaceMuted/40"),
       )}
-      onClick={(event) => {
-        if ((event.target as HTMLElement).closest("label, button, a, input")) return;
-        if (event.metaKey || event.ctrlKey) {
-          onToggleSelected(item.id);
-          return;
-        }
-        onInspect(item.id);
-      }}
     >
       <div className="relative aspect-square w-full overflow-hidden border-b border-hairline bg-white">
         {lifecycleBadge ? (
@@ -503,28 +495,42 @@ function ComponentCatalogueCard({
             onChange={() => onToggleSelected(item.id)}
           />
         </label>
-        {item.imageUrl && isNextImageSafeComponentSource(item.imageUrl) ? (
-          <Image
-            src={item.imageUrl}
-            alt={`${name} thumbnail`}
-            fill
-            sizes="(max-width: 768px) 50vw, 176px"
-            className="object-cover transition duration-200 group-hover:scale-[1.02]"
-          />
-        ) : item.imageUrl ? (
-          <Image
-            src={item.imageUrl}
-            alt={`${name} thumbnail`}
-            fill
-            sizes="(max-width: 768px) 50vw, 176px"
-            unoptimized
-            className="object-cover transition duration-200 group-hover:scale-[1.02]"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-white text-tertiary" aria-hidden="true">
-            <ImageSquare size={24} weight="regular" />
-          </div>
-        )}
+        <button
+          type="button"
+          className="absolute inset-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+          data-component-card-image-inspect={item.id}
+          aria-label={`View details for ${name}`}
+          onClick={(event) => {
+            if (event.metaKey || event.ctrlKey) {
+              onToggleSelected(item.id);
+              return;
+            }
+            onInspect(item.id);
+          }}
+        >
+          {item.imageUrl && isNextImageSafeComponentSource(item.imageUrl) ? (
+            <Image
+              src={item.imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 50vw, 176px"
+              className="object-cover transition duration-200 group-hover:scale-[1.02]"
+            />
+          ) : item.imageUrl ? (
+            <Image
+              src={item.imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 50vw, 176px"
+              unoptimized
+              className="object-cover transition duration-200 group-hover:scale-[1.02]"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-white text-tertiary" aria-hidden="true">
+              <ImageSquare size={24} weight="regular" />
+            </span>
+          )}
+        </button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-2">
         <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary" title={card.pathLabel}>
@@ -828,9 +834,13 @@ function ComponentCatalogueDenseTable({
         </thead>
         <tbody>
           {virtualEnabled && virtualPaddingTop > 0 ? (
-            <tr aria-hidden="true" data-component-dense-virtual-spacer="top">
-              <td colSpan={12} style={{ height: virtualPaddingTop, padding: 0, border: 0 }} />
-            </tr>
+            <>
+              {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Virtualization spacer row is not user-operable content. */}
+              <tr aria-hidden="true" data-component-dense-virtual-spacer="top">
+                {/* react-doctor-disable-next-line react-doctor/control-has-associated-label -- Virtualization spacer cell is hidden from assistive tech. */}
+                <td colSpan={12} style={{ height: virtualPaddingTop, padding: 0, border: 0 }} />
+              </tr>
+            </>
           ) : null}
           {rowSlots.map((virtualRow) => {
             const card = cards[virtualRow.index];
@@ -963,9 +973,13 @@ function ComponentCatalogueDenseTable({
             );
           })}
           {virtualEnabled && virtualPaddingBottom > 0 ? (
-            <tr aria-hidden="true" data-component-dense-virtual-spacer="bottom">
-              <td colSpan={12} style={{ height: virtualPaddingBottom, padding: 0, border: 0 }} />
-            </tr>
+            <>
+              {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Virtualization spacer row is not user-operable content. */}
+              <tr aria-hidden="true" data-component-dense-virtual-spacer="bottom">
+                {/* react-doctor-disable-next-line react-doctor/control-has-associated-label -- Virtualization spacer cell is hidden from assistive tech. */}
+                <td colSpan={12} style={{ height: virtualPaddingBottom, padding: 0, border: 0 }} />
+              </tr>
+            </>
           ) : null}
         </tbody>
       </table>

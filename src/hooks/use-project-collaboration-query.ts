@@ -20,7 +20,7 @@ export function projectCollaborationQueryKey(projectId: string | null | undefine
 export function useProjectCollaborationQuery(initialSummary: ProjectCollaborationSummary | null) {
   const projectId = initialSummary?.projectId ?? null;
 
-  const query = useQuery({
+  return useQuery({
     queryKey: projectCollaborationQueryKey(projectId),
     queryFn: () => fetchProjectCollaborationSummary(projectId as string),
     enabled: Boolean(projectId),
@@ -29,8 +29,6 @@ export function useProjectCollaborationQuery(initialSummary: ProjectCollaboratio
     // invalidate explicitly.
     staleTime: 60_000,
   });
-
-  return query;
 }
 
 /** Invalidate exactly the collaboration query for a project. */

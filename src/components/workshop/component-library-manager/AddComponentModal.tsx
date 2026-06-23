@@ -693,7 +693,12 @@ function sectionTitleClassName() {
 
 const selectTriggerClassName = "h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
 
-export function AddComponentModal({
+export function AddComponentModal(props: AddComponentModalProps) {
+  if (!props.open) return null;
+  return <OpenAddComponentModal {...props} />;
+}
+
+function OpenAddComponentModal({
   open,
   folders,
   categoryTree,
@@ -712,9 +717,18 @@ export function AddComponentModal({
   treeMutationPending,
 }: AddComponentModalProps) {
   const userFolders = useMemo(() => getUserLibraryFolders(folders), [folders]);
-  const [draft, setDraft] = useState(() =>
-    getInitialDraft({ folders: userFolders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands }),
+  const [initialDraft] = useState(() =>
+    getInitialDraft({
+      folders: userFolders,
+      categoryTree,
+      selectedFolderId,
+      selectedSupplierId,
+      selectedBrandId,
+      suppliers,
+      brands,
+    }),
   );
+  const [draft, setDraft] = useState(initialDraft);
   const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
   const [sharedPreviewUrl, setSharedPreviewUrl] = useState("");
   const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
@@ -726,7 +740,7 @@ export function AddComponentModal({
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [advancedDetailsOpen, setAdvancedDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
-  const [activeVariantId, setActiveVariantId] = useState("");
+  const [activeVariantId, setActiveVariantId] = useState(() => initialDraft.variants[0]?.id ?? "");
   const [nestingViewMode, setNestingViewMode] = useState<ComponentViewMode>(() => getInitialNestingViewMode(selectedSupplierId, selectedBrandId));
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -736,7 +750,6 @@ export function AddComponentModal({
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
   const duplicateCheckTimerRef = useRef<number | null>(null);
-  const wasOpenRef = useRef(false);
   const variantPreviewUrlsRef = useRef<Record<string, string>>({});
   const sharedPreviewUrlRef = useRef("");
   const costPickerRootRef = useRef<HTMLDivElement>(null);
@@ -884,38 +897,9 @@ export function AddComponentModal({
   }, [draft, quickAddValidation.errors]);
 
   useEffect(() => {
-    if (!open) {
-      wasOpenRef.current = false;
-      return;
-    }
-    if (wasOpenRef.current) return;
-    wasOpenRef.current = true;
-    dirtyRef.current = false;
-    const initialDraft = getInitialDraft({ folders: userFolders, categoryTree, selectedFolderId, selectedSupplierId, selectedBrandId, suppliers, brands });
-    setDraft(initialDraft);
-    setActiveVariantId(initialDraft.variants[0]?.id ?? "");
-    setError("");
-    Object.values(variantPreviewUrls).forEach((url) => URL.revokeObjectURL(url));
-    if (sharedPreviewUrl) URL.revokeObjectURL(sharedPreviewUrl);
-    setVariantPreviewUrls({});
-    setSharedPreviewUrl("");
-    setImageUpload({ state: "idle" });
-    setAttachmentUpload({ state: "idle" });
-    setCostPickerOpen(false);
-    setCostManagerOpen(false);
-    setDiscardDialogOpen(false);
-    setDuplicateCheckReady(false);
-    setDuplicateAcknowledged(false);
-    setAdvancedDetailsOpen(false);
-    if (duplicateCheckTimerRef.current !== null) {
-      window.clearTimeout(duplicateCheckTimerRef.current);
-      duplicateCheckTimerRef.current = null;
-    }
-    costEditBaselineRef.current = null;
-    setActiveTab("component");
-    setNestingViewMode(getInitialNestingViewMode(selectedSupplierId, selectedBrandId));
-    requestAnimationFrame(() => initialFocusRef.current?.focus());
-  }, [brands, categoryTree, open, selectedBrandId, selectedFolderId, selectedSupplierId, sharedPreviewUrl, suppliers, userFolders, variantPreviewUrls]);
+    const focusFrame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, []);
 
   useEffect(() => {
     variantPreviewUrlsRef.current = variantPreviewUrls;
@@ -2002,7 +1986,7 @@ export function AddComponentModal({
                                     ))}
                                   </div>
                                   {activeCostEntry ? (
-                                    <label className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-center gap-2 border-t border-hairline px-2 pt-1">
+                                    <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-center gap-2 border-t border-hairline px-2 pt-1">
                                       <span className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Date</span>
                                       <ControlInput
                                         aria-label="Selected cost date"
@@ -2011,7 +1995,7 @@ export function AddComponentModal({
                                         onChange={(event) => updateActiveCostEntry({ pricingDate: event.target.value })}
                                         className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7")}
                                       />
-                                    </label>
+                                    </div>
                                   ) : null}
                                 </div>
                               ) : null}

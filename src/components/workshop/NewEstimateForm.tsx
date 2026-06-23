@@ -22,13 +22,13 @@ export function NewEstimateForm({ projectId }: { projectId: string }) {
       </div>
 
       <div className="grid gap-2 md:grid-cols-3">
-        <label className="space-y-1 md:col-span-2">
+        <label htmlFor="new-estimate-name" className="space-y-1 md:col-span-2">
           <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate name</span>
-          <ControlInput name="name" placeholder="e.g. Baseline cost estimate" required className="h-8 px-2" />
+          <ControlInput id="new-estimate-name" name="name" placeholder="e.g. Baseline cost estimate" required className="h-8 px-2" />
         </label>
-        <label className="space-y-1">
+        <label htmlFor="new-estimate-code" className="space-y-1">
           <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate Code</span>
-          <ControlInput name="sheetCode" placeholder="Rev 0" className="h-8 px-2" />
+          <ControlInput id="new-estimate-code" name="sheetCode" placeholder="Rev 0" className="h-8 px-2" />
         </label>
       </div>
     </form>

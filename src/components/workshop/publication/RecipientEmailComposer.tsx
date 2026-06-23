@@ -428,6 +428,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
           );
         })}
         <input
+          aria-label="Recipient email addresses"
           className="min-w-[120px] flex-1 bg-transparent text-[10px] leading-4 outline-none placeholder:text-secondary px-1"
           placeholder="name@company.com, another@..."
           value={input}

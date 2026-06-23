@@ -212,7 +212,7 @@ function sortBucketsByComparisonOrder(
 ): ProjectChartBucket[] {
   if (!comparisonBucketOrder) return buckets;
   const order = new Map(comparisonBucketOrder.map((id, index) => [id, index]));
-  return [...buckets].sort((left, right) => {
+  return buckets.toSorted((left, right) => {
     const leftOrder = order.get(left.id) ?? Number.MAX_SAFE_INTEGER;
     const rightOrder = order.get(right.id) ?? Number.MAX_SAFE_INTEGER;
     return leftOrder - rightOrder || right.total - left.total || left.label.localeCompare(right.label);
@@ -224,8 +224,8 @@ function sortComparisonBucketIds(
   baselineEstimateId: string | null,
   comparandEstimateIds: string[],
 ): string[] {
-  return [...buckets]
-    .sort((left, right) => {
+  return buckets
+    .toSorted((left, right) => {
       const leftMovement = maxMovementFromBaseline(left, baselineEstimateId, comparandEstimateIds);
       const rightMovement = maxMovementFromBaseline(right, baselineEstimateId, comparandEstimateIds);
       return rightMovement - leftMovement || right.baselineTotal - left.baselineTotal || left.label.localeCompare(right.label);

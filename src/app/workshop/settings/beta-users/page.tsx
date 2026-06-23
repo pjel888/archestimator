@@ -88,9 +88,10 @@ export default async function BetaUsersPage({
             <section className="border border-hairline bg-white p-2">
               <h2 className="text-[11px] font-medium leading-4 text-ink">Add beta user</h2>
               <form action={createClosedBetaAllowlistEntry} className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)_auto] md:items-end">
-                <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
+                <label htmlFor="beta-allowlist-email" className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                   Google email
                   <input
+                    id="beta-allowlist-email"
                     name="email"
                     type="email"
                     required
@@ -98,7 +99,7 @@ export default async function BetaUsersPage({
                     className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
                   />
                 </label>
-                <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
+                <div className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                   Status
                   <AdminStatusSelect
                     name="status"
@@ -106,10 +107,11 @@ export default async function BetaUsersPage({
                     options={statusOptions}
                     aria-label="Status"
                   />
-                </label>
-                <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
+                </div>
+                <label htmlFor="beta-allowlist-notes" className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                   Notes
                   <input
+                    id="beta-allowlist-notes"
                     name="notes"
                     placeholder="Cohort, source, or support context"
                     className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
@@ -122,7 +124,7 @@ export default async function BetaUsersPage({
             </section>
 
             <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/workshop/settings/beta-users">
-              <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
+              <div className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                 Status
                 <AdminStatusSelect
                   name="status"
@@ -131,7 +133,7 @@ export default async function BetaUsersPage({
                   aria-label="Status filter"
                   className="min-w-36"
                 />
-              </label>
+              </div>
               <Button type="submit" variant="secondary" size="sm">
                 Filter
               </Button>
@@ -191,6 +193,7 @@ export default async function BetaUsersPage({
                               <input type="hidden" name="status" value={row.status} />
                               <input
                                 name="notes"
+                                aria-label={`Notes for ${row.normalized_email}`}
                                 defaultValue={row.notes ?? ""}
                                 className="h-7 min-w-44 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus:ring-2 focus:ring-focus"
                               />

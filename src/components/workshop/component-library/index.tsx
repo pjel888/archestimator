@@ -179,6 +179,7 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
   useEffect(() => {
     const active = new Set(activeIds);
     const timers = timersRef.current;
+    const scheduledIds: string[] = [];
     for (const id of active) {
       if (timers.has(id)) continue;
       const timer = setTimeout(() => {
@@ -189,6 +190,7 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
         });
       }, delayMs);
       timers.set(id, timer);
+      scheduledIds.push(id);
     }
     for (const [id, timer] of Array.from(timers.entries())) {
       if (!active.has(id)) {
@@ -196,6 +198,15 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
         timers.delete(id);
       }
     }
+    return () => {
+      for (const id of scheduledIds) {
+        const timer = timers.get(id);
+        if (timer) {
+          clearTimeout(timer);
+          timers.delete(id);
+        }
+      }
+    };
     // activeKey is the content-stable proxy for activeIds; delayMs is constant.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, delayMs]);
@@ -2443,7 +2454,7 @@ function EstimateRightSidebarBase({
               {templateGroupError ? (
                 <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{templateGroupError}</p>
               ) : null}
-              <label className="grid gap-1">
+              <div className="grid gap-1">
                 <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
                   Group name<span className="ml-0.5 text-danger" aria-hidden="true">*</span>
                 </span>
@@ -2461,7 +2472,7 @@ function EstimateRightSidebarBase({
                     if (event.key === "Enter") handleCreateTemplateGroup();
                   }}
                 />
-              </label>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="secondary" size="sm" onClick={() => handleAddTemplateGroupOpenChange(false)}>
                   Cancel
@@ -2539,7 +2550,7 @@ function EstimateRightSidebarBase({
         {/* Bulk delete confirmation */}
         {bulkDeleteConfirmOpen && isLibraryTab ? (
           <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
-            <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
+            <div role="alertdialog" aria-modal="true" aria-label="Delete selected components" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
               <h3 className="text-[11px] font-medium text-ink">
                 Delete {bulkSelectedItems.length} selected {bulkSelectedItems.length === 1 ? "component" : "components"}?
               </h3>
@@ -2614,7 +2625,7 @@ function EstimateRightSidebarBase({
         {/* Delete template confirmation */}
         {deleteTemplateTarget ? (
           <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
-            <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
+            <div role="alertdialog" aria-modal="true" aria-label="Delete template" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
               <h3 className="text-[11px] font-medium text-ink">Delete template?</h3>
               <p className="mt-1 text-[9px] leading-4 text-tertiary">
                 Remove {deleteTemplateTarget.name} from this workspace&apos;s templates. Estimates already built from it keep their nodes and rows.
@@ -2649,7 +2660,7 @@ function EstimateRightSidebarBase({
         {/* Delete confirmation */}
         {deleteCandidate ? (
           <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
-            <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
+            <div role="alertdialog" aria-modal="true" aria-label="Delete component" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
               <h3 className="text-[11px] font-medium text-ink">Delete component?</h3>
               <p className="mt-1 text-[9px] leading-4 text-tertiary">
                 Remove {getComponentName(deleteCandidate)} from this local library view. Existing estimate rows stay unchanged.

@@ -373,7 +373,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
 
   if (!isValid) {
     return (
-      <section role="region" aria-label="Discussion comments" className="share-print-hidden w-full rounded-xs border border-hairline bg-white p-3 text-[13px] leading-[18px] tracking-normal text-secondary">
+      <section aria-label="Discussion comments" className="share-print-hidden w-full rounded-xs border border-hairline bg-white p-3 text-[13px] leading-[18px] tracking-normal text-secondary">
         <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
         <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">Recipient session required to comment and respond to this proposal.</p>
       </section>
@@ -382,7 +382,6 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
 
   return (
     <section
-      role="region"
       aria-label="Discussion comments"
       className="share-print-hidden flex w-full flex-col rounded-xs border border-hairline bg-white"
     >

@@ -122,8 +122,9 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
   }
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Command palette uses container-level arrow/enter handling for virtual selection.
     <div className="space-y-2" onKeyDown={handleKeyDown}>
-      <label className="flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-2">
+      <div className="flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-2">
         <MagnifyingGlass size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
         <ControlInput
           className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 border-0 bg-transparent px-0 focus:ring-0")}
@@ -133,7 +134,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
           placeholder="Search commands"
           aria-label="Search commands"
         />
-      </label>
+      </div>
       {loading ? (
         <div className="space-y-1">
           <Skeleton className="h-7 w-full" />

@@ -1306,7 +1306,11 @@ export function EstimateSheetContent({
   const lazyLibraryQueryKey = workspaceId && projectId
     ? workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)
     : workspaceComponentLibraryLiteQueryKey(workspaceId ?? "missing-workspace", projectId ?? "missing-project");
-  const libraryQuery = useQuery({
+  const {
+    data: lazyLibraryData,
+    isError: isLazyLibraryError,
+    refetch: refetchLazyLibrary,
+  } = useQuery({
     // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
     // dataset under its own key — never the full-graph key the editor surfaces use.
     queryKey: lazyLibraryQueryKey,
@@ -1320,7 +1324,7 @@ export function EstimateSheetContent({
     // estimate doesn't re-run the cold load (it's workspace-global + mutation-invalidated).
     gcTime: 30 * 60 * 1000,
   });
-  const lazyLibrary = shouldLoadLibraryLazily ? libraryQuery.data : undefined;
+  const lazyLibrary = shouldLoadLibraryLazily ? lazyLibraryData : undefined;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const queryClient = useQueryClient();
   // U2: project-source insert is non-optimistic (the full source subtree isn't
@@ -2978,6 +2982,7 @@ export function EstimateSheetContent({
         />
       ) : null}
       {projectSpecificRow ? (
+        // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop mouse dismissal is paired with dialog keyboard dismissal inside the row-details surface.
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
           onMouseDown={(event) => {
@@ -3260,7 +3265,7 @@ export function EstimateSheetContent({
       </section>
       {renderSidebar ? (
         shouldLoadLibraryLazily && !lazyLibrary ? (
-          <ComponentLibrarySidebarFallback isError={libraryQuery.isError} onRetry={() => libraryQuery.refetch()} />
+          <ComponentLibrarySidebarFallback isError={isLazyLibraryError} onRetry={() => refetchLazyLibrary()} />
         ) : (
           <EstimateRightSidebar
             onInsertComponent={insertIntoSelectedNode}

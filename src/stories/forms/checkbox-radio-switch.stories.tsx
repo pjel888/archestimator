@@ -30,7 +30,7 @@ function CheckboxRadioSwitchPreview() {
       <StoryPanel className="space-y-2">
         <label className="flex items-center justify-between gap-3 text-[10px] font-medium leading-4 text-ink">
           Compact mode
-          <input type="checkbox" role="switch" defaultChecked className="h-3 w-6 accent-[#292929]" />
+          <input type="checkbox" role="switch" aria-checked={true} defaultChecked className="h-3 w-6 accent-[#292929]" />
         </label>
         <Note>Story-only native controls document Checkbox, RadioGroup, and Switch until a shared wrapper is approved.</Note>
       </StoryPanel>
@@ -72,7 +72,7 @@ export const Disabled: Story = {
       </label>
       <label className="flex items-center justify-between gap-3 text-[10px] font-medium leading-4 text-tertiary">
         Disabled switch
-        <input type="checkbox" role="switch" disabled className="h-3 w-6 accent-[#292929]" />
+        <input type="checkbox" role="switch" aria-checked={false} disabled className="h-3 w-6 accent-[#292929]" />
       </label>
     </StoryPanel>
   ),

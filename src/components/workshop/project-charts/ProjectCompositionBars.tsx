@@ -29,7 +29,7 @@ export function ProjectCompositionBars({
   }
 
   // Stable segment order: largest baseline share first, then label.
-  const orderedBuckets = [...view.buckets].sort(
+  const orderedBuckets = view.buckets.toSorted(
     (left, right) => right.baselineTotal - left.baselineTotal || left.label.localeCompare(right.label),
   );
   const cueByBucketId = new Map(view.buckets.map((bucket, index) => [bucket.id, bucketCueToken(index)]));
@@ -62,10 +62,20 @@ export function ProjectCompositionBars({
                   <span
                     key={bucket.id}
                     data-bucket-id={bucket.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Toggle ${bucket.label} pin`}
                     title={`${bucket.label}: ${formatChartShare(share)} · ${formatChartMoney(bucket.perEstimateTotals[estimate.id] ?? 0, view.currencyCode)}`}
                     onMouseEnter={() => onActiveBucketChange(bucket.id)}
                     onMouseLeave={() => onActiveBucketChange(null)}
+                    onFocus={() => onActiveBucketChange(bucket.id)}
+                    onBlur={() => onActiveBucketChange(null)}
                     onClick={() => onTogglePin(bucket.id)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      onTogglePin(bucket.id);
+                    }}
                     className={cn("h-full cursor-pointer transition-opacity motion-reduce:transition-none", activeBucketId && !isActive ? "opacity-45" : "opacity-100")}
                     style={{ width: `${share * 100}%`, backgroundColor: bucket.color }}
                   />

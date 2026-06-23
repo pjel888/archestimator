@@ -74,7 +74,7 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
 
       <section className="space-y-2 border border-hairline bg-white p-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="space-y-1">
+          <div className="space-y-1">
             <span className="block text-[9px] font-medium uppercase leading-3 text-tertiary">Type</span>
             <DropdownSelect
               name="feedbackType"
@@ -83,8 +83,8 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
               aria-label="Type"
               className={FEEDBACK_SELECT_TRIGGER_CLASS}
             />
-          </label>
-          <label className="space-y-1">
+          </div>
+          <div className="space-y-1">
             <span className="block text-[9px] font-medium uppercase leading-3 text-tertiary">Severity</span>
             <DropdownSelect
               name="severity"
@@ -93,7 +93,7 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
               aria-label="Severity"
               className={FEEDBACK_SELECT_TRIGGER_CLASS}
             />
-          </label>
+          </div>
         </div>
 
         <label className="space-y-1">

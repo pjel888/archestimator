@@ -74,9 +74,10 @@ export function LoginForm({ next }: LoginFormProps) {
           />
         </div>
 
-        <label className="flex flex-col gap-1.5">
+        <label htmlFor="login-email" className="flex flex-col gap-1.5">
           <span className="text-[14px] font-medium text-landing-ink">Email</span>
           <ControlInput
+            id="login-email"
             name="email"
             type="email"
             autoComplete="email"

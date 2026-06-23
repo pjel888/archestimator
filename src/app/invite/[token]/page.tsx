@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 
 import {
   checkInviteResolutionRateLimit,
@@ -197,9 +198,9 @@ function TerminalInviteState({
           Contact the sender at <span className="font-medium text-ink">{senderEmail}</span>.
         </p>
       ) : null}
-      <a className={inviteSecondaryActionClassName} href="/contact">
+      <Link className={inviteSecondaryActionClassName} href="/contact">
         Contact Archestimator
-      </a>
+      </Link>
     </InviteShell>
   );
 }
@@ -236,9 +237,11 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
             <dd>{state.row.invited_email ?? "Not available"}</dd>
           </div>
         </dl>
-        <a className={inviteSecondaryActionClassName} href={`/invite/${encodeURIComponent(decodedToken)}/sign-out`}>
-          Sign out and continue
-        </a>
+        <form method="post" action={`/invite/${encodeURIComponent(decodedToken)}/sign-out`}>
+          <button type="submit" className={inviteSecondaryActionClassName}>
+            Sign out and continue
+          </button>
+        </form>
       </InviteShell>
     );
   }

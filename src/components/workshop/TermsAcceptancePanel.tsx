@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ComponentProps } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -88,6 +89,7 @@ export function TermsAcceptancePanel({
             </p>
           </div>
 
+          {/* react-doctor-disable-next-line react-doctor/no-noninteractive-tabindex -- Scrollable terms summary is focusable for keyboard scrolling. */}
           <div className="max-h-[34dvh] overflow-y-auto rounded-xs border border-hairline bg-white p-2" tabIndex={0} aria-label="Terms summary">
             <p className="text-[10px] leading-4 text-secondary">{TERMS_ACCEPTANCE_SUMMARY}</p>
             <ul className="mt-2 list-disc space-y-1 pl-4 text-[10px] leading-4 text-secondary">
@@ -98,12 +100,12 @@ export function TermsAcceptancePanel({
           </div>
 
           <div className="flex flex-wrap gap-2 text-[10px] leading-4">
-            <a href="/terms" className="font-medium text-ink underline decoration-hairline underline-offset-2">
+            <Link href="/terms" className="font-medium text-ink underline decoration-hairline underline-offset-2">
               Full Terms
-            </a>
-            <a href="/privacy" className="font-medium text-ink underline decoration-hairline underline-offset-2">
+            </Link>
+            <Link href="/privacy" className="font-medium text-ink underline decoration-hairline underline-offset-2">
               Privacy Notice
-            </a>
+            </Link>
           </div>
 
           <label className="flex items-start gap-2 rounded-xs border border-hairline bg-white p-2 text-[10px] leading-4 text-secondary">

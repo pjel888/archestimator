@@ -175,7 +175,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
 
   // Dock dataset: same lazy query + cache key as the estimate workspace, so
   // switching between the two surfaces reuses one fetch.
-  const libraryQuery = useQuery({
+  const { data: libraryData } = useQuery({
     queryKey: componentLibraryQueryKey,
     queryFn: () => loadCurrentWorkspaceComponentLibrary(),
     staleTime: 5 * 60 * 1000,
@@ -309,7 +309,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         </div>
       </ResizableSidePanel>
       <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} />
-      {libraryQuery.data ? (
+      {libraryData ? (
         <EstimateRightSidebar
           selectedNodeId={componentTargetArea?.id ?? null}
           selectedNodeKind={componentTargetArea?.kind ?? null}
@@ -320,12 +320,12 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
           onInsertComponent={handleInsertComponent}
           onInsertTemplate={handleInsertTemplate}
           onInsertTemplateNode={handleInsertTemplateNode}
-          initialLibraryItems={libraryQuery.data.libraryItems}
-          templates={libraryQuery.data.templates}
-          categoryTree={libraryQuery.data.categoryTree}
-          suppliers={libraryQuery.data.suppliers}
-          brands={libraryQuery.data.brands}
-          libraryFolders={libraryQuery.data.libraryFolders}
+          initialLibraryItems={libraryData.libraryItems}
+          templates={libraryData.templates}
+          categoryTree={libraryData.categoryTree}
+          suppliers={libraryData.suppliers}
+          brands={libraryData.brands}
+          libraryFolders={libraryData.libraryFolders}
           onLibraryDataChanged={handleLibraryDataChanged}
         />
       ) : (

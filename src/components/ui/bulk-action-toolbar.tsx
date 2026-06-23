@@ -92,15 +92,6 @@ export function BulkActionToolbar({
   className,
 }: BulkActionToolbarProps) {
   const isBottomDock = placement === "bottom-dock";
-  const actionsRef = React.useRef<HTMLDivElement>(null);
-  const [actionsWidth, setActionsWidth] = React.useState<number>(0);
-
-  React.useEffect(() => {
-    if (actionsRef.current) {
-      const w = actionsRef.current.getBoundingClientRect().width;
-      setActionsWidth(w);
-    }
-  }, [selectedCount, actions]);
 
   if (selectedCount === 0) return null;
 
@@ -117,65 +108,64 @@ export function BulkActionToolbar({
           className
         )}
       >
-        {/* Level 1: Action buttons */}
-        <div
-          ref={actionsRef}
-          className={cn(
-            "pointer-events-auto flex items-center gap-0.5",
-            "rounded-xs border border-hairline",
-            "bg-white/90 p-0.5",
-            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_-4px_rgba(17,17,17,0.25)]",
-            "backdrop-blur-xl",
-            "animate-in fade-in slide-in-from-bottom-4 duration-300 motion-reduce:animate-none"
-          )}
-          style={{ animationFillMode: "backwards", animationDelay: "0ms" }}
-        >
-          <FloatingDockItem
-            label="Clear selection"
-            icon={<X size={12} weight="regular" />}
-            onClick={onClear}
-          />
-
-          {actions.length > 0 && (
-            <span className="mx-0.5 h-4 w-px bg-hairline" aria-hidden="true" />
-          )}
-
-          {actions.map((action, index) => (
-            <FloatingDockItem
-              key={index}
-              label={action.label}
-              icon={action.icon}
-              onClick={action.onClick}
-              variant={action.variant}
-              disabled={action.disabled}
-            />
-          ))}
-        </div>
-
-        {/* Level 2: Selection count — matches Level 1 width exactly */}
-        <div
-          className={cn(
-            "pointer-events-auto flex items-center justify-center",
-            "rounded-xs",
-            "bg-white/80 p-0.5",
-            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
-            "backdrop-blur-xl",
-            "min-h-5",
-            "animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none"
-          )}
-          style={{
-            width: actionsWidth || "auto",
-            animationFillMode: "backwards",
-            animationDelay: "100ms",
-          }}
-        >
-          <span
-            className="text-[9px] font-medium tabular-nums text-ink"
-            aria-live="polite"
-            aria-label={`${selectedCount} ${selectedLabel}`}
+        <div className="pointer-events-auto inline-grid justify-items-stretch gap-0.5">
+          {/* Level 1: Action buttons */}
+          <div
+            className={cn(
+              "flex items-center gap-0.5",
+              "rounded-xs border border-hairline",
+              "bg-white/90 p-0.5",
+              "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_-4px_rgba(17,17,17,0.25)]",
+              "backdrop-blur-xl",
+              "animate-in fade-in slide-in-from-bottom-4 duration-300 motion-reduce:animate-none"
+            )}
+            style={{ animationFillMode: "backwards", animationDelay: "0ms" }}
           >
-            {selectedCount}
-          </span>
+            <FloatingDockItem
+              label="Clear selection"
+              icon={<X size={12} weight="regular" />}
+              onClick={onClear}
+            />
+
+            {actions.length > 0 && (
+              <span className="mx-0.5 h-4 w-px bg-hairline" aria-hidden="true" />
+            )}
+
+            {actions.map((action, index) => (
+              <FloatingDockItem
+                key={index}
+                label={action.label}
+                icon={action.icon}
+                onClick={action.onClick}
+                variant={action.variant}
+                disabled={action.disabled}
+              />
+            ))}
+          </div>
+
+          {/* Level 2: Selection count — grid-stretches to match Level 1 width. */}
+          <div
+            className={cn(
+              "flex min-h-5 items-center justify-center",
+              "rounded-xs",
+              "bg-white/80 p-0.5",
+              "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
+              "backdrop-blur-xl",
+              "animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none"
+            )}
+            style={{
+              animationFillMode: "backwards",
+              animationDelay: "100ms",
+            }}
+          >
+            <span
+              className="text-[9px] font-medium tabular-nums text-ink"
+              aria-live="polite"
+              aria-label={`${selectedCount} ${selectedLabel}`}
+            >
+              {selectedCount}
+            </span>
+          </div>
         </div>
       </div>
     );

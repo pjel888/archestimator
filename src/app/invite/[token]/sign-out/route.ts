@@ -18,10 +18,6 @@ export async function POST(request: Request, { params }: InviteRouteContext) {
   return signOutAndReturn(request, { params });
 }
 
-export async function GET(request: Request, { params }: InviteRouteContext) {
-  return signOutAndReturn(request, { params });
-}
-
 async function signOutAndReturn(request: Request, { params }: InviteRouteContext) {
   const { token } = await params;
   const rawToken = decodeInviteRouteToken(token);

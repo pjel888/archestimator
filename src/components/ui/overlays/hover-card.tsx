@@ -37,6 +37,7 @@ export function HoverCard({
       onFocus={() => setInternalOpen(true)}
       onBlur={() => setInternalOpen(false)}
     >
+      {/* react-doctor-disable-next-line react-doctor/no-noninteractive-tabindex -- Hover card trigger must be focusable so keyboard users can reveal the described content. */}
       <span aria-describedby={isOpen ? cardId : undefined} tabIndex={0} className="inline-flex outline-none focus-visible:ring-2 focus-visible:ring-focus">
         {trigger}
       </span>
@@ -44,6 +45,7 @@ export function HoverCard({
         <div
           id={cardId}
           role="dialog"
+          aria-label="Details"
           className={cn(
             "absolute left-0 top-full z-[1050] mt-1 w-72 rounded-xs border border-hairline bg-white p-2 text-[10px] leading-4 tracking-normal text-secondary shadow-[0_18px_44px_rgba(17,24,39,0.15)]",
             contentClassName,

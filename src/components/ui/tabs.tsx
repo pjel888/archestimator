@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -44,18 +45,27 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
 
-    const checkScroll = () => {
+    const checkScroll = useCallback(() => {
       if (!scrollContainerRef.current) return;
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
       setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
-    };
+    }, []);
 
     useEffect(() => {
+      const scrollContainer = scrollContainerRef.current;
+      if (!scrollContainer) return;
       checkScroll();
+      const resizeObserver = typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(checkScroll)
+        : null;
+      resizeObserver?.observe(scrollContainer);
       window.addEventListener("resize", checkScroll);
-      return () => window.removeEventListener("resize", checkScroll);
-    }, [tabs]);
+      return () => {
+        resizeObserver?.disconnect();
+        window.removeEventListener("resize", checkScroll);
+      };
+    }, [checkScroll]);
 
     const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
       let nextIndex = index;

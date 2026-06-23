@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { PublicPageShell } from "@/components/landing";
 import {
   CURRENT_PRIVACY_NOTICE,
@@ -49,9 +51,9 @@ export default async function TermsPage() {
               <h2 className="text-[11px] font-medium leading-4 text-[#111111]">Privacy Notice</h2>
               <p>
                 The current Privacy Notice is available at{" "}
-                <a href="/privacy" className="font-medium text-[#111111] underline decoration-[#d9d8d4] underline-offset-2">
+                <Link href="/privacy" className="font-medium text-[#111111] underline decoration-[#d9d8d4] underline-offset-2">
                   /privacy
-                </a>
+                </Link>
                 . Terms acceptance records store the accepting user id, Terms version, effective date, content hash, Privacy Notice version, acceptance method, acceptance context, and timestamp. Raw IP address and raw user-agent strings are not stored for Terms acceptance by default.
               </p>
             </section>

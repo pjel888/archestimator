@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const SUPPORT_EMAIL = "support@archestimator.com";
 const SUPPORT_MAILTO =
   "mailto:support@archestimator.com?subject=Archestimator%20beta%20access";
@@ -22,12 +24,12 @@ export default function BetaAccessRequiredPage({
           <BetaAccessStatusCopy searchParams={searchParams} />
 
           <div className="mt-3 flex gap-2">
-            <a
+            <Link
               href="/login"
               className="inline-flex h-9 flex-1 items-center justify-center rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium text-ink hover:bg-surfaceMuted"
             >
               Use another account
-            </a>
+            </Link>
             <a
               href={SUPPORT_MAILTO}
               className="inline-flex h-9 flex-1 items-center justify-center rounded-xs bg-ink px-3 text-[10px] font-medium text-white hover:bg-ink/90"

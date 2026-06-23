@@ -71,7 +71,6 @@ export function CookieConsentBanner() {
 
   return (
     <section
-      role="region"
       aria-label="Cookie choices"
       className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-[760px] rounded-[6px] border border-[#d8d6cf] bg-white/96 p-4 text-[#111111] shadow-[0_18px_45px_rgba(17,17,17,0.18)] backdrop-blur-xl sm:inset-x-6 sm:p-5"
     >

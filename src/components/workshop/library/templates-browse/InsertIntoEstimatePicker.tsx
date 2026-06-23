@@ -77,7 +77,12 @@ function formatInsertError(error: unknown, estimateName: string) {
  * `resolveEstimateTemplateInsertTarget`, then calls the existing
  * `insertEstimateTemplateIntoEstimate` action (the one insertion path).
  */
-export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInserted }: InsertIntoEstimatePickerProps) {
+export function InsertIntoEstimatePicker(props: InsertIntoEstimatePickerProps) {
+  if (!props.open) return null;
+  return <OpenInsertIntoEstimatePicker {...props} />;
+}
+
+function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted }: InsertIntoEstimatePickerProps) {
   const [targets, setTargets] = useState<TargetsState>({ state: "loading" });
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [selectedEstimateId, setSelectedEstimateId] = useState("");
@@ -116,9 +121,8 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
   }, []);
 
   useEffect(() => {
-    if (!open) return;
     fetchTargets();
-  }, [fetchTargets, open]);
+  }, [fetchTargets]);
 
   const retryLoadTargets = useCallback(() => {
     setTargets({ state: "loading" });
@@ -352,7 +356,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
           </div>
         ) : (
           <>
-            <label className="grid gap-1">
+            <div className="grid gap-1">
               <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Project</span>
               <DropdownSelect
                 aria-label="Insert target project"
@@ -365,11 +369,11 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
                   setSubmitError("");
                 }}
               />
-            </label>
+            </div>
 
             {selectedProject ? (
               estimates.length > 0 ? (
-                <label className="grid gap-1">
+                <div className="grid gap-1">
                   <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate</span>
                   <DropdownSelect
                     aria-label="Insert target estimate"
@@ -381,7 +385,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
                       setSubmitError("");
                     }}
                   />
-                </label>
+                </div>
               ) : (
                 <p className="text-[10px] leading-4 text-tertiary">No open estimate to insert into.</p>
               )

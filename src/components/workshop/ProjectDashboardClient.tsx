@@ -570,7 +570,7 @@ function ProjectActivityFeedPanel({ page }: { readonly page: ProjectActivityPage
                   {group.items.map((item) => {
                     const sheetLabel = formatProjectActivitySheetLabel(item);
                     return (
-                      <li key={item.id} role="listitem" className="border-b border-[color:var(--glass-border)] last:border-b-0">
+                      <li key={item.id} className="border-b border-[color:var(--glass-border)] last:border-b-0">
                         <Link
                           href={item.href}
                           aria-label={`${item.title} in ${sheetLabel}`}

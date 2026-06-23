@@ -68,9 +68,10 @@ export function SignupForm({ next }: SignupFormProps) {
           />
         </div>
 
-        <label className="flex flex-col gap-1.5">
+        <label htmlFor="signup-email" className="flex flex-col gap-1.5">
           <span className="text-[14px] font-medium text-landing-ink">Email</span>
           <ControlInput
+            id="signup-email"
             name="email"
             type="email"
             autoComplete="email"

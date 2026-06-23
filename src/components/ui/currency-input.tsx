@@ -1,4 +1,4 @@
-import { forwardRef, useState, useEffect, type InputHTMLAttributes, type ChangeEvent, type FocusEvent } from "react";
+import { forwardRef, useState, type InputHTMLAttributes, type ChangeEvent, type FocusEvent } from "react";
 import { cn } from "@/lib/ui/cn";
 import { CONTROL_INPUT_SURFACE_CLASS } from "./control-input";
 
@@ -10,31 +10,23 @@ export type CurrencyInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "va
   invalid?: boolean;
 };
 
+function formatCurrencyInputValue(value: number | null | undefined, locale: string) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "";
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ className, value, onChange, currency = "₱", locale = "en-US", invalid, disabled, onFocus, onBlur, ...props }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [localValue, setLocalValue] = useState<string>("");
-
-    useEffect(() => {
-      if (!isFocused) {
-        if (value === null || value === undefined || Number.isNaN(value)) {
-          setLocalValue("");
-        } else {
-          setLocalValue(
-            new Intl.NumberFormat(locale, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            }).format(value)
-          );
-        }
-      } else {
-        setLocalValue(value === null || value === undefined ? "" : value.toString());
-      }
-    }, [value, isFocused, locale]);
+    const [draftValue, setDraftValue] = useState<string>("");
+    const displayValue = isFocused ? draftValue : formatCurrencyInputValue(value, locale);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
-      setLocalValue(val);
+      setDraftValue(val);
       
       if (val === "") {
         onChange?.(null);
@@ -52,6 +44,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     };
 
     const handleFocus = (e: FocusEvent<HTMLInputElement>) => {
+      setDraftValue(value === null || value === undefined || Number.isNaN(value) ? "" : value.toString());
       setIsFocused(true);
       onFocus?.(e);
     };
@@ -59,7 +52,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
       setIsFocused(false);
       
-      if (localValue === "-" || localValue === "." || localValue === "-.") {
+      if (draftValue === "-" || draftValue === "." || draftValue === "-.") {
         onChange?.(null);
       }
       
@@ -74,7 +67,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         <input
           ref={ref}
           type={isFocused ? "number" : "text"}
-          value={localValue}
+          value={displayValue}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

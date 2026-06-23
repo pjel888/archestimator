@@ -78,7 +78,7 @@ export default async function BetaFeedbackReviewPage({
         ) : (
           <>
             <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/workshop/settings/feedback">
-              <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
+              <div className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                 Status
                 <AdminStatusSelect
                   name="status"
@@ -87,7 +87,7 @@ export default async function BetaFeedbackReviewPage({
                   aria-label="Status filter"
                   className="min-w-36"
                 />
-              </label>
+              </div>
               <Button type="submit" variant="secondary" size="sm">
                 Filter
               </Button>
