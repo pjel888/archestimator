@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from "@/lib/landing/json-ld";
 import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
 
 /**
@@ -39,11 +40,11 @@ export function LandingStructuredData() {
       <script
         type="application/ld+json"
         // JSON-LD is static + trusted (authored here, not user input).
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(organizationSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{ __html: stringifyJsonLd(websiteSchema) }}
       />
     </>
   );
