@@ -73,7 +73,7 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).toContain("const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = PROJECT_VIEW_MODE_OPTIONS.map");
     expect(projectsPageClient).toContain('icon: <Icon size={12} weight="regular" aria-hidden="true" />');
     expect(projectsPageClient).toContain('triggerDisplay="icon"');
-    expect(projectsPageClient).toContain('aria-label={projectControlsDisabled ? "View, disabled until this tab has projects" : "View"}');
+    expect(projectsPageClient).toContain('aria-label="View"');
     expect(projectsPageClient).toContain("data-project-view-mode={projectViewMode}");
     expect(projectsPageClient).toContain("viewMode={projectViewMode}");
     expect(liveProjectCard).toContain('project: Tables<"projects">');
@@ -94,6 +94,32 @@ describe("project creation UI governance", () => {
     expect(liveProjectCard).not.toContain("min-h-[260px]");
     expect(projectsPageClient).toContain("getProjectGridClassName(projectViewMode)");
     expect(projectGridLayout).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");
+  });
+
+  it("keeps newly created projects visible while create/setup work settles", () => {
+    expect(projectActions).toContain("return project");
+    expect(newProjectModal).toContain("onOptimisticProjectChange");
+    expect(newProjectForm).toContain("export type NewProjectOptimisticSnapshot");
+    expect(newProjectForm).toContain("createOptimisticProject");
+    expect(newProjectForm).toContain('reportOptimisticProject({ state: "creating", message: "Creating project..." }, true)');
+    expect(newProjectForm).toContain('reportOptimisticProject({ state: "preparing", message: "Creating default estimate..." }, true)');
+    expect(newProjectForm).toContain("remove: true");
+    expect(newProjectForm).toContain("errorMessage: message");
+    expect(newProjectForm).toContain("reportOptimisticProject({ state: \"error\", message: setupErrorMessage }, false, setupErrorMessage)");
+    expect(newProjectForm).toContain('"Project was created, but setup needs attention."');
+    expect(projectsPageClient).toContain("optimisticProjectCreates");
+    expect(projectsPageClient).toContain("optimisticProjectSnapshotToListItem");
+    expect(projectsPageClient).toContain("isOptimisticCreate: true");
+    expect(projectsPageClient).toContain("optimisticProjectItemIds.has(item.project.id)");
+    expect(projectsPageClient).toContain("if (snapshot.remove)");
+    expect(projectsPageClient).toContain("isProjectSetupBlocking");
+    expect(projectsPageClient).not.toContain('snapshot.setupStatus?.state === "error") continue');
+    expect(projectsPageClient).toContain('onOptimisticProjectChange={handleOptimisticProjectChange}');
+    expect(liveProjectCard).toContain("export type ProjectCardSetupStatus");
+    expect(liveProjectCard).toContain("data-project-card-setup-overlay");
+    expect(liveProjectCard).toContain("data-project-card-setup-state={setupStatus?.state}");
+    expect(liveProjectCard).toContain("aria-busy={setupBusy || undefined}");
+    expect(liveProjectCard).toContain("setupNavigationDisabled");
   });
 
   it("keeps the project create action icon-only", () => {

@@ -25,13 +25,13 @@ const recordWithSensitiveFields = {
 } as never;
 
 describe("estimate action reconciliation payloads", () => {
-  it("create/duplicate reconcile via a full canonical row carrying server summary", () => {
+  it("create reconcile via a full canonical row carrying an empty tree summary", () => {
     // The action return contract: { row: ProjectEstimateListRow }. This is the
     // shape the optimistic store reconciles a temp insert against — it must
     // include the server-computed summary and no sensitive columns.
     const row = buildProjectEstimateListRow(recordWithSensitiveFields, {
-      firstNodeId: "area-node",
-      nodeCount: 6,
+      firstNodeId: null,
+      nodeCount: 0,
       rowItemCount: 0,
       totalProjectCost: 0,
       isFavorite: false,
@@ -40,8 +40,8 @@ describe("estimate action reconciliation payloads", () => {
 
     const keys = Object.keys(row);
     for (const sensitive of SENSITIVE_FIELDS) expect(keys).not.toContain(sensitive);
-    expect(row.firstNodeId).toBe("area-node");
-    expect(row.nodeCount).toBe(6);
+    expect(row.firstNodeId).toBeNull();
+    expect(row.nodeCount).toBe(0);
   });
 
   it("update/regenerate reconcile via a scalar-only canonical source projection", () => {

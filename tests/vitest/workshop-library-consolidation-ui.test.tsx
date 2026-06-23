@@ -38,6 +38,33 @@ function createDragDataTransfer() {
   };
 }
 
+function setRowRect(element: HTMLElement, top = 0, height = 28) {
+  element.getBoundingClientRect = () => ({
+    x: 0,
+    y: top,
+    top,
+    left: 0,
+    right: 200,
+    bottom: top + height,
+    width: 200,
+    height,
+    toJSON: () => ({}),
+  });
+}
+
+function dispatchDragEvent(
+  element: HTMLElement,
+  type: "dragstart" | "dragover" | "drop" | "dragend",
+  options: { clientY?: number; dataTransfer: ReturnType<typeof createDragDataTransfer> },
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { value: options.dataTransfer });
+  if (options.clientY !== undefined) {
+    Object.defineProperty(event, "clientY", { value: options.clientY });
+  }
+  fireEvent(element, event);
+}
+
 async function waitForLibraryWorkspace() {
   // The tablists are retired; the dynamic tree surface's view-mode toggle is the stable anchor.
   await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
@@ -116,8 +143,8 @@ const sharedFolders = [
     parent_id: null,
     name: "Fabrication",
     sort_order: 10,
-    source_category_node_id: "db-category-fabrication",
-    folder_kind: "taxonomy" as const,
+    source_category_node_id: null,
+    folder_kind: "custom" as const,
   },
   {
     id: "folder-details",
@@ -331,8 +358,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
 
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(screen.getAllByText("Database Steel Frame").length).toBeGreaterThan(1);
@@ -612,6 +638,7 @@ describe("workshop library consolidation UI", () => {
     expect(nameInput).toHaveAttribute("aria-invalid", "true");
     fireEvent.change(nameInput, { target: { value: "Acoustic Wall Panel" } });
     expect(nameInput).not.toHaveAttribute("aria-invalid");
+    fireEvent.change(within(dialog).getByLabelText("Category"), { target: { value: "Fabrication" } });
     const costInput = within(dialog).getByLabelText("Unit cost");
     expect(within(dialog).queryByLabelText("Price")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Pricing")).not.toBeInTheDocument();
@@ -793,9 +820,10 @@ describe("workshop library consolidation UI", () => {
     expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Acoustic Wall Panel",
+        category: "Fabrication",
         unit: "box",
         libraryFolderId: "folder-acoustics",
-        categoryNodeId: "db-category-fabrication",
+        categoryNodeId: "",
         supplierId: "db-supplier",
         supplier: "Database Supplier",
         brand: "Acme Hardware",
@@ -933,17 +961,18 @@ describe("workshop library consolidation UI", () => {
 
     const tree = await screen.findByRole("tree", { name: "Library folders" });
     const detailsRow = tree.querySelector('[data-tree-row="folder:folder-details"]') as HTMLElement;
-    const allComponentsRow = tree.querySelector('[data-tree-row="folder:all-components"]') as HTMLElement;
+    const fabricationRow = tree.querySelector('[data-tree-row="folder:folder-fabrication"]') as HTMLElement;
     expect(detailsRow).not.toBeNull();
-    expect(allComponentsRow).not.toBeNull();
+    expect(fabricationRow).not.toBeNull();
     expect(detailsRow).toHaveAttribute("draggable", "true");
 
-    // Drop the nested "Details" folder onto the "All Components" root → it lifts
-    // out to the top level (parent_id null) and reorderLibraryFolders persists it.
+    // Drop the nested "Details" folder before the top-level Fabrication folder;
+    // this lifts it out to parent_id null and persists the new sibling order.
+    setRowRect(fabricationRow);
     const dataTransfer = createDragDataTransfer();
-    fireEvent.dragStart(detailsRow, { dataTransfer });
-    fireEvent.dragOver(allComponentsRow, { dataTransfer });
-    fireEvent.drop(allComponentsRow, { dataTransfer });
+    dispatchDragEvent(detailsRow, "dragstart", { dataTransfer });
+    dispatchDragEvent(fabricationRow, "dragover", { dataTransfer, clientY: 1 });
+    dispatchDragEvent(fabricationRow, "drop", { dataTransfer, clientY: 1 });
 
     await waitFor(() => {
       expect(actionMocks.reorderLibraryFolders).toHaveBeenCalledWith({

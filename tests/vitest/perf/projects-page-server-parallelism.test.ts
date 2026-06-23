@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED = "1";
+
 /**
  * Phase-1 server-parallelism proof for `listCurrentWorkspaceProjects`
  * (src/lib/repositories/workspace-repository.ts).
@@ -188,6 +190,7 @@ vi.mock("next/headers", () => ({
 }));
 
 beforeEach(() => {
+  process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED = "1";
   queryLog.length = 0;
   for (const key of Object.keys(fromCallCounts)) delete fromCallCounts[key];
 });

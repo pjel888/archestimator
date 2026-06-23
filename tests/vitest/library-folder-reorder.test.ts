@@ -5,6 +5,7 @@ import {
   buildLibraryFolderTree,
   getLibraryFolderCreateSortOrder,
   getLibraryItemsForFolderNode,
+  getUserLibraryFolders,
   planLibraryFolderDelete,
   type LibraryFolderRecord,
 } from "@/lib/component-library/library-folder-reorder";
@@ -58,6 +59,26 @@ function row(input: Partial<EstimateRowItem> & Pick<EstimateRowItem, "id" | "mat
 }
 
 describe("library folder reorder planning", () => {
+  it("returns no folder nodes for a workspace with no folders", () => {
+    expect(buildLibraryFolderTree([])).toEqual([]);
+  });
+
+  it("keeps only user-created custom folders for the library folder surface", () => {
+    const nestedCustomFolder = {
+      ...folders[2],
+      id: "folder-custom-under-legacy-taxonomy",
+      parent_id: "folder-structure",
+    };
+
+    expect(getUserLibraryFolders([...folders, nestedCustomFolder])).toEqual([
+      folders[2],
+      {
+        ...nestedCustomFolder,
+        parent_id: null,
+      },
+    ]);
+  });
+
   it("builds prefixed folder tree nodes from workspace-scoped folders", () => {
     const tree = buildLibraryFolderTree(folders);
 

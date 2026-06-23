@@ -76,8 +76,8 @@ const folders = [
     parent_id: null,
     name: "Finishes",
     sort_order: 10,
-    source_category_node_id: "cat-finishes",
-    folder_kind: "taxonomy" as const,
+    source_category_node_id: null,
+    folder_kind: "custom" as const,
   },
 ];
 

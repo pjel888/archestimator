@@ -50,10 +50,10 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
   return {
     created_at: "2026-05-19T10:00:00.000Z",
     currency_code: "PHP",
-    firstNodeId: "node-1",
+    firstNodeId: null,
     id: "estimate-1",
     name: "Ground Floor Fit-Out",
-    nodeCount: 1,
+    nodeCount: 0,
     notes: null,
     project_budget: null,
     project_id: "project-1",

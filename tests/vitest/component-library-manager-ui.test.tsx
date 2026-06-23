@@ -67,8 +67,8 @@ const sharedLibraryFolders: LibraryFolderRecord[] = [
     parent_id: null,
     name: "Fabrication",
     sort_order: 10,
-    source_category_node_id: "db-category-fabrication",
-    folder_kind: "taxonomy",
+    source_category_node_id: null,
+    folder_kind: "custom",
   },
   {
     id: "folder-details",
@@ -230,9 +230,9 @@ async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPag
       />,
     ),
   );
-  await screen.findByLabelText("Component library tree", undefined, { timeout: 10_000 });
+  const componentTree = await screen.findByLabelText("Component library tree", undefined, { timeout: 10_000 });
   // The folder tree surface is a named dynamic import; its toolbar is the stable anchor.
-  await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
+  await within(componentTree).findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
   return result;
 }
 
@@ -384,6 +384,39 @@ describe("component library manager UI", () => {
     expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
   });
 
+  it("starts new workspaces with zero library folders while keeping all-components browsing", async () => {
+    navigationMocks.searchParams = "add=component";
+    await renderLibrary({
+      libraryFolders: [
+        {
+          id: "legacy-taxonomy-folder",
+          workspace_id: "workspace-1",
+          parent_id: null,
+          name: "Legacy Seed Folder",
+          sort_order: 10,
+          source_category_node_id: "db-category-fabrication",
+          folder_kind: "taxonomy",
+        },
+      ],
+    });
+
+    const tree = screen.getByLabelText("Component library tree");
+    const folderTree = within(tree).getByRole("tree", { name: "Library folders" });
+    expect(within(folderTree).queryAllByRole("treeitem")).toHaveLength(0);
+    expect(within(folderTree).queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
+    expect(within(folderTree).queryByRole("treeitem", { name: "Database Components" })).not.toBeInTheDocument();
+    expect(within(folderTree).queryByRole("treeitem", { name: "Fabrication" })).not.toBeInTheDocument();
+    expect(within(folderTree).queryByRole("treeitem", { name: "Legacy Seed Folder" })).not.toBeInTheDocument();
+
+    const sheet = screen.getByLabelText("Component table");
+    expect(getSheetContextStrip(sheet)).toHaveTextContent("All Components · 3 components");
+
+    const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
+    const nesting = within(addDialog).getByLabelText("Component nesting");
+    expect(within(nesting).queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
+    expect(within(nesting).queryByRole("treeitem", { name: "Fabrication" })).not.toBeInTheDocument();
+  });
+
   it("uses an in-app discard confirmation for dirty Add Component drafts", async () => {
     await renderLibrary();
 
@@ -455,8 +488,7 @@ describe("component library manager UI", () => {
     const folderTree = within(tree).getByRole("tree", { name: "Library folders" });
     expect(folderTree).toHaveClass("space-y-0");
 
-    expect(within(tree).getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-current", "page");
-    expect(within(tree).getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(tree).queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
     expect(getLibraryFolderButton("Details")).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Custom Cabinet Pull" })).toBeInTheDocument();
@@ -485,8 +517,8 @@ describe("component library manager UI", () => {
     expect(fabricationBranch.firstElementChild).toHaveClass("min-h-[72px]");
     expect(detailsBranch.firstElementChild).toHaveClass("min-h-[72px]");
     expect(emptyBranch.firstElementChild).toHaveClass("min-h-[72px]");
-    expect(fabricationBranch.firstElementChild).toHaveClass("bg-white");
-    expect(fabricationBranch.firstElementChild).toHaveClass("border-hairline");
+    expect(fabricationBranch.firstElementChild).toHaveClass("bg-white/80");
+    expect(fabricationBranch.firstElementChild).toHaveClass("border-white/60");
     expect(fabricationBranch.firstElementChild).not.toHaveClass("border-l-2");
     expect(fabricationBranch.firstElementChild).not.toHaveClass("border-l-divider/70");
     expect(detailsBranch.firstElementChild).not.toHaveClass("border-l-2");
@@ -538,7 +570,7 @@ describe("component library manager UI", () => {
 
     expect(getSheetContextStrip(sheet)).toHaveTextContent("Details · 1 component");
     const selectedDetailsBranch = within(sheet).getByLabelText("Fabrication / Details component catalogue branch");
-    expect(selectedDetailsBranch.firstElementChild).toHaveClass("bg-white");
+    expect(selectedDetailsBranch.firstElementChild).toHaveClass("bg-white/80");
     expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("border-l-2");
     expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("border-l-divider/70");
     expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("bg-surfaceMuted/70");

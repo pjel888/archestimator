@@ -34,7 +34,10 @@ describe("library folder schema", () => {
 
   it("updates repository and generated type contracts", () => {
     expect(repository).toContain("libraryFolders");
-    expect(repository).toContain("ensureWorkspaceLibraryFolders");
+    expect(repository).toContain("fetchLibraryFolders");
+    expect(repository).not.toContain("ensureWorkspaceLibraryFolders");
+    expect(repository).not.toContain('.from("library_folders").insert');
+    expect(repository).toContain('.eq("folder_kind", "custom")');
     expect(repository).toContain("library_folder_id");
     expect(supabaseTypes).toContain("library_folders");
     expect(supabaseTypes).toContain("library_folder_id: string | null");

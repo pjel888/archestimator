@@ -26,14 +26,18 @@ function readTextFilesRecursively(directory: string): string[] {
 describe("landing page proof boundaries", () => {
   it("keeps company proof data fail-closed and unused by the active homepage", () => {
     const data = readProjectFile("src/components/landing/company-proof-data.ts");
-    const activePage = readProjectFile("src/components/landing/gpt-taste/RedesignedLandingPage.tsx");
+    const activePage = readProjectFile("src/app/page.tsx");
+    const frontdoor = readProjectFile("src/components/frontdoor/FrontdoorPage.tsx");
 
     expect(data).toContain('relationship: "placeholder"');
     expect(data).toContain("permissionConfirmed: false");
     expect(data).toContain("isPlaceholder: true");
     expect(activePage).not.toContain("getRenderableCompanyProofItems");
     expect(activePage).not.toContain("placeholderCompanyProof");
+    expect(frontdoor).not.toContain("getRenderableCompanyProofItems");
+    expect(frontdoor).not.toContain("placeholderCompanyProof");
     expect(activePage).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
+    expect(frontdoor).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
   });
 
   it("fails closed to placeholder-only data when candidate proof is unconfirmed", () => {
@@ -77,24 +81,21 @@ describe("landing page proof boundaries", () => {
     });
   });
 
-  it("keeps landing-specific GSAP off workshop surfaces", () => {
+  it("keeps landing-specific visual layers off workshop surfaces", () => {
     const workshopSource = [
       ...readTextFilesRecursively(join(root, "src/app/workshop")),
       ...readTextFilesRecursively(join(root, "src/components/workshop")),
     ].join("\n");
 
-    expect(workshopSource).not.toContain("LandingGsapMotion");
-    expect(workshopSource).not.toContain("HeroSignalField");
+    expect(workshopSource).not.toContain("LandingSignalField");
     expect(workshopSource).not.toContain("gsap/ScrollTrigger");
   });
 
   it("does not use the rejected home Lenis wrapper in the active page", () => {
     const page = readProjectFile("src/app/page.tsx");
-    const packageJson = readProjectFile("package.json");
 
-    expect(packageJson).toContain('"gsap"');
-    expect(packageJson).toContain('"@gsap/react"');
     expect(page).not.toContain("LandingSmoothScrollProvider");
-    expect(page).toContain("RedesignedLandingPage");
+    expect(page).not.toContain("AecCost" + "IntelligenceLandingPage");
+    expect(page).not.toContain("gpt" + "-taste");
   });
 });

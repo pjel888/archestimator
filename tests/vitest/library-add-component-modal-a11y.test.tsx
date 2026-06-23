@@ -35,8 +35,8 @@ const folders: LibraryFolderRecord[] = [
     parent_id: null,
     name: "Hardware",
     sort_order: 10,
-    source_category_node_id: "cat-hardware",
-    folder_kind: "taxonomy",
+    source_category_node_id: null,
+    folder_kind: "custom",
   },
 ];
 

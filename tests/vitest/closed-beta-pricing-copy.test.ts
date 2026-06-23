@@ -32,7 +32,6 @@ describe("closed beta pricing copy", () => {
       readFileSync(join(process.cwd(), "src/components/landing/AnimatedProposalRecordSection.tsx"), "utf8"),
       readFileSync(join(process.cwd(), "src/components/landing/FeaturesSection.tsx"), "utf8"),
       readFileSync(join(process.cwd(), "src/components/landing/PricingSection.tsx"), "utf8"),
-      readFileSync(join(process.cwd(), "src/components/landing/SecondaryClaimSection.tsx"), "utf8"),
     ].join("\n");
 
     expect(publicCopySources).toMatch(/structured estimate tabs/i);
