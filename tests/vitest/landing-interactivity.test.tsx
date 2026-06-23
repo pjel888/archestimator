@@ -13,17 +13,17 @@ describe("deleted landing page implementation", () => {
     expect(existsSync(join(process.cwd(), deletedHomeFolder))).toBe(false);
   });
 
-  it("keeps the active homepage free of prior landing vocabulary", () => {
+  it("keeps the active homepage on the deployed landing shell, not generated variants", () => {
     const page = readProjectFile("src/app/page.tsx");
-    const frontdoor = readProjectFile("src/components/frontdoor/FrontdoorPage.tsx");
+    const hero = readProjectFile("src/components/landing/HeroSection.tsx");
 
-    expect(page).not.toMatch(/Product proof|cost intelligence layer/i);
-    expect(frontdoor).not.toMatch(/ProductProof|data-proof-asset|data-landing-signal-field/i);
-    expect(frontdoor).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
-    expect(`${page}\n${frontdoor}`).not.toMatch(new RegExp(["M", "VP"].join(""), "i"));
-    expect(`${page}\n${frontdoor}`).not.toMatch(new RegExp(["pre", "launch"].join("-"), "i"));
-    expect(`${page}\n${frontdoor}`).not.toMatch(new RegExp("closed-" + "beta", "i"));
-    expect(`${page}\n${frontdoor}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
-    expect(page).not.toMatch(/LandingCTAs|LandingHeader|LandingFooter|LandingShellClient/i);
+    expect(page).toMatch(/LandingHeader|LandingFooter|HeroSection/);
+    expect(page).not.toContain("@/components/frontdoor");
+    expect(page).not.toMatch(new RegExp("Redesigned" + "LandingPage"));
+    expect(page).not.toMatch(new RegExp("gpt" + "-taste"));
+    expect(hero).toMatch(/Close Projects Faster\./);
+    expect(hero).toMatch(/The fastest path from proposal to approval\./);
+    expect(`${page}\n${hero}`).not.toMatch(/Product proof|cost intelligence layer/i);
+    expect(`${page}\n${hero}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
   });
 });

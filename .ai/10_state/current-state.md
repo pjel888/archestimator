@@ -42,6 +42,12 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Frontdoor restored to deployed proposal-to-approval landing page (2026-06-23):**
+
+- Reverted active `/` away from the newer `src/components/frontdoor` cost-intelligence page and back to the deployed landing composition from `d32c25f9`: `LandingHeader`, `HeroSection`, `CompanyProofCarouselSection`, `SecondaryClaimSection`, `FinalCTASection`, and `LandingFooter`.
+- Restored `public/landing/hero-slides/*` and the legacy landing motion CSS needed for the frosted construction hero, workflow diagram, launch-video placeholder, feature cards, testimonial rotator, specialty section, and footer.
+- Verification evidence: `bun run type-check` passed; focused landing Vitest suite passed; focused ESLint had no errors; `git diff --check` passed; local `http://localhost:3000/` HTML contains the deployed title/copy anchors and omits frontdoor/early-access markers.
+
 **Full-app UX audit decision application pass completed (2026-06-23):**
 
 - Applied Philip's strategic decisions to `.ai/03_plans/2026-06-23-Full-App-User-Story-UX-Audit/`

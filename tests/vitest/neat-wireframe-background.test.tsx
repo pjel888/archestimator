@@ -22,6 +22,23 @@ class MockIntersectionObserver {
   disconnect = vi.fn();
 }
 
+function installIntersectionObserverMock() {
+  const descriptor = Object.getOwnPropertyDescriptor(window, "IntersectionObserver");
+
+  if (descriptor?.configurable === false) {
+    if (descriptor.writable) {
+      window.IntersectionObserver = MockIntersectionObserver as typeof IntersectionObserver;
+    }
+    return;
+  }
+
+  Object.defineProperty(window, "IntersectionObserver", {
+    configurable: true,
+    writable: true,
+    value: MockIntersectionObserver,
+  });
+}
+
 function mockMatchMedia(matches: boolean) {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -44,11 +61,7 @@ describe("NeatWireframeBackground performance fallback", () => {
     neatConstructor.mockClear();
     neatDestroy.mockClear();
     mockMatchMedia(false);
-    Object.defineProperty(window, "IntersectionObserver", {
-      configurable: true,
-      writable: true,
-      value: MockIntersectionObserver,
-    });
+    installIntersectionObserverMock();
   });
 
   afterEach(() => {

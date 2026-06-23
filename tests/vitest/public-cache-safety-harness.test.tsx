@@ -91,18 +91,15 @@ describe("public cache-safety proof harness", () => {
   it("renders different auth CTA markup when landing auth state is true", () => {
     const { rerender } = render(<LandingHeader isLoggedIn={false} />);
 
-    expect(screen.getByRole("link", { name: "Request early access" })).toHaveAttribute(
-      "href",
-      "/contact?intent=early-access",
-    );
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=/workshop/projects");
-    expect(screen.queryByRole("link", { name: "Open workspace" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Book a walkthrough" })).toHaveAttribute("href", "/contact");
+    expect(screen.getByRole("link", { name: "Log In" })).toHaveAttribute("href", "/login?next=/workshop/projects");
+    expect(screen.queryByRole("link", { name: "Workspace" })).not.toBeInTheDocument();
 
     rerender(<LandingHeader isLoggedIn={true} />);
 
-    expect(screen.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", "/workshop");
-    expect(screen.queryByRole("link", { name: "Request early access" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Workspace/ })).toHaveAttribute("href", "/workshop");
+    expect(screen.queryByRole("link", { name: "Book a walkthrough" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Log In" })).not.toBeInTheDocument();
   });
 
   it("builds a conservative report with the required completion language", async () => {
