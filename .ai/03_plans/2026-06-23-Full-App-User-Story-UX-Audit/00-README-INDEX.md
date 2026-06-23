@@ -8,6 +8,21 @@ It contains **one folder per `UX-*` issue** (44 issues total: `UX-001` through `
 each with a complete, ready-to-execute plan covering definition, current-state analysis,
 target experience, implementation, acceptance, verification, blast radius, and decisions.
 
+## ⚡ Codebase AI: Start Here
+
+**[⇢ IMPLEMENTATION/](IMPLEMENTATION/)** — operational front door for executing this plan pack.
+
+Read in order:
+1. [IMPLEMENTATION/README.md](IMPLEMENTATION/README.md) — orientation and 60-second contract.
+2. [IMPLEMENTATION/01-AGENT-OPERATING-CONTRACT.md](IMPLEMENTATION/01-AGENT-OPERATING-CONTRACT.md) — binding rules (RED/GREEN, no-shift toast, conflict groups, decision gates).
+3. [IMPLEMENTATION/02-EXECUTION-SEQUENCE.md](IMPLEMENTATION/02-EXECUTION-SEQUENCE.md) — what to pick next, exit gates per phase.
+4. [IMPLEMENTATION/03-EXECUTION-LEDGER.md](IMPLEMENTATION/03-EXECUTION-LEDGER.md) — live per-issue status tracker (update every session).
+5. [IMPLEMENTATION/04-SESSION-HANDOFF-TEMPLATE.md](IMPLEMENTATION/04-SESSION-HANDOFF-TEMPLATE.md) — template for mid-issue handoffs.
+
+The 709 files in the rest of this pack are READ-ONLY specifications. The `IMPLEMENTATION/` folder is the LIVE execution layer.
+
+---
+
 ## How To Use This Pack
 
 1. **Start with the [Loop Ledger](LOOP_LEDGER.md)** for current execution status of every issue.
