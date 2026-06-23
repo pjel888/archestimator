@@ -59,7 +59,7 @@
     "lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components",
     "launch:verify-hosted-sensitive-routes": "bun run scripts/verify-hosted-sensitive-route-fail-closed.ts",
     "perf:check-speed-insights": "bun run scripts/check-vercel-speed-insights-readiness.ts",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "react-doctor"
   },
   "dependencies": {
     "@firecms/neat": "0.8.0",
@@ -74,7 +74,6 @@
     "@tanstack/react-virtual": "^3.14.2",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "exceljs": "^4.4.0",
