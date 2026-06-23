@@ -14,6 +14,12 @@ const CANONICAL_SECTIONS = [
   'Components',
   "Do's and Don'ts",
 ];
+const CANONICAL_SECTION_PATTERNS = new Map(
+  CANONICAL_SECTIONS.map((section) => {
+    const key = normalizeApostrophes(section).toLowerCase();
+    return [section, new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)];
+  }),
+);
 
 // ---------- Frontmatter (Stitch YAML subset) ----------
 
@@ -184,8 +190,7 @@ function matchCanonicalSection(name) {
   // Keyword-contained match: "Overview & Creative North Star" -> "Overview",
   // "Elevation & Depth" -> "Elevation", etc.
   for (const c of CANONICAL_SECTIONS) {
-    const key = normalizeApostrophes(c).toLowerCase();
-    const pattern = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    const pattern = CANONICAL_SECTION_PATTERNS.get(c);
     if (pattern.test(normalized)) return c;
   }
   return null;
@@ -366,7 +371,10 @@ function extractColors(section) {
     if (!sub.name || /Named Rules?/i.test(sub.name) || /^The\s/i.test(sub.name)) continue;
 
     const bullets = collectBullets(sub.lines);
-    const parsed = bullets.map((b) => parseColorBullet(b)).filter(Boolean);
+    const parsed = bullets.flatMap((b) => {
+      const parsedBullet = parseColorBullet(b);
+      return parsedBullet ? [parsedBullet] : [];
+    });
     if (parsed.length === 0) continue;
 
     // If every bullet starts with a role keyword (Primary/Secondary/...), promote
@@ -386,15 +394,16 @@ function extractColors(section) {
   // If the Colors section has no subsections at all (unlikely), fall back to
   // scanning the whole section as a flat bullet list.
   if (groups.length === 0) {
-    const flat = collectBullets(section.lines)
-      .map((b) => parseColorBullet(b))
-      .filter(Boolean);
+    const flat = collectBullets(section.lines).flatMap((b) => {
+      const parsedBullet = parseColorBullet(b);
+      return parsedBullet ? [parsedBullet] : [];
+    });
     if (flat.length) {
       for (const p of flat) {
         if (p.name && ROLE_KEYWORDS.test(p.name)) {
           groups.push({ role: p.name, colors: [p] });
         } else {
-          const fallback = groups.find((g) => g.role === 'Palette');
+          const fallback = groups[0]?.role === 'Palette' ? groups[0] : null;
           if (fallback) fallback.colors.push(p);
           else groups.push({ role: 'Palette', colors: [p] });
         }
@@ -564,7 +573,10 @@ function extractTypography(section) {
   const hierSub = subs.find((s) => s.name && /hierarch/i.test(s.name));
   if (hierSub) {
     const bullets = collectBullets(hierSub.lines);
-    hierarchy = bullets.map(parseTypeBullet).filter(Boolean);
+    hierarchy = bullets.flatMap((bullet) => {
+      const parsedBullet = parseTypeBullet(bullet);
+      return parsedBullet ? [parsedBullet] : [];
+    });
   }
 
   return {

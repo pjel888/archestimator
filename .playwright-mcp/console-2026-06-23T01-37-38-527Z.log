@@ -1,0 +1,5 @@
+[   10318ms] [LOG] [AppLayoutWrapper] render path=/ branch=ssr @ https://save.design/_next/static/chunks/app/(app)/layout-1afb00e06918e266.js:0
+[   10319ms] [LOG] [AppLayoutWrapper] render path=/ branch=ssr @ https://save.design/_next/static/chunks/app/(app)/layout-1afb00e06918e266.js:0
+[   11488ms] [LOG] [AppLayoutWrapper] render path=/ branch=ssr @ https://save.design/_next/static/chunks/app/(app)/layout-1afb00e06918e266.js:0
+[   11519ms] [LOG] [AppLayoutWrapper] MOUNT @ https://save.design/ingest/static/posthog-recorder.js?v=1.310.1:0
+[   11525ms] [LOG] [AppLayoutWrapper] render path=/ branch=noauth-landing @ https://save.design/ingest/static/posthog-recorder.js?v=1.310.1:0

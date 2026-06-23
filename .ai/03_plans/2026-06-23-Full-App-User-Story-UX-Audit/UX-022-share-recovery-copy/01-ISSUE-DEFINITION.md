@@ -1,0 +1,63 @@
+# UX-022 — Issue Definition
+
+Date: 2026-06-23
+Source: [canonical audit](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/ux-logistical-errors-and-fixes.md)
+
+## Problem Statement
+
+**Expired, revoked, invalid, or password-locked share links can strand recipients without enough recovery copy.**
+
+### Affected Users
+
+This issue affects **shared links** users in the Archestimator closed beta. The canonical severity rating is **Medium**, tiered **P0** for beta readiness (beta-blocking).
+
+### Current Behavior
+
+> PUB-001, PUB-002, SHARE-003, SHARE-004.
+
+### Expected Behavior (post-fix)
+
+Recipient knows whether to wait, retry, or ask for a fresh link.
+
+### Best Fix
+
+Add expired/revoked/request-new-link copy, lockout timer, and owner contact CTA.
+
+---
+
+## Severity Rationale
+
+Severity **Medium** is assigned because:
+
+- The issue touches the **Shared links** surface, which is beta-blocking.
+- The canonical audit's severity column confirms this rating.
+- The conflict group **Publication/share recipient** records the parallelization hazard.
+
+---
+
+## Evidence Inventory
+
+| Source | Reference |
+|---|---|
+| Canonical CSV | `../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/canonical-feature-status.csv` |
+| UX error log | `../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/ux-logistical-errors-and-fixes.md` |
+| Implementation decomposition | `../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/02-implementation-decomposition.md` |
+| Sequencing | `../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/03-sequencing-dependencies-and-conflicts.md` |
+
+### Source-Code Evidence (candidate paths)
+
+```
+src/app/share/[token]/
+src/components/share/
+src/lib/publication/
+src/app/api/share/[token]/
+```
+
+
+
+---
+
+## Linkage
+
+- [02-CURRENT-STATE-ANALYSIS.md](02-CURRENT-STATE-ANALYSIS.md)
+- [04-IMPLEMENTATION-PLAN.md](04-IMPLEMENTATION-PLAN.md)

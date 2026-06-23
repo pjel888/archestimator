@@ -1,0 +1,138 @@
+<!-- @dsCard group="Proposal" viewport="900x1200" name="Client proposal" subtitle="Document-like, proposal-paper, Source Serif — what the client reviews and approves" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Archestimator — Client Proposal</title>
+<link rel="stylesheet" href="../../styles.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<style>
+  body { margin: 0; background: var(--canvas); font-family: var(--font-sf-pro); color: var(--ink); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  /* review chrome (proposer-controlled, sits above the paper) */
+  .review-bar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-glass); box-shadow: var(--shadow-float); margin-bottom: 18px; }
+  .rb-title { font-size: 11px; font-weight: 500; }
+  .rb-meta { font-size: 10px; color: var(--tertiary); }
+  .rb-actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn { font-family: var(--font-sf-pro); font-size: 10px; font-weight: 500; border-radius: var(--radius-xs); padding: 8px 12px; border: 1px solid var(--divider); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .btn.comment { color: var(--secondary); }
+  .btn.approve { background: var(--success); border-color: var(--success); color: #fff; }
+  .btn.decline { background: #fff; border-color: var(--danger-soft); color: var(--danger); }
+
+  /* the paper document */
+  .paper { background: var(--proposal-paper); border: 1px solid var(--hairline); border-radius: var(--radius-xs); box-shadow: var(--shadow-float); padding: 48px 56px; }
+  .ph-mark { width: 40px; height: 40px; }
+  .doc-head { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 22px; border-bottom: 1px solid var(--source-boundary); }
+  .firm { display: flex; align-items: center; gap: 10px; }
+  .firm-name { font-family: var(--font-numeric); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); }
+  .doc-meta { text-align: right; font-family: var(--font-numeric); font-size: 10px; color: var(--secondary); line-height: 1.7; }
+  .doc-meta b { color: var(--ink); font-weight: 500; }
+
+  .title { font-family: var(--font-serif); font-size: 27px; font-weight: 600; letter-spacing: -.01em; margin: 30px 0 4px; }
+  .sub { font-family: var(--font-numeric); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--tertiary); }
+
+  .letter { font-family: var(--font-serif); font-size: 15px; line-height: 1.62; color: var(--ink); margin: 26px 0; }
+
+  h3.sec { font-family: var(--font-numeric); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--brand-orange-dark); margin: 34px 0 12px; }
+
+  table.boq { width: 100%; border-collapse: collapse; font-family: var(--font-serif); }
+  .boq th { text-align: left; font-family: var(--font-sf-pro); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--tertiary); padding: 8px 6px; border-bottom: 1.5px solid var(--source-boundary); }
+  .boq th.num, .boq td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .boq td { font-size: 14px; padding: 9px 6px; border-bottom: 1px solid var(--source-boundary); color: var(--ink); }
+  .boq tr.group td { font-weight: 600; background: rgba(232,216,207,.28); font-family: var(--font-sf-pro); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .boq tfoot td { font-family: var(--font-sf-pro); font-size: 12px; font-weight: 600; padding-top: 12px; border-top: 1.5px solid var(--ink); border-bottom: 0; }
+  .boq .total-val { font-size: 15px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 14px; }
+  ul.terms { margin: 0; padding-left: 18px; font-family: var(--font-serif); font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+  .sign { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .sign-line { border-top: 1px solid var(--ink); padding-top: 8px; font-family: var(--font-serif); font-size: 13px; color: var(--secondary); }
+  .sign-line b { display: block; color: var(--ink); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="review-bar">
+    <div>
+      <div class="rb-title">Cost Proposal · Lewis Residence</div>
+      <div class="rb-meta">Version 001 · shared 2026-06-12 · password protected</div>
+    </div>
+    <div class="rb-actions">
+      <button class="btn comment"><i class="ph ph-chat-circle"></i> Comment</button>
+      <button class="btn approve">Approve</button>
+      <button class="btn decline">Decline</button>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="doc-head">
+      <div class="firm">
+        <img class="ph-mark" src="../../assets/archestimator_logo.svg" alt="" />
+        <div class="firm-name">Lewis Design-Build</div>
+      </div>
+      <div class="doc-meta">
+        <div>Proposal <b>ES-001 / 001</b></div>
+        <div>Date <b>12 June 2026</b></div>
+        <div>Valid <b>30 days</b></div>
+      </div>
+    </div>
+
+    <div class="title">Cost Proposal</div>
+    <div class="sub">Lewis Residence · New construction · Quezon City</div>
+
+    <p class="letter">Dear Mr. and Mrs. Lewis,<br/><br/>
+    We are pleased to submit the following cost proposal for the construction of your residence. The figures below are built from our current supplier pricing and reflect the scope discussed in our meeting of 8 June. All quantities and unit rates are subject to the assumptions and exclusions noted herein.</p>
+
+    <h3 class="sec">Summary of cost</h3>
+    <table class="boq">
+      <thead><tr><th>Item</th><th class="num">Material</th><th class="num">Misc.</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        <tr class="group"><td>01 · General Requirements</td><td class="num"></td><td class="num"></td><td class="num">₱ 504,295.00</td></tr>
+        <tr><td>Construction supervision, permits, bonds &amp; insurances</td><td class="num">₱ 480,000.00</td><td class="num">₱ 24,295.00</td><td class="num">₱ 504,295.00</td></tr>
+        <tr class="group"><td>02 · Lot — House</td><td class="num"></td><td class="num"></td><td class="num">₱ 3,460,519.00</td></tr>
+        <tr><td>Ground Floor (living, dining, kitchen, T&amp;B)</td><td class="num">₱ 472,300.00</td><td class="num">₱ 35,850.00</td><td class="num">₱ 508,150.00</td></tr>
+        <tr><td>Second Floor (bedrooms, closets, T&amp;B)</td><td class="num">₱ 1,840,200.00</td><td class="num">₱ 96,400.00</td><td class="num">₱ 1,936,600.00</td></tr>
+        <tr><td>Roof + Attic, services &amp; finishes</td><td class="num">₱ 968,520.00</td><td class="num">₱ 47,249.00</td><td class="num">₱ 1,015,769.00</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>Total proposed cost</td><td class="num"></td><td class="num"></td><td class="num total-val">₱ 3,964,714.00</td></tr>
+      </tfoot>
+    </table>
+
+    <div class="two">
+      <div>
+        <h3 class="sec">Inclusions</h3>
+        <ul class="terms">
+          <li>Labor, materials, and supervision per scope</li>
+          <li>Standard finishes per the agreed schedule</li>
+          <li>One round of revisions during review</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sec">Exclusions</h3>
+        <ul class="terms">
+          <li>Owner-supplied fixtures and appliances</li>
+          <li>Permits beyond those listed above</li>
+          <li>Site works outside the lot boundary</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="sec">Terms</h3>
+    <ul class="terms">
+      <li>Payment by milestone schedule upon approval of this proposal.</li>
+      <li>Validity 30 days from the date of issue. Prices subject to supplier movement thereafter.</li>
+      <li>Warranty of one (1) year on workmanship from turnover.</li>
+    </ul>
+
+    <div class="sign">
+      <div class="sign-line"><b>Philip Jon Echavez Lewis</b>UAP, PIA · Lewis Design-Build</div>
+      <div class="sign-line"><b>Conforme</b>Client signature over printed name &amp; date</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

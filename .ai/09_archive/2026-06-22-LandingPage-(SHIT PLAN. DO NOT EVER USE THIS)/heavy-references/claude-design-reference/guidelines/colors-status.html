@@ -1,0 +1,18 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="Status — functional colors" subtitle="Meaning only: approved / provisional / risk" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"/><link rel="stylesheet" href="../styles.css"/>
+<style>
+body{margin:0;background:var(--surface);padding:18px;font-family:var(--font-sf-pro);}
+.row{display:flex;gap:10px;}
+.sw{flex:1;border:1px solid var(--hairline);border-radius:var(--radius-xs);overflow:hidden;}
+.chip{height:36px;}
+.pill{height:24px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;text-transform:uppercase;}
+.meta{padding:7px 9px;}
+.nm{font-size:10px;font-weight:500;color:var(--ink);}
+.hex{font-family:var(--font-numeric);font-size:9px;color:var(--tertiary);margin-top:2px;}
+</style></head><body>
+<div class="row">
+  <div class="sw"><div class="chip" style="background:#15803d"></div><div class="pill" style="background:#dcfce7;color:#15803d">Approved</div><div class="meta"><div class="nm">success</div><div class="hex">#15803D / #DCFCE7</div></div></div>
+  <div class="sw"><div class="chip" style="background:#b45309"></div><div class="pill" style="background:#fef3c7;color:#b45309">In review</div><div class="meta"><div class="nm">warning</div><div class="hex">#B45309 / #FEF3C7</div></div></div>
+  <div class="sw"><div class="chip" style="background:#b91c1c"></div><div class="pill" style="background:#fee2e2;color:#b91c1c">Excluded</div><div class="meta"><div class="nm">danger</div><div class="hex">#B91C1C / #FEE2E2</div></div></div>
+</div>
+</body></html>

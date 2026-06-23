@@ -1,0 +1,1372 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e10]:
+    - navigation [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - link "Save Design Logo" [ref=e14] [cursor=pointer]:
+            - /url: /
+            - img "Save Design Logo" [ref=e15]
+          - link "Explore" [ref=e16] [cursor=pointer]:
+            - /url: /explore
+          - link "Membership" [ref=e17] [cursor=pointer]:
+            - /url: /pricing
+          - link "Extension" [ref=e18] [cursor=pointer]:
+            - /url: https://chromewebstore.google.com/detail/save-design/mlnmkcjhfcbchciecaebigdjnmfbehgc
+          - link "Analyze" [ref=e19] [cursor=pointer]:
+            - /url: /analyze
+        - generic [ref=e20]:
+          - button "Submit" [ref=e21] [cursor=pointer]
+          - button "Log In" [ref=e22] [cursor=pointer]
+    - generic [ref=e25]:
+      - generic [ref=e27]:
+        - heading "Your technical design inspiration workspace." [level=1] [ref=e29]:
+          - text: Your technical design
+          - text: inspiration workspace.
+        - paragraph [ref=e30]: Save references. Experiment with code. Document your process and grow your skills with the community.
+        - generic [ref=e31]:
+          - link "Sign Up" [ref=e32] [cursor=pointer]:
+            - /url: /login
+          - link "Explore" [ref=e33] [cursor=pointer]:
+            - /url: /explore
+      - generic [ref=e39]:
+        - generic [ref=e45]: save.design
+        - generic [ref=e46]:
+          - paragraph [ref=e48]: Welcome to
+          - paragraph [ref=e50]: Save Design
+          - paragraph [ref=e52]: the platform for
+          - generic [ref=e53]:
+            - paragraph
+          - img [ref=e55]:
+            - generic [ref=e56]: "designers ::: designers ::: designers"
+          - paragraph [ref=e58]: and all creatives who refuse to choose between two!
+          - paragraph [ref=e60]: We all share the same problem...
+      - generic:
+        - generic: Keep scrolling
+        - img
+    - generic [ref=e61]:
+      - generic [ref=e63]:
+        - generic:
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+        - heading "Design inspiration is disconnected from our actual work." [level=2] [ref=e66]:
+          - text: Design inspiration is disconnected
+          - text: from our actual work.
+        - generic [ref=e67]:
+          - generic:
+            - generic:
+              - heading "Time to change that." [level=2]
+          - generic [ref=e70]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: // utils.ts
+                    - generic: "const render = () => {"
+                    - generic: return <Canvas>
+                    - generic: <mesh />
+                    - generic: </Canvas>
+                    - generic: "}"
+                - generic:
+                  - img "Remotion video"
+                - generic:
+                  - generic:
+                    - generic: "Project details:"
+                    - generic:
+                      - paragraph: "Client: Acme Corp"
+                      - paragraph: "Deadline: Jan 15"
+                      - paragraph: "Stack: Next.js"
+                      - paragraph: "Notes: Finalize..."
+            - generic [ref=e74]:
+              - heading "Your Workspace" [level=3] [ref=e75]
+              - paragraph [ref=e76]: 0 items organized
+        - generic [ref=e77]:
+          - generic [ref=e80]:
+            - img "Illustration inspiration" [ref=e81]
+            - generic [ref=e83]: style-inspo.png
+          - generic [ref=e86]:
+            - img "Dribbble" [ref=e87]
+            - generic [ref=e89]: dribbble.com/shot
+          - generic [ref=e92]:
+            - generic [ref=e93]: // animation.tsx
+            - generic [ref=e94]: "export const Card = () => {"
+            - generic [ref=e95]: return (
+            - generic [ref=e96]: <motion.div
+            - generic [ref=e97]: "animate={{ y: 0 }}"
+            - generic [ref=e98]: />
+            - generic [ref=e99]: )
+            - generic [ref=e100]: "}"
+          - generic [ref=e103]:
+            - img "Awwwards" [ref=e104]
+            - generic [ref=e106]: awwwards.com/site
+          - generic [ref=e109]:
+            - generic [ref=e110]: "To-do:"
+            - generic [ref=e111]:
+              - generic [ref=e114]: Fix hero animation
+              - generic [ref=e117]: Update colors
+              - generic [ref=e120]: Review with team
+              - generic [ref=e123]: Ship by Friday
+              - generic [ref=e126]: Write docs
+          - generic [ref=e129]:
+            - img "product_trailer.mp4" [ref=e130]
+            - img [ref=e133]
+            - generic [ref=e136]: product_trailer.mp4
+          - generic [ref=e139]:
+            - img "Lowpoly terrain" [ref=e140]
+            - generic [ref=e142]: lowpoly-terrain.glsl
+          - generic [ref=e145]:
+            - generic [ref=e146]: "Project details:"
+            - generic [ref=e147]:
+              - paragraph [ref=e148]: "Client: Acme Corp"
+              - paragraph [ref=e149]: "Deadline: Jan 15"
+              - paragraph [ref=e150]: "Stack: Next.js, Three.js"
+              - paragraph [ref=e151]: "Notes: Need to finalize the shader effect..."
+          - generic [ref=e154]:
+            - img "Hero mockup" [ref=e155]
+            - generic [ref=e157]: hero_mockup.fig
+          - generic [ref=e160]:
+            - generic [ref=e161]: // shader.glsl
+            - generic [ref=e162]: "const render = () => {"
+            - generic [ref=e163]: return <Canvas>
+            - generic [ref=e164]: <mesh />
+            - generic [ref=e165]: </Canvas>
+            - generic [ref=e166]: "}"
+          - generic [ref=e169]:
+            - generic [ref=e170]: // utils.ts
+            - generic [ref=e171]: "const render = () => {"
+            - generic [ref=e172]: return <Canvas>
+            - generic [ref=e173]: <mesh />
+            - generic [ref=e174]: </Canvas>
+            - generic [ref=e175]: "}"
+          - generic [ref=e178]:
+            - img "remotion-intro.tsx" [ref=e179]
+            - img [ref=e182]
+            - generic [ref=e185]: remotion-intro.tsx
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - img [ref=e193]
+          - generic [ref=e200]:
+            - paragraph [ref=e201]: Stay organized across projects
+            - paragraph [ref=e202]: Keep every client's files, links, and docs in their own workspace.
+        - generic [ref=e203]:
+          - generic [ref=e206]: </>
+          - generic [ref=e207]:
+            - paragraph [ref=e208]: Better inspiration browsing
+            - paragraph [ref=e209]: Curated websites with technical insights, not just screenshots.
+        - generic [ref=e210]:
+          - img [ref=e213]
+          - generic [ref=e215]:
+            - paragraph [ref=e216]: Professional delivery
+            - paragraph [ref=e217]: Share one link with clients or team instead of 5 different file locations.
+    - generic [ref=e218]:
+      - generic [ref=e221]:
+        - generic [ref=e222]:
+          - heading "See how it's actually built." [level=2] [ref=e223]
+          - generic [ref=e224]:
+            - paragraph [ref=e225]: "We don't just show you screenshots to scroll past. We show you what matters: Is it Next.js or Astro? Framer Motion or GSAP? What fonts? What CMS? Who built it?"
+            - paragraph [ref=e226]: Browse curated sites with project insights — the development decisions and design decisions, the why behind the work. Leave your own notes. Actually learn something you can use on your next project.
+          - link "Explore Gallery" [ref=e228] [cursor=pointer]:
+            - /url: /explore
+        - generic [ref=e231]:
+          - generic [ref=e237]: save.design
+          - generic [ref=e240]:
+            - img [ref=e242]
+            - paragraph [ref=e244]: Video Demo
+      - generic [ref=e247]:
+        - generic [ref=e248]:
+          - heading "Thousands of discoveries" [level=2] [ref=e249]
+          - generic [ref=e250]:
+            - paragraph [ref=e251]: Animations. Transitions. Components. UI sections. Branding. Typography. Motion. Graphic design.
+            - paragraph [ref=e252]: The kind of work buried beneath algorithms, scattered across platforms, and lost in endless feeds.
+            - paragraph [ref=e253]: Think Pinterest — but fresh, curated, and exclusively for UI and design inspiration. We bring the best work from social platforms, design communities, and product websites into one curated feed.
+          - link "Explore membership" [ref=e255] [cursor=pointer]:
+            - /url: /pricing
+        - generic [ref=e258]:
+          - generic [ref=e264]: save.design
+          - generic [ref=e267]:
+            - img [ref=e269]
+            - paragraph [ref=e271]: Video Demo
+      - generic [ref=e274]:
+        - generic [ref=e275]:
+          - heading "A save system designed for creatives." [level=2] [ref=e276]
+          - generic [ref=e277]:
+            - paragraph [ref=e278]: Upload files, assets, save links, drop in code snippets — all with rich previews that actually show what you saved.
+            - paragraph [ref=e279]: Images, videos, documents, references — all organized by project. Not generic cloud storage.
+        - generic [ref=e282]:
+          - generic [ref=e288]: save.design
+          - generic [ref=e291]:
+            - img [ref=e293]
+            - paragraph [ref=e295]: Video Demo
+      - generic [ref=e298]:
+        - generic:
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // brutalist.css
+                        - generic: ".hero {"
+                        - generic: "border: 2px solid;"
+                        - generic: "box-shadow: none;"
+                        - generic: "border-radius: 0;"
+                        - generic: "}"
+                    - generic:
+                      - generic:
+                        - generic: "Project details:"
+                        - generic:
+                          - paragraph: "Client: Studio Mono"
+                          - paragraph: "Deadline: Mar 8"
+                          - paragraph: "Stack: Next.js"
+                          - paragraph: "Budget: $12k"
+                - generic:
+                  - generic:
+                    - heading "Brutalist pages" [level=3]
+                    - paragraph: 42 items 2d
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // pricing.tsx
+                        - generic: export Tier = () => (
+                        - generic: <article>
+                        - generic: <h3>Pro</h3>
+                        - generic: <span>$29</span>
+                        - generic: </article>
+                    - generic:
+                      - generic:
+                        - generic: "Must include:"
+                        - generic:
+                          - paragraph: ☐ 3 tiers max
+                          - paragraph: ☐ Annual toggle
+                          - paragraph: ☐ Compare table
+                          - paragraph: ☐ FAQ at bottom
+                - generic:
+                  - generic:
+                    - heading "Pricing inspo" [level=3]
+                    - paragraph: 18 items 1w
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // hero.tsx
+                        - generic: <motion.h1
+                        - generic: "initial={{y:40}}"
+                        - generic: "animate={{y:0}}"
+                        - generic: ">Welcome</motion.h1>"
+                    - generic:
+                      - generic:
+                        - generic: "Timing reference:"
+                        - generic:
+                          - paragraph: "Entry: 0.6s easeOut"
+                          - paragraph: "Stagger: 80ms"
+                          - paragraph: "Loop: 4s"
+                          - paragraph: "Exit: 0.3s easeIn"
+                - generic:
+                  - generic:
+                    - heading "Hero animations" [level=3]
+                    - paragraph: 27 items 3d
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // onboarding.tsx
+                        - generic: const steps = [
+                        - generic: "{ title: \"Welcome\" },"
+                        - generic: "{ title: \"Profile\" },"
+                        - generic: "{ title: \"Invite\" },"
+                        - generic: "];"
+                    - generic:
+                      - generic:
+                        - generic: "Standard flow:"
+                        - generic:
+                          - paragraph: 1. Welcome
+                          - paragraph: 2. Profile setup
+                          - paragraph: 3. Invite team
+                          - paragraph: 4. First action
+                - generic:
+                  - generic:
+                    - heading "Onboarding flows" [level=3]
+                    - paragraph: 33 items 5d
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // not-found.tsx
+                        - generic: export default () => (
+                        - generic: <main>
+                        - generic: <h1>404</h1>
+                        - generic: <p>Page missing.</p>
+                        - generic: </main>
+                        - generic: );
+                    - generic:
+                      - generic:
+                        - generic: "Copy options:"
+                        - generic:
+                          - paragraph: “Page not found.”
+                          - paragraph: “This wandered off.”
+                          - paragraph: “Lost? Go home.”
+                          - paragraph: “404 / try search.”
+                - generic:
+                  - generic:
+                    - heading "404 pages" [level=3]
+                    - paragraph: 8 items 2w
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // mobile-nav.tsx
+                        - generic: const [open, set]
+                        - generic: = useState(false);
+                        - generic: "<Drawer open={open}>"
+                        - generic: <button>Close</button>
+                        - generic: </Drawer>
+                    - generic:
+                      - generic:
+                        - generic: "Mobile rules:"
+                        - generic:
+                          - paragraph: "Min tap: 44px"
+                          - paragraph: "Drawer: 80% width"
+                          - paragraph: "Backdrop: 60% op"
+                          - paragraph: Close on outside tap
+                - generic:
+                  - generic:
+                    - heading "Mobile menus" [level=3]
+                    - paragraph: 15 items 1d
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // cookies.tsx
+                        - generic: <aside role="dialog">
+                        - generic: <p>We use cookies.</p>
+                        - generic: <button>Accept</button>
+                        - generic: <button>Reject</button>
+                        - generic: </aside>
+                    - generic:
+                      - generic:
+                        - generic: "Compliance:"
+                        - generic:
+                          - paragraph: "GDPR: explicit"
+                          - paragraph: "CCPA: opt-out OK"
+                          - paragraph: Granular per cookie
+                          - paragraph: Save pref 365d
+                - generic:
+                  - generic:
+                    - heading "Cookie modals" [level=3]
+                    - paragraph: 12 items 3w
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // loader.tsx
+                        - generic: <motion.div
+                        - generic: "animate={{rotate:360}}"
+                        - generic: "transition={{"
+                        - generic: "repeat: Infinity,"
+                        - generic: "}} />"
+                    - generic:
+                      - generic:
+                        - generic: "UX thresholds:"
+                        - generic:
+                          - paragraph: "< 1s: skeleton"
+                          - paragraph: "1–3s: spinner"
+                          - paragraph: "> 3s: with copy"
+                          - paragraph: "> 10s: progress bar"
+                - generic:
+                  - generic:
+                    - heading "Loader animations" [level=3]
+                    - paragraph: 31 items 4d
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // contact.tsx
+                        - generic: <form>
+                        - generic: <label>Email</label>
+                        - generic: <input type="email"/>
+                        - generic: <button>Send</button>
+                        - generic: </form>
+                    - generic:
+                      - generic:
+                        - generic: "Best practices:"
+                        - generic:
+                          - paragraph: Label above input
+                          - paragraph: Inline validation
+                          - paragraph: Single column
+                          - paragraph: Touch-friendly
+                - generic:
+                  - generic:
+                    - heading "Form designs" [level=3]
+                    - paragraph: 19 items 1w
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // empty.tsx
+                        - generic: <section>
+                        - generic: <Icon name="folder"/>
+                        - generic: <p>Nothing yet.</p>
+                        - generic: <button>Add first</button>
+                        - generic: </section>
+                    - generic:
+                      - generic:
+                        - generic: "Tone variations:"
+                        - generic:
+                          - paragraph: “Nothing here yet.”
+                          - paragraph: “Add your first one.”
+                          - paragraph: “Start with a save.”
+                          - paragraph: “This space is yours.”
+                - generic:
+                  - generic:
+                    - heading "Empty states" [level=3]
+                    - paragraph: 22 items 6d
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // footer.tsx
+                        - generic: <footer>
+                        - generic: <nav>
+                        - generic: <a href="/about">About</a>
+                        - generic: <a href="/blog">Blog</a>
+                        - generic: </nav>
+                        - generic: </footer>
+                    - generic:
+                      - generic:
+                        - generic: "Footer parts:"
+                        - generic:
+                          - paragraph: • Newsletter signup
+                          - paragraph: • Social links
+                          - paragraph: • Legal pages
+                          - paragraph: • Sitemap
+                          - paragraph: • Contact
+                - generic:
+                  - generic:
+                    - heading "Footer styles" [level=3]
+                    - paragraph: 14 items 2w
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // scene.tsx
+                        - generic: "const Scene = () => {"
+                        - generic: return <Canvas>
+                        - generic: <mesh />
+                        - generic: </Canvas>
+                        - generic: "}"
+                    - generic:
+                      - generic:
+                        - generic: "Performance budget:"
+                        - generic:
+                          - paragraph: 60 fps target
+                          - paragraph: < 5mb assets
+                          - paragraph: Lazy meshes
+                          - paragraph: Mobile fallback
+                - generic:
+                  - generic:
+                    - heading "3D landings" [level=3]
+                    - paragraph: 9 items 1mo
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // type.css
+                        - generic: ".display {"
+                        - generic: "font-size: clamp(3rem,"
+                        - generic: 8vw, 8rem);
+                        - generic: "font-weight: 900;"
+                        - generic: "letter-spacing: -.04em;"
+                        - generic: "}"
+                    - generic:
+                      - generic:
+                        - generic: "Type specimen:"
+                        - generic:
+                          - paragraph: Display 96 / 0.9
+                          - paragraph: Body 16 / 1.5
+                          - paragraph: Mono 14 / 1.6
+                          - paragraph: Track -.04em
+                - generic:
+                  - generic:
+                    - heading "Hero typography" [level=3]
+                    - paragraph: 41 items 1d
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // nav.tsx
+                        - generic: <header
+                        - generic: className="sticky top-0"
+                        - generic: ">"
+                        - generic: <Logo />
+                        - generic: <Menu />
+                        - generic: </header>
+                    - generic:
+                      - generic:
+                        - generic: "Scroll behavior:"
+                        - generic:
+                          - paragraph: Hide on scroll down
+                          - paragraph: Show on scroll up
+                          - paragraph: 80ms transition
+                          - paragraph: Shadow at 16px
+                - generic:
+                  - generic:
+                    - heading "Sticky navs" [level=3]
+                    - paragraph: 26 items 5d
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: // tokens.css
+                        - generic: ":root {"
+                        - generic: "--primary: oklch(.7 .2 220);"
+                        - generic: "--accent: oklch(.6 .25 290);"
+                        - generic: "--muted: oklch(.5 .05 240);"
+                        - generic: "}"
+                    - generic:
+                      - generic:
+                        - generic: "Brand palette:"
+                        - generic:
+                          - paragraph: + shade variants
+                          - paragraph: oklch tokens
+                - generic:
+                  - generic:
+                    - heading "Color palettes" [level=3]
+                    - paragraph: 36 items 1w
+        - generic:
+          - generic:
+            - generic:
+              - generic: "#brutalist"
+          - generic:
+            - generic:
+              - generic: "#hero"
+          - generic:
+            - generic:
+              - generic: "#3d"
+          - generic:
+            - generic:
+              - generic: "#fonts"
+          - generic:
+            - generic:
+              - generic: "#gradients"
+          - generic:
+            - generic:
+              - generic: "#minimal"
+          - generic:
+            - generic:
+              - generic: "#scroll"
+          - generic:
+            - generic:
+              - generic: "#dark-mode"
+          - generic:
+            - generic:
+              - generic: "#cards"
+          - generic:
+            - generic:
+              - generic: "#bento"
+        - generic [ref=e299]:
+          - generic [ref=e300]: ↓ Scroll to explore
+          - generic [ref=e301]: ↓ Wait, there is more
+        - heading "Saved. But how do you find it?" [level=2] [ref=e303]
+        - generic:
+          - generic:
+            - generic: Search ⌘K
+            - generic:
+              - generic:
+                - img
+          - paragraph: Natural Search finds your saves by meaning — not just keywords. Type how you remember it, in plain English.
+        - generic [ref=e305]:
+          - generic [ref=e306]:
+            - generic [ref=e307]:
+              - generic [ref=e308]: Home
+              - generic [ref=e309]: /
+              - generic [ref=e310]: sections
+              - generic [ref=e311]: /
+              - generic [ref=e312]: Tilted photo stack with col…
+            - generic [ref=e313]:
+              - img "The Push gallery UI" [ref=e315]
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]: baxel.club ↗
+                  - generic [ref=e319]: "Saved to: sections"
+                - generic [ref=e321]: Custom tags
+                - generic [ref=e323]:
+                  - generic [ref=e324]: Title
+                  - generic [ref=e325]: Tilted photo stack with colored borders and casual gallery feel
+                - generic [ref=e326]:
+                  - generic [ref=e327]: Description
+                  - generic [ref=e328]: Three rotated photo cards stacked on a clean white canvas with bright peach, magenta, and baby-blue borders — gives the section a hand-arranged, lifestyle-zine feel.
+            - generic [ref=e329]:
+              - generic [ref=e330]: ESC CLOSE
+              - generic [ref=e331]: ← PREV
+              - generic [ref=e332]: NEXT →
+          - generic [ref=e334]:
+            - generic [ref=e335]: + Add
+            - generic [ref=e337]:
+              - generic: "#Gallery"
+            - generic [ref=e341]: "#Gallery"
+        - paragraph: Or add your own. Custom tags let you organize the way your brain works — and they work alongside Natural Search.
+        - generic:
+          - heading "Save inspiration with the breakdown attached." [level=2]:
+            - text: Save inspiration
+            - text: with the breakdown attached.
+          - paragraph: We built analyzer for designers and devs — it catch Spline, Lenis, GSAP, Three.js, the whole modern stack, even the fonts you couldn't name on sight.
+        - generic:
+          - generic:
+            - generic: Analyze website
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - img
+                  - img
+                - generic:
+                  - img
+                  - generic: https://
+                - img
+                - img "save.design extension"
+          - paragraph: Paste a link in the analyzer or click the extension on any site — the breakdown is automatic.
+        - generic:
+          - generic:
+            - generic:
+              - generic: Analysis result
+            - generic [ref=e344]:
+              - generic [ref=e345]:
+                - generic [ref=e347]: lumina.studio
+                - generic [ref=e348]: Save to folder
+              - generic [ref=e349]:
+                - generic [ref=e351]:
+                  - generic [ref=e352]:
+                    - generic [ref=e353]: LS
+                    - generic [ref=e355]:
+                      - generic [ref=e356]: Work
+                      - generic [ref=e357]: About
+                  - generic [ref=e358]:
+                    - img "Lumina" [ref=e359]
+                    - img "Studio" [ref=e360]
+                    - generic [ref=e361]: Independent · 26
+                  - generic [ref=e362]:
+                    - generic [ref=e363]: ↓ Selected work
+                    - generic [ref=e364]: Berlin · NYC
+                - generic [ref=e365]:
+                  - generic [ref=e366]:
+                    - generic [ref=e367]: Framework
+                    - generic [ref=e368]:
+                      - generic [ref=e369]:
+                        - text: Next.js
+                        - generic [ref=e370]: /
+                      - generic [ref=e371]: React
+                  - generic [ref=e372]:
+                    - generic [ref=e373]: Animation
+                    - generic [ref=e374]:
+                      - generic [ref=e375]:
+                        - text: GSAP
+                        - generic [ref=e376]: /
+                      - generic [ref=e377]:
+                        - text: Framer Motion
+                        - generic [ref=e378]: /
+                      - generic [ref=e379]: Three.js
+                  - generic [ref=e380]:
+                    - generic [ref=e381]: Fonts
+                    - generic [ref=e382]:
+                      - generic [ref=e383]:
+                        - text: Geist
+                        - generic [ref=e384]: /
+                      - generic [ref=e385]:
+                        - text: Inter
+                        - generic [ref=e386]: /
+                      - generic [ref=e387]: Workbench
+              - generic [ref=e388]:
+                - generic [ref=e389]: Detection log
+                - generic [ref=e390]:
+                  - generic: "> Detected Next.js via __NEXT_DATA__"
+                - generic [ref=e391]:
+                  - generic: "> Detected GSAP in /js/main.min.js"
+                - generic [ref=e392]:
+                  - generic: "> Detected Framer Motion via React props"
+                - generic [ref=e393]:
+                  - generic: "> Detected Geist family via @font-face"
+                - generic [ref=e394]:
+                  - generic: ✓ Analysis complete · 2.4s
+        - generic:
+          - paragraph: Now you can save references with full understanding of what makes each site shine. Not just bookmarks anymore.
+        - generic:
+          - generic:
+            - heading "Finally, plug your workspace into your AI tools." [level=2]
+            - paragraph: Every save in your workspace — websites, sections, images, snippets — is one MCP connection away from every AI tool you use.
+            - link "Start here" [ref=e395] [cursor=pointer]:
+              - /url: /pricing
+          - generic:
+            - generic:
+              - img
+            - generic:
+              - img
+            - generic:
+              - img
+            - generic:
+              - img
+            - generic:
+              - img
+            - generic:
+              - generic:
+                - generic: Claude · save.design MCP
+              - generic:
+                - generic:
+                  - generic: You
+                  - paragraph
+      - generic [ref=e398]:
+        - generic [ref=e399]:
+          - heading "Live code. Instant sharing. Zero setup." [level=2] [ref=e400]
+          - generic [ref=e401]:
+            - paragraph [ref=e402]: Before, trying something new meant setting up a repo, configuring dependencies, all that friction. With CodePen, you're limited to a single file and no real package support.
+            - paragraph [ref=e403]: Here, you just start coding. Same editor as VS Code. Multiple files. Real npm packages. Actual bundling. Everything you'd get in a proper dev environment - without touching your terminal.
+            - paragraph [ref=e404]: Build components that live with your project. Share with team or the community in one click.
+        - generic [ref=e407]:
+          - generic [ref=e413]: save.design
+          - generic [ref=e416]:
+            - img [ref=e418]
+            - paragraph [ref=e420]: Video Demo
+      - generic [ref=e423]:
+        - generic [ref=e424]:
+          - heading "Write where you build." [level=2] [ref=e425]
+          - generic [ref=e426]:
+            - paragraph [ref=e427]: Write real documentation right inside your workspace. Case studies next to deliverables. Process next to the work they describe.
+            - paragraph [ref=e428]: Project briefs, To-Dos, annotations, rich pages — all organized with the assets, components, and files they belong to. One project.One place. Thinking and making, no longer separated.
+        - generic [ref=e431]:
+          - generic [ref=e437]: save.design
+          - generic [ref=e440]:
+            - img [ref=e442]
+            - paragraph [ref=e444]: Video Demo
+      - generic [ref=e447]:
+        - generic [ref=e448]:
+          - heading "Private, team, client, or public. Your call." [level=2] [ref=e449]
+          - generic [ref=e450]:
+            - paragraph [ref=e451]: Some work is just for you - experiments, half-finished ideas, things you're not ready to show. Keep it private.
+            - paragraph [ref=e452]: Create a workspace for each client. Invite your team, bring in guests for feedback, set who can edit vs. view. One clean link to share.
+            - paragraph [ref=e453]: Ready to show the world? Make it public. Your terms.
+        - generic [ref=e456]:
+          - generic [ref=e462]: save.design
+          - generic [ref=e465]:
+            - img [ref=e467]
+            - paragraph [ref=e469]: Video Demo
+    - generic [ref=e471]:
+      - generic [ref=e472]:
+        - generic [ref=e473]:
+          - heading "Testimonials" [level=2] [ref=e474]
+          - generic [ref=e475]:
+            - button [ref=e476] [cursor=pointer]
+            - button [ref=e477] [cursor=pointer]
+            - button [ref=e478] [cursor=pointer]
+            - button [ref=e479] [cursor=pointer]
+        - generic [ref=e480]:
+          - button [ref=e481] [cursor=pointer]:
+            - img [ref=e482]
+          - button [ref=e484] [cursor=pointer]:
+            - img [ref=e485]
+      - generic [ref=e487]:
+        - blockquote [ref=e488]:
+          - generic [ref=e489]:
+            - generic: ”
+            - generic [ref=e490]:
+              - generic [ref=e491]: 01 / 04
+              - paragraph [ref=e492]: “Amazing product for design inspiration and organization, the attention to detail is next level.”
+            - generic [ref=e493]:
+              - generic [ref=e494]:
+                - generic [ref=e496]: D
+                - generic [ref=e497]:
+                  - generic [ref=e498]: Diego
+                  - generic [ref=e499]: VP of Design at Rappi
+              - generic [ref=e500]:
+                - link [ref=e501] [cursor=pointer]:
+                  - /url: https://diegovz.com
+                  - img [ref=e502]
+                - link [ref=e505] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/diego-villarroel-zaballos
+                  - img [ref=e506]
+        - blockquote [ref=e508]:
+          - generic [ref=e509]:
+            - generic: ”
+            - generic [ref=e510]:
+              - generic [ref=e511]: 02 / 04
+              - paragraph [ref=e512]: “I have been using Save Design for the past 1 month and I really like its features for saving inspiration, code, and images. It helps me organize my work much better.”
+            - generic [ref=e513]:
+              - generic [ref=e514]:
+                - generic [ref=e516]: P
+                - generic [ref=e517]:
+                  - generic [ref=e518]: Pritam
+                  - generic [ref=e519]: Creative Developer
+              - link [ref=e521] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/pritam-das-683a942a4/
+                - img [ref=e522]
+        - blockquote [ref=e524]:
+          - generic [ref=e525]:
+            - generic: ”
+            - generic [ref=e526]:
+              - generic [ref=e527]: 03 / 04
+              - paragraph [ref=e528]: “As someone thats been exhausted with trying new tools in the same space and have been reluctant in joining, this was an immediate sign up!”
+            - generic [ref=e529]:
+              - generic [ref=e530]:
+                - generic [ref=e532]: R
+                - generic [ref=e533]:
+                  - generic [ref=e534]: Razi
+                  - generic [ref=e535]: Healthtech Founder
+              - link [ref=e537] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/raztronaut/
+                - img [ref=e538]
+        - blockquote [ref=e540]:
+          - generic [ref=e541]:
+            - generic: ”
+            - generic [ref=e542]:
+              - generic [ref=e543]: 04 / 04
+              - paragraph [ref=e544]: "“Save Design is criminally underrated. Every other tool is bloated, this does one thing perfectly: organize inspiration without the noise. I've tried everything. This is the only one I use daily.”"
+            - generic [ref=e545]:
+              - generic [ref=e546]:
+                - generic [ref=e548]: S
+                - generic [ref=e549]:
+                  - generic [ref=e550]: Sebastian
+                  - generic [ref=e551]: Web Designer
+              - generic [ref=e552]:
+                - link [ref=e553] [cursor=pointer]:
+                  - /url: https://studiosebd.framer.website
+                  - img [ref=e554]
+                - link [ref=e557] [cursor=pointer]:
+                  - /url: https://x.com/OffSebastixn
+                  - img [ref=e558]
+        - blockquote [ref=e560]:
+          - generic [ref=e561]:
+            - generic: ”
+            - generic [ref=e562]:
+              - generic [ref=e563]: 01 / 04
+              - paragraph [ref=e564]: “Amazing product for design inspiration and organization, the attention to detail is next level.”
+            - generic [ref=e565]:
+              - generic [ref=e566]:
+                - generic [ref=e568]: D
+                - generic [ref=e569]:
+                  - generic [ref=e570]: Diego
+                  - generic [ref=e571]: VP of Design at Rappi
+              - generic [ref=e572]:
+                - link [ref=e573] [cursor=pointer]:
+                  - /url: https://diegovz.com
+                  - img [ref=e574]
+                - link [ref=e577] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/diego-villarroel-zaballos
+                  - img [ref=e578]
+        - blockquote [ref=e580]:
+          - generic [ref=e581]:
+            - generic: ”
+            - generic [ref=e582]:
+              - generic [ref=e583]: 02 / 04
+              - paragraph [ref=e584]: “I have been using Save Design for the past 1 month and I really like its features for saving inspiration, code, and images. It helps me organize my work much better.”
+            - generic [ref=e585]:
+              - generic [ref=e586]:
+                - generic [ref=e588]: P
+                - generic [ref=e589]:
+                  - generic [ref=e590]: Pritam
+                  - generic [ref=e591]: Creative Developer
+              - link [ref=e593] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/pritam-das-683a942a4/
+                - img [ref=e594]
+        - blockquote [ref=e596]:
+          - generic [ref=e597]:
+            - generic: ”
+            - generic [ref=e598]:
+              - generic [ref=e599]: 03 / 04
+              - paragraph [ref=e600]: “As someone thats been exhausted with trying new tools in the same space and have been reluctant in joining, this was an immediate sign up!”
+            - generic [ref=e601]:
+              - generic [ref=e602]:
+                - generic [ref=e604]: R
+                - generic [ref=e605]:
+                  - generic [ref=e606]: Razi
+                  - generic [ref=e607]: Healthtech Founder
+              - link [ref=e609] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/raztronaut/
+                - img [ref=e610]
+        - blockquote [ref=e612]:
+          - generic [ref=e613]:
+            - generic: ”
+            - generic [ref=e614]:
+              - generic [ref=e615]: 04 / 04
+              - paragraph [ref=e616]: "“Save Design is criminally underrated. Every other tool is bloated, this does one thing perfectly: organize inspiration without the noise. I've tried everything. This is the only one I use daily.”"
+            - generic [ref=e617]:
+              - generic [ref=e618]:
+                - generic [ref=e620]: S
+                - generic [ref=e621]:
+                  - generic [ref=e622]: Sebastian
+                  - generic [ref=e623]: Web Designer
+              - generic [ref=e624]:
+                - link [ref=e625] [cursor=pointer]:
+                  - /url: https://studiosebd.framer.website
+                  - img [ref=e626]
+                - link [ref=e629] [cursor=pointer]:
+                  - /url: https://x.com/OffSebastixn
+                  - img [ref=e630]
+        - blockquote [ref=e632]:
+          - generic [ref=e633]:
+            - generic: ”
+            - generic [ref=e634]:
+              - generic [ref=e635]: 01 / 04
+              - paragraph [ref=e636]: “Amazing product for design inspiration and organization, the attention to detail is next level.”
+            - generic [ref=e637]:
+              - generic [ref=e638]:
+                - generic [ref=e640]: D
+                - generic [ref=e641]:
+                  - generic [ref=e642]: Diego
+                  - generic [ref=e643]: VP of Design at Rappi
+              - generic [ref=e644]:
+                - link [ref=e645] [cursor=pointer]:
+                  - /url: https://diegovz.com
+                  - img [ref=e646]
+                - link [ref=e649] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/in/diego-villarroel-zaballos
+                  - img [ref=e650]
+        - blockquote [ref=e652]:
+          - generic [ref=e653]:
+            - generic: ”
+            - generic [ref=e654]:
+              - generic [ref=e655]: 02 / 04
+              - paragraph [ref=e656]: “I have been using Save Design for the past 1 month and I really like its features for saving inspiration, code, and images. It helps me organize my work much better.”
+            - generic [ref=e657]:
+              - generic [ref=e658]:
+                - generic [ref=e660]: P
+                - generic [ref=e661]:
+                  - generic [ref=e662]: Pritam
+                  - generic [ref=e663]: Creative Developer
+              - link [ref=e665] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/pritam-das-683a942a4/
+                - img [ref=e666]
+        - blockquote [ref=e668]:
+          - generic [ref=e669]:
+            - generic: ”
+            - generic [ref=e670]:
+              - generic [ref=e671]: 03 / 04
+              - paragraph [ref=e672]: “As someone thats been exhausted with trying new tools in the same space and have been reluctant in joining, this was an immediate sign up!”
+            - generic [ref=e673]:
+              - generic [ref=e674]:
+                - generic [ref=e676]: R
+                - generic [ref=e677]:
+                  - generic [ref=e678]: Razi
+                  - generic [ref=e679]: Healthtech Founder
+              - link [ref=e681] [cursor=pointer]:
+                - /url: https://www.linkedin.com/in/raztronaut/
+                - img [ref=e682]
+        - blockquote [ref=e684]:
+          - generic [ref=e685]:
+            - generic: ”
+            - generic [ref=e686]:
+              - generic [ref=e687]: 04 / 04
+              - paragraph [ref=e688]: "“Save Design is criminally underrated. Every other tool is bloated, this does one thing perfectly: organize inspiration without the noise. I've tried everything. This is the only one I use daily.”"
+            - generic [ref=e689]:
+              - generic [ref=e690]:
+                - generic [ref=e692]: S
+                - generic [ref=e693]:
+                  - generic [ref=e694]: Sebastian
+                  - generic [ref=e695]: Web Designer
+              - generic [ref=e696]:
+                - link [ref=e697] [cursor=pointer]:
+                  - /url: https://studiosebd.framer.website
+                  - img [ref=e698]
+                - link [ref=e701] [cursor=pointer]:
+                  - /url: https://x.com/OffSebastixn
+                  - img [ref=e702]
+    - generic [ref=e705]:
+      - generic [ref=e706]:
+        - heading "Membership." [level=2] [ref=e708]
+        - generic [ref=e710]:
+          - button "Pay monthly" [ref=e711] [cursor=pointer]
+          - button "Pay yearly -17%" [ref=e712] [cursor=pointer]:
+            - text: Pay yearly
+            - generic [ref=e713]: "-17%"
+      - generic [ref=e714]:
+        - generic [ref=e715]:
+          - generic [ref=e716]:
+            - heading "Hobbyist" [level=3] [ref=e718]
+            - paragraph [ref=e719]: For personal casual usage
+          - generic [ref=e721]: Free
+          - link "Start here" [ref=e722] [cursor=pointer]:
+            - /url: /login
+        - generic [ref=e723]:
+          - generic [ref=e724]:
+            - heading "Individual" [level=3] [ref=e726]
+            - paragraph [ref=e727]: For creatives who need a curated stream of latest industry trends and a clear library of their own findings
+          - generic [ref=e728]:
+            - generic [ref=e729]: $10
+            - generic [ref=e730]: /mo
+          - link "Get full access" [ref=e731] [cursor=pointer]:
+            - /url: /upgrade?plan=individual
+        - generic [ref=e732]:
+          - generic [ref=e733]:
+            - heading "Team" [level=3] [ref=e735]
+            - paragraph [ref=e736]: For studios and design teams.
+          - generic [ref=e737]:
+            - generic [ref=e738]: $8
+            - generic [ref=e739]: /seat/mo
+          - link "Get team membership" [ref=e740] [cursor=pointer]:
+            - /url: /upgrade?plan=team
+        - list [ref=e742]:
+          - listitem [ref=e743]:
+            - img [ref=e744]
+            - generic [ref=e748]: Full access to curated websites feed
+          - listitem [ref=e749]:
+            - img [ref=e750]
+            - generic [ref=e754]: Full access to public profile — share whatever you want with the world
+          - listitem [ref=e755]:
+            - img [ref=e756]
+            - generic [ref=e760]: Custom URL — your own save.design/handle
+          - listitem [ref=e761]:
+            - img [ref=e762]
+            - generic [ref=e766]: Unlimited workspaces & folders
+          - listitem [ref=e767]:
+            - img [ref=e768]
+            - generic [ref=e772]: Unlimited saves — websites, links, your own files
+          - listitem [ref=e773]:
+            - img [ref=e774]
+            - generic [ref=e778]: Unlimited Tags creation
+          - listitem [ref=e779]:
+            - img [ref=e780]
+            - generic [ref=e784]: Unlimited editors and viewers in workspace
+          - listitem [ref=e785]:
+            - img [ref=e786]
+            - generic [ref=e790]: Unlimited components with live preview
+          - listitem [ref=e791]:
+            - img [ref=e792]
+            - generic [ref=e796]: Full access to code editor — VS Code-like, multi-file, real npm packages, no caps
+          - listitem [ref=e797]:
+            - img [ref=e798]
+            - generic [ref=e802]: Markdown editor — unlimited page creation
+          - listitem [ref=e803]:
+            - img [ref=e804]
+            - generic [ref=e808]: 1 GB of workspace memory
+          - listitem [ref=e809]:
+            - img [ref=e810]
+            - generic [ref=e814]: Chrome extension (single + bulk save)
+          - listitem [ref=e815]:
+            - img [ref=e816]
+            - generic [ref=e820]: 2 successful analyses per day
+        - list [ref=e822]:
+          - listitem [ref=e823]:
+            - img [ref=e824]
+            - generic [ref=e828]: Everything in Free
+          - listitem [ref=e829]:
+            - img [ref=e830]
+            - generic [ref=e834]: Full access to curated UIs from across the internet
+          - listitem [ref=e835]:
+            - img [ref=e836]
+            - generic [ref=e840]:
+              - text: Natural Search across all your workspace
+              - button "Preview" [ref=e841] [cursor=pointer]:
+                - img [ref=e842]
+                - text: Preview
+          - listitem [ref=e844]:
+            - img [ref=e845]
+            - generic [ref=e849]: Personal MCP endpoint (Claude, Cursor, etc.)
+          - listitem [ref=e850]:
+            - img [ref=e851]
+            - generic [ref=e855]: Unlimited analyses in app and via extension
+          - listitem [ref=e856]:
+            - img [ref=e857]
+            - generic [ref=e861]:
+              - text: Smart Capture — clip anything you find online, AI fills title, description, tags & category
+              - button "Preview" [ref=e862] [cursor=pointer]:
+                - img [ref=e863]
+                - text: Preview
+          - listitem [ref=e865]:
+            - img [ref=e866]
+            - generic [ref=e870]:
+              - text: Screen recordings — record anything you find online, AI fills title, description, tags & category
+              - generic [ref=e871]: Soon
+          - listitem [ref=e872]:
+            - img [ref=e873]
+            - generic [ref=e877]: 10 GB workspace storage + option to buy more
+          - listitem [ref=e878]:
+            - img [ref=e879]
+            - generic [ref=e883]: Priority support
+          - listitem [ref=e884]:
+            - img [ref=e885]
+            - generic [ref=e889]: Early access to new features
+        - list [ref=e891]:
+          - listitem [ref=e892]:
+            - img [ref=e893]
+            - generic [ref=e897]: Everything in Individual, for each editor
+          - listitem [ref=e898]:
+            - img [ref=e899]
+            - generic [ref=e903]: Per-seat pricing — pay for active users only
+          - listitem [ref=e904]:
+            - img [ref=e905]
+            - generic [ref=e909]: 50 GB workspace memory
+          - listitem [ref=e910]:
+            - img [ref=e911]
+            - generic [ref=e915]: Buy more storage for the whole team
+      - link "Compare all plans" [ref=e917] [cursor=pointer]:
+        - /url: /pricing
+    - generic [ref=e920]:
+      - heading "Answers" [level=2] [ref=e923]
+      - generic [ref=e925]:
+        - group [ref=e926]:
+          - generic "Who is this platform for? +" [ref=e927] [cursor=pointer]:
+            - generic [ref=e928]: Who is this platform for?
+            - generic [ref=e929]: +
+        - group [ref=e930]:
+          - generic "What exactly is save.design? +" [ref=e931] [cursor=pointer]:
+            - generic [ref=e932]: What exactly is save.design?
+            - generic [ref=e933]: +
+        - group [ref=e934]:
+          - generic "What can I save here? +" [ref=e935] [cursor=pointer]:
+            - generic [ref=e936]: What can I save here?
+            - generic [ref=e937]: +
+        - group [ref=e938]:
+          - generic "What does \"analyzing a website\" mean? +" [ref=e939] [cursor=pointer]:
+            - generic [ref=e940]: What does "analyzing a website" mean?
+            - generic [ref=e941]: +
+        - group [ref=e942]:
+          - generic "Wait, there's a built-in code editor? +" [ref=e943] [cursor=pointer]:
+            - generic [ref=e944]: Wait, there's a built-in code editor?
+            - generic [ref=e945]: +
+        - group [ref=e946]:
+          - generic "Can I share my work publicly? +" [ref=e947] [cursor=pointer]:
+            - generic [ref=e948]: Can I share my work publicly?
+            - generic [ref=e949]: +
+        - group [ref=e950]:
+          - generic "What's the text editor (Pages)? +" [ref=e951] [cursor=pointer]:
+            - generic [ref=e952]: What's the text editor (Pages)?
+            - generic [ref=e953]: +
+    - generic [ref=e954]:
+      - generic:
+        - generic:
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+          - generic: ".+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:"
+          - generic: :.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*
+          - generic: "*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:"
+          - generic: :*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..
+          - generic: .:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--.
+          - generic: ..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--
+          - generic: "-..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.-"
+          - generic: "--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+."
+          - generic: .--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+
+          - generic: +.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.+.--..:*:.
+      - generic [ref=e957]:
+        - heading "Your creative work has a home now." [level=2] [ref=e958]:
+          - text: Your creative work
+          - text: has a home now.
+        - paragraph [ref=e959]: Dive deeper into design with us.
+        - link "Start Here" [ref=e961] [cursor=pointer]:
+          - /url: /login
+    - contentinfo [ref=e962]:
+      - generic [ref=e963]:
+        - generic [ref=e964]:
+          - link "Save Design Logo Save Design © 2026" [ref=e965] [cursor=pointer]:
+            - /url: /
+            - img "Save Design Logo" [ref=e966]
+            - generic [ref=e967]: Save Design © 2026
+          - generic [ref=e968]: ·
+          - generic "Ukrainian-founded" [ref=e970]
+        - navigation [ref=e971]:
+          - link "Get Extension" [ref=e972] [cursor=pointer]:
+            - /url: https://chromewebstore.google.com/detail/save-design/mlnmkcjhfcbchciecaebigdjnmfbehgc
+          - link "Membership" [ref=e973] [cursor=pointer]:
+            - /url: /pricing
+          - link "Changelog" [ref=e974] [cursor=pointer]:
+            - /url: /changelog
+        - generic [ref=e975]:
+          - link "CSSDA Website of the Day CSSDA Best Innovation CSSDA Best UI Design CSSDA Best UX Design" [ref=e976] [cursor=pointer]:
+            - /url: https://www.cssdesignawards.com/sites/save-design/48972/
+            - img "CSSDA Website of the Day" [ref=e977]
+            - img "CSSDA Best Innovation" [ref=e978]
+            - img "CSSDA Best UI Design" [ref=e979]
+            - img "CSSDA Best UX Design" [ref=e980]
+          - link [ref=e981] [cursor=pointer]:
+            - /url: https://www.linkedin.com/company/savedesign
+            - img [ref=e982]
+          - link [ref=e984] [cursor=pointer]:
+            - /url: https://x.com/SaveDesignHQ
+            - img [ref=e985]
+          - link [ref=e987] [cursor=pointer]:
+            - /url: mailto:hi@save.design
+            - img [ref=e988]
+  - region "Notifications alt+T"
+  - alert [ref=e8]

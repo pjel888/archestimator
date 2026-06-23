@@ -1,0 +1,62 @@
+# UX-011 — Current State Analysis
+
+Date: 2026-06-23
+
+## Affected Source Paths (candidate set)
+
+```
+src/components/workshop/ProjectEstimatesTable.tsx
+src/hooks/use-estimate-row-mutations.ts
+src/hooks/use-estimate-query.ts
+```
+
+### How To Verify
+
+```sh
+for p in src/components/workshop/ProjectEstimatesTable.tsx src/hooks/use-estimate-row-mutations.ts src/hooks/use-estimate-query.ts; do
+  [ -e "$p" ] && echo "OK   $p" || echo "MISS $p"
+done
+```
+
+Any MISS is drift — re-derive the path before editing.
+
+---
+
+## Current Behavior Summary
+
+Inline estimate rename/budget save failures rely on a small icon/title and screen-reader-only text.
+
+Evidence per audit:
+
+> ProjectEstimatesTable.tsx; first-pass UX risk report item 07.
+
+---
+
+## Related Tests
+
+```sh
+rg -l 'visible save errors' tests/ 2>/dev/null
+```
+
+Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/12-keystone-code-binding-and-drift-protection.md):
+
+- `tests/vitest/` — 429 files
+- `tests/unit/` — 5 files
+- `e2e/` — 21 files
+
+---
+
+## What's Missing Today
+
+| Aspect | Current | Target |
+|---|---|---|
+| User feedback | Inline estimate rename/budget save failures rely on a small icon/title and screen-reader-only text. | User immediately sees why the edit rolled back. |
+| Fix path | (none / partial) | Render compact visible error text or focusable tooltip with role=alert or aria-live. |
+
+---
+
+## Linkage
+
+- [01-ISSUE-DEFINITION.md](01-ISSUE-DEFINITION.md)
+- [03-TARGET-EXPERIENCE.md](03-TARGET-EXPERIENCE.md)
+- [04-IMPLEMENTATION-PLAN.md](04-IMPLEMENTATION-PLAN.md)

@@ -145,7 +145,10 @@ export function writeDetectionConfig(root, detectorConfig, opts = {}) {
 function normalizeDetectionConfigForWrite(config) {
   const out = {};
   if (Array.isArray(config?.ignoreRules)) {
-    out.ignoreRules = uniqueStrings(config.ignoreRules.map((rule) => normalizeIgnoreRule(rule)).filter(Boolean));
+    out.ignoreRules = uniqueStrings(config.ignoreRules.flatMap((rule) => {
+      const normalized = normalizeIgnoreRule(rule);
+      return normalized ? [normalized] : [];
+    }));
   }
   if (Array.isArray(config?.ignoreFiles)) {
     out.ignoreFiles = uniqueStrings(config.ignoreFiles.filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()));
@@ -240,10 +243,16 @@ function splitColorArgs(body) {
   const text = String(body || '').trim();
   if (!text) return [];
   if (text.includes(',')) {
-    const parts = text.split(',').map((part) => part.trim()).filter(Boolean);
+    const parts = text.split(',').flatMap((part) => {
+      const trimmed = part.trim();
+      return trimmed ? [trimmed] : [];
+    });
     const last = parts[parts.length - 1];
     if (last && last.includes('/')) {
-      const split = last.split('/').map((part) => part.trim()).filter(Boolean);
+      const split = last.split('/').flatMap((part) => {
+        const trimmed = part.trim();
+        return trimmed ? [trimmed] : [];
+      });
       return [...parts.slice(0, -1), ...split];
     }
     return parts;

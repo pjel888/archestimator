@@ -100,3 +100,6 @@ scripts/.tmp-*.mjs
 !.codex/agents/**
 !.codex/prompts/
 !.codex/prompts/**
+
+# local design reference
+/claude-design-reference/

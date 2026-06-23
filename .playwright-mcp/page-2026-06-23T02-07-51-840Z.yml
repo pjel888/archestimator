@@ -1,0 +1,159 @@
+- generic [active] [ref=e1]:
+  - main "Workshop" [ref=e2]:
+    - navigation "Main navigation" [ref=e3]:
+      - generic [ref=e7]:
+        - img [ref=e9]
+        - generic:
+          - generic: archestimator
+      - generic [ref=e11]:
+        - generic [ref=e13]:
+          - generic:
+            - paragraph: Philip Lewis
+            - paragraph: philipjonlewis@gmail.com
+        - button "Expand sidebar" [ref=e19]:
+          - img [ref=e21]
+        - generic [ref=e26]:
+          - link "Workshop" [ref=e27] [cursor=pointer]:
+            - /url: /workshop
+            - img [ref=e29]
+            - generic: Workshop
+          - link "Projects" [ref=e31] [cursor=pointer]:
+            - /url: /workshop/projects
+            - img [ref=e33]
+            - generic: Projects
+          - link "Library" [ref=e35] [cursor=pointer]:
+            - /url: /workshop/library
+            - img [ref=e37]
+            - generic: Library
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - img [ref=e44]
+            - generic: Favorites
+          - status [ref=e46]
+          - alert [ref=e47]
+    - region "Workshop canvas" [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic "Good morning, Philip Lewis" [ref=e51]:
+            - img "Morning" [ref=e53]
+            - heading "Good morning Philip Lewis" [level=1] [ref=e55]:
+              - generic [ref=e56]: Good morning
+              - generic [ref=e57]: Philip Lewis
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - button "Notifications, 0 unread" [ref=e61] [cursor=pointer]:
+                - img [ref=e62]
+              - generic [ref=e64]: 0 unread notifications
+            - button "Open settings" [ref=e65] [cursor=pointer]:
+              - img [ref=e66]
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic "Projects" [ref=e74]:
+              - generic [ref=e75]:
+                - generic [ref=e76]: "01"
+                - link "Open Projects" [ref=e77] [cursor=pointer]:
+                  - /url: /workshop/projects
+                  - img [ref=e78]
+              - generic [ref=e80]:
+                - generic [ref=e81]:
+                  - generic [ref=e82]: Project Count
+                  - generic [ref=e83]: "1"
+                - generic [ref=e84]:
+                  - generic [ref=e86]: Published Projects
+                  - list "Recent published project shared links" [ref=e87]
+              - generic [ref=e89]: Projects
+            - generic "Components" [ref=e90]:
+              - generic [ref=e91]:
+                - generic [ref=e92]: "02"
+                - link "Open Components" [ref=e93] [cursor=pointer]:
+                  - /url: /workshop/library/components
+                  - img [ref=e94]
+              - generic [ref=e96]:
+                - generic [ref=e97]:
+                  - generic [ref=e98]: Component Count
+                  - generic [ref=e99]: "0"
+                - generic [ref=e100]:
+                  - generic [ref=e102]: Recently Added Components
+                  - list "Recently added components" [ref=e103]
+              - generic [ref=e105]: Components
+            - generic "Templates" [ref=e106]:
+              - generic [ref=e107]:
+                - generic [ref=e108]: "03"
+                - link "Open Templates" [ref=e109] [cursor=pointer]:
+                  - /url: /workshop/library/templates
+                  - img [ref=e110]
+              - generic [ref=e112]: Templates
+            - generic [ref=e113]:
+              - link "Continue editing ES-001 Estimate" [ref=e115] [cursor=pointer]:
+                - /url: /workshop/projects/0139e1e5-951d-4f2f-9081-6c953d288d8a/estimates/a0b83122-5f75-4ecd-b058-3c1bdf803107
+                - generic [ref=e116]:
+                  - generic [ref=e117]: Continue where you left off
+                  - generic [ref=e118]: ES-001 Estimate
+                  - generic [ref=e119]: Lewis Residence · ES-001
+                - generic [ref=e120]:
+                  - generic [ref=e121]: Edited Jun 23
+                  - img [ref=e122]
+              - generic [ref=e124]:
+                - button "New project" [ref=e127] [cursor=pointer]:
+                  - img [ref=e128]
+                - generic [ref=e130]:
+                  - link "New component" [ref=e133] [cursor=pointer]:
+                    - /url: /workshop/library/components?add=component
+                    - img [ref=e134]
+                  - button "New estimate sheet in Lewis Residence" [ref=e138] [cursor=pointer]:
+                    - img [ref=e139]
+          - generic [ref=e141]:
+            - generic [ref=e142]:
+              - region "Favourites" [ref=e144]:
+                - generic [ref=e145]:
+                  - img [ref=e146]
+                  - heading "Favourites" [level=2] [ref=e148]
+                - tree "Favorite projects" [ref=e149]
+              - generic [ref=e150]:
+                - generic [ref=e152]:
+                  - generic [ref=e153]:
+                    - img [ref=e154]
+                    - heading "Projects" [level=2] [ref=e156]
+                  - list "Recent projects" [ref=e158]:
+                    - listitem [ref=e159]:
+                      - generic [ref=e160]:
+                        - img [ref=e161]
+                        - button "Add Lewis Residence to favorites" [ref=e163] [cursor=pointer]:
+                          - img [ref=e164]
+                      - link "Lewis Residence Philip Lewis" [ref=e166] [cursor=pointer]:
+                        - /url: /workshop/projects/0139e1e5-951d-4f2f-9081-6c953d288d8a
+                        - generic "Lewis Residence" [ref=e168]
+                        - generic [ref=e170]: Philip Lewis
+                      - time [ref=e171]: Jun 23
+                - generic [ref=e173]:
+                  - generic [ref=e174]:
+                    - img [ref=e175]
+                    - heading "Sheets" [level=2] [ref=e177]
+                  - list "Recent estimate sheets" [ref=e179]:
+                    - listitem [ref=e180]:
+                      - generic [ref=e181]:
+                        - img [ref=e182]
+                        - button "Add ES-001 Estimate to favorite estimate sheets" [ref=e184] [cursor=pointer]:
+                          - img [ref=e185]
+                      - link "ES-001 Estimate Lewis Residence" [ref=e187] [cursor=pointer]:
+                        - /url: /workshop/projects/0139e1e5-951d-4f2f-9081-6c953d288d8a/estimates/a0b83122-5f75-4ecd-b058-3c1bdf803107
+                        - generic "ES-001 Estimate" [ref=e189]
+                        - generic [ref=e191]: Lewis Residence
+                      - time [ref=e192]: Jun 23
+            - generic "Library" [ref=e194]:
+              - link "Open Library" [ref=e195] [cursor=pointer]:
+                - /url: /workshop/library
+                - img [ref=e196]
+              - generic [ref=e198]: "04"
+              - generic [ref=e199]: Library
+        - button "Send beta feedback" [ref=e202]:
+          - img [ref=e203]
+  - generic "Notifications"
+  - button "Open Next.js Dev Tools" [ref=e210] [cursor=pointer]:
+    - generic [ref=e213]:
+      - text: Rendering
+      - generic [ref=e214]:
+        - generic [ref=e215]: .
+        - generic [ref=e216]: .
+        - generic [ref=e217]: .
+  - alert [ref=e218]

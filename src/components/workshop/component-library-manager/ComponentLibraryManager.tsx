@@ -90,9 +90,9 @@ const LibraryFolderTreeSurface = dynamic(() =>
   import("./LibraryFolderTree").then((module) => module.LibraryFolderTreeSurface),
   {
     loading: () => (
-      <div className="h-full bg-white p-2" aria-hidden="true">
-        <div className="h-9 rounded-xs border border-hairline bg-surfaceMuted" />
-        <div className="mt-2 h-[calc(100%-44px)] rounded-xs border border-hairline bg-surfaceMuted/40" />
+      <div className={cn("h-full p-2", librarySurfaceClass("glass", "treeRail"))} aria-hidden="true">
+        <div className={cn("h-9", librarySurfaceClass("glass", "skeleton"))} />
+        <div className={cn("mt-2 h-[calc(100%-44px)]", librarySurfaceClass("glass", "skeleton"))} />
       </div>
     ),
   },

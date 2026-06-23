@@ -1,0 +1,18 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Borders & dividers" subtitle="Thin lines replace heavy shadow" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"/><link rel="stylesheet" href="../styles.css"/>
+<style>
+body{margin:0;background:var(--surface);padding:18px;font-family:var(--font-sf-pro);}
+.row{display:flex;gap:10px;}
+.sw{flex:1;border:1px solid var(--hairline);border-radius:var(--radius-xs);overflow:hidden;}
+.chip{height:54px;display:flex;align-items:center;justify-content:center;}
+.line{width:80%;height:0;border-top:1px solid;}
+.meta{padding:7px 9px;}
+.nm{font-size:10px;font-weight:500;color:var(--ink);}
+.hex{font-family:var(--font-numeric);font-size:9px;color:var(--tertiary);margin-top:2px;}
+</style></head><body>
+<div class="row">
+  <div class="sw"><div class="chip"><div class="line" style="border-color:#f2f2f2"></div></div><div class="meta"><div class="nm">hairline</div><div class="hex">#F2F2F2 · default 1px</div></div></div>
+  <div class="sw"><div class="chip"><div class="line" style="border-color:#d9d9d9"></div></div><div class="meta"><div class="nm">divider-sibling</div><div class="hex">#D9D9D9 · sheet rules</div></div></div>
+  <div class="sw"><div class="chip"><div class="line" style="border-color:#e8d8cf"></div></div><div class="meta"><div class="nm">source-boundary</div><div class="hex">#E8D8CF · grouping</div></div></div>
+</div>
+</body></html>

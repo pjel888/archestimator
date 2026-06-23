@@ -1,0 +1,68 @@
+/* ── Typography scale ───────────────────────────────────────────────────
+   Two worlds. APP/WORKSHOP: SF Pro, regular(400)/medium(500) only, 12px hard
+   max, zero tracking. LANDING/PROPOSAL: editorial Inter + Source Serif with
+   tight display tracking. SVG chart text has an 11px floor (zoom safety). */
+:root {
+  /* ── App / workshop (default outside landing) — size = role ──
+     12px strongest titles · 11px subtitles · 10px body/controls/cells · 8–9px labels */
+  --app-title-size: 12px;       --app-title-weight: 500; --app-title-lh: 16px;
+  --app-subtitle-size: 11px;    --app-subtitle-weight: 500; --app-subtitle-lh: 14px;
+  --app-body-size: 10px;        --app-body-weight: 400; --app-body-lh: 14px;
+  --app-label-size: 9px;        --app-label-weight: 500; --app-label-lh: 12px;
+  --app-label-sm-size: 8px;     --app-label-sm-weight: 400; --app-label-sm-lh: 10px;
+  --app-button-size: 10px;      --app-button-weight: 500; --app-button-lh: 12px;
+  --app-cell-size: 10px;        --app-cell-weight: 400; --app-cell-lh: 14px;
+  --app-numeric-size: 10px;     --app-numeric-weight: 500; --app-numeric-lh: 13px;
+  --app-tracking: 0em;          /* never negative / wide / arbitrary in app UI */
+
+  /* SVG chart text floor — <text> does not reflow on zoom (WCAG 1.4.4/1.4.10) */
+  --chart-text-floor: 11px;
+
+  /* ── Landing / marketing (Inter, editorial) ── */
+  --display-size: 4rem;         --display-weight: 400; --display-tracking: -0.055em;
+  --display-lh: 1.04; /* @kind other */
+  --headline-lg-size: 2.8125rem;--headline-lg-weight: 400; --headline-lg-tracking: -0.045em;
+  --headline-lg-lh: 1.08; /* @kind other */
+  --h1-size: 2.25rem;           --h1-weight: 430; --h1-tracking: -0.04em;
+  --h1-lh: 1.1; /* @kind other */
+  --h2-size: 1.75rem;           --h2-weight: 430; --h2-tracking: -0.035em;
+  --h2-lh: 1.16; /* @kind other */
+  --h3-size: 1.4375rem;         --h3-weight: 450; --h3-tracking: -0.025em;
+  --h3-lh: 1.22; /* @kind other */
+  --body-lg-size: 1.125rem;     --body-lg-weight: 350; --body-lg-tracking: -0.015em;
+  --body-lg-lh: 1.45; /* @kind other */
+  --body-size: 1rem;            --body-weight: 350; --body-tracking: -0.01em;
+  --body-lh: 1.45; /* @kind other */
+
+  /* ── Proposal (Source Serif 4, document) ── */
+  --proposal-body-size: 0.9375rem; --proposal-body-weight: 400; --proposal-body-tracking: 0em;
+  --proposal-body-lh: 1.55; /* @kind other */
+
+  /* ── Pixel / robotic MARKETING hero (Doto) — brand surfaces only ── */
+  --pixel-hero-size: 5.5rem;    --pixel-hero-weight: 800; --pixel-hero-tracking: 0.01em;
+  --pixel-hero-lh: 0.92; /* @kind other */
+  --pixel-display-size: 3rem;   --pixel-display-weight: 700; --pixel-display-tracking: 0.02em;
+  --pixel-display-lh: 1; /* @kind other */
+  --pixel-eyebrow-size: 0.875rem; --pixel-eyebrow-weight: 600; --pixel-eyebrow-tracking: 0.22em;
+  --pixel-eyebrow-lh: 1.2; /* @kind other */
+}
+
+/* Optional helper classes — apply roles without re-deriving values. */
+.ae-app-title    { font-family: var(--font-sf-pro); font-size: var(--app-title-size); font-weight: var(--app-title-weight); line-height: var(--app-title-lh); letter-spacing: 0; color: var(--ink); }
+.ae-app-subtitle { font-family: var(--font-sf-pro); font-size: var(--app-subtitle-size); font-weight: var(--app-subtitle-weight); line-height: var(--app-subtitle-lh); letter-spacing: 0; color: var(--ink); }
+.ae-app-body     { font-family: var(--font-sf-pro); font-size: var(--app-body-size); font-weight: var(--app-body-weight); line-height: var(--app-body-lh); letter-spacing: 0; color: var(--secondary); }
+.ae-app-label    { font-family: var(--font-sf-pro); font-size: var(--app-label-size); font-weight: var(--app-label-weight); line-height: var(--app-label-lh); letter-spacing: 0; text-transform: uppercase; color: var(--tertiary); }
+.ae-app-numeric  { font-family: var(--font-sf-pro); font-size: var(--app-numeric-size); font-weight: var(--app-numeric-weight); line-height: var(--app-numeric-lh); font-variant-numeric: tabular-nums; }
+.ae-numeric-mono { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.ae-display      { font-family: var(--font-landing); font-size: var(--display-size); font-weight: var(--display-weight); line-height: var(--display-lh); letter-spacing: var(--display-tracking); color: var(--ink); }
+.ae-h1           { font-family: var(--font-landing); font-size: var(--h1-size); font-weight: var(--h1-weight); line-height: var(--h1-lh); letter-spacing: var(--h1-tracking); color: var(--ink); }
+.ae-h2           { font-family: var(--font-landing); font-size: var(--h2-size); font-weight: var(--h2-weight); line-height: var(--h2-lh); letter-spacing: var(--h2-tracking); color: var(--ink); }
+.ae-body-lg      { font-family: var(--font-landing); font-size: var(--body-lg-size); font-weight: var(--body-lg-weight); line-height: var(--body-lg-lh); letter-spacing: var(--body-lg-tracking); color: var(--secondary); }
+.ae-display-slab { font-family: var(--font-display); font-weight: 500; letter-spacing: 0; color: var(--ink); }
+.ae-proposal-body{ font-family: var(--font-serif); font-size: var(--proposal-body-size); font-weight: var(--proposal-body-weight); line-height: var(--proposal-body-lh); color: var(--ink); }
+.ae-eyebrow-mono { font-family: var(--font-numeric); font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; }
+
+/* Pixel / robotic marketing hero (Doto) — brand & campaign surfaces only. */
+.ae-pixel-hero    { font-family: var(--font-pixel); font-size: var(--pixel-hero-size); font-weight: var(--pixel-hero-weight); line-height: var(--pixel-hero-lh); letter-spacing: var(--pixel-hero-tracking); text-transform: uppercase; color: var(--ink-editorial); }
+.ae-pixel-display { font-family: var(--font-pixel); font-size: var(--pixel-display-size); font-weight: var(--pixel-display-weight); line-height: var(--pixel-display-lh); letter-spacing: var(--pixel-display-tracking); text-transform: uppercase; color: var(--ink-editorial); }
+.ae-pixel-eyebrow { font-family: var(--font-pixel); font-size: var(--pixel-eyebrow-size); font-weight: var(--pixel-eyebrow-weight); line-height: var(--pixel-eyebrow-lh); letter-spacing: var(--pixel-eyebrow-tracking); text-transform: uppercase; }

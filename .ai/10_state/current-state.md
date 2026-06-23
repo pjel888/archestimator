@@ -42,6 +42,182 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**New estimate sheets start with an empty sheet tree (2026-06-23):**
+
+- `createEstimateSheetDraft` and the legacy `createEstimate` server action now
+  create the estimate row and default `Main` tab without seeding
+  `estimate_nodes`. Fresh sheets return `firstNodeId: null` and `nodeCount: 0`.
+- New project creation still calls `createEstimateSheetDraft(project.id)`, so a
+  project can still start with a default estimate sheet, but the sheet tree has
+  zero prepopulated folders/nodes. The route fallback opens the estimate itself
+  when there is no first node.
+- Fresh evidence: targeted Vitest suite passed 5 files / 21 tests, including
+  `estimate-sheet-create-empty-tree`; `bun run type-check` passed; `git diff
+  --check` passed.
+
+**Library Page UI improvement plan pack upgraded to 100% planning readiness (2026-06-23):**
+
+- Upgraded `.ai/03_plans/2026-06-23-Library-Page-UI-Improvement/` after a
+  second dimensional audit across strategy, UX/UI, verification, and technical
+  risk. The original pack was useful but not yet 100% implementation-ready
+  because security/data/network risk, Visual Ralph gates, exact commands, and
+  resolved defaults were underspecified.
+- Added `12-READINESS-SCORECARD-AND-GAP-CLOSURE.md`,
+  `13-SECURITY-DATA-NETWORK-RISK.md`, and
+  `14-IMPLEMENTATION-RUNBOOK-AND-VISUAL-RALPH-CONTRACT.md`; expanded the target
+  experience, roadmap, acceptance criteria, verification matrix, blast radius,
+  decisions, adversarial QA ledger, and loop ledger.
+- Current final claim: strategy 100%, quality 100%, implementation readiness
+  100% for planning handoff only. No app code, database, provider state, browser
+  screenshots, production proof, or manual QA changed in this planning pass.
+- Key implementation guardrails now documented: local-first Library surface
+  slots, resolved Templates provider/default action/popup/editor-mobile
+  decisions, dedicated authz/cache/upload/query-key boundaries, exact targeted
+  Vitest/type-check/e2e commands, 5000-row dense proof, and Visual Ralph verdict
+  score `>= 90` for future visual implementation iterations.
+
+**Component library starts with zero user folders (2026-06-23):**
+
+- Workshop Components library folder surfaces now show only user-created
+  `folder_kind = "custom"` folders. The old taxonomy-derived default folders are
+  no longer auto-seeded by the repository, no longer synthesized from
+  `categoryTree`, and are filtered out if legacy rows still exist.
+- The visible folder tree no longer injects the synthetic `All Components` root.
+  The all-components concept remains internal browsing/context state for the
+  component sheet; it is not a folder row in the manager tree or Add Component
+  nesting picker.
+- Custom folders whose hidden legacy taxonomy parent is filtered out are lifted
+  to the top-level view instead of disappearing.
+- Fresh evidence: targeted Vitest suite passed 6 files / 63 tests; `bun run
+  type-check` passed; `git diff --check` passed; scoped ESLint had 0 errors with
+  only the existing `ComponentLibraryManager` warnings.
+
+**Library Page UI improvement plan pack verified (2026-06-23):**
+
+- Added planning-only pack:
+  `.ai/03_plans/2026-06-23-Library-Page-UI-Improvement/`.
+- Scope: Library route-family visual unification across Overview, Components,
+  Templates browse, Template Editor, and shared Library chrome. No app code,
+  database, provider state, browser screenshots, or production/manual proof were
+  changed in this pass.
+- Core implementation direction: Estimate Sheet is the primary visual baseline;
+  Dashboard remains path-scoped inspiration only. Execute local-first: Phase 0
+  edits only the Library surface contract, Phase 1 fixes Overview entrypoint,
+  then Components, Templates, Template Editor, and shared primitive cleanup last.
+- Verification: 14 markdown files created; source anchors present in audit docs;
+  `git diff --check -- .ai/03_plans/2026-06-23-Library-Page-UI-Improvement`
+  passed; docs are ASCII-only; independent code-review/architecture review
+  passed after reconciling one stale citation, one fallback wording issue,
+  acceptance/status wording, Phase 0 shared-scope risk, Overview sequencing, and
+  slot-to-consumer specificity.
+
+**Landing page Three.js hero field active (2026-06-23):**
+
+- The public root `/` still renders `src/components/frontdoor/FrontdoorPage`,
+  now with a client-only `src/components/frontdoor/FrontdoorHeroField.tsx`
+  canvas behind the hero. It lazy-loads `three` inside `useEffect`, renders a
+  dark technical pixel/symbol field plus a subtle wireframe slab, and respects
+  reduced motion by rendering a static frame instead of running RAF animation.
+- Current first-viewport direction: Save.design-inspired technical graphite
+  hero, Geist/mono voice, Signal orange primary CTA, no copied source imagery,
+  no fake browser/product chrome, no fake proof, no testimonials/logos, and no
+  public MVP/pre-launch/closed-beta language.
+- Fresh evidence: `bun run type-check` passed; targeted DOM suite passed 3
+  files / 9 tests; `node .agents/skills/impeccable/scripts/detect.mjs --strict
+  src/components/frontdoor src/app/page.tsx` passed; targeted `git diff
+  --check` passed; Playwright runtime proof on local dev server passed at
+  1280x800, 390x844, and 320x812 with `canvas[data-three-hero="ready"]`, WebGL
+  context present, nonflat hero pixels, no horizontal overflow, and H1 wrapping
+  2 lines desktop / 3 lines mobile.
+
+**Landing page frontdoor reset active (2026-06-23):**
+
+- The public root route `/` now renders `src/components/frontdoor/FrontdoorPage`
+  through `src/app/page.tsx`. This supersedes the older `src/components/home/*`
+  and `src/components/landing/gpt-taste/*` homepage directions recorded below.
+- Current homepage direction: restrained editorial construction-estimating
+  workflow page, cool paper/graphite palette with restrained Signal orange,
+  straight Archestimator logo, no product mockup/browser chrome, no oversized
+  visible grid treatment, and no warm neutral/beige field.
+- Public copy guardrail: do not describe Archestimator as an MVP, pre-launch
+  product, beta product, or contractor-only tool on the active homepage. The
+  persona surface is broader: estimators, project managers/builders, business
+  owners, cost-library managers, collaborators, clients/stakeholders, and
+  cost-source contacts.
+- Reference posture for future iterations: borrow restraint and directness from
+  Shepherd, V7 Labs, and Save.design; do not borrow fake proof, fake metrics,
+  testimonials, customer logos, browser chrome, or software mockup sections.
+- Fresh evidence for this state: `bun run type-check` passed; targeted DOM
+  suite passed 7 files / 27 tests; `node .agents/skills/impeccable/scripts/detect.mjs
+  --strict src/components/frontdoor src/app/page.tsx` passed; `git diff --check`
+  passed; Playwright render proof on the existing local dev server passed at
+  1280x800, 390x844, and 320x812 with no horizontal overflow, no forbidden
+  public copy, no background image/grid, visible CTA text, and logo transform
+  `none`.
+
+**Landing page greenfield replacement draft implemented, approval gate active (2026-06-23):**
+
+- The public root route `/` now renders the fresh homepage namespace
+  `src/components/home/*` via `src/app/page.tsx`. It does not import the old
+  `src/components/landing/*` creative tree; that tree remains only for current
+  non-home public subpages such as `/features`, `/pricing`, `/trust`, `/about`,
+  and `/contact`.
+- Homepage direction: AEC-first cost-intelligence layer, faithful TSX product
+  proof slab in the first viewport, exact CTA routes
+  `/contact?intent=early-access`, `/contact?intent=walkthrough`, signed-in
+  `/workshop`, and a rendered `#product-proof` hero anchor; Signal orange
+  remains the only strong accent.
+- Source-level product proof now lives in `src/components/home/home-content.ts`
+  with generated=false manifest entries, source routes/components,
+  privacy-reviewed faithful TSX demo status, source-basis labels,
+  proof-backed workflow steps, estimate quantity/rate/total rows, a rendered
+  claims ledger, a compact founder-led beta section, and an explicit source note
+  that community links are omitted because no live maintained destinations are
+  confirmed.
+- Consent-gated source-level analytics hooks now live in
+  `src/components/home/HomeAnalytics.tsx` for `landing_cta_click`,
+  `landing_product_proof_view`, `landing_pricing_click`, and
+  `landing_open_workspace_click`. The event properties are enum-like only and
+  carry no PII, free text, project identifiers, proposal tokens, or estimate
+  values.
+- Deleted obsolete public landing construction assets under `public/landing/`
+  and removed unused legacy hero/testimonial CSS selectors from
+  `src/app/globals.css`. The still-used shared public shell and quote-paper
+  CSS remain for non-home routes.
+- Verification so far is source-only by Philip's explicit gate: forbidden
+  homepage strings/imports/assets grep clean, `three` is only lazy-loaded by
+  `await import("three")`, and `git diff --check` passed. Do not run tests,
+  build, browser automation, screenshots, or visual QA until Philip approves
+  the landing page.
+- The implementation plan folder
+  `.ai/03_plans/2026-06-22-LandingPage` is not archived yet. Archive only after
+  approval, post-approval validation, and any requested iterations are complete.
+
+**Landing page 2026-06-22 implementation plan pack upgraded (2026-06-22):**
+
+- Active implementation planning folder:
+  `.ai/03_plans/2026-06-22-LandingPage`.
+- The current GPT Taste homepage remains the active source route/component base,
+  but the plan pack now records Philip's next landing direction: `/workshop` is
+  the first-party visual authority for grid, gray canvas, fonts, liquid glass,
+  Signal-orange restraint, effects, and empty-space ratio; Intercom is the top
+  external flow reference; Shepherd contributes professional warmth; Interfere
+  and Paper contribute product-proof density and light workspace feel.
+- New readiness contracts added:
+  `12-CONVERSION-FUNNEL-CONTRACT.md`,
+  `13-IMPLEMENTATION-BLAST-RADIUS-AND-OPERATIONS.md`, and
+  `14-READINESS-SCORECARD-AND-GATE.md`.
+- Master implementation control document added:
+  `15-CODEBASE-AI-MASTER-IMPLEMENTATION-PLAN.md`.
+- The plan now fixes CTA routes (`/contact?intent=early-access`,
+  `/contact?intent=walkthrough`, signed-in `/workshop`), desktop lazy Three.js,
+  faithful TSX product panels as the first implementation fallback, screenshot
+  privacy, no-PII analytics, public-form security, database/network boundaries,
+  test blast radius, rollback, and multi-agent ownership.
+- Docs-only evidence: `git diff --check --
+  .ai/03_plans/2026-06-22-LandingPage` passed; no trailing whitespace or conflict
+  markers were found in the plan markdown.
+
 **Landing page GPT Taste reset applied (2026-06-22):**
 
 - The active homepage now renders
