@@ -6,6 +6,7 @@ Reusable prompts and prompt templates for Archestimator agents. Keep durable ope
 
 ## Current prompts
 
+- `IMPLEMENT-2026-06-23-UX-Audit-Non-Destructive-Execution.md` — strict non-destructive execution prompt for the Full App User Story UX Audit plan pack.
 - `IMPLEMENT-2026-06-19-Project-Dashboard-Command-Surface-Loop.md` — autonomous `$ultragoal` / `$ultrawork` / `$ultraqa` implementation loop for the Project Dashboard Command Surface plan pack.
 - `IMPLEMENT-2026-06-16-Sequential-Plan-Pack-Goal.md` — sequential implementation goal for three active plan packs.
 - `IMPLEMENT-2026-06-16-Project-Data-Route-Feature-Plan.md` — pointer to the Project Data Route plan-local implementation handoff.
