@@ -164,8 +164,7 @@ function projectEstimateToolbarRows(
 ) {
   const now = Date.now();
   return estimates
-    .filter((estimate) => matchesEstimateFilter(estimate, filter, now))
-    .filter((estimate) => matchesEstimateSearch(estimate, query))
+    .filter((estimate) => matchesEstimateFilter(estimate, filter, now) && matchesEstimateSearch(estimate, query))
     .toSorted((a, b) => compareEstimateSheets(a, b, sortField, sortDirection));
 }
 

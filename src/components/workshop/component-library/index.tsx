@@ -40,6 +40,7 @@ import type {
 } from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../estimate-surface-variant";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
@@ -182,7 +183,10 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
       if (timers.has(id)) continue;
       const timer = setTimeout(() => {
         timers.delete(id);
-        setRevealedIds((current) => (current.includes(id) ? current : [...current, id]));
+        setRevealedIds((current) => {
+          const currentIds = new Set(current);
+          return currentIds.has(id) ? current : [...current, id];
+        });
       }, delayMs);
       timers.set(id, timer);
     }
@@ -1238,7 +1242,10 @@ function EstimateRightSidebarBase({
     };
   }, []);
 
-  const favoriteIds = useMemo(() => libraryItems.filter((item) => item.isFavorite).map((item) => item.id), [libraryItems]);
+  const favoriteIds = useMemo(
+    () => filterMapBy(libraryItems, (item) => item.isFavorite === true, (item) => item.id),
+    [libraryItems],
+  );
   const componentTreeTab = getComponentTreeTab(componentViewMode);
   const splitComponentItems = useMemo(() => splitSidebarComponentItems(libraryItems), [libraryItems]);
   const reusableLibraryItems = splitComponentItems.libraryItems;
@@ -1456,7 +1463,7 @@ function EstimateRightSidebarBase({
   const previewItem = libraryItems.find((item) => item.id === previewItemId) ?? null;
 
   const persistFavorites = useCallback((items: EstimateRowItem[]) => {
-    safeSetJsonStorage(LIBRARY_FAVORITES_KEY, items.filter((item) => item.isFavorite).map((item) => item.id));
+    safeSetJsonStorage(LIBRARY_FAVORITES_KEY, filterMapBy(items, (item) => item.isFavorite === true, (item) => item.id));
   }, []);
 
   const insertLibraryItems = useCallback(

@@ -35,6 +35,7 @@ import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import { estimateSurfaceClass, useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-flags";
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
@@ -1081,10 +1082,11 @@ function RemoteEstimateCursorsOverlay({ cursors }: { cursors: RemoteEstimateCurs
 
   // Screen-reader equivalent for the aria-hidden visual layer (T5.1 / G11):
   // who is editing which row, derived from anchor ids (changes rarely, no spam).
-  const editingAnnouncement = cursors
-    .filter((cursor) => cursor.rowId)
-    .map((cursor) => `${getRemoteCursorLabel(cursor)} is editing a row`)
-    .join(". ");
+  const editingAnnouncement = filterMapBy(
+    cursors,
+    (cursor) => Boolean(cursor.rowId),
+    (cursor) => `${getRemoteCursorLabel(cursor)} is editing a row`,
+  ).join(". ");
 
   return (
     <>

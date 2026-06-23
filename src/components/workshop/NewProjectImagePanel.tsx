@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   ImageSquare,
   Trash,
@@ -29,8 +30,14 @@ export function ProjectImagePanel({
     <div className="relative min-h-[280px] overflow-hidden bg-surfaceMuted lg:min-h-[504px]">
       <div className="absolute inset-0">
         {previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+          <Image
+            src={previewUrl}
+            alt=""
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            unoptimized
+            className="object-cover"
+          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(135deg,#fff0e5_0%,#edf4f8_42%,#ffffff_100%)] text-tertiary">
             <ImageSquare size={42} weight="regular" aria-hidden="true" />

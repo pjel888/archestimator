@@ -2,6 +2,7 @@ import type { TreeItemIndex } from "react-complex-tree";
 
 import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { EstimateRowItem } from "@/lib/estimates/types";
+import { filterMapBy } from "@/lib/util/array";
 
 export const LIBRARY_FOLDER_TREE_ID = "library-folder-tree";
 export const LIBRARY_FOLDER_TREE_ROOT_ITEM_ID = "library-folder-tree-root";
@@ -238,12 +239,14 @@ export function planLibraryFolderDelete(folders: LibraryFolderRecord[], folderId
     sortOrder: baseSortOrder + (index + 1) * LIBRARY_FOLDER_SORT_ORDER_STEP,
   }));
   const updateById = new Map(liftedChildUpdates.map((update) => [update.id, update]));
-  const nextFolders = folders
-    .filter((folder) => folder.id !== folderId)
-    .map((folder) => {
+  const nextFolders = filterMapBy(
+    folders,
+    (folder) => folder.id !== folderId,
+    (folder) => {
       const update = updateById.get(folder.id);
       return update ? { ...folder, parent_id: update.parentId, sort_order: update.sortOrder } : folder;
-    });
+    },
+  );
 
   return { deletedFolder, nextFolders, liftedChildUpdates };
 }

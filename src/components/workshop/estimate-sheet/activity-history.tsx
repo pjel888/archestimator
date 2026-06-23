@@ -14,6 +14,7 @@ import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
+import { filterMap } from "@/lib/util/array";
 import type { EstimateRowItem } from "../estimate-tree-data";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "../tree-visual-style";
 import { WorkshopTreeRow, WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
@@ -439,14 +440,15 @@ function getAuditChangeDetails(event: EstimateSheetHistoryEvent): AuditChangeDet
     ];
   }
 
-  return getOrderedAuditFields(event)
-    .map((field) => ({
+  return filterMap(getOrderedAuditFields(event), (field) => {
+    const detail = {
       kind: "diff" as const,
       label: humanizeAuditField(field),
       oldValue: formatAuditFieldValue(field, oldSnapshot[field], oldSnapshot),
       newValue: formatAuditFieldValue(field, newSnapshot[field], newSnapshot),
-    }))
-    .filter((detail) => detail.oldValue !== detail.newValue);
+    };
+    return detail.oldValue !== detail.newValue ? detail : null;
+  });
 }
 
 function getRowHistoryMaterialItem(snapshot: Record<string, unknown>): EstimateMaterialCardItem | null {

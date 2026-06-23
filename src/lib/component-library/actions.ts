@@ -274,6 +274,14 @@ function readOptionalComponentText(value: string | undefined | null, label: stri
   return text;
 }
 
+function isSupportedVariantAttachmentContentType(contentType: string) {
+  return (
+    contentType === "application/pdf" ||
+    contentType === "application/vnd.ms-excel" ||
+    contentType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+}
+
 function validatePriceOptions(priceOptions: ComponentPriceOptionInput[]) {
   if (priceOptions.length === 0) throw new Error("At least one variant is required.");
   const defaultCount = priceOptions.filter((option) => option.isDefault).length;
@@ -299,11 +307,7 @@ function validatePriceOptions(priceOptions: ComponentPriceOptionInput[]) {
     for (const attachment of option.attachments ?? []) {
       readRequiredComponentText(attachment.path, "Attachment path");
       readRequiredComponentText(attachment.fileName, "Attachment file name");
-      if (![
-        "application/pdf",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ].includes(attachment.contentType)) {
+      if (!isSupportedVariantAttachmentContentType(attachment.contentType)) {
         throw new Error("Variant attachments must be PDF or Excel files.");
       }
       if (!Number.isFinite(attachment.sizeBytes) || attachment.sizeBytes <= 0) throw new Error("Variant attachment size must be positive.");

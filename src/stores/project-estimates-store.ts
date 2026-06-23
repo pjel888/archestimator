@@ -76,9 +76,10 @@ export function createProjectEstimatesStore(initial: ProjectEstimateListRow[]) {
 
     removeOptimistic: (ids) => {
       const idSet = new Set(ids);
-      const removed = get()
-        .estimates.map((row, index) => ({ row, index }))
-        .filter((entry) => idSet.has(entry.row.id));
+      const removed: Array<{ row: ProjectEstimateListRow; index: number }> = [];
+      for (const [index, row] of get().estimates.entries()) {
+        if (idSet.has(row.id)) removed.push({ row, index });
+      }
       set((s) => ({ estimates: s.estimates.filter((e) => !idSet.has(e.id)) }));
 
       return () =>

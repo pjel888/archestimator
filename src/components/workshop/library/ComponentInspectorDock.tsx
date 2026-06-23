@@ -194,8 +194,14 @@ export function ComponentInspectorDock({
             {item.imageUrl && isNextImageSafeSource(item.imageUrl) ? (
               <Image src={item.imageUrl} alt={`${name} thumbnail`} fill sizes="120px" className="object-cover" />
             ) : item.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.imageUrl} alt={`${name} thumbnail`} className="h-full w-full object-cover" />
+              <Image
+                src={item.imageUrl}
+                alt={`${name} thumbnail`}
+                fill
+                sizes="120px"
+                unoptimized
+                className="object-cover"
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-tertiary" aria-hidden="true">
                 <ImageSquare size={24} weight="regular" />

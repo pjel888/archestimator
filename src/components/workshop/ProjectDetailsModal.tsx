@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import Image from "next/image";
 // NOTE: keep this a pure client overlay — saving runs the server action and then
 // closes the modal, instead of a raw `<form action={serverAction}>` whose
 // `revalidatePath` re-streams /workshop/projects underneath the open modal
@@ -220,8 +221,15 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
           <div className="grid gap-2 lg:grid-cols-[240px_1fr]">
             <div className="overflow-hidden rounded-xs border border-hairline bg-white">
               {imagePreviewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreviewUrl} alt="" className="h-40 w-full object-cover" />
+                <Image
+                  src={imagePreviewUrl}
+                  alt=""
+                  width={480}
+                  height={160}
+                  sizes="240px"
+                  unoptimized
+                  className="h-40 w-full object-cover"
+                />
               ) : (
                 <div className="flex h-40 flex-col items-center justify-center gap-2 bg-[linear-gradient(135deg,#fff0e5_0%,#f4f7fa_52%,#ffffff_100%)] text-tertiary">
                   <ImageSquare size={28} weight="regular" aria-hidden="true" />

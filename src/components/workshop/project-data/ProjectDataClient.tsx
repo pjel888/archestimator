@@ -127,9 +127,11 @@ function normalizeCompareIds(
 ): string[] {
   const allowedIds = new Set(summary.estimateSheets.map((estimate) => estimate.id));
   const out: string[] = [];
+  const seen = new Set<string>();
   for (const id of estimateIds) {
-    if (!allowedIds.has(id) || id === selectedEstimateId || out.includes(id)) continue;
+    if (!allowedIds.has(id) || id === selectedEstimateId || seen.has(id)) continue;
     out.push(id);
+    seen.add(id);
     if (out.length === 2) break;
   }
   return out;

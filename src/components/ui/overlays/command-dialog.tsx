@@ -7,6 +7,7 @@ import { ControlInput, CONTROL_INPUT_SURFACE_CLASS } from "@/components/ui/contr
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/ui/cn";
+import { filterMap, filterMapBy } from "@/lib/util/array";
 import { AppModal } from "./modal";
 
 export type CommandItem = {
@@ -71,18 +72,16 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
   const normalizedQuery = query.trim().toLowerCase();
   const filteredGroups = useMemo(
     () =>
-      groups
-        .map((group) => ({
-          ...group,
-          items: normalizedQuery
-            ? group.items.filter((item) => `${item.label} ${item.description ?? ""}`.toLowerCase().includes(normalizedQuery))
-            : group.items,
-        }))
-        .filter((group) => group.items.length > 0),
+      filterMap(groups, (group) => {
+        const items = normalizedQuery
+          ? group.items.filter((item) => `${item.label} ${item.description ?? ""}`.toLowerCase().includes(normalizedQuery))
+          : group.items;
+        return items.length > 0 ? { ...group, items } : null;
+      }),
     [groups, normalizedQuery],
   );
   const selectableItems = useMemo(
-    () => filteredGroups.flatMap((group) => group.items.filter((item) => !item.disabled).map((item) => ({ groupId: group.id, item }))),
+    () => filteredGroups.flatMap((group) => filterMapBy(group.items, (item) => !item.disabled, (item) => ({ groupId: group.id, item }))),
     [filteredGroups],
   );
   const [selectedIndex, setSelectedIndex] = useState(selectableItems.length > 0 ? 0 : -1);

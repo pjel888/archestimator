@@ -29,6 +29,7 @@ import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/l
 import type { ProjectEstimateListRow } from "@/lib/estimates/project-estimate-list-row";
 import type { ProjectEstimatesStore } from "@/stores/project-estimates-store";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 
 /**
  * Backwards-compatible alias. The canonical, sensitive-column-free list-row
@@ -1105,7 +1106,14 @@ function ProjectEstimatesTableComponent({
   }, []);
 
   const editableEstimateIds = useMemo(
-    () => new Set(estimates.filter((estimate) => (canEditEstimateById ? canEditEstimateById[estimate.id] === true : true)).map((estimate) => estimate.id)),
+    () =>
+      new Set(
+        filterMapBy(
+          estimates,
+          (estimate) => (canEditEstimateById ? canEditEstimateById[estimate.id] === true : true),
+          (estimate) => estimate.id,
+        ),
+      ),
     [canEditEstimateById, estimates],
   );
   const canEditEstimate = useCallback(
@@ -1166,7 +1174,12 @@ function ProjectEstimatesTableComponent({
   }, []);
 
   const selectedVisibleEstimateIds = useMemo(
-    () => estimates.filter((estimate) => editableEstimateIds.has(estimate.id) && selectedEstimateIds.has(estimate.id)).map((estimate) => estimate.id),
+    () =>
+      filterMapBy(
+        estimates,
+        (estimate) => editableEstimateIds.has(estimate.id) && selectedEstimateIds.has(estimate.id),
+        (estimate) => estimate.id,
+      ),
     [editableEstimateIds, estimates, selectedEstimateIds],
   );
   const deleteEstimatePhrase = deleteEstimateTargetIds.length === 1 ? "DELETE ESTIMATE" : `DELETE ${deleteEstimateTargetIds.length} ESTIMATES`;
@@ -1548,7 +1561,17 @@ function ProjectEstimatesTableComponent({
         helperText="Preview dependencies before deleting estimates."
         onAction={() => openDeleteEstimatePreview(selectedVisibleEstimateIds)}
         onClear={() => setSelectedEstimateIds(new Set())}
-        onSelectVisible={() => setSelectedEstimateIds(new Set(estimates.filter((estimate) => editableEstimateIds.has(estimate.id)).map((estimate) => estimate.id)))}
+        onSelectVisible={() =>
+          setSelectedEstimateIds(
+            new Set(
+              filterMapBy(
+                estimates,
+                (estimate) => editableEstimateIds.has(estimate.id),
+                (estimate) => estimate.id,
+              ),
+            ),
+          )
+        }
       />
       <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>

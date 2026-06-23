@@ -1280,12 +1280,15 @@ export async function getLibraryDashboardSpotlight(): Promise<LibraryDashboardSp
   return {
     componentCount: componentCountResult.count ?? 0,
     templateCount: templateCountResult.error ? 0 : (templateCountResult.count ?? 0),
-    recentComponents: (recentComponentsResult.data ?? []).map(toLibraryOverviewComponent).map((component) => ({
-      id: component.id,
-      name: component.name,
-      category: component.category,
-      updatedAt: component.updatedAt,
-    })),
+    recentComponents: (recentComponentsResult.data ?? []).map((row) => {
+      const component = toLibraryOverviewComponent(row);
+      return {
+        id: component.id,
+        name: component.name,
+        category: component.category,
+        updatedAt: component.updatedAt,
+      };
+    }),
     recentTemplates: [],
   };
 }

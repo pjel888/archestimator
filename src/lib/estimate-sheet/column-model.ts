@@ -43,15 +43,15 @@ export const ESTIMATE_COLUMN_DEFINITIONS = [
   { id: "actions", label: "Actions", defaultWidth: 30, minWidth: 30, maxWidth: 30, resizable: false },
 ] as const satisfies readonly EstimateColumnDefinition[];
 
-export const RESIZABLE_ESTIMATE_COLUMN_IDS = ESTIMATE_COLUMN_DEFINITIONS
-  .filter((column) => column.resizable)
-  .map((column) => column.id) as ResizableEstimateColumnId[];
+export const RESIZABLE_ESTIMATE_COLUMN_IDS = ESTIMATE_COLUMN_DEFINITIONS.flatMap((column) =>
+  column.resizable ? [column.id] : [],
+) as ResizableEstimateColumnId[];
 
 export const DEFAULT_ESTIMATE_COLUMN_WIDTHS = Object.freeze(
   Object.fromEntries(
-    ESTIMATE_COLUMN_DEFINITIONS
-      .filter((column): column is Extract<(typeof ESTIMATE_COLUMN_DEFINITIONS)[number], { resizable: true }> => column.resizable)
-      .map((column) => [column.id, column.defaultWidth]),
+    ESTIMATE_COLUMN_DEFINITIONS.flatMap((column) =>
+      column.resizable ? [[column.id, column.defaultWidth] as const] : [],
+    ),
   ),
 ) as Readonly<Record<ResizableEstimateColumnId, number>>;
 
@@ -120,4 +120,3 @@ export function buildEstimateColumnVars(widths: EstimateColumnWidths | null | un
   }
   return vars as CSSProperties;
 }
-

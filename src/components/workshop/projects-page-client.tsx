@@ -42,6 +42,7 @@ import {
 } from "@/lib/workshop/group-actions";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type {
@@ -676,9 +677,11 @@ export function ProjectsPageClient({
   const optimisticRealProjectIds = useMemo(
     () =>
       new Set(
-        optimisticProjectItems
-          .map((item) => item.project.id)
-          .filter((id) => !id.startsWith("pending-project-")),
+        filterMapBy(
+          optimisticProjectItems,
+          (item) => !item.project.id.startsWith("pending-project-"),
+          (item) => item.project.id,
+        ),
       ),
     [optimisticProjectItems],
   );
@@ -829,7 +832,7 @@ export function ProjectsPageClient({
   );
   const isUserGroupOrganize = organizeBy === "group";
   const selectableDisplayProjectIds = useMemo(
-    () => displayLiveProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
+    () => filterMapBy(displayLiveProjects, canSelectProjectForDeletion, (item) => item.project.id),
     [displayLiveProjects],
   );
   const selectedVisibleProjectIds = useMemo(
@@ -842,7 +845,7 @@ export function ProjectsPageClient({
   // Reads the SAME selectedProjectIds set as delete, but filters it differently — the two
   // selected-sets diverging off one shared selection is the realized D9 gate.
   const selectableForAssignmentProjectIds = useMemo(
-    () => displayLiveProjects.filter(canAssignProjectToGroup).map((item) => item.project.id),
+    () => filterMapBy(displayLiveProjects, canAssignProjectToGroup, (item) => item.project.id),
     [displayLiveProjects],
   );
   const selectedAssignableProjectIds = useMemo(
@@ -1252,7 +1255,7 @@ export function ProjectsPageClient({
   }
 
   function openProjectDeletePreview(projectIds: string[]) {
-    const allowedIds = new Set(projectItems.filter(canSelectProjectForDeletion).map((item) => item.project.id));
+    const allowedIds = new Set(filterMapBy(projectItems, canSelectProjectForDeletion, (item) => item.project.id));
     const ids = Array.from(new Set(projectIds)).filter((id) => allowedIds.has(id));
     if (ids.length === 0) return;
     setBulkDeleteModalMounted(true);

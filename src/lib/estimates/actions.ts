@@ -509,8 +509,12 @@ function buildHistoryCursorFilter(cursor: EstimateSheetHistoryCursor) {
 
 const DORMANT_NAMED_VERSION_EVENT_TYPES = ["sheet_version_created", "sheet_restored_as_copy"] as const;
 
+function isDormantNamedVersionEventType(eventType: string) {
+  return eventType === "sheet_version_created" || eventType === "sheet_restored_as_copy";
+}
+
 function buildHistoryEventPageRows(rows: Tables<"estimate_sheet_events">[], limit: number) {
-  const filteredRows = rows.filter((row) => !DORMANT_NAMED_VERSION_EVENT_TYPES.includes(row.event_type as (typeof DORMANT_NAMED_VERSION_EVENT_TYPES)[number]));
+  const filteredRows = rows.filter((row) => !isDormantNamedVersionEventType(row.event_type));
   const pageRows = filteredRows.slice(0, limit);
   const lastRow = pageRows.at(-1);
 
@@ -562,7 +566,7 @@ function normalizeActivityReadFilters(input: FetchEstimateSheetVersionControlInp
   })));
   for (const eventType of eventTypes) {
     if (!/^[a-z0-9_]+$/.test(eventType)) throw new Error("Activity event type filter contains unsupported characters.");
-    if (DORMANT_NAMED_VERSION_EVENT_TYPES.includes(eventType as (typeof DORMANT_NAMED_VERSION_EVENT_TYPES)[number])) {
+    if (isDormantNamedVersionEventType(eventType)) {
       throw new Error("Dormant named-version events are not supported in Activity.");
     }
   }
@@ -1053,8 +1057,8 @@ async function generateNextEstimateSheetCode(
 ) {
   const estimateCodes = await listProjectEstimateCodes(supabase, projectId);
   const existingCodes = estimateCodes
-    .filter((estimate) => estimate.id !== excludedEstimateId)
     .flatMap((estimate) => {
+      if (estimate.id === excludedEstimateId) return [];
       const sheetCode = estimate.sheetCode.trim();
       return sheetCode ? [sheetCode] : [];
     });

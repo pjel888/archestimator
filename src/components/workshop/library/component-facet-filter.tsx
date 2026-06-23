@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FilterPopover } from "@/components/ui/overlays/popover";
 import type { EstimateRowItem, ComponentLifecycleState } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import {
   componentMatchesPricingFreshness,
   COMPONENT_FACET_STALE_DAYS,
@@ -145,9 +146,11 @@ export function buildComponentFacetOptions(items: EstimateRowItem[]): ComponentF
       ...toSortedOptions(brands),
       ...(hasNoBrand ? [{ value: NO_BRAND_OPTION, label: "No brand" }] : []),
     ],
-    lifecycles: (Object.keys(COMPONENT_LIFECYCLE_FACET_LABELS) as ComponentLifecycleState[])
-      .filter((state) => lifecycles.has(state))
-      .map((state) => ({ value: state, label: COMPONENT_LIFECYCLE_FACET_LABELS[state] })),
+    lifecycles: filterMapBy(
+      Object.keys(COMPONENT_LIFECYCLE_FACET_LABELS) as ComponentLifecycleState[],
+      (state) => lifecycles.has(state),
+      (state) => ({ value: state, label: COMPONENT_LIFECYCLE_FACET_LABELS[state] }),
+    ),
     confidence: toSortedOptions(confidence),
   };
 }

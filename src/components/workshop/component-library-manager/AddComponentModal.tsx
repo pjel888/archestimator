@@ -40,6 +40,7 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
 import {
@@ -1431,18 +1432,22 @@ export function AddComponentModal({
           notes: costEntry?.notes ?? entry.notes,
           supplierId: draft.supplierId || null,
           activeCostEntryId: costEntry?.id,
-          costEntries: entry.costEntries.filter((candidate) => !candidate.deletedAt).map((candidate) => ({
-            id: candidate.id,
-            unitCost: parseMoney(candidate.unitCost),
-            miscCost: parseMoney(candidate.miscCost),
-            currency: "PHP",
-            pricingSource: candidate.pricingSource,
-            pricingDate: candidate.pricingDate,
-            confidence: candidate.confidence,
-            sourceUrl: candidate.sourceUrl,
-            notes: candidate.notes,
-            isCurrent: candidate.id === costEntry?.id,
-          })),
+          costEntries: filterMapBy(
+            entry.costEntries,
+            (candidate) => !candidate.deletedAt,
+            (candidate) => ({
+              id: candidate.id,
+              unitCost: parseMoney(candidate.unitCost),
+              miscCost: parseMoney(candidate.miscCost),
+              currency: "PHP",
+              pricingSource: candidate.pricingSource,
+              pricingDate: candidate.pricingDate,
+              confidence: candidate.confidence,
+              sourceUrl: candidate.sourceUrl,
+              notes: candidate.notes,
+              isCurrent: candidate.id === costEntry?.id,
+            }),
+          ),
           packageQuantity: unitUsesContentConversion(entry.unit) ? readOptionalPositiveNumber(entry.packageQuantity) : null,
           packageUnit: unitUsesContentConversion(entry.unit) ? entry.packageUnit || null : null,
           dimensionLength: readOptionalPositiveNumber(entry.dimensionLength),
@@ -1553,18 +1558,22 @@ export function AddComponentModal({
           notes: costEntry?.notes ?? variant.notes,
           supplierId: draft.supplierId || null,
           activeCostEntryId: costEntry?.id ?? null,
-          costEntries: variant.costEntries.filter((entry) => !entry.deletedAt).map((entry) => ({
-            clientId: entry.id,
-            unitCost: parseMoney(entry.unitCost),
-            miscCost: parseMoney(entry.miscCost),
-            currency: "PHP",
-            pricingSource: entry.pricingSource,
-            pricingDate: entry.pricingDate,
-            confidence: entry.confidence,
-            sourceUrl: entry.sourceUrl,
-            notes: entry.notes,
-            isCurrent: entry.id === costEntry?.id,
-          })),
+          costEntries: filterMapBy(
+            variant.costEntries,
+            (entry) => !entry.deletedAt,
+            (entry) => ({
+              clientId: entry.id,
+              unitCost: parseMoney(entry.unitCost),
+              miscCost: parseMoney(entry.miscCost),
+              currency: "PHP",
+              pricingSource: entry.pricingSource,
+              pricingDate: entry.pricingDate,
+              confidence: entry.confidence,
+              sourceUrl: entry.sourceUrl,
+              notes: entry.notes,
+              isCurrent: entry.id === costEntry?.id,
+            }),
+          ),
           packageQuantity: unitUsesContentConversion(variant.unit) ? readOptionalPositiveNumber(variant.packageQuantity) : null,
           packageUnit: unitUsesContentConversion(variant.unit) ? variant.packageUnit || null : null,
           dimensionLength: readOptionalPositiveNumber(variant.dimensionLength),

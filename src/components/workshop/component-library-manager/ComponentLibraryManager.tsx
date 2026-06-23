@@ -60,6 +60,7 @@ import {
 } from "@/lib/component-library/taxonomy";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import {
   isLibraryDenseModeEnabled,
   WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION,
@@ -511,11 +512,13 @@ function ComponentCatalogueCard({
             className="object-cover transition duration-200 group-hover:scale-[1.02]"
           />
         ) : item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={item.imageUrl}
             alt={`${name} thumbnail`}
-            className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+            fill
+            sizes="(max-width: 768px) 50vw, 176px"
+            unoptimized
+            className="object-cover transition duration-200 group-hover:scale-[1.02]"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-white text-tertiary" aria-hidden="true">
@@ -1334,7 +1337,11 @@ function ComponentLibrarySheet({
       effectiveDisplayMode === "cards" &&
       visibleItems.length >= WORKSHOP_LIBRARY_COMPONENTS_VIRTUALIZATION.minRows,
   );
-  const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
+  const selectedVisibleItemIds = filterMapBy(
+    visibleItems,
+    (item) => selectedItemIds.has(item.id),
+    (item) => item.id,
+  );
   const resultSummary = getCatalogueScopeSummary(sheetItems.length);
   const toggleCatalogueBranch = (branchId: string) => {
     setCollapsedCatalogueBranchIds((current) => {

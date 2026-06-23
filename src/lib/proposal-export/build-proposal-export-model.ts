@@ -390,6 +390,7 @@ export function consolidateProposalRows(
   settings: ProposalExportSettings = defaultProposalExportSettings,
 ): ProposalExportRow[] {
   const groupedRows = new Map<string, ProposalExportRow>();
+  const sourceAreaPathsByGroup = new Map<string, Set<string>>();
 
   for (const flatRow of flatRows) {
     const normalizedRow = normalizeSourceRow(flatRow, settings);
@@ -401,6 +402,7 @@ export function consolidateProposalRows(
     const sourceReference = createSourceReference(normalizedRow);
 
     if (!current) {
+      sourceAreaPathsByGroup.set(key, new Set([normalizedRow.areaPathLabel]));
       groupedRows.set(key, {
         exportRowId: `proposal-row-${groupedRows.size + 1}`,
         rowNumber: String(groupedRows.size + 1),
@@ -434,7 +436,10 @@ export function consolidateProposalRows(
     current.miscSubtotal = roundMoney(current.miscSubtotal + normalizedRow.miscSubtotal);
     current.costAmount = roundMoney(current.costAmount + normalizedRow.costAmount);
     current.sourceRowIds.push(normalizedRow.sourceRowId);
-    if (!current.sourceAreaPaths.includes(normalizedRow.areaPathLabel)) {
+    const sourceAreaPaths = sourceAreaPathsByGroup.get(key) ?? new Set(current.sourceAreaPaths);
+    sourceAreaPathsByGroup.set(key, sourceAreaPaths);
+    if (!sourceAreaPaths.has(normalizedRow.areaPathLabel)) {
+      sourceAreaPaths.add(normalizedRow.areaPathLabel);
       current.sourceAreaPaths.push(normalizedRow.areaPathLabel);
     }
     current.sources.push(sourceReference);

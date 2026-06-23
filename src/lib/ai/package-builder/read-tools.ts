@@ -13,6 +13,7 @@ import {
 import { isUuid } from "@/lib/ids";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TablesInsert } from "@/lib/supabase/types";
+import { filterMap, filterMapBy } from "@/lib/util/array";
 
 export const PACKAGE_BUILDER_READ_TOOL_NAMES = [
   "read_current_workspace_context",
@@ -833,8 +834,7 @@ async function searchScopedComponentSummaries({
     return path;
   };
 
-  const matches = itemRows
-    .map((item) => {
+  const matches = filterMap(itemRows, (item) => {
       const priceOption = priceOptionByItemId.get(item.id);
       const categoryPath = item.category_node_id ? categoryPathById.get(item.category_node_id) : undefined;
       const folder = item.library_folder_id ? folderById.get(item.library_folder_id) : undefined;
@@ -863,9 +863,9 @@ async function searchScopedComponentSummaries({
         currentVersionNumber: item.current_version_number,
         confidence: priceOption?.confidence ?? item.confidence,
       };
-      return { item: summary, score: scoreComponentSummary(summary, terms) };
+      const score = scoreComponentSummary(summary, terms);
+      return score > 0 ? { item: summary, score } : null;
     })
-    .filter(({ score }) => score > 0)
     .sort((left, right) => right.score - left.score || left.item.material.localeCompare(right.item.material))
     .slice(0, DEFAULT_RESULT_LIMIT)
     .map(({ item }) => item);
@@ -912,9 +912,11 @@ async function searchScopedHistoricalEstimateRows({
   if (estimateError) throw estimateError;
 
   const estimateRows = (estimates ?? []) as AiEstimateSearchRow[];
-  const historicalEstimateIds = estimateRows
-    .map((estimate) => estimate.id)
-    .filter((estimateId) => estimateId !== currentEstimateId);
+  const historicalEstimateIds = filterMapBy(
+    estimateRows,
+    (estimate) => estimate.id !== currentEstimateId,
+    (estimate) => estimate.id,
+  );
   if (historicalEstimateIds.length === 0) {
     return { matches: [] as PackageBuilderHistoricalRowMatch[], rowCount: projects.length + estimateRows.length };
   }
@@ -1224,7 +1226,7 @@ async function searchScopedTemplateSummaries({
       category: template.category,
       nodeCount: templateNodes.length,
       rowCount: templateRowsForTemplate.length,
-      areaNames: templateNodes.filter((node) => node.kind === "area").map((node) => node.name).slice(0, 16),
+      areaNames: filterMapBy(templateNodes, (node) => node.kind === "area", (node) => node.name).slice(0, 16),
       rowPreviews: templateRowsForTemplate
         .map((row) => {
           const node = nodeById.get(row.template_node_id);

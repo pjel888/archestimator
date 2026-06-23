@@ -1,5 +1,6 @@
 import type { ActivityAudience, ActivityTarget, ActivityViewModel } from "./types";
 import { stripUnsafeText } from "./activity-formatters";
+import { filterMapBy } from "@/lib/util/array";
 
 function clientSafeTarget(target: ActivityTarget): ActivityTarget {
   return {
@@ -53,6 +54,6 @@ export function toClientSafeActivity(activity: ActivityViewModel): ActivityViewM
 }
 
 export function filterActivityForVisibility(events: ActivityViewModel[], audience: ActivityAudience): ActivityViewModel[] {
-  if (audience === "client") return events.filter((event) => event.visibility !== "internal").map(toClientSafeActivity);
+  if (audience === "client") return filterMapBy(events, (event) => event.visibility !== "internal", toClientSafeActivity);
   return events;
 }

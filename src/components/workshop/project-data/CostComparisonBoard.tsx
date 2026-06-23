@@ -263,9 +263,11 @@ function normalizeDisplayEstimateIds(
   const allowedIds = new Set(summary.estimateSheets.map((estimate) => estimate.id));
   const ids = baselineEstimateId ? [baselineEstimateId, ...compareEstimateIds] : [];
   const out: string[] = [];
+  const seen = new Set<string>();
   for (const id of ids) {
-    if (!allowedIds.has(id) || out.includes(id)) continue;
+    if (!allowedIds.has(id) || seen.has(id)) continue;
     out.push(id);
+    seen.add(id);
     if (out.length === MAX_COMPARE_COLUMNS) break;
   }
   return out;

@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
+import { filterMapBy } from "@/lib/util/array";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
@@ -59,9 +60,11 @@ export function FavoritesTree({
 
   useEffect(() => {
     const sheetProjectIds = new Set(
-      projects
-        .filter((project) => project.favoriteEstimateSheets.length > 0)
-        .map((project) => project.id),
+      filterMapBy(
+        projects,
+        (project) => project.favoriteEstimateSheets.length > 0,
+        (project) => project.id,
+      ),
     );
     const previousSheetProjectIds = previousSheetProjectIdsRef.current;
     previousSheetProjectIdsRef.current = sheetProjectIds;

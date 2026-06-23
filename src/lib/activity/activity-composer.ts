@@ -2,6 +2,7 @@ import { DECISION_ACTIONS, ESTIMATE_EVENT_ACTIONS } from "./activity-copy-dictio
 import { createFallbackActivityViewModel, safeCompose } from "./activity-fallback";
 import { filterActivityForVisibility } from "./activity-visibility";
 import { formatActivityActor, formatActivityFieldLabel, formatActivityValue, stripUnsafeText } from "./activity-formatters";
+import { filterMapBy } from "@/lib/util/array";
 import type { ActivityAction, ActivityChange, ActivityFact, ActivitySource, ActivityTarget, ActivityViewModel, CollaborationActivityInput, ComposeActivityOptions, EstimateActivityInput, SharedLinkActivityInput } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -107,9 +108,11 @@ function changesForEstimate(event: EstimateActivityInput): ActivityChange[] {
 }
 
 function changedFieldLabelsForTitle(event: EstimateActivityInput) {
-  return (event.changedFields ?? [])
-    .filter(isVisibleEstimateChangeField)
-    .map((field) => formatActivityFieldLabel(field).toLowerCase());
+  return filterMapBy(
+    event.changedFields ?? [],
+    isVisibleEstimateChangeField,
+    (field) => formatActivityFieldLabel(field).toLowerCase(),
+  );
 }
 
 function factsForEstimate(event: EstimateActivityInput): ActivityFact[] {

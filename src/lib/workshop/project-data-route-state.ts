@@ -64,9 +64,11 @@ function parseCompareValues(values: string[], selectedEstimateId: string | null)
     })
   );
   const out: string[] = [];
+  const seen = new Set<string>();
   for (const id of ids) {
-    if (id === selectedEstimateId || out.includes(id)) continue;
+    if (id === selectedEstimateId || seen.has(id)) continue;
     out.push(id);
+    seen.add(id);
     if (out.length === 2) break;
   }
   return out;

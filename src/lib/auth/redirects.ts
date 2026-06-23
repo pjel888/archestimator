@@ -92,7 +92,7 @@ export function buildLoginRedirectUrl({
 }
 
 function sanitizePathOnly(value: string) {
-  if (!value || CONTROL_CHARACTER_PATTERN.test(value) || value.includes("\\")) {
+  if (!value || CONTROL_CHARACTER_PATTERN.test(value) || /\\/.test(value)) {
     return null;
   }
 
@@ -103,7 +103,7 @@ function sanitizePathOnly(value: string) {
     if (
       !candidate.startsWith("/") ||
       candidate.startsWith("//") ||
-      candidate.includes("\\") ||
+      /\\/.test(candidate) ||
       CONTROL_CHARACTER_PATTERN.test(candidate) ||
       /^[a-z][a-z\d+.-]*:/i.test(candidate)
     ) {

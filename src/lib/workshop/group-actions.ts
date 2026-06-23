@@ -6,6 +6,7 @@ import { isUuid } from "@/lib/ids";
 import { normalizeBulkActionIds } from "@/lib/mass-deletion/bulk-action";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { filterMapBy } from "@/lib/util/array";
 // Caps come from the shared (non-"use server") module so the Phase-4 popover
 // imports the SAME values (§2.0) — never re-declare them locally (Task 8 guard).
 import {
@@ -114,9 +115,11 @@ async function verifyOwnedProjectIds(
     .eq("workspace_id", workspaceId);
   if (error) throw error;
 
-  return (data ?? [])
-    .filter((row) => hasWorkspaceRole || row.created_by === userId)
-    .map((row) => ({ id: row.id, workspace_id: row.workspace_id }));
+  return filterMapBy(
+    data ?? [],
+    (row) => hasWorkspaceRole || row.created_by === userId,
+    (row) => ({ id: row.id, workspace_id: row.workspace_id }),
+  );
 }
 
 // Stub bodies replaced task-by-task below. Each throws until implemented so the

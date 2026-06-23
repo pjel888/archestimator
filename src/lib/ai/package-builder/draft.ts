@@ -32,6 +32,7 @@ import {
   type PackageBuilderRowUpdateDraft,
   type PackageBuilderTreeNodeDraft,
 } from "@/lib/ai/package-builder/schemas";
+import { filterMap, filterMapBy } from "@/lib/util/array";
 
 type BuildPackageBuilderDraftInput = {
   message: string;
@@ -111,9 +112,10 @@ function parseBedrooms(message: string) {
   const normalized = normalizeText(message);
   const numericMatch = normalized.match(/\b([1-9])\s*(?:bed|bedroom|bedrooms|br)\b/);
   if (numericMatch) return Number(numericMatch[1]);
-  const wordMap: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
-  for (const [word, count] of Object.entries(wordMap)) {
-    if (normalized.includes(`${word} bedroom`) || normalized.includes(`${word} bed`)) return count;
+  const wordMatch = normalized.match(/\b(one|two|three|four|five)\s+(?:bed|bedroom|bedrooms)\b/);
+  if (wordMatch) {
+    const wordCounts: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+    return wordCounts[wordMatch[1]] ?? 3;
   }
   return 3;
 }
@@ -333,18 +335,19 @@ function buildCurrentEstimateTargetTree(readData: PackageBuilderReadToolsData, r
     const normalizedName = normalizeText(node.name);
     return normalizedName ? [normalizedName] : [];
   }));
-  const generatedAreaDrafts = roomNames
-    .filter((roomName) => {
-      const roomId = normalizeText(roomName);
-      return roomId && !existingAreaNames.has(roomId);
-    })
-    .map((roomName, index) => ({
+  const generatedAreaDrafts: PackageBuilderTreeNodeDraft[] = [];
+  for (const roomName of roomNames) {
+    const roomId = normalizeText(roomName);
+    if (!roomId || existingAreaNames.has(roomId)) continue;
+    const index = generatedAreaDrafts.length;
+    generatedAreaDrafts.push({
       clientDraftId: roomClientDraftId(roomName, areaDrafts.length + index),
-      kind: "area" as const,
+      kind: "area",
       name: roomName,
       parentClientDraftId: "existing-estimate-root",
       sortOrder: areaDrafts.length + index,
-    }));
+    });
+  }
 
   return {
     treeDraft: [
@@ -497,19 +500,18 @@ function chooseComponentsForGenericRoom(
 ) {
   const terms = getGenericRoomComponentTerms(roomName);
   if (terms.length === 0) return [];
-  return componentMatches
-    .filter((component) => !usedIds.has(component.id) && matchesGenericRoomComponentTerms(component, terms))
-    .map((component) => ({
+  const scoredComponents = filterMap(componentMatches, (component) => {
+    if (usedIds.has(component.id) || !matchesGenericRoomComponentTerms(component, terms)) return null;
+    const score = scoreComponentForRoom(component, roomName)
+      + scoreProviderSearchTermHints(component, searchTermHints)
+      + scorePriorProjectComponentUsage({ component, roomName, historicalRows })
+      + scoreComponentMemoryPreference(component, roomName, memoryPreferences);
+    return score > 0 ? {
       component,
-      score: scoreComponentForRoom(component, roomName)
-        + scoreProviderSearchTermHints(component, searchTermHints)
-        + scorePriorProjectComponentUsage({ component, roomName, historicalRows })
-        + scoreComponentMemoryPreference(component, roomName, memoryPreferences),
-    }))
-    .filter(({ score }) => score > 0)
-    .sort((left, right) => right.score - left.score || left.component.material.localeCompare(right.component.material))
-    .slice(0, MAX_GENERIC_ROOM_COMPONENT_ROWS)
-    .map(({ component }) => component);
+      score,
+    } : null;
+  }).sort((left, right) => right.score - left.score || left.component.material.localeCompare(right.component.material));
+  return scoredComponents.slice(0, MAX_GENERIC_ROOM_COMPONENT_ROWS).map(({ component }) => component);
 }
 
 function scoreComponentForNeed(
@@ -536,10 +538,11 @@ function chooseComponentForNeed(
   historicalRows: PackageBuilderHistoricalRowMatch[],
   memoryPreferences?: PackageBuilderMemoryPreferences,
 ) {
-  return componentMatches
-    .filter((component) => need.allowReuse || !usedIds.has(component.id))
-    .map((component) => ({ component, score: scoreComponentForNeed(component, roomName, need, historicalRows, memoryPreferences) }))
-    .filter(({ score }) => score > 0)
+  return filterMap(componentMatches, (component) => {
+    if (!need.allowReuse && usedIds.has(component.id)) return null;
+    const score = scoreComponentForNeed(component, roomName, need, historicalRows, memoryPreferences);
+    return score > 0 ? { component, score } : null;
+  })
     .sort((left, right) => right.score - left.score || left.component.material.localeCompare(right.component.material))[0]?.component ?? null;
 }
 
@@ -564,9 +567,10 @@ function chooseHistoricalRowForNeed(
   roomName: string,
   need: RoomComponentNeed,
 ) {
-  return historicalRows
-    .map((row) => ({ row, score: scoreHistoricalRowForNeed(row, roomName, need) }))
-    .filter(({ score }) => score > 0)
+  return filterMap(historicalRows, (row) => {
+    const score = scoreHistoricalRowForNeed(row, roomName, need);
+    return score > 0 ? { row, score } : null;
+  })
     .sort((left, right) => right.score - left.score || right.row.updatedAt.localeCompare(left.row.updatedAt) || left.row.material.localeCompare(right.row.material))[0]?.row ?? null;
 }
 
@@ -593,9 +597,10 @@ function chooseHistoricalRowForRoom(
   historicalRows: PackageBuilderHistoricalRowMatch[],
   roomName: string,
 ) {
-  return historicalRows
-    .map((row) => ({ row, score: scoreHistoricalRowForRoom(row, roomName) }))
-    .filter(({ score }) => score > 0)
+  return filterMap(historicalRows, (row) => {
+    const score = scoreHistoricalRowForRoom(row, roomName);
+    return score > 0 ? { row, score } : null;
+  })
     .sort((left, right) => right.score - left.score || right.row.updatedAt.localeCompare(left.row.updatedAt) || left.row.material.localeCompare(right.row.material))[0]?.row ?? null;
 }
 
@@ -609,13 +614,15 @@ function templateRowMatchesRoom(row: PackageBuilderTemplateRowPreview, roomName:
 }
 
 function findTemplateRowsForRoom(templateMatches: PackageBuilderTemplateSummary[], roomName: string): TemplateRowNeedMatch[] {
-  return templateMatches
-    .slice(0, 4)
-    .flatMap((template, templateIndex) =>
-      (template.rowPreviews ?? []).map((row, rowIndex) => ({ template, row, templateIndex, rowIndex }))
-    )
-    .filter(({ row }) => templateRowMatchesRoom(row, roomName))
-    .slice(0, MAX_TEMPLATE_ROW_PREVIEWS_PER_AREA);
+  const matches: TemplateRowNeedMatch[] = [];
+  for (const [templateIndex, template] of templateMatches.slice(0, 4).entries()) {
+    for (const [rowIndex, row] of (template.rowPreviews ?? []).entries()) {
+      if (!templateRowMatchesRoom(row, roomName)) continue;
+      matches.push({ template, row, templateIndex, rowIndex });
+      if (matches.length >= MAX_TEMPLATE_ROW_PREVIEWS_PER_AREA) return matches;
+    }
+  }
+  return matches;
 }
 
 function comparableAreaMatchesRoom(areaName: string, roomName: string) {
@@ -645,15 +652,17 @@ function findComparableRowsForRoom(
   comparablePackages: PackageBuilderComparableEstimatePackage[],
   roomName: string,
 ): ComparableRowNeedMatch[] {
-  return comparablePackages
-    .slice(0, 4)
-    .flatMap((packageMatch, packageIndex) =>
-      packageMatch.areas.flatMap((area, areaIndex) =>
-        area.rowPreviews.map((row, rowIndex) => ({ packageMatch, area, row, packageIndex, areaIndex, rowIndex }))
-      )
-    )
-    .filter(({ area }) => comparableAreaMatchesRoom(area.areaName, roomName))
-    .slice(0, MAX_COMPARABLE_ROW_PREVIEWS_PER_AREA);
+  const matches: ComparableRowNeedMatch[] = [];
+  for (const [packageIndex, packageMatch] of comparablePackages.slice(0, 4).entries()) {
+    for (const [areaIndex, area] of packageMatch.areas.entries()) {
+      if (!comparableAreaMatchesRoom(area.areaName, roomName)) continue;
+      for (const [rowIndex, row] of area.rowPreviews.entries()) {
+        matches.push({ packageMatch, area, row, packageIndex, areaIndex, rowIndex });
+        if (matches.length >= MAX_COMPARABLE_ROW_PREVIEWS_PER_AREA) return matches;
+      }
+    }
+  }
+  return matches;
 }
 
 function comparableRowMatchKey(match: ComparableRowNeedMatch) {
@@ -675,23 +684,17 @@ function findComparableRowForNeed(
   roomName: string,
   need: RoomComponentNeed,
 ) {
-  return comparablePackages
-    .slice(0, 4)
-    .flatMap((packageMatch, packageIndex) =>
-      packageMatch.areas.flatMap((area, areaIndex) =>
-        area.rowPreviews.map((row, rowIndex) => ({
-          packageMatch,
-          area,
-          row,
-          packageIndex,
-          areaIndex,
-          rowIndex,
-          score: comparableAreaMatchesRoom(area.areaName, roomName) ? scoreComparableRowForNeed(row, roomName, need) : 0,
-        }))
-      )
-    )
-    .filter(({ score }) => score > 0)
-    .sort((left, right) => right.score - left.score || left.row.material.localeCompare(right.row.material))[0] ?? null;
+  const matches: Array<ComparableRowNeedMatch & { score: number }> = [];
+  for (const [packageIndex, packageMatch] of comparablePackages.slice(0, 4).entries()) {
+    for (const [areaIndex, area] of packageMatch.areas.entries()) {
+      if (!comparableAreaMatchesRoom(area.areaName, roomName)) continue;
+      for (const [rowIndex, row] of area.rowPreviews.entries()) {
+        const score = scoreComparableRowForNeed(row, roomName, need);
+        if (score > 0) matches.push({ packageMatch, area, row, packageIndex, areaIndex, rowIndex, score });
+      }
+    }
+  }
+  return matches.sort((left, right) => right.score - left.score || left.row.material.localeCompare(right.row.material))[0] ?? null;
 }
 
 function getRoomComponentNeeds(roomName: string): RoomComponentNeed[] {
@@ -1070,9 +1073,11 @@ function buildRows({
   memoryPreferences?: PackageBuilderMemoryPreferences;
 }): PackageBuilderRowDraft[] {
   const usedComponentIds = new Set<string>();
-  return treeDraft
-    .filter((node) => node.kind === "area")
-    .flatMap((node, index) => {
+  let areaIndex = 0;
+  return treeDraft.flatMap((node) => {
+      if (node.kind !== "area") return [];
+      const index = areaIndex;
+      areaIndex += 1;
       const needs = getRoomComponentNeeds(node.name);
       const templateRows = findTemplateRowsForRoom(templateMatches, node.name).map((match) =>
         buildTemplateAllowanceRow({ node, match })
@@ -1095,9 +1100,11 @@ function buildRows({
         }
         const historicalRow = chooseHistoricalRowForRoom(historicalRows, node.name);
         if (historicalRow) {
-          const remainingComparableRows = comparableMatches
-            .filter((match) => !comparableRowMatchesHistoricalRow(match, historicalRow))
-            .map((match) => buildComparableAllowanceRow({ node, match }));
+          const remainingComparableRows = filterMapBy(
+            comparableMatches,
+            (match) => !comparableRowMatchesHistoricalRow(match, historicalRow),
+            (match) => buildComparableAllowanceRow({ node, match }),
+          );
           return [buildHistoricalRoomAllowanceRow({ node, index, historicalRow }), ...remainingComparableRows, ...templateRows];
         }
         if (comparableRows.length > 0) return [...comparableRows, ...templateRows];
@@ -1106,7 +1113,7 @@ function buildRows({
       }
 
       const usedComparableRowKeys = new Set<string>();
-      const needRows = needs.map((need) => {
+      const needRows = filterMap(needs, (need) => {
         const component = chooseComponentForNeed(componentMatches, node.name, usedComponentIds, need, historicalRows, memoryPreferences);
         if (component) {
           if (!need.allowReuse) usedComponentIds.add(component.id);
@@ -1121,10 +1128,12 @@ function buildRows({
         }
         if (need.sourceOnly) return null;
         return buildAllowanceRow({ brief, node, index, need });
-      }).filter((row): row is PackageBuilderRowDraft => row !== null);
-      const extraComparableRows = comparableMatches
-        .filter((match) => !usedComparableRowKeys.has(comparableRowMatchKey(match)))
-        .map((match) => buildComparableAllowanceRow({ node, match }));
+      });
+      const extraComparableRows = filterMapBy(
+        comparableMatches,
+        (match) => !usedComparableRowKeys.has(comparableRowMatchKey(match)),
+        (match) => buildComparableAllowanceRow({ node, match }),
+      );
       return [...needRows, ...extraComparableRows, ...templateRows];
     });
 }
@@ -1144,9 +1153,11 @@ function usedPriorProjectComponentUsage({
 }) {
   if (historicalRows.length === 0) return false;
   const areaNameByClientDraftId = new Map(
-    treeDraft
-      .filter((node) => node.kind === "area")
-      .map((node) => [node.clientDraftId, node.name]),
+    filterMapBy(
+      treeDraft,
+      (node) => node.kind === "area",
+      (node) => [node.clientDraftId, node.name] as const,
+    ),
   );
   return rowDraft.some((row) => {
     if (row.sourceType !== "library_item" || !row.sourceLibraryItemId) return false;
@@ -1200,9 +1211,10 @@ function scoreAreaRowForUpdate(row: PackageBuilderCompactAreaRow, message: strin
 }
 
 function chooseCurrentEstimateRowForMutation(message: string, readData: PackageBuilderReadToolsData) {
-  const scoredRows = readData.areaRows
-    .map((candidate) => ({ row: candidate, score: scoreAreaRowForUpdate(candidate, message) }))
-    .filter(({ score }) => score > 0)
+  const scoredRows = filterMap(readData.areaRows, (candidate) => {
+    const score = scoreAreaRowForUpdate(candidate, message);
+    return score > 0 ? { row: candidate, score } : null;
+  })
     .sort((left, right) => right.score - left.score || left.row.material.localeCompare(right.row.material));
 
   const bestRow = scoredRows[0] ?? null;
@@ -1273,9 +1285,10 @@ function buildRowReplacementDrafts(message: string, readData: PackageBuilderRead
     return { rowReplacementDraft: [], blockedReason: "Ask Flip needs the current row revision before replacing an estimate row." };
   }
 
-  const component = readData.componentMatches
-    .map((candidate) => ({ component: candidate, score: scoreComponentForReplacement(candidate, message) }))
-    .filter(({ score }) => score > 0)
+  const component = filterMap(readData.componentMatches, (candidate) => {
+    const score = scoreComponentForReplacement(candidate, message);
+    return score > 0 ? { component: candidate, score } : null;
+  })
     .sort((left, right) => right.score - left.score || left.component.material.localeCompare(right.component.material))[0]?.component ?? null;
   if (!component?.sourceLibraryItemId && !component?.id) {
     return { rowReplacementDraft: [], blockedReason: "Ask Flip could not find a scoped library component for the requested row replacement." };
@@ -1426,9 +1439,10 @@ function chooseCurrentEstimateNodeForRename(message: string, readData: PackageBu
     return { node: selectedNode, nextName: parts.nextName, blockedReason: null };
   }
 
-  const scoredNodes = readData.estimateTree
-    .map((candidate) => ({ node: candidate, score: scoreNodeForRename(candidate, parts.currentNameHint) }))
-    .filter(({ score }) => score > 0)
+  const scoredNodes = filterMap(readData.estimateTree, (candidate) => {
+    const score = scoreNodeForRename(candidate, parts.currentNameHint);
+    return score > 0 ? { node: candidate, score } : null;
+  })
     .sort((left, right) => right.score - left.score || left.node.name.localeCompare(right.node.name));
   const bestNode = scoredNodes[0] ?? null;
   const nextNode = scoredNodes[1] ?? null;
@@ -1527,23 +1541,23 @@ function buildTemplateRowCopyDrafts({
   templateRowCopyDraft: PackageBuilderTemplateRowCopyDraft[];
   blockedReason: string | null;
 } {
-  const match = templateMatches
-    .flatMap((template) => {
-      const templateScore = scoreTemplateForInsert(template, message);
-      const rowPreviews = template.rowPreviews ?? [];
-      return rowPreviews.map((row) => {
-        const rowScore = scoreTemplateRowForCopy(row, message);
-        const canUseTemplateOnlyMatch = templateScore > 0 && rowPreviews.length === 1;
-        return {
-          template,
-          row,
-          score: rowScore + templateScore,
-          matchedEnough: rowScore > 0 || canUseTemplateOnlyMatch,
-        };
-      });
-    })
-    .filter(({ row, matchedEnough }) => matchedEnough && row.id && row.templateId)
-    .sort((left, right) => right.score - left.score || left.template.name.localeCompare(right.template.name) || left.row.material.localeCompare(right.row.material))[0] ?? null;
+  const matches: Array<{
+    template: PackageBuilderTemplateSummary;
+    row: PackageBuilderTemplateRowPreview;
+    score: number;
+  }> = [];
+  for (const template of templateMatches) {
+    const templateScore = scoreTemplateForInsert(template, message);
+    const rowPreviews = template.rowPreviews ?? [];
+    for (const row of rowPreviews) {
+      const rowScore = scoreTemplateRowForCopy(row, message);
+      const canUseTemplateOnlyMatch = templateScore > 0 && rowPreviews.length === 1;
+      if ((rowScore > 0 || canUseTemplateOnlyMatch) && row.id && row.templateId) {
+        matches.push({ template, row, score: rowScore + templateScore });
+      }
+    }
+  }
+  const match = matches.sort((left, right) => right.score - left.score || left.template.name.localeCompare(right.template.name) || left.row.material.localeCompare(right.row.material))[0] ?? null;
   if (!match?.row.id || !match.row.templateId) {
     return { templateRowCopyDraft: [], blockedReason: "Ask Flip could not match the requested template row copy." };
   }
@@ -1622,9 +1636,10 @@ function buildTemplateInsertDrafts({
   if (!parentDraft || !target.nodeIdsByClientDraftId[parentDraft.clientDraftId]) {
     return { templateInsertDraft: [], blockedReason: "Ask Flip needs an existing current estimate Group Node before inserting a template." };
   }
-  const template = templateMatches
-    .map((candidate) => ({ template: candidate, score: scoreTemplateForInsert(candidate, message) }))
-    .filter(({ score }) => score > 0)
+  const template = filterMap(templateMatches, (candidate) => {
+    const score = scoreTemplateForInsert(candidate, message);
+    return score > 0 ? { template: candidate, score } : null;
+  })
     .sort((left, right) => right.score - left.score || left.template.name.localeCompare(right.template.name))[0]?.template ?? null;
   if (!template) return { templateInsertDraft: [], blockedReason: "Ask Flip could not find a matched reusable estimate template to insert." };
 
@@ -1758,9 +1773,10 @@ function buildOperations({
 }): PackageBuilderOperation[] {
   const existingNodeIds = new Set(Object.keys(target?.nodeIdsByClientDraftId ?? {}));
   const shouldCreateMissingAreas = rowDraft.length > 0;
-  const treeOperations = treeDraft
-    .filter((node) => intent === "create_package_project" || (shouldCreateMissingAreas && node.kind === "area" && !existingNodeIds.has(node.clientDraftId)))
-    .map((node) => ({
+  const treeOperations = filterMapBy(
+    treeDraft,
+    (node) => intent === "create_package_project" || (shouldCreateMissingAreas && node.kind === "area" && !existingNodeIds.has(node.clientDraftId)),
+    (node) => ({
     operationId: `op-tree-${node.clientDraftId}`,
     type: "create_tree_node" as const,
     clientDraftId: node.clientDraftId,
@@ -1871,17 +1887,16 @@ function uniqueStrings(values: string[]) {
 function chooseRevisionArea(treeDraft: PackageBuilderTreeNodeDraft[], message: string) {
   const areaDrafts = treeDraft.filter((node) => node.kind === "area");
   const normalizedMessage = normalizeText(message);
-  return areaDrafts
-    .map((area) => {
+  return filterMap(areaDrafts, (area) => {
       const areaName = normalizeText(area.name);
       const exactScore = areaName && normalizedMessage.includes(areaName) ? 100 : 0;
       const tokenScore = areaName
         .split(" ")
         .filter((token) => token.length > 2)
         .reduce((score, token) => score + (normalizedMessage.includes(token) ? 2 : 0), 0);
-      return { area, score: exactScore + tokenScore };
+      const score = exactScore + tokenScore;
+      return score > 0 ? { area, score } : null;
     })
-    .filter(({ score }) => score > 0)
     .sort((left, right) => right.score - left.score || left.area.sortOrder - right.area.sortOrder)[0]?.area
     ?? areaDrafts[0]
     ?? null;
@@ -1899,17 +1914,17 @@ function chooseRevisionComponent({
   targetAreaClientDraftId: string;
 }) {
   const existingMaterialsInArea = new Set(
-    baseDraft.rowDraft
-      .filter((row) => row.targetAreaClientDraftId === targetAreaClientDraftId)
-      .flatMap((row) => {
-        const normalizedMaterial = normalizeText(row.material);
-        return normalizedMaterial ? [normalizedMaterial] : [];
-      }),
+    filterMap(baseDraft.rowDraft, (row) => {
+      if (row.targetAreaClientDraftId !== targetAreaClientDraftId) return null;
+      const normalizedMaterial = normalizeText(row.material);
+      return normalizedMaterial || null;
+    }),
   );
-  return componentMatches
-    .filter((component) => !existingMaterialsInArea.has(normalizeText(component.material)))
-    .map((component) => ({ component, score: scoreComponentForReplacement(component, message) }))
-    .filter(({ score }) => score > 0)
+  return filterMap(componentMatches, (component) => {
+    if (existingMaterialsInArea.has(normalizeText(component.material))) return null;
+    const score = scoreComponentForReplacement(component, message);
+    return score > 0 ? { component, score } : null;
+  })
     .sort((left, right) => right.score - left.score || left.component.material.localeCompare(right.component.material))[0]?.component
     ?? null;
 }
@@ -2039,14 +2054,12 @@ function getRemovedAreaIds(message: string, treeDraft: PackageBuilderTreeNodeDra
   if (!/\b(remove|delete|drop|omit|exclude)\b/.test(normalized)) return new Set<string>();
 
   return new Set(
-    treeDraft
-      .filter((node) => node.kind === "area")
-      .filter((node) => {
-        const areaName = normalizeText(node.name);
-        if (!areaName) return false;
-        return ` ${normalized} `.includes(` ${areaName} `);
-      })
-      .map((node) => node.clientDraftId),
+    filterMap(treeDraft, (node) => {
+      if (node.kind !== "area") return null;
+      const areaName = normalizeText(node.name);
+      if (!areaName || !` ${normalized} `.includes(` ${areaName} `)) return null;
+      return node.clientDraftId;
+    }),
   );
 }
 

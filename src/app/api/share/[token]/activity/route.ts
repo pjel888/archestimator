@@ -23,12 +23,15 @@ import {
 } from "@/lib/publication/activity-helpers";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
 import type { Tables } from "@/lib/supabase/types";
+import { filterMap } from "@/lib/util/array";
 import type { NextRequest } from "next/server";
 
 // P8: GET /api/share/[token]/activity — public-safe read (filtered), supports optional recipient session.
 // Always filters is_internal=true comments for unauthenticated or basic public views.
 // Manager/owner uses the server action loadSharedLinkActivity for full (including internal).
 export const dynamic = "force-dynamic";
+
+const EMPTY_RECIPIENT_ACTIVITY = { data: [] as never[], error: null };
 
 function parseCookieValue(cookieHeader: string, name: string): string | undefined {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
@@ -178,15 +181,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     eventsQuery = eventsQuery?.or(cursorFilter) ?? null;
   }
 
-  const emptyRecipientActivity = { data: [], error: null };
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
     responsesQuery
       ? responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
-      : Promise.resolve(emptyRecipientActivity),
+      : Promise.resolve(EMPTY_RECIPIENT_ACTIVITY),
     eventsQuery
       ? eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
-      : Promise.resolve(emptyRecipientActivity),
+      : Promise.resolve(EMPTY_RECIPIENT_ACTIVITY),
   ]);
 
   const recipientIds = new Set<string>();
@@ -252,10 +254,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .filter((activity) => isBeforeSharedLinkActivityCursor(activity, cursor))
     .sort(compareSharedLinkActivityDesc);
   const pageActivities = sortedActivities.slice(0, limit);
-  const activities = pageActivities
-    .map((activity) => composeSharedLinkActivity(activity, { audience: "client", visibility: "public" }))
-    .filter((activity) => activity.visibility !== "internal")
-    .map(toPublicActivityViewModel);
+  const activities = filterMap(pageActivities, (activity) => {
+    const composed = composeSharedLinkActivity(activity, { audience: "client", visibility: "public" });
+    return composed.visibility !== "internal" ? toPublicActivityViewModel(composed) : null;
+  });
   const hasMore = sortedActivities.length > limit;
   const nextCursor = hasMore && pageActivities.length ? encodeSharedLinkActivityCursor(pageActivities[pageActivities.length - 1]!) : undefined;
 

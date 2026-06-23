@@ -94,12 +94,14 @@ function resolveCompareEstimateIds(
   const allowedIds = new Set(estimateSheets.map((estimate) => estimate.id));
   const sourceIds =
     requestedCompareIds === null
-      ? estimateSheets.map((estimate) => estimate.id).filter((id) => id !== selectedEstimateId).slice(0, 1)
+      ? estimateSheets.flatMap((estimate) => (estimate.id === selectedEstimateId ? [] : [estimate.id])).slice(0, 1)
       : requestedCompareIds;
   const out: string[] = [];
+  const seen = new Set<string>();
   for (const id of sourceIds) {
-    if (id === selectedEstimateId || !allowedIds.has(id) || out.includes(id)) continue;
+    if (id === selectedEstimateId || !allowedIds.has(id) || seen.has(id)) continue;
     out.push(id);
+    seen.add(id);
     if (out.length === 2) break;
   }
   return out;

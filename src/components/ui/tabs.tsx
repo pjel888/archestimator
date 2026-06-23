@@ -9,6 +9,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { filterMapBy } from "@/lib/util/array";
 import { cn } from "@/lib/ui/cn";
 
 export type TabItem = {
@@ -58,7 +59,11 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
 
     const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
       let nextIndex = index;
-      const enabledTabs = tabs.map((t, i) => ({ ...t, originalIndex: i })).filter(t => !t.disabled);
+      const enabledTabs = filterMapBy(
+        tabs,
+        (tab) => !tab.disabled,
+        (tab, originalIndex) => ({ ...tab, originalIndex }),
+      );
       const currentEnabledIndex = enabledTabs.findIndex(t => t.originalIndex === index);
 
       if (e.key === "Enter" || e.key === " ") {
@@ -131,6 +136,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
                 <button
                   key={tab.id}
                   {...extraTabButtonProps}
+                  type="button"
                   ref={(element) => onTabButtonMount?.(tab, index, element)}
                   role="tab"
                   aria-selected={isActive}

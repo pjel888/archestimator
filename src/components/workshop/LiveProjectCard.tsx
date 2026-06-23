@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { memo, useMemo, type ReactNode } from "react";
 import {
   ArrowRight,
@@ -468,18 +469,14 @@ function LiveProjectCardImpl({
     return (
       <div className={cn("relative shrink-0 overflow-hidden bg-surfaceMuted", wrapperClass)} data-project-card-thumbnail>
         {imageUrl ? (
-          // Plain image element, NOT next/image: the image is served by the auth-gated proxy
-          // (/api/projects/images), and only a browser request carries the user's session
-          // cookie. next/image's optimizer fetches the source server-side WITHOUT that cookie,
-          // so the protected image can't be retrieved (blank). The big win is already banked by
-          // serving the 512px thumbnail variant (getProjectImageUrl) into this ~248px box.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={imageUrl}
             alt=""
+            fill
+            sizes={isListView ? "64px" : "(max-width: 768px) 100vw, 320px"}
+            unoptimized
             loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2">

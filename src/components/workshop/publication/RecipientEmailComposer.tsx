@@ -12,6 +12,7 @@ import {
   readSharedLinkEmailDeliveryReadiness,
   resendSharedLinkRecipientEmail,
 } from "@/lib/publication/actions";
+import { filterMapBy } from "@/lib/util/array";
 
 /* P4: RecipientEmailComposer — compact, design-system compliant email recipient manager.
  * Used inside the "Recipients" tab of the publication manager modal.
@@ -215,9 +216,11 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
     clearRecipientMessage();
 
     try {
-      const payload = chips
-        .filter((c) => !c.email_unsubscribed_at && (c.delivery_status === "pending" || !c.id)) // only new/pending
-        .map((c) => ({ email: c.email, displayName: c.displayName || undefined }));
+      const payload = filterMapBy(
+        chips,
+        (c) => !c.email_unsubscribed_at && (c.delivery_status === "pending" || !c.id), // only new/pending
+        (c) => ({ email: c.email, displayName: c.displayName || undefined }),
+      );
 
       if (payload.length === 0) {
         setRecipientMessage("All listed recipients already invited.", "success");

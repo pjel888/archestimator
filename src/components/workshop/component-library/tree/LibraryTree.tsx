@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type DragEvent } from "react";
+import Image from "next/image";
 import {
   CaretDown,
   CaretRight,
@@ -254,16 +255,18 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
   return (
     <span
       data-component-library-row-thumbnail
-      className="grid size-6 shrink-0 place-items-center overflow-hidden rounded-xs border border-hairline bg-surface-muted"
+      className="relative grid size-6 shrink-0 place-items-center overflow-hidden rounded-xs border border-hairline bg-surface-muted"
       aria-hidden="true"
     >
       {thumbnailUrl ? (
-        <img
+        <Image
           src={thumbnailUrl}
           alt=""
+          fill
+          sizes="24px"
+          unoptimized
           loading="lazy"
-          decoding="async"
-          className="size-full object-cover"
+          className="object-cover"
           onError={() => setFailed(true)}
         />
       ) : (

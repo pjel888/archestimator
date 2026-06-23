@@ -1,5 +1,6 @@
 import type { EstimateRowItem } from "../estimate-tree-data";
 import { readComponentSourceUrlInput, sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
+import { filterMap } from "@/lib/util/array";
 import type {
   ComponentFilters,
   LibraryBundle,
@@ -120,8 +121,7 @@ export function normalizeForSearch(value: string) {
 export function searchComponents(items: EstimateRowItem[], query: string): SearchResult[] {
   const q = normalizeForSearch(query);
   if (!q) return items.map((item, index) => ({ item, score: 0, index }));
-  return items
-    .map((item, index) => {
+  return filterMap(items, (item, index) => {
       const name = normalizeForSearch(getComponentName(item));
       const supplier = normalizeForSearch(item.supplier ?? "");
       const category = normalizeForSearch(item.category ?? "");
@@ -138,9 +138,8 @@ export function searchComponents(items: EstimateRowItem[], query: string): Searc
       else if (supplier.includes(q) || category.includes(q)) score = 520;
       else if (discipline.includes(q) || designation.includes(q) || unit.includes(q)) score = 430;
       else if (description.includes(q) || tags.includes(q) || notes.includes(q)) score = 300;
-      return { item, score, index };
+      return score >= 0 ? { item, score, index } : null;
     })
-    .filter((result) => result.score >= 0)
     .sort((a, b) => b.score - a.score || a.index - b.index);
 }
 

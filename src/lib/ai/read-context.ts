@@ -2,6 +2,7 @@ import type { AiRequestUserContext } from "@/lib/ai/auth";
 import type { AiAskDataAccessAuditInput } from "@/lib/ai/audit";
 import { isUuid } from "@/lib/ids";
 import { buildProjectChartSeries } from "@/lib/project-charts/aggregate-project-charts";
+import { filterMap, filterMapBy } from "@/lib/util/array";
 import type {
   ProjectChartCategoryNodeFact,
   ProjectChartEstimateOption,
@@ -1378,8 +1379,7 @@ async function searchAskHistoricalRows({
   const projectById = new Map(projectRows.map((project) => [project.id, project]));
   const estimateById = new Map(estimateRows.map((estimate) => [estimate.id, estimate]));
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const matches = rows
-    .map((row) => {
+  const matches = filterMap(rows, (row) => {
       const estimate = estimateById.get(row.estimate_id);
       const project = estimate ? projectById.get(estimate.project_id) : null;
       const node = nodeById.get(row.node_id);
@@ -1398,9 +1398,9 @@ async function searchAskHistoricalRows({
         total: calculateEstimateRowTotal(row),
         sourceType: row.source_library_item_id ? "library" : "manual",
       };
-      return { match, score: scoreHistoricalRowMatch(match, terms), updatedAt: row.updated_at ?? "" };
+      const score = scoreHistoricalRowMatch(match, terms);
+      return score > 0 ? { match, score, updatedAt: row.updated_at ?? "" } : null;
     })
-    .filter(({ score }) => score > 0)
     .sort((left, right) => right.score - left.score || right.updatedAt.localeCompare(left.updatedAt) || left.match.material.localeCompare(right.match.material))
     .slice(0, ASK_READ_CONTEXT_HISTORICAL_RESULT_LIMIT)
     .map(({ match }) => match);
@@ -1460,8 +1460,7 @@ async function searchAskTemplateLibrary({
   const nodes = (nodesResult.data ?? []) as AiAskTemplateNodeRow[];
   const rows = (rowsResult.data ?? []) as AiAskTemplateRowItemRow[];
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const matches = templateRows
-    .map((template) => {
+  const matches = filterMap(templateRows, (template) => {
       const templateNodes = nodes.filter((node) => node.template_id === template.id);
       const templateRowsForTemplate = rows.filter((row) => row.template_id === template.id);
       const match: AiAskProviderTemplate = {
@@ -1470,7 +1469,7 @@ async function searchAskTemplateLibrary({
         category: template.category,
         nodeCount: templateNodes.length,
         rowCount: templateRowsForTemplate.length,
-        areaNames: templateNodes.filter((node) => node.kind === "area").map((node) => node.name).slice(0, ASK_READ_CONTEXT_TEMPLATE_ROW_PREVIEW_LIMIT),
+        areaNames: filterMapBy(templateNodes, (node) => node.kind === "area", (node) => node.name).slice(0, ASK_READ_CONTEXT_TEMPLATE_ROW_PREVIEW_LIMIT),
         rowPreviews: templateRowsForTemplate
           .map((row) => {
             const node = nodeById.get(row.template_node_id);
@@ -1489,9 +1488,9 @@ async function searchAskTemplateLibrary({
           })
           .slice(0, ASK_READ_CONTEXT_TEMPLATE_ROW_PREVIEW_LIMIT),
       };
-      return { match, score: scoreTemplateMatch(match, terms) };
+      const score = scoreTemplateMatch(match, terms);
+      return score > 0 ? { match, score } : null;
     })
-    .filter(({ score }) => score > 0)
     .sort((left, right) => right.score - left.score || left.match.name.localeCompare(right.match.name))
     .slice(0, ASK_READ_CONTEXT_TEMPLATE_RESULT_LIMIT)
     .map(({ match }) => match);
@@ -1551,8 +1550,7 @@ async function searchAskComponentLibrary({
     }
   }
 
-  const matches = itemRows
-    .map((item) => {
+  const matches = filterMap(itemRows, (item) => {
       const priceOption = priceOptionByItemId.get(item.id);
       const component: AiAskProviderComponent = {
         material: item.name,
@@ -1568,9 +1566,9 @@ async function searchAskComponentLibrary({
         currentVersionNumber: item.current_version_number,
         confidence: priceOption?.confidence ?? item.confidence,
       };
-      return { component, score: scoreComponentMatch(component, terms) };
+      const score = scoreComponentMatch(component, terms);
+      return score > 0 ? { component, score } : null;
     })
-    .filter(({ score }) => score > 0)
     .sort((left, right) => right.score - left.score || left.component.material.localeCompare(right.component.material))
     .slice(0, ASK_READ_CONTEXT_COMPONENT_RESULT_LIMIT)
     .map(({ component }) => component);

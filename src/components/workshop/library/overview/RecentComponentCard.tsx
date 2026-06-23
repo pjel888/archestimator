@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ImageSquare } from "@phosphor-icons/react/dist/ssr";
 
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
@@ -61,11 +62,13 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
             </span>
           ) : null}
           {component.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={component.imageUrl}
               alt={`${component.name} thumbnail`}
-              className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+              fill
+              sizes="(max-width: 768px) 100vw, 256px"
+              unoptimized
+              className="object-cover transition duration-200 group-hover:scale-[1.02]"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-tertiary" aria-hidden="true">

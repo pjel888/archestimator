@@ -38,6 +38,7 @@ import {
 } from "@/lib/publication/activity-helpers";
 import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
 import { getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
+import { filterMap, filterMapBy } from "@/lib/util/array";
 import type {
   ProjectPublicationLocationVisibility,
   ProjectPublicationSummary,
@@ -1071,17 +1072,20 @@ export async function addSharedLinkRecipients({
   const pubCtx = await getPublicationProjectId(admin, publicationId);
   const context = await assertProjectPublicationManager(pubCtx.projectId); // enforces manager RBAC + gets currentUserId
 
-  const normalized = inputs
-    .map((r) => ({ email: normalizeEmail(r.email), displayName: r.displayName?.trim() || null }))
-    .filter((r) => r.email && isValidEmail(r.email));
+  const normalized = filterMap(inputs, (r) => {
+    const email = normalizeEmail(r.email);
+    return email && isValidEmail(email) ? { email, displayName: r.displayName?.trim() || null } : null;
+  });
 
   if (normalized.length === 0) {
     return { ok: false, message: "No valid email addresses.", added: 0, failedEmails: inputs.map((i) => i.email), emailResults: [] };
   }
 
-  const blockedSelfEmails = normalized
-    .filter((r) => isSelfRecipientEmail(r.email, context.currentUserEmail))
-    .map((r) => r.email);
+  const blockedSelfEmails = filterMapBy(
+    normalized,
+    (r) => isSelfRecipientEmail(r.email, context.currentUserEmail),
+    (r) => r.email,
+  );
   const allowedRecipients = normalized.filter((r) => !isSelfRecipientEmail(r.email, context.currentUserEmail));
   const selfInviteMessage = readSelfInviteBlockedMessage();
 

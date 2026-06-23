@@ -7,6 +7,7 @@ import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository"
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, TablesInsert } from "@/lib/supabase/types";
+import { filterMap, filterMapBy } from "@/lib/util/array";
 import {
   type PackageBuilderApplyRequest,
   type PackageBuilderComponentCreateDraft,
@@ -285,7 +286,7 @@ function validateTreeDraft(treeDraft: PackageBuilderTreeNodeDraft[]) {
 }
 
 function validateRowsTargetAreas(draft: PackageBuilderDraft) {
-  const areaIds = new Set(draft.treeDraft.filter((node) => node.kind === "area").map((node) => node.clientDraftId));
+  const areaIds = new Set(filterMapBy(draft.treeDraft, (node) => node.kind === "area", (node) => node.clientDraftId));
   for (const row of draft.rowDraft) {
     if (!areaIds.has(row.targetAreaClientDraftId)) throw new Error(`Row ${row.clientDraftId} must target an Area Node.`);
     if (row.sourceType === "template") {
@@ -327,7 +328,7 @@ async function validateLinkedLibraryRows({
     ...rows.filter((row) => row.sourceType === "library_item"),
     ...replacements,
   ];
-  const itemIds = Array.from(new Set(linkedRows.map((row) => row.sourceLibraryItemId).filter((id): id is string => Boolean(id))));
+  const itemIds = Array.from(new Set(filterMap(linkedRows, (row) => row.sourceLibraryItemId || null)));
   if (itemIds.length === 0) {
     return { itemById: new Map<string, LibraryValidationRow>(), priceOptionById: new Map<string, PriceOptionValidationRow>() };
   }
@@ -343,12 +344,12 @@ async function validateLinkedLibraryRows({
   for (const row of linkedRows) {
     const item = row.sourceLibraryItemId ? itemById.get(row.sourceLibraryItemId) : null;
     if (!item) throw new Error(`Library item for row ${row.clientDraftId} is not available in this workspace.`);
-    if (["archived", "discontinued"].includes(item.lifecycle_state)) {
+    if (item.lifecycle_state === "archived" || item.lifecycle_state === "discontinued") {
       throw new Error(`Library item for row ${row.clientDraftId} is not active.`);
     }
   }
 
-  const priceOptionIds = Array.from(new Set(linkedRows.map((row) => row.priceOptionId).filter((id): id is string => Boolean(id))));
+  const priceOptionIds = Array.from(new Set(filterMap(linkedRows, (row) => row.priceOptionId || null)));
   const priceOptionById = new Map<string, PriceOptionValidationRow>();
   if (priceOptionIds.length > 0) {
     const { data: priceOptions, error: priceOptionError } = await supabase
@@ -987,9 +988,11 @@ async function applyFillCurrentEstimateDraft({
   for (const [clientDraftId, nodeId] of areaNodeIdsByClientDraftId) nodeIdsByClientDraftId.set(clientDraftId, nodeId);
 
   const createTreeNodeIds = new Set(
-    input.draft.operations
-      .filter((operation) => operation.type === "create_tree_node" && operation.clientDraftId)
-      .map((operation) => operation.clientDraftId as string),
+    filterMapBy(
+      input.draft.operations,
+      (operation) => operation.type === "create_tree_node" && Boolean(operation.clientDraftId),
+      (operation) => operation.clientDraftId as string,
+    ),
   );
   let pendingNodes = input.draft.treeDraft.filter((node) => createTreeNodeIds.has(node.clientDraftId));
   while (pendingNodes.length > 0) {

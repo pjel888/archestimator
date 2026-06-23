@@ -26,6 +26,7 @@ import { normalizeProjectPublicationLocationVisibility } from "@/lib/publication
 import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
 import type { Json } from "@/lib/supabase/types";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
+import { filterMapBy } from "@/lib/util/array";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -465,9 +466,10 @@ async function readPendingCollaborationVisibilitySummary({
   if (sentResult.error && !isMissingOptionalCollaborationTable(sentResult.error)) throw sentResult.error;
 
   const receivedRows = receivedResult.error ? [] : receivedResult.data ?? [];
-  const receivedPendingInvites = receivedRows
-    .filter((invitation) => invitation.invitation_id && invitation.project_id && invitation.project_name)
-    .map((invitation) => ({
+  const receivedPendingInvites = filterMapBy(
+    receivedRows,
+    (invitation) => Boolean(invitation.invitation_id && invitation.project_id && invitation.project_name),
+    (invitation) => ({
       id: invitation.invitation_id,
       projectId: invitation.project_id ?? "",
       estimateId: invitation.estimate_id ?? null,
@@ -480,7 +482,8 @@ async function readPendingCollaborationVisibilitySummary({
       state: invitation.state === "expired" ? "expired" as const : "pending" as const,
       expiresAt: invitation.expires_at ?? null,
       lastOpenedAt: invitation.last_opened_at ?? null,
-    }));
+    }),
+  );
   const sentRows = sentResult.error ? [] : sentResult.data ?? [];
   for (const invitation of sentRows) {
     sentPendingInviteCountByProjectId.set(
@@ -1111,9 +1114,11 @@ async function listCurrentWorkspaceProjectsAppPath() {
         ),
         readPendingCollaborationVisibilitySummary({
           email: profile.email,
-          projectIds: projectItems
-            .filter((item) => canManageCollaborationRole(item.currentUserRole))
-            .map((item) => item.project.id),
+          projectIds: filterMapBy(
+            projectItems,
+            (item) => canManageCollaborationRole(item.currentUserRole),
+            (item) => item.project.id,
+          ),
           supabase,
         }),
       ]),
@@ -1656,19 +1661,23 @@ async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | 
     sortByFavoriteCreatedAt(payload.favoriteEstimates, estimateFavoriteCreatedAt),
   );
   const projectById = new Map(projects.map((project) => [project.id, project]));
-  const visibleFavoriteProjectIds = new Set(projects.filter((project) => projectFavoriteCreatedAt.has(project.id)).map((project) => project.id));
-  const removedProjectFavorites = Array.from(projectFavoriteCreatedAt.keys())
-    .filter((projectId) => !visibleFavoriteProjectIds.has(projectId))
-    .map((projectId) => ({
+  const visibleFavoriteProjectIds = new Set(filterMapBy(projects, (project) => projectFavoriteCreatedAt.has(project.id), (project) => project.id));
+  const removedProjectFavorites = filterMapBy(
+    Array.from(projectFavoriteCreatedAt.keys()),
+    (projectId) => !visibleFavoriteProjectIds.has(projectId),
+    (projectId) => ({
       id: projectId,
       name: null,
       projectCode: null,
       favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
-    }));
+    }),
+  );
   const allProjectIds = Array.from(new Set(projects.map((project) => project.id)));
-  const manageableProjectIds = projects
-    .filter((project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole))
-    .map((project) => project.id);
+  const manageableProjectIds = filterMapBy(
+    projects,
+    (project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole),
+    (project) => project.id,
+  );
 
   const [homebasePublicationRows, pendingInviteVisibility] = await traced("homebase.rpc.tail", () => Promise.all([
     readOptionalProjectPublications(supabase, allProjectIds),
@@ -1860,14 +1869,16 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
 
   const favoriteProjects = backfillProjects.filter((project) => projectFavoriteCreatedAt.has(project.id));
   const visibleFavoriteProjectIds = new Set(favoriteProjects.map((project) => project.id));
-  const removedProjectFavorites = favoriteProjectIds
-    .filter((projectId) => !visibleFavoriteProjectIds.has(projectId))
-    .map((projectId) => ({
+  const removedProjectFavorites = filterMapBy(
+    favoriteProjectIds,
+    (projectId) => !visibleFavoriteProjectIds.has(projectId),
+    (projectId) => ({
       id: projectId,
       name: null,
       projectCode: null,
       favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
-    }));
+    }),
+  );
   const projects = mergeHomebaseRecords(recentProjects, sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt));
   for (const project of backfillProjects) {
     if (!projects.some((existingProject) => existingProject.id === project.id)) projects.push(project);
@@ -1875,9 +1886,11 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
 
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const allProjectIds = Array.from(new Set(projects.map((project) => project.id)));
-  const manageableProjectIds = projects
-    .filter((project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole))
-    .map((project) => project.id);
+  const manageableProjectIds = filterMapBy(
+    projects,
+    (project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole),
+    (project) => project.id,
+  );
   const estimateIds = estimates.map((estimate) => estimate.id);
   const estimateNodesPromise: Promise<WorkshopEstimateNodeQueryResult> =
     estimateIds.length > 0
