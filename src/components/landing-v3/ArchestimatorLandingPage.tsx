@@ -3,8 +3,11 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, Books, CheckCircle, ClockCounterClockwise, FileText } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { stringifyJsonLd } from "@/lib/landing/json-ld";
 import { cn } from "@/lib/ui/cn";
 import { AnimatedMetricValue } from "./AnimatedMetricValue";
+import { HeroImageZoom } from "./HeroImageZoom";
+import { HeroMountMotion } from "./HeroMountMotion";
 import { ProductStage } from "./ProductStage";
 import {
   LOGIN_HREF,
@@ -153,7 +156,7 @@ function HeroMetricCard({
   body,
 }: HeroMetricCardProps) {
   return (
-    <div className={cn(styles.heroImageGridBlock, className)}>
+    <div className={cn(styles.heroImageGridBlock, className)} data-hero-motion="metric-card">
       <div className={styles.heroMetricTopbar}>
         <span className={styles.heroMetricIndex}>{index}</span>
         <ArrowUpRight size={24} weight="regular" aria-hidden="true" className={styles.heroMetricIcon} />
@@ -178,20 +181,24 @@ function HeroMetricCard({
 function Hero({ isLoggedIn }: LandingPageProps) {
   return (
     <section className={styles.hero} aria-labelledby="landing-hero-title">
-      <div className={styles.heroGrid}>
+      <HeroMountMotion className={styles.heroGrid}>
         <div className={styles.heroCopy} data-landing-v3-reveal>
-          <p className={styles.heroEyebrow}>Construction estimating, proposals, and approvals, connected.</p>
-          <h1 id="landing-hero-title">The estimate that keeps working after you send it.</h1>
-          <p>
+          <p className={styles.heroEyebrow} data-hero-motion="eyebrow">Construction estimating, proposals, and approvals, connected.</p>
+          <h1 id="landing-hero-title" data-hero-motion="title">The estimate that keeps working after you send it.</h1>
+          <p data-hero-motion="intro">
             Scope, rates, revisions, feedback, and approvals stay in one connected commercial record.
           </p>
           <div className={styles.ctaRow}>
-            <PrimaryCta isLoggedIn={isLoggedIn} location="hero" />
-            <SecondaryCta href="#workflow">Explore the workflow</SecondaryCta>
+            <span data-hero-motion="cta">
+              <PrimaryCta isLoggedIn={isLoggedIn} location="hero" />
+            </span>
+            <span data-hero-motion="cta">
+              <SecondaryCta href="#workflow">Explore the workflow</SecondaryCta>
+            </span>
           </div>
         </div>
         <div className={styles.heroStage} data-landing-v3-reveal>
-          <div className={styles.heroIllustration}>
+          <HeroImageZoom className={styles.heroIllustration} dataMotion="illustration">
             <Image
               src="/landing/archestimator-mountain-hero-photo.png"
               alt=""
@@ -232,9 +239,9 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 body="Keep comments, changes, client decisions, and next steps connected to the estimate so work can move forward without chasing context."
               />
             </div>
-          </div>
+          </HeroImageZoom>
         </div>
-      </div>
+      </HeroMountMotion>
     </section>
   );
 }
@@ -458,7 +465,7 @@ function FaqSection() {
           </details>
         ))}
       </div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(schema) }} />
     </section>
   );
 }

@@ -92,7 +92,7 @@ export function LandingNav({ isLoggedIn }: LandingNavProps) {
         </div>
       </div>
       {open ? (
-        <div id="nav-mobile-menu" className={styles.navMobileMenu} role="dialog" aria-modal="true">
+        <div id="nav-mobile-menu" className={styles.navMobileMenu} role="dialog" aria-modal="true" aria-label="Mobile navigation">
           {NAV_LINKS.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
               {link.label}

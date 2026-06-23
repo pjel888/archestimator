@@ -1,27 +1,31 @@
-source visual truth path: /var/folders/xg/_lqq86w138vctk9_ll6g8h840000gn/T/codex-clipboard-212abbb3-3c33-469c-b4ee-1357bc1458a7.png
-implementation screenshot path: unavailable - Codex app blocks direct Computer Use control of its in-app browser, and no browser screenshot tool was exposed in this thread.
-viewport: source reference 1600x744 image; implementation target http://localhost:3000/ hero overlay.
-state: landing hero image overlay after copying the /workshop dashboard card line grammar into the three frosted overlay blocks.
+source visual truth path: /Users/philiplewis/Documents/archestimator/.omx/artifacts/visual-ralph/hero-dotted-overlay/source-spec.md
+implementation screenshot path: /Users/philiplewis/Documents/archestimator/.omx/artifacts/visual-ralph/hero-dotted-overlay/implementation-2345x1324.png
+viewport: 2345x1324 CSS px
+state: public landing page at http://localhost:3000/ with the hero mountain image visible.
 
 full-view comparison evidence:
-- Source reference shows the workshop dashboard destination cards: frosted transparent cards with top-left numeric index, top-right arrow, a bordered count/ledger panel, a vertical count divider, row hairlines, and a bottom-right Doto uppercase title.
-- Implementation source now renders three hero overlay cards with the same visible grammar: 01 Projects, 02 Components, and 03 Proposals; each has the frosted surface, index, arrow, count column, ledger header, ledger rows, and bottom-right display label.
-- Fresh rendered screenshot comparison is blocked because the current Codex app session cannot control or capture its in-app browser.
+- Source spec requests a white dotted overlay on the mountain hero image with dots spaced 8px x 8px at 25% opacity.
+- Browser computed style for `div[class*=heroIllustration]::before` confirms `background-size: 8px 8px`, `background-position: 4px 4px`, and a white radial-gradient dot layer using `rgba(255, 255, 255, 0.25)`.
+- The implementation screenshot captures the hero image region after applying the overlay.
 
 focused region comparison evidence:
-- Focused region should be the top-left hero image overlay on http://localhost:3000/ compared to the 01/02 card region in the supplied reference.
-- This focused comparison is blocked by the same missing rendered screenshot capture path.
+- Focused region is the hero mountain image wrapper.
+- The dot layer is implemented on `.heroIllustration::before` at `z-index: 1`, below the existing gradient wash and below the metric cards. This keeps the texture on the mountain/image surface without covering the foreground card UI.
 
 findings:
-- [blocked] Fresh visual comparison unavailable.
-  Location: landing hero overlay.
-  Evidence: source code and static reference were inspected, but a current rendered screenshot could not be captured through the available tools.
-  Impact: the implementation structure is present and type-valid, but exact pixel fidelity for spacing, crop, and text density still needs visual confirmation in the browser.
-  Fix: refresh http://localhost:3000/ in the in-app browser and visually compare the hero overlay against the supplied /workshop reference; adjust spacing or font scale if the card density feels too heavy.
+- No actionable P0/P1/P2 findings remain for the requested overlay change.
+
+required fidelity surfaces:
+- Fonts and typography: unchanged by this patch.
+- Spacing and layout rhythm: dot repeat spacing is 8px x 8px as requested; hero layout spacing is unchanged.
+- Colors and visual tokens: overlay uses white dots at 25% opacity on the existing mountain image treatment.
+- Image quality and asset fidelity: existing mountain image remains intact; overlay is CSS-native and non-destructive.
+- Copy and content: unchanged by this patch.
 
 patches made since the previous QA pass:
-- Replaced blank frosted hero overlay blocks with reusable HeroMetricCard markup.
-- Added workshop-style index, arrow, count/ledger panel, vertical divider, row hairlines, and bottom-right display labels.
-- Added CSS module rules for frosted card surfaces, Doto display titles, Roboto Mono numeric labels, responsive count columns, and a narrow-container fallback.
+- Added `.heroIllustration::before` as a non-interactive dotted overlay layer.
+- Updated the overlay repeat spacing from 32px x 32px to 16px x 16px, then 8px x 8px per follow-up requests.
+- Updated the overlay opacity from 70% to 50%, then 25% per follow-up requests.
+- Captured implementation screenshot evidence at `/Users/philiplewis/Documents/archestimator/.omx/artifacts/visual-ralph/hero-dotted-overlay/implementation-2345x1324.png`.
 
-final result: blocked
+final result: passed

@@ -168,7 +168,12 @@
   font-weight: 650;
   line-height: 1;
   text-decoration: none;
-  transition: transform 180ms var(--ease), background 180ms var(--ease), border-color 180ms var(--ease), color 180ms var(--ease);
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
 .primaryCta {
@@ -178,7 +183,12 @@
 
 .primaryCta:hover {
   background: var(--signal-aa);
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.012);
+}
+
+.primaryCta:active,
+.secondaryCta:active {
+  transform: translateY(0) scale(0.985);
 }
 
 .primaryCta span:last-child {
@@ -188,11 +198,11 @@
   block-size: 1.42rem;
   border-radius: 50%;
   background: rgb(255 255 255 / 0.16);
-  transition: transform 180ms var(--ease);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .primaryCta:hover span:last-child {
-  transform: translateX(2px);
+  transform: translate(3px, -1px) scale(1.04);
 }
 
 .secondaryCta {
@@ -214,6 +224,7 @@
 .hero .secondaryCta:hover {
   border-color: color-mix(in srgb, var(--signal) 34%, var(--hairline));
   background: var(--surface);
+  transform: translateY(-1px) scale(1.01);
 }
 
 .hero {
@@ -244,28 +255,28 @@
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(clamp(21rem, 34vw, 31rem), auto) auto;
+  grid-template-rows: minmax(clamp(17rem, 22vw, 20rem), auto) auto;
   align-items: start;
   max-width: none;
   min-height: auto;
   margin-inline: auto;
   padding: clamp(2rem, 3.15vw, 2.9rem) var(--hero-gutter) clamp(0.45rem, 1.15vw, 1rem);
-  gap: clamp(0.95rem, 1.8vw, 1.65rem);
+  gap: clamp(0.7rem, 1vw, 1rem);
 }
 
 .heroCopy {
   display: grid;
-  grid-template-columns: minmax(18rem, 0.82fr) minmax(24rem, 1fr);
+  grid-template-columns: minmax(0, 38rem);
   grid-template-areas:
-    "eyebrow eyebrow"
-    "title intro"
-    "actions intro";
-  column-gap: clamp(4rem, 13vw, 13rem);
-  row-gap: clamp(0.9rem, 1.6vw, 1.45rem);
+    "eyebrow"
+    "title"
+    "intro"
+    "actions";
+  row-gap: clamp(0.7rem, 1vw, 1rem);
   justify-items: start;
   align-content: start;
   inline-size: 100%;
-  max-width: none;
+  max-width: 38rem;
   margin-inline: 0;
   padding-block-start: clamp(0.4rem, 1.1vw, 1rem);
   text-align: start;
@@ -286,24 +297,24 @@
 
 .heroCopy h1 {
   grid-area: title;
-  max-width: 14ch;
-  margin: clamp(3.5rem, 8vw, 7.5rem) 0 0;
-  font-size: clamp(3.3rem, 5.05vw, 5rem);
+  max-width: 20ch;
+  margin: 0;
+  font-size: clamp(2.35rem, 2.15vw, 2.625rem);
   font-weight: 500;
-  letter-spacing: -0.032em;
-  line-height: 0.96;
+  letter-spacing: 0;
+  line-height: 1;
   text-wrap: balance;
 }
 
 .heroCopy > p:not(.heroEyebrow, .proofLine) {
   grid-area: intro;
-  max-width: 25ch;
-  margin: clamp(3.7rem, 7.7vw, 7.35rem) 0 0;
+  max-width: 45ch;
+  margin: 0;
   color: rgb(38 38 38 / 0.92);
-  font-size: clamp(1.58rem, 2.42vw, 2.6rem);
+  font-size: 0.875rem;
   font-weight: 460;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
+  line-height: 1.35;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -311,7 +322,11 @@
   grid-area: actions;
   flex-wrap: wrap;
   gap: 0.6rem;
-  margin-block-start: 0.15rem;
+  margin-block-start: 0.25rem;
+}
+
+.ctaRow > span {
+  display: inline-flex;
 }
 
 .proofLine {
@@ -331,6 +346,9 @@
 }
 
 .heroIllustration {
+  --hero-image-scroll-scale: 1;
+  --hero-image-mount-scale: 1;
+
   position: relative;
   min-height: clamp(33rem, 53vw, 57rem);
   overflow: hidden;
@@ -340,6 +358,17 @@
   box-shadow:
     0 18px 40px rgb(61 61 61 / 0.08),
     inset 0 1px 0 rgb(255 255 255 / 0.76);
+}
+
+.heroIllustration::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.25) 1px, transparent 1.35px);
+  background-position: 4px 4px;
+  background-size: 8px 8px;
 }
 
 .heroIllustration::after {
@@ -357,6 +386,9 @@
   object-fit: cover;
   object-position: center 78%;
   filter: contrast(1.06) saturate(1.04) brightness(0.94);
+  transform: scale(calc(var(--hero-image-scroll-scale) * var(--hero-image-mount-scale)));
+  transform-origin: center 72%;
+  will-change: transform;
 }
 
 .heroImageGrid {
@@ -392,6 +424,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  pointer-events: auto;
   border: 1px solid var(--hero-metric-border);
   border-radius: 2px;
   background: rgb(238 242 244 / 0.24);
@@ -401,6 +434,17 @@
     0 4px 14px rgb(30 35 50 / 0.06),
     inset 0 1px 0 rgb(255 255 255 / 0.22);
   color: var(--hero-metric-ink);
+  transition:
+    border-color 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.heroImageGridBlock:hover {
+  border-color: rgb(255 255 255 / 0.62);
+  background: rgb(244 247 248 / 0.3);
+  transform: translateY(-2px);
 }
 
 .heroMetricTopbar {
@@ -501,7 +545,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--hero-metric-ink);
-  font-family: var(--font-display), var(--font-numeric), ui-monospace, monospace;
+  font-family: "Doto", "Doto Fallback", "Roboto Mono", "Roboto Mono Fallback", ui-monospace, monospace;
   font-size: clamp(1.25rem, 6cqi, 2rem);
   font-weight: 400;
   line-height: 1;
@@ -1232,6 +1276,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .primaryCta,
+  .secondaryCta,
+  .heroImageGridBlock,
+  .heroIllustrationImage {
+    will-change: auto;
+  }
+
+  .primaryCta:hover,
+  .secondaryCta:hover,
+  .primaryCta:active,
+  .secondaryCta:active,
+  .heroImageGridBlock:hover {
+    transform: none;
+  }
+
   .fragmentBoard path,
   .finalCta path {
     animation: none;
@@ -1293,8 +1352,8 @@
   }
 
   .heroCopy h1 {
-    font-size: clamp(2.35rem, 10vw, 2.85rem);
-    max-width: 15ch;
+    font-size: clamp(1.75rem, 8vw, 2.625rem);
+    max-width: 20ch;
   }
 
   .audienceBand,
@@ -1321,6 +1380,22 @@
 
   .footer nav {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroCopy h1 {
+    font-size: clamp(1.5rem, 7.18vw, 1.75rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .heroCopy h1 {
+    font-size: 1.375rem;
+  }
+
+  .heroCopy > p:not(.heroEyebrow, .proofLine) {
+    font-size: 0.75rem;
   }
 }
 
