@@ -5,7 +5,7 @@ Source: [canonical audit](../../16_user-experience/2026-06-22-full-app-user-stor
 
 ## Problem Statement
 
-**Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories.**
+**Release announcement rows, CTA safety, and delivery inspection need an operator story; rich composer work is later.**
 
 ### Affected Users
 
@@ -21,7 +21,7 @@ Release operator previews a campaign, verifies target users and safe link, then 
 
 ### Best Fix
 
-Add campaign authoring/preview/targeting and delivery inspection rows with safe CTA validation.
+Use seeded/manual release campaign rows, safe CTA validation, and delivery inspection.
 
 ---
 
@@ -47,9 +47,9 @@ Severity **Medium** is assigned because:
 ### Source-Code Evidence (candidate paths)
 
 ```
-src/app/workshop/notifications/
+src/features/notifications/
 src/lib/email/
-src/app/api/ (notification endpoints)
+src/lib/notifications/
 ```
 
 ### Decision-Gate Evidence

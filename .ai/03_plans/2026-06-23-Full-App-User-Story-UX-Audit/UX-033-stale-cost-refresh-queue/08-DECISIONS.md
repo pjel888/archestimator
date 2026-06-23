@@ -49,7 +49,7 @@ After UX-033 is verified:
 ## Related Decisions
 
 - `DEC-UX-034-ATTACHMENT-APPROVAL`: Parallel lightweight first step in same IU-17
-- `DEC-UX-031-FIELD-WORKFLOWS`: Gate-locked; do not mix with UX-033
+- `DEC-UX-031-FIELD-WORKFLOWS`: Deferred for Wave 1; do not mix field package work with UX-033
 - `DEC-UX-BETA-COHORT`: Determines whether contractor personas are in beta; affects UX-033 priority if contractors need cost data
 
 ## Decision History

@@ -12,7 +12,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ## Decision Gate
 
-**DEC-UX-031-FIELD-WORKFLOWS (Decision required) + DEC-UX-BETA-COHORT (Decision required) GATE-LOCKED** — see canonical decision ledger for stop/go status. Do NOT implement until resolved.
+**DEC-UX-031-FIELD-WORKFLOWS (later shared-link field package) + DEC-UX-BETA-COHORT (Wave 1 estimator/PM-only)** — see canonical decision ledger for stop/go status. Do not implement field package code in Wave 1.
 
 ---
 
@@ -20,7 +20,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ### Blocking Dependencies (must complete first)
 
-GATE-LOCKED; UX-020, UX-021 (same conflict group); do not add new permission roles without RBAC/RLS plan
+Deferred until cohort expansion; UX-020 and UX-021 remain same-conflict-group dependencies for any future implementation. Do not add new permission roles, invite roles, or RLS changes without an RBAC/RLS plan.
 
 ### Blocked-By Issues (these wait on UX-031)
 
@@ -40,7 +40,8 @@ Per [03-sequencing](../../16_user-experience/2026-06-22-full-app-user-story-ux-a
 
 | Question | Owner | Resolution | Date |
 |---|---|---|---|
-| (pending) | (pending) | (pending) | (pending) |
+| What is the first field workflow slice? | Philip | Shared-link field package, later. | 2026-06-23 |
+| Is the Wave 1 cohort field/contractor-inclusive? | Philip | No. Estimator/PM only. | 2026-06-23 |
 
 ---
 

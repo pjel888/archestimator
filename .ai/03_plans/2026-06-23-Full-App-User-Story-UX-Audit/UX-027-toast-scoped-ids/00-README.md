@@ -24,7 +24,7 @@ Global toast id collisions or short-lived notifications can hide critical async 
 
 ### Best Fix
 
-Use scoped toast ids and inline errors for critical cell/form failures.
+Use scoped fixed toast IDs for critical failures and non-shifting field/control affordances when local context is required.
 
 ### Post-Fix Scenario (the win)
 
@@ -63,7 +63,7 @@ User does not miss a failed save because a toast was overwritten.
 
 ## Golden-Path User Story
 
-**As a** notifications user, **I want** use scoped toast ids and inline errors for critical cell/form failures, **so that** user does not miss a failed save because a toast was overwritten.
+**As a** notifications user, **I want** use scoped fixed toast IDs for critical failures and non-shifting field/control affordances when local context is required, **so that** user does not miss a failed save because a toast was overwritten.
 
 ---
 

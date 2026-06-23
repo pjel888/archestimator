@@ -48,7 +48,7 @@ Standard auth page. Target: sub-2s LCP on 3G.
 
 ## Issue-Specific: UX-032
 
-- PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled.
+- PM readiness is under-modeled; approvals, margin alerts, and lifecycle audit are later governance work.
 - Skeleton loaders must match content dimensions (no CLS)
 - No blocking JS during initial render
 

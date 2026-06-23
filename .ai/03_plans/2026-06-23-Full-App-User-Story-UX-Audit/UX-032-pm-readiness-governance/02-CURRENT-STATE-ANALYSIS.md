@@ -25,7 +25,7 @@ Any MISS is drift — re-derive the path before editing.
 
 ## Current Behavior Summary
 
-PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled.
+PM readiness is under-modeled; approvals, margin alerts, and lifecycle audit are later governance work.
 
 Evidence per audit:
 
@@ -51,8 +51,8 @@ Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-au
 
 | Aspect | Current | Target |
 |---|---|---|
-| User feedback | PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled. | PM or owner sees whether a project is ready to publish, who approved it, and what changed after issue. |
-| Fix path | (none / partial) | Add readiness checklist, approval status by actor, margin/risk alerts, and final-package lifecycle timeline. |
+| User feedback | PM readiness is under-modeled; approvals, margin alerts, and lifecycle audit are later governance work. | PM or owner sees whether a project is ready to publish, who approved it, and what changed after issue. |
+| Fix path | (none / partial) | Add a lightweight readiness checklist, notes, and owner-visible gaps. |
 
 ---
 

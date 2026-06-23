@@ -12,7 +12,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ## Decision Gate
 
-**Depends on UX-011/UX-044 save-state semantics** — see canonical decision ledger for stop/go status. Do NOT implement until resolved.
+**Depends on UX-011/UX-044 save-state semantics** — use the no-shift toast feedback contract and current save-state semantics before implementation.
 
 ---
 

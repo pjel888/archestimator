@@ -6,7 +6,7 @@
 > **Priority:** P1
 > **Severity:** Medium
 > **Area:** Notifications operations
-> **Scope Posture:** Decision required/provider
+> **Scope Posture:** Lightweight provider proof
 > **Conflict Group:** Operations/provider
 > **Phase:** 3
 > **Status:** planned
@@ -20,15 +20,18 @@ This plan addresses **UX-039** in the Archestimator closed-beta UX audit.
 
 ### Current Error or Risk
 
-Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories.
+Release announcement rows, CTA safety, and delivery inspection need an operator
+story; rich authoring/targeting/composer UX is later.
 
 ### Best Fix
 
-Add campaign authoring/preview/targeting and delivery inspection rows with safe CTA validation.
+Use seeded/manual release campaign rows, safe CTA validation, and delivery
+inspection against existing notification surfaces.
 
 ### Post-Fix Scenario (the win)
 
-Release operator previews a campaign, verifies target users and safe link, then inspects delivery state.
+Release operator validates a seeded/manual campaign row, verifies the safe link,
+and inspects delivery state without building a new composer.
 
 ### Decision Gate
 
@@ -66,7 +69,7 @@ Release operator previews a campaign, verifies target users and safe link, then 
 
 ## Golden-Path User Story
 
-**As a** notifications operations user, **I want** add campaign authoring/preview/targeting and delivery inspection rows with safe cta validation, **so that** release operator previews a campaign, verifies target users and safe link, then inspects delivery state.
+**As a** notifications operator, **I want** seeded/manual campaign rows with CTA validation and delivery inspection, **so that** beta communication stays controlled without a rich campaign composer.
 
 ---
 
@@ -81,4 +84,4 @@ Release operator previews a campaign, verifies target users and safe link, then 
 | Implementation Unit | IU-18 |
 | Conflict Group | Operations/provider |
 | Verification IDs | TV-OPS-SUPPORT |
-| Source code likely affected | `src/app/workshop/notifications/, src/lib/email/, src/app/api/ (notification endpoints)` |
+| Source code likely affected | `src/features/notifications/, src/lib/notifications/, src/lib/email/` |

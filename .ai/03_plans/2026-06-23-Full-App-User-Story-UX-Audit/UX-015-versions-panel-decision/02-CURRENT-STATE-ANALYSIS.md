@@ -50,7 +50,7 @@ Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-au
 | Aspect | Current | Target |
 |---|---|---|
 | User feedback | Named-version UX is dormant/not discoverable in Activity if versioning becomes productized. | User finds version controls intentionally rather than searching activity logs. |
-| Fix path | (none / partial) | Create a separate Versions panel with compare and restore-as-copy status. |
+| Fix path | (none / partial) | Keep named versions dormant for Wave 1; if recovery is explicitly tested later, use activity/history discoverability and restore-as-copy explanation before any full panel. |
 
 ---
 

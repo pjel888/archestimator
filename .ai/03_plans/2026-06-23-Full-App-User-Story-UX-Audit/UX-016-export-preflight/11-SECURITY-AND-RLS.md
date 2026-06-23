@@ -30,15 +30,15 @@ N/A — UI/copy-only surface with no database mutations.
 | Action | Limit |
 |---|---|
 | AI ask | 10/min, 60/hr |
-| Share comment/decision | NOT rate-limited (DEC-UX-RL-QUOTAS) |
-| Beta access request | NOT rate-limited |
+| Share comment/decision | Postgres durable limiter present; Policy B first-class quota proof |
+| Beta/landing/invite request paths | Postgres limiter coverage exists; verify route quotas before proof claims |
 | Login | Supabase Auth config |
 
 ## Abuse Cases
 
 | Abuse | Mitigation |
 |---|---|
-| Brute-force share token | SHA-256, P10 lockout, rate limit |
+| Brute-force share token | HMAC/SHA-256 token hashing, no-store/session controls, and Postgres share limiter scopes; verify hosted quotas |
 | Enumerate project IDs | UUIDv4, 404 |
 | XSS | Server-side sanitization |
 | Open redirect | Validate `next` param |

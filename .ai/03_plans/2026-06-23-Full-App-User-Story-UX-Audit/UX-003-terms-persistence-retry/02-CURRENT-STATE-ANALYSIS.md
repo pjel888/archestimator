@@ -52,7 +52,7 @@ Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-au
 | Aspect | Current | Target |
 |---|---|---|
 | User feedback | Terms acceptance can depend on service-role/env persistence; repeated failures can feel like a dead end. | User either persists acceptance, retries knowingly, or contacts support with context. |
-| Fix path | (none / partial) | Show retryable inline error, support path, and include service-role readiness in launch checks. |
+| Fix path | (none / partial) | Show a fixed retry/support toast, support path, and include service-role readiness in launch checks. |
 
 ---
 

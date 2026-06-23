@@ -6,7 +6,7 @@
 > **Priority:** P2
 > **Severity:** Medium
 > **Area:** Estimates
-> **Scope Posture:** Decision required
+> **Scope Posture:** Dormant / later
 > **Conflict Group:** Estimate sheet (secondary)
 > **Phase:** 1
 > **Status:** planned
@@ -24,11 +24,14 @@ Named-version UX is dormant/not discoverable in Activity if versioning becomes p
 
 ### Best Fix
 
-Create a separate Versions panel with compare and restore-as-copy status.
+Keep named versions dormant for Wave 1. If beta later explicitly tests recovery,
+limit the first slice to activity/history discoverability and restore-as-copy
+explanation before considering a full Versions panel.
 
 ### Post-Fix Scenario (the win)
 
-User finds version controls intentionally rather than searching activity logs.
+Wave 1 does not accidentally productize dormant named versions; if recovery is
+activated later, users understand the lightweight restore-as-copy path.
 
 ### Decision Gate
 
@@ -66,7 +69,7 @@ User finds version controls intentionally rather than searching activity logs.
 
 ## Golden-Path User Story
 
-**As a** estimates user, **I want** create a separate versions panel with compare and restore-as-copy status, **so that** user finds version controls intentionally rather than searching activity logs.
+**As a** estimates user, **I want** dormant named versions to stay out of Wave 1 unless recovery becomes an explicit beta learning objective, **so that** implementation does not build a full versioning workflow prematurely.
 
 ---
 

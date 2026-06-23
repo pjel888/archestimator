@@ -12,8 +12,8 @@ User does not miss a failed save because a toast was overwritten.
 
 | Surface | Copy |
 |---|---|
-| Heading | Derived from fix: Use scoped toast ids and inline errors for critical cell/form failures. |
-| Body | Global toast id collisions or short-lived notifications can hide critical async failures. resolved by Use scoped toast ids and inline errors for critical cell/form failures. |
+| Heading | Derived from fix: Use scoped fixed toast IDs for critical failures and non-shifting field/control affordances when local context is required. |
+| Body | Global toast id collisions or short-lived notifications can hide critical async failures. resolved by Use scoped fixed toast IDs for critical failures and non-shifting field/control affordances when local context is required. |
 | CTA | Action verb (Save / Retry / Request / Cancel) |
 
 ### Recovery Copy

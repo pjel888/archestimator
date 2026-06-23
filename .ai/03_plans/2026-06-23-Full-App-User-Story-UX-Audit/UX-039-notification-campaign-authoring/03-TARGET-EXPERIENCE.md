@@ -4,7 +4,7 @@ Date: 2026-06-23
 
 ## Target UX
 
-Release operator previews a campaign, verifies target users and safe link, then inspects delivery state.
+Release operator validates a seeded/manual campaign row, verifies the safe link, and inspects delivery state.
 
 ---
 
@@ -12,8 +12,8 @@ Release operator previews a campaign, verifies target users and safe link, then 
 
 | Surface | Copy |
 |---|---|
-| Heading | Derived from fix: Add campaign authoring/preview/targeting and delivery inspection rows with safe  |
-| Body | Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories. resolved by Add campaign authoring/preview/targeting and delivery inspection rows with safe CTA validation. |
+| Heading | Derived from fix: Use seeded/manual release campaign rows, safe CTA validation, and delivery inspection |
+| Body | Release announcement rows, CTA safety, and delivery inspection need an operator story; rich composer work is later. resolved by Use seeded/manual release campaign rows, safe CTA validation, and delivery inspection. |
 | CTA | Action verb (Save / Retry / Request / Cancel) |
 
 ### Recovery Copy

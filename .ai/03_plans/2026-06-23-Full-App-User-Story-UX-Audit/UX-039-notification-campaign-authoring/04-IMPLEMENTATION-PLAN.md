@@ -1,7 +1,7 @@
 # UX-039 — Implementation Plan
 
 Date: 2026-06-23
-Owner lane: **IU-18 (Notifications/ops)** | Phase: **3** | Scope: **Decision required/provider**
+Owner lane: **IU-18 (Notifications/ops)** | Phase: **3** | Scope: **Seeded/manual campaigns only**
 
 ## Pre-Implementation Gates
 
@@ -24,7 +24,7 @@ Owner lane: **IU-18 (Notifications/ops)** | Phase: **3** | Scope: **Decision req
 
 ### Wave 1 — Test Scaffolding (RED)
 
-- [ ] Add failing test reproducing: Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories.
+- [ ] Add failing test reproducing: seeded/manual release campaign rows lack safe CTA validation or delivery inspection.
 - [ ] Run; confirm RED for the right reason.
 - [ ] Capture RED output to 06-VERIFICATION-AND-PROOF.
 
@@ -32,9 +32,9 @@ Owner lane: **IU-18 (Notifications/ops)** | Phase: **3** | Scope: **Decision req
 
 File-by-file changes:
 
-- [ ] Edit `src/app/workshop/notifications/`
-- [ ] Edit `src/lib/email/`
-- [ ] Edit `src/app/api/ (notification endpoints)`
+- [ ] Edit `src/features/notifications/`
+- [ ] Edit `src/lib/notifications/`
+- [ ] Edit `src/lib/email/` only if delivery inspection needs provider state.
 
 For each file:
 
@@ -61,9 +61,9 @@ For each file:
 
 | Path | Why | Wave |
 |---|---|---|
-| `src/app/workshop/notifications/` | Apply fix | 2 |
-| `src/lib/email/` | Apply fix | 2 |
-| `src/app/api/ (notification endpoints)` | Apply fix | 2 |
+| `src/features/notifications/` | Seeded/manual campaign row and CTA validation surface | 2 |
+| `src/lib/notifications/` | Existing notification definitions/delivery state | 2 |
+| `src/lib/email/` | Provider delivery inspection only if required | 2 |
 
 ---
 

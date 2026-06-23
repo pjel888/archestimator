@@ -1,7 +1,7 @@
 # UX-032 — Implementation Plan
 
 Date: 2026-06-23
-Owner lane: **IU-16 (PM/owner governance)** | Phase: **4** | Scope: **New workflow**
+Owner lane: **IU-16 (PM/owner governance)** | Phase: **4** | Scope: **Lightweight checklist only**
 
 ## Pre-Implementation Gates
 
@@ -24,7 +24,7 @@ Owner lane: **IU-16 (PM/owner governance)** | Phase: **4** | Scope: **New workfl
 
 ### Wave 1 — Test Scaffolding (RED)
 
-- [ ] Add failing test reproducing: PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled.
+- [ ] Add failing test reproducing: PM readiness checklist, notes, and owner-visible gaps are missing or unclear.
 - [ ] Run; confirm RED for the right reason.
 - [ ] Capture RED output to 06-VERIFICATION-AND-PROOF.
 
@@ -34,8 +34,7 @@ File-by-file changes:
 
 - [ ] Edit `src/app/workshop/projects/[projectId]/`
 - [ ] Edit `src/lib/projects/`
-- [ ] Edit `src/lib/publication/`
-- [ ] Edit `src/lib/estimates/`
+- [ ] Edit only publication/estimate code directly required to display owner-visible readiness gaps; do not add approval, margin-alert, or lifecycle-audit workflow.
 
 For each file:
 
@@ -64,8 +63,8 @@ For each file:
 |---|---|---|
 | `src/app/workshop/projects/[projectId]/` | Apply fix | 2 |
 | `src/lib/projects/` | Apply fix | 2 |
-| `src/lib/publication/` | Apply fix | 2 |
-| `src/lib/estimates/` | Apply fix | 2 |
+| `src/lib/publication/` | Readiness gap inputs only if required | 2 |
+| `src/lib/estimates/` | Readiness gap inputs only if required | 2 |
 
 ---
 

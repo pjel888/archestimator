@@ -4,7 +4,7 @@ Date: 2026-06-23
 
 ## Target UX
 
-PM or owner sees whether a project is ready to publish, who approved it, and what changed after issue.
+PM or owner sees whether key project information is ready to publish and what gaps remain, without a full approval workflow.
 
 ---
 
@@ -12,8 +12,8 @@ PM or owner sees whether a project is ready to publish, who approved it, and wha
 
 | Surface | Copy |
 |---|---|
-| Heading | Derived from fix: Add readiness checklist, approval status by actor, margin/risk alerts, and final |
-| Body | PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled. resolved by Add readiness checklist, approval status by actor, margin/risk alerts, and final-package lifecycle timeline. |
+| Heading | Derived from fix: Add a lightweight readiness checklist, notes, and owner-visible gaps |
+| Body | PM readiness is under-modeled; approvals, margin alerts, and lifecycle audit are later governance work. resolved by Add a lightweight readiness checklist, notes, and owner-visible gaps. |
 | CTA | Action verb (Save / Retry / Request / Cancel) |
 
 ### Recovery Copy

@@ -6,7 +6,7 @@
 > **Priority:** P2
 > **Severity:** Medium
 > **Area:** Contractor/builder and field operations
-> **Scope Posture:** Decision required
+> **Scope Posture:** Deferred / later slice selected
 > **Conflict Group:** Collaboration/access paths
 > **Phase:** 4
 > **Status:** planned
@@ -24,15 +24,18 @@ Contractor/builder and field-operator handoff workflows are implied by collabora
 
 ### Best Fix
 
-Define the first beta slice, handoff package contents, field feedback path, access-path behavior, and only add new permission roles if existing paths cannot support required isolation.
+Shared-link field package is the selected later slice, but Wave 1 closed beta is
+estimator/PM-only. Preserve the future-slice sketch and do not add field package
+code, new roles, invite-role changes, or RLS changes in Wave 1.
 
 ### Post-Fix Scenario (the win)
 
-Contractor/builder or field operator receives a field-ready package through the intended access path, confirms receipt, records constraints, and sends updates back to the project.
+After cohort expansion, a field recipient can receive a scoped shared-link field
+package with explicit permissions, audit trail, and rollback proof.
 
 ### Decision Gate
 
-**DEC-UX-031-FIELD-WORKFLOWS (Decision required) + DEC-UX-BETA-COHORT (Decision required) GATE-LOCKED** — see [08-DECISIONS-AND-DEPENDENCIES.md](08-DECISIONS-AND-DEPENDENCIES.md).
+**DEC-UX-031-FIELD-WORKFLOWS (later shared-link field package) + DEC-UX-BETA-COHORT (Wave 1 estimator/PM-only)** — see [08-DECISIONS-AND-DEPENDENCIES.md](08-DECISIONS-AND-DEPENDENCIES.md).
 
 ---
 
@@ -42,7 +45,7 @@ Contractor/builder or field operator receives a field-ready package through the 
 - **Issue row:** [`ux-logistical-errors-and-fixes.md`](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/ux-logistical-errors-and-fixes.md)
 - **Implementation decomposition:** [`02-implementation-decomposition.md`](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/02-implementation-decomposition.md)
 - **Sequencing:** [`03-sequencing-dependencies-and-conflicts.md`](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/03-sequencing-dependencies-and-conflicts.md)
-- **Verification:** [`06-verification-matrix-and-proof-runbook.md`](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/06-verification-matrix-and-proof-runbook.md) (TV IDs: TV-FIELD-HANDOFF (gate-locked), TV-ACCESS-PATH-CONTRACT)
+- **Verification:** [`06-verification-matrix-and-proof-runbook.md`](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/06-verification-matrix-and-proof-runbook.md) (TV IDs: TV-FIELD-HANDOFF deferred, TV-ACCESS-PATH-CONTRACT future)
 - **Parent index:** [`../00-README-INDEX.md`](../00-README-INDEX.md)
 - **Loop ledger:** [`../LOOP_LEDGER.md`](../LOOP_LEDGER.md)
 
@@ -66,7 +69,7 @@ Contractor/builder or field operator receives a field-ready package through the 
 
 ## Golden-Path User Story
 
-**As a** contractor/builder and field operations user, **I want** define the first beta slice, handoff package contents, field feedback path, access-path behavior, and only add new permission roles if existing paths cannot support required isolation, **so that** contractor/builder or field operator receives a field-ready package through the intended access path, confirms receipt, records constraints, and sends updates back to the project.
+**As a** future field recipient, **I want** the shared-link field package slice to be documented but deferred until the cohort expands, **so that** Wave 1 can prove estimator/PM estimating and proposal review without premature authz/RLS scope.
 
 ---
 
@@ -80,5 +83,5 @@ Contractor/builder or field operator receives a field-ready package through the 
 | Priority | P2 |
 | Implementation Unit | IU-15 |
 | Conflict Group | Collaboration/access paths |
-| Verification IDs | TV-FIELD-HANDOFF (gate-locked), TV-ACCESS-PATH-CONTRACT |
+| Verification IDs | TV-FIELD-HANDOFF (deferred), TV-ACCESS-PATH-CONTRACT (future) |
 | Source code likely affected | `src/lib/collaboration/, src/lib/publication/, src/app/invite/[token]/, src/app/share/[token]/` |

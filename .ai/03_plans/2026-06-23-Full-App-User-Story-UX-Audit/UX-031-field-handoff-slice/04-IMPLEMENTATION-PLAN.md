@@ -1,15 +1,16 @@
 # UX-031 — Implementation Plan
 
 Date: 2026-06-23
-Owner lane: **IU-15 (Field/collaboration)** | Phase: **4** | Scope: **Decision required**
+Owner lane: **IU-15 (Field/collaboration)** | Phase: **4** | Scope: **Deferred / no Wave 1 code**
 
 ## Pre-Implementation Gates
 
 - [ ] Read 01-ISSUE-DEFINITION, 02-CURRENT-STATE-ANALYSIS, 03-TARGET-EXPERIENCE.
 - [ ] Verified cited paths exist.
 - [ ] Conflict group **Collaboration/access paths** has no in-flight change.
-- [ ] Decision gate **DEC-UX-031-FIELD-WORKFLOWS (Decision required) + DEC-UX-BETA-COHORT (Decision required) GATE-LOCKED** is resolved.
-- [ ] Targeted verification IDs confirmed: **TV-FIELD-HANDOFF (gate-locked), TV-ACCESS-PATH-CONTRACT**.
+- [ ] Decision gate **DEC-UX-031-FIELD-WORKFLOWS (later shared-link field package) + DEC-UX-BETA-COHORT (Wave 1 estimator/PM-only)** is recorded.
+- [ ] Confirm a newer cohort-expansion decision exists before any implementation work.
+- [ ] Targeted verification IDs confirmed: **TV-FIELD-HANDOFF (deferred), TV-ACCESS-PATH-CONTRACT (future when cohort expands)**.
 
 ---
 
@@ -22,27 +23,17 @@ Owner lane: **IU-15 (Field/collaboration)** | Phase: **4** | Scope: **Decision r
 - [ ] Glob for existing tests covering the surface.
 - [ ] Document any drift from canonical audit.
 
-### Wave 1 — Test Scaffolding (RED)
+### Wave 1 — Deferred Scope Proof
 
-- [ ] Add failing test reproducing: Contractor/builder and field-operator handoff workflows are implied by collaboration/share primitives but not mapped to explicit access-path user journeys.
-- [ ] Run; confirm RED for the right reason.
-- [ ] Capture RED output to 06-VERIFICATION-AND-PROOF.
+- [ ] Confirm this issue remains P2/deferred while Wave 1 cohort is estimator/PM-only.
+- [ ] Confirm no new contractor/builder/field roles, invite-role changes, RLS changes, or field package code are planned for Wave 1.
+- [ ] Capture this decision evidence to 06-VERIFICATION-AND-PROOF if audited.
 
-### Wave 2 — Implementation (GREEN)
+### Wave 2 — Future Implementation Only After Cohort Expansion
 
-File-by-file changes:
-
-- [ ] Edit `src/lib/collaboration/`
-- [ ] Edit `src/lib/publication/`
-- [ ] Edit `src/app/invite/[token]/`
-- [ ] Edit `src/app/share/[token]/`
-
-For each file:
-
-- [ ] Read the file completely before editing.
-- [ ] Apply the smallest change that flips Wave 1's test to GREEN.
-- [ ] Run the test; confirm GREEN.
-- [ ] Run `lsp_diagnostics` on the changed file; confirm no new errors.
+- [ ] Do not edit collaboration/publication/share/invite code for Wave 1 field package work.
+- [ ] If cohort expansion is accepted later, define shared-link field package contents, allowed actions, recipient permissions, audit trail, rollback, and RBAC/RLS proof before code.
+- [ ] Add contract/component tests only after the future slice is reactivated.
 
 ### Wave 3 — Regression Sweep
 
@@ -62,10 +53,7 @@ For each file:
 
 | Path | Why | Wave |
 |---|---|---|
-| `src/lib/collaboration/` | Apply fix | 2 |
-| `src/lib/publication/` | Apply fix | 2 |
-| `src/app/invite/[token]/` | Apply fix | 2 |
-| `src/app/share/[token]/` | Apply fix | 2 |
+| (none for Wave 1) | Shared-link field package is deferred until cohort expansion | 1 |
 
 ---
 
@@ -74,7 +62,7 @@ For each file:
 Complete when:
 
 - [ ] All Wave 0–4 checkboxes checked.
-- [ ] Every scenario in 05-ACCEPTANCE-CRITERIA PASSES with RED→GREEN proof + real-surface artifact.
+- [ ] Every scenario in 05-ACCEPTANCE-CRITERIA reflects deferred/no-code Wave 1 posture or a newer cohort-expansion decision.
 - [ ] No new `lsp_diagnostics` errors.
 - [ ] `../LOOP_LEDGER.md` records completion.
 

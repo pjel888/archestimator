@@ -71,11 +71,11 @@ Date: 2026-06-23
 
 ---
 
-## Scenario 4 — Decision-Gate Compliance
+## Scenario 4 — Deferred Scope Compliance
 
-**Given** the decision gate DEC-UX-031-FIELD-WORKFLOWS (Decision required) + DEC-UX-BETA-COHORT (Decision required) GATE-LOCKED is not yet resolved.
+**Given** `DEC-UX-031-FIELD-WORKFLOWS` selected shared-link field package as the later slice and `DEC-UX-BETA-COHORT` sets Wave 1 as estimator/PM-only.
 
-**Pass condition:** no PR merges until the gate's stop condition is removed in 08-DECISIONS-AND-DEPENDENCIES.
+**Pass condition:** no PR merges field package code, new roles, invite-role changes, or RLS changes until a newer cohort-expansion decision supersedes the Wave 1 deferral.
 
 ---
 

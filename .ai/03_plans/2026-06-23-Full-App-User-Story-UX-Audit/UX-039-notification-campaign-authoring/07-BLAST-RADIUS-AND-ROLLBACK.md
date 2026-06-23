@@ -6,9 +6,9 @@ Date: 2026-06-23
 
 | Path | Change type | Risk |
 |---|---|---|
-| `src/app/workshop/notifications/` | Apply fix | 2 |
+| `src/features/notifications/` | Apply fix | 2 |
 | `src/lib/email/` | Apply fix | 2 |
-| `src/app/api/ (notification endpoints)` | Apply fix | 2 |
+| `src/lib/notifications/` | Apply fix | 2 |
 
 ### Aggregate Risk
 

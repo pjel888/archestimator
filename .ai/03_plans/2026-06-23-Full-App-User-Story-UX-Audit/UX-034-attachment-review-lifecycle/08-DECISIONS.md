@@ -47,7 +47,7 @@ After UX-034 is verified:
 ## Related Decisions
 
 - `DEC-UX-033-SUPPLIER-INTAKE`: Parallel lightweight first step in same IU-17
-- `DEC-UX-031-FIELD-WORKFLOWS`: Gate-locked; do not mix with UX-034
+- `DEC-UX-031-FIELD-WORKFLOWS`: Deferred for Wave 1; do not mix field package work with UX-034
 - `DEC-UX-BETA-COHORT`: Determines beta scope; affects attachment governance urgency
 
 ## Decision History

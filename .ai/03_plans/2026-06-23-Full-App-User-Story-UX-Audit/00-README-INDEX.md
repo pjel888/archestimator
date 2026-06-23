@@ -11,13 +11,14 @@ target experience, implementation, acceptance, verification, blast radius, and d
 ## How To Use This Pack
 
 1. **Start with the [Loop Ledger](LOOP_LEDGER.md)** for current execution status of every issue.
-2. **Pick an issue folder** by priority or implementation unit (see mapping below).
-3. **Read the folder's `00-README.md` first** for the issue overview, then drill into the
+2. **Read the [Decision Application And Feedback Contract](04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md)** before coding. It applies the 2026-06-23 owner decisions and the no-shift toast feedback rule.
+3. **Pick an issue folder** by priority or implementation unit (see mapping below).
+4. **Read the folder's `00-README.md` first** for the issue overview, then drill into the
    numbered plan files in order.
-4. **Honor the [Conflict Matrix](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/03-sequencing-dependencies-and-conflicts.md)**
+5. **Honor the [Conflict Matrix](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/03-sequencing-dependencies-and-conflicts.md)**
    before parallel execution — no two agents in the same conflict group without the lead
    integration owner.
-5. **Record execution status back to the [Loop Ledger](LOOP_LEDGER.md)** — never to the
+6. **Record execution status back to the [Loop Ledger](LOOP_LEDGER.md)** — never to the
    canonical audit folder, which is the read-only source of truth for the issues themselves.
 
 ## Canonical Source
@@ -26,6 +27,7 @@ Every plan in this pack is derived from and bound to:
 
 | Source doc | Purpose |
 |---|---|
+| [04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md](04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md) | Binding 2026-06-23 owner decision application, Wave 1 scope locks, no-shift toast feedback contract, and observability/redaction boundary for this executable pack. |
 | [canonical-feature-status.csv](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/canonical-feature-status.csv) | Single canonical spreadsheet (93 rows × 22 cols) of feature status, user stories, evidence, issue IDs, and severity. |
 | [ux-logistical-errors-and-fixes.md](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/ux-logistical-errors-and-fixes.md) | Issue-by-issue error, evidence, best fix, post-fix scenario. |
 | [02-implementation-decomposition.md](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/02-implementation-decomposition.md) | Maps every `UX-*` to Implementation Unit (IU), owner lane, scope posture, verification. |
@@ -84,7 +86,7 @@ UX-NNN-<slug>/
 | Tier | Issues | Beta-blocking? |
 |---|---|---|
 | **P0** (18) | UX-002, UX-003, UX-004, UX-007, UX-011, UX-019, UX-020, UX-022, UX-025, UX-028, UX-029, UX-035, UX-036, UX-038, UX-040, UX-041, UX-043, UX-044 | Yes — beta cannot widen without these resolved. |
-| **P1** (18) | UX-001, UX-006, UX-008, UX-009, UX-010, UX-012, UX-013, UX-016, UX-017, UX-018, UX-021, UX-024, UX-026, UX-027, UX-030, UX-032, UX-033, UX-034, UX-037, UX-039, UX-042 | Beta-pain; resolve before public launch. |
+| **P1** (21) | UX-001, UX-006, UX-008, UX-009, UX-010, UX-012, UX-013, UX-016, UX-017, UX-018, UX-021, UX-024, UX-026, UX-027, UX-030, UX-032, UX-033, UX-034, UX-037, UX-039, UX-042 | Beta-pain; resolve before public launch. |
 | **P2** (5) | UX-005, UX-014, UX-015, UX-023, UX-031 | Post-beta or productization-gated. |
 
 ## Execution Phase Order
@@ -120,21 +122,26 @@ lead integration owner. The 10 groups:
 9. **Copy/settings/notification read-only surfaces** — UX-001, UX-004, UX-005, UX-024–UX-027
 10. **Export/charts/maps/data-viz surfaces** — UX-016–UX-019
 
-## Decision-Gated Issues (DO NOT IMPLEMENT without decision)
+## Resolved Decision Scope Locks
 
 Per
 [09-decision-ledger.md](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/09-decision-ledger.md)
-— these issues require an accepted decision before any code changes:
+and [04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md](04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md),
+the blocking owner decisions for this pass are resolved, but the accepted scope is narrow:
 
-- **UX-015** — Versions panel is gated on productization decision.
-- **UX-031** — Contractor/builder/field workflow is gate-locked on `DEC-UX-031-FIELD-WORKFLOWS` (slice) and `DEC-UX-BETA-COHORT` (cohort).
-- **UX-039** — Notification campaign authoring scope is gated.
-- Any issue requiring new permission/RLS roles.
+- **UX-015** — Named versions stay dormant for Wave 1; no full Versions panel.
+- **UX-031** — Shared-link field package is the selected later slice, but Wave 1 closed beta is estimator/PM-only, so `UX-031` remains P2/deferred and no field package code starts yet.
+- **UX-032** — Lightweight project readiness checklist, notes, and owner-visible gaps only; no approval workflow, owner margin alerts, or final-package lifecycle audit.
+- **UX-039** — Seeded/manual release campaign rows, CTA validation, and delivery inspection only; no rich campaign composer.
+- **Rate limits** — Policy B accepted: share comments and decisions first, while preserving already-implemented Postgres durable limiters on broader share/invite/landing paths.
+- **Analytics** — Vercel Web Analytics + Speed Insights now; minimal Postgres event rows only for core support/operator audit needs.
+- **Any issue requiring new permission/RLS roles** still requires a fresh RBAC/RLS plan before code.
 
 ## Conventions
 
 - **Status vocabulary**: `planned` → `in-progress` → `implemented` → `verified` → `released`. Do not invent intermediate states.
 - **Evidence vocabulary**: `not-run`, `local-only`, `browser-verified`, `provider-verified`, `manual-verified`. Match the canonical CSV's "Evidence Status" column.
+- **Transient feedback**: use fixed toast notifications with scoped IDs; do not add reflowing inline errors or banners for transient validation, save, provider, quota, rate-limit, recovery, or async failures.
 - **Cross-references**: When an issue's plan references another issue, use the form `UX-NNN` (no folder path) so renames don't break links.
 - **Code citations**: Always include `src/...` paths, never bare filenames.
 - **Drift**: If a cited path/count drifts from the

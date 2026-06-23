@@ -2,65 +2,23 @@
 
 Date: 2026-06-23
 
-## Metrics
+## Observability Boundary
 
-### Counters
-| Metric | Event | Labels |
-|---|---|---|
-| `027_toast_scoped_ids_action_total` | Action performed | `status=success/failure`, `surface=Notifications` |
-| `027_toast_scoped_ids_error_total` | Error prevented by fix | `error_type=validation/auth/network` |
+Use Vercel Web Analytics and Speed Insights for client/performance signal through the existing redaction seam. Add Postgres event rows only for core product/operator events that need queryable support or audit.
 
-### Histograms
-| Metric | What | Buckets (ms) |
-|---|---|---|
-| `027_toast_scoped_ids_duration_ms` | Action trigger→completion | [50, 100, 250, 500, 1000, 2500, 5000] |
+Do not add bespoke per-issue counters, histograms, gauges, traces, span attributes, or alerts unless a later implementation plan names a sink, redaction rule, owner, and proof gate.
 
-### Gauges
-| Metric | What |
-|---|---|
-| `027_toast_scoped_ids_active` | Concurrent operations |
-
-## Structured Logs
-```json
-{
-  "timestamp": "ISO",
-  "level": "info|warn|error",
-  "issueId": "UX-027",
-  "surface": "Notifications"
-}
-```
-
-## Levels
-| Level | When | Sampling |
-|---|---|---|
-| info | Normal: started, completed, transition | 100% dev, 10% prod |
-| warn | Recoverable: retry success, quota near | 100% |
-| error | Unrecoverable: mutation failed, provider down | 100% |
-
-## Traces
-| Span | Parent | Attributes |
-|---|---|---|
-| `027_toast_scoped_ids.action` | page.render | `issueId=UX-027` |
-| `027_toast_scoped_ids.validate` | `027_toast_scoped_ids.action` | inputLength, valid |
-| `027_toast_scoped_ids.mutate` | `027_toast_scoped_ids.action` | mutationType, entityId |
-
-## Alerts
-| Alert | Condition | Severity | Runbook |
-|---|---|---|---|
-| Error spike | `027_toast_scoped_ids_error_total` > 10/5min | P1 | Check logs; reroute to Support/feedback lead |
-| Latency spike | p95 > 5s | P2 | Check Supabase queries |
-| Success rate drop | < 95% over 15min | P1 | Check provider health |
+Forbidden analytics payloads: tokens, emails, user IDs, project IDs, raw entity IDs, addresses, proposal contents, free text, and unredacted URLs.
 
 ## Audit Trail
 
 If mutations are involved: `estimate_sheet_events`, `account_security_events`, `collaboration_audit_events`, `shared_link_events`.
 
-## Implementation Hooks: UX-027
+## Implementation Hooks
 
-- Counter for each state transition
-- Log every error at warn with specific reason
-- Trace span for async operation
-- If new UI state, log state entry with trigger
+- Reuse the existing Vercel analytics redaction seam for client events.
+- Prefer existing Postgres audit or publication event tables for operator/support proof.
+- Document any new event name, redaction rule, owner, and proof gate before implementation.
 
 ## Linkage
 

@@ -21,7 +21,7 @@ User does not miss a failed save because a toast was overwritten.
 
 ### Best Fix
 
-Use scoped toast ids and inline errors for critical cell/form failures.
+Use scoped fixed toast IDs for critical failures and non-shifting field/control affordances when local context is required.
 
 ---
 

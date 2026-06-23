@@ -51,8 +51,8 @@ Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-au
 
 | Aspect | Current | Target |
 |---|---|---|
-| User feedback | Contractor/builder and field-operator handoff workflows are implied by collaboration/share primitives but not mapped to explicit access-path user journeys. | Contractor/builder or field operator receives a field-ready package through the intended access path, confirms receipt, records constraints, and sends updates back to the project. |
-| Fix path | (none / partial) | Define the first beta slice, handoff package contents, field feedback path, access-path behavior, and only add new permission roles if existing paths cannot support required isolation. |
+| User feedback | Contractor/builder and field-operator handoff workflows are implied by collaboration/share primitives but not mapped to explicit access-path user journeys. | After cohort expansion, a field recipient can receive a scoped shared-link field package with explicit permissions, audit trail, and rollback proof. |
+| Fix path | (none / partial) | Preserve the selected later shared-link field package slice; do not implement field package code, new roles, or RLS changes in Wave 1. |
 
 ---
 

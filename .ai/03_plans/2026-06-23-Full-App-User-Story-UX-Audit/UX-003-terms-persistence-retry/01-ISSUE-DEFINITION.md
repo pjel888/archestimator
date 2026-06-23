@@ -21,7 +21,7 @@ User either persists acceptance, retries knowingly, or contacts support with con
 
 ### Best Fix
 
-Show retryable inline error, support path, and include service-role readiness in launch checks.
+Show a fixed retry/support toast, support path, and include service-role readiness in launch checks.
 
 ---
 

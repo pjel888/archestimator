@@ -64,14 +64,14 @@ The code-binding lens confirmed the packet is genuinely bound to real code (all 
 |---|---|---|
 | A — Self-awarded 100% | "Improved packet = 100/100/100" was self-scored; no independent lens had re-verified it. | This scorecard records the independent re-audit and replaces the self-awarded scores with the two-axis Rubric B rating. |
 | B — Stale inventory anchor | `rg --files tests/vitest` = 429 but docs cited 425 (3 places). | Corrected to 429 in `06` and `testing-loop-and-validation.md`; added the 5th drift-guard validator and a recurring binding-integrity sweep. |
-| C — DEC-UX-031 contradiction | Labeled "Accepted for MVP" while its own posture left the first beta slice OPEN. | Reclassified to `Decision required before code`; added `DEC-UX-BETA-COHORT` (cohort determines UX-031 tiering). |
+| C — DEC-UX-031 contradiction | Labeled "Accepted for MVP" while its own posture left the first beta slice OPEN. | Resolved 2026-06-23: shared-link field package is the later slice, Wave 1 cohort is estimator/PM-only, and `UX-031` remains P2/deferred until cohort expansion. |
 | D — Performance dimension thin | 6 generic perf rows; zero engagement with known perf realities. | New `13-performance-engagement-and-observability.md` (root causes, numeric budgets, perf-risk handoff); `06` perf table rewritten with exact scripts + budgets; `07` perf-risk handoff + template field. |
 | E — No telemetry plan | Outcome metrics pointed at behavior tests as evidence. | `13` §5 outcome-metric instrumentation plan (metrics→events→sink); `01` outcome-metrics split into Behavioral proof vs Measurement; `DEC-UX-ANALYTICS`. |
 | F — No keystone code-binding doc | Nothing protected anchors against drift (B was the proof). | New `12-keystone-code-binding-and-drift-protection.md` (binding registry, 5th validator, binding sweep, drift protocol). |
 | G — Persona taxonomy unenforced | "Primary App User" etc. in zero code files. | Confirmed correct posture (personas are not RBAC roles by design); new `TV-ACCESS-PATH-CONTRACT` makes the authority rule testable when implemented. |
 | H — i18n absent with no deferral | Complete omission made the "every dimension planned" claim dishonest. | `DEC-UX-I18N` records closed-beta English-only deferral; `04` carries the note. |
 | Authz/RLS matrix unfilled | Doc 05's matrix was a single 'Template row' for 16 high-risk surfaces. | New `14-security-primitive-and-rls-binding.md` fills the matrix + binds real primitives (HMAC/AES-256-GCM/scrypt/timingSafeEqual/svix/submit_client_response); `05` points to it. |
-| Rate-limit honesty | "Recipient actions are rate-limited" was aspirational (only AI ask is limited). | `05` corrected; `14` Rate-Limit Truth Table; `DEC-UX-RL-QUOTAS`. |
+| Rate-limit honesty | Older packet language inverted current source by claiming share actions were not rate-limited. | Resolved 2026-06-23: `DEC-UX-RL-QUOTAS` accepts Policy B (share comments/decisions first), current source's broader Postgres durable limiter coverage is preserved, and hosted quota proof remains explicit. |
 | Data-classification enforcement | Presented as a control but enforced nowhere in code. | `05` relabeled advisory; `DEC-UX-DATA-CLASSIFICATION`; redaction gate tied to `13`. |
 | Conflict matrix incomplete | 12 of 44 UX-* had no conflict group; UX-013 in two groups with different leads. | `03` completed (new group + primary/secondary pattern + coverage invariant in `08`). |
 | Decision-gate signal unreachable from CSV | "Decision required" not a CSV value; 0 rows reference any DEC-UX-*. | `08` scope-posture/decision-gate cross-walk; `07` stop-condition references doc 02/09; `01` Decision-gated clarified as orthogonal flag. |
@@ -81,7 +81,7 @@ The code-binding lens confirmed the packet is genuinely bound to real code (all 
 | No standalone a11y gate | a11y only implicit in feature TVs. | New `TV-A11Y` in `06`/`08`. |
 | Strategic dimensions missing | No activation/retention/competitive/pricing. | `01` Strategic Dimensions section + widen-beta gates. |
 | Perf-budget rows vague prose | Named scripts by description not exact command. | `06` perf table cites exact scripts + numeric thresholds. |
-| TV-FIELD-HANDOFF non-operational | Listed alongside runnable TVs with no gate annotation. | `06` annotates gate-locked; `02` IU-15 notes the double gate. |
+| TV-FIELD-HANDOFF non-operational | Listed alongside runnable TVs with no deferral annotation. | `06` annotates deferred/future status; `02` IU-15 notes the Wave 1 cohort deferral. |
 
 ## Honest Residuals (cannot be 100% as a planning artifact)
 
@@ -89,10 +89,10 @@ These are NAMED, not fake-claimed. They require runtime/execution the packet can
 
 - **Live browser proof** — recipient first-open comprehension (UX-035), two-user realtime presence (UX-021), true mobile interrupted-draft recovery (UX-030), print-packet fidelity, field-package flows.
 - **Live provider proof** — hosted Supabase/Resend/Vercel/Maps behavior, hosted share-password/asset/webhook routes, monitoring alert/drain.
-- **Outcome-metric VALUES** — time-to-editable-estimate, failed-save rate, funnel conversion require live beta traffic + `DEC-UX-ANALYTICS` instrumentation.
+- **Outcome-metric VALUES** — time-to-editable-estimate, failed-save rate, funnel conversion require accepted analytics instrumentation plus live beta traffic.
 - **Test passing-status** — 0 of 93 CSV rows are marked executed/proven this pass; 5 rows are explicitly `Known red or blocked broad validation`; the remaining 88 are honestly `not executed` / `not run` / `inventory-only` / `source-static-reviewed`. Their tests exist and are bound, but none were run this pass. **Evidence-verified readiness ≈ 0/93 executed (~0%); all 93 are honestly named residuals requiring execution, not planning.** (Tally re-derived from the CSV `Evidence Status` column; the binding-integrity sweep in `12` can re-derive it.)
 - **Live performance numbers** — hero/auth RTT (network-bound; measure on Vercel in-region), estimate-sheet hosted TTI, real-user Core Web Vitals, liquid-glass arming cadence.
-- **Owner product decisions** — UX-031 first-beta-slice, beta-cohort composition, analytics provider/sink, recipient rate-limit quotas (Philip's calls; the packet frames them, it cannot make them).
+- **Future expansion decisions** — contractor/builder cohort expansion, field package activation, richer versions/readiness/campaign workflows, and any production rollout thresholds remain outside Wave 1 execution.
 - **Rendered WCAG conformance** — full conformance across every dynamic (auth/share-token-gated) surface needs an axe/lighthouse run against rendered pages.
 
 ## Current Document Ratings (planning-readiness axis, Rubric B)
@@ -108,11 +108,11 @@ After the fixes above, each artifact is planning-artifact-complete and independe
 | `testing-loop-and-validation.md` | 100 | 100 | 100 | Corrected inventory + binding-integrity sweep + verification handoff. |
 | `second-pass-persona-use-case-manifest.md` | 100 | 100 | 100 | Persona/verification index. |
 | `01-beta-product-thesis-and-prioritization.md` | 100 | 100 | 100 | + Strategic Dimensions, honest outcome-metrics split, Decision-gated/UX-031 coherence. |
-| `02-implementation-decomposition.md` | 100 | 100 | 100 | + IU-15 gate-locked annotation. |
+| `02-implementation-decomposition.md` | 100 | 100 | 100 | + IU-15 Wave 1 deferral annotation. |
 | `03-sequencing-dependencies-and-conflicts.md` | 100 | 100 | 100 | + completed conflict matrix, UX-013 resolved, coverage invariant. |
 | `04-ux-state-accessibility-and-content-contracts.md` | 100 | 100 | 100 | + WCAG 2.2 AA, color/contrast contract, filled state matrix, responsive breakpoints, touch/focus primitives. |
 | `05-security-data-and-provider-blast-radius.md` | 100 | 100 | 100 | + RLS matrix pointer, rate-limit honesty, advisory classification, redaction gate. |
-| `06-verification-matrix-and-proof-runbook.md` | 100 | 100 | 100 | + corrected inventory, perf budgets, TV-A11Y, TV-ACCESS-PATH-CONTRACT, gate-locked TV-FIELD-HANDOFF. |
+| `06-verification-matrix-and-proof-runbook.md` | 100 | 100 | 100 | + corrected inventory, perf budgets, TV-A11Y, TV-ACCESS-PATH-CONTRACT, deferred TV-FIELD-HANDOFF. |
 | `07-agent-execution-brief.md` | 100 | 100 | 100 | + perf-risk handoff, template perf field, decision-gate stop-condition. |
 | `08-csv-schema-and-validation-contract.md` | 100 | 100 | 100 | + 5th validator, conflict/priority invariants, scope-posture/decision-gate cross-walk, new TV IDs. |
 | `09-decision-ledger.md` | 100 | 100 | 100 | + DEC-UX-031 reclassified, +5 honest decisions (BETA-COHORT/ANALYTICS/RL-QUOTAS/I18N/DATA-CLASSIFICATION). |
@@ -137,7 +137,7 @@ The packet remains 100% planning-ready (Rubric B) only while these claims stay t
 
 1. `canonical-feature-status.csv` is the only spreadsheet-like status tracker (22 columns, 93 rows).
 2. Every `UX-*` issue has a retest scenario, implementation-unit classification, priority tier, conflict group, and verification path.
-3. Every `TV-*` verification ID has a command or a documented gate-locked/future proof surface, pass/fail criteria, and evidence-recording location.
+3. Every `TV-*` verification ID has a command or a documented deferred/future proof surface, pass/fail criteria, and evidence-recording location.
 4. Any issue that creates a new product surface is marked `Decision required` (doc 02 scope posture) or `New workflow`, not silently treated as a copy/UI fix.
 5. Any decision-gated issue points to `09-decision-ledger.md` before code starts.
 6. Access-path naming and product-persona naming follow `10-access-path-and-persona-taxonomy.md`; personas are never treated as permission roles by default.

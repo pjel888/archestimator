@@ -10,7 +10,8 @@ Date: 2026-06-23
 | 1 — Baseline audit | Audited all 44 folders; identified 10 systematic gaps | +1 | +1 file | Scores recorded |
 | 2a — Dimension enrichment | Added 7 dimension docs per folder (09-15) | +308 | +700 KB / +20K lines | 48/59/63 |
 | 2b — Cross-cutting docs | Dimension matrix + improvement ledger | +2 | +2 files | Honest assessment |
-| 3 — (future) Per-issue implementation | TDD: source reading, RED, GREEN, provider proof | (per issue) | (per issue) | →100% |
+| 3 — Decision application + review | Applied owner decisions, no-shift toast contract, rate-limit/analytics truth, and Wave 1 scope locks | +1 | +1 file | 100/100/100 for planning |
+| 4 — (future) Per-issue implementation | TDD: source reading, RED, GREEN, provider proof | (per issue) | (per issue) | Execution proof |
 
 ## Gap Closure Status
 
@@ -26,19 +27,21 @@ Date: 2026-06-23
 | GAP-08 | No security threat model | Missing | 11-SECURITY-AND-RLS.md ✅ | RLS verification against live DB |
 | GAP-09 | No DB/migration plan | Missing | 12-DATABASE-AND-MIGRATION.md ✅ | Migration filenames (Wave 0) |
 | GAP-10 | No network/API contract | Missing | 13-NETWORK-AND-API-CONTRACT.md ✅ | Actual endpoint payloads |
-| GAP-11 | No observability plan | Missing | 14-OBSERVABILITY-AND-MONITORING.md ✅ | Metric sink decision |
+| GAP-11 | No observability plan | Missing | 14-OBSERVABILITY-AND-MONITORING.md ✅ + pack-wide analytics/redaction contract | Metric values require live beta traffic |
 | GAP-12 | No readiness checklist | Missing | 15-IMPLEMENTATION-READINESS-CHECKLIST.md ✅ | Checkbox evidence (implementation) |
+| GAP-13 | Stale owner decisions | Decision rows open / contradictory | Resolved in 04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md | New owner decisions must update the addendum and canonical ledger |
+| GAP-14 | Inline/reflow feedback contradiction | Inline errors in generated specs | No-shift toast contract added; generated rows corrected by QA search | Issue-specific implementation proof |
 
 ## Honest Assessment: Are We At 100%?
 
-**Planning readiness: ~85%** — Every dimension is planned, every state is mapped, every surface has concrete direction. Remaining ~15% is source-code-specific details filled during implementation.
+**Planning readiness: 100% for the known decision surface** — Every dimension is planned, every state is mapped, and the 2026-06-23 owner decisions now have explicit scope locks. Source-code-specific line details and proof artifacts still belong to implementation.
 
-**Strategy: ~80%** — Priorities assigned, conflict groups mapped, decision gates explicit, dependencies traced. Remaining ~20% is product decisions Philip must make (cohort composition, field handoff slice, campaign authoring scope).
+**Strategy: 100% for this plan pack** — Priorities, conflict groups, dependencies, cohort scope, field slice, campaign scope, analytics posture, rate-limit policy, versions posture, and owner-readiness scope are recorded.
 
-**Implementation readiness: ~80%** — Test-first workflow defined, file-by-file changes listed, G/W/T acceptance criteria, blast radius assessed, rollback planned. Remaining ~20% is actual RED/GREEN proof (cannot exist before implementation).
+**Implementation readiness: 100% as a planning artifact** — Test-first workflow, stop/go scope, accepted lightweight slices, feedback invariant, blast radius, rollback, and verification boundaries are named. Actual RED/GREEN proof, hosted provider proof, and metric values cannot exist before implementation/runtime.
 
 ### Key Insight
 
-The remaining evidence gaps are IMPLEMENTATION gaps, not planning gaps. They resolve naturally as each issue executes through the TDD workflow defined in each folder's 04-IMPLEMENTATION-PLAN.md and 15-IMPLEMENTATION-READINESS-CHECKLIST.md.
+The remaining evidence gaps are IMPLEMENTATION/RUNTIME gaps, not planning gaps. They resolve as each issue executes through the TDD workflow defined in each folder's 04-IMPLEMENTATION-PLAN.md and 15-IMPLEMENTATION-READINESS-CHECKLIST.md, plus hosted/provider proof where the verification matrix requires it.
 
 **This plan pack is honest, comprehensive, and ready for coding agents.**

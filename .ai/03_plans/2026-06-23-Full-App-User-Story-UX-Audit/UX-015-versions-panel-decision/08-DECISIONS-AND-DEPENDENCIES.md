@@ -12,7 +12,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ## Decision Gate
 
-**DEC-UX-015-VERSIONS (Accepted as lightweight first step)** — see canonical decision ledger for stop/go status. Do NOT implement until resolved.
+**DEC-UX-015-VERSIONS (Accepted dormant posture)** — named versions stay dormant for Wave 1. Do not build a full Versions panel unless a newer beta recovery objective explicitly supersedes this decision.
 
 ---
 
@@ -20,7 +20,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ### Blocking Dependencies (must complete first)
 
-Gate-locked until versioning productization decision
+No blocking dependency for Wave 1 because the accepted action is no code. Later recovery work requires a fresh productization decision plus migration/RLS/test plan if it exceeds activity/history discoverability and restore-as-copy explanation.
 
 ### Blocked-By Issues (these wait on UX-015)
 
@@ -40,7 +40,7 @@ Per [03-sequencing](../../16_user-experience/2026-06-22-full-app-user-story-ux-a
 
 | Question | Owner | Resolution | Date |
 |---|---|---|---|
-| (pending) | (pending) | (pending) | (pending) |
+| Should Wave 1 build a Versions panel? | Philip | No. Keep named versions dormant. | 2026-06-23 |
 
 ---
 

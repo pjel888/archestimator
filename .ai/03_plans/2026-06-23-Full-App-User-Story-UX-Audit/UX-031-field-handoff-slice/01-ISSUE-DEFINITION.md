@@ -17,11 +17,11 @@ This issue affects **contractor/builder and field operations** users in the Arch
 
 ### Expected Behavior (post-fix)
 
-Contractor/builder or field operator receives a field-ready package through the intended access path, confirms receipt, records constraints, and sends updates back to the project.
+After cohort expansion, a field recipient can receive a scoped shared-link field package with explicit permissions, audit trail, and rollback proof.
 
 ### Best Fix
 
-Define the first beta slice, handoff package contents, field feedback path, access-path behavior, and only add new permission roles if existing paths cannot support required isolation.
+Preserve the selected later shared-link field package slice; do not implement field package code, new roles, or RLS changes in Wave 1.
 
 ---
 
@@ -55,11 +55,11 @@ src/app/share/[token]/
 
 ### Decision-Gate Evidence
 
-This issue is **decision-gated**:
+This issue is **deferred for Wave 1**:
 
-- **Gate:** DEC-UX-031-FIELD-WORKFLOWS (Decision required) + DEC-UX-BETA-COHORT (Decision required) GATE-LOCKED
-- See 08-DECISIONS-AND-DEPENDENCIES.md for stop/go status.
-- Do NOT implement until the gate is resolved.
+- **Decision:** shared-link field package is the selected later slice.
+- **Cohort:** Wave 1 is estimator/PM-only, so contractor/builder and field recipients are not first-class beta cohort members.
+- **Stop condition:** do not implement field package code, new roles, invite-role changes, or RLS changes until a newer cohort-expansion decision exists.
 
 
 ---

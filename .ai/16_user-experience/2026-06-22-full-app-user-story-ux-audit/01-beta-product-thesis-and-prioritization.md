@@ -6,7 +6,7 @@ This document turns the full-app UX audit into a beta strategy. It defines what 
 
 ## Beta Thesis
 
-Archestimator's closed beta should prove that a contractor, estimator, or project manager can create a trustworthy project estimate, package it for review, get a recipient response, and recover from operational problems without founder intervention for ordinary cases.
+Archestimator's Wave 1 closed beta should prove that an estimator or project manager can create a trustworthy project estimate, package it for review, get a recipient response through existing share paths, and recover from operational problems without founder intervention for ordinary cases.
 
 The first beta does not need every future workflow as a first-class surface. It needs evidence that the core estimating and proposal-review loop is understandable, trustworthy, recoverable, and operable.
 
@@ -40,12 +40,12 @@ Any P0 fix must protect this path. Any fix outside this path must either be chea
 
 | Priority | Persona group | Beta role | Implementation posture |
 |---|---|---|---|
-| Primary | Estimator / PM / contractor-builder user | Daily Primary App User who creates estimates and proposals. | Build/verify first. |
+| Primary | Estimator / PM user | Daily Primary App User who creates estimates and proposals. Wave 1 cohort is estimator/PM-only by `DEC-UX-BETA-COHORT`. | Build/verify first. |
 | Primary | Client / recipient / stakeholder | Person who receives share/export and decides whether to trust it. | Build/verify first for share comprehension and recovery. |
 | Primary | Admin / support / operator | Keeps beta users unblocked and provider claims honest. | Build lightweight owner/proof workflow first. |
 | Secondary | Business owner / PM governance | Needs readiness, margin/risk, approval, and lifecycle trust. | Add lightweight readiness and audit signals before rich governance surfaces. |
 | Secondary | Supplier / vendor / cost-source | Improves cost-library trust. | Start with curator-owned internal states; external supplier workflow is later unless beta explicitly tests it. |
-| Later | Legal/privacy operator, campaign operator, deep field workflows | Important for scale and operations. | Document acceptance and proof needs; implement only when core beta evidence demands it. |
+| Later | Contractor/builder field recipient, legal/privacy operator, campaign operator, deep field workflows | Important for scale and operations. | Document acceptance and proof needs; implement only when core beta evidence demands it. |
 
 ## Priority Tiers
 
@@ -62,27 +62,27 @@ Any P0 fix must protect this path. Any fix outside this path must either be chea
 |---|---|---|
 | P0 | `UX-002`, `UX-003`, `UX-004`, `UX-007`, `UX-011`, `UX-019`, `UX-020`, `UX-022`, `UX-025`, `UX-028`, `UX-029`, `UX-035`, `UX-036`, `UX-038`, `UX-040`, `UX-041`, `UX-043`, `UX-044` | These protect access, recovery, provider honesty, recipient trust, data-entry confidence, support repair, and proof integrity. |
 | P1 | `UX-001`, `UX-006`, `UX-008`, `UX-009`, `UX-010`, `UX-012`, `UX-013`, `UX-016`, `UX-017`, `UX-018`, `UX-021`, `UX-024`, `UX-026`, `UX-027`, `UX-030`, `UX-032`, `UX-033`, `UX-034`, `UX-037`, `UX-039`, `UX-042` | These materially improve beta confidence, but can be sequenced after core path safety if a workaround exists. |
-| P2 | `UX-005`, `UX-014`, `UX-015`, `UX-023`, `UX-031` | These are valuable but either low risk, dormant, or a larger workflow decision. `UX-031` is not low-value; it is P2 UNTIL the field workflow/access-path slice is chosen AND the beta cohort composition is decided (`DEC-UX-BETA-COHORT`) — if the first cohort includes contractor/builder recipients, `UX-031` re-tiers to P0. |
+| P2 | `UX-005`, `UX-014`, `UX-015`, `UX-023`, `UX-031` | These are valuable but either low risk, dormant, or outside Wave 1. `UX-031` is not low-value; the shared-link field package is selected as the later slice, but Wave 1 is estimator/PM-only, so field implementation remains deferred unless a newer cohort-expansion decision re-tiers it. |
 
 ## Proposed Fix Review
 
 | Issue area | Original fix posture | 100% planning-ready posture |
 |---|---|---|
-| Contractor/builder and field handoff (`UX-031`) | Define contractor/builder and field-operator handoff workflows. | Decision-gated. Start with access-path-specific package labeling, allowed actions, and acceptance criteria. Add new persisted roles only if existing Primary App User, Project Collaborator, and Shared-Link Recipient paths cannot support the required isolation. |
+| Contractor/builder and field handoff (`UX-031`) | Define contractor/builder and field-operator handoff workflows. | Later/deferred for Wave 1. Shared-link field package is the selected later slice; no field package code, persisted roles, invite-role changes, or RLS changes until cohort expansion is explicitly accepted. |
 | Supplier/vendor intake (`UX-033`) | Add supplier contribution intake and governance workflow. | Decision-gated. MVP should use curator-owned stale queue, accepted-cost notes, and source-review states before external supplier submission. |
 | Attachment approval (`UX-034`) | Add approve/reject lifecycle. | Phase as current/archived/reviewed metadata first; full approval workflow requires migration/RLS plan. |
 | Release campaign operation (`UX-039`) | Add authoring/preview/targeting/delivery rows. | Closed beta can use seeded/manual campaigns with CTA validation and delivery inspection before a rich campaign composer. |
-| Versions panel (`UX-015`) | Create dedicated Versions panel. | Keep as dormant roadmap unless named versions become a beta learning objective. |
+| Versions panel (`UX-015`) | Create dedicated Versions panel. | Keep named versions dormant for Wave 1. If recovery is explicitly tested later, limit to activity/history discoverability and restore-as-copy explanation before any full panel. |
 | Feedback pagination (`UX-026`) | Add pagination/search. | P1 if feedback volume exceeds latest-50 risk; otherwise manual export/query can be temporary. |
 
 ## Outcome Metrics
 
-These metrics define beta success. **Behavioral proof** names the `TV-*` test that proves the path EXISTS; **Measurement** names the instrumentation that produces the metric VALUE. Behavior tests do not measure metrics — the instrumentation plan lives in `13-performance-engagement-and-observability.md` §5, and the analytics sink/provider choice is open (`DEC-UX-ANALYTICS`). Metric VALUES require live beta traffic and are an explicit residual; they cannot be produced by this planning packet.
+These metrics define beta success. **Behavioral proof** names the `TV-*` test that proves the path EXISTS; **Measurement** names the instrumentation that produces the metric VALUE. Behavior tests do not measure metrics. The instrumentation plan lives in `13-performance-engagement-and-observability.md` §5, and `DEC-UX-ANALYTICS` is accepted: Vercel Web Analytics + Speed Insights now, with minimal Postgres rows only for queryable product/operator audit. Metric VALUES require live beta traffic and are an explicit residual; they cannot be produced by this planning packet.
 
 | Outcome | Metric | Behavioral proof (path exists) | Measurement (metric value) |
 |---|---|---|---|
-| First estimate | Time from sign-in to editable estimate; failed save rate; user-visible recovery count. | `TV-AUTH`, `TV-PROJECT-DASHBOARD`, `TV-ESTIMATE-SHEET`. | Funnel events `session_start` → `estimate_opened` → `first_row_saved`; failed-save counter; recovery-action counter. Sink per `DEC-UX-ANALYTICS`. |
-| Proposal/share trust | Share open success, recipient action success, expired/locked recovery success, print/export readability. | `TV-SHARE-RECIPIENT`, proposal/export tests, recipient browser proof. | `share_opened`, `recipient_decision`, `recovery_succeeded` events. Sink per `DEC-UX-ANALYTICS`. |
+| First estimate | Time from sign-in to editable estimate; failed save rate; user-visible recovery count. | `TV-AUTH`, `TV-PROJECT-DASHBOARD`, `TV-ESTIMATE-SHEET`. | Redacted Vercel funnel events `session_start` -> `estimate_opened` -> `first_row_saved`; failed-save counter; recovery-action counter. |
+| Proposal/share trust | Share open success, recipient action success, expired/locked recovery success, print/export readability. | `TV-SHARE-RECIPIENT`, proposal/export tests, recipient browser proof. | Existing/minimal Postgres publication events for support/audit outcomes; redacted Vercel client events only when token/id-safe. |
 | Supportability | Denied-access repairs resolved, invite repair time, feedback older than latest 50 reachable, provider checks pass/fail/blocked. | `TV-OPS-SUPPORT`, provider proof runbook. | Support repair log + provider-check run results (Postgres/manual). |
 | Cost confidence | Stale/conflicted cost surfaced before insert, accepted source visible, attachment currentness clear. | `TV-LIBRARY-SOURCING`, `TV-ESTIMATE-SHEET`. | Stale-surface impression + accepted-cost state (Postgres). |
 | Proof honesty | No row marked proven without matching evidence artifact. | CSV schema validation + `06`. | Validator pass/fail (automated). |

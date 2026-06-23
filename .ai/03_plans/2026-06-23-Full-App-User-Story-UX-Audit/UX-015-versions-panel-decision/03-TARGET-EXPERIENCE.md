@@ -4,7 +4,7 @@ Date: 2026-06-23
 
 ## Target UX
 
-User finds version controls intentionally rather than searching activity logs.
+Wave 1 keeps named versions dormant; if recovery is explicitly tested later, users get lightweight activity/history discoverability and restore-as-copy explanation before any full panel.
 
 ---
 
@@ -12,8 +12,8 @@ User finds version controls intentionally rather than searching activity logs.
 
 | Surface | Copy |
 |---|---|
-| Heading | Derived from fix: Create a separate Versions panel with compare and restore-as-copy status. |
-| Body | Named-version UX is dormant/not discoverable in Activity if versioning becomes productized. resolved by Create a separate Versions panel with compare and restore-as-copy status. |
+| Heading | Derived from fix: Keep named versions dormant for Wave 1; if recovery is explicitly tested later, use activity/history discoverability and restore-as-copy explanation before any full panel. |
+| Body | Named-version UX is dormant/not discoverable in Activity if versioning becomes productized. resolved by Keep named versions dormant for Wave 1; if recovery is explicitly tested later, use activity/history discoverability and restore-as-copy explanation before any full panel. |
 | CTA | Action verb (Save / Retry / Request / Cancel) |
 
 ### Recovery Copy

@@ -6,7 +6,7 @@
 > **Priority:** P1
 > **Severity:** Medium
 > **Area:** PM and business-owner governance
-> **Scope Posture:** New workflow
+> **Scope Posture:** Lightweight new workflow
 > **Conflict Group:** Project/dashboard/readiness
 > **Phase:** 4
 > **Status:** planned
@@ -20,15 +20,17 @@ This plan addresses **UX-032** in the Archestimator closed-beta UX audit.
 
 ### Current Error or Risk
 
-PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled.
+PM readiness is under-modeled; actor approvals, owner margin alerts, and
+final-package lifecycle audit are later governance work outside Wave 1.
 
 ### Best Fix
 
-Add readiness checklist, approval status by actor, margin/risk alerts, and final-package lifecycle timeline.
+Add a lightweight readiness checklist, notes, and owner-visible gaps only.
 
 ### Post-Fix Scenario (the win)
 
-PM or owner sees whether a project is ready to publish, who approved it, and what changed after issue.
+PM or owner sees whether key project information is ready to publish and what
+gaps remain, without a full approval workflow.
 
 ### Decision Gate
 
@@ -66,7 +68,7 @@ PM or owner sees whether a project is ready to publish, who approved it, and wha
 
 ## Golden-Path User Story
 
-**As a** pm and business-owner governance user, **I want** add readiness checklist, approval status by actor, margin/risk alerts, and final-package lifecycle timeline, **so that** pm or owner sees whether a project is ready to publish, who approved it, and what changed after issue.
+**As a** PM or owner, **I want** a lightweight readiness checklist, notes, and owner-visible gaps, **so that** I can tell whether a project is ready to publish without adopting a full approval workflow.
 
 ---
 

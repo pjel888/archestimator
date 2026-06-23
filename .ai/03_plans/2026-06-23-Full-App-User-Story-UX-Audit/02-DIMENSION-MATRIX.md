@@ -33,7 +33,7 @@ Date: 2026-06-23 | Post-enrichment assessment
 | Security | Trust boundaries, actors/authZ matrix, RLS policy review, rate limiting, abuse cases, primitives, redaction | `11-SECURITY-AND-RLS.md` |
 | Database & migrations | Schema impact, migration checklist, RLS verification, RPCs, data classification | `12-DATABASE-AND-MIGRATION.md` |
 | Network & API | Endpoints, status codes, error shapes, pagination, caching headers, realtime events, idempotency | `13-NETWORK-AND-API-CONTRACT.md` |
-| Observability | Metrics (counters/histograms/gauges), structured logs, traces, alerts, dashboards, audit trail | `14-OBSERVABILITY-AND-MONITORING.md` |
+| Observability | Vercel Web Analytics/Speed Insights through redaction seam; minimal Postgres support/operator audit events only when needed; no bespoke per-issue metric suites without a later sink/proof decision | `14-OBSERVABILITY-AND-MONITORING.md` |
 | Implementation readiness | Pre-implementation gates, wave checklists, go/no-go verdict | `15-IMPLEMENTATION-READINESS-CHECKLIST.md` |
 | Acceptance criteria | G/W/T scenarios (happy path, edge case, regression) with binary pass conditions and proof surfaces | `05-ACCEPTANCE-CRITERIA.md` |
 | Verification & proof | TV IDs, RED/GREEN capture procedure, provider-proof boundary | `06-VERIFICATION-AND-PROOF.md` |

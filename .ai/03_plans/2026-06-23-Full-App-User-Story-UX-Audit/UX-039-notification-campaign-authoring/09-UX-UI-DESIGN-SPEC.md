@@ -10,8 +10,8 @@ Per [DESIGN.md](../../../DESIGN.md): SF Pro font (regular/medium), max 12px app 
 |---|---|---|---|
 | Idle | Default surface | Default copy | `aria-busy="false"` |
 | Loading | Skeleton matching content shape | "Loading..." | `aria-busy="true"`, `aria-live="polite"` |
-| Success | Green checkmark + pulse | "Saved successfully" | `role="status"`, `aria-live="polite"` |
-| Error | Red border + inline text | "Add campaign authoring/preview/targeting and delivery inspec..." | `role="alert"`, `aria-live="assertive"`, focus to error |
+| Success | Fixed toast confirmation | "Saved successfully" | `role="status"`, `aria-live="polite"` |
+| Error | Fixed toast + stable field marker | "Use seeded/manual release rows, CTA validation, and delivery inspection" | Toast live region announces failure; focus stays stable |
 | Empty | Icon + text | "No items yet." | `aria-live="polite"` |
 | Permission denied | Grayed-out + disabled | "You don't have access." | `aria-disabled="true"` |
 
@@ -22,7 +22,7 @@ Per [DESIGN.md](../../../DESIGN.md): SF Pro font (regular/medium), max 12px app 
 - Retry: "Try Again"
 - Support: "Contact Support"
 
-- **Error to fix:** Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories.
+- **Error to fix:** Release announcement rows, CTA safety, and delivery inspection need an operator story; rich composer work is later.
 - **Expected behavior:** 
 
 ## Motion
@@ -33,7 +33,7 @@ Per [DESIGN.md](../../../DESIGN.md): SF Pro font (regular/medium), max 12px app 
 | Modal close | 150ms | ease-in | 0ms |
 | Toast enter | 300ms | ease-out | 0ms |
 | Toast exit | 200ms | ease-in | 0ms |
-| Inline error | 150ms | ease-out | 0ms |
+| Toast update | 150ms | ease-out | 0ms |
 | Skeleton | 300ms | ease-out | 0ms |
 
 ## Accessibility (WCAG 2.2 AA)

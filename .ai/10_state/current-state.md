@@ -42,6 +42,47 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Full-app UX audit decision application pass completed (2026-06-23):**
+
+- Applied Philip's strategic decisions to `.ai/03_plans/2026-06-23-Full-App-User-Story-UX-Audit/`
+  and the linked canonical UX docs: Wave 1 cohort is estimator/PM-only; `UX-031`
+  shared-link field package is selected but deferred; `UX-015` named versions
+  stay dormant; `UX-032` is checklist/notes/gaps only; `UX-039` is
+  seeded/manual release rows plus CTA/delivery inspection; analytics uses
+  Vercel Web Analytics + Speed Insights with minimal Postgres audit events; rate
+  limiting follows Postgres-native Policy B while preserving broader existing
+  limiter coverage.
+- Added the pack-wide no-shift toast feedback contract: transient validation,
+  missing-field, save, provider, quota/rate-limit, recovery, async failure, and
+  success feedback goes through fixed toasts with scoped IDs; no reflowing
+  inline errors/banners for transient feedback.
+- This was a planning/docs pass only; no app source files were changed for the
+  UX audit.
+
+**Frontdoor landing premium launch-copy iteration completed (2026-06-23):**
+
+- Reworked the active `/` frontdoor (`src/components/frontdoor/*`) into a
+  launched-feeling SaaS/product landing page: hero copy now leads with cost
+  intelligence for estimates that have to stand up; public CTA language uses
+  "Start with an estimate" / walkthrough routes; visible `Pre-launch MVP`,
+  beta, early-access, fake-proof, and filler/placeholder language was removed
+  from the active homepage source.
+- Replaced visible placeholder boxes with code-rendered product surfaces for
+  the estimate sheet, cost library, activity, proposal link, export package,
+  charts, and long-form chapters. Renamed the active bento from ProductProof to
+  ProductLoop to avoid fake-proof framing.
+- Restored the older moving-mesh spirit in `FrontdoorHeroField`: dynamic import
+  of `three`, graphite wire surface, sparse orange signal nodes/curve, pointer
+  parallax, reduced-motion static render, WebGL fallback state, and no
+  orange page-level gradients. Orange is constrained to primary CTAs, one hero
+  emphasis, hover states, and small signal markers.
+- Verification evidence: targeted landing Vitest matrix passed (4 files / 11
+  tests); `bun run type-check` passed; targeted ESLint passed; Impeccable
+  strict detector passed for `src/components/frontdoor` + `src/app/page.tsx`;
+  `git diff --check` passed; focused Chromium Playwright proof passed at
+  1280x800, 390x844, and 320x812 for no horizontal overflow, launched hero
+  visibility, `data-three-hero="ready"`, and nonblank/varied hero-field pixels.
+
 **Shared-Link Modal UX/UI implementation completed (2026-06-23):**
 
 - Implemented `.ai/03_plans/2026-06-22-Shared-Link-Modal-UX-UI-Improvement/`

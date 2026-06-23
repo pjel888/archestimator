@@ -5,15 +5,15 @@ Date: 2026-06-23
 ## Affected Source Paths (candidate set)
 
 ```
-src/app/workshop/notifications/
+src/features/notifications/
 src/lib/email/
-src/app/api/ (notification endpoints)
+src/lib/notifications/
 ```
 
 ### How To Verify
 
 ```sh
-for p in src/app/workshop/notifications/ src/lib/email/ src/app/api/ (notification endpoints); do
+for p in src/features/notifications/ src/lib/email/ src/lib/notifications/; do
   [ -e "$p" ] && echo "OK   $p" || echo "MISS $p"
 done
 ```
@@ -24,7 +24,7 @@ Any MISS is drift — re-derive the path before editing.
 
 ## Current Behavior Summary
 
-Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories.
+Release announcement rows, CTA safety, and delivery inspection need an operator story; rich composer work is later.
 
 Evidence per audit:
 
@@ -50,8 +50,8 @@ Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-au
 
 | Aspect | Current | Target |
 |---|---|---|
-| User feedback | Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories. | Release operator previews a campaign, verifies target users and safe link, then inspects delivery state. |
-| Fix path | (none / partial) | Add campaign authoring/preview/targeting and delivery inspection rows with safe CTA validation. |
+| User feedback | Release announcement rows, CTA safety, and delivery inspection need an operator story; rich composer work is later. | Release operator validates a seeded/manual campaign row, safe link, and delivery state. |
+| Fix path | (none / partial) | Use seeded/manual release campaign rows, safe CTA validation, and delivery inspection. |
 
 ---
 

@@ -12,7 +12,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ## Decision Gate
 
-**DEC-UX-032-OWNER-READINESS (Accepted as lightweight first step)** — see canonical decision ledger for stop/go status. Do NOT implement until resolved.
+**DEC-UX-032-OWNER-READINESS (Accepted as lightweight first step)** — implement readiness checklist, notes, and owner-visible gaps only.
 
 ---
 
@@ -20,7 +20,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ### Blocking Dependencies (must complete first)
 
-UX-006, UX-007, UX-009 (same conflict group); project/share source-of-truth decision
+UX-006, UX-007, UX-009 (same conflict group); use existing project/share state. No approval workflow, actor approval state, owner margin alert, or final-package lifecycle audit in Wave 1.
 
 ### Blocked-By Issues (these wait on UX-032)
 
@@ -40,7 +40,7 @@ Per [03-sequencing](../../16_user-experience/2026-06-22-full-app-user-story-ux-a
 
 | Question | Owner | Resolution | Date |
 |---|---|---|---|
-| (pending) | (pending) | (pending) | (pending) |
+| Should Wave 1 include approval workflow, margin alerts, or final-package lifecycle audit? | Philip | No. Checklist/notes/gaps only. | 2026-06-23 |
 
 ---
 

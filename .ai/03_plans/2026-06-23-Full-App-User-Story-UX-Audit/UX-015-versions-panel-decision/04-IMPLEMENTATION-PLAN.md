@@ -1,14 +1,15 @@
 # UX-015 — Implementation Plan
 
 Date: 2026-06-23
-Owner lane: **IU-07 (Proposal/export)** | Phase: **1** | Scope: **Decision required**
+Owner lane: **IU-07 (Proposal/export)** | Phase: **1** | Scope: **Dormant / no Wave 1 code**
 
 ## Pre-Implementation Gates
 
 - [ ] Read 01-ISSUE-DEFINITION, 02-CURRENT-STATE-ANALYSIS, 03-TARGET-EXPERIENCE.
 - [ ] Verified cited paths exist.
 - [ ] Conflict group **Estimate sheet (secondary)** has no in-flight change.
-- [ ] Decision gate **DEC-UX-015-VERSIONS (Accepted as lightweight first step)** is resolved.
+- [ ] Decision gate **DEC-UX-015-VERSIONS (Accepted dormant posture)** is resolved.
+- [ ] Confirm no newer beta recovery objective supersedes the dormant posture.
 - [ ] Targeted verification IDs confirmed: **TV-ESTIMATE-SHEET**.
 
 ---
@@ -22,25 +23,17 @@ Owner lane: **IU-07 (Proposal/export)** | Phase: **1** | Scope: **Decision requi
 - [ ] Glob for existing tests covering the surface.
 - [ ] Document any drift from canonical audit.
 
-### Wave 1 — Test Scaffolding (RED)
+### Wave 1 — Dormant Guard Proof
 
-- [ ] Add failing test reproducing: Named-version UX is dormant/not discoverable in Activity if versioning becomes productized.
-- [ ] Run; confirm RED for the right reason.
-- [ ] Capture RED output to 06-VERIFICATION-AND-PROOF.
+- [ ] Confirm existing named-version dormant guards remain in source/tests.
+- [ ] Confirm no full Versions panel or compare/restore workflow is introduced for Wave 1.
+- [ ] Capture source/test evidence to 06-VERIFICATION-AND-PROOF if this issue is audited.
 
-### Wave 2 — Implementation (GREEN)
+### Wave 2 — Later Recovery Slice Only If Reauthorized
 
-File-by-file changes:
-
-- [ ] Edit `src/lib/estimates/`
-- [ ] Edit `src/components/workshop/ (activity/version UI)`
-
-For each file:
-
-- [ ] Read the file completely before editing.
-- [ ] Apply the smallest change that flips Wave 1's test to GREEN.
-- [ ] Run the test; confirm GREEN.
-- [ ] Run `lsp_diagnostics` on the changed file; confirm no new errors.
+- [ ] Do not edit version UI for Wave 1.
+- [ ] If a newer decision explicitly tests recovery, limit scope to activity/history discoverability and restore-as-copy explanatory copy.
+- [ ] Do not add version schema, compare UI, restore mutation, or full Versions panel without a new migration/RLS/test plan.
 
 ### Wave 3 — Regression Sweep
 
@@ -60,8 +53,7 @@ For each file:
 
 | Path | Why | Wave |
 |---|---|---|
-| `src/lib/estimates/` | Apply fix | 2 |
-| `src/components/workshop/ (activity/version UI)` | Apply fix | 2 |
+| (none for Wave 1) | Named versions remain dormant | 1 |
 
 ---
 
@@ -70,7 +62,7 @@ For each file:
 Complete when:
 
 - [ ] All Wave 0–4 checkboxes checked.
-- [ ] Every scenario in 05-ACCEPTANCE-CRITERIA PASSES with RED→GREEN proof + real-surface artifact.
+- [ ] Every scenario in 05-ACCEPTANCE-CRITERIA reflects dormant/no-code Wave 1 posture or a newer explicit recovery decision.
 - [ ] No new `lsp_diagnostics` errors.
 - [ ] `../LOOP_LEDGER.md` records completion.
 

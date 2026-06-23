@@ -12,7 +12,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ## Decision Gate
 
-**DEC-UX-039-CAMPAIGNS (Accepted as lightweight first step)** — see canonical decision ledger for stop/go status. Do NOT implement until resolved.
+**DEC-UX-039-CAMPAIGNS (Accepted as lightweight first step)** — implement seeded/manual release campaign rows, CTA validation, and delivery inspection only. Do not build a rich campaign composer in Wave 1.
 
 ---
 
@@ -20,7 +20,7 @@ Per the canonical [conflict matrix](../../16_user-experience/2026-06-22-full-app
 
 ### Blocking Dependencies (must complete first)
 
-UX-028, UX-029, UX-038 (same conflict group)
+UX-028, UX-029, UX-038 (same conflict group); provider proof required before delivery claims. Do not add a new workshop notifications route unless a later rich-composer decision explicitly creates it.
 
 ### Blocked-By Issues (these wait on UX-039)
 
@@ -40,7 +40,7 @@ Per [03-sequencing](../../16_user-experience/2026-06-22-full-app-user-story-ux-a
 
 | Question | Owner | Resolution | Date |
 |---|---|---|---|
-| (pending) | (pending) | (pending) | (pending) |
+| Should Wave 1 build rich campaign authoring/preview/targeting? | Philip | No. Seeded/manual rows first. | 2026-06-23 |
 
 ---
 

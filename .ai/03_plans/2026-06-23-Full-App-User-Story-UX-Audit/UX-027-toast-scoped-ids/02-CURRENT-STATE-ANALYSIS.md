@@ -51,7 +51,7 @@ Per the [Keystone](../../16_user-experience/2026-06-22-full-app-user-story-ux-au
 | Aspect | Current | Target |
 |---|---|---|
 | User feedback | Global toast id collisions or short-lived notifications can hide critical async failures. | User does not miss a failed save because a toast was overwritten. |
-| Fix path | (none / partial) | Use scoped toast ids and inline errors for critical cell/form failures. |
+| Fix path | (none / partial) | Use scoped fixed toast IDs for critical failures and non-shifting field/control affordances when local context is required. |
 
 ---
 

@@ -48,7 +48,7 @@ Standard auth page. Target: sub-2s LCP on 3G.
 
 ## Issue-Specific: UX-039
 
-- Release announcement authoring, preview, targeting, and delivery inspection are not distinct operator stories.
+- Release announcement rows, CTA safety, and delivery inspection need an operator story; rich composer work is later.
 - Skeleton loaders must match content dimensions (no CLS)
 - No blocking JS during initial render
 

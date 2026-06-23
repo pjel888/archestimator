@@ -24,7 +24,7 @@ Terms acceptance can depend on service-role/env persistence; repeated failures c
 
 ### Best Fix
 
-Show retryable inline error, support path, and include service-role readiness in launch checks.
+Show a fixed retry/support toast, support path, and include service-role readiness in launch checks.
 
 ### Post-Fix Scenario (the win)
 

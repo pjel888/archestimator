@@ -12,8 +12,8 @@ User either persists acceptance, retries knowingly, or contacts support with con
 
 | Surface | Copy |
 |---|---|
-| Heading | Derived from fix: Show retryable inline error, support path, and include service-role readiness in |
-| Body | Terms acceptance can depend on service-role/env persistence; repeated failures can feel like a dead end. resolved by Show retryable inline error, support path, and include service-role readiness in launch checks. |
+| Heading | Derived from fix: Show a fixed retry/support toast, support path, and include service-role readiness in |
+| Body | Terms acceptance can depend on service-role/env persistence; repeated failures can feel like a dead end. resolved by Show a fixed retry/support toast, support path, and include service-role readiness in launch checks. |
 | CTA | Action verb (Save / Retry / Request / Cancel) |
 
 ### Recovery Copy

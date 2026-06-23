@@ -21,7 +21,7 @@ User finds version controls intentionally rather than searching activity logs.
 
 ### Best Fix
 
-Create a separate Versions panel with compare and restore-as-copy status.
+Keep named versions dormant for Wave 1; if recovery is explicitly tested later, use activity/history discoverability and restore-as-copy explanation before any full panel.
 
 ---
 

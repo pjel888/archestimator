@@ -34,7 +34,7 @@ Authority rule: product persona is not authority. Authority comes from the acces
 |---|---|
 | Projects/estimates | User cannot read/write another workspace/project; shared project access follows collaboration role; destructive actions require owner/admin or explicit permission. |
 | Collaboration/invites | Invite token lifecycle is bounded; wrong-account and revoked states fail closed; role changes are audited. |
-| Publication/share | Revoked/expired/password-locked links fail closed; no-store/cache headers persist; tokens are redacted from logs and UI. NOTE: recipient comment/decision/unsubscribe actions are **NOT currently rate-limited** — see Rate-Limit Truth below. |
+| Publication/share | Revoked/expired/password-locked links fail closed; no-store/cache headers persist; tokens are redacted from logs and UI. Recipient comment/decision rate limits are first-class Policy B proof; current source also contains broader durable share limiter scopes that must be preserved. |
 | Assets/uploads | Upload path cannot cross workspace; invalid MIME/size rejected; signed URLs expire; failed asset loads produce recipient-safe copy. |
 | Library/cost | Supplier/cost/attachment governance does not expose private workspace data; accepted-cost or approval states are auditable. |
 | Notifications/campaigns | Delivery rows are scoped to intended users; campaign targeting is reviewed; unsafe CTA cannot ship. |
@@ -43,13 +43,23 @@ Authority rule: product persona is not authority. Authority comes from the acces
 
 ### Rate-Limit Truth (honesty correction)
 
-As of this audit, **the only currently-enforced rate limit in the app is AI ask**: `checkAiAskQuota` in `src/lib/ai/rate-limit.ts` (10/min, 60/hr) backed by `security_rate_limit_events` (migration `20260601003000`). The following actions are **NOT currently rate-limited** and any plan that claims otherwise is aspirational, not proven:
+Rate limiting is Postgres-native (NOT Redis). `DEC-UX-RL-QUOTAS` is accepted as
+Policy B: share comments and decisions first. Current source has already drifted
+beyond the older packet and includes broader durable limiter coverage for
+share-recipient actions plus invite/landing request paths. The security docs
+must therefore preserve and reconcile existing limiter scopes, not claim only AI
+ask is limited and not remove broader coverage.
 
-- Recipient comment / decision / unsubscribe on `/share/[token]`.
-- Beta access requests (the beta gate request path).
-- Invite accepts (wrong-account / revoked-replay paths).
+Proof posture:
 
-Rate limiting is Postgres-native (NOT Redis). Which recipient/beta/invite actions need quotas beyond AI ask is an open owner decision — see `DEC-UX-RL-QUOTAS` and doc 14's Rate-Limit Truth Table. Abuse-case rows below that previously implied rate limits exist on these paths have been corrected to "planned, not enforced."
+- AI ask is rate-limited via `checkAiAskQuota` (10/min, 60/hr) backed by
+  `security_rate_limit_events`.
+- Share recipient comments and decisions are rate-limited in current source and
+  are the first quota proof priority for `TV-SHARE-RECIPIENT`.
+- Share session/read/unsubscribe, invite, and landing/beta request limiter
+  coverage exists in current source, but exact hosted quotas and route coverage
+  must be verified before making provider-proof claims.
+- Webhook ingress and AI package-builder quota posture remain `TODO-verify`.
 
 ## Data Classification
 
@@ -82,11 +92,11 @@ Rate limiting is Postgres-native (NOT Redis). Which recipient/beta/invite action
 | Surface | Abuse scenario | Planning mitigation | Bound implementation |
 |---|---|---|---|
 | Auth/login | Open redirect or unsafe `next` link | Sanitize redirects and explain dropped unsafe path. | — (no concrete primitive bound; TODO-verify redirect sanitizer) |
-| Beta access | Enumerating or repeatedly requesting access | Queue/allowlist state isolation; avoid exposing private allowlist state. Quota is **planned, not enforced** — see Rate-Limit Truth + `DEC-UX-RL-QUOTAS`. | — (no rate-limit primitive bound today) |
-| Invite | Token forwarding, wrong account, revoked invite replay | Token state validation, wrong-account flow, audit repair. Accept-quota is **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | doc 14 Bound Security Primitives: invite token validation (see invite handlers row) |
-| Share link | Token brute force, link forwarding, scraping, open-count privacy leak | High-entropy tokens, no-store, revocation, privacy-safe events. Rate limits on this path are **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | doc 14: token brute-force -> HMAC-SHA256 (`hashPublicationToken`) + `submit_client_response` RPC (migration `20260621120000`) validates both `token_hash` and `recipient_token_hash` |
-| Comments/decisions | Spam, duplicate decisions, conflict race | CSRF, idempotency or conflict copy, retry semantics. Recipient comment/decision rate limit is **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | — (no rate-limit primitive bound today; idempotency TODO-verify) |
-| Unsubscribe | Invalid token abuse or CSRF | Token validation, safe interstitial, no account leakage. Unsubscribe rate limit is **planned, not enforced** (`DEC-UX-RL-QUOTAS`). | doc 14: recipient token validation via `submit_client_response` RPC |
+| Beta access | Enumerating or repeatedly requesting access | Queue/allowlist state isolation; avoid exposing private allowlist state; preserve landing/beta Postgres limiter coverage and verify route scope before proof claims. | doc 14 Rate-Limit Truth Table (`src/lib/landing/rate-limit.ts`) |
+| Invite | Token forwarding, wrong account, revoked invite replay | Token state validation, wrong-account flow, audit repair; preserve invite-entry limiter coverage and verify accept/continue route scope before proof claims. | doc 14 Bound Security Primitives: invite token validation + invite limiter row |
+| Share link | Token brute force, link forwarding, scraping, open-count privacy leak | High-entropy tokens, no-store, revocation, privacy-safe events, and durable share limiter scopes. | doc 14: HMAC-SHA256 (`hashPublicationToken`) + current publication limiter scopes + `submit_client_response` RPC (migration `20260621120000`) validates both `token_hash` and `recipient_token_hash` |
+| Comments/decisions | Spam, duplicate decisions, conflict race | CSRF, idempotency/conflict copy, retry semantics, and Policy B durable rate limits for comments and decisions. | doc 14 Rate-Limit Truth Table; `src/lib/publication/public-repository.ts` limiter scopes |
+| Unsubscribe | Invalid token abuse or CSRF | Token validation, safe interstitial, no account leakage, and current unsubscribe limiter scope; verify hosted quota before provider-proof claim. | doc 14: recipient token validation + unsubscribe limiter scope |
 | Password lockout | Password brute force on password-protected share | Slow hashing, lockout posture. | doc 14: `passwordHashPrefix` (scrypt) in `src/lib/publication/security.ts` |
 | Uploads/assets | Oversized files, MIME spoofing, path traversal, private asset leak | Validation, bucket scoping, signed URLs, failed asset fallback. | doc 14: `api/projects/images` row (size/MIME/bucket scoping) |
 | Feedback | Payload spam, PII overcollection | Size limits, safe fallback mailto, triage owner, no secrets in payload. | — (no concrete primitive bound; TODO-verify size cap) |

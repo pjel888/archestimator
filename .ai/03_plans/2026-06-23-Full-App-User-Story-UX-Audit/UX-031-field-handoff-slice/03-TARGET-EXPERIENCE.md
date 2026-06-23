@@ -4,7 +4,7 @@ Date: 2026-06-23
 
 ## Target UX
 
-Contractor/builder or field operator receives a field-ready package through the intended access path, confirms receipt, records constraints, and sends updates back to the project.
+After cohort expansion, a field recipient can receive a scoped shared-link field package with explicit permissions, audit trail, and rollback proof.
 
 ---
 
@@ -13,7 +13,7 @@ Contractor/builder or field operator receives a field-ready package through the 
 | Surface | Copy |
 |---|---|
 | Heading | Derived from fix: Define the first beta slice, handoff package contents, field feedback path, acce |
-| Body | Contractor/builder and field-operator handoff workflows are implied by collaboration/share primitives but not mapped to explicit access-path user journeys. resolved by Define the first beta slice, handoff package contents, field feedback path, access-path behavior, and only add new permission roles if existing paths cannot support required isolation. |
+| Body | Contractor/builder and field-operator handoff workflows are implied by collaboration/share primitives but not mapped to explicit access-path user journeys. resolved by Preserve the selected later shared-link field package slice; do not implement field package code, new roles, or RLS changes in Wave 1. |
 | CTA | Action verb (Save / Retry / Request / Cancel) |
 
 ### Recovery Copy

@@ -5,7 +5,7 @@ Source: [canonical audit](../../16_user-experience/2026-06-22-full-app-user-stor
 
 ## Problem Statement
 
-**PM readiness, actor approvals, owner margin alerts, and final-package lifecycle audit are under-modeled.**
+**PM readiness is under-modeled; approvals, margin alerts, and lifecycle audit are later governance work.**
 
 ### Affected Users
 
@@ -21,7 +21,7 @@ PM or owner sees whether a project is ready to publish, who approved it, and wha
 
 ### Best Fix
 
-Add readiness checklist, approval status by actor, margin/risk alerts, and final-package lifecycle timeline.
+Add a lightweight readiness checklist, notes, and owner-visible gaps.
 
 ---
 
