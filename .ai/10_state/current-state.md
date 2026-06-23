@@ -42,6 +42,83 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Shared-Link Modal UX/UI implementation completed (2026-06-23):**
+
+- Implemented `.ai/03_plans/2026-06-22-Shared-Link-Modal-UX-UI-Improvement/`
+  in the shared-link modal and supporting UI primitives: collapsed modal IA to
+  Content / Recipients / Activity, promoted the live link panel above tabs,
+  moved publication actions into the AppModal footer, routed feedback through
+  the AppModal location slot, split password removal into an explicit
+  destructive confirm, added a modal TabStrip variant, and hardened stacked
+  modal focus/Escape/body-lock/inert behavior plus ControlField ARIA binding.
+- No publication server actions, RPCs, API routes, provider code, or Supabase
+  migrations were changed. The existing optimistic signature gate,
+  `confirmInFlightRef` double-submit guard, dual live-region feedback, TabStrip
+  ARIA ids, recipient preserve-list behavior, and AC-MOD-18 curated estimate
+  selection were preserved.
+- Verification evidence: focused shared-link/modal matrix passed
+  (`project-publication-header`, `recipient-email-composer`,
+  `ui-modal-tooltip`, `tab-strip`: 4 files / 119 tests); adjacent publication
+  regression matrix passed (`project-publication-activity`,
+  `project-publication-actions`, `project-publication-rotate-resend`: 3 files /
+  79 tests); `bunx tsc --noEmit --pretty false --incremental false
+  --skipLibCheck` passed; targeted ESLint on touched source/tests passed;
+  `git diff --check` passed; boundary diff for `src/lib/publication/actions.ts`,
+  Supabase migrations, API, provider, and Supabase client paths was empty.
+- Broad `bun run test:dom` was not used as completion evidence: a pre-fix run
+  reproduced unrelated existing reds in landing/pricing/liquid-glass/dashboard/
+  live-estimate/homebase tests and was interrupted after later shared-link edits
+  to avoid mixed-run evidence. Browser/manual visual proof remains intentionally
+  deferred under the Codex App speed guardrail; current proof is source +
+  jsdom/type/lint.
+
+**Library Page UI improvement implemented and verified (2026-06-23):**
+
+- Implemented the archived plan pack at
+  `.ai/09_archive/2026-06-23-Library-Page-UI-Improvement/` across Overview,
+  Components, Templates browse/editor, loading states, inspector/preview docks,
+  dense table chrome, Library surface slots, and the shared toolbar activation
+  path needed by the browser proof.
+- Evidence is recorded in
+  `.ai/09_archive/2026-06-23-Library-Page-UI-Improvement/_evidence/IMPLEMENTATION-COMPLETION.md`
+  and `_evidence/VERIFICATION-LOG.md`. Fresh browser artifacts include the
+  required 5,000-row dense desktop/mobile proof at
+  `_evidence/phase-5/dense-mode/*20260623T04472*`.
+- Verification passed after verifier-blocker remediation: targeted Library
+  Vitest matrix (23 files / 168 tests), focused toolbar/tree/manager UI Vitest
+  checks (3 files / 43 tests), shared-link compile/test unblocker (74 tests),
+  `bun run type-check`, `git diff --check`, Library-touched forbidden-boundary
+  diff scan, full Library Chromium e2e route proof (8 passed / 1 skipped dense
+  perf gate), focused legacy redirect proof (2 passed), and fresh 5,000-row
+  dense Chromium proof (`rowCount: 5000`, `virtualActive: true`, `mountedCount:
+  25`).
+- Boundary note: no Supabase schema, provider, API upload, query-key, action, or
+  cache-invalidation surfaces were changed for the Library UI work. Frontdoor
+  CSS/Three.js edits and shared-link modal edits in the dirty worktree are
+  compile/test unblockers for local Next/browser validation, not part of the
+  Library visual scope.
+
+**Shared-Link Modal UX/UI implementation handoff hardened (2026-06-23):**
+
+- Upgraded `.ai/03_plans/2026-06-22-Shared-Link-Modal-UX-UI-Improvement/`
+  for future code-implementation readiness. `12-IMPLEMENTATION-PLAN.md` is now
+  the canonical operator manual; `README.md` and `00-PLAN.md` route future
+  agents to it.
+- The handoff now includes source-doc traceability, acceptance gates, explicit
+  modal state/flow requirements, strategy pros/cons, a corrected
+  `ConfirmDialog` focus contract, a canonical `ControlField` audit (5
+  production files / 58 shared call sites; `ProjectChartsClient` excluded as a
+  local lookalike), existing-vs-new test labeling, multi-agent staffing, and an
+  UltraQA scenario matrix.
+- Phase 4 is intentionally minimal in this UX/UI pack: rotate/recipient busy
+  mitigation plus optional expiry countdown. Full client-sync convergence, full
+  busy orchestration, and server token guarding for recipient add remain a
+  separate data-convergence follow-up. No app code, database, provider, browser,
+  or production state changed.
+- Docs-only verification: `git diff --check` passed for the plan pack and
+  current-state entry; targeted placeholder/overclaim scan returned no matches;
+  the plan folder contains 15 markdown artifacts.
+
 **New estimate sheets start with an empty sheet tree (2026-06-23):**
 
 - `createEstimateSheetDraft` and the legacy `createEstimate` server action now
