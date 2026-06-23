@@ -115,6 +115,7 @@ export function EstimateColumn({
           displayBuckets.map((bucket) => {
             const dim = Boolean(activeBucketId && activeBucketId !== bucket.id);
             return (
+              // react-doctor-disable-next-line react-doctor/no-noninteractive-tabindex -- Focus previews the matching chart bucket for keyboard users; the comparable data table follows this visual list.
               <li
                 key={bucket.id}
                 tabIndex={0}

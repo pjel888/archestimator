@@ -139,8 +139,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
               aria-label={`${a.title} ${new Date(a.occurredAt).toLocaleString()}`}
               aria-posinset={index + 1}
               aria-setsize={activities.length}
-              tabIndex={0}
-              className="rounded-xs border border-hairline bg-surface p-2 text-[10px] focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              className="rounded-xs border border-hairline bg-surface p-2 text-[10px]"
             >
               <div className="font-medium text-secondary">{a.title}</div>
               <div className="text-[9px] text-secondary">{new Date(a.occurredAt).toLocaleString()}</div>

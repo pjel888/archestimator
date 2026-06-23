@@ -63,7 +63,7 @@ async function getSidePanelWidthCssVariables() {
 
 function WorkshopShellContentFallback() {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2" role="status" aria-label="Loading workspace">
+    <output className="flex h-full min-h-0 flex-col gap-2" aria-label="Loading workspace">
       <div className="grid shrink-0 grid-cols-3 gap-2" aria-hidden="true">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
@@ -73,7 +73,7 @@ function WorkshopShellContentFallback() {
         <Skeleton className="h-full w-full" />
       </div>
       <span className="sr-only">Loading workspace</span>
-    </div>
+    </output>
   );
 }
 

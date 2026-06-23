@@ -46,7 +46,7 @@ export function LongFormFeatureSection({
         {heading}
       </RevealOnScroll>
       {paragraphs.map((paragraph, index) => (
-        <RevealOnScroll as="p" className={styles.bodyText} delayMs={120 + index * 60} key={index}>
+        <RevealOnScroll as="p" className={styles.bodyText} delayMs={120 + index * 60} key={paragraph}>
           {paragraph}
         </RevealOnScroll>
       ))}

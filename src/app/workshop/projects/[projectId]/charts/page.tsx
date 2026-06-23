@@ -6,8 +6,7 @@ type ProjectChartsCompatPageProps = {
 };
 
 export default async function ProjectChartsCompatPage({ params, searchParams }: ProjectChartsCompatPageProps) {
-  const { projectId } = await params;
-  const resolvedSearchParams = await searchParams;
+  const [{ projectId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(resolvedSearchParams ?? {})) {

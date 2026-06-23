@@ -113,6 +113,7 @@ export function LibraryItemCard({
   const sourceMeta = stalenessLabel ? `${sourceLabel} · ${stalenessLabel}` : sourceLabel;
 
   const SelectionControl = onToggleBulkSelected ? (
+    // react-doctor-disable-next-line react-doctor/no-noninteractive-element-interactions -- Label wraps the checkbox and only stops propagation to the parent card.
     <label
       className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center border border-hairline bg-white text-tertiary hover:border-accent"
       aria-label={`Select ${name}`}
@@ -158,6 +159,7 @@ export function LibraryItemCard({
       >
         <Heart size={11} weight="regular" />
       </Button>
+      {/* react-doctor-disable-next-line react-doctor/no-noninteractive-element-interactions -- Details owns the disclosure interaction; this click only prevents parent-card selection. */}
       <details className="relative" onClick={(event) => event.stopPropagation()}>
         <summary
           className="grid size-5 cursor-pointer list-none place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"

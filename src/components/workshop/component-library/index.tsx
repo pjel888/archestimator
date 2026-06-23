@@ -66,28 +66,32 @@ import {
 } from "./templates";
 import type { NewComponentForm as NewComponentFormType } from "./types";
 import {
-  applyLibraryTreeOrder,
   buildLibraryTreeWithComponentRows,
   buildProjectComponentTree,
+  splitSidebarComponentItems,
+  type ComponentLibrarySupplierOption,
+} from "./tree/buildLibraryTree";
+import {
   buildTemplatesSelectionNodes,
   buildTemplatesTreeNodes,
-  filterTree,
-  findLibrarySiblingOrder,
-  findNode,
-  getAllNodeIds,
   getCheckedProjectSourceTargets,
   getCheckedProjectSourceRowItems,
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,
-  LibraryTree,
   TemplatesTree,
-  splitSidebarComponentItems,
   templatesTreeCategoryId,
   templatesTreeSectionId,
-  type LibraryTreeNode,
+} from "./tree/TemplatesTree";
+import { LibraryTree } from "./tree/LibraryTree";
+import {
+  applyLibraryTreeOrder,
+  filterTree,
+  findLibrarySiblingOrder,
+  findNode,
+  getAllNodeIds,
   type LibraryTreeOrder,
-} from "./tree";
-import type { ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
+} from "./tree/helpers";
+import type { LibraryTreeNode } from "./tree/types";
 
 // U1b: project-source load failures surface through the existing toast — never
 // an inline banner (which shifts the tree) and never a raw DB error shape
@@ -173,11 +177,12 @@ const SKELETON_REVEAL_DELAY_MS = 150;
  */
 function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
   const [revealedIds, setRevealedIds] = useState<string[]>([]);
-  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(null!);
+  if (timersRef.current === null) timersRef.current = new Map();
   const activeKey = activeIds.join("\0");
 
   useEffect(() => {
-    const active = new Set(activeIds);
+    const active = new Set(activeKey ? activeKey.split("\0") : []);
     const timers = timersRef.current;
     const scheduledIds: string[] = [];
     for (const id of active) {
@@ -207,8 +212,6 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
         }
       }
     };
-    // activeKey is the content-stable proxy for activeIds; delayMs is constant.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, delayMs]);
 
   useEffect(() => {
@@ -416,6 +419,8 @@ function getProjectSourceTypeLabel(source: ProjectReusableEstimateSource) {
   return "Area";
 }
 
+const previewDateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
+
 function findProjectSourceByKey(sources: ReusableEstimateSource[], key: string | null): ProjectReusableEstimateSource | null {
   if (!key) return null;
   return sources.find(
@@ -428,7 +433,7 @@ function formatPreviewDate(value?: string | null) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return previewDateFormatter.format(date);
 }
 
 function getProjectSourcePreviewContext(
@@ -564,7 +569,7 @@ function ProjectSourcePreviewPanel({
   const insertable = isProjectSourceInsertTarget(source);
 
   return (
-    <div className="shrink-0 border-t border-hairline bg-white" role="region" aria-label="Project source preview">
+    <section className="shrink-0 border-t border-hairline bg-white" aria-label="Project source preview">
       <div className="flex items-start gap-2 p-2">
         <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-surfaceMuted text-tertiary">
           <StackSimple size={18} weight="regular" aria-hidden="true" />
@@ -640,7 +645,7 @@ function ProjectSourcePreviewPanel({
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -875,9 +880,9 @@ function EstimateRightSidebarBase({
   // on another surface refreshes it via cache invalidation) WHILE preserving any
   // local optimistic appends not yet reflected in the prop — so an open panel
   // never shows stale templates and never drops an in-flight optimistic add.
-  const [syncedTemplatesProp, setSyncedTemplatesProp] = useState(templates);
-  if (syncedTemplatesProp !== templates) {
-    setSyncedTemplatesProp(templates);
+  const syncedTemplatesPropRef = useRef(templates);
+  if (syncedTemplatesPropRef.current !== templates) {
+    syncedTemplatesPropRef.current = templates;
     setTemplateList((current) => {
       const propIds = new Set(templates.map((template) => template.id));
       const optimisticOnly = current.filter((template) => !propIds.has(template.id));
@@ -954,6 +959,9 @@ function EstimateRightSidebarBase({
   const libraryPrefsHydratedRef = useRef(false);
   const syncedInitialLibraryItemsRef = useRef(initialLibraryItems);
   const syncedLibraryFoldersRef = useRef(libraryFolders);
+  const clearDeleteUndoTimer = useCallback(() => {
+    if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
+  }, []);
 
   const selectedTargetNode = useMemo(() => {
     if (!nodes?.length || !activeSelectedNodeId) return null;
@@ -1028,6 +1036,7 @@ function EstimateRightSidebarBase({
     : "";
 
   useEffect(() => {
+    if (libraryPrefsHydratedRef.current) return undefined;
     // Stored values must be read synchronously: the prefs-persist effect below
     // runs in the same flush and would overwrite them with the defaults.
     const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
@@ -1075,8 +1084,7 @@ function EstimateRightSidebarBase({
       cancelled = true;
     };
     // Stored prefs hydrate exactly once, after the SSR markup is committed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [brands, categoryTree, initialLibraryItems, libraryFolders, suppliers]);
 
   useEffect(() => {
     // Persisting before stored prefs hydrate would clobber them with the
@@ -1248,10 +1256,8 @@ function EstimateRightSidebarBase({
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
-    };
-  }, []);
+    return clearDeleteUndoTimer;
+  }, [clearDeleteUndoTimer]);
 
   const favoriteIds = useMemo(
     () => filterMapBy(libraryItems, (item) => item.isFavorite === true, (item) => item.id),
@@ -1335,9 +1341,9 @@ function EstimateRightSidebarBase({
   let templatesProjectSourceLoadStatus = null;
   if (canLoadProjectSourcesFromActions && projectSourcesLoading) {
     templatesProjectSourceLoadStatus = (
-      <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary" role="status">
+      <output className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
         Refreshing project sources...
-      </div>
+      </output>
     );
   } else if (canLoadProjectSourcesFromActions && projectSourcesLoadError && !hasLoadedProjectSources) {
     templatesProjectSourceLoadStatus = (
@@ -1351,9 +1357,9 @@ function EstimateRightSidebarBase({
     );
   } else if (canLoadProjectSourcesFromActions && projectSourcesUpdated) {
     templatesProjectSourceLoadStatus = (
-      <div className="mb-2 rounded-xs border border-dashed border-successSoft bg-successSoft/30 p-2 text-[10px] leading-4 text-success" role="status">
+      <output className="mb-2 rounded-xs border border-dashed border-successSoft bg-successSoft/30 p-2 text-[10px] leading-4 text-success">
         Project sources updated.
-      </div>
+      </output>
     );
   }
 
@@ -1362,13 +1368,13 @@ function EstimateRightSidebarBase({
       // U23: the first project-source load shows fixed-height skeleton rows in
       // place of a spinner/text banner, so real rows replace them with no shift.
       return (
-        <div className="space-y-px" role="status" aria-label="Loading project sources">
+        <output className="space-y-px" aria-label="Loading project sources">
           {[0, 1, 2].map((index) => (
             <div key={index} className="flex h-7 items-center px-1">
               <span className="h-2.5 w-full max-w-[160px] animate-pulse rounded-xs bg-surfaceMuted" aria-hidden="true" />
             </div>
           ))}
-        </div>
+        </output>
       );
     }
     // Warm refresh failures surface via toast, not an inline banner.
@@ -1828,19 +1834,19 @@ function EstimateRightSidebarBase({
     setDeleteCandidate(null);
     setDeletedItems([item]);
     setLastActionMessage(`${getComponentName(item)} removed from this sidebar view. Undo is available.`);
-    if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
+    clearDeleteUndoTimer();
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
     onLibraryDataChanged?.();
-  }, [onLibraryDataChanged]);
+  }, [clearDeleteUndoTimer, onLibraryDataChanged]);
 
   const undoDelete = useCallback(() => {
     if (!deletedItems.length) return;
     setLibraryItems((items) => [...deletedItems, ...items]);
     setLastActionMessage(deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} restored to this sidebar view.` : `${deletedItems.length} components restored to this sidebar view.`);
     setDeletedItems([]);
-    if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
+    clearDeleteUndoTimer();
     onLibraryDataChanged?.();
-  }, [deletedItems, onLibraryDataChanged]);
+  }, [clearDeleteUndoTimer, deletedItems, onLibraryDataChanged]);
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
     setActiveTab(tab);
@@ -1911,6 +1917,7 @@ function EstimateRightSidebarBase({
         if (addTemplateNode(template, node)) insertedCount += 1;
       });
       for (const source of bulkProjectSourceTargets) {
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Source insertion mutates ordered estimate state; preserve deterministic insertion order.
         if (await addProjectSource(source)) insertedCount += 1;
       }
     }
@@ -1949,10 +1956,10 @@ function EstimateRightSidebarBase({
     setLastActionMessage(
       `${bulkSelectedItems.length} ${bulkSelectedItems.length === 1 ? "component" : "components"} removed from this sidebar view. Undo is available.`,
     );
-    if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
+    clearDeleteUndoTimer();
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
     onLibraryDataChanged?.();
-  }, [bulkSelectedItems, clearBulkSelection, isLibraryTab, onLibraryDataChanged]);
+  }, [bulkSelectedItems, clearBulkSelection, clearDeleteUndoTimer, isLibraryTab, onLibraryDataChanged]);
 
   const handleExpandAll = useCallback(() => {
     if (isTemplatesTab) {

@@ -347,6 +347,7 @@ export function buildEstimateNodeReorderPlan({
   if (!removedResult.removed) return fail("unknown-dragged-node", "Dragged estimate tree node was not found.");
 
   const nextNodes = insertNode(removedResult.nodes, targetParentId, adjustedTargetIndex, removedResult.removed);
+  // react-doctor-disable-next-line react-doctor/insecure-crypto-risk -- Structure signature is deterministic equality for reorder no-op detection, not security-sensitive cryptography.
   if (getEstimateTreeStructureSignature(nextNodes) === getEstimateTreeStructureSignature(nodes)) {
     return fail("no-op", "Estimate tree node is already in that position.");
   }

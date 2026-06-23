@@ -84,7 +84,7 @@ export type EstimateTableColumnResizeConfig = {
 // area's table must not re-render every other table. Callback props must be
 // identity-stable (useStableCallback in EstimateSheetContent) — a changed
 // callback identity forces a re-render to avoid stale closures.
-export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, next: EstimateRowItemsTableProps) {
+function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, next: EstimateRowItemsTableProps) {
   if (
     prev.items !== next.items ||
     prev.targetNodeId !== next.targetNodeId ||
@@ -486,6 +486,13 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   );
 });
 
+function handleLibraryItemDragOver(event: DragEvent) {
+  if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+}
+
 export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   items,
   editableRows,
@@ -637,13 +644,6 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
 
   if (!items.length) return null;
 
-  function handleDragOver(event: DragEvent) {
-    if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-    }
-  }
-
   function handleDrop(event: DragEvent) {
     const payload = event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE);
     if (!payload) return;
@@ -692,7 +692,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       ref={scrollRootRef}
       className={cn("overflow-hidden border-x border-b border-hairline", estimateSurfaceClass(surfaceVariant, "gridTableRoot"))}
       data-estimate-row-table-root={targetNodeId}
-      onDragOver={handleDragOver}
+      onDragOver={handleLibraryItemDragOver}
       onDrop={handleDrop}
     >
       <table className="w-full border-collapse text-[10px] text-ink">
@@ -743,7 +743,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               Total Item Cost
               {renderResizeHandle("totalItemCosts")}
             </th>
-            <th aria-hidden="true" />
+            <th aria-label="Row actions" />
           </tr>
         </thead>
         <tbody

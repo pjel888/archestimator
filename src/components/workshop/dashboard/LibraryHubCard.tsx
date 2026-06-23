@@ -27,6 +27,8 @@ type LibraryCardLinkProps = {
   className?: string;
 };
 
+const EMPTY_RECENT_PROJECTS: WorkshopProjectSummary[] = [];
+
 export function LibraryCardLink({ href, className }: LibraryCardLinkProps) {
   return (
     <div
@@ -70,7 +72,7 @@ export function LibraryCardLink({ href, className }: LibraryCardLinkProps) {
 export function LibraryHubCard({
   href,
   continueEstimate,
-  recentProjects = [],
+  recentProjects = EMPTY_RECENT_PROJECTS,
   className,
 }: LibraryHubCardProps) {
   const router = useNavigationRouter();

@@ -42,6 +42,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
   }, []);
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Header listens for Escape to close its contained mobile menu.
     <header
       className={`sticky top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 ${
         isOverFooter

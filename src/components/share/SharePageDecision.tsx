@@ -33,6 +33,13 @@ interface DecisionState {
 }
 
 type DecisionTargetState = Pick<DecisionState, "estimateId" | "rowId" | "targetKind" | "targetLabel" | "targetSecondaryLabel">;
+const decisionDateFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 type DecisionGetResponse = {
   decision?:
@@ -66,13 +73,7 @@ function formatDecisionDate(value: string | undefined) {
   if (!value) return "the recorded time";
   const time = new Date(value);
   if (Number.isNaN(time.getTime())) return "the recorded time";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(time);
+  return decisionDateFormatter.format(time);
 }
 
 function confirmTitle(decision: DecisionType) {

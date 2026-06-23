@@ -23,7 +23,7 @@ import {
 } from "./constants";
 import { formatEditableMoney, type EditableRowValue } from "./editable-row-model";
 
-export function focusEstimateCell(rowIndex: number, cellIndex: number) {
+function focusEstimateCell(rowIndex: number, cellIndex: number) {
   const nextCell = document.querySelector<HTMLInputElement | HTMLSelectElement>(
     `[data-estimate-row-index="${rowIndex}"][data-estimate-cell-index="${cellIndex}"]`,
   );
@@ -73,7 +73,7 @@ export function handleEstimateCellKeyDown(
   focusEstimateCell(target[0], target[1]);
 }
 
-export function isProjectSpecificRowItem(item: EstimateRowItem) {
+function isProjectSpecificRowItem(item: EstimateRowItem) {
   const projection = readProjectComponentProjectionMetadata(item.metadata);
   return item.linkState === "detached" || projection?.classification === "detached-library";
 }
@@ -169,7 +169,7 @@ function EstimateMaterialCardFrame({
   );
 }
 
-export function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem }) {
+function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem }) {
   return (
     <EstimateMaterialCardFrame
       image={(

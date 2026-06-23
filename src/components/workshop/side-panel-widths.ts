@@ -7,7 +7,7 @@ export type SidePanelWidthConfig = {
   widthOffset: number;
 };
 
-export const SIDE_PANEL_WIDTH_COOKIE_PREFIX = "archestimator_panel_width_";
+const SIDE_PANEL_WIDTH_COOKIE_PREFIX = "archestimator_panel_width_";
 
 export const SIDE_PANEL_WIDTH_CONFIGS = [
   {

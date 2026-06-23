@@ -61,11 +61,10 @@ export function NotificationCenter() {
         {unreadCount === 1 ? "1 unread notification" : `${unreadCount} unread notifications`}
       </span>
       {open ? (
-        <div
+        <section
           id="notification-center-panel"
           ref={panelRef}
           tabIndex={-1}
-          role="region"
           aria-label="Notifications"
           className="absolute right-0 top-8 z-[80] flex max-h-[min(420px,calc(100dvh-92px))] w-[min(280px,calc(100vw-24px))] flex-col overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_12px_36px_rgba(17,17,17,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
@@ -82,11 +81,11 @@ export function NotificationCenter() {
           </div>
 
           {feedQuery.isLoading ? (
-            <div role="status" className="space-y-1 p-2 text-[10px] leading-4 text-tertiary">
+            <output className="space-y-1 p-2 text-[10px] leading-4 text-tertiary">
               <div className="h-8 rounded-xs bg-surfaceMuted" aria-hidden="true" />
               <div className="h-8 rounded-xs bg-surfaceMuted" aria-hidden="true" />
               <span>Loading notifications...</span>
-            </div>
+            </output>
           ) : feedQuery.isError ? (
             <div role="alert" className="space-y-2 p-2 text-[10px] leading-4 text-secondary">
               <p>Notifications could not load.</p>
@@ -114,7 +113,7 @@ export function NotificationCenter() {
               ))}
             </ul>
           )}
-        </div>
+        </section>
       ) : null}
     </div>
   );

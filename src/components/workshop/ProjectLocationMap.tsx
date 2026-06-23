@@ -72,6 +72,9 @@ export function ProjectLocationMap({
   const renderedFallbackReason = hasMapsApiKey ? fallbackReason : "Google Maps API key missing";
   const center = useMemo(() => toMapPosition(pin), [pin]);
   const coordinateLabel = pin ? `${formatCoordinate(pin.latitude)}, ${formatCoordinate(pin.longitude)}` : null;
+  const clearMapRef = useCallback(() => {
+    mapRef.current = null;
+  }, []);
   const requestMapLoad = useCallback(() => {
     setShouldLoadMap(true);
   }, []);
@@ -149,9 +152,9 @@ export function ProjectLocationMap({
 
     return () => {
       cancelled = true;
-      mapRef.current = null;
+      clearMapRef();
     };
-  }, [apiKey, hasMapsApiKey, shouldLoadMap]);
+  }, [apiKey, clearMapRef, hasMapsApiKey, shouldLoadMap]);
 
   useEffect(() => {
     const map = mapRef.current;

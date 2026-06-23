@@ -15,7 +15,7 @@ function SidebarPreview() {
       <p className="mb-2 text-[11px] font-medium leading-4 text-ink">ArchEstimator</p>
       <nav className="space-y-1" aria-label="Story sidebar">
         {items.map(({ label, icon: Icon, active }) => (
-          <a key={label} href="#" aria-current={active ? "page" : undefined} className={`flex min-h-7 items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-4 ${active ? "bg-surfaceMuted text-ink" : "text-secondary"}`}>
+          <a key={label} href={`/story/${label.toLowerCase()}`} aria-current={active ? "page" : undefined} className={`flex min-h-7 items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-4 ${active ? "bg-surfaceMuted text-ink" : "text-secondary"}`}>
             <Icon size={13} weight="regular" aria-hidden="true" />
             {label}
             {active ? <Badge size="xs">current</Badge> : null}

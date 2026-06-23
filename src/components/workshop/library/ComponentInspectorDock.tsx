@@ -14,6 +14,7 @@ import {
 } from "@/components/workshop/library/library-surface-variant";
 import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { getCostLibraryComponentUsage } from "@/lib/component-library/actions";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 
@@ -94,7 +95,7 @@ export function ComponentInspectorDock({
     error: boolean;
   }>({ itemId: item.id, counts: null, error: false });
   const [historyState, setHistoryState] = useState({ itemId: item.id, showAll: false });
-  const [compactViewport, setCompactViewport] = useState(false);
+  const compactViewport = useMediaQuery("(max-width: 1023px)");
   const usage = usageState.itemId === item.id ? usageState.counts : null;
   const usageError = usageState.itemId === item.id ? usageState.error : false;
   const showAllHistory = historyState.itemId === item.id ? historyState.showAll : false;
@@ -122,14 +123,6 @@ export function ComponentInspectorDock({
       stale = true;
     };
   }, [item.id]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    const updateCompactViewport = () => setCompactViewport(mediaQuery.matches);
-    updateCompactViewport();
-    mediaQuery.addEventListener("change", updateCompactViewport);
-    return () => mediaQuery.removeEventListener("change", updateCompactViewport);
-  }, []);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {

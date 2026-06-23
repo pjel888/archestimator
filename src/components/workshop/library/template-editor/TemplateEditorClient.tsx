@@ -36,9 +36,8 @@ function TemplateEditorDockFallback() {
   const surfaceVariant = useLibrarySurfaceVariant();
 
   return (
-    <div
+    <output
       className={cn("hidden w-[380px] shrink-0 p-2 lg:block", librarySurfaceClass(surfaceVariant, "rightDock"))}
-      role="status"
       aria-label="Loading components dock"
     >
       <Skeleton className={cn("h-8 w-full", librarySurfaceClass(surfaceVariant, "skeleton"))} />
@@ -48,7 +47,7 @@ function TemplateEditorDockFallback() {
         ))}
       </div>
       <span className="sr-only">Loading components dock</span>
-    </div>
+    </output>
   );
 }
 

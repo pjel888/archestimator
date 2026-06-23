@@ -17,8 +17,7 @@ type ProjectDataPageProps = {
 };
 
 export default async function ProjectDataPage({ params, searchParams }: ProjectDataPageProps) {
-  const { projectId } = await params;
-  const resolvedSearchParams = await searchParams;
+  const [{ projectId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
   assertRouteErrorSmoke({ routeLabel: "Project data", searchParams: resolvedSearchParams });
   const routeState = resolveProjectDataRouteState(resolvedSearchParams);
 

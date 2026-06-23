@@ -290,6 +290,7 @@ export function buildLibraryFolderReorderPlan({
   let nextFolders = insertFolder(folders, targetParentId, adjustedTargetIndex, sourceLocation.folder);
   nextFolders = normalizeFolderSortOrders(nextFolders, sourceLocation.parentId);
   nextFolders = normalizeFolderSortOrders(nextFolders, targetParentId);
+  // react-doctor-disable-next-line react-doctor/insecure-crypto-risk -- Structure signature is deterministic equality for reorder no-op detection, not security-sensitive cryptography.
   if (getFolderStructureSignature(nextFolders) === getFolderStructureSignature(folders)) {
     return fail("no-op", "Library folder is already in that position.");
   }

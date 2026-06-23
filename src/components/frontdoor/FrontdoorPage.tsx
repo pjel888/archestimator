@@ -1,15 +1,13 @@
-import {
-  FaqSection,
-  FeatureTriplet,
-  FinalCtaSection,
-  HeroSection,
-  LandingFooter,
-  LandingNav,
-  LongFormFeatureSection,
-  ProblemTransitionSection,
-  ProductLoopBento,
-  WordWallSection,
-} from "./sections";
+import { FaqSection } from "./sections/FaqSection";
+import { FeatureTriplet } from "./sections/FeatureTriplet";
+import { FinalCtaSection } from "./sections/FinalCtaSection";
+import { HeroSection } from "./sections/HeroSection";
+import { LandingFooter } from "./sections/LandingFooter";
+import { LandingNav } from "./sections/LandingNav";
+import { LongFormFeatureSection } from "./sections/LongFormFeatureSection";
+import { ProblemTransitionSection } from "./sections/ProblemTransitionSection";
+import { ProductLoopBento } from "./sections/ProductLoopBento";
+import { WordWallSection } from "./sections/WordWallSection";
 import { AsciiDivider } from "./utilities/AsciiDivider";
 import styles from "./FrontdoorPage.module.css";
 

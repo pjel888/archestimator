@@ -18,10 +18,8 @@ export const metadata: Metadata = buildLandingMetadata({
 });
 
 export default async function LandingPage() {
-  const isLoggedIn = await getLandingAuthState();
-
   // Read consent server-side to gate A/B cookie creation
-  const cookieStore = await cookies();
+  const [isLoggedIn, cookieStore] = await Promise.all([getLandingAuthState(), cookies()]);
   const consentCookie = cookieStore.get("archestimator_cookie_consent");
   const consent = consentCookie ? parseLandingConsentValue(consentCookie.value) : null;
   const analyticsConsent = consent?.analytics === true;

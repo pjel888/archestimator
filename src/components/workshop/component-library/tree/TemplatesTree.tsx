@@ -61,6 +61,8 @@ export type TemplatesTreeDatum =
 
 /** Stable empty default so optional id-list props don't re-trigger memoization. */
 const EMPTY_ID_LIST: readonly string[] = [];
+const EMPTY_PROJECT_SOURCES: ReusableEstimateSource[] = [];
+const EMPTY_TEMPLATE_CATEGORIES: string[] = [];
 
 /** Skeleton rows shown under a cold-expanded project/estimate while it loads. */
 const SKELETON_CHILD_COUNT = 3;
@@ -781,8 +783,8 @@ export type TemplatesTreeProps = {
 
 export function TemplatesTree({
   templates,
-  projectSources = [],
-  customTemplateCategories = [],
+  projectSources = EMPTY_PROJECT_SOURCES,
+  customTemplateCategories = EMPTY_TEMPLATE_CATEGORIES,
   searchQuery,
   expandedNodeIds,
   onToggle,

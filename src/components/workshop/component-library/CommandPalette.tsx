@@ -95,6 +95,7 @@ export function CommandPalette({
   };
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop click dismisses the palette; keyboard handling lives in the dialog content.
     <div className="fixed inset-0 z-[1200] flex items-start justify-center bg-black/35 px-4 pt-[12vh]" onMouseDown={onClose}>
       <div
         role="dialog"

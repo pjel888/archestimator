@@ -22,6 +22,11 @@ const statusOptions = CLOSED_BETA_ALLOWLIST_STATUSES.map((status) => ({
   value: status,
   label: statusLabels[status],
 }));
+const betaUserDateFormatter = new Intl.DateTimeFormat("en", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
 
 const statusFilterOptions = [{ value: "", label: "All statuses" }, ...statusOptions];
 
@@ -36,11 +41,7 @@ function betaUserNotice(params: { created?: string; error?: string; saved?: stri
 
 function formatDate(value: string | null) {
   if (!value) return "Not recorded";
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(new Date(value));
+  return betaUserDateFormatter.format(new Date(value));
 }
 
 export default async function BetaUsersPage({

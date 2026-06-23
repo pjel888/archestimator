@@ -98,6 +98,7 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   currency: "PHP",
   minimumFractionDigits: 2,
 });
+const auditNumberFormatter = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 });
 
 export type CostAdjustmentMode = "contingency" | "discount";
 
@@ -369,7 +370,7 @@ function readOptionalNumber(value: unknown) {
 }
 
 function formatAuditNumber(value: number) {
-  return new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(value);
+  return auditNumberFormatter.format(value);
 }
 
 function humanizeAuditField(field: string) {
@@ -1178,6 +1179,7 @@ export function RowDetailsModal({
   const showReferenceImage = Boolean(item && !isBlankRow && (!isExpressComponentRow(item) || item.imageUrl));
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop mouse dismissal is paired with keyboard dismissal in the dialog content.
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
       onMouseDown={(event) => {
@@ -1599,6 +1601,7 @@ export function ActivityHistoryModal({
   };
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop mouse dismissal is paired with keyboard dismissal in the dialog content.
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
       onMouseDown={(event) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { SidebarSimple } from "@phosphor-icons/react/dist/ssr";
 
@@ -11,6 +11,7 @@ import {
   getSidePanelWidthCookieName,
 } from "./side-panel-widths";
 import { cn } from "@/lib/ui/cn";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
 
 type ResizableSidePanelProps = {
@@ -68,7 +69,7 @@ export function ResizableSidePanel({
   const [savedWidth, setSavedWidth] = useState(() => getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth));
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [compactViewport, setCompactViewport] = useState(false);
+  const compactViewport = useMediaQuery("(max-width: 1023px)");
   const width = dragWidth ?? savedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
@@ -82,14 +83,6 @@ export function ResizableSidePanel({
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    const updateCompactViewport = () => setCompactViewport(mediaQuery.matches);
-    updateCompactViewport();
-    mediaQuery.addEventListener("change", updateCompactViewport);
-    return () => mediaQuery.removeEventListener("change", updateCompactViewport);
-  }, []);
 
   useEffect(() => {
     const panelWidthCssVariable = getPanelWidthCssVariable(storageKey);
@@ -145,9 +138,42 @@ export function ResizableSidePanel({
     window.addEventListener("mouseup", onUp);
   }
 
+  function commitWidth(nextWidth: number) {
+    const finalWidth = Math.min(maxWidth, Math.max(minWidth, nextWidth));
+    setSavedWidth(finalWidth);
+    setDragWidth(finalWidth);
+    persistPanelWidth(storageKey, finalWidth);
+  }
+
+  function handleResizeKeyDown(event: KeyboardEvent) {
+    if (collapsed) return;
+    const step = event.shiftKey ? 32 : 12;
+    if (event.key === "Home") {
+      event.preventDefault();
+      commitWidth(minWidth);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      commitWidth(maxWidth);
+      return;
+    }
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+    event.preventDefault();
+    const expandsLeftPanel = side === "left" && event.key === "ArrowRight";
+    const expandsRightPanel = side === "right" && event.key === "ArrowLeft";
+    commitWidth(width + (expandsLeftPanel || expandsRightPanel ? step : -step));
+  }
+
   const resizer = (
     <div
       aria-hidden={collapsed}
+      aria-label={`Resize ${ariaLabel}`}
+      aria-orientation="vertical"
+      aria-valuemax={maxWidth}
+      aria-valuemin={minWidth}
+      aria-valuenow={width}
       className={cn(
         "group/resizer relative h-full shrink-0 overflow-hidden transition-[width,background-color] duration-150",
         collapsed
@@ -160,6 +186,9 @@ export function ResizableSidePanel({
               ? "w-2 cursor-col-resize bg-transparent hover:bg-[#E5E5E5]"
               : "w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-[#E5E5E5]",
       )}
+      role="separator"
+      tabIndex={collapsed ? -1 : 0}
+      onKeyDown={handleResizeKeyDown}
       onMouseDown={startResize}
       title="Drag to resize"
     >

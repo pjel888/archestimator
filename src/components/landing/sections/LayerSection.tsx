@@ -23,12 +23,7 @@ export function LayerSection({ children }: LayerSectionProps) {
       eyebrow="Cost intelligence layer"
       accentRail
       heading="Your commercial graph, built while you estimate."
-      lead={
-        <>
-          Prices, components, suppliers, revisions, comments, decisions, and exports stay connected.
-          The estimate becomes a record your team can reuse.
-        </>
-      }
+      lead="Prices, components, suppliers, revisions, comments, decisions, and exports stay connected. The estimate becomes a record your team can reuse."
       className="gsap-pin-proof"
     >
       {children ? (

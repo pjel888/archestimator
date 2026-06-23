@@ -94,6 +94,7 @@ type PublicationSuccessIntent =
 // danger alert instead of reading like a success in the neutral status box.
 type ActionFeedback = { text: string; tone: "success" | "error" };
 const EMPTY_ESTIMATE_IDS: string[] = [];
+const EMPTY_PROJECT_ESTIMATE_SHEETS: ProjectEstimateSheet[] = [];
 const SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX = "archestimator_shared_link_last_seen";
 const LOCATION_VISIBILITY_OPTIONS: Array<{
   value: ProjectPublicationLocationVisibility;
@@ -116,16 +117,17 @@ const LOCATION_VISIBILITY_OPTIONS: Array<{
     description: "Do not show location on the client page.",
   },
 ];
+const publicationHeaderDateFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 function formatDate(value: string | null) {
   if (!value) return "Not recorded";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return publicationHeaderDateFormatter.format(new Date(value));
 }
 
 // AC-MOD-10: a stored ISO expiry → the value a <input type="datetime-local"> expects
@@ -277,7 +279,11 @@ function readServerOrigin() {
   return "";
 }
 
-export function ProjectPublicationHeader({ summary, currentUserEmail = null, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
+export function ProjectPublicationHeader({
+  summary,
+  currentUserEmail = null,
+  projectEstimateSheets = EMPTY_PROJECT_ESTIMATE_SHEETS,
+}: ProjectPublicationHeaderProps) {
   const summaryKey = readSummaryKey(summary);
   const activitySeenStorageKey = readActivitySeenStorageKey(summary, summaryKey);
   const hydrated = useIsHydrated();
@@ -465,6 +471,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     const token = ++metadataRefreshTokenRef.current;
     void (async () => {
       try {
+        // react-doctor-disable-next-line react-doctor/async-defer-await -- The stale-token guard depends on the refreshed summary resolving before metadata is committed.
         const next = await refreshProjectPublicationSummary(projectId);
         // Ignore if a newer request superseded this one or the modal/summary moved on.
         if (token !== metadataRefreshTokenRef.current) return;
@@ -771,19 +778,22 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     );
   }
 
-  const modalLocation = actionFeedback ? (
-    <span
-      className={cn(
-        "rounded-xs px-2 py-0.5",
-        actionFeedback.tone === "error" ? "bg-dangerSoft text-danger" : "text-secondary",
-      )}
-      role={actionFeedback.tone === "error" ? "alert" : "status"}
-    >
-      {actionFeedback.text}
-    </span>
-  ) : (
-    <span>{overviewStatusMessage}</span>
-  );
+  const modalLocation = useMemo(() => (
+    actionFeedback ? (
+      <span
+        className={cn(
+          "rounded-xs px-2 py-0.5",
+          actionFeedback.tone === "error" ? "bg-dangerSoft text-danger" : "text-secondary",
+        )}
+        role={actionFeedback.tone === "error" ? "alert" : "status"}
+      >
+        {actionFeedback.text}
+      </span>
+    ) : (
+      <span>{overviewStatusMessage}</span>
+    )
+  ), [actionFeedback, overviewStatusMessage]);
+  const publicationFooter = renderPublicationFooter();
 
   return (
     <>
@@ -837,7 +847,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         size="xl"
         className="max-w-[760px]"
         bodyClassName="p-0"
-        footer={renderPublicationFooter()}
+        footer={publicationFooter}
         location={modalLocation}
       >
         <div className="flex min-h-0 flex-col bg-white">

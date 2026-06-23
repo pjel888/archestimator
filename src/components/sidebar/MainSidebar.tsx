@@ -44,6 +44,8 @@ type MainSidebarProps = {
   user?: MainSidebarUser;
 };
 
+const EMPTY_FAVORITE_PROJECTS: MainSidebarFavoriteProject[] = [];
+
 const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
   id: "workshop",
   href: "/workshop",
@@ -117,25 +119,28 @@ function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
 }
 
 export function MainSidebar({
-  favoriteProjects = [],
+  favoriteProjects = EMPTY_FAVORITE_PROJECTS,
   favoriteProjectsFresh = true,
   favoritesScope,
   status,
   user,
 }: MainSidebarProps) {
   const pathname = usePathname();
-  const [favoritesHydrationRequested, setFavoritesHydrationRequested] = useState(favoriteProjectsFresh);
-  const favoritesQueryEnabled = Boolean(favoritesScope) && (favoriteProjectsFresh || favoritesHydrationRequested);
+  const favoritesScopeKey = favoritesScope ? `${favoritesScope.workspaceId}:${favoritesScope.userId}` : null;
+  const [favoritesHydrationRequestScopeKey, setFavoritesHydrationRequestScopeKey] = useState<string | null>(null);
+  const favoritesHydrationRequested =
+    favoriteProjectsFresh || (favoritesScopeKey !== null && favoritesHydrationRequestScopeKey === favoritesScopeKey);
+  const favoritesQueryEnabled = Boolean(favoritesScope) && favoritesHydrationRequested;
   const requestFavoritesHydration = useCallback(() => {
-    if (favoritesScope) setFavoritesHydrationRequested(true);
-  }, [favoritesScope]);
+    if (favoritesScopeKey) setFavoritesHydrationRequestScopeKey(favoritesScopeKey);
+  }, [favoritesScopeKey]);
   const favoritesQuery = useSidebarFavoritesQuery({
     scope: favoritesScope ?? { workspaceId: "none", userId: "none" }, // hook always called; null scope reads initialData
     initialData: favoriteProjects,
     initialDataFresh: favoriteProjectsFresh,
     enabled: favoritesQueryEnabled, // stale shell seeds hydrate only after hover/focus/expand
   });
-  const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
+  const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? EMPTY_FAVORITE_PROJECTS : favoriteProjects;
   const showEmptyHint = favoritesQueryEnabled && !favoritesQuery.isFetching && !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
   const { politeText, assertiveText } = useSidebarFavoritesAnnouncer();
   const navRef = useRef<HTMLElement | null>(null);
@@ -203,9 +208,6 @@ export function MainSidebar({
     typeof window === "undefined" ? false : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
 
-  useEffect(() => {
-    setFavoritesHydrationRequested(favoriteProjectsFresh);
-  }, [favoritesScope?.userId, favoritesScope?.workspaceId, favoriteProjectsFresh]);
   const resolvedSidebarNavItems = useMemo(() => {
     const projectsBadgeCount = status?.projectsBadgeCount ?? 0;
     return sidebarNavItems.map((item) => {
@@ -489,15 +491,14 @@ export function MainSidebar({
             {/* Always-mounted live regions: the estimate-favorite button announces
                 through the module-scoped bridge, so these must persist even when the
                 favorites list is empty (08 / D5). */}
-            <span
+            <output
               data-sidebar-favorites-status
-              role="status"
               aria-live="polite"
               aria-atomic="true"
               className="sr-only"
             >
               {politeText}
-            </span>
+            </output>
             <span
               data-sidebar-favorites-alert
               role="alert"

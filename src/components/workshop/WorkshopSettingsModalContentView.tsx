@@ -204,10 +204,10 @@ function SettingsRail({
 
 function SettingsDetailPanel({
   page,
-  signOutControl,
+  renderSignOutControl,
 }: {
   page: SettingsPage;
-  signOutControl: ReactNode;
+  renderSignOutControl: () => ReactNode;
 }) {
   const isSignOut = page.id === "sign-out";
   const isEmailAction = page.href?.startsWith("mailto:");
@@ -248,7 +248,7 @@ function SettingsDetailPanel({
           </p>
         </div>
         {isSignOut ? (
-          signOutControl
+          renderSignOutControl()
         ) : page.href ? (
           <a
             href={page.href}
@@ -265,10 +265,10 @@ function SettingsDetailPanel({
 
 export function WorkshopSettingsModalContentView({
   canManagePlatform,
-  signOutControl,
+  renderSignOutControl,
 }: {
   canManagePlatform: boolean;
-  signOutControl: ReactNode;
+  renderSignOutControl: () => ReactNode;
 }) {
   const [activePageId, setActivePageId] = useState("profile");
   const settingsGroups: readonly SettingsGroup[] = canManagePlatform
@@ -285,7 +285,7 @@ export function WorkshopSettingsModalContentView({
         className="min-h-0 overflow-y-auto bg-white"
         aria-label={activePage ? `${activePage.title} settings` : "Settings detail panel"}
       >
-        <SettingsDetailPanel page={activePage} signOutControl={signOutControl} />
+        <SettingsDetailPanel page={activePage} renderSignOutControl={renderSignOutControl} />
       </main>
     </div>
   );

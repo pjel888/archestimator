@@ -51,9 +51,9 @@ export function StaticWorkshopLoadingShell({
 
         <div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName ?? "p-2")}>
           <div aria-hidden="true">{children}</div>
-          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          <output aria-live="polite" aria-atomic="true" className="sr-only">
             Loading {title}
-          </div>
+          </output>
         </div>
 
         <footer

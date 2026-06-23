@@ -61,6 +61,14 @@ const PROJECT_CURRENCY_OPTIONS: CreatableComboboxOption[] = [
   { id: "CHF", label: "CHF", description: "Swiss franc" },
   { id: "NZD", label: "NZD", description: "New Zealand dollar" },
 ];
+const projectDetailsDateTimeFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 function normalizeCurrencyCode(value: string | null | undefined) {
   const code = String(value ?? "PHP").trim().toUpperCase();
   return /^[A-Z]{3}$/.test(code) ? code : "PHP";
@@ -79,13 +87,7 @@ function readProjectMetadata(value: Json): ProjectMetadata {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return projectDetailsDateTimeFormatter.format(new Date(value));
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {

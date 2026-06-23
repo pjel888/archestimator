@@ -26,13 +26,12 @@ const ProjectCostDonutChart = dynamic(
   () => import("./ProjectCostDonutChart").then((module) => module.ProjectCostDonutChart),
   {
     loading: () => (
-      <div
+      <output
         className="flex min-h-[280px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground"
-        role="status"
         aria-label="Loading share view"
       >
         Loading share view
-      </div>
+      </output>
     ),
   },
 );

@@ -15,7 +15,8 @@ type ReleaseAnnouncementModalProps = {
 export function ReleaseAnnouncementModal({ announcement, returnFocusRef }: ReleaseAnnouncementModalProps) {
   const acknowledgeMutation = useAcknowledgeReleaseAnnouncementMutation();
   const [closedDeliveryIds, setClosedDeliveryIds] = useState<Set<string>>(() => new Set());
-  const acknowledgedDeliveryIdsRef = useRef(new Set<string>());
+  const acknowledgedDeliveryIdsRef = useRef<Set<string>>(null!);
+  if (acknowledgedDeliveryIdsRef.current === null) acknowledgedDeliveryIdsRef.current = new Set();
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const primaryButtonRef = useRef<HTMLButtonElement | HTMLAnchorElement | null>(null);
 

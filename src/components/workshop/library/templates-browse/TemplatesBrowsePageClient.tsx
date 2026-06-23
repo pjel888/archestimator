@@ -27,12 +27,11 @@ const TemplatesBrowseManager = dynamic(
 
 function TemplatesBrowseFallback() {
   return (
-    <div
+    <output
       className={cn(
         "flex h-full min-h-0 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2",
         librarySurfaceClass("glass", "root"),
       )}
-      role="status"
       aria-label="Loading templates"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
@@ -56,7 +55,7 @@ function TemplatesBrowseFallback() {
         </section>
       </div>
       <span className="sr-only">Loading templates</span>
-    </div>
+    </output>
   );
 }
 

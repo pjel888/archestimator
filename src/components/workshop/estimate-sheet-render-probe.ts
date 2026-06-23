@@ -48,7 +48,7 @@ export function reportEstimateProposalPreviewSignatureCompute() {
   activeProposalSignatureProbe?.();
 }
 
-export function setEstimateNodeTotalProbe(probe: EstimateNodeTotalProbe | null) {
+function setEstimateNodeTotalProbe(probe: EstimateNodeTotalProbe | null) {
   activeNodeTotalProbe = probe;
 }
 

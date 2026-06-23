@@ -22,6 +22,11 @@ type ProjectMetadata = {
   readonly projectImageUrl?: string;
 };
 
+const dashboardDateFormatter = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" });
+const dashboardCompactDateFormatter = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
+const dashboardActivityDayFormatter = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" });
+const dashboardActivityTimeFormatter = new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" });
+
 type ProjectDashboardClientProps = {
   readonly project: Tables<"projects"> | null;
   readonly fallback: {
@@ -53,26 +58,26 @@ function formatDate(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  return dashboardDateFormatter.format(date);
 }
 
 function formatCompactDate(value?: string | null) {
   if (!value) return "No edits yet";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "No edits yet";
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(date);
+  return dashboardCompactDateFormatter.format(date);
 }
 
 function formatActivityDay(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Undated";
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  return dashboardActivityDayFormatter.format(date);
 }
 
 function formatActivityTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
-  return new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(date);
+  return dashboardActivityTimeFormatter.format(date);
 }
 
 function createProjectEstimateHref(sheet: Pick<ProjectRecentEstimateSheetSummary, "projectId" | "firstNodeId">) {
@@ -676,9 +681,9 @@ function ProjectIdentityFields({
           inputClassName={metadataInputClassName}
         />
         {locationSaveStatus ? (
-          <p className="text-[9px] leading-3 text-tertiary" role="status" aria-live="polite">
+          <output className="text-[9px] leading-3 text-tertiary" aria-live="polite">
             {locationSaveStatus}
-          </p>
+          </output>
         ) : null}
       </ProjectDataField>
     </div>
@@ -739,9 +744,9 @@ function AutoSubmitForm({
       <input type="hidden" name="projectId" value={projectId} />
       {projectImageUrl ? <input type="hidden" name="projectImageUrl" value={projectImageUrl} /> : null}
       {children}
-      <span className="sr-only" role="status" aria-live="polite">
+      <output className="sr-only" aria-live="polite">
         {isPending ? "Saving project details" : ""}
-      </span>
+      </output>
     </form>
   );
 }
@@ -800,6 +805,25 @@ export function ProjectDashboardClient({
     const result = await saveProjectLocation(initialProjectLocationActionState, formData);
     setLocationSaveStatus(result.message);
   }, [canEditProjectDetails, projectId]);
+  const mapOverlaySummary = useMemo(() => (
+    <ProjectEstimateSummaryPanel
+      estimateCount={estimateCount}
+      recentEstimateSheets={recentEstimateSheets}
+    />
+  ), [estimateCount, recentEstimateSheets]);
+  const mapRightRail = useMemo(() => <ProjectActivityFeedPanel page={projectActivityPage} />, [projectActivityPage]);
+  const mapLowerLeftSummary = useMemo(() => (
+    <ProjectEstimateCostStrip
+      sheets={recentEstimateSheets}
+      currencyCode={currencyCode}
+    />
+  ), [currencyCode, recentEstimateSheets]);
+  const mapLowerLeftDetail = useMemo(() => (
+    <ProjectEstimateBudgetHealthPanel
+      sheets={recentEstimateSheets}
+      currencyCode={currencyCode}
+    />
+  ), [currencyCode, recentEstimateSheets]);
 
   return (
     <section className="flex h-full min-h-0 flex-col justify-start md:flex-row" aria-label={`${name} project information`}>
@@ -846,25 +870,10 @@ export function ProjectDashboardClient({
             mapId={googleMapsMapId}
             pin={locationPin}
             addressLabel={addressValue}
-            overlaySummary={(
-              <ProjectEstimateSummaryPanel
-                estimateCount={estimateCount}
-                recentEstimateSheets={recentEstimateSheets}
-              />
-            )}
-            rightRail={<ProjectActivityFeedPanel page={projectActivityPage} />}
-            lowerLeftSummary={(
-              <ProjectEstimateCostStrip
-                sheets={recentEstimateSheets}
-                currencyCode={currencyCode}
-              />
-            )}
-            lowerLeftDetail={(
-              <ProjectEstimateBudgetHealthPanel
-                sheets={recentEstimateSheets}
-                currencyCode={currencyCode}
-              />
-            )}
+            overlaySummary={mapOverlaySummary}
+            rightRail={mapRightRail}
+            lowerLeftSummary={mapLowerLeftSummary}
+            lowerLeftDetail={mapLowerLeftDetail}
           />
         </section>
       </main>

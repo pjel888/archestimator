@@ -80,6 +80,14 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
   currency: "PHP",
   minimumFractionDigits: 2,
 });
+const budgetInputFormatter = new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const estimateDateTimeFormatter = new Intl.DateTimeFormat("en", {
+  month: "numeric",
+  day: "numeric",
+  year: "2-digit",
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 const EMPTY_TABLE_ROW_COUNT = 60;
 // Row-windowing activation matches the estimate-sheet row table's contract
@@ -145,7 +153,7 @@ function formatSignedPeso(value: number) {
 
 function formatBudgetInput(value: number | null) {
   if (typeof value !== "number") return "";
-  return new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  return budgetInputFormatter.format(value);
 }
 
 function parseBudgetInput(value: string) {
@@ -162,13 +170,7 @@ function getVarianceColorClass(value: number) {
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "numeric",
-    day: "numeric",
-    year: "2-digit",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return estimateDateTimeFormatter.format(new Date(value));
 }
 
 function formatCount(value: number, singular: string, plural: string) {
@@ -1070,7 +1072,8 @@ function ProjectEstimatesTableComponent({
   const [deleteEstimateState, setDeleteEstimateState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
   const deleteExecutionInFlightRef = useRef(false);
   const estimatesRef = useRef(estimates);
-  const settlingEstimateCountsRef = useRef(new Map<string, number>());
+  const settlingEstimateCountsRef = useRef<Map<string, number>>(null!);
+  if (settlingEstimateCountsRef.current === null) settlingEstimateCountsRef.current = new Map();
   const [, setSettlingEstimateVersion] = useState(0);
   const [, startDeleteEstimateTransition] = useTransition();
 
@@ -1141,6 +1144,9 @@ function ProjectEstimatesTableComponent({
   useEffect(() => {
     columnSizingRef.current = columnSizing;
   }, [columnSizing]);
+  const flushColumnSizingToStorage = useCallback(() => {
+    writeColumnSizingToStorage(columnWidthStorageKey, columnSizingRef.current);
+  }, [columnWidthStorageKey]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1151,10 +1157,8 @@ function ProjectEstimatesTableComponent({
   }, [columnSizing, columnWidthStorageKey]);
 
   useEffect(() => {
-    return () => {
-      writeColumnSizingToStorage(columnWidthStorageKey, columnSizingRef.current);
-    };
-  }, [columnWidthStorageKey]);
+    return flushColumnSizingToStorage;
+  }, [flushColumnSizingToStorage]);
 
   useEffect(() => {
     const availableIds = editableEstimateIds;
@@ -1613,9 +1617,13 @@ function ProjectEstimatesTableComponent({
             {virtualEnabled ? (
               <>
                 {topSpacerHeight > 0 ? (
-                  <tr aria-hidden="true" className="border-0">
-                    <td colSpan={leafColumnCount} className="p-0" style={{ height: `${topSpacerHeight}px` }} />
-                  </tr>
+                  <>
+                    {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Virtualization spacer row is not user-operable content. */}
+                    <tr aria-hidden="true" className="border-0">
+                      {/* react-doctor-disable-next-line react-doctor/control-has-associated-label -- Virtualization spacer cell is hidden from assistive tech. */}
+                      <td colSpan={leafColumnCount} className="p-0" style={{ height: `${topSpacerHeight}px` }} />
+                    </tr>
+                  </>
                 ) : null}
                 {virtualRows.map((virtualRow) => {
                   const row = visibleRows[virtualRow.index];
@@ -1638,9 +1646,13 @@ function ProjectEstimatesTableComponent({
                   );
                 })}
                 {bottomSpacerHeight > 0 ? (
-                  <tr aria-hidden="true" className="border-0">
-                    <td colSpan={leafColumnCount} className="p-0" style={{ height: `${bottomSpacerHeight}px` }} />
-                  </tr>
+                  <>
+                    {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Virtualization spacer row is not user-operable content. */}
+                    <tr aria-hidden="true" className="border-0">
+                      {/* react-doctor-disable-next-line react-doctor/control-has-associated-label -- Virtualization spacer cell is hidden from assistive tech. */}
+                      <td colSpan={leafColumnCount} className="p-0" style={{ height: `${bottomSpacerHeight}px` }} />
+                    </tr>
+                  </>
                 ) : null}
               </>
             ) : (

@@ -16,18 +16,22 @@ const WorkshopSettingsModalContentView = dynamic(
   { ssr: false },
 );
 
+function renderSignOutControl() {
+  return (
+    <form action={signOut}>
+      <Button type="submit" variant="danger" size="sm" className="shrink-0 whitespace-nowrap">
+        <SignOut className="size-3" aria-hidden="true" />
+        Sign out
+      </Button>
+    </form>
+  );
+}
+
 export function WorkshopSettingsModalContent({ canManagePlatform }: { canManagePlatform: boolean }) {
   return (
     <WorkshopSettingsModalContentView
       canManagePlatform={canManagePlatform}
-      signOutControl={
-        <form action={signOut}>
-          <Button type="submit" variant="danger" size="sm" className="shrink-0 whitespace-nowrap">
-            <SignOut className="size-3" aria-hidden="true" />
-            Sign out
-          </Button>
-        </form>
-      }
+      renderSignOutControl={renderSignOutControl}
     />
   );
 }

@@ -76,17 +76,17 @@ export function getComponentDesignation(item: EstimateRowItem) {
   return "General";
 }
 
-export function daysAgo(date: string) {
+function daysAgo(date: string) {
   const time = new Date(date).getTime();
   if (!Number.isFinite(time)) return Number.POSITIVE_INFINITY;
   return Math.max(0, Math.floor((Date.now() - time) / 86400000));
 }
 
-export function itemCreatedAt(item: EstimateRowItem) {
+function itemCreatedAt(item: EstimateRowItem) {
   return item.createdAt ?? item.pricingDate ?? new Date(0).toISOString();
 }
 
-export function itemLastUsedAt(item: EstimateRowItem, recentIds: string[]) {
+function itemLastUsedAt(item: EstimateRowItem, recentIds: string[]) {
   return item.lastUsedAt ?? (recentIds.includes(item.id) ? new Date().toISOString() : "");
 }
 
@@ -110,11 +110,11 @@ export function safeSetJsonStorage<T>(key: string, data: T): boolean {
   }
 }
 
-export function unique(values: string[]) {
+function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 }
 
-export function normalizeForSearch(value: string) {
+function normalizeForSearch(value: string) {
   return value.toLowerCase().trim();
 }
 
@@ -625,7 +625,7 @@ export function expandLibraryBundle(bundle: LibraryBundle, items: EstimateRowIte
     .filter((item): item is EstimateRowItem => Boolean(item));
 }
 
-export function getLibraryRowTotal(item: EstimateRowItem) {
+function getLibraryRowTotal(item: EstimateRowItem) {
   const subTotal = getComponentPrice(item) * Math.max(1, item.quantity || 1);
   return subTotal + (item.miscCost ?? 0) + (subTotal * (item.contingencyPercentage ?? 0)) / 100;
 }
@@ -634,7 +634,7 @@ export function getLibraryBundleTotal(bundle: LibraryBundle, items: EstimateRowI
   return expandLibraryBundle(bundle, items).reduce((total, item) => total + getLibraryRowTotal(item), 0);
 }
 
-export const defaultFilters: ComponentFilters = {
+const defaultFilters: ComponentFilters = {
   categories: [],
   suppliers: [],
   disciplines: [],

@@ -34,8 +34,7 @@ export function BulkActionToolbar({
 
   if (isBottomDock) {
     return (
-      <div
-        role="region"
+      <section
         aria-label="Bulk action toolbar"
         className={cn(
           "pointer-events-none fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex min-h-[72px] max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center lg:left-[calc(50%+32px)]",
@@ -89,13 +88,12 @@ export function BulkActionToolbar({
             </ToolbarIconButton>
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div
-      role="region"
+    <section
       aria-label="Bulk action toolbar"
       className={cn(
         "flex min-h-9 shrink-0 items-center gap-2 px-2 py-1",
@@ -130,6 +128,6 @@ export function BulkActionToolbar({
           {actionLabel}
         </Button>
       </div>
-    </div>
+    </section>
   );
 }

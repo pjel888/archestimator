@@ -130,7 +130,7 @@ type TreeSelectionCountLabelProps = {
 /**
  * Renders "{count} {entityLabel} selected".
  */
-export function TreeSelectionCountLabel({ count, singular, plural }: TreeSelectionCountLabelProps) {
+function TreeSelectionCountLabel({ count, singular, plural }: TreeSelectionCountLabelProps) {
   const label = count === 1 ? singular : (plural ?? `${singular}s`);
   return (
     <span className="text-[10px] font-medium text-ink">

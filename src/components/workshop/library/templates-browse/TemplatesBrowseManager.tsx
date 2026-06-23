@@ -62,6 +62,8 @@ const InsertIntoEstimatePicker = dynamic(
 
 const TEMPLATE_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const ALL_TEMPLATES_NODE_ID = "all-templates";
+const noopTemplatesMutated = () => {};
+const noopTemplatesInvalidated = () => {};
 
 type BrowseTreeDatum =
   | { type: "all" }
@@ -520,8 +522,8 @@ export type TemplatesBrowseManagerProps = {
  */
 export function TemplatesBrowseManager({
   templates = [],
-  onTemplatesMutated = () => {},
-  onTemplatesInvalidated = () => {},
+  onTemplatesMutated = noopTemplatesMutated,
+  onTemplatesInvalidated = noopTemplatesInvalidated,
 }: TemplatesBrowseManagerProps = {}) {
   const router = useNavigationRouter();
   const surfaceVariant = useLibrarySurfaceVariant();
@@ -905,7 +907,7 @@ export function TemplatesBrowseManager({
           confirmLabel={textPrompt.confirmLabel}
           onConfirm={submitTextPrompt}
         >
-          <label className="grid gap-1">
+          <div className="grid gap-1">
             <span className="text-[9px] font-medium text-tertiary">{textPrompt.label}</span>
             <ControlInput
               aria-label={textPrompt.label}
@@ -919,7 +921,7 @@ export function TemplatesBrowseManager({
                 }
               }}
             />
-          </label>
+          </div>
         </ConfirmDialog>
       ) : null}
 
@@ -934,7 +936,7 @@ export function TemplatesBrowseManager({
           confirmLabel="Move"
           onConfirm={submitMovePrompt}
         >
-          <label className="grid gap-1">
+          <div className="grid gap-1">
             <span className="text-[9px] font-medium text-tertiary">Group</span>
             <CreatableCombobox
               ariaLabel="Template group"
@@ -955,7 +957,7 @@ export function TemplatesBrowseManager({
                 );
               }}
             />
-          </label>
+          </div>
         </ConfirmDialog>
       ) : null}
     </div>

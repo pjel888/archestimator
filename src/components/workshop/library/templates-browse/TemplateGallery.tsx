@@ -66,27 +66,20 @@ function TemplateGalleryRow({
     <li
       data-template-gallery-row={template.id}
       className={cn(
-        "cursor-pointer px-3 py-2 transition",
+        "px-3 py-2 transition",
         librarySurfaceClass(surfaceVariant, "contentTile"),
         selected ? "border-ink" : surfaceVariant === "glass" ? "hover:border-white/80 hover:bg-white/90" : "hover:border-divider",
       )}
-      onClick={(event) => {
-        if ((event.target as HTMLElement).closest("button, a, input, [role='menu']")) return;
-        onSelect(template.id);
-      }}
-      onDoubleClick={(event) => {
-        if ((event.target as HTMLElement).closest("button, a, input, [role='menu']")) return;
-        onOpen(template.id);
-      }}
     >
       <div className="flex items-baseline gap-2">
         <h3 className="min-w-0 truncate text-[11px] font-medium leading-4 text-ink">
           <button
             type="button"
-            className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             data-template-row-preview={template.id}
             aria-label={`Preview ${template.name}`}
             onClick={() => onSelect(template.id)}
+            onDoubleClick={() => onOpen(template.id)}
           >
             {template.name}
           </button>
@@ -272,8 +265,7 @@ export function TemplateGallery({
           </p>
         </div>
         {status.state !== "idle" ? (
-          <div
-            role="status"
+          <output
             aria-live="polite"
             className={cn(
               "border-b border-hairline px-2 py-1 text-[10px] leading-4",
@@ -281,7 +273,7 @@ export function TemplateGallery({
             )}
           >
             {status.message}
-          </div>
+          </output>
         ) : null}
       </header>
 

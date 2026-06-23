@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { FolderSimple, Cube, CaretDown } from "@phosphor-icons/react";
 
@@ -14,10 +14,15 @@ import {
   WORKSHOP_TREE_MAX_INDENT,
 } from "@/components/workshop/tree-visual-style";
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ShareTreeNode } from "@/lib/share/reconstruct-share-tree";
 
 const DESKTOP_INLINE_ROW_LIMIT = 250;
 const MOBILE_INLINE_ROW_LIMIT = 100;
+const shareTreeViewMoneyFormatter = new Intl.NumberFormat("en-PH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 /**
  * P3 + P5 polish: Read-only Tree View for the /share/[token] receiver.
@@ -48,10 +53,15 @@ interface ShareEstimateTreeViewProps {
 }
 
 function formatMoney(value: number, currencyCode: string) {
-  return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
+  return `${currencyCode} ${shareTreeViewMoneyFormatter.format(value)}`;
+}
+
+function getShareTreeNodeId(node: ShareTreeNode) {
+  return node.id;
+}
+
+function getShareTreeNodeChildren(node: ShareTreeNode) {
+  return node.children;
 }
 
 type TreeNodeRendererProps = WorkshopTreeRenderNodeArgs<ShareTreeNode> & {
@@ -178,9 +188,9 @@ function TreeNodeRenderer({
         );
       })}
       {hiddenRowCount > 0 ? (
-        <div className="py-1 pr-2 text-[12px] leading-[16px] text-secondary" role="status">
+        <output className="py-1 pr-2 text-[12px] leading-[16px] text-secondary">
           {visibleRows.length} of {node.rows?.length ?? visibleRows.length} rows shown in tree view.
-        </div>
+        </output>
       ) : null}
     </div>
   ) : null;
@@ -248,15 +258,7 @@ function TreeNodeRenderer({
 
 export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeNodeId }: ShareEstimateTreeViewProps) {
   // P5 mobile detection (per spec §7.2 breakpoints <768px): drives collapsed default, reduced indent, simplified rows.
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsMobile(mql.matches);
-    update();
-    mql.addEventListener("change", update);
-    return () => mql.removeEventListener("change", update);
-  }, []);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const [manualExpandedNodeIds, setManualExpandedNodeIds] = useState<string[] | null>(null);
 
@@ -275,9 +277,6 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
   }, [nodes, isMobile]);
 
   const expandedNodeIds = manualExpandedNodeIds ?? defaultExpandedNodeIds;
-
-  const getNodeId = (n: ShareTreeNode) => n.id;
-  const getChildren = (n: ShareTreeNode) => n.children;
 
   // Toggle handler (P3/P5): wire expand/collapse since WorkshopTree delegates interaction to renderNode consumer.
   // This makes the caret functional and removes dead-code warning on the state setter.
@@ -314,8 +313,8 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
         nodes={nodes}
         selectedNodeId={null}
         expandedNodeIds={expandedNodeIds}
-        getNodeId={getNodeId}
-        getChildren={getChildren}
+        getNodeId={getShareTreeNodeId}
+        getChildren={getShareTreeNodeChildren}
         renderNode={renderNode}
       />
     </div>

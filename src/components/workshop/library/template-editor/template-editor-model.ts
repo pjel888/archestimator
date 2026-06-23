@@ -15,7 +15,7 @@ export function recomputeTemplateRow(item: EstimateRowItem): EstimateRowItem {
   };
 }
 
-export function mapTemplateNodes(
+function mapTemplateNodes(
   nodes: EstimateTreeNode[],
   transform: (node: EstimateTreeNode) => EstimateTreeNode | null,
 ): EstimateTreeNode[] {

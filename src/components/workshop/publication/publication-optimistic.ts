@@ -23,6 +23,7 @@ export function shouldUseOptimisticPublicationResult(
   return Boolean(
     localResult &&
       localResult.summaryKey === summaryKey &&
+      // react-doctor-disable-next-line react-doctor/insecure-crypto-risk -- This is a UI staleness signature, not cryptographic proof or authorization.
       localResult.baseServerSignature === serverSignature,
   );
 }

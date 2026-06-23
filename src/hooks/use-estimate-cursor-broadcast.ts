@@ -118,7 +118,8 @@ export function useEstimateCursorCollaboration({
   // verifying everyone else's). Both come from our OWN authenticated server call.
   const envelopeRef = useRef<RealtimeIdentityEnvelope | null>(null);
   const verifyKeyRef = useRef<CryptoKey | null>(null);
-  const verifiedCacheRef = useRef<Map<string, { sig: string; exp: number }>>(new Map());
+  const verifiedCacheRef = useRef<Map<string, { sig: string; exp: number }>>(null!);
+  if (verifiedCacheRef.current === null) verifiedCacheRef.current = new Map();
   // Test/override seams held in refs so an inline identity changes the deps used
   // for nothing — synced in an effect (not during render) per react-hooks rules.
   const clientFactoryRef = useRef(clientFactory);

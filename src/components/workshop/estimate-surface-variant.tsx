@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, use, type ReactNode } from "react";
 
 /**
  * Surface variant for the estimate-sheet hero workspace.
@@ -37,7 +37,7 @@ export function EstimateSurfaceVariantProvider({
 }
 
 export function useEstimateSurfaceVariant(): EstimateSurfaceVariant {
-  return useContext(EstimateSurfaceVariantContext);
+  return use(EstimateSurfaceVariantContext);
 }
 
 /**

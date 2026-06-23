@@ -79,8 +79,10 @@ export function ProjectCursorLayer({
 }
 
 function ProjectCursorsOverlay({ cursors }: { cursors: RemoteEstimateCursor[] }) {
-  const markerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const markerRefs = useRef<Map<string, HTMLDivElement>>(null!);
+  if (markerRefs.current === null) markerRefs.current = new Map();
+  const positionsRef = useRef<Map<string, { x: number; y: number }>>(null!);
+  if (positionsRef.current === null) positionsRef.current = new Map();
   const cursorsRef = useRef<RemoteEstimateCursor[]>(cursors);
   useEffect(() => {
     cursorsRef.current = cursors;

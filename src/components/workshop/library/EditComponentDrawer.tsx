@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/control-input";
@@ -69,13 +69,13 @@ export function EditComponentDrawer({
   onSaved: (patch: Partial<EstimateRowItem> & { id: string }) => void;
 }) {
   const [form, setForm] = useState<EditComponentFormState>(() => buildFormState(item));
-  const [formItemId, setFormItemId] = useState(item.id);
+  const formItemIdRef = useRef(item.id);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
 
   // Re-seed the form when the inspector moves to another component.
-  if (item.id !== formItemId) {
-    setFormItemId(item.id);
+  if (item.id !== formItemIdRef.current) {
+    formItemIdRef.current = item.id;
     setForm(buildFormState(item));
     setError(null);
   }

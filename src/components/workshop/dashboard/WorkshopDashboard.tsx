@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
@@ -21,6 +22,16 @@ type WorkshopDashboardProps = WorkshopDashboardData & {
 };
 
 const DASHBOARD_COUNT_COLUMN_WIDTH = "203px";
+const DASHBOARD_CARD_PANEL_STYLE: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: `var(--dashboard-count-col, ${DASHBOARD_COUNT_COLUMN_WIDTH}) minmax(0, 1fr)`,
+  alignItems: "stretch",
+  minHeight: 0,
+  paddingBlock: 8,
+  paddingRight: 0,
+  borderTop: "1px solid var(--destination-inner-border, var(--glass-border))",
+  borderBottom: "1px solid var(--destination-inner-border, var(--glass-border))",
+};
 
 function PublishedProjectLinks({
   projects,
@@ -158,18 +169,7 @@ export function WorkshopDashboard({
 
             <div
               className="dashboard-project-card-panel"
-              style={{
-                display: "grid",
-                gridTemplateColumns: `var(--dashboard-count-col, ${DASHBOARD_COUNT_COLUMN_WIDTH}) minmax(0, 1fr)`,
-                alignItems: "stretch",
-                minHeight: 0,
-                paddingBlock: 8,
-                paddingRight: 0,
-                borderTop:
-                  "1px solid var(--destination-inner-border, var(--glass-border))",
-                borderBottom:
-                  "1px solid var(--destination-inner-border, var(--glass-border))",
-              }}
+              style={DASHBOARD_CARD_PANEL_STYLE}
             >
               <div
                 className="dashboard-project-count-panel"
@@ -239,18 +239,7 @@ export function WorkshopDashboard({
 
             <div
               className="dashboard-component-card-panel"
-              style={{
-                display: "grid",
-                gridTemplateColumns: `var(--dashboard-count-col, ${DASHBOARD_COUNT_COLUMN_WIDTH}) minmax(0, 1fr)`,
-                alignItems: "stretch",
-                minHeight: 0,
-                paddingBlock: 8,
-                paddingRight: 0,
-                borderTop:
-                  "1px solid var(--destination-inner-border, var(--glass-border))",
-                borderBottom:
-                  "1px solid var(--destination-inner-border, var(--glass-border))",
-              }}
+              style={DASHBOARD_CARD_PANEL_STYLE}
             >
               <div
                 className="dashboard-project-count-panel"

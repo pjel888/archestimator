@@ -14,7 +14,7 @@ import {
 } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 
-export function toEditableNumber(value: number) {
+function toEditableNumber(value: number) {
   return Number.isInteger(value) ? String(value) : String(value);
 }
 
@@ -22,7 +22,7 @@ export function calculateContingencyValue(subTotal: number, contingencyPercentag
   return (subTotal * contingencyPercentage) / 100;
 }
 
-export function calculateRowTotal(subTotal: number, miscCost: number, contingencyPercentage: number) {
+function calculateRowTotal(subTotal: number, miscCost: number, contingencyPercentage: number) {
   return subTotal + miscCost + calculateContingencyValue(subTotal, contingencyPercentage);
 }
 
@@ -70,7 +70,7 @@ export const COST_ADJUSTMENT_MODE_OPTIONS: readonly { value: CostAdjustmentMode;
   { value: "discount", label: "Discount" },
 ];
 
-export function parseEditableNumber(value: string) {
+function parseEditableNumber(value: string) {
   const parsed = Number(value.replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -79,7 +79,7 @@ export function parseNonNegativeEditableNumber(value: string) {
   return Math.max(0, parseEditableNumber(value));
 }
 
-export function clampCostAdjustmentMagnitude(value: number) {
+function clampCostAdjustmentMagnitude(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(100, Math.max(0, Math.abs(value)));
 }
@@ -142,7 +142,7 @@ export function collectEditableRows(nodes: EstimateTreeNode[]) {
   return rows;
 }
 
-export function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, Partial<EditableRowValue>>) {
+function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, Partial<EditableRowValue>>) {
   const editableRow = getEditableRowValue(item, editableRows);
   const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
   const itemCost = parseNonNegativeEditableNumber(editableRow.unitCost);

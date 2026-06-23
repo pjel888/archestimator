@@ -33,6 +33,11 @@ const SAFE_INVALID_COPY = "This invite link is invalid or no longer available. A
 const EXPIRED_COPY = "Invite expired.";
 const TERMINAL_INVITE_RECOVERY_COPY = "Ask the sender for a new invite.";
 const TOKEN_SHAPE_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
+const inviteExpiryFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
 const inviteActionClassName =
   "inline-flex min-h-8 items-center justify-center gap-2 rounded-xs bg-primary p-2 !text-[10px] !font-medium leading-none text-white transition hover:bg-accentDark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 const inviteSecondaryActionClassName =
@@ -52,11 +57,7 @@ function decodeInviteRouteToken(token: string) {
 
 function formatInviteExpiry(value: string | null) {
   if (!value) return "Expires soon";
-  return `Expires ${new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value))}`;
+  return `Expires ${inviteExpiryFormatter.format(new Date(value))}`;
 }
 
 function roleLabel(role: string | null) {

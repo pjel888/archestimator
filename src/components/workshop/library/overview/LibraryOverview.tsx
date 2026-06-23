@@ -82,20 +82,23 @@ function RecentTemplateRow({
     <li
       data-library-overview-recent-template={template.id}
       className={cn(
-        "group flex cursor-pointer items-center gap-2 px-3 py-2 transition",
+        "group flex items-center gap-2 px-3 py-2 transition",
         librarySurfaceClass(surfaceVariant, "contentTile"),
         surfaceVariant === "glass" ? "hover:border-white/80 hover:bg-white/90" : "hover:border-divider",
       )}
-      onClick={(event) => {
-        if ((event.target as HTMLElement).closest("button, a")) return;
-        onOpen(template.id);
-      }}
     >
-      <Blueprint size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-      <p className="min-w-0 truncate text-[11px] font-medium leading-4 text-ink" title={template.name}>
-        {template.name}
-      </p>
-      <p className="min-w-0 truncate text-[9px] font-normal leading-3 text-tertiary">{counts}</p>
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        aria-label={`Open ${template.name}`}
+        onClick={() => onOpen(template.id)}
+      >
+        <Blueprint size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <span className="min-w-0 truncate text-[11px] font-medium leading-4 text-ink" title={template.name}>
+          {template.name}
+        </span>
+        <span className="min-w-0 truncate text-[9px] font-normal leading-3 text-tertiary">{counts}</span>
+      </button>
       <SourceTrustChips
         chips={template.sourceTrustChips}
         ariaLabel={`Source trust for ${template.name}`}
@@ -105,9 +108,9 @@ function RecentTemplateRow({
       <span className="ml-auto shrink-0 rounded-xs border border-hairline bg-surfaceMuted px-1 py-0.5 text-[8px] font-medium leading-3 text-secondary">
         {template.category}
       </span>
-      <p className="shrink-0 text-[11px] font-medium leading-4 tabular-nums text-ink">
+      <span className="shrink-0 text-[11px] font-medium leading-4 tabular-nums text-ink">
         {pesoFormatter.format(template.total)}
-      </p>
+      </span>
       <Button
         type="button"
         variant="outline"

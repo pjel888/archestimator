@@ -105,15 +105,15 @@ function TemplateEditableRow({
   onUpdateRow: TemplateSheetHandlers["onUpdateRow"];
   onRemoveRow: TemplateSheetHandlers["onRemoveRow"];
 }) {
-  const [sourceItem, setSourceItem] = useState(item);
+  const sourceItemRef = useRef(item);
   const [draft, setDraft] = useState(() => ({
     material: item.material,
     quantity: String(item.quantity),
     unit: item.unit,
     unitCost: String(item.itemCost),
   }));
-  if (sourceItem !== item) {
-    setSourceItem(item);
+  if (sourceItemRef.current !== item) {
+    sourceItemRef.current = item;
     setDraft({
       material: item.material,
       quantity: String(item.quantity),

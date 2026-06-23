@@ -26,8 +26,7 @@ export function AuthStatusBanner({ sent, errorCode, className }: AuthStatusBanne
   if (!success && !publicError) return null;
 
   return (
-    <div
-      role="status"
+    <output
       aria-live="polite"
       className={cn(
         "rounded-landing-dense border px-4 py-3 text-[14px] leading-5",
@@ -40,6 +39,6 @@ export function AuthStatusBanner({ sent, errorCode, className }: AuthStatusBanne
       {success
         ? "Check your email — we sent a sign-in link to your inbox."
         : publicError?.message}
-    </div>
+    </output>
   );
 }

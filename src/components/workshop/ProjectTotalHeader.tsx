@@ -25,7 +25,7 @@ function formatCompactPeso(value: number) {
   return compactPesoFormatter.format(value).replace("₱", "₱ ");
 }
 
-export const PROJECT_TOTAL_CHANGE_EVENT = "archestimator:project-total-change";
+const PROJECT_TOTAL_CHANGE_EVENT = "archestimator:project-total-change";
 export const PROJECT_BUDGET_CHANGE_EVENT = "archestimator:project-budget-change";
 
 type ProjectTotalChangeDetail = {

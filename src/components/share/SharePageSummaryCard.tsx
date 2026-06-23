@@ -3,12 +3,13 @@ import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 type SharePageSummaryCardProps = {
   snapshot: ProjectPublicationSnapshot;
 };
+const shareSummaryMoneyFormatter = new Intl.NumberFormat("en-PH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 function formatMoney(value: number, currencyCode: string) {
-  return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
+  return `${currencyCode} ${shareSummaryMoneyFormatter.format(value)}`;
 }
 
 function formatPreparedOn(generatedAt: string) {

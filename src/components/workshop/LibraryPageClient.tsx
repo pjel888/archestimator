@@ -26,9 +26,8 @@ const ComponentLibraryManager = dynamic(() =>
 
 function LibraryManagerFallback() {
   return (
-    <div
+    <output
       className="estimate-glass-well flex h-full min-h-0 gap-2 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2"
-      role="status"
       aria-label="Loading library"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
@@ -52,7 +51,7 @@ function LibraryManagerFallback() {
         </section>
       </div>
       <span className="sr-only">Loading library</span>
-    </div>
+    </output>
   );
 }
 

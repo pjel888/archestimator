@@ -26,6 +26,8 @@ import type {
   WorkshopPendingInviteSummary,
 } from "@/lib/repositories/workspace-repository";
 
+const EMPTY_FAVORITE_ESTIMATE_SHEETS: ProjectFavoriteEstimateSheetSummary[] = [];
+
 export type ProjectCardViewMode = "list" | "small" | "medium" | "large";
 export type ProjectAccessKind = "owned" | "pending-invite" | "project-member" | "sheet-member";
 export type ProjectCardSetupStatus = {
@@ -74,15 +76,18 @@ const REVEAL_ON_INTENT =
 const CONTROL_BUTTON = "workshop-project-card-control size-6 border-hairline";
 const OPEN_CONTROL_LINK =
   "workshop-project-card-control grid size-6 shrink-0 place-items-center rounded-xs border border-hairline text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
+const projectCardUpdatedAtFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+});
+const projectCardFullDateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "long" });
+
 function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
+  return projectCardUpdatedAtFormatter.format(new Date(value));
 }
 
 function formatFullDate(value: string) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(value));
+  return projectCardFullDateFormatter.format(new Date(value));
 }
 
 function getProjectImageUrl(metadata: Json) {
@@ -149,7 +154,7 @@ function LiveProjectCardImpl({
   setupStatus = null,
   setupNavigationDisabled = false,
   sharedEstimateCount = 0,
-  favoriteEstimateSheets = [],
+  favoriteEstimateSheets = EMPTY_FAVORITE_ESTIMATE_SHEETS,
   isFavorite = false,
   favoriteBusy = false,
   selectedForDeletion = false,

@@ -3,13 +3,15 @@ import { ArrowRight, Calculator, Clock } from "@phosphor-icons/react/dist/ssr";
 
 import type { Tables } from "@/lib/supabase/types";
 
+const estimateListUpdatedAtFormatter = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
+
 type EstimateListCardProps = {
   estimate: Tables<"estimates">;
   firstNodeId?: string | null;
 };
 
 function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
+  return estimateListUpdatedAtFormatter.format(new Date(value));
 }
 
 export function EstimateListCard({ estimate, firstNodeId }: EstimateListCardProps) {

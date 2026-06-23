@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+// react-doctor-disable-next-line react-doctor/no-flush-sync -- beforeprint must synchronously commit the print package before browser snapshot.
 import { flushSync } from "react-dom";
 
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
@@ -25,19 +26,21 @@ interface SharePageTabsProps {
 }
 
 const COLLATED_ROW_LIMIT = 250;
+const shareTabsMoneyFormatter = new Intl.NumberFormat("en-PH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const shareTabsPercentFormatter = new Intl.NumberFormat("en-PH", {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
 
 function formatMoney(value: number, currencyCode: string) {
-  return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
+  return `${currencyCode} ${shareTabsMoneyFormatter.format(value)}`;
 }
 
 function formatSharePercent(share: number) {
-  return new Intl.NumberFormat("en-PH", {
-    style: "percent",
-    maximumFractionDigits: 0,
-  }).format(Number.isFinite(share) ? share : 0);
+  return shareTabsPercentFormatter.format(Number.isFinite(share) ? share : 0);
 }
 
 function readStoredActiveEstimateId(storageKey: string, estimates: PublicationSnapshotEstimate[]) {
@@ -443,6 +446,7 @@ export default function SharePageTabs({
 
   useEffect(() => {
     const showPrintPackage = () => {
+      // react-doctor-disable-next-line react-doctor/no-flush-sync -- beforeprint must commit the print package before the browser snapshots the document.
       flushSync(() => setRenderPrintPackage(true));
     };
     const hidePrintPackage = () => {
@@ -460,12 +464,11 @@ export default function SharePageTabs({
   if (estimates.length === 0) {
     // AC-UX-08: never a silent null — show a visible, calm empty state.
     return (
-      <div
-        role="status"
+      <output
         className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[13px] leading-[18px] tracking-normal text-secondary"
       >
         No estimates are included in this shared proposal yet.
-      </div>
+      </output>
     );
   }
 
@@ -659,9 +662,9 @@ export default function SharePageTabs({
                   {filteredRows.length} line item{filteredRows.length === 1 ? "" : "s"} shown for client review
                 </p>
                 {hiddenCollatedRowCount > 0 ? (
-                  <p role="status" className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
+                  <output className="mt-1 text-[12px] leading-[16px] tracking-normal text-secondary">
                     Showing first {COLLATED_ROW_LIMIT} of {filteredRows.length} line items. Filter rows to narrow the table.
-                  </p>
+                  </output>
                 ) : null}
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[360px]">

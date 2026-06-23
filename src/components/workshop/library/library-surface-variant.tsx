@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, use, type ReactNode } from "react";
 
 import {
   EstimateSurfaceVariantProvider,
@@ -26,7 +26,7 @@ export function LibrarySurfaceVariantProvider({
 }
 
 export function useLibrarySurfaceVariant() {
-  return useContext(LibrarySurfaceVariantContext);
+  return use(LibrarySurfaceVariantContext);
 }
 
 export type LibrarySurfaceSlot =

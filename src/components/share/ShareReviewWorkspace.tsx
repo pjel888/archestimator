@@ -33,9 +33,8 @@ export default function ShareReviewWorkspace({
 
   return (
     <div className="space-y-5 pb-16 sm:pb-0">
-      <div
+      <output
         className="share-print-hidden flex flex-col gap-2 rounded-xs border border-hairline bg-surfaceMuted px-3 py-2 text-[12px] leading-[16px] tracking-normal text-secondary sm:flex-row sm:items-center sm:justify-between"
-        role="status"
       >
         <div className="min-w-0">
           <span className="font-medium text-ink">Reviewing:</span>{" "}
@@ -47,7 +46,7 @@ export default function ShareReviewWorkspace({
             Clear
           </Button>
         ) : null}
-      </div>
+      </output>
 
       <section id="share-estimates" aria-label="Estimate line items">
         <SharePageTabs

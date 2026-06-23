@@ -7,6 +7,7 @@ import { AddEstimateColumn } from "@/components/workshop/project-data/AddEstimat
 import { EstimateColumn } from "@/components/workshop/project-data/EstimateColumn";
 import { collapseProjectChartBuckets } from "@/lib/project-charts/aggregate-project-charts";
 import { buildInsightSentence } from "@/lib/project-charts/build-insight-sentence";
+import { formatChartMoney } from "@/lib/project-charts/format";
 import {
   buildProjectChartComparisonView,
   type ProjectChartComparisonViewBucket,
@@ -79,11 +80,7 @@ export function CostComparisonBoard({
     : null;
   const rollupLabel =
     summary.rollup.kind === "single"
-      ? new Intl.NumberFormat("en-PH", {
-          style: "currency",
-          currency: summary.rollup.currencyCode,
-          maximumFractionDigits: 0,
-        }).format(summary.rollup.totalCost)
+      ? formatChartMoney(summary.rollup.totalCost, summary.rollup.currencyCode)
       : summary.rollup.currencyCodes.join(", ");
 
   return (

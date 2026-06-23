@@ -71,7 +71,7 @@ import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-dat
 import {
   buildLibraryTreeWithComponentRows,
   getLibraryItemsForTreeNode,
-} from "../component-library/tree";
+} from "../component-library/tree/buildLibraryTree";
 import {
   getComponentName,
   getComponentPrice,
@@ -1499,8 +1499,7 @@ function ComponentLibrarySheet({
           className={surfaceVariant === "glass" ? "estimate-glass-chrome estimate-glass-divider border-b-0 bg-transparent" : undefined}
         />
         {status.state !== "idle" ? (
-          <div
-            role="status"
+          <output
             aria-live="polite"
             className={cn(
               "border-b border-hairline px-2 py-1 text-[10px] leading-4",
@@ -1508,7 +1507,7 @@ function ComponentLibrarySheet({
             )}
           >
             {status.message}
-          </div>
+          </output>
         ) : null}
         <BulkActionToolbar
           selectedCount={selectedVisibleItemIds.length}

@@ -200,7 +200,7 @@ function appliedFacetPrefix(kind: ComponentAppliedFacetKind) {
   }
 }
 
-export function buildComponentAppliedFacetChips(
+function buildComponentAppliedFacetChips(
   filters: ComponentFacetFilters,
   options: ComponentFacetOptions,
 ): ComponentAppliedFacetChip[] {

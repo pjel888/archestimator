@@ -88,7 +88,7 @@ function SettingsPatternModal({ open, onOpenChange }: { open: boolean; onOpenCha
       initialFocus="content"
       location="Workshop / Modal patterns / Settings"
     >
-      <WorkshopSettingsModalContentView canManagePlatform signOutControl={<StaticSignOutControl />} />
+      <WorkshopSettingsModalContentView canManagePlatform renderSignOutControl={() => <StaticSignOutControl />} />
     </AppModal>
   );
 }

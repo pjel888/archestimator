@@ -293,15 +293,19 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const renameCommitInFlightRef = useRef(false);
   // Optimistic node ids resolve to server ids here; mutations fired before the
   // create settles await the pending promise instead of erroring server-side.
-  const pendingNodeCreatesRef = useRef<Map<string, Promise<string>>>(new Map());
-  const resolvedNodeIdsRef = useRef<Map<string, string>>(new Map());
+  const pendingNodeCreatesRef = useRef<Map<string, Promise<string>>>(null!);
+  if (pendingNodeCreatesRef.current === null) pendingNodeCreatesRef.current = new Map();
+  const resolvedNodeIdsRef = useRef<Map<string, string>>(null!);
+  if (resolvedNodeIdsRef.current === null) resolvedNodeIdsRef.current = new Map();
   const skipRenameAutoSelectRef = useRef(false);
   const renameDraftDirtyRef = useRef(false);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const suppressContextMenuCloseAutoFocusRef = useRef(false);
   const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
-  const lastAcceptedPropSignatureRef = useRef(getEstimateTreeContentSignature(nodes));
-  const lastObservedPropSignatureRef = useRef(getEstimateTreeContentSignature(nodes));
+  const lastAcceptedPropSignatureRef = useRef<string>(null!);
+  if (lastAcceptedPropSignatureRef.current === null) lastAcceptedPropSignatureRef.current = getEstimateTreeContentSignature(nodes);
+  const lastObservedPropSignatureRef = useRef<string>(null!);
+  if (lastObservedPropSignatureRef.current === null) lastObservedPropSignatureRef.current = getEstimateTreeContentSignature(nodes);
   const lastObservedPropNodesRef = useRef(nodes);
   const stalePropSignatureToIgnoreRef = useRef<string | null>(null);
   const pendingPropNodesRef = useRef<EstimateTreeNode[] | null>(null);

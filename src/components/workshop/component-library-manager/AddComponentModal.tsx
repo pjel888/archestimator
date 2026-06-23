@@ -195,6 +195,7 @@ const accountingNumberFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const measurementNumberFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
 const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = [
   { value: "draft", label: "Draft", tone: "neutral" },
   { value: "in_production", label: "In production", tone: "info" },
@@ -613,7 +614,7 @@ function roundMeasurement(value: number) {
 
 function formatMeasurement(value: number | null) {
   if (value === null) return "";
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(value);
+  return measurementNumberFormatter.format(value);
 }
 
 function formatComputedMeasurement(value: number | null, unit: string, exponent: 2 | 3) {
@@ -1779,8 +1780,7 @@ function OpenAddComponentModal({
                     />
                   </ControlField>
                   {possibleDuplicate ? (
-                    <div
-                      role="status"
+                    <output
                       className="md:col-span-2 flex min-h-9 items-center justify-between gap-2 rounded-xs border border-warning/30 bg-warningSoft/40 px-2 py-1.5 text-[10px] font-medium leading-4 text-ink"
                     >
                       <span className="min-w-0">
@@ -1795,7 +1795,7 @@ function OpenAddComponentModal({
                       >
                         Create anyway
                       </Button>
-                    </div>
+                    </output>
                   ) : null}
                   <div className="md:col-span-2 rounded-xs border border-hairline bg-white" aria-label="Component variants">
                     <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component variants">
@@ -2229,11 +2229,10 @@ function OpenAddComponentModal({
                                 Attach file
                               </label>
                             </div>
-                            <div role="list" className="mt-2 grid gap-1">
+                            <ul className="m-0 mt-2 grid list-none gap-1 p-0">
                               {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => (
-                                <div
+                                <li
                                   key={attachment.id}
-                                  role="listitem"
                                   className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2 rounded-xs border border-hairline bg-surfaceMuted px-2"
                                 >
                                   <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
@@ -2247,13 +2246,13 @@ function OpenAddComponentModal({
                                   >
                                     <Trash size={11} weight="regular" aria-hidden="true" />
                                   </button>
-                                </div>
+                                </li>
                               )) : (
-                                <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
+                                <li className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
                                   No attachments
-                                </div>
+                                </li>
                               )}
-                            </div>
+                            </ul>
                             {attachmentUpload.state !== "idle" ? (
                               <span
                                 role={attachmentUpload.state === "error" ? "alert" : "status"}
@@ -2359,23 +2358,23 @@ function OpenAddComponentModal({
 
               <section className="grid gap-3 rounded-xs border border-hairline bg-white p-3" aria-label="Activity history">
                 <div className={sectionTitleClassName()}>Activity history</div>
-                <div role="list" className="grid gap-2">
-                  <div role="listitem" className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
+                <ul className="m-0 grid list-none gap-2 p-0">
+                  <li className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
                     <div className="flex min-w-0 items-center justify-between gap-2">
                       <span className="truncate text-[10px] font-medium text-ink">Component created</span>
                       <span className="shrink-0 text-[9px] font-normal text-tertiary">{draft.effectiveAt}</span>
                     </div>
                     <div className="mt-1 truncate text-[10px] font-normal text-tertiary">{draft.name.trim() || "Unnamed component"}</div>
                     <div className="mt-1 text-[10px] font-normal leading-4 text-tertiary">{draft.changeReason}</div>
-                  </div>
-                  <div role="listitem" className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
+                  </li>
+                  <li className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
                     <div className="flex min-w-0 items-center justify-between gap-2">
                       <span className="truncate text-[10px] font-medium text-ink">Lifecycle state</span>
                       <span className="shrink-0 text-[9px] font-normal text-tertiary">{lifecycleOption.label}</span>
                     </div>
                     <div className="mt-1 text-[10px] font-normal leading-4 text-tertiary">{draft.effectiveAt}</div>
-                  </div>
-                  <div role="listitem" className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
+                  </li>
+                  <li className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
                     <div className="flex min-w-0 items-center justify-between gap-2">
                       <span className="truncate text-[10px] font-medium text-ink">Cost baseline</span>
                       <span className="shrink-0 text-[9px] font-normal text-tertiary">{defaultCost}</span>
@@ -2383,8 +2382,8 @@ function OpenAddComponentModal({
                     <div className="mt-1 truncate text-[10px] font-normal text-tertiary">
                       {defaultVariant?.label ?? "Variant 1"} / {defaultVariant?.unit || "unit"}
                     </div>
-                  </div>
-                </div>
+                  </li>
+                </ul>
               </section>
             </div>
           </div>

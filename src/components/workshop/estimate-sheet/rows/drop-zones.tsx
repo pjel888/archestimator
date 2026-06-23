@@ -38,7 +38,7 @@ export function EstimateDropZone({ label, isDragOver = false, empty = false }: {
   );
 }
 
-export function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
+function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
   nodeId: string;
   nodeName: string;
   onAddBlankRow: (targetNodeId: string) => void;

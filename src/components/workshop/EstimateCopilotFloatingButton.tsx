@@ -28,6 +28,20 @@ type ChatSession = {
   messages: ChatMessage[];
 };
 
+const copilotWholeNumberFormatter = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 });
+const copilotCurrencyFormatters: Record<string, Intl.NumberFormat> = {
+  PHP: new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0,
+  }),
+  USD: new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }),
+};
+
 type AiAskResponse = {
   message?: string;
   error?: string;
@@ -176,11 +190,8 @@ function getRouteContextIds() {
 }
 
 function formatPeso(value: number, currencyCode = "PHP") {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: currencyCode,
-    maximumFractionDigits: 0,
-  }).format(value);
+  const formatter = copilotCurrencyFormatters[currencyCode];
+  return formatter ? formatter.format(value) : `${currencyCode} ${copilotWholeNumberFormatter.format(value)}`;
 }
 
 function countTreeAreas(draft: PackageBuilderDraft) {

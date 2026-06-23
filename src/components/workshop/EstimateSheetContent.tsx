@@ -177,6 +177,8 @@ export {
 import { groupComponents as groupSheetRows, sortComponents as sortSheetRows } from "./component-library/helpers";
 export { pesoFormatter };
 
+const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
+
 // legacy "EstimateSheetContent" name kept for compatibility; see plan 2026-06-12 §01-17
 type EstimateSheetContentProps = {
   selectedNodeId: string | null;
@@ -1037,8 +1039,10 @@ function EstimateSheetCursorLayer({
 
 function RemoteEstimateCursorsOverlay({ cursors }: { cursors: RemoteEstimateCursor[] }) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
-  const markerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const positionsRef = useRef<Map<string, CursorTarget>>(new Map());
+  const markerRefs = useRef<Map<string, HTMLDivElement>>(null!);
+  if (markerRefs.current === null) markerRefs.current = new Map();
+  const positionsRef = useRef<Map<string, CursorTarget>>(null!);
+  if (positionsRef.current === null) positionsRef.current = new Map();
   const cursorsRef = useRef<RemoteEstimateCursor[]>(cursors);
   // Keep the rAF loop reading the latest cursors without re-subscribing it
   // (synced in an effect, not during render, per react-hooks rules).
@@ -1107,9 +1111,9 @@ function RemoteEstimateCursorsOverlay({ cursors }: { cursors: RemoteEstimateCurs
           />
         ))}
       </div>
-      <div className="sr-only" role="status" aria-live="polite" data-estimate-cursor-sr>
+      <output className="sr-only" aria-live="polite" data-estimate-cursor-sr>
         {editingAnnouncement}
-      </div>
+      </output>
     </>
   );
 }
@@ -1151,7 +1155,7 @@ export function EstimateSheetContent({
   projectId,
   workspaceId,
   estimateId,
-  estimateTabs = [],
+  estimateTabs = EMPTY_ESTIMATE_TABS,
   activeTabId,
   loadLimitState,
   dataTabId,
@@ -3140,7 +3144,7 @@ export function EstimateSheetContent({
           />
         ) : null}
         {saveState === "saving" || saveState === "saved" || saveState === "failed" ? (
-          <div
+          <output
             className={cn(
               "mx-2 mt-2 rounded-xs border px-2 py-1 text-[10px] font-medium leading-4",
               saveState === "failed"
@@ -3149,12 +3153,11 @@ export function EstimateSheetContent({
                   ? "border-warningSoft bg-warningSoft/40 text-warning"
                   : "border-successSoft bg-successSoft/40 text-success",
             )}
-            role="status"
             aria-live="polite"
           >
             {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : "Could not save"}
             {rowMutationError?.message.includes("refreshed") ? " · Recovered edit" : ""}
-          </div>
+          </output>
         ) : null}
         {rowMutationError ? (
           <div className="mx-2 mt-2 flex items-start gap-2 rounded-xs border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] leading-4 text-red-700" role="alert">
@@ -3172,9 +3175,9 @@ export function EstimateSheetContent({
           </div>
         ) : null}
         {didTruncateInitialTree ? (
-          <div className="mx-2 mt-2 rounded-xs border border-warningSoft bg-warningSoft/40 px-2 py-1.5 text-[10px] leading-4 text-warning" role="status">
+          <output className="mx-2 mt-2 rounded-xs border border-warningSoft bg-warningSoft/40 px-2 py-1.5 text-[10px] leading-4 text-warning">
             This sheet view loaded the first {activeInitialLoadLimitState?.maxNodeCount?.toLocaleString() ?? "available"} nodes and {activeInitialLoadLimitState?.maxRowItemCount?.toLocaleString() ?? "available"} rows. Proposal exports use separate full-data limits.
-          </div>
+          </output>
         ) : null}
         {activeTreeErrorMessage ? (
           <div className="m-2 flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-xs border border-dashed border-red-200 bg-red-50/60 p-3 text-center" role="alert">
@@ -3189,10 +3192,10 @@ export function EstimateSheetContent({
           </div>
         ) : isActiveTabTreeLoading ? (
           <>
-            <div role="status" aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
+            <output aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
               {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="h-7 w-full" />)}
               <span className="sr-only">Loading estimate tab</span>
-            </div>
+            </output>
           </>
         ) : selectedNode ? (
           <>
@@ -3312,13 +3315,13 @@ function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolea
           ) : null}
         </div>
       ) : (
-        <div role="status" aria-label="Loading component library" className="space-y-1 p-2">
+        <output aria-label="Loading component library" className="space-y-1 p-2">
           <Skeleton className="h-7 w-full" />
           {Array.from({ length: 12 }, (_, index) => (
             <Skeleton key={index} className="h-6 w-full" />
           ))}
           <span className="sr-only">Loading component library</span>
-        </div>
+        </output>
       )}
     </aside>
   );

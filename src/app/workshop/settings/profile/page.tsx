@@ -11,8 +11,7 @@ export default async function ProfileSettingsPage({
 }: {
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
-  const params = await searchParams;
-  const state = await getAccountSetupState();
+  const [params, state] = await Promise.all([searchParams, getAccountSetupState()]);
 
   return (
     <WorkshopPageShell

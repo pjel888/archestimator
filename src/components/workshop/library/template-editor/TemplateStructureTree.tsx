@@ -280,7 +280,7 @@ export function TemplateStructureTree({
 
   return (
     <>
-    <span className="sr-only" role="status" aria-live="polite">{moveAnnouncement}</span>
+    <output className="sr-only" aria-live="polite">{moveAnnouncement}</output>
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div

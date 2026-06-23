@@ -32,7 +32,7 @@ export type AccountSetupState = {
   canManageWorkspace: boolean;
 };
 
-export async function completeOnboarding(formData: FormData) {
+async function completeOnboarding(formData: FormData) {
   const next = sanitizeNextPath(formData.get("next"));
   const context = await requireCurrentUserContext();
   const supabase = await createSupabaseServerClient();
@@ -92,6 +92,7 @@ export async function completeOnboarding(formData: FormData) {
 
   revalidatePath("/workshop");
   revalidatePath("/workshop/settings");
+  // react-doctor-disable-next-line react-doctor/clickjacking-redirect-risk -- `next` is constrained by sanitizeNextPath to an internal path, with auth callback and unsafe nested next values rejected.
   redirect(next);
 }
 

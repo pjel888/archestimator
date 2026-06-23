@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { FolderSimple, Cube, CaretDown } from "@phosphor-icons/react";
 
@@ -17,10 +17,15 @@ import {
   WORKSHOP_TREE_MAX_INDENT,
 } from "@/components/workshop/tree-visual-style";
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ShareTreeNode } from "@/lib/share/reconstruct-share-tree";
 
 const DESKTOP_INLINE_ROW_LIMIT = 250;
 const MOBILE_INLINE_ROW_LIMIT = 100;
+const shareTreeMoneyFormatter = new Intl.NumberFormat("en-PH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 /**
  * Read-only tree panel for the /share/[token] receiver.
@@ -52,10 +57,7 @@ interface ShareEstimateTreePanelProps {
 }
 
 function formatMoney(value: number, currencyCode: string) {
-  return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}`;
+  return `${currencyCode} ${shareTreeMoneyFormatter.format(value)}`;
 }
 
 function collectAllNodeIds(nodeList: ShareTreeNode[]): string[] {
@@ -241,9 +243,9 @@ function TreeNodeRenderer({
           );
         })}
         {hiddenRowCount > 0 ? (
-          <div className="border-b border-hairline/40 py-1 pr-2 text-[12px] leading-[16px] text-secondary" role="status">
+          <output className="border-b border-hairline/40 py-1 pr-2 text-[12px] leading-[16px] text-secondary">
             {visibleRows.length} of {node.rows?.length ?? visibleRows.length} rows shown in tree view.
-          </div>
+          </output>
         ) : null}
       </div>
     ) : null;
@@ -326,15 +328,7 @@ export function ShareEstimateTreePanel({
   onNavigate,
   panelWidth,
 }: ShareEstimateTreePanelProps) {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsMobile(mql.matches);
-    update();
-    mql.addEventListener("change", update);
-    return () => mql.removeEventListener("change", update);
-  }, []);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [manualExpandedNodeIds, setManualExpandedNodeIds] = useState<string[] | null>(null);

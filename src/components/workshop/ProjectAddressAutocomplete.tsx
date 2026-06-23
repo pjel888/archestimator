@@ -337,7 +337,7 @@ export function ProjectAddressAutocomplete({
             const isActive = index === activeIndex;
             return (
               <button
-                key={`${label}-${index}`}
+                key={label}
                 id={suggestionOptionId(listboxId, index)}
                 data-address-suggestion-index={index}
                 type="button"
@@ -361,9 +361,9 @@ export function ProjectAddressAutocomplete({
           })}
         </DropdownPopupPanel>
       ) : null}
-      <span className="sr-only" role="status" aria-live="polite">
+      <output className="sr-only" aria-live="polite">
         {isPending ? "Saving Google place" : status}
-      </span>
+      </output>
     </div>
   );
 }

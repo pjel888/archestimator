@@ -90,19 +90,21 @@ export function ProjectVarianceSpine({
           const maxX = Math.max(...xs);
 
           return (
-            <li
-              key={bucket.id}
-              data-bucket-id={bucket.id}
-              data-testid="variance-row"
-              onMouseEnter={() => onActiveBucketChange(bucket.id)}
-              onMouseLeave={() => onActiveBucketChange(null)}
-              onClick={() => onTogglePin(bucket.id)}
-              className={cn(
-                "grid cursor-pointer grid-cols-1 gap-x-3 gap-y-1 px-3 py-2 transition-colors motion-reduce:transition-none sm:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_minmax(5.5rem,auto)] sm:items-center",
-                isActive ? "bg-surfaceMuted" : "hover:bg-surfaceMuted/60",
-              )}
-            >
-              <div className="flex min-w-0 items-center gap-1.5">
+            <li key={bucket.id} data-bucket-id={bucket.id} data-testid="variance-row">
+              <button
+                type="button"
+                aria-pressed={isActive}
+                onMouseEnter={() => onActiveBucketChange(bucket.id)}
+                onMouseLeave={() => onActiveBucketChange(null)}
+                onFocus={() => onActiveBucketChange(bucket.id)}
+                onBlur={() => onActiveBucketChange(null)}
+                onClick={() => onTogglePin(bucket.id)}
+                className={cn(
+                  "grid w-full cursor-pointer grid-cols-1 gap-x-3 gap-y-1 px-3 py-2 text-left transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_minmax(5.5rem,auto)] sm:items-center",
+                  isActive ? "bg-surfaceMuted" : "hover:bg-surfaceMuted/60",
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
                 <span
                   aria-hidden="true"
                   className="grid size-3.5 shrink-0 place-items-center rounded-xs text-[8px] font-medium text-white"
@@ -113,9 +115,9 @@ export function ProjectVarianceSpine({
                 <span className="truncate text-[10px] font-medium text-foreground" title={bucket.label}>
                   {bucket.label}
                 </span>
-              </div>
+                </span>
 
-              <div className="relative h-5" aria-hidden="true">
+                <span className="relative h-5" aria-hidden="true">
                 {/* baseline gridline */}
                 <span className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-hairline" />
                 {/* variance connector between min and max marker */}
@@ -138,13 +140,14 @@ export function ProjectVarianceSpine({
                     }}
                   />
                 ))}
-              </div>
+                </span>
 
-              <div className={cn("flex items-center justify-start gap-1 text-[10px] font-medium tabular-nums sm:justify-end", directionTextClass)}>
-                <DirectionIcon size={10} weight="regular" aria-hidden="true" />
-                <span>{formatSignedChartMoney(bucket.delta, view.currencyCode)}</span>
-                <span className="text-tertiary">{formatDeltaPercent(bucket.deltaPercent)}</span>
-              </div>
+                <span className={cn("flex items-center justify-start gap-1 text-[10px] font-medium tabular-nums sm:justify-end", directionTextClass)}>
+                  <DirectionIcon size={10} weight="regular" aria-hidden="true" />
+                  <span>{formatSignedChartMoney(bucket.delta, view.currencyCode)}</span>
+                  <span className="text-tertiary">{formatDeltaPercent(bucket.deltaPercent)}</span>
+                </span>
+              </button>
             </li>
           );
         })}

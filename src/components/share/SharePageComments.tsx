@@ -192,8 +192,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     const q = loadQueue();
     if (q.length === 0 || !navigator.onLine) return;
 
-    const remaining: QueuedComment[] = [];
-    for (const item of q) {
+    const results = await Promise.all(q.map(async (item) => {
       const targetPayload = serializeShareReviewTarget(item.reviewTarget);
       try {
         // reuse the resilient post path (will do its own 3-attempt retry)
@@ -205,14 +204,18 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
           },
           body: JSON.stringify({ body: item.body, viewToken, ...targetPayload }),
         });
-        if (!res.ok) {
-          remaining.push(item);
-        } else {
-          announce("Queued comment delivered.");
-        }
+        return { item, delivered: res.ok };
       } catch {
-        remaining.push(item);
+        return { item, delivered: false };
       }
+    }));
+    const remaining = results.reduce<QueuedComment[]>((items, result) => {
+      if (!result.delivered) items.push(result.item);
+      return items;
+    }, []);
+    const deliveredCount = results.length - remaining.length;
+    if (deliveredCount > 0) {
+      announce(deliveredCount === 1 ? "Queued comment delivered." : `${deliveredCount} queued comments delivered.`);
     }
     saveQueue(remaining);
     setPendingCount(remaining.length);
@@ -246,6 +249,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     for (let attempt = 1; attempt <= 3; attempt++) {
       setRetryStatus(attempt > 1 ? `Retrying (${attempt}/3)...` : null);
       if (delays[attempt - 1] > 0) {
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Retry backoff must run sequentially between attempts.
         await new Promise((r) => setTimeout(r, delays[attempt - 1]));
       }
       try {
@@ -471,9 +475,9 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
 
         {/* P12 additive status (retry/queued) — strictly design compliant (rounded-xs, existing tokens, no new primitives) */}
         {(retryStatus || pendingCount > 0) && (
-          <div className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[12px] tracking-normal text-secondary" role="status" aria-live="polite">
+          <output className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[12px] tracking-normal text-secondary" aria-live="polite">
             {retryStatus ? retryStatus : `${pendingCount} comment${pendingCount > 1 ? "s" : ""} queued — will retry on reconnect`}
-          </div>
+          </output>
         )}
 
         <div className="mb-2 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[12px] leading-[16px] tracking-normal text-secondary">

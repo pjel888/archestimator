@@ -57,7 +57,7 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
     <form action={action} className="max-w-3xl space-y-3">
       <input type="hidden" name="pagePath" value={pathname ?? "/workshop/feedback"} />
       {isInline && inlineState.status !== "idle" && inlineState.message ? (
-        <div
+        <output
           className={[
             "rounded-xs border p-2 text-[10px] leading-4",
             inlineState.status === "saved"
@@ -66,10 +66,9 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
                 ? "border-warning/25 bg-warningSoft text-warning"
                 : "border-dangerSoft bg-dangerSoft/40 text-danger",
           ].join(" ")}
-          role="status"
         >
           {inlineState.message}
-        </div>
+        </output>
       ) : null}
 
       <section className="space-y-2 border border-hairline bg-white p-2">

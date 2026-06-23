@@ -36,5 +36,6 @@ export async function acceptCurrentTermsAction(formData: FormData) {
     redirect(buildAcceptanceErrorRedirect("save_failed", next));
   }
 
+  // react-doctor-disable-next-line react-doctor/clickjacking-redirect-risk -- `next` is constrained by sanitizeNextPath to an internal terms-gate destination.
   redirect(next);
 }

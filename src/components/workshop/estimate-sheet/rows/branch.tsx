@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { memo, useMemo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
 
 export type BreadcrumbNode = { id: string; name: string };
+const EMPTY_BREADCRUMB_PATH: BreadcrumbNode[] = [];
 
 export type EstimateSheetBranchProps = {
   node: EstimateTreeNode;
@@ -109,7 +110,7 @@ function branchRowStateChanged(
   return false;
 }
 
-export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: EstimateSheetBranchProps) {
+function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: EstimateSheetBranchProps) {
   if (
     prev.node !== next.node ||
     prev.nodeCode !== next.nodeCode ||
@@ -156,7 +157,7 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -166,6 +167,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
   useDragEdgeAutoScroll(sectionRef, depth === 0);
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
+  const childAncestorPath = useMemo(() => [...ancestorPath, { id: node.id, name: node.name }], [ancestorPath, node.id, node.name]);
   const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
   // P6 single-node model: every node has a collapsible body, because even an
   // empty area owns contextual chrome (breadcrumbs + Add row) and can receive
@@ -423,13 +425,12 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
               header (and own-rows thead when present). */}
           {renderChildBranches ? childAreas.map((child, childIndex) => {
             const childCode = getNodeCode(nodeCode, childIndex);
-            const childPath = [...ancestorPath, { id: node.id, name: node.name }];
             return (
               <EstimateSheetBranch
                 key={child.id}
                 node={child}
                 nodeCode={childCode}
-                ancestorPath={childPath}
+                ancestorPath={childAncestorPath}
                 editableRows={editableRows}
                 setEditableRows={setEditableRows}
                 onInsertLibraryItem={onInsertLibraryItem}

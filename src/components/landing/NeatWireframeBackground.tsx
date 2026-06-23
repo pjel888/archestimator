@@ -154,14 +154,18 @@ export function NeatWireframeBackground() {
 
   return (
     <>
-      <style jsx global>{`a[data-n][href*="neat.firecms.co"] { display: none !important; }`}</style>
+      <style>{`a[data-n][href*="neat.firecms.co"] { display: none !important; }`}</style>
       {shouldRenderCanvas ? (
-        <canvas
-          ref={canvasRef}
-          className='absolute inset-0 size-full'
-          style={{ isolation: 'isolate' }}
-          aria-hidden='true'
-        />
+        <>
+          {/* react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Decorative Neat canvas has no focus path or fallback controls. */}
+          <canvas
+            ref={canvasRef}
+            className='absolute inset-0 size-full'
+            style={{ isolation: 'isolate' }}
+            aria-hidden='true'
+            tabIndex={-1}
+          />
+        </>
       ) : (
         <div
           className='absolute inset-0 size-full bg-[linear-gradient(135deg,rgba(242,68,5,0.72),rgba(198,56,4,0.64)_45%,rgba(150,42,3,0.42))]'

@@ -23,6 +23,8 @@ import type { ComponentLibrarySupplierOption } from "./component-library/tree/bu
 import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
 
+const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
+
 const EstimateSheetTree = dynamic(() =>
   import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
   {
@@ -73,7 +75,7 @@ export function EstimateWorkspaceClient({
   projectName,
   selectedNodeId,
   nodes,
-  estimateTabs = [],
+  estimateTabs = EMPTY_ESTIMATE_TABS,
   activeTabId = null,
   loadLimitState,
   canEditEstimate = false,
@@ -194,9 +196,8 @@ function EstimateTreeFallback() {
 function EstimateContentFallback() {
   const variant = useEstimateSurfaceVariant();
   return (
-    <div
+    <output
       className={cn("flex min-h-0 min-w-0 flex-1 flex-col p-2", estimateSurfaceClass(variant, "centerColumnFallback"))}
-      role="status"
       aria-label="Loading estimate"
     >
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-hairline" aria-hidden="true">
@@ -210,6 +211,6 @@ function EstimateContentFallback() {
         ))}
       </div>
       <span className="sr-only">Loading estimate</span>
-    </div>
+    </output>
   );
 }

@@ -216,7 +216,9 @@ export function NewTemplateModal({
           />
           <datalist id="new-template-category-options">
             {existingCategories.map((existingCategory) => (
-              <option key={existingCategory} value={existingCategory} />
+              <option key={existingCategory} value={existingCategory}>
+                {existingCategory}
+              </option>
             ))}
           </datalist>
         </Field>

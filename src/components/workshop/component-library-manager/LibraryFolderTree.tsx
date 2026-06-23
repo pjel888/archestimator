@@ -34,7 +34,9 @@ import {
   toggleCascadeSelection,
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
-import { buildLibraryTreeWithComponentRows, filterTree, getAllNodeIds, LibraryTree } from "../component-library/tree";
+import { LibraryTree } from "../component-library/tree/LibraryTree";
+import { buildLibraryTreeWithComponentRows } from "../component-library/tree/buildLibraryTree";
+import { filterTree, getAllNodeIds } from "../component-library/tree/helpers";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
 import {
@@ -58,6 +60,11 @@ export {
 type LibraryFolderTreeDatum =
   | { kind: "folder"; folderId: string; label: string; isSyntheticRoot: boolean }
   | { kind: "component"; item: EstimateRowItem; parentFolderId: string };
+
+const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
+const EMPTY_SELECTED_COMPONENT_IDS = new Set<string>();
+const EMPTY_LIBRARY_TREE_NODES: LibraryTreeNode[] = [];
+const EMPTY_LIBRARY_ENTITY_OPTIONS: Array<{ id: string; name: string }> = [];
 
 function getLibraryFolderTreeDatum(node: UiTreeNode | undefined): LibraryFolderTreeDatum | undefined {
   return node?.data?.folderTree as LibraryFolderTreeDatum | undefined;
@@ -398,8 +405,8 @@ type LibraryFolderTreeProps = {
 export function LibraryFolderTree({
   folders,
   nodes,
-  libraryItems = [],
-  selectedComponentIds = new Set<string>(),
+  libraryItems = EMPTY_LIBRARY_ITEMS,
+  selectedComponentIds = EMPTY_SELECTED_COMPONENT_IDS,
   selectedFolderId,
   searchQuery,
   disabled,
@@ -864,8 +871,8 @@ export function LibraryFolderTreeSurface({
   className,
   folders,
   folderNodes,
-  libraryItems = [],
-  selectedComponentIds = new Set<string>(),
+  libraryItems = EMPTY_LIBRARY_ITEMS,
+  selectedComponentIds = EMPTY_SELECTED_COMPONENT_IDS,
   selectedFolderId,
   viewMode: controlledViewMode,
   defaultViewMode = "default",
@@ -879,17 +886,17 @@ export function LibraryFolderTreeSurface({
   onRenameFolder = () => undefined,
   onDeleteFolder = () => undefined,
   onDeleteFolders,
-  supplierNodes = [],
+  supplierNodes = EMPTY_LIBRARY_TREE_NODES,
   selectedSupplierNodeId,
   onSelectSupplierNode,
-  suppliers = [],
+  suppliers = EMPTY_LIBRARY_ENTITY_OPTIONS,
   selectedSupplierId,
   selectedSupplierName,
   onSelectSupplier,
-  brandNodes = [],
+  brandNodes = EMPTY_LIBRARY_TREE_NODES,
   selectedBrandNodeId,
   onSelectBrandNode,
-  brands = [],
+  brands = EMPTY_LIBRARY_ENTITY_OPTIONS,
   selectedBrandId,
   selectedBrandName,
   onSelectBrand,
@@ -1135,8 +1142,7 @@ export function LibraryFolderTreeSurface({
       >
         {viewModeMenuOpen ? <ComponentViewControls mode={viewMode} ariaLabel={viewModeAriaLabel} onModeChange={changeViewMode} /> : null}
         {reorderStatus.state !== "idle" ? (
-          <div
-            role="status"
+          <output
             aria-live="polite"
             className={cn(
               "border-b border-hairline px-2 py-1 text-[10px] leading-4",
@@ -1144,7 +1150,7 @@ export function LibraryFolderTreeSurface({
             )}
           >
             {reorderStatus.message}
-          </div>
+          </output>
         ) : null}
       </TreePanelHeader>
       <div className="min-h-0 flex-1 overflow-auto">
@@ -1188,16 +1194,16 @@ export function LibraryFolderTreeSurface({
 export function LibraryFolderTreePicker({
   folders,
   nodes,
-  libraryItems = [],
+  libraryItems = EMPTY_LIBRARY_ITEMS,
   selectedComponentIds,
   selectedFolderId,
   viewMode,
   defaultViewMode,
   onViewModeChange,
-  suppliers = [],
+  suppliers = EMPTY_LIBRARY_ENTITY_OPTIONS,
   selectedSupplierId,
   selectedSupplierName,
-  brands = [],
+  brands = EMPTY_LIBRARY_ENTITY_OPTIONS,
   selectedBrandId,
   selectedBrandName,
   onSelectFolder,

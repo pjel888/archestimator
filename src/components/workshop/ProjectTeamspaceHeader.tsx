@@ -166,8 +166,7 @@ function RoleBadge({ role }: { role: CollaborationRole }) {
 function UnavailableTeamspaceRail() {
   return (
     <Tooltip label="Teamspace unavailable — reopen the project to retry">
-      <span
-        role="status"
+      <output
         aria-label="Teamspace unavailable"
         className="relative grid h-8 shrink-0 place-items-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium text-tertiary opacity-70"
       >
@@ -175,7 +174,7 @@ function UnavailableTeamspaceRail() {
           <UsersThree size={13} weight="regular" aria-hidden="true" />
           Unavailable
         </span>
-      </span>
+      </output>
     </Tooltip>
   );
 }
@@ -235,7 +234,8 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const onlineUserIds = presence.onlineUserIds;
 
   // Announce joins/leaves once at a time (08 §2 aria-live).
-  const prevOnlineRef = useRef<Set<string>>(new Set());
+  const prevOnlineRef = useRef<Set<string>>(null!);
+  if (prevOnlineRef.current === null) prevOnlineRef.current = new Set();
   useEffect(() => {
     if (!liveSummary) return;
     const prev = prevOnlineRef.current;
@@ -507,9 +507,9 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
           <UsersThree size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
         </Button>
 
-        <span className="sr-only" role="status" aria-live="polite" aria-relevant="additions removals">
+        <output className="sr-only" aria-live="polite" aria-relevant="additions removals">
           {presenceAnnouncement}
-        </span>
+        </output>
       </div>
 
       <ShareModal
@@ -752,10 +752,10 @@ function ShareModal(props: ShareModalProps) {
           ) : null}
 
           {checkingDelivery ? (
-            <p className="flex items-center gap-1.5 text-[9px] leading-3 text-tertiary" role="status">
+            <output className="flex items-center gap-1.5 text-[9px] leading-3 text-tertiary">
               <CircleNotch size={11} className="animate-spin" aria-hidden="true" />
               Checking invite delivery…
-            </p>
+            </output>
           ) : null}
 
           <form
@@ -1057,9 +1057,9 @@ function ShareModal(props: ShareModalProps) {
         {/* Live regions: polite for routine, assertive for destructive. */}
         {feedback ? (
           <section className="border-t border-hairline p-3">
-            <div role="status" aria-live="polite">
+            <output aria-live="polite">
               {!actionAssertive ? feedback : null}
-            </div>
+            </output>
             <div role="alert" aria-live="assertive">
               {actionAssertive ? feedback : null}
             </div>

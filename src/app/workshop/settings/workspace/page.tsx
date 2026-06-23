@@ -11,8 +11,7 @@ export default async function WorkspaceSettingsPage({
 }: {
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
-  const params = await searchParams;
-  const state = await getAccountSetupState();
+  const [params, state] = await Promise.all([searchParams, getAccountSetupState()]);
   const disabled = !state.canManageWorkspace;
 
   return (

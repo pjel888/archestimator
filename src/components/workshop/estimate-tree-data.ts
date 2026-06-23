@@ -370,7 +370,7 @@ export const sampleEstimateTree: EstimateTreeNode[] = [
   },
 ];
 
-export function flattenVisibleNodes(nodes: EstimateTreeNode[], expandedIds: Set<string>, depth = 0, parentPath: string[] = []): FlatEstimateTreeNode[] {
+function flattenVisibleNodes(nodes: EstimateTreeNode[], expandedIds: Set<string>, depth = 0, parentPath: string[] = []): FlatEstimateTreeNode[] {
   return nodes.flatMap((node) => {
     const path = [...parentPath, node.name];
     return [
@@ -380,7 +380,7 @@ export function flattenVisibleNodes(nodes: EstimateTreeNode[], expandedIds: Set<
   });
 }
 
-export function getExpandedNodeIds(nodes: EstimateTreeNode[]) {
+function getExpandedNodeIds(nodes: EstimateTreeNode[]) {
   const ids = new Set<string>();
 
   function visit(node: EstimateTreeNode) {

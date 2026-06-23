@@ -26,6 +26,7 @@ type WorkshopHomebaseClientProps = {
    */
   children: ReactNode;
 };
+const homebaseUpdatedAtFormatter = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" });
 
 export type WorkshopRemovedProjectBannerState = {
   projectId: string;
@@ -305,7 +306,7 @@ function InviteResolutionBanner({
 }
 
 function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
+  return homebaseUpdatedAtFormatter.format(new Date(value));
 }
 
 function formatPendingInviteCount(count: number) {

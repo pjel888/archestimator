@@ -198,15 +198,13 @@ function prepareSketchGroup(
     }
 
     if (prefersReducedMotion) {
-      path.style.strokeDasharray = "none";
-      path.style.strokeDashoffset = "0";
+      path.style.cssText += ";stroke-dasharray:none;stroke-dashoffset:0";
       return;
     }
 
     const length = Math.max(1, path.getTotalLength());
     path.classList.add(styles.drawPath);
-    path.style.setProperty("--path-length", `${length}`);
-    path.style.setProperty("--draw-delay", `${delay + index * 30}ms`);
+    path.style.cssText += `;--path-length:${length};--draw-delay:${delay + index * 30}ms`;
   });
 }
 
@@ -636,7 +634,8 @@ export function AnimatedProposalRecordSection() {
   const diagramStageRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const roughLayerRef = useRef<SVGGElement | null>(null);
-  const stepRefs = useRef(new Map<DiagramStepId, HTMLElement>());
+  const stepRefs = useRef<Map<DiagramStepId, HTMLElement>>(null!);
+  if (stepRefs.current === null) stepRefs.current = new Map();
   const [isVisible, setIsVisible] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
 

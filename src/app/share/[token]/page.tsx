@@ -126,8 +126,10 @@ function ProjectPublicationPasswordGate({ token }: { token: string }) {
 }
 
 export default async function SharePage({ params, searchParams }: SharePageProps) {
-  const { token } = await params;
-  const searchParamsData = await (searchParams ?? Promise.resolve<Record<string, string | undefined>>({}));
+  const [{ token }, searchParamsData] = await Promise.all([
+    params,
+    searchParams ?? Promise.resolve<Record<string, string | undefined>>({}),
+  ]);
   const canonicalRecipientToken =
     typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : "";
   const legacyRecipientToken = typeof searchParamsData.rt === "string" ? searchParamsData.rt.trim() : "";

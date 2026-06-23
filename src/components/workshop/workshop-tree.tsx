@@ -20,7 +20,7 @@ type WorkshopTreeContextMenuProps = {
   children: ReactNode;
 };
 
-export function WorkshopTreeContextMenu({ groups, contentProps, children }: WorkshopTreeContextMenuProps) {
+function WorkshopTreeContextMenu({ groups, contentProps, children }: WorkshopTreeContextMenuProps) {
   const visibleGroups = groups ?? [];
   const hasItems = visibleGroups.some((group) => group.items.length);
 

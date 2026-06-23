@@ -116,6 +116,8 @@ interface ChartDims {
   RIGHT_CONNECTOR_X: number;
 }
 
+const compactMoneyNumberFormatter = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 });
+
 function getChartDims(compact: boolean): ChartDims {
   const b = compact ? COMPACT : FULL;
   return {
@@ -144,7 +146,7 @@ function formatCompactMoney(value: number, currencyCode: string): string {
   // format grouping identically — an undefined locale uses the runtime default,
   // which differs between the Node server and the visitor's browser → hydration
   // mismatch on the rendered number text.
-  return `${prefix}${new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(value)}`;
+  return `${prefix}${compactMoneyNumberFormatter.format(value)}`;
 }
 
 function formatPercent(share: number): string {

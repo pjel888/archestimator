@@ -18,7 +18,7 @@ export function sanitizeNextPath(
   return sanitizePathOnly(raw) ?? safeFallback;
 }
 
-export function getAllowedAppOrigins(env: OriginEnv = process.env) {
+function getAllowedAppOrigins(env: OriginEnv = process.env) {
   const origins = new Set<string>();
   const configured = [
     env.NEXT_PUBLIC_APP_URL,
@@ -127,6 +127,7 @@ function sanitizePathOnly(value: string) {
 }
 
 function hasUnsafeNestedNextPath(parsed: URL) {
+  // react-doctor-disable-next-line react-doctor/url-prefilled-privileged-action -- This sanitizer inspects nested next values so attacker-controlled redirect chains are rejected.
   const nestedNextValues = parsed.searchParams.getAll("next");
   return nestedNextValues.some((nextValue) => sanitizePathOnly(nextValue) === null);
 }

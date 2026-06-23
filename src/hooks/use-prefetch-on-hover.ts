@@ -23,7 +23,8 @@ function isInternalRoute(href: string) {
 
 export function usePrefetchOnHover(configs: ReadonlyArray<PrefetchRouteConfig>, delayMs = 150) {
   const router = useRouter();
-  const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(null!);
+  if (debounceTimers.current === null) debounceTimers.current = new Map();
 
   useEffect(() => {
     const timers = debounceTimers.current;

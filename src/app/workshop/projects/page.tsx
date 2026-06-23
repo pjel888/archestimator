@@ -13,14 +13,14 @@ import { ensureDefaultWorkspace, listCurrentWorkspaceProjects } from "@/lib/repo
 // fetch. The fallback reuses the exact `loading.tsx` skeleton, so there is no double-flash.
 async function ProjectsData() {
   return withPerfTraceRequest("workshop.projects.data", async () => {
-    const { projects, favoriteProjectIds, projectGroups } = await traced("projects.route.list", () =>
-      listCurrentWorkspaceProjects(),
-    );
     // Source the favorites scope identically to WorkshopPageShell (D2): the server +
     // client must build the same sidebar query key. Both helpers are React-cached, so
     // calling them here does not duplicate the work the shell already performed.
-    const currentUser = await requireCurrentUserContext();
-    const { workspace } = await ensureDefaultWorkspace();
+    const [{ projects, favoriteProjectIds, projectGroups }, currentUser, { workspace }] = await Promise.all([
+      traced("projects.route.list", () => listCurrentWorkspaceProjects()),
+      requireCurrentUserContext(),
+      ensureDefaultWorkspace(),
+    ]);
     const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
 
     return (

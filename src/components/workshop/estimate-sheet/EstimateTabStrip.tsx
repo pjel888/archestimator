@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type Ref } from "react";
 import { CopySimple, PencilSimple, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
@@ -21,6 +21,7 @@ import {
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 import { useToast } from "@/components/ui/toast";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE } from "../component-library/templates";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "./drag-types";
 
@@ -53,6 +54,7 @@ export type EstimateTabStripProps = {
    */
   onCreateTabStateChange?: (state: { canCreate: boolean; pending: boolean }) => void;
   className?: string;
+  ref?: Ref<EstimateTabStripHandle>;
 };
 
 type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "delete" | null;
@@ -81,7 +83,7 @@ function getNextTabName(tabs: readonly EstimateTabSummary[]) {
   return formatEstimatePageTabName(index);
 }
 
-export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabStripProps>(function EstimateTabStrip({
+export function EstimateTabStrip({
   tabs,
   activeTabId,
   projectId,
@@ -92,7 +94,8 @@ export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabSt
   canCreateTabs = false,
   onCreateTabStateChange,
   className,
-}: EstimateTabStripProps, ref) {
+  ref,
+}: EstimateTabStripProps) {
   const { toast } = useToast();
   const orderedTabs = useMemo(() => sortEstimateTabsForDisplay(tabs), [tabs]);
   const resolvedActiveTabId = orderedTabs.some((tab) => tab.id === activeTabId)
@@ -125,14 +128,10 @@ export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabSt
 
   // Browser-grade polish (U5): pinned "+", scroll-into-view, overflow fade, and
   // restrained enter motion — all respecting prefers-reduced-motion.
-  const previousTabIdsRef = useRef<Set<string>>(new Set(orderedTabs.map((tab) => tab.id)));
+  const previousTabIdsRef = useRef<Set<string>>(null!);
+  if (previousTabIdsRef.current === null) previousTabIdsRef.current = new Set(orderedTabs.map((tab) => tab.id));
   const [enteringTabIds, setEnteringTabIds] = useState<ReadonlySet<string>>(() => new Set());
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   const focusTab = useCallback((index: number) => {
     const tab = orderedTabs[index];
@@ -235,15 +234,6 @@ export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabSt
     manageMenuCloseFocusRef.current = false;
     tabRefs.current[index]?.focus();
   }, [orderedTabs]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handleChange = () => setPrefersReducedMotion(media.matches);
-    handleChange();
-    media.addEventListener?.("change", handleChange);
-    return () => media.removeEventListener?.("change", handleChange);
-  }, []);
 
   const scrollTabIntoView = useCallback((tabId: string) => {
     const index = orderedTabs.findIndex((tab) => tab.id === tabId);
@@ -671,9 +661,9 @@ export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabSt
         </div>
       </div>
       {error ? <p role="alert" className="px-2 pb-1 text-[10px] leading-4 text-danger">{error}</p> : null}
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      <output aria-live="polite" aria-atomic="true" className="sr-only">
         {announcement}
-      </div>
+      </output>
     </div>
   );
-});
+}

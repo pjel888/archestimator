@@ -82,7 +82,7 @@ const HERO_HEADLINE_ANNOTATION_COLOR = "rgb(242, 68, 5)";
 const PROPOSAL_TO_APPROVAL_HEADLINE = "The fastest path from proposal to approval.";
 const PRECISION_TO_WIN_HEADLINE = "Estimate with Precision. Win with Clarity.";
 
-export const heroCopyVariants = [
+const heroCopyVariants = [
   {
     id: 'connected-workflow',
     headline: 'The fastest path from proposal to approval.',
@@ -100,11 +100,11 @@ export const heroCopyVariants = [
 ] as const
 
 function renderBrandHighlightedText(text: string) {
-  return text.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
+  return text.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg) =>
     seg.toLowerCase() === "archestimator" ? (
-      <span key={i} className="relative inline-block text-brand-orange">{seg}</span>
+      <span key={`brand-${seg}`} className="relative inline-block text-brand-orange">{seg}</span>
     ) : (
-      <span key={i}>{seg}</span>
+      <span key={seg}>{seg}</span>
     ),
   );
 }
@@ -246,7 +246,7 @@ function HeroHeadlineText({ headline }: { headline: string }) {
   );
 }
 
-export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "A" | "B"; isLoggedIn?: boolean }) {
+function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "A" | "B"; isLoggedIn?: boolean }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
   const primaryCtaHref = isLoggedIn ? workshopHref : "/contact";
   const primaryCtaTarget = isLoggedIn ? "workspace" : "book_walkthrough";
@@ -278,7 +278,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
           <div className='relative z-10 mt-4 lg:mt-5'>
             <p className='max-w-[420px] border-l border-t border-[#d9d1c8] pl-5 pt-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0 lg:pt-7'>
               {activeHeroCopy.support.split("\n").map((part, i) => (
-                <span key={i}>
+                <span key={part}>
                   {i > 0 && <br aria-hidden="true" />}
                   {renderBrandHighlightedText(part)}
                 </span>

@@ -88,6 +88,7 @@ const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
 const EMPTY_PROJECT_GROUPS: ProjectGroupSummary[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
+const projectGroupMonthFormatter = new Intl.DateTimeFormat("en", { month: "long" });
 
 // Part 7d (Project Groups): the "Organize by" axis (None / Date / Group). Persisted
 // in localStorage with the SAME useSyncExternalStore + custom-event + storage-event
@@ -284,6 +285,10 @@ function writeProjectOrganizeByPreference(organizeBy: ProjectOrganizeBy) {
   window.dispatchEvent(new Event(PROJECT_ORGANIZE_BY_CHANGE_EVENT));
 }
 
+function handleProjectOrganizeByPreferenceChange(next: string) {
+  if (isProjectOrganizeBy(next)) writeProjectOrganizeByPreference(next);
+}
+
 function subscribeProjectOrganizeByPreference(onStoreChange: () => void) {
   function handleStorage(event: StorageEvent) {
     if (event.key === PROJECT_ORGANIZE_BY_STORAGE_KEY) onStoreChange();
@@ -371,7 +376,7 @@ function compareProjectsByDateOnly(a: ProjectListItem, b: ProjectListItem, field
 }
 
 function getProjectDateGroupLabel(date: Date) {
-  const month = new Intl.DateTimeFormat("en", { month: "long" }).format(date);
+  const month = projectGroupMonthFormatter.format(date);
   return `${date.getFullYear()} · ${month}`;
 }
 
@@ -966,10 +971,6 @@ export function ProjectsPageClient({
     setSortTouched(true);
   }
 
-  function handleOrganizeByChange(next: string) {
-    if (isProjectOrganizeBy(next)) writeProjectOrganizeByPreference(next);
-  }
-
   function handleOptimisticProjectChange(snapshot: NewProjectOptimisticSnapshot) {
     setActiveTab("your-projects");
     if (snapshot.remove) {
@@ -1357,7 +1358,7 @@ export function ProjectsPageClient({
                 : PROJECT_ORGANIZE_BY_OPTIONS
             }
             value={organizeBy}
-            onValueChange={handleOrganizeByChange}
+            onValueChange={handleProjectOrganizeByPreferenceChange}
             variant="boxed"
             triggerDisplay="icon"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}

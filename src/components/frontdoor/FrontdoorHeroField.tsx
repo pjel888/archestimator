@@ -283,5 +283,6 @@ export function FrontdoorHeroField({ className }: FrontdoorHeroFieldProps) {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className={className} aria-hidden="true" data-three-hero="loading" />;
+  // react-doctor-disable-next-line react-doctor/no-aria-hidden-on-focusable -- Decorative Three.js canvas has no focus path or fallback controls.
+  return <canvas ref={canvasRef} className={className} aria-hidden="true" tabIndex={-1} data-three-hero="loading" />;
 }

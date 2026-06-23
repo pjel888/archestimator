@@ -18,6 +18,11 @@ const statusOptions = BETA_FEEDBACK_STATUSES.map((status) => ({
 }));
 
 const statusFilterOptions = [{ value: "", label: "All statuses" }, ...statusOptions];
+const betaFeedbackDateFormatter = new Intl.DateTimeFormat("en", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
 
 function feedbackNotice(error?: string, saved?: string) {
   if (saved) return { tone: "success" as const, text: "Feedback status updated." };
@@ -28,11 +33,7 @@ function feedbackNotice(error?: string, saved?: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(new Date(value));
+  return betaFeedbackDateFormatter.format(new Date(value));
 }
 
 export default async function BetaFeedbackReviewPage({
