@@ -1,19 +1,18 @@
 # 07 — Implementation Waves
 
-**Date:** 2026-06-21 · **Status:** PLANNING / READINESS ONLY
+**Date:** 2026-06-21 · **Last audited:** 2026-06-24 (see `16_AUDIT_LOG_2026-06-24.md`) · **Status:** PLANNING / READINESS ONLY
 
 This document defines the phased execution plan for the Ponytail Pass. Waves are ordered by **payoff / risk ratio** — highest payoff with lowest risk first. Each wave is independently shippable. Each wave has its own verification gate (see `08_VERIFICATION_STRATEGY.md`).
 
-## Wave map
+## Wave map (refreshed 2026-06-24)
 
 | Wave | Scope | Risk | Owner gate? | Estimated effort | Payoff |
 |------|-------|------|-------------|-----------------|--------|
-| **Wave 1A** | Zero-risk dep removals (T1.1, T1.2) | Zero | No | ~5 min | 2 deps removed |
-| **Wave 1B** | Contained dep swaps/narrowing (T1.3, T1.4) | Low-to-medium | No | ~10-20 min | 1 dep swapped, 1 umbrella narrowed |
-| **Wave 2A** | Owner decisions: visual deps (T1.5-T1.8) + speculative features (SF.1, SF.2) | Medium | **Yes** | ~30 min decision session | Decision records, not source edits |
-| **Wave 2B** | Owner-free quick cuts (T3.1-T3.5) | Low-to-high by item | No | ~1-2 hours | 5 small fixes with targeted gates |
+| **Wave 1A** | ~~Zero-risk dep removals (T1.1, T1.2)~~ ✅ DONE 2026-06-23/24; **residual:** contained dep swaps/narrowings (T1.3, T1.4) | Low-to-medium | No | ~10-15 min (was ~5+15-20) | 2 deps removed (done) + 1 dep swapped + 1 umbrella narrowed (pending) |
+| **Wave 2A** | ~~Owner decisions: visual deps (T1.5-T1.8)~~ + speculative features (SF.1, SF.2). **T1.6/T1.7/T1.8 ✅ DONE 2026-06-24 via React Doctor cleanup.** Residual: T1.5 `@firecms/neat` + SF.1/SF.2 | Medium | **Yes** | ~15 min decision session (was ~30 min) | Decision records, not source edits |
+| **Wave 2B** | Owner-free quick cuts (T3.1-T3.5). **T3.3 ✅ FIXED.** | Low-to-high by item | No | ~1-2 hours | 4 small fixes with targeted gates |
 | **Wave 2C** | Validated backlog quick cuts/evaluations (T3.6-T3.14) | Low-to-high by item | Item-specific | ~2-4 hours | 9 more refactor/evaluation units |
-| **Wave 3 (ongoing)** | Mega-file diffs (T2.1-T2.7) via `/ponytail-review` | Medium-to-high | No (per-diff) | Ongoing | Diff-by-diff shrinkage; no one-shot refactor |
+| **Wave 3 (ongoing)** | Mega-file diffs (T2.1-T2.7) via `/ponytail-review`. **All Tier 2 files grew since plan date; React Doctor flagged 31 `no-giant-component` findings.** | Medium-to-high | No (per-diff) | Ongoing | Diff-by-diff shrinkage; no one-shot refactor |
 
 ---
 

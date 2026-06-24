@@ -1,6 +1,6 @@
 # 10 — Ponytail Operating Model
 
-**Date:** 2026-06-21 · **Source:** ponytail v4.7.0 at `~/.local/share/ponytail/` · **Installed for:** OpenCode, Claude Code, Codex
+**Date:** 2026-06-21 · **Last audited:** 2026-06-24 (see `16_AUDIT_LOG_2026-06-24.md`) · **Source:** ponytail v4.7.0 (Claude) / **v4.8.2 (Codex — drifted from plan's original v4.7.0 claim)** / v4.7.0+ (OpenCode) at `~/.local/share/ponytail/` · **Installed for:** OpenCode, Claude Code, Codex
 
 This document is the canonical reference for how Archestimator uses ponytail day-to-day. It covers: when to turn it on, which level to use, what the ruleset actually says, what the commands do, and what ponytail will never let you cut.
 

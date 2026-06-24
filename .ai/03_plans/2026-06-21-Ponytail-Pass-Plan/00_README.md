@@ -3,11 +3,12 @@
 **Purpose:** A comprehensive, blast-radius-aware plan for applying the [ponytail](https://github.com/DietrichGebert/ponytail) ruleset ("lazy senior dev") to the Archestimator codebase — what to cut, what to keep, when to use ponytail, and how to verify each change is safe.
 
 - **Date:** 2026-06-21
+- **Last audited:** 2026-06-24 (see `16_AUDIT_LOG_2026-06-24.md` for the drift report — **5 of 8 deps already removed; all Tier 2 files grew; T3.3 empty catches fixed**)
 - **Status:** PLANNING / READINESS ONLY (no code, deps, files, or migrations changed by this plan pack)
 - **Folder:** `.ai/03_plans/2026-06-21-Ponytail-Pass-Plan`
 - **Repo root:** repository root · branch `main`
 - **Pre-launch posture:** Closed beta, owner-only, no external users. Bias toward deletion/consolidation over speculative backward-compat — except security, auth, audit, data-integrity, and the active estimate-tree unification corridor.
-- **Ponytail version installed:** v4.7.0 (OpenCode, Claude Code, Codex)
+- **Ponytail version installed:** v4.7.0 (OpenCode, Claude Code) / **v4.8.2 (Codex — drifted from plan's original v4.7.0 claim)** — see `10_PONYTAIL_OPERATING_MODEL.md`
 - **Ponytail clone location:** `~/.local/share/ponytail/`
 
 ## Relationship to existing plans
