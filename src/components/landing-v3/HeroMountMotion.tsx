@@ -53,7 +53,7 @@ export function HeroMountMotion({ children, className }: HeroMountMotionProps) {
         .fromTo(
           title,
           { opacity: 0, y: 18, clipPath: "inset(0 0 100% 0)" },
-          { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.78 },
+          { opacity: 1, y: 0, clipPath: "inset(-8% 0% -12% 0%)", clearProps: "clipPath", duration: 0.78 },
           "-=0.2",
         )
         .fromTo(

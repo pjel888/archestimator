@@ -60,7 +60,6 @@ type HeroMetricFeature = {
   icon: typeof Books;
   previewTitle: string;
   previewBody: string;
-  previewMeta: string;
 };
 
 const AUDIENCE_INPUT_NODES = [
@@ -147,6 +146,14 @@ function LandingNav({ isLoggedIn }: LandingPageProps) {
   );
 }
 
+function AudienceBanner() {
+  return (
+    <div className={styles.audienceBanner} aria-label="Archestimator audience">
+      <span>Cost Estimators &middot; Architects &middot; Engineers &middot; Project Managers &middot; Construction Managers &middot; Construction Professionals</span>
+    </div>
+  );
+}
+
 function SectionHeader({
   id,
   kicker,
@@ -207,7 +214,7 @@ function HeroMetricCard({
                     className={styles.heroMetricFeatureButton}
                     aria-describedby={`hero-feature-preview-${index}-${featureIndex + 1}`}
                   >
-                    <FeatureIcon size={13} weight="light" aria-hidden="true" className={styles.heroMetricFeatureIcon} />
+                    <FeatureIcon size={15} weight="regular" aria-hidden="true" className={styles.heroMetricFeatureIcon} />
                     <span className={styles.heroMetricFeatureLabel}>{feature.label}</span>
                   </button>
                   <span id={`hero-feature-preview-${index}-${featureIndex + 1}`} role="tooltip" className={styles.heroMetricPreview}>
@@ -219,7 +226,6 @@ function HeroMetricCard({
                     <span className={styles.heroMetricPreviewCopy}>
                       <strong>{feature.previewTitle}</strong>
                       <span>{feature.previewBody}</span>
-                      <em>{feature.previewMeta}</em>
                     </span>
                   </span>
                 </li>
@@ -235,139 +241,142 @@ function HeroMetricCard({
 
 function Hero({ isLoggedIn }: LandingPageProps) {
   return (
-    <section className={styles.hero} aria-labelledby="landing-hero-title">
-      <HeroMountMotion className={styles.heroGrid}>
-        <div className={styles.heroCopy} data-landing-v3-reveal>
-          <p className={styles.heroEyebrow} data-hero-motion="eyebrow">AEC construction cost estimating &amp; proposal platform</p>
-          <h1 id="landing-hero-title" data-hero-motion="title">The estimate that keeps working after you send it.</h1>
-          <p className={styles.heroIntro} data-hero-motion="intro">
-            <span>archestimator is the premier tool for winning bids.</span>
-            <span>one workflow from cost estimating to client approval.</span>
-          </p>
-          <div className={styles.ctaRow}>
-            <span data-hero-motion="cta">
-              <PrimaryCta isLoggedIn={isLoggedIn} location="hero" />
-            </span>
-            <span data-hero-motion="cta">
-              <SecondaryCta href="#workflow">Explore the workflow</SecondaryCta>
-            </span>
-          </div>
-        </div>
-        <div className={styles.heroStage} data-landing-v3-reveal>
-          <HeroImageZoom className={styles.heroIllustration} dataMotion="illustration">
-            <Image
-              src="/landing/archestimator-mountain-hero-photo.png"
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 94vw"
-              className={styles.heroIllustrationImage}
-            />
-            <div className={styles.heroImageGrid} aria-label="Archestimator feature previews">
-              <HeroMetricCard
-                className={styles.heroImageGridBlockSmallA}
-                index="01"
-                title="Estimate Smarter"
-                metricLabel="Areas Priced"
-                metricValue={248}
-                metricIntervalMs={2400}
-                ledgerTitle="Build estimates around real scope"
-                body="Estimates that mirror the way you actually build."
-                features={[
-                  {
-                    label: "Domain-shaped estimate tree",
-                    icon: TreeStructureIcon,
-                    previewTitle: "Project tree preview",
-                    previewBody: "Floors, rooms, and areas hold their own quantities and costs.",
-                    previewMeta: "Screenshot slot",
-                  },
-                  {
-                    label: "Reusable smart components",
-                    icon: StackSimpleIcon,
-                    previewTitle: "Component memory",
-                    previewBody: "Saved assemblies carry pricing history and change context.",
-                    previewMeta: "GIF/video slot",
-                  },
-                  {
-                    label: "Drag and drop into the selected area",
-                    icon: CursorClickIcon,
-                    previewTitle: "Drop-to-estimate flow",
-                    previewBody: "Choose an area, drop the component, and totals roll up.",
-                    previewMeta: "Motion demo slot",
-                  },
-                ]}
-              />
-              <HeroMetricCard
-                className={styles.heroImageGridBlockSmallB}
-                index="02"
-                title="Propose Better"
-                metricLabel="Proposals Submitted"
-                metricValue={67}
-                metricIntervalMs={3200}
-                ledgerTitle="Turn the estimate into a client decision"
-                body="Proposals clients actually read."
-                features={[
-                  {
-                    label: "Branded proposal links",
-                    icon: LinkSimpleIcon,
-                    previewTitle: "Share-link proposal",
-                    previewBody: "Client-facing links can carry branding, access, and open tracking.",
-                    previewMeta: "Screenshot slot",
-                  },
-                  {
-                    label: "Charts and cost visualizations",
-                    icon: ChartLineUpIcon,
-                    previewTitle: "Cost story view",
-                    previewBody: "Charts help clients understand where the project cost lives.",
-                    previewMeta: "Chart preview slot",
-                  },
-                  {
-                    label: "Industry-standard BOM and BOQ exports",
-                    icon: FileArrowDownIcon,
-                    previewTitle: "Export package",
-                    previewBody: "Formal BOM and BOQ outputs stay connected to the estimate.",
-                    previewMeta: "Document preview slot",
-                  },
-                ]}
-              />
-              <HeroMetricCard
-                className={styles.heroImageGridBlockWide}
-                index="03"
-                title="Win Faster"
-                metricLabel="Bids Won"
-                metricValue={19}
-                metricIntervalMs={4200}
-                ledgerTitle="Record the decision and every change after"
-                body="Close the bid. Close the change. Keep the record."
-                features={[
-                  {
-                    label: "Client comments, accept, and decline",
-                    icon: ChatCircleTextIcon,
-                    previewTitle: "Client response panel",
-                    previewBody: "Proposal decisions happen inside the shared link.",
-                    previewMeta: "Interaction preview slot",
-                  },
-                  {
-                    label: "Activity history for every response",
-                    icon: ClockCounterClockwise,
-                    previewTitle: "Decision timeline",
-                    previewBody: "Comments, opens, responses, and next steps stay attached.",
-                    previewMeta: "Timeline preview slot",
-                  },
-                  {
-                    label: "Change approvals recorded in the same workflow",
-                    icon: SealCheckIcon,
-                    previewTitle: "Change order approval",
-                    previewBody: "Approved revisions become part of the same recorded trail.",
-                    previewMeta: "Approval preview slot",
-                  },
-                ]}
-              />
+    <>
+      <section className={styles.hero} aria-labelledby="landing-hero-title">
+        <HeroMountMotion className={styles.heroGrid}>
+          <div className={styles.heroCopy} data-landing-v3-reveal>
+            <p className={styles.heroEyebrow} data-hero-motion="eyebrow">AEC construction cost estimating &amp; proposal platform</p>
+            <h1 id="landing-hero-title" data-hero-motion="title">The estimate that keeps working after you send it.</h1>
+            <p className={styles.heroIntro} data-hero-motion="intro">
+              <span>archestimator is the premier tool for winning construction bids.</span>
+              <span>one workflow from cost estimating to client approval.</span>
+            </p>
+            <div className={styles.ctaRow}>
+              <span data-hero-motion="cta">
+                <PrimaryCta isLoggedIn={isLoggedIn} location="hero" />
+              </span>
+              <span data-hero-motion="cta">
+                <SecondaryCta href="#workflow">Explore the workflow</SecondaryCta>
+              </span>
             </div>
-          </HeroImageZoom>
-        </div>
-      </HeroMountMotion>
-    </section>
+          </div>
+          <div className={styles.heroStage} data-landing-v3-reveal>
+            <HeroImageZoom className={styles.heroIllustration} dataMotion="illustration">
+              <span className={styles.heroIllustrationImageClip}>
+                <Image
+                  src="/landing/archestimator-mountain-hero-photo.png"
+                  alt=""
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 94vw"
+                  className={styles.heroIllustrationImage}
+                />
+              </span>
+              <div className={styles.heroImageGrid} aria-label="Archestimator feature previews">
+                <HeroMetricCard
+                  className={styles.heroImageGridBlockSmallA}
+                  index="01"
+                  title="Estimate Smarter"
+                  metricLabel="Areas Priced"
+                  metricValue={248}
+                  metricIntervalMs={2400}
+                  ledgerTitle="Build estimates around real scope"
+                  body="Estimates that mirror the way you actually build."
+                  features={[
+                    {
+                      label: "Structure that fits the job",
+                      icon: TreeStructureIcon,
+                      previewTitle: "Structure that fits the job.",
+                      previewBody:
+                        "Organize by floor, room, trade, or phase. Your sheet tree becomes a living map of the project, not a flat spreadsheet.",
+                    },
+                    {
+                      label: "Components with memory",
+                      icon: StackSimpleIcon,
+                      previewTitle: "Components with memory.",
+                      previewBody:
+                        "Build a component once, drop it anywhere. Each one carries its own price history, so change orders price themselves later.",
+                    },
+                    {
+                      label: "Drag, drop, done",
+                      icon: CursorClickIcon,
+                      previewTitle: "Drag, drop, done.",
+                      previewBody:
+                        "Pull components into areas, watch totals roll up live, and the proposal builds itself as you go.",
+                    },
+                  ]}
+                />
+                <HeroMetricCard
+                  className={styles.heroImageGridBlockSmallB}
+                  index="02"
+                  title="Propose Better"
+                  metricLabel="Proposals Submitted"
+                  metricValue={67}
+                  metricIntervalMs={3200}
+                  ledgerTitle="Turn the estimate into a client decision"
+                  body="Proposals clients actually read."
+                  features={[
+                    {
+                      label: "Branded client links",
+                      icon: LinkSimpleIcon,
+                      previewTitle: "Branded client links.",
+                      previewBody: "Your logo, your colors, optional password lock. See the moment your client opens it.",
+                    },
+                    {
+                      label: "Numbers that speak clearly",
+                      icon: ChartLineUpIcon,
+                      previewTitle: "Numbers that speak clearly.",
+                      previewBody: "Auto-generated charts turn line items into a story the client can follow at a glance.",
+                    },
+                    {
+                      label: "Exports your trades already use",
+                      icon: FileArrowDownIcon,
+                      previewTitle: "Exports your trades already use.",
+                      previewBody: "One click to BOM / BOQ - no reformatting, no hand-typed spreadsheets.",
+                    },
+                  ]}
+                />
+                <HeroMetricCard
+                  className={styles.heroImageGridBlockWide}
+                  index="03"
+                  title="Win Faster"
+                  metricLabel="Bids Won"
+                  metricValue={19}
+                  metricIntervalMs={4200}
+                  ledgerTitle="Record the decision and every change after"
+                  body="Close the bid. Close the change. Keep the record."
+                  features={[
+                    {
+                      label: "Comment, accept, decline in one place",
+                      icon: ChatCircleTextIcon,
+                      previewTitle: "Comment, accept, decline in one place.",
+                      previewBody: "Clients respond inside the proposal; every action is timestamped and attributed.",
+                    },
+                    {
+                      label: "Change orders without the paper trail",
+                      icon: ClockCounterClockwise,
+                      previewTitle: "Change orders without the paper trail.",
+                      previewBody: "Edit, re-send, re-approve in same workflow, no email chains, no PDFs.",
+                    },
+                    {
+                      label: "Sign-off that holds up",
+                      icon: SealCheckIcon,
+                      previewTitle: "Sign-off that holds up.",
+                      previewBody:
+                        'Every approval is recorded against the exact version the client saw. No "I thought you meant..." on site.',
+                    },
+                  ]}
+                />
+              </div>
+            </HeroImageZoom>
+          </div>
+        </HeroMountMotion>
+      </section>
+      <div className={styles.heroVideoPlaceholder} aria-label="Archestimator walkthrough video preview">
+        <span className={styles.heroVideoPlayMark} aria-hidden="true" />
+        <span className={styles.heroVideoLabel}>Video walkthrough</span>
+      </div>
+    </>
   );
 }
 
@@ -644,6 +653,7 @@ export function ArchestimatorLandingPage({ isLoggedIn }: LandingPageProps) {
   return (
     <div className={styles.root} data-landing-v3-root>
       <LandingNav isLoggedIn={isLoggedIn} />
+      <AudienceBanner />
       <main id="main-content" data-landing-page-root="true">
         <Hero isLoggedIn={isLoggedIn} />
         <AudienceBand />

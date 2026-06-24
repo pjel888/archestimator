@@ -44,6 +44,7 @@ describe("landing-v3 homepage contract", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/AEC construction cost estimating & proposal platform/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Archestimator walkthrough video preview")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Book a walkthrough/i })[0]).toHaveAttribute("href", "/contact?intent=walkthrough");
     expect(screen.getByRole("link", { name: "Explore the workflow" })).toHaveAttribute("href", "#workflow");
     expect(screen.getByRole("heading", { name: /From first cost to final decision/i })).toBeInTheDocument();
@@ -51,17 +52,17 @@ describe("landing-v3 homepage contract", () => {
     expect(screen.getByRole("heading", { name: /Flexible enough for the way your team scopes work/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Questions teams ask/i })).toBeInTheDocument();
     expect(screen.getByText(/Build estimates around real scope/i)).toBeInTheDocument();
-    expect(screen.getByText(/Domain-shaped estimate tree/i)).toBeInTheDocument();
-    expect(screen.getByText(/Reusable smart components/i)).toBeInTheDocument();
-    expect(screen.getByText(/Drag and drop into the selected area/i)).toBeInTheDocument();
+    expect(screen.getByText("Structure that fits the job")).toBeInTheDocument();
+    expect(screen.getByText("Components with memory")).toBeInTheDocument();
+    expect(screen.getByText("Drag, drop, done")).toBeInTheDocument();
     expect(screen.getByText(/Turn the estimate into a client decision/i)).toBeInTheDocument();
-    expect(screen.getByText(/Branded proposal links/i)).toBeInTheDocument();
-    expect(screen.getByText(/Charts and cost visualizations/i)).toBeInTheDocument();
-    expect(screen.getByText(/Industry-standard BOM and BOQ exports/i)).toBeInTheDocument();
+    expect(screen.getByText("Branded client links")).toBeInTheDocument();
+    expect(screen.getByText("Numbers that speak clearly")).toBeInTheDocument();
+    expect(screen.getByText("Exports your trades already use")).toBeInTheDocument();
     expect(screen.getByText(/Record the decision and every change after/i)).toBeInTheDocument();
-    expect(screen.getByText(/Client comments, accept, and decline/i)).toBeInTheDocument();
-    expect(screen.getByText(/Activity history for every response/i)).toBeInTheDocument();
-    expect(screen.getByText(/Change approvals recorded in the same workflow/i)).toBeInTheDocument();
+    expect(screen.getByText("Comment, accept, decline in one place")).toBeInTheDocument();
+    expect(screen.getByText("Change orders without the paper trail")).toBeInTheDocument();
+    expect(screen.getByText("Sign-off that holds up")).toBeInTheDocument();
 
     container.querySelectorAll<HTMLElement>("section[aria-labelledby]").forEach((section) => {
       const id = section.getAttribute("aria-labelledby");
@@ -98,8 +99,9 @@ describe("landing-v3 homepage contract", () => {
     expect(activeCopy).not.toMatch(new RegExp("for " + "contractors", "i"));
     expect(activeCopy).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
     expect(activeCopy).toMatch(/The estimate that keeps working after you send it\./);
-    expect(activeCopy).toMatch(/archestimator is the premier tool for winning bids\./);
+    expect(activeCopy).toMatch(/archestimator is the premier tool for winning construction bids\./);
     expect(activeCopy).toMatch(/one workflow from cost estimating to client approval\./);
+    expect(activeCopy).toMatch(/Cost Estimators &middot; Architects &middot; Engineers &middot; Project Managers &middot; Construction Managers &middot; Construction Professionals/);
     expect(activeCopy).toMatch(/Reusable cost intelligence/);
     expect(activeCopy).toMatch(/Recorded decisions/);
   });
