@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectDetailsModal } from "@/components/workshop/ProjectDetailsModal";
 import { updateProjectDetails } from "@/lib/projects/actions";
@@ -27,7 +27,12 @@ const PROJECT = {
 const updateProjectDetailsMock = vi.mocked(updateProjectDetails);
 
 describe("ProjectDetailsModal", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
+    cleanup();
     updateProjectDetailsMock.mockReset();
     updateProjectDetailsMock.mockResolvedValue(undefined);
   });
@@ -62,12 +67,19 @@ describe("ProjectDetailsModal", () => {
 
     render(<ProjectDetailsModal project={PROJECT} onClose={onClose} onSaved={onSaved} />);
 
-    await user.clear(screen.getByLabelText("Project name"));
-    await user.type(screen.getByLabelText("Project name"), "Unsaved Residence");
+    const projectNameInput = screen.getByLabelText("Project name");
+    await user.clear(projectNameInput);
+    fireEvent.change(projectNameInput, { target: { value: "Unsaved Residence" } });
+    await waitFor(() => {
+      expect(projectNameInput).toHaveValue("Unsaved Residence");
+    });
     await user.click(screen.getByRole("button", { name: "Save details" }));
 
+    await waitFor(() => {
+      expect(updateProjectDetailsMock).toHaveBeenCalledTimes(1);
+    });
     expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
-    expect(screen.getByLabelText("Project name")).toHaveValue("Unsaved Residence");
+    expect(projectNameInput).toHaveValue("Unsaved Residence");
     expect(screen.getByRole("button", { name: "Save details" })).toBeEnabled();
     expect(onClose).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
