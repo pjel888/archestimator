@@ -26,6 +26,7 @@ const newProjectImagePanel = readFileSync(
   "src/components/workshop/NewProjectImagePanel.tsx",
   "utf8",
 );
+const appGlobals = readFileSync("src/app/globals.css", "utf8");
 const liveProjectCard = readFileSync(
   "src/components/workshop/LiveProjectCard.tsx",
   "utf8",
@@ -90,6 +91,8 @@ describe("project creation UI governance", () => {
   it("renders live Supabase project cards separately from sample references", () => {
     expect(projectsPage).toContain("ProjectsPageClient");
     expect(projectsPage).toContain("favoriteProjectIds={favoriteProjectIds}");
+    expect(projectsPage).toContain("googleMapsApiKey={googleMapsApiKey}");
+    expect(projectsPage).toContain("googleMapsMapId={googleMapsMapId}");
     expect(projectsPageClient).toContain("LiveProjectCard");
     expect(projectsPageClient).toContain("NewProjectModal");
     expect(projectsPageClient).toContain('from "@/hooks/use-toggle-project-favorite"');
@@ -143,6 +146,8 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).toContain("isProjectSetupBlocking");
     expect(projectsPageClient).not.toContain('snapshot.setupStatus?.state === "error") continue');
     expect(projectsPageClient).toContain('onOptimisticProjectChange={handleOptimisticProjectChange}');
+    expect(projectsPageClient).toContain("googleMapsApiKey={googleMapsApiKey}");
+    expect(projectsPageClient).toContain("googleMapsMapId={googleMapsMapId}");
     expect(liveProjectCard).toContain("export type ProjectCardSetupStatus");
     expect(projectCardSource).toContain("data-project-card-setup-overlay");
     expect(liveProjectCard).toContain("data-project-card-setup-state={setupStatus?.state}");
@@ -153,7 +158,7 @@ describe("project creation UI governance", () => {
   it("keeps the project create action icon-only", () => {
     expect(projectsPageClient).toContain('toolbarPrefix="projects"');
     expect(projectsPageClient).toContain('label: "Add projects"');
-    expect(projectsPageClient).toContain("onClick: () => setIsModalOpen(true)");
+    expect(projectsPageClient).toContain('onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true })');
     expect(projectsPageClient).not.toContain("addVisibleLabel");
   });
 
@@ -164,54 +169,94 @@ describe("project creation UI governance", () => {
 
   it("keeps the create project modal product-facing and composed", () => {
     expect(newProjectModal).not.toContain("Live Supabase");
-    expect(newProjectModal).toContain('aria-label="Close create project"');
-    expect(newProjectModal).toContain("max-w-5xl");
-    expect(newProjectModal).toContain("rounded-xs");
-    expect(newProjectModal).toContain("backdrop:bg-black/25");
-    expect(newProjectModal).toContain("absolute right-2 top-2");
-    expect(newProjectForm).toContain("grid min-h-[560px] grid-rows-[auto_1fr]");
+    expect(newProjectModal).toContain('from "@/components/ui/overlays/dialog"');
+    expect(newProjectModal).toContain("DialogHeader");
+    expect(newProjectModal).toContain("DialogTitle");
+    expect(newProjectModal).toContain("DialogCloseButton");
+    expect(newProjectModal).toContain('closeLabel="Close create project"');
+    expect(newProjectModal).toContain("data-create-project-modal");
+    expect(newProjectModal).toContain("data-create-project-modal-root");
+    expect(newProjectModal).toContain("data-create-project-modal-tray");
+    expect(newProjectModal).toContain("fixed inset-0 z-[1000] flex items-center justify-center");
+    expect(newProjectModal).toContain("max-h-[calc(100dvh-2rem)]");
+    expect(newProjectModal).toContain("w-[min(1380px,calc(100vw-2rem))]");
+    expect(newProjectModal).toContain("workshop-create-project-modal-glass");
+    expect(newProjectModal).toContain("bg-white");
+    expect(newProjectModal).not.toContain("<dialog");
+    expect(appGlobals).toContain(".workshop-create-project-modal-glass");
+    expect(appGlobals).toContain(
+      ':root[data-glass="ready"] .workshop-create-project-modal-glass',
+    );
+    expect(newProjectForm).toContain("showHeader = true");
+    expect(newProjectForm).toContain("grid-rows-[minmax(0,1fr)_auto]");
     expect(newProjectFormSections).toContain("Projects");
     expect(newProjectForm).toContain("CreateProjectHeader");
     expect(newProjectForm).toContain("ProjectImagePanel");
-    expect(newProjectForm).toContain("ProjectCodeField");
     expect(newProjectForm).toContain("ProjectFields");
+    expect(newProjectFormSections).toContain("ProjectCodeField");
     expect(newProjectForm).toContain("CreateProjectFooter");
+    expect(newProjectForm).toContain("data-create-project-details-panel");
+    expect(newProjectForm).not.toContain("Project setup");
+    expect(newProjectForm).not.toContain("Details and reference");
+    expect(newProjectForm).not.toContain("Capture the essentials now");
+    expect(newProjectFormSections).toContain("ProjectAddressAutocomplete");
+    expect(newProjectFormSections).toContain("ProjectLocationMap");
+    expect(newProjectFormSections).toContain("data-create-project-location-preview");
+    expect(newProjectFormSections).toMatch(/Project name[\s\S]*Client[\s\S]*<ProjectCodeField[\s\S]*Location/);
+    expect(newProjectForm).toContain("saveProjectLocation");
+    expect(newProjectForm).toContain("locationFormData");
+    expect(newProjectForm).toContain('formData.set("geocoderName", "google")');
+    expect(newProjectForm).toContain('"Project location can be refined later."');
     expect(newProjectFormSections).toContain("Project Code");
+    expect(newProjectFormSections).toContain("projectCode?: string | null");
+    expect(newProjectFormSections).toContain("const codeValue = projectCode ?? \"\"");
+    expect(newProjectFormSections).toContain("value={codeValue}");
     expect(newProjectFormSections).toContain(
-      'className="mt-auto w-full space-y-1.5"',
+      'className="group/code-field w-full space-y-1"',
     );
-    expect(newProjectFormSections).toContain("block text-right text-[8px]");
+    expect(newProjectFormSections).toContain("CREATE_PROJECT_FIELD_LABEL_CLASS");
     expect(newProjectFormSections).toContain(
-      "h-8 min-w-0 flex-1 bg-white px-2 text-right !text-[8px] text-tertiary",
+      'className={cn(CREATE_PROJECT_INPUT_CLASS, "w-full pr-9 font-medium text-secondary")}',
     );
-    expect(newProjectForm).toContain("flex flex-1 flex-col gap-2 p-2");
-    expect(newProjectForm).toContain("grid gap-2 md:grid-cols-2");
+    expect(newProjectFormSections).toContain("opacity-0 transition-opacity group-hover/code-field:opacity-100 group-focus-within/code-field:opacity-100");
+    expect(newProjectForm).toContain("grid min-h-0 gap-2 overflow-auto p-2");
+    expect(newProjectForm).toContain("lg:overflow-hidden");
+    expect(newProjectForm).toContain("lg:items-start");
+    expect(newProjectForm).toContain("flex h-full min-h-0 flex-col");
+    expect(newProjectForm).toContain("lg:self-stretch");
+    expect(newProjectFormSections).toContain("data-create-project-fields");
+    expect(newProjectFormSections).toContain("grid gap-2");
     expect(newProjectForm).toContain(
-      "lg:grid-cols-[minmax(320px,0.92fr)_minmax(460px,1fr)]",
+      "lg:grid-cols-[minmax(360px,460px)_minmax(300px,1fr)_minmax(360px,460px)]",
     );
-    expect(newProjectImagePanel).toContain("lg:min-h-[504px]");
+    expect(newProjectForm).toContain('className="aspect-[4/3] h-auto"');
+    expect(newProjectForm).toMatch(new RegExp("</div>\\s*<CreateProjectFooter"));
+    expect(newProjectImagePanel).toContain("data-project-image-panel");
+    expect(newProjectImagePanel).toContain("aspect-[4/3]");
+    expect(newProjectImagePanel).not.toContain("lg:min-h-[512px]");
     expect(newProjectImagePanel).toContain("absolute inset-x-2 bottom-2");
     expect(newProjectFormSections).toContain(
-      'className="border-b border-hairline bg-white p-2"',
+      'className="border-b border-[color:var(--glass-border)] bg-white/54 px-2 py-2"',
     );
     expect(newProjectFormSections).toContain(
       "text-[12px] font-medium leading-4",
     );
     expect(newProjectFormSections).not.toContain("text-[22px]");
-    expect(newProjectFormSections).toContain("h-10 px-2 !text-[12px]");
-    expect(newProjectFormSections).toContain("text-right !text-[8px]");
+    expect(newProjectFormSections).toContain("h-8 bg-white/92 px-2 !text-[10px]");
+    expect(newProjectFormSections).not.toContain("text-right !text-[8px]");
     expect(newProjectFormSections).not.toContain(
       "bg-surfaceMuted px-2 !text-[8px]",
     );
-    expect(newProjectFormSections).toContain(
-      "bg-orange-600 px-3 hover:bg-orange-700 focus-visible:ring-orange-200",
-    );
+    expect(newProjectFormSections).not.toContain('id="new-project-location"');
+    expect(newProjectFormSections).toContain('variant="brand"');
+    expect(newProjectFormSections).toContain("h-8 min-w-[124px] gap-2 rounded-xs px-2");
     expect(newProjectFormSections).toContain('placeholder="A7K9M2Q4"');
     expect(newProjectForm).toContain('from "@/lib/projects/project-code"');
     expect(newProjectFormSections).toContain(
       'aria-label="Generate project code"',
     );
     expect(newProjectForm).toContain("setProjectCode(generateProjectCode())");
+    expect(newProjectFormSections).toContain("min-h-[22px]");
     expect(newProjectFormSections).toContain("border-t border-hairline");
   });
 
@@ -244,7 +289,7 @@ describe("project creation UI governance", () => {
   });
 
   it("does not render a duplicate cancel action in the details modal footer", () => {
-    expect(projectDetailsModal).toContain('aria-label="Close project details"');
+    expect(projectDetailsModal).toContain('closeLabel="Close project details"');
     expect(projectDetailsModal).not.toContain(">Cancel<");
   });
 

@@ -19,6 +19,7 @@ type ProjectLocationMapProps = {
   readonly mapId?: string | null;
   readonly pin: ProjectLocationPin | null;
   readonly addressLabel: string;
+  readonly minHeightClassName?: string;
   readonly overlaySummary?: ReactNode;
   readonly rightRail?: ReactNode;
   readonly lowerLeftSummary?: ReactNode;
@@ -85,6 +86,7 @@ export function ProjectLocationMap({
   apiKey,
   pin,
   addressLabel,
+  minHeightClassName = "min-h-[320px]",
   overlaySummary,
   rightRail,
   lowerLeftSummary,
@@ -102,6 +104,7 @@ export function ProjectLocationMap({
   const renderedFallbackReason = hasMapsApiKey ? mapViewState.fallbackReason : "Google Maps API key missing";
   const center = useMemo(() => toMapPosition(pin), [pin]);
   const coordinateLabel = pin ? `${formatCoordinate(pin.latitude)}, ${formatCoordinate(pin.longitude)}` : null;
+  const hasOverlayContent = Boolean(overlaySummary || rightRail || lowerLeftSummary || lowerLeftDetail);
   const clearMapRef = useCallback(() => {
     mapRef.current = null;
   }, []);
@@ -184,7 +187,7 @@ export function ProjectLocationMap({
 
   if (renderedStatus === "fallback") {
     return (
-      <div className="flex h-full min-h-[320px] flex-col justify-center rounded-xs border border-dashed border-[color:var(--glass-border)] bg-white/40 p-4 text-center">
+      <div className={`flex h-full flex-col justify-center rounded-xs border border-dashed border-[color:var(--glass-border)] bg-white/40 p-4 text-center ${minHeightClassName}`}>
         <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">{renderedFallbackReason}</p>
         <p className="mx-auto mt-2 max-w-sm text-[10px] leading-4 text-secondary">
           The saved address remains editable. Google map display will return when the browser key and provider are available.
@@ -196,7 +199,7 @@ export function ProjectLocationMap({
   return (
     <div
       data-testid="project-location-map-frame"
-      className="relative h-full min-h-[320px] overflow-hidden rounded-xs border border-[color:var(--glass-border)] bg-white/45"
+      className={`relative h-full overflow-hidden rounded-xs border border-[color:var(--glass-border)] bg-white/45 ${minHeightClassName}`}
       onFocusCapture={requestMapLoad}
       onPointerEnter={requestMapLoad}
     >
@@ -205,41 +208,43 @@ export function ProjectLocationMap({
         data-testid="project-location-google-map"
         role="application"
         aria-label={pin ? `Google map pin at ${addressLabel || coordinateLabel}` : "Google map for project location"}
-        className="h-full min-h-[320px] w-full"
+        className={`h-full w-full ${minHeightClassName}`}
       />
-      <div
-        data-testid="project-location-overlay-grid"
-        className="pointer-events-none absolute inset-0 z-10 grid grid-cols-16 grid-rows-8 gap-2 p-2"
-      >
+      {hasOverlayContent ? (
         <div
-          data-testid="project-location-frosted-upper-panel"
-          aria-hidden={overlaySummary ? undefined : "true"}
-          className={`col-span-5 col-start-1 row-span-4 row-start-1 overflow-hidden p-2 ${overlaySummary ? "pointer-events-auto" : ""} ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
+          data-testid="project-location-overlay-grid"
+          className="pointer-events-none absolute inset-0 z-10 grid grid-cols-16 grid-rows-8 gap-2 p-2"
         >
-          {overlaySummary}
+          <div
+            data-testid="project-location-frosted-upper-panel"
+            aria-hidden={overlaySummary ? undefined : "true"}
+            className={`col-span-5 col-start-1 row-span-4 row-start-1 overflow-hidden p-2 ${overlaySummary ? "pointer-events-auto" : ""} ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
+          >
+            {overlaySummary}
+          </div>
+          <div
+            data-testid="project-location-frosted-panel"
+            aria-hidden={rightRail ? undefined : "true"}
+            className={`col-span-4 col-start-13 row-span-8 row-start-1 overflow-hidden p-2 ${rightRail ? "pointer-events-auto" : ""} ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
+          >
+            {rightRail}
+          </div>
+          <div
+            data-testid="project-location-frosted-lower-left-panel"
+            aria-hidden={lowerLeftSummary ? undefined : "true"}
+            className={`col-span-5 col-start-1 row-span-1 row-start-5 overflow-hidden p-2 ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
+          >
+            {lowerLeftSummary}
+          </div>
+          <div
+            data-testid="project-location-frosted-lower-left-fill-panel"
+            aria-hidden={lowerLeftDetail ? undefined : "true"}
+            className={`col-span-5 col-start-1 row-span-3 row-start-6 overflow-hidden p-2 ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
+          >
+            {lowerLeftDetail}
+          </div>
         </div>
-        <div
-          data-testid="project-location-frosted-panel"
-          aria-hidden={rightRail ? undefined : "true"}
-          className={`col-span-4 col-start-13 row-span-8 row-start-1 overflow-hidden p-2 ${rightRail ? "pointer-events-auto" : ""} ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
-        >
-          {rightRail}
-        </div>
-        <div
-          data-testid="project-location-frosted-lower-left-panel"
-          aria-hidden={lowerLeftSummary ? undefined : "true"}
-          className={`col-span-5 col-start-1 row-span-1 row-start-5 overflow-hidden p-2 ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
-        >
-          {lowerLeftSummary}
-        </div>
-        <div
-          data-testid="project-location-frosted-lower-left-fill-panel"
-          aria-hidden={lowerLeftDetail ? undefined : "true"}
-          className={`col-span-5 col-start-1 row-span-3 row-start-6 overflow-hidden p-2 ${PROJECT_LOCATION_FROSTED_PANEL_CLASS}`}
-        >
-          {lowerLeftDetail}
-        </div>
-      </div>
+      ) : null}
       {pin ? (
         <div
           data-testid="project-location-map-pin"

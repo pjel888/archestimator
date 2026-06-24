@@ -61,6 +61,8 @@ type ProjectsPageClientProps = {
   projects: Array<Tables<"projects"> | ProjectListItem>;
   favoriteProjectIds?: string[];
   favoritesScope: { workspaceId: string; userId: string };
+  googleMapsApiKey?: string;
+  googleMapsMapId?: string | null;
   // Part 7c (Project Groups): ordered per-user group definitions for the projects page.
   // Consumed by Part 7d (group-mode rendering); wired here with a safe default.
   projectGroups?: ProjectGroupSummary[];
@@ -788,6 +790,8 @@ export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
   favoritesScope,
+  googleMapsApiKey = "",
+  googleMapsMapId = null,
   projectGroups = EMPTY_PROJECT_GROUPS,
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
@@ -1529,7 +1533,7 @@ export function ProjectsPageClient({
           />
           <span
             aria-hidden="true"
-            className="h-4 w-px shrink-0 bg-hairline"
+            className="h-4 w-px shrink-0 bg-tertiary/70"
             data-project-toolbar-view-divider=""
           />
           <DropdownSelect
@@ -1694,6 +1698,8 @@ export function ProjectsPageClient({
           <NewProjectModal
             onClose={() => setIsModalOpen(false)}
             onOptimisticProjectChange={handleOptimisticProjectChange}
+            googleMapsApiKey={googleMapsApiKey}
+            googleMapsMapId={googleMapsMapId}
           />
         )}
         {expandedProject ? (
@@ -1701,6 +1707,8 @@ export function ProjectsPageClient({
             project={expandedProject}
             onClose={() => setExpandedProject(null)}
             onSaved={() => router.refresh()}
+            googleMapsApiKey={googleMapsApiKey}
+            googleMapsMapId={googleMapsMapId}
             onDeleteProject={canDeleteExpandedProject
               ? (project) => {
                 setExpandedProject(null);

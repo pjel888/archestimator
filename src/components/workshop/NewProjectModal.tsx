@@ -1,79 +1,83 @@
 "use client";
 
-import { X } from "@phosphor-icons/react/dist/ssr";
-import { useCallback, useRef } from "react";
-
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogCloseButton,
+  DialogContent,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/overlays/dialog";
 
 import { NewProjectForm, type NewProjectOptimisticSnapshot } from "./NewProjectForm";
 
 type NewProjectModalProps = {
   onClose: () => void;
   onOptimisticProjectChange?: (snapshot: NewProjectOptimisticSnapshot) => void;
+  googleMapsApiKey?: string;
+  googleMapsMapId?: string | null;
 };
 
-export function NewProjectModal({ onClose, onOptimisticProjectChange }: NewProjectModalProps) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
-
-  const openDialogElement = useCallback((node: HTMLDialogElement | null) => {
-    dialogRef.current = node;
-    if (!node || node.open) return;
-    if (typeof node.showModal === "function") {
-      try {
-        node.showModal();
-      } catch {
-        node.setAttribute("open", "");
-      }
-    } else {
-      node.setAttribute("open", "");
-    }
-  }, []);
-
-  const closeDialog = useCallback(() => {
-    if (dialogRef.current?.open) {
-      if (typeof dialogRef.current.close === "function") {
-        try {
-          dialogRef.current.close();
-        } catch {
-          dialogRef.current.removeAttribute("open");
-        }
-      } else {
-        dialogRef.current.removeAttribute("open");
-      }
-    }
-    onClose();
-  }, [onClose]);
-
+export function NewProjectModal({
+  onClose,
+  onOptimisticProjectChange,
+  googleMapsApiKey = "",
+  googleMapsMapId = null,
+}: NewProjectModalProps) {
   return (
-    <dialog
-      ref={openDialogElement}
-      aria-modal="true"
-      aria-labelledby="new-project-title"
-      className="z-30 w-[calc(100%-1rem)] max-w-5xl border-0 bg-transparent p-0 text-ink backdrop:bg-black/25 backdrop:backdrop-blur-md"
-      onCancel={(event) => {
-        event.preventDefault();
-        closeDialog();
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
       }}
+      closeLabel="Close create project"
     >
-      <div className="relative flex max-h-[92vh] min-h-[560px] w-full flex-col overflow-hidden rounded-xs border border-white/70 bg-white shadow-[0_34px_110px_-48px_rgba(17,17,17,0.68)] ring-1 ring-black/5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="absolute right-2 top-2 z-20 size-8 rounded-xs bg-white/80 text-tertiary shadow-sm backdrop-blur hover:bg-white hover:text-ink"
-          aria-label="Close create project"
-          onClick={closeDialog}
+      <DialogPortal>
+        <div
+          data-create-project-modal-root
+          className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
         >
-          <X size={14} weight="regular" />
-        </Button>
+          <DialogOverlay blur className="bg-black/25" />
+          <DialogContent
+            data-create-project-modal
+            data-create-project-modal-shell
+            described={false}
+            initialFocus="first"
+            className="workshop-create-project-modal-glass max-h-[calc(100dvh-2rem)] w-[min(1380px,calc(100vw-2rem))] max-w-none border bg-transparent p-1 text-ink shadow-none"
+          >
+            <DialogHeader className="min-h-11 border-0 bg-transparent px-2 py-2">
+              <DialogTitle className="overflow-visible whitespace-normal">
+                <span className="block min-w-0">
+                  <span className="block text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">
+                    Projects
+                  </span>
+                  <span className="mt-0.5 block text-[12px] font-medium leading-4 text-ink">
+                    Create project
+                  </span>
+                </span>
+              </DialogTitle>
+              <DialogCloseButton className="workshop-liquid-button size-8 rounded-xs text-tertiary hover:text-ink" />
+            </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-auto">
-          <NewProjectForm
-            onSuccess={closeDialog}
-            onOptimisticProjectChange={onOptimisticProjectChange}
-          />
+            <DialogBody className="min-h-0 overflow-hidden p-0">
+              <div
+                data-create-project-modal-tray
+                className="min-h-0 overflow-hidden rounded-[8px] border border-white/70 bg-white"
+              >
+                <NewProjectForm
+                  showHeader={false}
+                  googleMapsApiKey={googleMapsApiKey}
+                  googleMapsMapId={googleMapsMapId}
+                  onSuccess={onClose}
+                  onOptimisticProjectChange={onOptimisticProjectChange}
+                />
+              </div>
+            </DialogBody>
+          </DialogContent>
         </div>
-      </div>
-    </dialog>
+      </DialogPortal>
+    </Dialog>
   );
 }

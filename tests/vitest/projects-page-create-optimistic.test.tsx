@@ -41,6 +41,10 @@ const estimateMocks = vi.hoisted(() => ({
   createEstimateSheetDraft: vi.fn(),
 }));
 
+const locationMocks = vi.hoisted(() => ({
+  saveProjectLocation: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-navigation-router", () => ({
   useNavigationRouter: () => routerMock,
 }));
@@ -59,6 +63,10 @@ vi.mock("@/lib/projects/actions", () => ({
 
 vi.mock("@/lib/estimates/actions", () => ({
   createEstimateSheetDraft: estimateMocks.createEstimateSheetDraft,
+}));
+
+vi.mock("@/lib/projects/location-actions", () => ({
+  saveProjectLocation: locationMocks.saveProjectLocation,
 }));
 
 vi.mock("@/lib/workshop/actions", () => ({
@@ -102,6 +110,8 @@ describe("ProjectsPageClient optimistic project creation", () => {
     actionMocks.createProjectRecord.mockReset();
     actionMocks.updateProjectImageMetadata.mockClear();
     estimateMocks.createEstimateSheetDraft.mockReset();
+    locationMocks.saveProjectLocation.mockReset();
+    locationMocks.saveProjectLocation.mockResolvedValue({ status: "success", message: "Project pin saved." });
   });
 
   it("shows a pending project card immediately while the primary create request is still in flight", async () => {

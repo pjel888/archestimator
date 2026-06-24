@@ -8,6 +8,8 @@ import {
   createProjectRecord,
   updateProjectImageMetadata,
 } from "@/lib/projects/actions";
+import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
+import { saveProjectLocation } from "@/lib/projects/location-actions";
 import { generateProjectCode } from "@/lib/projects/project-code";
 import {
   ALLOWED_PROJECT_IMAGE_TYPES,
@@ -20,17 +22,22 @@ import {
 import {
   CreateProjectFooter,
   CreateProjectHeader,
-  ProjectCodeField,
   ProjectFields,
+  ProjectLocationPreview,
   type CreateProjectStatus,
 } from "./NewProjectFormSections";
 import { ProjectImagePanel } from "./NewProjectImagePanel";
+import type { ProjectGooglePlaceSelection } from "./ProjectAddressAutocomplete";
+import type { ProjectLocationPin } from "./ProjectLocationMap";
 import type { ProjectCardSetupStatus } from "./LiveProjectCard";
 import type { Tables } from "@/lib/supabase/types";
 
 type NewProjectFormProps = {
   onSuccess?: () => void;
   onOptimisticProjectChange?: (snapshot: NewProjectOptimisticSnapshot) => void;
+  googleMapsApiKey?: string;
+  googleMapsMapId?: string | null;
+  showHeader?: boolean;
 };
 
 export type NewProjectOptimisticSnapshot = {
@@ -63,7 +70,7 @@ function createOptimisticProject(formData: FormData, clientId: string, createdAt
     client_name: readDraftText(formData, "clientName"),
     location: readDraftText(formData, "location"),
     project_code: readDraftText(formData, "projectCode"),
-    currency_code: "PHP",
+    currency_code: String(formData.get("currencyCode") ?? "PHP").trim().toUpperCase() || "PHP",
     metadata: {},
     created_at: createdAt,
     updated_at: createdAt,
@@ -84,11 +91,36 @@ function applyUploadedProjectImage(project: Tables<"projects">, image: ProjectIm
   };
 }
 
-export function NewProjectForm({ onSuccess, onOptimisticProjectChange }: NewProjectFormProps) {
+function locationFormData(projectId: string, selection: ProjectGooglePlaceSelection) {
+  const formData = new FormData();
+  formData.set("projectId", projectId);
+  formData.set("latitude", String(selection.latitude));
+  formData.set("longitude", String(selection.longitude));
+  formData.set("addressText", selection.addressText);
+  formData.set("displayLabel", selection.displayLabel ?? "");
+  formData.set("source", "geocoded");
+  formData.set("geocoderName", "google");
+  formData.set("providerPlaceId", selection.providerPlaceId ?? "");
+  formData.set("syncProjectAddress", "1");
+  return formData;
+}
+
+export function NewProjectForm({
+  onSuccess,
+  onOptimisticProjectChange,
+  googleMapsApiKey = "",
+  googleMapsMapId = null,
+  showHeader = true,
+}: NewProjectFormProps) {
   const router = useNavigationRouter();
   const imageInputId = useId();
   const statusId = useId();
   const [projectCode, setProjectCode] = useState(generateProjectCode);
+  const [currencyCode, setCurrencyCode] = useState("PHP");
+  const [currencySearchValue, setCurrencySearchValue] = useState("PHP");
+  const [locationValue, setLocationValue] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<ProjectGooglePlaceSelection | null>(null);
+  const [locationPin, setLocationPin] = useState<ProjectLocationPin | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [status, setStatus] = useState<CreateProjectStatus>({ state: "idle" });
@@ -128,6 +160,21 @@ export function NewProjectForm({ onSuccess, onOptimisticProjectChange }: NewProj
     setSelectedImage(null);
     setPreviewUrl("");
     setStatus({ state: "idle" });
+  }
+
+  function handleLocationChange(value: string) {
+    setLocationValue(value);
+    setStatus((current) => current.state === "error" && current.field !== "projectName" ? { state: "idle" } : current);
+    setSelectedPlace((current) => {
+      if (!current || current.addressText === value) return current;
+      setLocationPin(null);
+      return null;
+    });
+  }
+
+  function handleLocationPlaceSelect(selection: ProjectGooglePlaceSelection) {
+    setSelectedPlace(selection);
+    setLocationPin({ latitude: selection.latitude, longitude: selection.longitude });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -181,6 +228,22 @@ export function NewProjectForm({ onSuccess, onOptimisticProjectChange }: NewProj
       projectCreated = true;
       optimisticProject = project;
       reportOptimisticProject({ state: "preparing", message: "Preparing project..." }, true);
+
+      if (selectedPlace) {
+        setStatus({ state: "saving", message: "Saving project location..." });
+        reportOptimisticProject({ state: "preparing", message: "Saving project location..." }, true);
+        try {
+          const locationResult = await saveProjectLocation(
+            initialProjectLocationActionState,
+            locationFormData(project.id, selectedPlace),
+          );
+          if (locationResult.status === "error") {
+            reportOptimisticProject({ state: "preparing", message: "Project location can be refined later." }, true);
+          }
+        } catch {
+          reportOptimisticProject({ state: "preparing", message: "Project location can be refined later." }, true);
+        }
+      }
 
       if (selectedImage) {
         setStatus({
@@ -248,11 +311,14 @@ export function NewProjectForm({ onSuccess, onOptimisticProjectChange }: NewProj
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="grid min-h-[560px] grid-rows-[auto_1fr]"
+      className={[
+        "grid",
+        showHeader ? "grid-rows-[auto_minmax(0,1fr)_auto]" : "grid-rows-[minmax(0,1fr)_auto]",
+      ].join(" ")}
     >
-      <CreateProjectHeader />
+      {showHeader ? <CreateProjectHeader /> : null}
 
-      <div className="grid min-h-0 lg:grid-cols-[minmax(320px,0.92fr)_minmax(460px,1fr)]">
+      <div className="grid min-h-0 gap-2 overflow-auto p-2 lg:grid-cols-[minmax(360px,460px)_minmax(300px,1fr)_minmax(360px,460px)] lg:items-start lg:overflow-hidden">
         <ProjectImagePanel
           imageInputId={imageInputId}
           isSubmitting={isSubmitting}
@@ -262,31 +328,48 @@ export function NewProjectForm({ onSuccess, onOptimisticProjectChange }: NewProj
           onClearImage={clearProjectImage}
         />
 
-        <div className="flex min-h-0 flex-col bg-white">
-          <div className="flex flex-1 flex-col gap-2 p-2">
-            <div className="grid gap-2 md:grid-cols-2">
-              <ProjectFields
-                isProjectNameInvalid={isProjectNameInvalid}
-                projectNameErrorId={statusId}
-                onProjectNameChange={() => {
-                  if (isProjectNameInvalid) setStatus({ state: "idle" });
-                }}
-              />
-            </div>
-            <ProjectCodeField
+        <div
+          data-create-project-details-panel
+          className="flex h-full min-h-0 flex-col overflow-hidden rounded-xs border border-hairline bg-white lg:self-stretch"
+        >
+          <div className="min-h-0 flex-1 overflow-auto p-2">
+            <ProjectFields
+              isProjectNameInvalid={isProjectNameInvalid}
+              projectNameErrorId={statusId}
               isSubmitting={isSubmitting}
               projectCode={projectCode}
-              onChange={(value) => setProjectCode(value.toUpperCase())}
-              onGenerate={() => setProjectCode(generateProjectCode())}
+              currencyCode={currencyCode}
+              currencySearchValue={currencySearchValue}
+              googleMapsApiKey={googleMapsApiKey}
+              locationValue={locationValue}
+              onProjectNameChange={() => {
+                if (isProjectNameInvalid) setStatus({ state: "idle" });
+              }}
+              onProjectCodeChange={(value) => setProjectCode(value.toUpperCase())}
+              onGenerateProjectCode={() => setProjectCode(generateProjectCode())}
+              onCurrencyChange={({ code, searchValue }) => {
+                setCurrencyCode(code);
+                setCurrencySearchValue(searchValue);
+              }}
+              onLocationChange={handleLocationChange}
+              onLocationPlaceSelect={handleLocationPlaceSelect}
             />
           </div>
-          <CreateProjectFooter
-            isSubmitting={isSubmitting}
-            status={status}
-            statusId={statusId}
-          />
         </div>
+
+        <ProjectLocationPreview
+          apiKey={googleMapsApiKey}
+          mapId={googleMapsMapId}
+          addressLabel={locationValue}
+          pin={locationPin}
+          className="aspect-[4/3] h-auto"
+        />
       </div>
+      <CreateProjectFooter
+        isSubmitting={isSubmitting}
+        status={status}
+        statusId={statusId}
+      />
     </form>
   );
 }

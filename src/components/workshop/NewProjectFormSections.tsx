@@ -1,9 +1,19 @@
 "use client";
 
-import { MagicWand, Plus } from "@phosphor-icons/react/dist/ssr";
+import { MagicWand, MapPin, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
+import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
+import { cn } from "@/lib/ui/cn";
+import {
+  ProjectAddressAutocomplete,
+  type ProjectGooglePlaceSelection,
+} from "@/components/workshop/ProjectAddressAutocomplete";
+import {
+  ProjectLocationMap,
+  type ProjectLocationPin,
+} from "@/components/workshop/ProjectLocationMap";
 
 export type CreateProjectStatus =
   | { state: "idle" }
@@ -14,7 +24,7 @@ export type CreateProjectStatus =
 
 type ProjectCodeFieldProps = {
   isSubmitting: boolean;
-  projectCode: string;
+  projectCode?: string | null;
   onChange: (value: string) => void;
   onGenerate: () => void;
 };
@@ -25,15 +35,41 @@ type CreateProjectFooterProps = {
   statusId: string;
 };
 
+const CREATE_PROJECT_FIELD_LABEL_CLASS =
+  "text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary";
+const CREATE_PROJECT_INPUT_CLASS = "h-8 bg-white/92 px-2 !text-[10px]";
+export const CREATE_PROJECT_CURRENCY_OPTIONS: CreatableComboboxOption[] = [
+  { id: "PHP", label: "PHP", description: "Philippine peso" },
+  { id: "USD", label: "USD", description: "US dollar" },
+  { id: "EUR", label: "EUR", description: "Euro" },
+  { id: "GBP", label: "GBP", description: "British pound" },
+  { id: "JPY", label: "JPY", description: "Japanese yen" },
+  { id: "SGD", label: "SGD", description: "Singapore dollar" },
+  { id: "AUD", label: "AUD", description: "Australian dollar" },
+  { id: "CAD", label: "CAD", description: "Canadian dollar" },
+  { id: "HKD", label: "HKD", description: "Hong Kong dollar" },
+  { id: "CNY", label: "CNY", description: "Chinese yuan" },
+  { id: "KRW", label: "KRW", description: "South Korean won" },
+  { id: "THB", label: "THB", description: "Thai baht" },
+  { id: "IDR", label: "IDR", description: "Indonesian rupiah" },
+  { id: "MYR", label: "MYR", description: "Malaysian ringgit" },
+  { id: "VND", label: "VND", description: "Vietnamese dong" },
+  { id: "INR", label: "INR", description: "Indian rupee" },
+  { id: "AED", label: "AED", description: "UAE dirham" },
+  { id: "SAR", label: "SAR", description: "Saudi riyal" },
+  { id: "CHF", label: "CHF", description: "Swiss franc" },
+  { id: "NZD", label: "NZD", description: "New Zealand dollar" },
+];
+
 export function CreateProjectHeader() {
   return (
-    <div className="border-b border-hairline bg-white p-2">
-      <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+    <div className="border-b border-[color:var(--glass-border)] bg-white/54 px-2 py-2">
+      <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">
         Projects
       </p>
       <h3
         id="new-project-title"
-        className="mt-1 text-[12px] font-medium leading-4 text-ink"
+        className="mt-0.5 text-[12px] font-medium leading-4 text-ink"
       >
         Create project
       </h3>
@@ -47,25 +83,27 @@ export function ProjectCodeField({
   onChange,
   onGenerate,
 }: ProjectCodeFieldProps) {
+  const codeValue = projectCode ?? "";
+
   return (
-    <label htmlFor="new-project-code" className="mt-auto w-full space-y-1.5">
-      <span className="block text-right text-[8px] font-medium uppercase tracking-normal text-tertiary">
+    <label htmlFor="new-project-code" className="group/code-field w-full space-y-1">
+      <span className={cn("block", CREATE_PROJECT_FIELD_LABEL_CLASS)}>
         Project Code
       </span>
-      <span className="flex min-w-0 items-center gap-1">
+      <span className="relative block min-w-0">
         <ControlInput
           id="new-project-code"
           name="projectCode"
-          value={projectCode}
+          value={codeValue}
           onChange={(event) => onChange(event.currentTarget.value)}
           placeholder="A7K9M2Q4"
-          className="h-8 min-w-0 flex-1 bg-white px-2 text-right !text-[8px] text-tertiary"
+          className={cn(CREATE_PROJECT_INPUT_CLASS, "w-full pr-9 font-medium text-secondary")}
         />
         <Button
           type="button"
           variant="secondary"
           size="icon-sm"
-          className="size-8 shrink-0 rounded-xs"
+          className="workshop-liquid-button absolute right-0 top-0 size-8 rounded-xs opacity-0 transition-opacity group-hover/code-field:opacity-100 group-focus-within/code-field:opacity-100 motion-reduce:transition-none"
           aria-label="Generate project code"
           title="Generate project code"
           disabled={isSubmitting}
@@ -81,23 +119,48 @@ export function ProjectCodeField({
 type ProjectFieldsProps = {
   isProjectNameInvalid?: boolean;
   projectNameErrorId?: string;
+  isSubmitting: boolean;
+  projectCode: string;
+  currencyCode: string;
+  currencySearchValue: string;
+  googleMapsApiKey: string;
+  locationValue: string;
   onProjectNameChange?: () => void;
+  onProjectCodeChange: (value: string) => void;
+  onGenerateProjectCode: () => void;
+  onCurrencyChange: (value: { code: string; searchValue: string }) => void;
+  onLocationChange: (value: string) => void;
+  onLocationPlaceSelect: (selection: ProjectGooglePlaceSelection) => Promise<void> | void;
 };
 
 export function ProjectFields({
   isProjectNameInvalid,
   projectNameErrorId,
+  isSubmitting,
+  projectCode,
+  currencyCode,
+  currencySearchValue,
+  googleMapsApiKey,
+  locationValue,
   onProjectNameChange,
+  onProjectCodeChange,
+  onGenerateProjectCode,
+  onCurrencyChange,
+  onLocationChange,
+  onLocationPlaceSelect,
 }: ProjectFieldsProps) {
+  const selectedCurrencyOption = CREATE_PROJECT_CURRENCY_OPTIONS.find((option) => option.id === currencyCode) ?? null;
+
   return (
-    <>
-      <label htmlFor="new-project-name" className="space-y-1.5 md:col-span-2">
-        <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+    <div data-create-project-fields className="grid gap-2">
+      <label htmlFor="new-project-name" className="space-y-1">
+        <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
           Project name
         </span>
         <ControlInput
           id="new-project-name"
           name="name"
+          data-dialog-initial-focus
           placeholder="e.g. Lewis Residence Renovation"
           required
           aria-describedby={
@@ -105,32 +168,131 @@ export function ProjectFields({
           }
           invalid={isProjectNameInvalid}
           onChange={onProjectNameChange}
-          className="h-10 px-2 !text-[12px]"
+          className={CREATE_PROJECT_INPUT_CLASS}
         />
       </label>
-      <label htmlFor="new-project-client" className="space-y-1.5">
-        <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+      <label htmlFor="new-project-client" className="space-y-1">
+        <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
           Client
         </span>
         <ControlInput
           id="new-project-client"
           name="clientName"
           placeholder="Client name"
-          className="h-10 px-2 !text-[12px]"
+          className={CREATE_PROJECT_INPUT_CLASS}
         />
       </label>
-      <label htmlFor="new-project-location" className="space-y-1.5 md:col-span-2">
-        <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+      <div className="space-y-1">
+        <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
+          Currency
+        </span>
+        <input type="hidden" name="currencyCode" value={currencyCode} />
+        <CreatableCombobox
+          value={currencySearchValue}
+          selectedId={selectedCurrencyOption?.id ?? null}
+          options={CREATE_PROJECT_CURRENCY_OPTIONS}
+          onChange={(change) => {
+            if (change.reason === "select" && change.id) {
+              onCurrencyChange({ code: change.id, searchValue: change.label });
+              return;
+            }
+            if (change.reason === "clear") {
+              onCurrencyChange({ code: "PHP", searchValue: "" });
+              return;
+            }
+            const nextValue = change.label.toUpperCase();
+            const matchingOption = CREATE_PROJECT_CURRENCY_OPTIONS.find((option) => option.id === nextValue);
+            onCurrencyChange({ code: matchingOption?.id ?? currencyCode, searchValue: nextValue });
+          }}
+          ariaLabel="Currency"
+          placeholder="Search currency"
+          emptyLabel="No currency matches"
+          allowCreate={false}
+          preferSelectionOnEnter
+          suppressCreateWhenSearchMatches
+          optionPresentation="unit"
+          inputClassName={CREATE_PROJECT_INPUT_CLASS}
+        />
+      </div>
+      <ProjectCodeField
+        isSubmitting={isSubmitting}
+        projectCode={projectCode}
+        onChange={onProjectCodeChange}
+        onGenerate={onGenerateProjectCode}
+      />
+      <label className="space-y-1">
+        <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
           Location
         </span>
-        <ControlInput
-          id="new-project-location"
+        <ProjectAddressAutocomplete
+          apiKey={googleMapsApiKey}
           name="location"
-          placeholder="City / site location"
-          className="h-10 px-2 !text-[12px]"
+          value={locationValue}
+          readOnly={false}
+          onValueChange={onLocationChange}
+          onPlaceSelect={onLocationPlaceSelect}
+          inputClassName={cn(CREATE_PROJECT_INPUT_CLASS, "text-ink")}
         />
       </label>
-    </>
+    </div>
+  );
+}
+
+export function ProjectLocationPreview({
+  apiKey,
+  mapId,
+  addressLabel,
+  pin,
+  className,
+}: {
+  readonly apiKey: string;
+  readonly mapId?: string | null;
+  readonly addressLabel: string;
+  readonly pin: ProjectLocationPin | null;
+  readonly className?: string;
+}) {
+  const canShowGoogleMap = Boolean(apiKey.trim() && pin);
+
+  return (
+    <div
+      data-create-project-location-preview
+      className={cn(
+        "overflow-hidden rounded-xs border border-hairline bg-surfaceMuted/70",
+        className ?? "h-44",
+      )}
+      aria-label="Project location preview"
+    >
+      {canShowGoogleMap ? (
+        <ProjectLocationMap
+          apiKey={apiKey}
+          mapId={mapId}
+          pin={pin}
+          addressLabel={addressLabel}
+          minHeightClassName="min-h-full"
+        />
+      ) : (
+        <div className="flex h-full flex-col justify-between bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(245,245,245,0.76)),radial-gradient(circle_at_80%_18%,rgba(242,68,5,0.12),transparent_28%)] p-2 text-tertiary">
+          <span className="flex items-center gap-2">
+            <span className="grid size-8 shrink-0 place-items-center rounded-xs border border-white/80 bg-white/78">
+              <MapPin size={15} weight="regular" aria-hidden="true" />
+            </span>
+            <span className="block text-[9px] font-medium uppercase leading-3 tracking-normal">
+              Map preview
+            </span>
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[11px] font-medium leading-4 text-secondary">
+              {addressLabel.trim() || "No location selected"}
+            </span>
+            <span className="mt-1 block text-[10px] leading-4 text-tertiary">
+              {addressLabel.trim()
+                ? "Choose a Google suggestion to pin this project."
+                : "Search or type a project address."}
+            </span>
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -140,9 +302,9 @@ export function CreateProjectFooter({
   statusId,
 }: CreateProjectFooterProps) {
   return (
-    <div className="grid gap-2 border-t border-hairline bg-white/94 p-2">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-hairline bg-white/72 p-2">
       {status.state === "uploading" ? (
-        <div className="space-y-1" aria-live="polite">
+        <div className="min-h-[22px] space-y-1" aria-live="polite">
           <div className="h-1.5 overflow-hidden rounded-xs bg-surfaceMuted">
             <div
               className="h-full rounded-xs bg-accent transition-[width]"
@@ -161,19 +323,23 @@ export function CreateProjectFooter({
           aria-live="polite"
           role={status.state === "error" ? "alert" : undefined}
           className={[
-            "text-[9px] font-medium leading-3",
+            "min-h-[22px] text-[9px] font-medium leading-3",
             status.state === "error" ? "text-danger" : "text-tertiary",
           ].join(" ")}
         >
           {status.message}
         </p>
-      ) : null}
+      ) : (
+        <p aria-hidden="true" className="min-h-[22px] text-[9px] leading-3">
+          &nbsp;
+        </p>
+      )}
       <div className="flex justify-end">
         <Button
           type="submit"
-          variant="primary"
+          variant="brand"
           size="md"
-          className="h-9 gap-2 rounded-xs bg-orange-600 px-3 hover:bg-orange-700 focus-visible:ring-orange-200"
+          className="h-8 min-w-[124px] gap-2 rounded-xs px-2"
           disabled={isSubmitting}
         >
           <Plus size={14} weight="regular" aria-hidden="true" />

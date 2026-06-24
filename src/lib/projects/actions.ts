@@ -118,6 +118,7 @@ export async function createProjectRecord(formData: FormData) {
   const clientName = readOptionalText(formData, "clientName");
   const location = readOptionalText(formData, "location");
   const projectCode = readOptionalText(formData, "projectCode");
+  const currencyCode = readCurrencyCode(formData, "currencyCode");
 
   const { data: project, error } = await supabase
     .from("projects")
@@ -128,7 +129,7 @@ export async function createProjectRecord(formData: FormData) {
       client_name: clientName,
       location,
       project_code: projectCode,
-      currency_code: "PHP",
+      currency_code: currencyCode,
       metadata: {},
     })
     .select("*")

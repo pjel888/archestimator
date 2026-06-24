@@ -22,6 +22,8 @@ async function ProjectsData() {
       ensureDefaultWorkspace(),
     ]);
     const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
+    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+    const googleMapsMapId = process.env.GOOGLE_MAPS_MAP_ID ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? null;
 
     return (
       <ProjectsPageClient
@@ -29,6 +31,8 @@ async function ProjectsData() {
         favoriteProjectIds={favoriteProjectIds}
         favoritesScope={favoritesScope}
         projectGroups={projectGroups}
+        googleMapsApiKey={googleMapsApiKey}
+        googleMapsMapId={googleMapsMapId}
       />
     );
   });

@@ -61,6 +61,21 @@ function AddressHarness({
   );
 }
 
+function NoKeyAddressHarness() {
+  const [value, setValue] = useState("");
+
+  return (
+    <ProjectAddressAutocomplete
+      apiKey=""
+      name="location"
+      value={value}
+      readOnly={false}
+      onValueChange={setValue}
+      onPlaceSelect={vi.fn()}
+    />
+  );
+}
+
 describe("ProjectAddressAutocomplete", () => {
   beforeEach(() => {
     placesMocks.fetchFields.mockClear();
@@ -93,6 +108,15 @@ describe("ProjectAddressAutocomplete", () => {
     expect(screen.getByRole("combobox")).toBeInTheDocument();
     expect(placesMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
     expect(placesMocks.importLibrary).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a normal editable textbox when no Google key is configured", () => {
+    render(<NoKeyAddressHarness />);
+
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("name", "location");
+    expect(input).not.toHaveAttribute("role", "combobox");
+    expect(placesMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
   });
 
   it("renders Google suggestions in the shared fixed popup layer and selects by keyboard", async () => {
