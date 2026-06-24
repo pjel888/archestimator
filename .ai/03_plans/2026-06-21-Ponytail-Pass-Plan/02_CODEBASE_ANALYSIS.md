@@ -58,6 +58,8 @@ From ponytail's [examples](https://github.com/DietrichGebert/ponytail/blob/main/
 
 ### T1.1 `class-variance-authority` — unused dependency
 
+> **✅ EXECUTED 2026-06-23** (commit `e65e2848`). Confirmed absent from `package.json` and 0 importers as of 2026-06-24 audit.
+
 - **Evidence:** `rg "from ['\"]class-variance-authority['\"]|require\(['\"]class-variance-authority['\"]\)"` → 0 matches across repo. `rg "cva"` → 0 matches in src/ (confirmed by `2026-06-14-Codebase-Cleanup-Plan` F22 + this pass).
 - **Action:** Remove from `package.json` dependencies. Run `bun install`.
 - **Risk:** Zero — no importer, no runtime path.
@@ -65,6 +67,8 @@ From ponytail's [examples](https://github.com/DietrichGebert/ponytail/blob/main/
 - **Verification:** `bun run type-check && bun run build` pass.
 
 ### T1.2 `three` — unused dependency
+
+> **✅ EXECUTED 2026-06-24** — removed as part of the React Doctor warning cleanup pass (`.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md`; `.ai/10_state/current-state.md` 2026-06-24 entry: "removed unused packages (`lenis`, `rough-notation`, `roughjs`, `three`, `@types/three`)"). Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit.
 
 - **Evidence:** `rg "from ['\"]three['\"]|require\(['\"]three['\"]\)"` → 0 matches. `rg "THREE\."` → 0 matches. No dynamic `import("three")`. (Confirmed by cleanup plan F20.)
 - **Action:** Remove from `package.json` dependencies. Run `bun install`.
@@ -113,13 +117,19 @@ These are not "pure wins" because each replacement changes first-viewport or lan
 
 ### T1.6 `lenis` — single-use smooth-scroll dep
 
+> **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `lenis` removed outright by the React Doctor warning cleanup. Landing-v3 refactor (`66bfc93e`, `5d127690`) removed `LandingSmoothScrollProvider.tsx` and its `ReactLenis` wrapper before the dep was deleted. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. Historical analysis retained for traceability.
+
 > **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `lenis` removed outright by the React Doctor warning cleanup. Landing-v3 refactor (`66bfc93e`, `5d127690`) removed `LandingSmoothScrollProvider.tsx` and its `ReactLenis` wrapper before the dep was deleted. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The historical analysis below is retained for traceability.
 
 ### T1.7 `rough-notation` — single-use annotation dep
 
 > **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `rough-notation` removed outright by the React Doctor warning cleanup. Landing-v3 refactor retired the legacy `HeroSection.tsx` / `LaunchFeatureHeading.tsx` surfaces that consumed it. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit.
 
+> **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `rough-notation` removed outright by the React Doctor warning cleanup. Landing-v3 refactor retired the legacy `HeroSection.tsx` / `LaunchFeatureHeading.tsx` surfaces that consumed it. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit.
+
 ### T1.8 `roughjs` — single-use illustration dep
+
+> **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `roughjs` removed outright by the React Doctor warning cleanup. Landing-v3 refactor retired the legacy `AnimatedProposalRecordSection.tsx` illustration that consumed it (the ~684 LOC dependent on `rough.svg()` went with the component). Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The original −500 LOC cut was realized as a deletion, not a swap.
 
 > **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `roughjs` removed outright by the React Doctor warning cleanup. Landing-v3 refactor retired the legacy `AnimatedProposalRecordSection.tsx` illustration that consumed it. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The original −500 LOC cut was realized as a deletion, not a swap.
 
@@ -127,7 +137,7 @@ These are not "pure wins" because each replacement changes first-viewport or lan
 
 > **Strategy:** These are NOT refactored in one shot. The strategy is: (a) run `/ponytail-review` on any PR that touches these files, (b) shrink diff-by-diff, (c) extract concerns only when a natural edit boundary appears. One-shot refactors risk behavior regression.
 
-### T2.1 `src/components/workshop/EstimateSheetContent.tsx` (2950 LOC)
+### T2.1 `src/components/workshop/EstimateSheetContent.tsx` (2950 LOC at 2026-06-21 · **3550 LOC at 2026-06-24 audit · +600 drift**)
 
 - **Largest function:** `EstimateSheetContent` — 1881 LOC (lines 1042-2922). Single component doing history, export, library wiring, tree rendering, grid editing, and sidebar coordination.
 - **Ponytail ask:** "Does this need to exist as one component? Split by concern."
@@ -136,37 +146,37 @@ These are not "pure wins" because each replacement changes first-viewport or lan
 - **Risk:** High — core estimate editing surface. Any regression blocks users.
 - **Strategy:** Diff-by-diff only. Never one-shot. `/ponytail-review` on every PR.
 
-### T2.2 `src/components/workshop/component-library/index.tsx` (2541 LOC)
+### T2.2 `src/components/workshop/component-library/index.tsx` (2541 LOC at 2026-06-21 · **3409 LOC at 2026-06-24 audit · +868 drift**)
 
 - **Largest function:** `EstimateRightSidebarBase` — 1748 LOC (lines 786-2533).
 - **Ponytail ask:** "Peel off local hooks/helpers. One component doing 5 jobs."
 - **Natural split candidates:** search/filter, category tree, card list, drag source, detail panel.
 - **Strategy:** Diff-by-diff. `/ponytail-review` on every PR.
 
-### T2.3 `src/lib/repositories/workspace-repository.ts` (2695 LOC)
+### T2.3 `src/lib/repositories/workspace-repository.ts` (2695 LOC at 2026-06-21 · **3242 LOC at 2026-06-24 audit · +547 drift · 36 importers (was 37)**)
 
 - **Ponytail ask:** "Separate access resolution, query orchestration, and DTO mapping."
 - **Natural split candidates:** access guards, query builders, response shaping, RPC wrappers.
 - **Strategy:** Extract helpers when a natural boundary appears. `/ponytail-review` on every PR.
 
-### T2.4 `src/lib/ai/package-builder/draft.ts` (2412 LOC)
+### T2.4 `src/lib/ai/package-builder/draft.ts` (2412 LOC at 2026-06-21 · **2443 LOC at 2026-06-24 audit · +31 drift**)
 
 - **Ponytail ask:** "Heuristic parser with many one-off text helpers. Collapse by concern."
 - **Natural split candidates:** text extraction, line-item classification, assembly, validation.
 - **Caveat:** AI surface is off by default (see speculative features). If AI is cut for closed beta, this file may not need refactoring at all.
 - **Strategy:** Decide AI surface first. If keeping, diff-by-diff. If cutting, delete the file.
 
-### T2.5 `src/lib/ai/read-context.ts` (2023 LOC)
+### T2.5 `src/lib/ai/read-context.ts` (2023 LOC at 2026-06-21 · **2020 LOC at 2026-06-24 audit · −3 drift**)
 
 - **Ponytail ask:** "One giant dispatcher. Break by intent/domain."
 - **Same caveat as T2.4:** AI-gated. May not need refactoring if AI is cut.
 
-### T2.6 `src/lib/publication/actions.ts` (~1538 LOC)
+### T2.6 `src/lib/publication/actions.ts` (~1538 LOC at 2026-06-21 · **1637 LOC at 2026-06-24 audit · +99 drift · 4 importers (was 5)**)
 
 - **Ponytail ask:** "Repeated auth/rate-limit/client helpers. Extract shared helper."
 - **Strategy:** Extract shared auth/rate-limit helper. Diff-by-diff.
 
-### T2.7 `src/lib/component-library/actions.ts` (~1591 LOC)
+### T2.7 `src/lib/component-library/actions.ts` (~1591 LOC at 2026-06-21 · **1749 LOC at 2026-06-24 audit · +158 drift**)
 
 - **Ponytail ask:** "Duplicated access checks/validators. Factor common pattern."
 - **Strategy:** Extract shared access-check helper. Diff-by-diff.
