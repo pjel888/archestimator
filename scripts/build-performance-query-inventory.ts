@@ -148,7 +148,7 @@ export function extractQueryReferencesFromSource(filePath: string, source: strin
   return references;
 }
 
-export function extractQueryReferences(roots = DEFAULT_ROOTS): QueryReference[] {
+function extractQueryReferences(roots = DEFAULT_ROOTS): QueryReference[] {
   return roots
     .flatMap((root) => walkFiles(root))
     .flatMap((filePath) => extractQueryReferencesFromSource(filePath, readFileSync(filePath, "utf8")))

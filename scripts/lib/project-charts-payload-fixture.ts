@@ -16,7 +16,7 @@ const AREA_COUNT = 30;
 const CATEGORY_COUNT = 20;
 const SUPPLIER_COUNT = 15;
 
-export function buildLargeProjectChartsFixture() {
+function buildLargeProjectChartsFixture() {
   const estimates: ProjectChartEstimateOption[] = [
     { id: "estimate-a", name: "Schematic", sheetCode: "EST-001", currencyCode: "PHP", updatedAt: "2026-05-02T00:00:00Z", rowCount: 0, totalCost: 0 },
     { id: "estimate-b", name: "Tender", sheetCode: "EST-002", currencyCode: "PHP", updatedAt: "2026-05-01T00:00:00Z", rowCount: 0, totalCost: 0 },

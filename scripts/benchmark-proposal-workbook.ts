@@ -53,7 +53,7 @@ export function parseRowCounts(value: string) {
   return parsed;
 }
 
-export function round(value: number, precision = 2) {
+function round(value: number, precision = 2) {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
 }
@@ -62,7 +62,7 @@ export function toMiB(bytes: number) {
   return round(bytes / 1024 / 1024);
 }
 
-export function getMemoryUsage() {
+function getMemoryUsage() {
   if (typeof process.memoryUsage !== "function") {
     return { rssMiB: null, heapUsedMiB: null };
   }

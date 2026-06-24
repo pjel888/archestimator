@@ -36,7 +36,7 @@ export function redactShareUrl(value) {
   return redacted.toString();
 }
 
-export function headerDirectives(value) {
+function headerDirectives(value) {
   return (value ?? "")
     .toLowerCase()
     .split(",")
@@ -44,7 +44,7 @@ export function headerDirectives(value) {
     .filter(Boolean);
 }
 
-export function cspDirectives(value) {
+function cspDirectives(value) {
   return (value ?? "")
     .toLowerCase()
     .split(";")
@@ -56,7 +56,7 @@ export function hasNoStoreCacheControl(value) {
   return headerDirectives(value).includes("no-store");
 }
 
-export function hasFramePolicy(headers) {
+function hasFramePolicy(headers) {
   const xFrameOptions = headers["x-frame-options"]?.toLowerCase();
   const csp = cspDirectives(headers["content-security-policy"]);
   return xFrameOptions === "deny" || csp.includes("frame-ancestors 'none'");
