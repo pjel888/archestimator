@@ -28,6 +28,7 @@ type ToastRecord = {
   message: string;
   tone: ToastTone;
   durationMs: number | null;
+  action?: ToastAction;
 };
 
 type ToastInput = {
@@ -35,6 +36,12 @@ type ToastInput = {
   message: string;
   tone?: ToastTone;
   durationMs?: number | null;
+  action?: ToastAction;
+};
+
+type ToastAction = {
+  label: string;
+  onClick: () => void;
 };
 
 type ToastContextValue = {
@@ -124,6 +131,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
       message: input.message,
       tone,
       durationMs,
+      action: input.action,
     };
 
     setToasts((currentToasts) => {
@@ -177,6 +185,20 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
               <ToastIcon tone={toastRecord.tone} />
             </span>
             <span className="min-w-0 flex-1 break-words">{toastRecord.message}</span>
+            {toastRecord.action ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="-my-0.5 h-6 min-h-0 shrink-0 rounded-xs px-1.5 text-[10px] font-medium text-current hover:bg-black/5 hover:text-current focus-visible:ring-current focus-visible:ring-offset-0"
+                onClick={() => {
+                  toastRecord.action?.onClick();
+                  dismissToast(toastRecord.id);
+                }}
+              >
+                {toastRecord.action.label}
+              </Button>
+            ) : null}
             {toastRecord.tone === "loading" ? null : (
               <Button
                 type="button"
@@ -200,4 +222,4 @@ export function useToast() {
   return use(ToastContext);
 }
 
-export type { ToastInput, ToastTone };
+export type { ToastAction, ToastInput, ToastTone };
