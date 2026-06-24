@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { SourceTrustChips } from "../../library/source-trust-chips";
@@ -526,6 +527,19 @@ export function LibraryTree({
     setContextMenuNodeId(nodeId);
   }, []);
 
+  // Wrapped in useStableCallback so the ref mutation lives behind a stable
+  // indirection (callbackRef.current(...)): the memo below references the
+  // returned stable function, whose own body never writes a ref during render,
+  // which keeps react-hooks/refs satisfied. The ref write only runs at click
+  // time, when the menu item is actually selected.
+  const startFolderRenameFromContextMenu = useStableCallback((nodeId: string) => {
+    if (!onFolderRename) return;
+    suppressNextContextMenuCloseAutoFocusRef.current = true;
+    window.setTimeout(() => {
+      onFolderRename(nodeId);
+    }, 0);
+  });
+
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     const contextNode = contextMenuNodeId ? nodeById.get(contextMenuNodeId) : null;
     if (!contextNode) return [];
@@ -549,14 +563,10 @@ export function LibraryTree({
       onSelect: () => (onSelect ?? onToggle)(contextNode.id),
       onToggle: () => onToggle(contextNode.id),
       onCreateComponent,
-      // onRename fires only when the menu item is clicked (an event handler),
-      // so the ref mutation here runs at click time, not during render.
-      onRename: onFolderRename
-        ? () => {
-            suppressNextContextMenuCloseAutoFocusRef.current = true;
-            window.setTimeout(() => onFolderRename(contextNode.id), 0);
-          }
-        : undefined,
+      // onRename fires only when the menu item is clicked (an event handler);
+      // startFolderRenameFromContextMenu is a useStableCallback whose ref
+      // mutation runs at click time, not during render.
+      onRename: onFolderRename ? () => startFolderRenameFromContextMenu(contextNode.id) : undefined,
     });
   }, [
     addDisabled,
@@ -574,6 +584,7 @@ export function LibraryTree({
     onItemToggleFavorite,
     onSelect,
     onFolderRename,
+    startFolderRenameFromContextMenu,
     onToggle,
   ]);
 
