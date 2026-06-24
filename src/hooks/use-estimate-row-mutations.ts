@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
@@ -206,9 +206,11 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
   const [activeMutationCount, setActiveMutationCount] = useState(0);
   const [rowMutationError, setRowMutationError] = useState<EstimateRowMutationError | null>(null);
   // Keep the latest change-listener without re-creating the transition setters
-  // (which are dependencies of every React Query mutation option below).
+  // (which are dependencies of every React Query mutation options below).
   const onSaveStateChangeRef = useRef(onSaveStateChange);
-  onSaveStateChangeRef.current = onSaveStateChange;
+  useEffect(() => {
+    onSaveStateChangeRef.current = onSaveStateChange;
+  }, [onSaveStateChange]);
   const transitionTo = useCallback((next: EstimateSaveState, error: EstimateRowMutationError | null) => {
     setSaveState(next);
     onSaveStateChangeRef.current?.(next, error);

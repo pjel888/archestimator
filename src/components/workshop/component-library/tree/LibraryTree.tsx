@@ -447,10 +447,12 @@ export function LibraryTree({
 }: LibraryTreeProps) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-  // A ref (not state): this flag is only read inside the context menu's close
-  // handler to decide whether to suppress autofocus — it never renders, so it
-  // must not trigger a re-render. Assigning ref.current commits synchronously,
-  // which is what the rename flow needs before the menu closes.
+  // This flag is only ever read inside the context menu's close handler to
+  // decide whether to suppress autofocus — it never appears in the visible
+  // tree, so it is a ref (no re-render) rather than state. It is mutated only
+  // inside event handlers (the rename click + the menu close handler), never
+  // during render, and assigning ref.current is synchronous so the close
+  // handler observes it before focus moves to the rename input.
   const suppressNextContextMenuCloseAutoFocusRef = useRef(false);
 
   const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
@@ -524,17 +526,6 @@ export function LibraryTree({
     setContextMenuNodeId(nodeId);
   }, []);
 
-  const startFolderRenameFromContextMenu = useCallback((nodeId: string) => {
-    if (!onFolderRename) return;
-    // Set the suppress flag synchronously (ref assignment commits immediately,
-    // no flushSync needed) so the menu's onCloseAutoFocus sees it before the
-    // rename input takes over focus.
-    suppressNextContextMenuCloseAutoFocusRef.current = true;
-    window.setTimeout(() => {
-      onFolderRename(nodeId);
-    }, 0);
-  }, [onFolderRename]);
-
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     const contextNode = contextMenuNodeId ? nodeById.get(contextMenuNodeId) : null;
     if (!contextNode) return [];
@@ -558,7 +549,14 @@ export function LibraryTree({
       onSelect: () => (onSelect ?? onToggle)(contextNode.id),
       onToggle: () => onToggle(contextNode.id),
       onCreateComponent,
-      onRename: onFolderRename ? () => startFolderRenameFromContextMenu(contextNode.id) : undefined,
+      // onRename fires only when the menu item is clicked (an event handler),
+      // so the ref mutation here runs at click time, not during render.
+      onRename: onFolderRename
+        ? () => {
+            suppressNextContextMenuCloseAutoFocusRef.current = true;
+            window.setTimeout(() => onFolderRename(contextNode.id), 0);
+          }
+        : undefined,
     });
   }, [
     addDisabled,
@@ -576,7 +574,6 @@ export function LibraryTree({
     onItemToggleFavorite,
     onSelect,
     onFolderRename,
-    startFolderRenameFromContextMenu,
     onToggle,
   ]);
 
