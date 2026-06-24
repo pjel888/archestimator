@@ -14,6 +14,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteLibraryFoldersBulk: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
   getCostLibraryComponentUsage: vi.fn(),
+  loadCostLibraryComponentRowDetail: vi.fn(),
   moveCostLibraryComponentToFolder: vi.fn(),
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
@@ -147,6 +148,12 @@ async function waitForSheet() {
   await screen.findByRole("button", { name: "Add component" }, { timeout: 10_000 });
 }
 
+function getComponentNameInspectButton(itemId: string) {
+  const button = document.querySelector(`[data-component-card-inspect="${itemId}"]`);
+  if (!(button instanceof HTMLElement)) throw new Error(`Inspect button not found for ${itemId}`);
+  return button;
+}
+
 describe("ComponentLibraryManager Phase 1 uplift", () => {
   beforeEach(() => {
     navigationMocks.searchParams = new URLSearchParams();
@@ -156,6 +163,8 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     navigationMocks.replace.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 2, estimateRowCount: 6 });
+    actionMocks.loadCostLibraryComponentRowDetail.mockReset();
+    actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValue(null);
     actionMocks.updateCostLibraryComponent.mockReset();
     actionMocks.updateCostLibraryComponent.mockResolvedValue({ itemId: "item-fresh", versionNumber: 2 });
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
@@ -193,7 +202,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(within(sheet).getByText("Fresh Tile")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Filter components" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("region", { name: "Filter components" });
     fireEvent.click(within(dialog).getByLabelText("Discontinued"));
 
     await waitFor(() => {
@@ -215,7 +224,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
 
     fireEvent.click(screen.getByRole("button", { name: "Filter components" }));
-    await screen.findByRole("dialog");
+    await screen.findByRole("region", { name: "Filter components" });
     fireEvent.click(screen.getByLabelText(/Older than 90 days/));
 
     await waitFor(() => {
@@ -265,10 +274,21 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
   });
 
   it("opens the inspector dock on card click with details and usage counts", async () => {
+    actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValueOnce({
+      ...fixtureItems[0],
+      history: [{
+        id: "price-history-1",
+        type: "price",
+        label: "Fresh Tile",
+        summary: "Price option changed (₱100.00)",
+        effectiveAt: "2026-06-01T00:00:00.000Z",
+        createdAt: "2026-06-01T00:00:00.000Z",
+      }],
+    });
     renderManager();
     await waitForSheet();
 
-    fireEvent.click(screen.getByRole("button", { name: "View details for Fresh Tile" }));
+    fireEvent.click(getComponentNameInspectButton("item-fresh"));
 
     const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
     expect(within(dock).getByText("Mariwasa")).toBeInTheDocument();
@@ -278,15 +298,17 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(within(dock).getByText("Confidence")).toBeInTheDocument();
     expect(within(dock).getByText("Quoted")).toBeInTheDocument();
     expect(within(dock).getByText("Available")).toBeInTheDocument();
+    expect(await within(dock).findByText("Price option changed (₱100.00)")).toBeInTheDocument();
     expect(await within(dock).findByText("2 template rows · 6 estimate rows")).toBeInTheDocument();
     expect(actionMocks.getCostLibraryComponentUsage).toHaveBeenCalledWith({ itemId: "item-fresh" });
+    expect(actionMocks.loadCostLibraryComponentRowDetail).toHaveBeenCalledWith("item-fresh");
   });
 
   it("closes the inspector on Escape and returns focus to the card", async () => {
     renderManager();
     await waitForSheet();
 
-    const cardButton = screen.getByRole("button", { name: "View details for Fresh Tile" });
+    const cardButton = getComponentNameInspectButton("item-fresh");
     fireEvent.click(cardButton);
     await screen.findByRole("region", { name: "Component details for Fresh Tile" });
 
@@ -304,7 +326,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     renderManager();
     await waitForSheet();
 
-    fireEvent.click(screen.getByRole("button", { name: "View details for Fresh Tile" }));
+    fireEvent.click(getComponentNameInspectButton("item-fresh"));
     const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
     fireEvent.click(within(dock).getByRole("button", { name: "Edit component" }));
 

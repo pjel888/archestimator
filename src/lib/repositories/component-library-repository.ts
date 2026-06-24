@@ -83,6 +83,7 @@ export const SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS =
 type ComponentRowsLibraryLoadOptions = {
   includeDetailGraph?: boolean;
   itemLimit?: number;
+  itemIds?: string[];
 };
 
 function readMetadataRecord(metadata: Json): Record<string, Json> {
@@ -133,16 +134,36 @@ async function loadWorkspaceCostLibraryItemRows({
   supabase,
   workspaceId,
   itemLimit,
+  itemIds,
+  selectColumns = "*",
 }: {
   supabase: ComponentLibraryRepositoryClient;
   workspaceId: string;
   itemLimit?: number;
+  itemIds?: string[];
+  selectColumns?: string;
 }): Promise<CostLibraryItemRow[]> {
+  const selectedItemIds = itemIds ? [...new Set(itemIds.filter(isUuid))] : [];
+  if (itemIds && selectedItemIds.length === 0) return [];
+  if (selectedItemIds.length > 0) {
+    const result = await supabase
+      .from("cost_library_items")
+      .select(selectColumns)
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .in("id", selectedItemIds)
+      .order("category", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (result.error) throw result.error;
+    return (result.data ?? []) as unknown as CostLibraryItemRow[];
+  }
+
   const limit = normalizeComponentLibraryItemLimit(itemLimit);
   if (limit !== undefined) {
     const result = await supabase
       .from("cost_library_items")
-      .select(SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS)
+      .select(selectColumns)
       .eq("workspace_id", workspaceId)
       .neq("lifecycle_state", "archived")
       .order("updated_at", { ascending: false })
@@ -150,7 +171,7 @@ async function loadWorkspaceCostLibraryItemRows({
       .limit(limit);
 
     if (result.error) throw result.error;
-    return (result.data ?? []) as CostLibraryItemRow[];
+    return (result.data ?? []) as unknown as CostLibraryItemRow[];
   }
 
   const rows: CostLibraryItemRow[] = [];
@@ -159,7 +180,7 @@ async function loadWorkspaceCostLibraryItemRows({
     const to = from + COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE - 1;
     const result = await supabase
       .from("cost_library_items")
-      .select("*")
+      .select(selectColumns)
       .eq("workspace_id", workspaceId)
       .neq("lifecycle_state", "archived")
       .order("category", { ascending: true })
@@ -168,7 +189,7 @@ async function loadWorkspaceCostLibraryItemRows({
 
     if (result.error) throw result.error;
 
-    const pageRows = (result.data ?? []) as CostLibraryItemRow[];
+    const pageRows = (result.data ?? []) as unknown as CostLibraryItemRow[];
     rows.push(...pageRows);
     if (pageRows.length < COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) return rows;
   }
@@ -578,6 +599,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   workspaceId,
   includeDetailGraph = true,
   itemLimit,
+  itemIds,
 }: {
   supabase: ComponentLibraryRepositoryClient;
   workspaceId: string;
@@ -586,12 +608,16 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   // attachments. When false, those 4 audit/attachment queries are skipped
   // (the bulk of the cold-load waterfall + the unbounded-growth tables). The
   // cost-determining price-options + cost-entries queries are still loaded so
-  // the panel cost stays byte-identical to the full loader. The Library
-  // management surfaces pass true for the complete graph.
+  // the panel cost stays byte-identical to the full loader. Callers that need
+  // audit history / attachments pass true, while browse-first surfaces can
+  // hydrate a selected row on demand.
   includeDetailGraph?: boolean;
   itemLimit?: number;
+  itemIds?: string[];
 }): Promise<ComponentRowsLibraryDataset> {
   const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
+  const selectedItemIds = itemIds ? [...new Set(itemIds.filter(isUuid))] : [];
+  const itemSelectColumns = includeDetailGraph ? "*" : SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS;
   const [categoriesResult, suppliersResult, brandsResult, itemRows] = await Promise.all([
     supabase.from("component_category_nodes").select("*").order("sort_order", { ascending: true }),
     supabase
@@ -606,7 +632,13 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
       .eq("workspace_id", workspaceId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
-    loadWorkspaceCostLibraryItemRows({ supabase, workspaceId, itemLimit: boundedItemLimit }),
+    loadWorkspaceCostLibraryItemRows({
+      supabase,
+      workspaceId,
+      itemLimit: boundedItemLimit,
+      itemIds: selectedItemIds,
+      selectColumns: itemSelectColumns,
+    }),
   ]);
 
   if (categoriesResult.error) throw categoriesResult.error;
@@ -634,17 +666,17 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   const brands = persistedBrands.length > 0
     ? persistedBrands
     : [...fallbackBrandMap.values()].sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name));
-  const itemIds = itemRows.map((row) => row.id);
-  const isBoundedItemPage = boundedItemLimit !== undefined;
+  const loadedItemIds = itemRows.map((row) => row.id);
+  const isBoundedItemPage = boundedItemLimit !== undefined || selectedItemIds.length > 0;
   // U18 cost fidelity: the slim EstimateRowItem cost derives from the default
   // price option and its current cost entry (normalizeComponentLibraryItem +
   // normalizePriceOption). These two queries are ALWAYS loaded so the lite panel
   // dataset is byte-identical to the full one — never reconstructed from the
   // (potentially lagging) denormalized cost_library_items columns alone.
-  const [priceOptionsResult, costEntriesResult] = itemIds.length > 0
+  const [priceOptionsResult, costEntriesResult] = loadedItemIds.length > 0
     ? await Promise.all([
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceOptionRow>(itemIds, (itemIds) =>
+          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceOptionRow>(loadedItemIds, (itemIds) =>
               supabase
                 .from("cost_library_item_price_options")
                 .select("*")
@@ -654,7 +686,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .order("variant_sort_order", { ascending: true })
                 .order("created_at", { ascending: true }),
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceOptionRow>(itemIds, (from, to) =>
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceOptionRow>(loadedItemIds, (from, to) =>
               supabase
                 .from("cost_library_item_price_options")
                 .select("*")
@@ -665,7 +697,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .range(from, to),
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantCostEntryRow>(itemIds, (itemIds) =>
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantCostEntryRow>(loadedItemIds, (itemIds) =>
               supabase
                 .from("cost_library_item_variant_cost_entries")
                 .select("*")
@@ -676,7 +708,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .order("pricing_date", { ascending: false })
                 .order("created_at", { ascending: false }),
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantCostEntryRow>(itemIds, (from, to) =>
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantCostEntryRow>(loadedItemIds, (from, to) =>
               supabase
                 .from("cost_library_item_variant_cost_entries")
                 .select("*")
@@ -693,13 +725,13 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
         { data: [], error: null },
       ];
   // U18: the audit + attachment graph (versions / price history / state history
-  // / variant attachments) is never read by the in-estimate panel — and these
-  // are the unbounded-growth tables. The lite loader skips them; the Library
-  // management surfaces (includeDetailGraph: true) keep the full set.
-  const [versionsResult, priceHistoryResult, stateHistoryResult, attachmentsResult] = (itemIds.length > 0 && includeDetailGraph)
+  // / variant attachments) is never read by list/card/table browse views — and
+  // these are the unbounded-growth tables. Browse loaders skip them; selected
+  // component detail loaders use includeDetailGraph: true for the full set.
+  const [versionsResult, priceHistoryResult, stateHistoryResult, attachmentsResult] = (loadedItemIds.length > 0 && includeDetailGraph)
     ? await Promise.all([
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentVersionRow>(itemIds, (itemIds) =>
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVersionRow>(loadedItemIds, (itemIds) =>
               supabase
                 .from("cost_library_item_versions")
                 .select("*")
@@ -707,7 +739,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .in("item_id", itemIds)
                 .order("version_number", { ascending: false }),
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentVersionRow>(itemIds, (from, to) =>
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVersionRow>(loadedItemIds, (from, to) =>
               supabase
                 .from("cost_library_item_versions")
                 .select("*")
@@ -716,7 +748,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .range(from, to),
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceHistoryRow>(itemIds, (itemIds) =>
+          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceHistoryRow>(loadedItemIds, (itemIds) =>
               supabase
                 .from("cost_library_item_price_history")
                 .select("*")
@@ -724,7 +756,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .in("item_id", itemIds)
                 .order("effective_at", { ascending: false }),
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceHistoryRow>(itemIds, (from, to) =>
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceHistoryRow>(loadedItemIds, (from, to) =>
               supabase
                 .from("cost_library_item_price_history")
                 .select("*")
@@ -733,7 +765,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .range(from, to),
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentStateHistoryRow>(itemIds, (itemIds) =>
+          ? collectComponentLibraryRowsForSelectedItems<ComponentStateHistoryRow>(loadedItemIds, (itemIds) =>
               supabase
                 .from("cost_library_item_state_history")
                 .select("*")
@@ -741,7 +773,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .in("item_id", itemIds)
                 .order("effective_at", { ascending: false }),
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentStateHistoryRow>(itemIds, (from, to) =>
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentStateHistoryRow>(loadedItemIds, (from, to) =>
               supabase
                 .from("cost_library_item_state_history")
                 .select("*")
@@ -750,7 +782,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .range(from, to),
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantAttachmentRow>(itemIds, (itemIds) =>
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantAttachmentRow>(loadedItemIds, (itemIds) =>
               supabase
                 .from("cost_library_item_variant_attachments")
                 .select("*")
@@ -758,7 +790,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
                 .in("item_id", itemIds)
                 .order("created_at", { ascending: false }),
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantAttachmentRow>(itemIds, (from, to) =>
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantAttachmentRow>(loadedItemIds, (from, to) =>
               supabase
                 .from("cost_library_item_variant_attachments")
                 .select("*")
@@ -913,7 +945,17 @@ export async function getCurrentWorkspaceComponentRowsLibrary(options: Component
     workspaceId: workspace.id,
     includeDetailGraph: options.includeDetailGraph,
     itemLimit: options.itemLimit,
+    itemIds: options.itemIds,
   });
+}
+
+export async function getCurrentWorkspaceComponentRowDetail(itemId: string): Promise<EstimateRowItem | null> {
+  if (!isUuid(itemId)) return null;
+  const library = await getCurrentWorkspaceComponentRowsLibrary({
+    includeDetailGraph: true,
+    itemIds: [itemId],
+  });
+  return library.libraryItems[0] ?? null;
 }
 
 export type CurrentWorkspaceEstimateTemplatesSeed = {
@@ -1361,8 +1403,9 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
  * for every field the panel reads — it still loads price options + current cost
  * entries (which drive the displayed cost) and only skips the per-item
  * versions / price history / state history / attachments graph the panel never
- * reads. Do NOT use this for the Library management surfaces (template editor /
- * component manager), which edit variants and need the full attachment/history graph.
+ * reads. Do NOT use this combined, capped helper for the Components management
+ * route: that surface needs all component rows, so it uses the rows-only browse
+ * loader plus selected-row detail hydration instead.
  */
 export async function getCurrentWorkspaceComponentLibraryLite(): Promise<ComponentLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();

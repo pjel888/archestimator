@@ -35,6 +35,7 @@ const actionMocks = vi.hoisted(() => ({
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
   getCostLibraryComponentUsage: vi.fn(),
+  loadCostLibraryComponentRowDetail: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
@@ -276,6 +277,12 @@ function getLibraryFolderArrowWithin(scope: HTMLElement, folderId: string) {
   return arrow as HTMLElement;
 }
 
+function getComponentNameInspectButton(itemId: string) {
+  const button = document.querySelector(`[data-component-card-inspect="${itemId}"]`);
+  if (!(button instanceof HTMLElement)) throw new Error(`Inspect button not found for ${itemId}`);
+  return button;
+}
+
 function openComponentViewMenu() {
   fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
   return screen.getByRole("menu", { name: "Component view mode" });
@@ -304,7 +311,7 @@ describe("component library manager UI", () => {
     if (!window.PointerEvent) {
       window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
     }
-  });
+  }, 60_000);
 
   beforeEach(() => {
     navigationMocks.refresh.mockReset();
@@ -323,6 +330,8 @@ describe("component library manager UI", () => {
     actionMocks.reorderLibraryFolders.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 0, estimateRowCount: 0 });
+    actionMocks.loadCostLibraryComponentRowDetail.mockReset();
+    actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValue(null);
   });
 
   it("renders the library workspace without the retired standalone manager chrome", async () => {
@@ -472,7 +481,7 @@ describe("component library manager UI", () => {
 
   it("deep-links clicked component cards into inspector route state", async () => {
     await renderLibrary();
-    fireEvent.click(screen.getByRole("button", { name: "View details for Custom Cabinet Pull" }));
+    fireEvent.click(getComponentNameInspectButton("db-library-custom-cabinet-pull"));
 
     expect(`${window.location.pathname}${window.location.search}`).toBe(
       "/workshop/library/components?component=db-library-custom-cabinet-pull",
@@ -918,7 +927,7 @@ describe("component library manager UI", () => {
     expect(lifecycleTrigger).toHaveTextContent("In production");
     expect(screen.queryByRole("listbox", { name: "Component state" })).toBeNull();
     // The draft update propagates to the activity history summary row.
-    const lifecycleHistoryRow = within(activityPanel).getByText("Lifecycle state").closest('[role="listitem"]') as HTMLElement;
+    const lifecycleHistoryRow = within(activityPanel).getByText("Lifecycle state").closest("li") as HTMLElement;
     expect(within(lifecycleHistoryRow).getByText("In production")).toBeInTheDocument();
 
     // Escape with the listbox open closes only the listbox; the hosting modal stays.

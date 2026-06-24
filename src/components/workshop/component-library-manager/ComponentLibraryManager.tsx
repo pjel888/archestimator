@@ -30,6 +30,7 @@ import {
   createLibraryFolder,
   deleteLibraryFolder,
   executeBulkArchiveLibraryComponents,
+  loadCostLibraryComponentRowDetail,
   moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
   renameLibraryFolder,
@@ -1965,6 +1966,7 @@ export function ComponentLibraryManager({
   const quickAddSessionCounterRef = useRef(0);
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
+  const detailHydratedItemIdsRef = useRef<Set<string>>(new Set());
   const normalizedPropFolders = useMemo(
     // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure prop normalization for reducer seeding, not effect-driven event logic.
     () => normalizeLibraryFolderRecords(libraryFolders ?? []),
@@ -2172,6 +2174,31 @@ export function ComponentLibraryManager({
   const routeComponentIsValid = Boolean(routeComponentId && localLibraryItems.some((entry) => entry.id === routeComponentId));
   const inspectorItemId = routeComponentIsValid ? routeComponentId : null;
   const inspectorItem = inspectorItemId ? localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null : null;
+
+  useEffect(() => {
+    const itemId = inspectorItemId;
+    if (!itemId || !inspectorItem || isProjectProjectionItem(inspectorItem)) return;
+    if (detailHydratedItemIdsRef.current.has(itemId)) return;
+
+    let stale = false;
+    detailHydratedItemIdsRef.current.add(itemId);
+    Promise.resolve()
+      .then(() => loadCostLibraryComponentRowDetail(itemId))
+      .then((detail) => {
+        if (stale || !detail) return;
+        const mergeDetail = (items: EstimateRowItem[]) =>
+          items.map((entry) => (entry.id === detail.id ? { ...entry, ...detail } : entry));
+        updateLocalLibraryItems(mergeDetail);
+        syncLibraryItemsCache(mergeDetail);
+      })
+      .catch(() => {
+        detailHydratedItemIdsRef.current.delete(itemId);
+      });
+
+    return () => {
+      stale = true;
+    };
+  }, [inspectorItemId]);
 
   function writeComponentRouteState(componentId: string | null, mode: "push" | "replace" = "replace") {
     const href = buildComponentRouteStateHref({

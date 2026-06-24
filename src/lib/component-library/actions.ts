@@ -12,9 +12,20 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT, buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, getCurrentWorkspaceComponentRowsLibrary, getCurrentWorkspaceEstimateTemplates, type ComponentLibraryDataset, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import {
+  SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
+  buildEstimateTemplatesFromRows,
+  getCurrentWorkspaceComponentLibrary,
+  getCurrentWorkspaceComponentLibraryLite,
+  getCurrentWorkspaceComponentRowDetail,
+  getCurrentWorkspaceComponentRowsLibrary,
+  getCurrentWorkspaceEstimateTemplates,
+  type ComponentLibraryDataset,
+  type ComponentRowsLibraryDataset,
+} from "@/lib/repositories/component-library-repository";
 import { getProjectComponentRowsLibrary } from "@/lib/component-library/project-component-projection";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
+import type { EstimateRowItem } from "@/lib/estimates/types";
 import {
   ensureDefaultWorkspace,
   listCurrentWorkspaceProjects,
@@ -533,18 +544,21 @@ export async function loadProjectComponentLibraryLite(projectId: string): Promis
 
 // Library Optimization Plan P0 T3: client-callable loader for the Components
 // *management* tab. Returns ComponentRowsLibraryDataset (rows + tree + suppliers +
-// brands + folders, no templates). LibraryPageClient seeds a TanStack Query from the
-// server fetch via initialData and refetches through this on warm-cache expiry, so a
-// tab revisit renders from cache without re-suspending the route. Fail-closed for
-// anonymous callers, matching the page-load auth gate.
+// brands + folders, no templates). The browse route intentionally skips the
+// unbounded detail graph and hydrates a selected component separately.
 export async function loadCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
   await requireCurrentUserContext();
-  return getCurrentWorkspaceComponentRowsLibrary();
+  return getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false });
 }
 
 export async function loadProjectComponentRowsLibrary(projectId: string): Promise<ComponentRowsLibraryDataset> {
   await requireCurrentUserContext();
-  return getProjectComponentRowsLibrary(projectId);
+  return getProjectComponentRowsLibrary(projectId, { includeDetailGraph: false });
+}
+
+export async function loadCostLibraryComponentRowDetail(itemId: string): Promise<EstimateRowItem | null> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceComponentRowDetail(itemId);
 }
 
 // Library Optimization Plan P0 T3: client-callable loader for the Templates browse tab.

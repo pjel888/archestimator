@@ -27,9 +27,11 @@ describe("component-library template repository helpers", () => {
     expect(source).toContain("SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50");
     expect(source).toContain("SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100");
     expect(source).toContain("SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS");
-    expect(source).toContain(".select(SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS)");
+    expect(source).toContain("const itemSelectColumns = includeDetailGraph ? \"*\" : SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS");
+    expect(source).toContain(".select(selectColumns)");
     expect(source).toContain(".limit(limit)");
-    expect(source).toContain("const isBoundedItemPage = boundedItemLimit !== undefined");
+    expect(source).toContain("const isBoundedItemPage = boundedItemLimit !== undefined || selectedItemIds.length > 0");
+    expect(source).toContain("itemIds: [itemId]");
     expect(source).toContain("collectComponentLibraryRowsForSelectedItems");
     expect(source.match(/\.in\("item_id", itemIds\)/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(source).toContain("collectComponentLibraryWorkspaceRowsForItems");

@@ -7,10 +7,10 @@ import { getCurrentWorkspaceComponentRowsLibrary } from "@/lib/repositories/comp
  * /workshop/library/components sub-route.
  */
 export async function LibraryComponentsRoute() {
-  // The server fetch seeds the client TanStack Query cache via initialData so the
-  // first paint is still SSR'd; warm tab revisits then render from the client cache
-  // without re-suspending this route (Library Optimization Plan P0 T3).
-  const componentLibrary = await getCurrentWorkspaceComponentRowsLibrary();
+  // The server fetch seeds the client TanStack Query cache via initialData. This
+  // route renders the browse/table surfaces first, so it skips the unbounded
+  // audit/attachment graph and hydrates a selected row on demand in the inspector.
+  const componentLibrary = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false });
 
   return <LibraryPageClient initialLibrary={componentLibrary} />;
 }

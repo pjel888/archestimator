@@ -88,6 +88,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteLibraryFoldersBulk: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
   getCostLibraryComponentUsage: vi.fn(),
+  loadCostLibraryComponentRowDetail: vi.fn(),
   moveCostLibraryComponentToFolder: vi.fn(),
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
@@ -254,6 +255,7 @@ describe("workshop library consolidation UI", () => {
     actionMocks.deleteLibraryFoldersBulk.mockReset();
     actionMocks.executeBulkArchiveLibraryComponents.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockReset();
+    actionMocks.loadCostLibraryComponentRowDetail.mockReset();
     actionMocks.moveCostLibraryComponentToFolder.mockReset();
     actionMocks.previewBulkArchiveLibraryComponents.mockReset();
     actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
@@ -262,6 +264,7 @@ describe("workshop library consolidation UI", () => {
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
     actionMocks.reorderLibraryFolders.mockResolvedValue(undefined);
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 0, estimateRowCount: 0 });
+    actionMocks.loadCostLibraryComponentRowDetail.mockResolvedValue(null);
     actionMocks.moveCostLibraryComponentToFolder.mockResolvedValue(undefined);
     navigationMocks.search = "";
     window.history.replaceState(null, "", "/workshop/library/components");
@@ -284,6 +287,7 @@ describe("workshop library consolidation UI", () => {
     const libraryTemplatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/templates/page.tsx"), "utf8");
     const componentsRoute = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
     const templatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/templates/page.tsx"), "utf8");
+    const componentActions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
 
     expect(libraryRoute).toContain("LibraryOverview");
     expect(libraryRoute).toContain("getLibraryOverview");
@@ -291,7 +295,10 @@ describe("workshop library consolidation UI", () => {
     expect(componentsSubRoute).toContain("LibraryComponentsRoute");
     expect(componentsSharedRoute).toContain("LibraryPageClient");
     expect(componentsSharedRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
+    expect(componentsSharedRoute).toContain("includeDetailGraph: false");
     expect(componentsSharedRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
+    expect(componentActions).toContain("getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false })");
+    expect(componentActions).toContain("getCurrentWorkspaceComponentRowDetail(itemId)");
     expect(libraryRoute).not.toContain("templates=");
     expect(libraryLayout).toContain('breadcrumbs={["Library"]}');
     expect(libraryLayout).toContain('contentClassName=""');

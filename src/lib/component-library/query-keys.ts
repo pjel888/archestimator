@@ -2,8 +2,10 @@
 // panel (consumer) and the estimate-row hover prefetch must use the EXACT same key
 // or the prefetch silently misses the cache.
 
-// Full dataset (with the per-item price-option/version/history graph) — used by the
-// Library management surfaces (template editor, component manager).
+// Full dataset (with the per-item price-option/version/history graph) — used by
+// editor surfaces that need the complete component/template contract. The
+// Components browse tab uses the rows-only key below and hydrates selected-row
+// detail separately.
 const WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"] as const;
 
 export function workspaceComponentLibraryQueryKey(workspaceId: string) {
