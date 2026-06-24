@@ -13,6 +13,11 @@ describe("app CSS regressions", () => {
     expect(cssWithoutBaseLayerBlocks).not.toMatch(/button,\s*input,\s*select,\s*textarea\s*{[\s\S]*font:\s*inherit;/);
   });
 
+  it("uses background-only focus affordance for editable form controls", () => {
+    expect(globalsCss).toContain("--editable-focus-bg: #f5f5f5;");
+    expect(globalsCss).toMatch(/input:not\(\[type="button"\]\)[\s\S]*:focus,\s*textarea:not\(\[readonly\]\):not\(\[disabled\]\):focus,\s*select:not\(\[disabled\]\):focus\s*{[\s\S]*outline:\s*none\s*!important;[\s\S]*box-shadow:\s*none\s*!important;[\s\S]*background-color:\s*var\(--editable-focus-bg\)\s*!important;/);
+  });
+
   it("enforces app typography hierarchy instead of only checking a font-size ceiling", () => {
     expect(appDesignSystemLinter).toContain("const labelLikeTextSizeLimitPx = 9;");
     expect(appDesignSystemLinter).toContain("const secondaryTextSizeLimitPx = 10;");

@@ -14,8 +14,8 @@ import {
   TextAa,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
+import { HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME } from "@/components/ui/header-icon-toolbar";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
@@ -360,7 +360,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
               triggerDisplay="icon"
               className={ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS}
             />
-            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-hairline" />
+            <span aria-hidden="true" className={HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME} />
             <DropdownSelect
               aria-label="Sort field"
               options={ESTIMATE_SORT_FIELD_OPTIONS}

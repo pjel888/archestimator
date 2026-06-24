@@ -360,8 +360,8 @@ export function DropdownSelect({
         className={cn(
           "inline-flex cursor-pointer items-center justify-between rounded-xs transition disabled:cursor-not-allowed",
           variant === "underline"
-            ? "h-5 w-full min-w-0 gap-1 border-0 border-b border-hairline bg-transparent pl-0 pr-0.5 text-left !text-[9px] font-medium leading-3 text-ink outline-none hover:border-tertiary focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50"
-            : "h-10 w-full border border-hairline bg-white px-2 text-[10px] hover:border-tertiary focus-visible:border-accent focus-visible:outline-none",
+            ? "h-5 w-full min-w-0 gap-1 border-0 border-b border-hairline bg-transparent pl-0 pr-0.5 text-left !text-[9px] font-medium leading-3 text-ink outline-none hover:border-tertiary focus-visible:bg-accentSoft disabled:cursor-not-allowed disabled:opacity-50"
+            : "h-10 w-full border border-hairline bg-white px-2 text-[10px] hover:border-tertiary focus-visible:bg-accentSoft focus-visible:outline-none",
           ariaDisabled && "cursor-not-allowed opacity-50",
           invalid && "border-danger",
           !selectedOption && "text-tertiary",

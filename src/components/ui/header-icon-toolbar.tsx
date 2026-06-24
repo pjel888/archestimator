@@ -43,6 +43,8 @@ type HeaderIconToolbarProps = {
 };
 
 const EMPTY_HEADER_ACTIONS: HeaderIconToolbarAddAction[] = [];
+export const HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME =
+  "mx-0.5 h-4 w-px shrink-0 rounded-full bg-[linear-gradient(180deg,transparent_0%,color-mix(in_srgb,var(--glass-border)_76%,transparent)_22%,color-mix(in_srgb,var(--glass-border)_76%,transparent)_78%,transparent_100%)]";
 
 export function HeaderIconToolbar({
   ariaLabel,
@@ -63,7 +65,6 @@ export function HeaderIconToolbar({
   filterSlot,
   className,
 }: HeaderIconToolbarProps) {
-  const toolbarDividerClassName = "h-4 w-px shrink-0 bg-tertiary/70";
   const hasFilterGroup = Boolean(filterSlot || (showDefaultActions && (onFilter || onGroup)));
   const hasExpandCollapse = Boolean(onExpandAll || onCollapseAll);
   const hasMiddleControls = hasFilterGroup || hasExpandCollapse;
@@ -106,7 +107,7 @@ export function HeaderIconToolbar({
         </div>
       ) : null}
       {startActions.length > 0 && hasControlsAfterStart ? (
-        <span aria-hidden="true" className={toolbarDividerClassName} />
+        <span aria-hidden="true" className={HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME} />
       ) : null}
       {hasFilterGroup ? (
         // D8: Filter/Group are honest-by-construction. An explicit `filterSlot`
@@ -135,7 +136,7 @@ export function HeaderIconToolbar({
         </div>
       ) : null}
       {hasFilterGroup && hasExpandCollapse ? (
-        <span aria-hidden="true" className={toolbarDividerClassName} />
+        <span aria-hidden="true" className={HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME} />
       ) : null}
       {onExpandAll ? (
         <ToolbarIconButton label={`Expand all ${labelPrefix}`} onClick={onExpandAll}>
@@ -148,7 +149,7 @@ export function HeaderIconToolbar({
         </ToolbarIconButton>
       ) : null}
       {leadingActions.length > 0 && hasMiddleControls ? (
-        <span aria-hidden="true" className={toolbarDividerClassName} />
+        <span aria-hidden="true" className={HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME} />
       ) : null}
       {leadingActions.length > 0 ? (
         // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar subgroups need named ARIA groups; <address> would be semantically wrong.

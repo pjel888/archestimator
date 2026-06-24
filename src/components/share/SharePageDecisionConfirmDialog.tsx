@@ -127,7 +127,7 @@ export function SharePageDecisionConfirmDialog({
             </label>
             <input
               id="decision-signer-name"
-              className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
+              className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:bg-accentSoft focus:outline-none"
               maxLength={120}
               placeholder="Enter your name"
               value={signerNameDraft}
@@ -145,7 +145,7 @@ export function SharePageDecisionConfirmDialog({
           </label>
           <textarea
             id="decision-note"
-            className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
+            className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:bg-accentSoft focus:outline-none"
             rows={3}
             maxLength={2000}
             placeholder={decision === "revision_requested" ? "Describe the requested changes..." : "Add a note (optional)"}

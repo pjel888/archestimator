@@ -95,7 +95,7 @@ function ProjectDataField({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="block text-[8px] font-medium uppercase tracking-normal text-tertiary">{label}</span>
+      <span className="block text-[9px] font-medium uppercase tracking-normal text-tertiary">{label}</span>
       {children}
     </label>
   );
@@ -104,14 +104,14 @@ function ProjectDataField({
 function ProjectTimestampField({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="space-y-0.5 px-2 py-1.5">
-      <span className="block text-[8px] font-medium uppercase tracking-normal text-gray-400">{label}</span>
-      <p className="truncate text-[8px] font-medium leading-3 text-tertiary">{value}</p>
+      <span className="block text-[9px] font-medium uppercase tracking-normal text-gray-400">{label}</span>
+      <p className="truncate text-[10px] font-medium leading-3 text-tertiary">{value}</p>
     </div>
   );
 }
 
 const PROJECT_METADATA_INPUT_CLASS =
-  "h-7 border-transparent bg-transparent px-2 leading-4 shadow-none placeholder:text-tertiary hover:border-white/55 hover:bg-white/35 focus:border-accent focus:bg-white/85 focus:ring-2 focus:ring-focus";
+  "h-7 border-transparent bg-transparent px-2 text-[10px] leading-4 shadow-none placeholder:text-tertiary hover:border-white/55 hover:bg-white/35 focus:bg-white/85";
 const PROJECT_METADATA_READONLY_INPUT_CLASS =
   "cursor-default border-transparent bg-transparent shadow-none hover:border-transparent hover:bg-transparent focus:border-transparent focus:bg-transparent focus:ring-0";
 const DASHBOARD_COUNT_COLUMN_WIDTH = "203px";

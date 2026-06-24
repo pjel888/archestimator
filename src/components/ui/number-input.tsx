@@ -51,7 +51,7 @@ export function NumberInput({ className, invalid, disabled, min, max, step = 1, 
             "w-full rounded-xs border !text-[10px] tracking-normal text-ink outline-none transition",
             CONTROL_INPUT_SURFACE_CLASS,
             "pr-6",
-            invalid ? "border-danger text-danger focus:border-danger focus:ring-dangerSoft" : "",
+            invalid ? "border-danger text-danger focus:bg-dangerSoft/30" : "",
             disabled ? "cursor-not-allowed opacity-50" : "",
             "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           )}

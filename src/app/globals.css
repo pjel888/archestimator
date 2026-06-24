@@ -132,6 +132,7 @@
   --source-boundary: #e8d8cf;
   --accent-dark: #2a2a2a;
   --accent-soft: #f5f5f5;
+  --editable-focus-bg: #f5f5f5;
   --focus: #3d3d3d;
   --success: #15803d;
   --success-soft: #dcfce7;
@@ -470,6 +471,14 @@ body:has([data-workshop-page-shell-root]) {
   select,
   textarea {
     font: inherit;
+  }
+
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([readonly]):not([disabled]):focus,
+  textarea:not([readonly]):not([disabled]):focus,
+  select:not([disabled]):focus {
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: var(--editable-focus-bg) !important;
   }
 }
 

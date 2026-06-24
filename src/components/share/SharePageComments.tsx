@@ -617,7 +617,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
           }}
           onKeyDown={handleKeyDown}
           placeholder="Add a comment, note, or question for the project team..."
-          className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline focus:outline-1 focus:outline-ink disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:bg-accentSoft focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           rows={3}
           maxLength={MAX}
           disabled={isPosting || !isValid}

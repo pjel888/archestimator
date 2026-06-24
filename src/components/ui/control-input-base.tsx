@@ -15,11 +15,11 @@ export function ControlInput({ className, align = "left", invalid, ref, ...props
       {...props}
       aria-invalid={invalid ? true : props["aria-invalid"]}
       className={cn(
-        "min-w-0 w-full rounded-xs border border-transparent bg-white/70 !text-[12px] font-medium normal-case tracking-normal text-ink outline-none transition hover:border-hairline focus:border-accent focus:bg-accentSoft",
+        "min-w-0 w-full rounded-xs border border-transparent bg-white/70 !text-[12px] font-medium normal-case tracking-normal text-ink outline-none transition hover:border-hairline focus:bg-accentSoft",
         align === "center" && "text-center",
         align === "right" && "text-right",
         className,
-        invalid ? "border-danger text-danger focus:border-danger focus:bg-dangerSoft/30" : "",
+        invalid ? "border-danger text-danger focus:bg-dangerSoft/30" : "",
       )}
     />
   );

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
+import { HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME, HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 
 describe("HeaderIconToolbar", () => {
   // A4/D8: Filter and Group are handler-gated — they only render when a handler is provided.
@@ -90,7 +90,7 @@ describe("HeaderIconToolbar", () => {
     expect(filterGroupCluster).toBeUndefined();
   });
 
-  it("renders cluster wrapper with border-r separator when the cluster is followed by expand/collapse", () => {
+  it("renders a designed divider when the filter cluster is followed by expand/collapse", () => {
     const onFilter = vi.fn();
     const { container } = render(
       <HeaderIconToolbar
@@ -107,8 +107,10 @@ describe("HeaderIconToolbar", () => {
       (g) => g.getAttribute("aria-label") === "estimate view filters",
     );
     expect(filterGroupCluster).toBeDefined();
-    expect(filterGroupCluster).toHaveClass("border-r");
-    expect(filterGroupCluster).toHaveClass("border-hairline");
+    const divider = Array.from(container.querySelectorAll("span[aria-hidden='true']")).find(
+      (element) => element.className === HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME,
+    );
+    expect(divider).toBeDefined();
   });
 
   // Req 11 / D8: a filter-only toolbar with nothing after it must NOT show an

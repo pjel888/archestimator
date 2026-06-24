@@ -61,7 +61,7 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
       <label className="grid gap-1 text-[13px] font-medium leading-[18px] tracking-normal text-secondary">
         Password
         <input
-          className="h-9 border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none focus:border-secondary disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-9 border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none focus:bg-accentSoft disabled:cursor-not-allowed disabled:opacity-60"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.currentTarget.value)}

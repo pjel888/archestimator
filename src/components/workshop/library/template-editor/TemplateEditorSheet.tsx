@@ -94,7 +94,7 @@ function blurOnEnter(event: KeyboardEvent<HTMLInputElement>) {
 }
 
 const QUIET_CELL_INPUT_CLASS =
-  "h-6 w-full border-0 bg-transparent px-1 text-[10px] shadow-none focus-visible:ring-1 focus-visible:ring-focus [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "h-6 w-full border-0 bg-transparent px-1 text-[10px] shadow-none focus-visible:bg-accentSoft [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 function TemplateEditableRow({
   item,
@@ -241,7 +241,7 @@ function TemplateGhostRow({
         value={value}
         placeholder="Add row from library, or type to create an allowance row"
         aria-label={`Add row to ${nodeName}`}
-        className="h-6 w-full border-0 bg-transparent px-0 text-[9px] text-tertiary shadow-none placeholder:text-tertiary focus-visible:ring-1 focus-visible:ring-focus"
+        className="h-6 w-full border-0 bg-transparent px-0 text-[9px] text-tertiary shadow-none placeholder:text-tertiary focus-visible:bg-accentSoft"
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => {
           if (event.key !== "Enter") return;

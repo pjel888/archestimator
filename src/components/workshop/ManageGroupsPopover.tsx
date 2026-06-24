@@ -102,7 +102,7 @@ export function ManageGroupsPopover({
             maxLength={MAX_PROJECT_GROUP_NAME_LENGTH}
             placeholder="Group name"
             aria-label="New group name"
-            className="h-7 w-full rounded-xs border border-hairline px-2 text-[10px] text-ink focus-visible:border-accent focus-visible:outline-none"
+            className="h-7 w-full rounded-xs border border-hairline px-2 text-[10px] text-ink focus-visible:bg-accentSoft focus-visible:outline-none"
             onChange={(event) => setDraftName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -161,7 +161,7 @@ export function ManageGroupsPopover({
                   aria-label={`Rename ${group.name}`}
                   defaultValue={group.name}
                   maxLength={MAX_PROJECT_GROUP_NAME_LENGTH}
-                  className="h-6 min-w-0 flex-1 rounded-xs border border-transparent px-1 text-[10px] text-ink hover:border-hairline focus-visible:border-accent focus-visible:outline-none"
+                  className="h-6 min-w-0 flex-1 rounded-xs border border-transparent px-1 text-[10px] text-ink hover:border-hairline focus-visible:bg-accentSoft focus-visible:outline-none"
                   onBlur={(event) => {
                     const next = event.target.value.trim();
                     if (next.length > 0 && next.length <= MAX_PROJECT_GROUP_NAME_LENGTH && next !== group.name) {

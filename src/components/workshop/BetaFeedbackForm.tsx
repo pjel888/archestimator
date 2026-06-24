@@ -43,7 +43,7 @@ const severityOptions: DropdownSelectOption[] = BETA_FEEDBACK_SEVERITIES.map((se
 }));
 
 const FEEDBACK_SELECT_TRIGGER_CLASS =
-  "min-h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] leading-3 focus:border-focus";
+  "min-h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] leading-3 focus:bg-accentSoft";
 
 const initialInlineState: BetaFeedbackInlineState = { status: "idle" };
 
@@ -99,7 +99,7 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
           <span className="block text-[9px] font-medium uppercase leading-3 text-tertiary">Project UUID</span>
           <input
             name="projectId"
-            className="min-h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus"
+            className="min-h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft"
             placeholder="Optional"
           />
         </label>
@@ -112,7 +112,7 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
             minLength={10}
             maxLength={4000}
             rows={8}
-            className="w-full resize-y rounded-xs border border-hairline bg-white px-2 py-2 text-[10px] leading-4 text-ink outline-none placeholder:text-tertiary focus:border-focus"
+            className="w-full resize-y rounded-xs border border-hairline bg-white px-2 py-2 text-[10px] leading-4 text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft"
             placeholder="Describe what happened, what you expected, and whether it blocks your estimating workflow."
           />
         </label>

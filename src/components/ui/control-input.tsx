@@ -141,4 +141,4 @@ export function ControlField({
 }
 
 export const CONTROL_INPUT_SURFACE_CLASS =
-  "h-8 border-hairline bg-white px-2 font-medium leading-none shadow-[inset_0_1px_0_rgba(17,17,17,0.02)] placeholder:text-secondary hover:border-tertiary focus:border-accent focus:bg-white focus:ring-2 focus:ring-focus";
+  "h-8 border-hairline bg-white px-2 font-medium leading-none shadow-[inset_0_1px_0_rgba(17,17,17,0.02)] placeholder:text-secondary hover:border-tertiary focus:bg-accentSoft";

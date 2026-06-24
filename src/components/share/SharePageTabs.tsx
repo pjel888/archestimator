@@ -760,7 +760,7 @@ export default function SharePageTabs({
                     dispatchTabsState({ type: "gridSearchChanged", key: gridSearchKey || activeEstimate.id, value: next });
                   }}
                   placeholder="Filter rows"
-                  className="h-8 min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:border-focus"
+                  className="h-8 min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft"
                 />
               </div>
             </div>

@@ -147,7 +147,7 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
             value={name}
             onChange={(e) => dispatchForm({ type: "field", field: "name", value: e.target.value })}
             placeholder="Your name"
-            className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+            className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:bg-[#fff8f2]"
           />
         </div>
 
@@ -166,7 +166,7 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
             value={email}
             onChange={(e) => dispatchForm({ type: "field", field: "email", value: e.target.value })}
             placeholder="you@company.com"
-            className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+            className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:bg-[#fff8f2]"
           />
         </div>
 
@@ -183,7 +183,7 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
             value={org}
             onChange={(e) => dispatchForm({ type: "field", field: "org", value: e.target.value })}
             placeholder="Company or studio name"
-            className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+            className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:bg-[#fff8f2]"
           />
         </div>
 
@@ -199,7 +199,7 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
               id="contact-inquiry"
               value={inquiryType}
               onChange={(e) => dispatchForm({ type: "inquiry", value: normalizeInquiryType(e.target.value) })}
-              className="min-h-10 w-full appearance-none rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+              className="min-h-10 w-full appearance-none rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:bg-[#fff8f2]"
             >
               <option value="started">Start with an estimate</option>
               <option value="walkthrough">Book a walkthrough</option>
@@ -227,7 +227,7 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
             value={message}
             onChange={(e) => dispatchForm({ type: "field", field: "message", value: e.target.value })}
             placeholder="Tell us what you estimate, where your current workflow breaks, and what you want to see."
-            className="mt-2 w-full resize-y rounded-[6px] border border-[#cfcfca] bg-white p-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+            className="mt-2 w-full resize-y rounded-[6px] border border-[#cfcfca] bg-white p-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:bg-[#fff8f2]"
           />
         </div>
       </div>

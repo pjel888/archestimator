@@ -20,7 +20,7 @@ function Field({ label, children, required }: { label: string; children: ReactNo
   );
 }
 
-const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent";
+const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:bg-accentSoft";
 
 export type NewComponentFormProps = {
   form: NewComponentFormType;
