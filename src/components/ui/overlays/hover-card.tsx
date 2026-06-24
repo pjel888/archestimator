@@ -44,8 +44,7 @@ export function HoverCard({
       {isOpen ? (
         <div
           id={cardId}
-          role="dialog"
-          aria-label="Details"
+          role="tooltip"
           className={cn(
             "absolute left-0 top-full z-[1050] mt-1 w-72 rounded-xs border border-hairline bg-white p-2 text-[10px] leading-4 tracking-normal text-secondary shadow-[0_18px_44px_rgba(17,24,39,0.15)]",
             contentClassName,

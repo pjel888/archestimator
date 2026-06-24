@@ -100,7 +100,7 @@ export function ConfirmDialog({
   );
 }
 
-export function AlertDialog({
+function AlertDialog({
   confirmLabel = "Acknowledge",
   tone = "warning",
   ...props
@@ -116,6 +116,6 @@ export function UnsavedChangesDialog(props: Omit<ConfirmDialogProps, "tone" | "c
   return <ConfirmDialog {...props} tone="warning" confirmLabel={props.confirmLabel ?? "Discard changes"} />;
 }
 
-export function ConfirmDialogMessage({ children, className }: { children: ReactNode; className?: string }) {
+function ConfirmDialogMessage({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("text-[10px] leading-4 tracking-normal text-secondary", className)}>{children}</div>;
 }

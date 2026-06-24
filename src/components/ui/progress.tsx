@@ -24,12 +24,17 @@ export function Progress({ value = 0, max = 100, indeterminate = false, size = "
 
   return (
     <div ref={ref} className={cn("flex items-center gap-2", className)} {...props}>
-      <div
-        role="progressbar"
-        aria-valuenow={indeterminate ? undefined : value}
+      <progress
+        className="sr-only"
+        max={max}
+        value={indeterminate ? undefined : value}
+        aria-label={showLabel ? `${Math.round(percent)}%` : undefined}
         aria-valuemin={0}
         aria-valuemax={max}
-        aria-label={showLabel ? `${Math.round(percent)}%` : undefined}
+        aria-valuenow={indeterminate ? undefined : value}
+      />
+      <div
+        aria-hidden="true"
         className={cn(
           "relative w-full overflow-hidden rounded-xs bg-surfaceMuted",
           sizeClasses[size]

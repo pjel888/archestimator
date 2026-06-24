@@ -5,11 +5,11 @@ import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
 import {
   DropdownPopupPanel,
-  scrollPopupItemIntoView,
   useDropdownPopup,
   type DropdownPopupAlign,
   type DropdownPopupSide,
 } from "@/components/ui/dropdown-popup";
+import { scrollPopupItemIntoView } from "@/components/ui/dropdown-popup-utils";
 import { cn } from "@/lib/ui/cn";
 
 /**
@@ -91,6 +91,7 @@ function findTypeaheadMatch(
   return -1;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function DropdownSelect({
   options,
   value,
@@ -200,9 +201,8 @@ export function DropdownSelect({
   // visible highlight silently shifts to whatever occupies the old index.
   // Render-time state adjustment (React's derive-from-props pattern), not
   // an effect, so no extra committed frame shows the stale highlight.
-  const [anchoredOptions, setAnchoredOptions] = React.useState(options);
-  if (anchoredOptions !== options) {
-    setAnchoredOptions(options);
+  if (optionsRef.current !== options) {
+    optionsRef.current = options;
     if (open) {
       const selected = options.findIndex((option) => option.value === currentValue && !option.disabled);
       const fallback = options.findIndex((option) => !option.disabled);
@@ -431,7 +431,7 @@ export function DropdownSelect({
           const isSelected = option.value === currentValue;
           const isActive = index === activeIndex;
           return (
-            // react-doctor-disable-next-line react-doctor/click-events-have-key-events, react-doctor/interactive-supports-focus -- APG combobox keeps DOM focus on the trigger and uses aria-activedescendant for virtual option focus.
+            // react-doctor-disable-next-line react-doctor/prefer-tag-over-role, react-doctor/click-events-have-key-events, react-doctor/interactive-supports-focus -- APG combobox keeps DOM focus on the trigger and uses aria-activedescendant; native <option> would break the custom listbox.
             <div
               key={option.value}
               id={`${listboxId}-option-${index}`}

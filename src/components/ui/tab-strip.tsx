@@ -5,6 +5,7 @@ import { useRef } from "react";
 import Link from "next/link";
 
 import { cn } from "@/lib/ui/cn";
+import { getTabStripPanelId, getTabStripTabId, tabStripTabClassName } from "./tab-strip-utils";
 
 export type TabStripItem<TTab extends string = string> = {
   id: TTab;
@@ -32,34 +33,6 @@ export type TabStripProps<TTab extends string = string> = {
    */
   idBase?: string;
 };
-
-/** Stable DOM id for a tab element when `idBase` tabpanel wiring is opted into. */
-export function getTabStripTabId(idBase: string, tabId: string) {
-  return `${idBase}-tab-${tabId}`;
-}
-
-/** Stable DOM id for the tabpanel a tab controls when `idBase` is opted into. */
-export function getTabStripPanelId(idBase: string, tabId: string) {
-  return `${idBase}-panel-${tabId}`;
-}
-
-/**
- * The canonical file-folder tab styling: a tab whose active state lifts onto
- * the white panel below it. Exported so specialized strips (e.g. the editable
- * estimate sheet tabs) render pixel-identical tabs without re-deriving the look.
- * Height comes from the container (`h-full`).
- */
-export const tabStripTabClassName = (isActive: boolean, variant: "folder" | "modal" = "folder") =>
-  cn(
-    "relative inline-flex h-full items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-    variant === "modal"
-      ? isActive
-        ? "z-10 border-ink bg-white text-ink -mb-px"
-        : "border-transparent bg-white text-secondary hover:border-hairline hover:text-ink"
-      : isActive
-        ? "z-10 bg-white text-ink border-hairline -mb-px"
-        : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline",
-  );
 
 const tabClassName = tabStripTabClassName;
 

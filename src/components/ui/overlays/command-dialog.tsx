@@ -55,7 +55,7 @@ export function CommandDialog({
   );
 }
 
-export function CommandPalette(props: CommandDialogProps) {
+function CommandPalette(props: CommandDialogProps) {
   return <CommandDialog {...props} />;
 }
 
@@ -150,6 +150,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
               <p className="border-b border-hairline bg-surfaceMuted px-2 py-1 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">
                 {group.label}
               </p>
+              {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Command palette uses an ARIA listbox, not a native datalist input. */}
               <div role="listbox" aria-label={group.label}>
                 {group.items.map((item) => {
                   const commandIndex = item.disabled

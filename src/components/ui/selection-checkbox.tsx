@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Minus } from "@phosphor-icons/react/dist/ssr";
-import type { KeyboardEventHandler, MouseEventHandler } from "react";
+import { useEffect, useRef, type KeyboardEventHandler, type MouseEventHandler } from "react";
 
 import { cn } from "@/lib/ui/cn";
 
@@ -12,8 +12,8 @@ export type SelectionCheckboxProps = {
   tabIndex?: number;
   className?: string;
   uncheckedRevealClassName?: string;
-  onClick?: MouseEventHandler<HTMLSpanElement>;
-  onKeyDown?: KeyboardEventHandler<HTMLSpanElement>;
+  onClick?: MouseEventHandler<HTMLInputElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
 };
 
 export function SelectionCheckbox({
@@ -26,24 +26,45 @@ export function SelectionCheckbox({
   onClick,
   onKeyDown,
 }: SelectionCheckboxProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
   return (
     <span
-      role="checkbox"
-      aria-checked={indeterminate ? "mixed" : checked}
-      aria-label={ariaLabel}
-      tabIndex={tabIndex}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
       className={cn(
-        "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-xs border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
-        checked && !indeterminate && "border-[#ABABAB] bg-[#ABABAB] opacity-100",
-        indeterminate && "border-[#D9D9D9] bg-[#E4E4E4] opacity-100",
-        !checked && !indeterminate && "border-tertiary opacity-0",
+        "relative flex h-3.5 w-3.5 shrink-0 items-center justify-center transition-all",
+        (checked || indeterminate) && "opacity-100",
+        !checked && !indeterminate && "opacity-0",
         !checked && !indeterminate && uncheckedRevealClassName,
-        "cursor-pointer",
         className,
       )}
     >
+      <input
+        ref={inputRef}
+        type="checkbox"
+        checked={checked}
+        readOnly
+        aria-checked={indeterminate ? "mixed" : checked}
+        aria-label={ariaLabel}
+        tabIndex={tabIndex}
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        className={cn(
+          "absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xs border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
+          (checked || indeterminate) && "opacity-100",
+          !checked && !indeterminate && "opacity-0",
+          !checked && !indeterminate && uncheckedRevealClassName,
+          checked && !indeterminate && "border-[#ABABAB] bg-[#ABABAB]",
+          indeterminate && "border-[#D9D9D9] bg-[#E4E4E4]",
+          !checked && !indeterminate && "border-tertiary bg-transparent",
+          className,
+        )}
+      />
       {checked && !indeterminate && <Check weight="regular" className="h-2.5 w-2.5 text-white" />}
       {indeterminate && <Minus weight="regular" className="h-2.5 w-2.5 text-tertiary" />}
     </span>

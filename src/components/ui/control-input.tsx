@@ -2,58 +2,17 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  type InputHTMLAttributes,
-  type Ref,
   type ReactElement,
   type ReactNode,
-  type TextareaHTMLAttributes,
   useId,
 } from "react";
 
 import { cn } from "@/lib/ui/cn";
+import { ControlInput } from "./control-input-base";
+import { ControlTextarea } from "./control-textarea";
 
-type ControlInputProps = InputHTMLAttributes<HTMLInputElement> & {
-  ref?: Ref<HTMLInputElement>;
-  align?: "left" | "center" | "right";
-  invalid?: boolean;
-};
-
-export function ControlInput({ className, align = "left", invalid, ref, ...props }: ControlInputProps) {
-  return (
-    <input
-      ref={ref}
-      {...props}
-      aria-invalid={invalid ? true : props["aria-invalid"]}
-      className={cn(
-        "min-w-0 w-full rounded-xs border border-transparent bg-white/70 !text-[12px] font-medium normal-case tracking-normal text-ink outline-none transition hover:border-hairline focus:border-accent focus:bg-accentSoft",
-        align === "center" && "text-center",
-        align === "right" && "text-right",
-        className,
-        invalid ? "border-danger text-danger focus:border-danger focus:bg-dangerSoft/30" : "",
-      )}
-    />
-  );
-}
-
-type ControlTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  ref?: Ref<HTMLTextAreaElement>;
-  invalid?: boolean;
-};
-
-export function ControlTextarea({ className, invalid, ref, ...props }: ControlTextareaProps) {
-  return (
-    <textarea
-      ref={ref}
-      {...props}
-      aria-invalid={invalid ? true : props["aria-invalid"]}
-      className={cn(
-        "min-w-0 w-full resize-none rounded-xs border border-hairline bg-white px-2 py-1.5 !text-[12px] font-medium normal-case leading-4 tracking-normal text-ink outline-none transition placeholder:text-secondary hover:border-tertiary focus:border-accent focus:ring-2 focus:ring-focus",
-        className,
-        invalid ? "border-danger text-danger focus:border-danger focus:ring-dangerSoft" : "",
-      )}
-    />
-  );
-}
+export { ControlInput } from "./control-input-base";
+export { ControlTextarea } from "./control-textarea";
 
 type ControlFieldProps = {
   label: ReactNode;

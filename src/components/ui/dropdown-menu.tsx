@@ -7,35 +7,13 @@ import {
   ContextActionMenuContent,
 } from "@/components/ui/action-menu";
 import {
-  composeRefs,
   DropdownPopupPanel,
-  scrollPopupItemIntoView,
   useDropdownPopup,
 } from "@/components/ui/dropdown-popup";
-import { cn } from "@/lib/ui/cn";
-
-export type DropdownMenuItemProps = {
-  id?: string;
-  label: string;
-  icon?: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  destructive?: boolean;
-  shortcut?: string;
-  /**
-   * When true, the item renders a trailing check mark to signal it is the
-   * currently selected choice (e.g. the active group/color in a picker menu).
-   * Purely additive: omitting `selected` renders the item exactly as before.
-   * Selection does not disable the item — its `onClick` still fires.
-   */
-  selected?: boolean;
-};
-
-export type DropdownMenuGroupProps = {
-  id?: string;
-  label?: string;
-  children: React.ReactNode;
-};
+import { composeRefs, scrollPopupItemIntoView } from "@/components/ui/dropdown-popup-utils";
+import { DropdownMenuGroup, type DropdownMenuGroupProps } from "./dropdown-menu-group";
+import { DropdownMenuItem, type DropdownMenuItemProps } from "./dropdown-menu-item";
+import { dropdownRenderer } from "./dropdown-menu-renderer";
 
 export type DropdownMenuProps = {
   trigger: React.ReactNode;
@@ -44,22 +22,6 @@ export type DropdownMenuProps = {
   side?: "bottom" | "top";
   className?: string;
 };
-
-type DropdownRendererItemProps = {
-  children: React.ReactNode;
-  disabled?: boolean;
-  title?: string;
-  variant?: "default" | "destructive";
-  onSelect: () => void;
-};
-
-function DropdownMenuItem(_props: DropdownMenuItemProps) {
-  return null;
-}
-
-function DropdownMenuGroup(_props: DropdownMenuGroupProps) {
-  return null;
-}
 
 type DropdownMenuComponent = ((props: DropdownMenuProps) => React.ReactElement) & {
   Item: typeof DropdownMenuItem;
@@ -312,37 +274,6 @@ function toActionItem(props: DropdownMenuItemProps, close: () => void, fallbackI
   };
 }
 
-const dropdownRenderer = {
-  Group: ({ children }: { children: React.ReactNode }) => <div role="group">{children}</div>,
-  Label: ({ children }: { children: React.ReactNode }) => (
-    <div className="px-2 py-1 text-[9px] font-medium leading-3 text-tertiary" role="presentation">
-      {children}
-    </div>
-  ),
-  Separator: () => <div aria-hidden="true" className="-mx-1 my-1 h-px bg-hairline" />,
-  Shortcut: ({ children }: { children: React.ReactNode }) => (
-    <span className="ml-auto text-[9px] font-medium leading-3 text-tertiary">{children}</span>
-  ),
-  Item: ({ children, disabled, title, variant = "default", onSelect }: DropdownRendererItemProps) => (
-    <button
-      className={cn(
-        "relative flex min-h-7 w-full cursor-pointer select-none items-center gap-2 rounded-xs px-2 py-1 text-left text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
-        variant === "destructive" && "text-danger focus:bg-danger-soft focus:text-danger"
-      )}
-      data-disabled={disabled ? "true" : undefined}
-      data-dropdown-menu-item="true"
-      disabled={disabled}
-      role="menuitem"
-      tabIndex={-1}
-      title={disabled ? title : undefined}
-      type="button"
-      onClick={() => {
-        if (!disabled) onSelect();
-      }}
-    >
-      {children}
-    </button>
-  ),
-};
-
 export { DropdownMenu, DropdownMenuGroup, DropdownMenuItem };
+export type { DropdownMenuGroupProps } from "./dropdown-menu-group";
+export type { DropdownMenuItemProps } from "./dropdown-menu-item";

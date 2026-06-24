@@ -7,6 +7,7 @@ import {
   type ReactNode,
   use,
   useEffect,
+  useEffectEvent,
   useId,
   useMemo,
   useRef,
@@ -83,6 +84,7 @@ export function Dialog({
   const descriptionId = useId();
   const openerRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
+  const closeDialog = useEffectEvent(() => onOpenChange(false));
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -114,13 +116,13 @@ export function Dialog({
       // while open: they prevent-default on the native event, so a handled
       // press must close only the popup, never the dialog underneath it.
       if (event.key === "Escape" && !event.defaultPrevented && openDialogStack.at(-1) === dialogId) {
-        onOpenChange(false);
+        closeDialog();
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [closeOnEscape, dialogId, onOpenChange, open]);
+  }, [closeOnEscape, dialogId, open]);
 
   // Body scroll lock + inert on background content
   useEffect(() => {
@@ -168,7 +170,7 @@ type DialogTriggerProps = {
   disabled?: boolean;
 };
 
-export function DialogTrigger({ children, className, disabled }: DialogTriggerProps) {
+function DialogTrigger({ children, className, disabled }: DialogTriggerProps) {
   const { onOpenChange } = useDialogContext("DialogTrigger");
 
   return (
@@ -228,21 +230,23 @@ export function DialogContent({
 }: DialogContentProps) {
   const { titleId, descriptionId, modal, closeOnEscape, onOpenChange, dialogId } = useDialogContext("DialogContent");
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const focusInitialTarget = useEffectEvent((content: HTMLDivElement) => {
+    if (initialFocus === "content") {
+      content.focus({ preventScroll: true });
+      return;
+    }
+
+    const preferredFocusable = content.querySelector<HTMLElement>("[data-dialog-initial-focus]");
+    const firstFocusable = getFocusableElements(content)[0];
+    (preferredFocusable ?? firstFocusable ?? content).focus({ preventScroll: true });
+  });
 
   useEffect(() => {
     const content = contentRef.current;
     if (!content) return;
 
-    window.requestAnimationFrame(() => {
-      if (initialFocus === "content") {
-        content.focus({ preventScroll: true });
-        return;
-      }
-
-      const preferredFocusable = content.querySelector<HTMLElement>("[data-dialog-initial-focus]");
-      const firstFocusable = getFocusableElements(content)[0];
-      (preferredFocusable ?? firstFocusable ?? content).focus({ preventScroll: true });
-    });
+    const frameId = window.requestAnimationFrame(() => focusInitialTarget(content));
+    return () => window.cancelAnimationFrame(frameId);
   }, [initialFocus]);
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {

@@ -87,9 +87,8 @@ export function Popover({
         {trigger}
       </Button>
       {isOpen ? (
-        <div
+        <section
           id={contentId}
-          role="dialog"
           aria-labelledby={title ? titleId : undefined}
           aria-label={title ? undefined : triggerLabel}
           className={cn(
@@ -103,7 +102,7 @@ export function Popover({
           {description ? <p className="mt-0.5 text-[9px] leading-3 tracking-normal text-tertiary">{description}</p> : null}
           <div className="mt-2">{children}</div>
           {footer ? <div className="mt-2 border-t border-hairline pt-2">{footer}</div> : null}
-        </div>
+        </section>
       ) : null}
     </span>
   );

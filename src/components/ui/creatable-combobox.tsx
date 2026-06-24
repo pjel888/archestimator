@@ -179,6 +179,7 @@ export function CreatableCombobox({
         </button>
       ) : null}
       {open ? (
+        // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- This is an ARIA combobox popup, not a native datalist-backed input.
         <div
           id={listboxId}
           role="listbox"

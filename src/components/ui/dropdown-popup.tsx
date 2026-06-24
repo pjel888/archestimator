@@ -95,32 +95,56 @@ function suppressGestureAfterDismiss() {
 type UseDropdownPopupOptions = {
   align?: DropdownPopupAlign;
   side?: DropdownPopupSide;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   /** Fires after every close with the reason; Escape already restored focus to the trigger. */
   onClose?: (reason: DropdownPopupCloseReason) => void;
 };
 
-export function useDropdownPopup({ align = "start", side = "bottom", onClose }: UseDropdownPopupOptions = {}) {
-  const [open, setOpen] = React.useState(false);
+export function useDropdownPopup({
+  align = "start",
+  side = "bottom",
+  open: controlledOpen,
+  onOpenChange,
+  onClose,
+}: UseDropdownPopupOptions = {}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
   const [position, setPosition] = React.useState<DropdownPopupPosition | null>(null);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const triggerRef = React.useRef<HTMLElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const isControlled = controlledOpen !== undefined;
 
   const onCloseRef = React.useRef(onClose);
   React.useEffect(() => {
     onCloseRef.current = onClose;
   });
 
-  const close = React.useCallback((reason: DropdownPopupCloseReason) => {
-    setOpen((wasOpen) => {
-      if (wasOpen) onCloseRef.current?.(reason);
-      return false;
-    });
-    setPosition(null);
-  }, []);
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
 
-  const openPopup = React.useCallback(() => setOpen(true), []);
-  const togglePopup = React.useCallback(() => setOpen((value) => !value), []);
+  const setPopupOpen = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!isControlled) setUncontrolledOpen(nextOpen);
+      onOpenChangeRef.current?.(nextOpen);
+    },
+    [isControlled],
+  );
+
+  const close = React.useCallback((reason: DropdownPopupCloseReason) => {
+    if (open) onCloseRef.current?.(reason);
+    setPopupOpen(false);
+    setPosition(null);
+  }, [open, setPopupOpen]);
+
+  const openPopup = React.useCallback(() => setPopupOpen(true), [setPopupOpen]);
+  const togglePopup = React.useCallback(() => {
+    if (open) close("manual");
+    else setPopupOpen(true);
+  }, [close, open, setPopupOpen]);
 
   const closeAndFocusTrigger = React.useCallback(
     (reason: DropdownPopupCloseReason) => {
@@ -233,24 +257,6 @@ export function useDropdownPopup({ align = "start", side = "bottom", onClose }: 
   };
 }
 
-/**
- * Scrolls a panel item into view with plain scrollTop arithmetic.
- * `element.scrollIntoView()` would also scroll every scrollable ancestor —
- * including the document — which both moves the page under a fixed panel and
- * trips the popup's own close-on-ancestor-scroll handler on open.
- */
-export function scrollPopupItemIntoView(panel: HTMLElement, item: HTMLElement) {
-  const itemTop = item.offsetTop;
-  const itemBottom = itemTop + item.offsetHeight;
-  if (itemTop < panel.scrollTop) {
-    panel.scrollTop = itemTop;
-    return;
-  }
-  if (itemBottom > panel.scrollTop + panel.clientHeight) {
-    panel.scrollTop = itemBottom - panel.clientHeight;
-  }
-}
-
 type DropdownPopupPanelProps = React.HTMLAttributes<HTMLDivElement> & {
   open: boolean;
   position: DropdownPopupPosition | null;
@@ -282,17 +288,4 @@ export function DropdownPopupPanel({ open, position, panelRef, className, style,
     </div>,
     document.body,
   );
-}
-
-export function composeRefs<T>(...refs: Array<React.Ref<T> | undefined>) {
-  return (node: T | null) => {
-    refs.forEach((ref) => {
-      if (!ref) return;
-      if (typeof ref === "function") {
-        ref(node);
-        return;
-      }
-      (ref as React.MutableRefObject<T | null>).current = node;
-    });
-  };
 }

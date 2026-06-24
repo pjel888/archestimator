@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useId,
   useRef,
   useState,
@@ -77,6 +78,8 @@ export type TreePanelHeaderProps = {
   ref?: Ref<HTMLDivElement>;
 };
 
+const EMPTY_HEADER_ACTIONS: HeaderIconToolbarAddAction[] = [];
+
 /**
  * Sticky header for tree side panels: a `HeaderIconToolbar` with a
  * search-icon disclosure that drops a `SearchInput` panel over the content
@@ -89,7 +92,7 @@ export function TreePanelHeader({
     onGroup,
     onExpandAll,
     onCollapseAll,
-    startActions = [],
+    startActions = EMPTY_HEADER_ACTIONS,
     startActionsLabel,
     leadingActions,
     leadingActionsLabel,
@@ -136,6 +139,7 @@ export function TreePanelHeader({
     },
     [onSearchOpenChange, searchOpen],
   );
+  const closeSearchPanel = useEffectEvent(() => setOpen(false));
 
   const assignInputRef = useCallback(
     (element: HTMLInputElement | null) => {
@@ -163,12 +167,12 @@ export function TreePanelHeader({
       // An active query keeps the panel open: outside clicks only dismiss an
       // empty search. Clearing or Escape closes it explicitly.
       if (searchValue.length > 0) return;
-      setOpen(false);
+      closeSearchPanel();
     }
 
     document.addEventListener("pointerdown", handleDocumentPointerDown, true);
     return () => document.removeEventListener("pointerdown", handleDocumentPointerDown, true);
-  }, [open, searchValue, setOpen]);
+  }, [open, searchValue]);
 
   const toolbarStartActions: HeaderIconToolbarAddAction[] = searchEnabled
     ? [

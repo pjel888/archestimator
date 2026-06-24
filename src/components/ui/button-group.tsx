@@ -16,6 +16,7 @@ export function ButtonGroup({ children, className, orientation = "horizontal", s
   const items = Children.toArray(children).filter(isValidElement);
 
   return (
+    // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Button clusters need the ARIA group role; <address> would misrepresent the content.
     <div
       ref={ref}
       role="group"

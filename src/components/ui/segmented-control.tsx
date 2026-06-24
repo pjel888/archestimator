@@ -77,6 +77,7 @@ export function SegmentedControl<T extends string>({
   }
 
   return (
+    // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Segmented controls are grouped buttons; <address> would be semantically wrong.
     <div
       role="group"
       aria-label={ariaLabel}

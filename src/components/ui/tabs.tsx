@@ -1,8 +1,7 @@
 import {
   useCallback,
-  useEffect,
   useRef,
-  useState,
+  useSyncExternalStore,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type KeyboardEvent,
@@ -12,6 +11,9 @@ import {
 } from "react";
 import { filterMapBy } from "@/lib/util/array";
 import { cn } from "@/lib/ui/cn";
+
+const SCROLL_FADE_LEFT = 1;
+const SCROLL_FADE_RIGHT = 2;
 
 export type TabItem = {
   id: string;
@@ -55,30 +57,38 @@ export function Tabs({
   ...rootProps
 }: TabsProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
 
-    const checkScroll = useCallback(() => {
-      if (!scrollContainerRef.current) return;
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    const getScrollFadeSnapshot = useCallback(() => {
+      const scrollContainer = scrollContainerRef.current;
+      if (!scrollContainer) return 0;
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+      let mask = 0;
+      if (scrollLeft > 0) mask |= SCROLL_FADE_LEFT;
+      if (Math.ceil(scrollLeft + clientWidth) < scrollWidth) mask |= SCROLL_FADE_RIGHT;
+      return mask;
     }, []);
 
-    useEffect(() => {
+    const subscribeToScrollFades = useCallback((onStoreChange: () => void) => {
       const scrollContainer = scrollContainerRef.current;
-      if (!scrollContainer) return;
-      checkScroll();
+      if (!scrollContainer) return () => {};
+
       const resizeObserver = typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(checkScroll)
+        ? new ResizeObserver(onStoreChange)
         : null;
       resizeObserver?.observe(scrollContainer);
-      window.addEventListener("resize", checkScroll);
+      scrollContainer.addEventListener("scroll", onStoreChange, { passive: true });
+      window.addEventListener("resize", onStoreChange);
+      queueMicrotask(onStoreChange);
       return () => {
         resizeObserver?.disconnect();
-        window.removeEventListener("resize", checkScroll);
+        scrollContainer.removeEventListener("scroll", onStoreChange);
+        window.removeEventListener("resize", onStoreChange);
       };
-    }, [checkScroll]);
+    }, []);
+
+    const scrollFadeMask = useSyncExternalStore(subscribeToScrollFades, getScrollFadeSnapshot, () => 0);
+    const canScrollLeft = Boolean(scrollFadeMask & SCROLL_FADE_LEFT);
+    const canScrollRight = Boolean(scrollFadeMask & SCROLL_FADE_RIGHT);
 
     const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
       let nextIndex = index;
@@ -135,7 +145,6 @@ export function Tabs({
 
           <div
             ref={scrollContainerRef}
-            onScroll={checkScroll}
             className={cn(
               "flex w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
               variant === "underline" ? "border-b border-divider" : "gap-1",
@@ -226,7 +235,7 @@ export type TabPanelProps = {
   ref?: Ref<HTMLDivElement>;
 };
 
-export function TabPanel({ id, activeId, children, className, ref, ...props }: TabPanelProps) {
+function TabPanel({ id, activeId, children, className, ref, ...props }: TabPanelProps) {
     if (id !== activeId) return null;
 
     return (

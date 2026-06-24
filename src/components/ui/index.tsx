@@ -2,7 +2,6 @@ export { Badge } from "./badge";
 export { Button } from "./button";
 export type { ButtonSize, ButtonVariant } from "./button";
 export { ButtonGroup } from "./button-group";
-export { ButtonLink } from "./button-link";
 export { Chip } from "./chip";
 export { IconButton } from "./icon-button";
 export type { IconButtonProps } from "./icon-button";
@@ -32,7 +31,7 @@ export { Separator } from "./separator";
 export type { SeparatorProps } from "./separator";
 export { Spinner } from "./spinner";
 export type { SpinnerProps } from "./spinner";
-export { AppModal, BlurModal, Modal } from "./modal";
+export { AppModal, Modal } from "./modal";
 export type { AppModalProps, ModalSize, ModalTone } from "./modal";
 export { RouteLoadingOverlay } from "./route-loading-overlay";
 export { SearchInput } from "./search-input";
@@ -66,13 +65,12 @@ export {
   DialogOverlay,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,
 } from "./overlays/dialog";
-export { AlertDialog, ConfirmDialog, DeleteConfirmDialog, UnsavedChangesDialog } from "./overlays/confirm-dialog";
+export { ConfirmDialog, DeleteConfirmDialog, UnsavedChangesDialog } from "./overlays/confirm-dialog";
 export type { ConfirmDialogProps } from "./overlays/confirm-dialog";
 export { FloatingModal, PopupWindow, ResizableModal } from "./overlays/resizable-modal";
 export type { FloatingModalPosition, ResizableModalProps, ResizableModalSize } from "./overlays/resizable-modal";
-export { Drawer, InspectorDrawer, Sheet, SidePanel } from "./overlays/sheet-drawer";
+export { Drawer, InspectorDrawer, Sheet } from "./overlays/sheet-drawer";
 export type { SheetProps, SheetSide, SheetSize } from "./overlays/sheet-drawer";
 export { FilterPopover, HelpPopover, InfoPopover, Popover } from "./overlays/popover";
 export type { PopoverAlign, PopoverProps, PopoverSide } from "./overlays/popover";
@@ -82,11 +80,11 @@ export { Tooltip } from "./overlays/tooltip";
 export type { TooltipProps, TooltipSide } from "./overlays/tooltip";
 export { HoverCard } from "./overlays/hover-card";
 export type { HoverCardProps } from "./overlays/hover-card";
-export { CommandDialog, CommandMenu, CommandPalette } from "./overlays/command-dialog";
+export { CommandDialog, CommandMenu } from "./overlays/command-dialog";
 export type { CommandGroup, CommandItem } from "./overlays/command-dialog";
 export { DataTable } from "./data-table";
 export type { ColumnDef } from "./data-table";
-export { TabPanel, Tabs } from "./tabs";
+export { Tabs } from "./tabs";
 export type { TabItem, TabPanelProps } from "./tabs";
 export { Pagination } from "./pagination";
 export type { PaginationProps } from "./pagination";
@@ -120,7 +118,8 @@ export { DropdownMenu } from "./dropdown-menu";
 export type { DropdownMenuGroup, DropdownMenuItem as DropdownMenuItemType, DropdownMenuProps } from "./dropdown-menu";
 export { DropdownSelect } from "./dropdown-select";
 export type { DropdownSelectOption, DropdownSelectProps } from "./dropdown-select";
-export { Tree, moveTreeNode, TREE_INDENT_STEP } from "./tree";
+export { Tree } from "./tree";
+export { moveTreeNode } from "./tree-utils";
 export type { TreeNode, TreeProps, TreeDropPosition, TreeItemState, TreeRowDomProps } from "./tree";
 export { TabStrip } from "./tab-strip";
 export type { TabStripItem, TabStripProps } from "./tab-strip";

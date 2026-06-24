@@ -7,14 +7,15 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useReducer,
   useRef,
-  useState,
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
   type Ref,
   type RefCallback,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -55,7 +56,7 @@ export type TreeDropPosition = "before" | "after" | "inside";
 export type TreeRootDropEdge = "top" | "bottom";
 
 /** Horizontal indent applied per depth level, in pixels. */
-export const TREE_INDENT_STEP = 16;
+const TREE_INDENT_STEP = 16;
 
 /**
  * Canonical size for icons inside tree rows, in pixels. Every tree consumer
@@ -63,6 +64,74 @@ export const TREE_INDENT_STEP = 16;
  * icons so the panels read at one scale.
  */
 export const TREE_ROW_ICON_SIZE = 12;
+
+const EMPTY_TREE_ID_LIST: string[] = [];
+
+type TreeDropTarget = { id: string; position: TreeDropPosition } | null;
+
+type TreeState = {
+  uncontrolledExpanded: Set<string>;
+  dragSourceId: string | null;
+  dropTarget: TreeDropTarget;
+  activeRootDropEdge: TreeRootDropEdge | null;
+  focusId: string | null;
+};
+
+type TreeStateAction =
+  | { type: "setUncontrolledExpanded"; value: SetStateAction<Set<string>> }
+  | { type: "setDragSourceId"; value: SetStateAction<string | null> }
+  | { type: "setDropTarget"; value: SetStateAction<TreeDropTarget> }
+  | { type: "setActiveRootDropEdge"; value: SetStateAction<TreeRootDropEdge | null> }
+  | { type: "setFocusId"; value: SetStateAction<string | null> }
+  | { type: "clearDragState" }
+  | { type: "clearDropIndicators" };
+
+function resolveTreeStateAction<T>(value: SetStateAction<T>, current: T): T {
+  return typeof value === "function" ? (value as (currentValue: T) => T)(current) : value;
+}
+
+function createInitialTreeState(defaultExpandedIds: readonly string[]): TreeState {
+  return {
+    uncontrolledExpanded: new Set(defaultExpandedIds),
+    dragSourceId: null,
+    dropTarget: null,
+    activeRootDropEdge: null,
+    focusId: null,
+  };
+}
+
+function treeReducer(state: TreeState, action: TreeStateAction): TreeState {
+  switch (action.type) {
+    case "setUncontrolledExpanded": {
+      const uncontrolledExpanded = resolveTreeStateAction(action.value, state.uncontrolledExpanded);
+      return uncontrolledExpanded === state.uncontrolledExpanded ? state : { ...state, uncontrolledExpanded };
+    }
+    case "setDragSourceId": {
+      const dragSourceId = resolveTreeStateAction(action.value, state.dragSourceId);
+      return dragSourceId === state.dragSourceId ? state : { ...state, dragSourceId };
+    }
+    case "setDropTarget": {
+      const dropTarget = resolveTreeStateAction(action.value, state.dropTarget);
+      return dropTarget === state.dropTarget ? state : { ...state, dropTarget };
+    }
+    case "setActiveRootDropEdge": {
+      const activeRootDropEdge = resolveTreeStateAction(action.value, state.activeRootDropEdge);
+      return activeRootDropEdge === state.activeRootDropEdge ? state : { ...state, activeRootDropEdge };
+    }
+    case "setFocusId": {
+      const focusId = resolveTreeStateAction(action.value, state.focusId);
+      return focusId === state.focusId ? state : { ...state, focusId };
+    }
+    case "clearDragState": {
+      if (!state.dragSourceId && !state.dropTarget && !state.activeRootDropEdge) return state;
+      return { ...state, dragSourceId: null, dropTarget: null, activeRootDropEdge: null };
+    }
+    case "clearDropIndicators": {
+      if (!state.dropTarget && !state.activeRootDropEdge) return state;
+      return { ...state, dropTarget: null, activeRootDropEdge: null };
+    }
+  }
+}
 
 /** Computed per-row state passed to `renderItem`. */
 export interface TreeItemState {
@@ -321,62 +390,6 @@ function readDropPositionFromEvent(
   return ratio < 0.5 ? "before" : "after";
 }
 
-/**
- * Apply a drop immutably to a plain `TreeNode[]`. For consumers without their
- * own reorder domain logic (and for Storybook): blocks self drops and
- * descendant cycles, returns the input array when the move is invalid.
- */
-export function moveTreeNode(
-  nodes: TreeNode[],
-  draggedId: string,
-  targetId: string,
-  position: TreeDropPosition
-): TreeNode[] {
-  if (draggedId === targetId) return nodes;
-
-  let dragged: TreeNode | null = null;
-  const removeDragged = (list: TreeNode[]): TreeNode[] =>
-    list.flatMap((node) => {
-      if (node.id === draggedId) {
-        dragged = node;
-        return [];
-      }
-      if (node.children?.length) return [{ ...node, children: removeDragged(node.children) }];
-      return [node];
-    });
-
-  const withoutDragged = removeDragged(nodes);
-  if (!dragged) return nodes;
-  if (containsDescendant(dragged, targetId)) return nodes;
-
-  let placed = false;
-  const insertDragged = (list: TreeNode[]): TreeNode[] => {
-    const next: TreeNode[] = [];
-    for (const node of list) {
-      if (node.id === targetId) {
-        placed = true;
-        if (position === "before") {
-          next.push(dragged!, node);
-        } else if (position === "after") {
-          next.push(node, dragged!);
-        } else {
-          next.push({ ...node, children: [...(node.children ?? []), dragged!] });
-        }
-        continue;
-      }
-      if (node.children?.length) {
-        next.push({ ...node, children: insertDragged(node.children) });
-        continue;
-      }
-      next.push(node);
-    }
-    return next;
-  };
-
-  const result = insertDragged(withoutDragged);
-  return placed ? result : nodes;
-}
-
 // ─── Default row ─────────────────────────────────────────────────────
 
 interface DefaultTreeRowProps {
@@ -389,8 +402,8 @@ interface DefaultTreeRowProps {
   /** Keep the affordance rails open (e.g. while a selection exists). */
   railsPinned: boolean;
   indentStep: number;
-  onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLSpanElement>) => void;
-  renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
+  onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLInputElement>) => void;
+  rowRenderer?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
 }
 
 const DefaultTreeRow = memo(function DefaultTreeRow({
@@ -403,7 +416,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
   railsPinned,
   indentStep,
   onCheckboxClick,
-  renderRow,
+  rowRenderer,
 }: DefaultTreeRowProps) {
   const { node, depth, isFolder, isExpanded, isSelected, isIndeterminate, isCurrent, isDropTarget, dropPosition } = state;
 
@@ -525,8 +538,8 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           <span className="shrink-0 mr-1.5 flex items-center">{node.icon}</span>
         ) : null}
 
-        {renderRow ? (
-          renderRow(node, depth, isSelected, isExpanded)
+        {rowRenderer ? (
+          rowRenderer(node, depth, isSelected, isExpanded)
         ) : (
           <span className="truncate">{node.label}</span>
         )}
@@ -535,12 +548,65 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
   );
 });
 
+interface TreeFlatRowProps {
+  flat: FlatNode;
+  buildItemState: (flat: FlatNode) => TreeItemState;
+  buildRowProps: (flat: FlatNode) => TreeRowDomProps;
+  draggable: boolean;
+  selectable: boolean;
+  expandable: boolean;
+  nodeDraggable: boolean;
+  railsPinned: boolean;
+  indentStep: number;
+  onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLInputElement>) => void;
+  rowRenderer?: TreeProps["renderRow"];
+  itemRenderer?: TreeProps["renderItem"];
+}
+
+const TreeFlatRow = memo(function TreeFlatRow({
+  flat,
+  buildItemState,
+  buildRowProps,
+  draggable,
+  selectable,
+  expandable,
+  nodeDraggable,
+  railsPinned,
+  indentStep,
+  onCheckboxClick,
+  rowRenderer,
+  itemRenderer,
+}: TreeFlatRowProps) {
+  const state = buildItemState(flat);
+  const rowProps = buildRowProps(flat);
+
+  if (itemRenderer) {
+    return <Fragment>{itemRenderer(state, rowProps)}</Fragment>;
+  }
+
+  return (
+    <DefaultTreeRow
+      state={state}
+      rowProps={rowProps}
+      draggable={draggable}
+      selectable={selectable}
+      expandable={expandable}
+      nodeDraggable={nodeDraggable}
+      railsPinned={railsPinned}
+      indentStep={indentStep}
+      onCheckboxClick={onCheckboxClick}
+      rowRenderer={rowRenderer}
+    />
+  );
+});
+
 // ─── Component ───────────────────────────────────────────────────────
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function Tree({
       nodes,
       ariaLabel,
-      selectedIds = [],
+      selectedIds = EMPTY_TREE_ID_LIST,
       onSelectionChange,
       onCheckboxToggle,
       currentId,
@@ -555,7 +621,7 @@ export function Tree({
       onRowDoubleClick,
       expandedIds: controlledExpandedIds,
       onExpandedChange,
-      defaultExpandedIds = [],
+      defaultExpandedIds = EMPTY_TREE_ID_LIST,
       draggable = false,
       selectable = false,
       expandable = true,
@@ -572,27 +638,35 @@ export function Tree({
       virtualization,
       ref,
 }: TreeProps) {
+    // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: controlled/uncontrolled setup is render state, not effect-driven event logic.
     const isControlled = controlledExpandedIds !== undefined;
     const treeRootRef = useRef<HTMLDivElement | null>(null);
     useImperativeHandle(ref, () => treeRootRef.current as HTMLDivElement, []);
 
-    const [uncontrolledExpanded, setUncontrolledExpanded] = useState<Set<string>>(
-      new Set(defaultExpandedIds)
+    const [treeState, dispatchTreeState] = useReducer(
+      treeReducer,
+      // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: reducer initializer seed, not effect-driven event logic.
+      defaultExpandedIds,
+      createInitialTreeState
     );
+    const {
+      uncontrolledExpanded,
+      dragSourceId,
+      dropTarget,
+      activeRootDropEdge,
+      focusId,
+    } = treeState;
 
     const expandedSet = useMemo(
       () => (isControlled ? new Set(controlledExpandedIds!) : uncontrolledExpanded),
       [isControlled, controlledExpandedIds, uncontrolledExpanded]
     );
 
-    const [dragSourceId, setDragSourceId] = useState<string | null>(null);
-    const [dropTarget, setDropTarget] = useState<{ id: string; position: TreeDropPosition } | null>(null);
-    const [activeRootDropEdge, setActiveRootDropEdge] = useState<TreeRootDropEdge | null>(null);
-    const [focusId, setFocusId] = useState<string | null>(null);
     const rowElementsRef = useRef<Map<string, HTMLElement>>(null!);
     if (rowElementsRef.current === null) rowElementsRef.current = new Map();
 
     const flatNodes = useMemo(
+      // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure tree flattening in render memo, not effect-driven event logic.
       () => flattenTree(nodes, expandedSet),
       [nodes, expandedSet]
     );
@@ -615,7 +689,7 @@ export function Tree({
       (index: number) => {
         const nextId = flatNodes[index]?.id ?? null;
         if (nextId && virtualEnabled) rowVirtualizer.scrollToIndex(index, { align: "auto" });
-        setFocusId(nextId);
+        dispatchTreeState({ type: "setFocusId", value: nextId });
       },
       [flatNodes, rowVirtualizer, virtualEnabled]
     );
@@ -662,7 +736,7 @@ export function Tree({
           }
           onExpandedChange?.(Array.from(next));
         } else {
-          setUncontrolledExpanded((prev) => {
+          dispatchTreeState({ type: "setUncontrolledExpanded", value: (prev) => {
             const next = new Set(prev);
             if (next.has(nodeId)) {
               next.delete(nodeId);
@@ -672,7 +746,7 @@ export function Tree({
               onToggle?.(nodeId, true);
             }
             return next;
-          });
+          } });
         }
       },
       [isControlled, controlledExpandedIds, onExpandedChange, onToggle]
@@ -732,9 +806,7 @@ export function Tree({
     );
 
     const clearDragState = useCallback(() => {
-      setDragSourceId(null);
-      setDropTarget(null);
-      setActiveRootDropEdge(null);
+      dispatchTreeState({ type: "clearDragState" });
     }, []);
 
     // ─── External drops (payloads from other surfaces) ─────────────
@@ -785,8 +857,7 @@ export function Tree({
     useEffect(() => {
       if (!externalDrop) return undefined;
       const handleDragFinished = () => {
-        setDropTarget(null);
-        setActiveRootDropEdge(null);
+        dispatchTreeState({ type: "clearDropIndicators" });
       };
       window.addEventListener("dragend", handleDragFinished);
       window.addEventListener("drop", handleDragFinished);
@@ -805,7 +876,7 @@ export function Tree({
         event.dataTransfer?.setData("text/plain", flat.id);
         if (dragDataType) event.dataTransfer?.setData(dragDataType, flat.id);
         if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
-        setDragSourceId(flat.id);
+        dispatchTreeState({ type: "setDragSourceId", value: flat.id });
         onNodeDragStart?.(flat.id, event);
       },
       [isNodeDraggable, dragDataType, onNodeDragStart]
@@ -844,15 +915,15 @@ export function Tree({
         if (externalTypes) {
           const intent = resolveExternalDropIntent(flat, event, externalTypes);
           if (!intent) {
-            setDropTarget((current) => (isDropIntentForRow(current, flat) ? null : current));
+            dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
             return;
           }
           event.preventDefault();
           if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
-          setDropTarget((current) =>
+          dispatchTreeState({ type: "setDropTarget", value: (current) =>
             current?.id === intent.id && current.position === intent.position ? current : intent
-          );
-          setActiveRootDropEdge(null);
+          });
+          dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
           return;
         }
         if (!draggable || !onDrop) return;
@@ -860,17 +931,17 @@ export function Tree({
         if (!draggedId) return;
         const intent = resolveDropIntent(flat, event);
         if (!isDropAllowed(draggedId, intent.id, intent.position)) {
-          setDropTarget((current) => (isDropIntentForRow(current, flat) ? null : current));
+          dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
           return;
         }
         event.preventDefault();
         if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
-        setDropTarget((current) =>
+        dispatchTreeState({ type: "setDropTarget", value: (current) =>
           current?.id === intent.id && current.position === intent.position
             ? current
             : intent
-        );
-        setActiveRootDropEdge(null);
+        });
+        dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
       },
       [draggable, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, isDropAllowed, isDropIntentForRow]
     );
@@ -883,7 +954,7 @@ export function Tree({
         ) {
           return;
         }
-        setDropTarget((current) => (isDropIntentForRow(current, flat) ? null : current));
+        dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
       },
       [isDropIntentForRow]
     );
@@ -956,14 +1027,14 @@ export function Tree({
         const draggedId = readDraggedId(event);
         const target = resolveRootEdgeTarget(edge);
         if (!draggedId || !target || !isDropAllowed(draggedId, target.id, target.position)) {
-          setActiveRootDropEdge((current) => (current === edge ? null : current));
+          dispatchTreeState({ type: "setActiveRootDropEdge", value: (current) => (current === edge ? null : current) });
           return;
         }
         event.preventDefault();
         event.stopPropagation();
         if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
-        setActiveRootDropEdge(edge);
-        setDropTarget(null);
+        dispatchTreeState({ type: "setActiveRootDropEdge", value: edge });
+        dispatchTreeState({ type: "setDropTarget", value: null });
       },
       [onDrop, readDraggedId, resolveRootEdgeTarget, isDropAllowed]
     );
@@ -992,7 +1063,7 @@ export function Tree({
             data-tree-root-drop-active={active ? "true" : undefined}
             onDragOver={(event) => handleRootEdgeDragOver(edge, event)}
             onDrop={(event) => handleRootEdgeDrop(edge, event)}
-            onDragLeave={() => setActiveRootDropEdge((current) => (current === edge ? null : current))}
+            onDragLeave={() => dispatchTreeState({ type: "setActiveRootDropEdge", value: (current) => (current === edge ? null : current) })}
             className={
               custom?.className?.(edge, active) ??
               cn("relative h-1.5 transition-colors", active && "h-6 bg-surfaceMuted")
@@ -1091,6 +1162,7 @@ export function Tree({
       };
       if (virtualEnabled) {
         const index = flatNodes.findIndex((flat) => flat.id === focusId);
+        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- Imperative virtualizer focus restoration; no parent callback or data handoff occurs.
         if (index >= 0) rowVirtualizer.scrollToIndex(index, { align: "auto" });
         requestAnimationFrame(focusElement);
       } else {
@@ -1103,16 +1175,16 @@ export function Tree({
     const handleRowClick = useCallback(
       (nodeId: string, node: TreeNode, e: MouseEvent<HTMLElement>) => {
         e.stopPropagation();
-        setFocusId(nodeId);
+        dispatchTreeState({ type: "setFocusId", value: nodeId });
         onRowClick?.(nodeId, node);
       },
       [onRowClick]
     );
 
     const handleCheckboxClick = useCallback(
-      (nodeId: string, e: MouseEvent<HTMLSpanElement>) => {
+      (nodeId: string, e: MouseEvent<HTMLInputElement>) => {
         e.stopPropagation();
-        setFocusId(nodeId);
+        dispatchTreeState({ type: "setFocusId", value: nodeId });
         triggerSelection(nodeId, e.metaKey || e.ctrlKey);
       },
       [triggerSelection]
@@ -1210,44 +1282,6 @@ export function Tree({
       [dropTarget, selectedSet, indeterminateIds, currentId, effectiveFocusId, dragSourceId, handleToggle]
     );
 
-    const renderFlatRow = useCallback(
-      (flat: FlatNode) => {
-        const state = buildItemState(flat);
-        const rowProps = buildRowProps(flat);
-        if (renderItem) {
-          return <Fragment key={flat.id}>{renderItem(state, rowProps)}</Fragment>;
-        }
-        return (
-          <DefaultTreeRow
-            key={flat.id}
-            state={state}
-            rowProps={rowProps}
-            draggable={draggable}
-            selectable={selectable}
-            expandable={expandable}
-            nodeDraggable={isNodeDraggable(flat.node)}
-            railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
-            indentStep={indentStep}
-            onCheckboxClick={handleCheckboxClick}
-            renderRow={renderRow}
-          />
-        );
-      },
-      [
-        buildItemState,
-        buildRowProps,
-        draggable,
-        expandable,
-        handleCheckboxClick,
-        indentStep,
-        isNodeDraggable,
-        railsPinned,
-        renderItem,
-        renderRow,
-        selectable,
-        selectedSet.size,
-      ]
-    );
     const virtualEstimateRowHeight = virtualization?.estimateRowHeight ?? 28;
     const virtualOverscan = virtualization?.overscan ?? 8;
     const virtualInitialViewportHeight = virtualization?.initialViewportHeight ?? 480;
@@ -1276,7 +1310,7 @@ export function Tree({
         tabIndex={0}
         className={cn("group/tree overflow-auto outline-none", className)}
         onKeyDown={handleKeyDown}
-        onClick={() => flatNodes.length > 0 && !focusId && setFocusId(effectiveFocusId)}
+        onClick={() => flatNodes.length > 0 && !focusId && dispatchTreeState({ type: "setFocusId", value: effectiveFocusId })}
       >
         {rootDropZonesEnabled && rootDropEdgeEnabled("top") && renderRootEdge("top")}
         {virtualEnabled ? (
@@ -1303,13 +1337,42 @@ export function Tree({
                     width: "100%",
                   }}
                 >
-                  {renderFlatRow(flat)}
+                  <TreeFlatRow
+                    flat={flat}
+                    buildItemState={buildItemState}
+                    buildRowProps={buildRowProps}
+                    draggable={draggable}
+                    selectable={selectable}
+                    expandable={expandable}
+                    nodeDraggable={isNodeDraggable(flat.node)}
+                    railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+                    indentStep={indentStep}
+                    onCheckboxClick={handleCheckboxClick}
+                    rowRenderer={renderRow}
+                    itemRenderer={renderItem}
+                  />
                 </div>
               );
             })}
           </div>
         ) : (
-          flatNodes.map((flat) => renderFlatRow(flat))
+          flatNodes.map((flat) => (
+            <TreeFlatRow
+              key={flat.id}
+              flat={flat}
+              buildItemState={buildItemState}
+              buildRowProps={buildRowProps}
+              draggable={draggable}
+              selectable={selectable}
+              expandable={expandable}
+              nodeDraggable={isNodeDraggable(flat.node)}
+              railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+              indentStep={indentStep}
+              onCheckboxClick={handleCheckboxClick}
+              rowRenderer={renderRow}
+              itemRenderer={renderItem}
+            />
+          ))
         )}
         {rootDropZonesEnabled && rootDropEdgeEnabled("bottom") && renderRootEdge("bottom")}
         {nodes.length === 0 && (

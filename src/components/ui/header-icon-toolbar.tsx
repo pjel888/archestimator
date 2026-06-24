@@ -89,6 +89,7 @@ export function HeaderIconToolbar({
   return (
     <div className={cn("flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0", className)} aria-label={ariaLabel}>
       {startActions.length > 0 ? (
+        // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar subgroups need named ARIA groups; <address> is not a control-group element.
         <div
           className={cn("flex items-center gap-1", groupSeparatorRight)}
           role="group"
@@ -119,6 +120,7 @@ export function HeaderIconToolbar({
         // hairline separator only when Expand/Collapse follow it — so a
         // filter-only toolbar (e.g. the library manager) never shows an orphan
         // divider.
+        // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar filter controls are a named ARIA group, not contact information.
         <div
           className={cn(
             "flex items-center gap-1",
@@ -150,6 +152,7 @@ export function HeaderIconToolbar({
         </ToolbarIconButton>
       ) : null}
       {leadingActions.length > 0 ? (
+        // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar subgroups need named ARIA groups; <address> would be semantically wrong.
         <div
           className={cn("flex items-center gap-1", groupSeparatorLeft)}
           role="group"

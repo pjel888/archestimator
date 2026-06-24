@@ -119,7 +119,7 @@ export function Drawer(props: SheetProps) {
   return <Sheet {...props} />;
 }
 
-export function SidePanel(props: SheetProps) {
+function SidePanel(props: SheetProps) {
   return <Sheet {...props} modal={props.modal ?? false} withScrim={props.withScrim ?? false} />;
 }
 
