@@ -200,6 +200,8 @@ describe("estimate sheet tree DOM integration", () => {
     expect(kitchen).toHaveAttribute("draggable", "true");
     expect(alternates).toHaveAttribute("draggable", "true");
     expect(kitchen).toHaveAttribute("aria-current", "page");
+    expect(kitchen).toHaveClass("border-l-focus");
+    expect(kitchen).not.toHaveClass("bg-accentSoft", "bg-surfaceMuted");
 
     // The shared component's default row: compact min-h-7, 10px type, and a depth
     // indent spacer of 16px per level applied to the content, never the rail.

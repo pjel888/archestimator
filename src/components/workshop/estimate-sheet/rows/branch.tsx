@@ -190,7 +190,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
   const isStickyHeader = depth === 0;
   const headingLevel = Math.min(depth + 1, 6);
   const headerNeedsTopBorder = true;
-  const headerNeedsBottomBorder = collapsed;
+  const headerNeedsBottomBorder = collapsed || (!showBreadcrumbs && !hasOwnRows);
   // P6 single-node model: every node is a first-class area that can hold rows
   // AND child sub-areas, so a template/subtree drops directly into ANY node —
   // there is no area-wrap path anymore.

@@ -96,14 +96,14 @@ function renderBranchTree(node: EstimateTreeNode) {
 }
 
 describe("estimate sheet branch header chrome", () => {
-  it("omits the bottom border when expanded without own rows", () => {
+  it("keeps the bottom border when expanded without breadcrumbs or own rows", () => {
     renderBranch();
 
     const branch = screen.getByLabelText("Mobilization + Demobilization");
     const header = branch.querySelector(".min-h-10");
 
     expect(header).toHaveClass("bg-surfaceMuted/40", "py-2", "border-x", "border-t", "border-hairline");
-    expect(header).not.toHaveClass("border-b");
+    expect(header).toHaveClass("border-b");
     expect(header).not.toHaveClass("hover:bg-surfaceMuted/40");
   });
 
@@ -163,8 +163,11 @@ describe("estimate sheet branch header chrome", () => {
       { id: "construction-supervision", name: "Construction Supervision" },
     ]);
 
+    const branch = screen.getByLabelText("Mobilization + Demobilization");
+    const header = branch.querySelector(".min-h-10");
     const breadcrumbs = screen.getByLabelText("Mobilization + Demobilization breadcrumbs");
 
+    expect(header).not.toHaveClass("border-b");
     expect(breadcrumbs.nextElementSibling).toHaveClass("-mt-2");
   });
 
