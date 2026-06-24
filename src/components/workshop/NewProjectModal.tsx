@@ -18,6 +18,7 @@ type NewProjectModalProps = {
   onOptimisticProjectChange?: (snapshot: NewProjectOptimisticSnapshot) => void;
   googleMapsApiKey?: string;
   googleMapsMapId?: string | null;
+  clientOptions?: string[];
 };
 
 export function NewProjectModal({
@@ -25,6 +26,7 @@ export function NewProjectModal({
   onOptimisticProjectChange,
   googleMapsApiKey = "",
   googleMapsMapId = null,
+  clientOptions = [],
 }: NewProjectModalProps) {
   return (
     <Dialog
@@ -70,6 +72,7 @@ export function NewProjectModal({
                   showHeader={false}
                   googleMapsApiKey={googleMapsApiKey}
                   googleMapsMapId={googleMapsMapId}
+                  clientOptions={clientOptions}
                   onSuccess={onClose}
                   onOptimisticProjectChange={onOptimisticProjectChange}
                 />

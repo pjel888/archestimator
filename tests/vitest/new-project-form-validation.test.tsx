@@ -138,7 +138,7 @@ describe("NewProjectForm validation", () => {
     );
     expect(imageInput.closest("[data-project-image-panel]")).toHaveClass("aspect-[4/3]");
     expect(screen.getByRole("textbox", { name: "Project name" })).toHaveAttribute("name", "name");
-    expect(screen.getByRole("textbox", { name: "Client" })).toHaveAttribute("name", "clientName");
+    expect(screen.getByRole("combobox", { name: "Client" })).toHaveAttribute("name", "clientName");
     expect(screen.getByRole("combobox", { name: "Currency" })).toHaveValue("PHP");
     expect(screen.getByRole("textbox", { name: "Project Code" })).toHaveAttribute("name", "projectCode");
     expect(screen.getByRole("combobox", { name: "Location" })).toHaveAttribute("name", "location");
@@ -151,6 +151,25 @@ describe("NewProjectForm validation", () => {
     expect(screen.getByRole("button", { name: "Generate project code" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Close create project" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Create project" })).toBeEnabled();
+  });
+
+  it("lets project clients be selected from existing names or typed as a new client", async () => {
+    const user = userEvent.setup();
+
+    render(<NewProjectForm clientOptions={["Lewis Family", "Acme Developers"]} />);
+
+    const clientInput = screen.getByRole("combobox", { name: "Client" });
+    await user.click(clientInput);
+
+    expect(screen.getByRole("listbox", { name: "Client options" })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Lewis Family" }));
+    expect(clientInput).toHaveValue("Lewis Family");
+    expect(clientInput).toHaveAttribute("name", "clientName");
+
+    await user.clear(clientInput);
+    await user.type(clientInput, "New Client LLC");
+    expect(clientInput).toHaveValue("New Client LLC");
+    expect(screen.getByRole("option", { name: 'Create "New Client LLC"' })).toBeInTheDocument();
   });
 
   it("keeps the project code input controlled when the generated code arrives after first render", () => {

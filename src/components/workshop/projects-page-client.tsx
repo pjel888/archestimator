@@ -54,6 +54,7 @@ import type {
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardSetupStatus, type ProjectCardViewMode } from "./LiveProjectCard";
 import type { NewProjectOptimisticSnapshot } from "./NewProjectForm";
 import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
+import { createProjectClientOptions } from "./project-client-options";
 import { ProjectGroupSection } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
 
@@ -904,6 +905,10 @@ export function ProjectsPageClient({
     ],
     [optimisticProjectItems, optimisticRealProjectIds, serverProjectItems],
   );
+  const projectClientOptions = useMemo(
+    () => createProjectClientOptions(projectItems.map((item) => item.project.client_name ?? "")).map((option) => option.label),
+    [projectItems],
+  );
   const ownedProjectItems = useMemo(
     () => projectItems.filter((item) => item.accessKind === "owned"),
     [projectItems],
@@ -1704,6 +1709,7 @@ export function ProjectsPageClient({
             onOptimisticProjectChange={handleOptimisticProjectChange}
             googleMapsApiKey={googleMapsApiKey}
             googleMapsMapId={googleMapsMapId}
+            clientOptions={projectClientOptions}
           />
         )}
         {expandedProject ? (
@@ -1713,6 +1719,7 @@ export function ProjectsPageClient({
             onSaved={() => router.refresh()}
             googleMapsApiKey={googleMapsApiKey}
             googleMapsMapId={googleMapsMapId}
+            clientOptions={projectClientOptions}
             onDeleteProject={canDeleteExpandedProject
               ? (project) => {
                 setExpandedProject(null);

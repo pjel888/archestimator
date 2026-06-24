@@ -20,6 +20,8 @@ export type CreatableComboboxChange = {
 };
 
 type CreatableComboboxProps = {
+  id?: string;
+  name?: string;
   value: string;
   selectedId?: string | null;
   options: CreatableComboboxOption[];
@@ -57,6 +59,8 @@ function getOptionDomId(listboxId: string, optionId: string): string {
 }
 
 export function CreatableCombobox({
+  id,
+  name,
   value,
   selectedId,
   options,
@@ -145,6 +149,8 @@ export function CreatableCombobox({
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <ControlInput
+        id={id}
+        name={name}
         value={value}
         role="combobox"
         aria-label={ariaLabel}

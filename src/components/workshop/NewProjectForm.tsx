@@ -37,6 +37,7 @@ type NewProjectFormProps = {
   onOptimisticProjectChange?: (snapshot: NewProjectOptimisticSnapshot) => void;
   googleMapsApiKey?: string;
   googleMapsMapId?: string | null;
+  clientOptions?: string[];
   showHeader?: boolean;
 };
 
@@ -111,6 +112,7 @@ function locationFormData(projectId: string, selection: ProjectGooglePlaceSelect
 // the submit handler, never in render, so keeping it in the reducer (rather
 // than useState) avoids a pointless re-render every time it changes.
 type NewProjectFormFields = {
+  clientName: string;
   currencyCode: string;
   currencySearchValue: string;
   locationValue: string;
@@ -121,6 +123,7 @@ type NewProjectFormFields = {
 };
 
 type NewProjectFormFieldsAction =
+  | { type: "clientNameChanged"; value: string }
   | { type: "currencyChanged"; code: string; searchValue: string }
   | { type: "locationTextChanged"; value: string }
   | { type: "locationPlaceSelected"; selection: ProjectGooglePlaceSelection }
@@ -128,6 +131,7 @@ type NewProjectFormFieldsAction =
   | { type: "imageCleared"; previewUrl: string };
 
 const INITIAL_PROJECT_FORM_FIELDS: NewProjectFormFields = {
+  clientName: "",
   currencyCode: "PHP",
   currencySearchValue: "PHP",
   locationValue: "",
@@ -139,6 +143,8 @@ const INITIAL_PROJECT_FORM_FIELDS: NewProjectFormFields = {
 
 function projectFormFieldsReducer(state: NewProjectFormFields, action: NewProjectFormFieldsAction): NewProjectFormFields {
   switch (action.type) {
+    case "clientNameChanged":
+      return { ...state, clientName: action.value };
     case "currencyChanged":
       return { ...state, currencyCode: action.code, currencySearchValue: action.searchValue };
     case "locationTextChanged": {
@@ -172,6 +178,7 @@ export function NewProjectForm({
   onOptimisticProjectChange,
   googleMapsApiKey = "",
   googleMapsMapId = null,
+  clientOptions = [],
   showHeader = true,
 }: NewProjectFormProps) {
   const router = useNavigationRouter();
@@ -179,7 +186,7 @@ export function NewProjectForm({
   const statusId = useId();
   const [projectCode, setProjectCode] = useState(generateProjectCode);
   const [fields, dispatchFields] = useReducer(projectFormFieldsReducer, INITIAL_PROJECT_FORM_FIELDS);
-  const { currencyCode, currencySearchValue, locationValue, selectedPlace, locationPin, selectedImage, previewUrl } = fields;
+  const { clientName, currencyCode, currencySearchValue, locationValue, selectedPlace, locationPin, selectedImage, previewUrl } = fields;
   const [status, setStatus] = useState<CreateProjectStatus>({ state: "idle" });
   const isProjectNameInvalid =
     status.state === "error" && status.field === "projectName";
@@ -387,6 +394,8 @@ export function NewProjectForm({
               projectNameErrorId={statusId}
               isSubmitting={isSubmitting}
               projectCode={projectCode}
+              clientName={clientName}
+              clientOptions={clientOptions}
               currencyCode={currencyCode}
               currencySearchValue={currencySearchValue}
               googleMapsApiKey={googleMapsApiKey}
@@ -395,6 +404,7 @@ export function NewProjectForm({
                 if (isProjectNameInvalid) setStatus({ state: "idle" });
               }}
               onProjectCodeChange={(value) => setProjectCode(value.toUpperCase())}
+              onClientNameChange={(value) => dispatchFields({ type: "clientNameChanged", value })}
               onGenerateProjectCode={() => setProjectCode(generateProjectCode())}
               onCurrencyChange={({ code, searchValue }) => {
                 dispatchFields({ type: "currencyChanged", code, searchValue });

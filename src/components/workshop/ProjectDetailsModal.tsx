@@ -36,6 +36,7 @@ import {
 } from "@/components/workshop/NewProjectFormSections";
 import { ProjectAddressAutocomplete, type ProjectGooglePlaceSelection } from "@/components/workshop/ProjectAddressAutocomplete";
 import type { ProjectLocationPin } from "@/components/workshop/ProjectLocationMap";
+import { createProjectClientOptions } from "@/components/workshop/project-client-options";
 import { generateProjectCode } from "@/lib/projects/project-code";
 import { updateProjectDetails } from "@/lib/projects/actions";
 import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
@@ -49,6 +50,7 @@ type ProjectDetailsModalProps = {
   onSaved?: () => void;
   googleMapsApiKey?: string;
   googleMapsMapId?: string | null;
+  clientOptions?: string[];
 };
 
 type ProjectMetadata = {
@@ -93,6 +95,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
 }
 
 type ProjectDetailsState = {
+  clientName: string;
   currencyCode: string;
   currencySearchValue: string;
   projectCode: string;
@@ -113,6 +116,7 @@ type ProjectDetailsInitialStateArgs = {
 };
 
 type ProjectDetailsAction =
+  | { type: "clientName"; value: string }
   | { type: "projectCode"; value: string }
   | { type: "generateProjectCode" }
   | { type: "currency:select"; code: string; label: string }
@@ -132,6 +136,7 @@ function getInitialProjectDetailsState({
   initialCurrencyCode,
 }: ProjectDetailsInitialStateArgs): ProjectDetailsState {
   return {
+    clientName: project.client_name ?? "",
     currencyCode: initialCurrencyCode,
     currencySearchValue: initialCurrencyCode,
     projectCode: project.project_code ?? "",
@@ -156,6 +161,8 @@ function getInitialProjectDetailsState({
 
 function projectDetailsReducer(state: ProjectDetailsState, action: ProjectDetailsAction): ProjectDetailsState {
   switch (action.type) {
+    case "clientName":
+      return { ...state, clientName: action.value };
     case "projectCode":
       return { ...state, projectCode: action.value.toUpperCase() };
     case "generateProjectCode":
@@ -227,6 +234,7 @@ export function ProjectDetailsModal({
   onSaved,
   googleMapsApiKey = "",
   googleMapsMapId = null,
+  clientOptions = [],
 }: ProjectDetailsModalProps) {
   const metadata = readProjectMetadata(project.metadata);
   const fileInputId = useId();
@@ -237,6 +245,7 @@ export function ProjectDetailsModal({
     getInitialProjectDetailsState,
   );
   const {
+    clientName,
     currencyCode,
     currencySearchValue,
     projectCode,
@@ -253,6 +262,7 @@ export function ProjectDetailsModal({
     () => CREATE_PROJECT_CURRENCY_OPTIONS.find((option) => option.id === currencyCode) ?? null,
     [currencyCode],
   );
+  const projectClientOptions = useMemo(() => createProjectClientOptions(clientOptions), [clientOptions]);
   const imageUploadBusy = imageUpload.state === "uploading";
   const imagePreviewUrl = projectImage?.thumbnailUrl || projectImage?.url;
 
@@ -470,10 +480,23 @@ export function ProjectDetailsModal({
                             <FieldLabel>Project name</FieldLabel>
                             <ControlInput id="project-details-name" name="name" defaultValue={project.name} required className="h-8 bg-white/92 px-2 !text-[10px]" />
                           </label>
-                          <label htmlFor="project-details-client" className="space-y-1">
+                          <div className="space-y-1">
                             <FieldLabel>Client</FieldLabel>
-                            <ControlInput id="project-details-client" name="clientName" defaultValue={project.client_name ?? ""} placeholder="Client name" className="h-8 bg-white/92 px-2 !text-[10px]" />
-                          </label>
+                            <CreatableCombobox
+                              id="project-details-client"
+                              name="clientName"
+                              value={clientName}
+                              selectedId={projectClientOptions.find((option) => option.label === clientName)?.id ?? null}
+                              options={projectClientOptions}
+                              onChange={(change) => dispatchDetails({ type: "clientName", value: change.label })}
+                              ariaLabel="Client"
+                              placeholder="Client name"
+                              createLabel={(value) => `Create "${value}"`}
+                              emptyLabel="No clients match"
+                              dropdownPlacement="top"
+                              inputClassName="h-8 bg-white/92 px-2 !text-[10px]"
+                            />
+                          </div>
                           <div className="space-y-1">
                             <FieldLabel>Currency</FieldLabel>
                             <input type="hidden" name="currencyCode" value={currencyCode} />

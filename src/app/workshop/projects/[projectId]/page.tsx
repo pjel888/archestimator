@@ -13,7 +13,7 @@ import {
 } from "@/lib/repositories/project-estimate-sheets-repository";
 import { getProjectLocation } from "@/lib/repositories/project-location-repository";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
-import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import { getCurrentWorkspaceProject, listCurrentWorkspaceProjectClientNames } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ProjectDashboardPageProps = {
@@ -52,12 +52,13 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
         const projectLocationPromise = canEditPromise.then((canEdit) => (
           canEdit ? traced("project-dashboard.location", () => getProjectLocation(project.id)) : null
         ));
-        const [canEdit, estimateCount, recentEstimateSheets, projectActivityPage, projectLocation] = await Promise.all([
+        const [canEdit, estimateCount, recentEstimateSheets, projectActivityPage, projectLocation, clientOptions] = await Promise.all([
           canEditPromise,
           traced("project-dashboard.estimate-count", () => countProjectEstimateSheetsForProject(project.id)),
           traced("project-dashboard.recent-estimates", () => listRecentProjectEstimateSheets(project.id)),
           traced("project-dashboard.activity", () => listProjectActivityPage({ projectId: project.id, limit: 16 })),
           projectLocationPromise,
+          traced("project-dashboard.client-options", () => listCurrentWorkspaceProjectClientNames()),
         ]);
 
         return {
@@ -66,6 +67,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
           recentEstimateSheets,
           projectActivityPage,
           projectLocation,
+          clientOptions,
         };
       })
     : {
@@ -74,6 +76,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
         recentEstimateSheets: [],
         projectActivityPage: createEmptyProjectActivityPage(),
         projectLocation: null,
+        clientOptions: [],
       };
   const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const googleMapsMapId = process.env.GOOGLE_MAPS_MAP_ID ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? null;
@@ -89,6 +92,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
       projectActivityPage={dashboardData.projectActivityPage}
       googleMapsApiKey={googleMapsApiKey}
       googleMapsMapId={googleMapsMapId}
+      clientOptions={dashboardData.clientOptions}
     />
   );
 }

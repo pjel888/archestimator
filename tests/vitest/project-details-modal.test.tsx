@@ -154,6 +154,56 @@ describe("ProjectDetailsModal", () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
+  it("offers existing clients in the details modal while preserving new typed clients", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+
+    render(
+      <ProjectDetailsModal
+        project={PROJECT}
+        onClose={onClose}
+        onSaved={onSaved}
+        clientOptions={["Lewis Family", "Acme Developers"]}
+      />,
+    );
+
+    const clientInput = screen.getByRole("combobox", { name: "Client" });
+    await user.click(clientInput);
+    await user.click(screen.getByRole("option", { name: "Acme Developers" }));
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+
+    await waitFor(() => {
+      expect(updateProjectDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(updateProjectDetailsMock.mock.calls[0]?.[0].get("clientName")).toBe("Acme Developers");
+
+    updateProjectDetailsMock.mockClear();
+    onClose.mockClear();
+    onSaved.mockClear();
+    cleanup();
+
+    render(
+      <ProjectDetailsModal
+        project={PROJECT}
+        onClose={onClose}
+        onSaved={onSaved}
+        clientOptions={["Lewis Family", "Acme Developers"]}
+      />,
+    );
+
+    const nextClientInput = screen.getByRole("combobox", { name: "Client" });
+    await user.clear(nextClientInput);
+    await user.type(nextClientInput, "New Client LLC");
+    expect(screen.getByRole("option", { name: 'Create "New Client LLC"' })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+
+    await waitFor(() => {
+      expect(updateProjectDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(updateProjectDetailsMock.mock.calls[0]?.[0].get("clientName")).toBe("New Client LLC");
+  });
+
   it("saves selected Google place coordinates after the details payload", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

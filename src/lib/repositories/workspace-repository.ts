@@ -913,6 +913,29 @@ export const listCurrentWorkspaceProjects = cache(async () => {
   return listCurrentWorkspaceProjectsAppPath();
 });
 
+export const listCurrentWorkspaceProjectClientNames = cache(async () => {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("client_name")
+    .eq("workspace_id", workspace.id)
+    .not("client_name", "is", null)
+    .order("client_name", { ascending: true });
+
+  if (error) throw error;
+
+  const clientNames = new Map<string, string>();
+  for (const project of data ?? []) {
+    const label = project.client_name?.trim();
+    const key = label?.toLowerCase().replace(/\s+/g, " ");
+    if (!label || !key || clientNames.has(key)) continue;
+    clientNames.set(key, label);
+  }
+
+  return Array.from(clientNames.values());
+});
+
 async function listCurrentWorkspaceProjectsAppPath() {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 
 import { ProjectAddressAutocomplete, type ProjectGooglePlaceSelection } from "@/components/workshop/ProjectAddressAutocomplete";
 import { ProjectLocationMap, type ProjectLocationPin } from "@/components/workshop/ProjectLocationMap";
+import { CreatableCombobox } from "@/components/ui/creatable-combobox";
 import { ControlInput } from "@/components/ui/control-input";
 import { cn } from "@/lib/ui/cn";
 import { updateProjectDetails } from "@/lib/projects/actions";
@@ -17,6 +18,7 @@ import type { ProjectActivityItem, ProjectActivityPage } from "@/lib/repositorie
 import type { ProjectRecentEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type { ProjectLocationSummary } from "@/lib/repositories/project-location-repository";
 import type { Json, Tables } from "@/lib/supabase/types";
+import { createProjectClientOptions } from "./project-client-options";
 
 type ProjectMetadata = {
   readonly projectImageUrl?: string;
@@ -44,6 +46,7 @@ type ProjectDashboardClientProps = {
   readonly projectActivityPage: ProjectActivityPage;
   readonly googleMapsApiKey: string;
   readonly googleMapsMapId?: string | null;
+  readonly clientOptions?: string[];
 };
 
 function readProjectMetadata(value: Json): ProjectMetadata {
@@ -633,23 +636,28 @@ function ProjectActivityFeedPanel({ page }: { readonly page: ProjectActivityPage
 function ProjectIdentityFields({
   name,
   client,
+  clientOptions,
   location,
   googleMapsApiKey,
   locationSaveStatus,
   readOnly,
   onLocationChange,
+  onClientChange,
   onPlaceSelect,
 }: {
   readonly name: string;
   readonly client: string;
+  readonly clientOptions: readonly string[];
   readonly location: string;
   readonly googleMapsApiKey: string;
   readonly locationSaveStatus: string;
   readonly readOnly: boolean;
   readonly onLocationChange: (value: string) => void;
+  readonly onClientChange: (value: string) => void;
   readonly onPlaceSelect: (selection: ProjectGooglePlaceSelection) => Promise<void>;
 }) {
   const metadataInputClassName = cn(PROJECT_METADATA_INPUT_CLASS, readOnly && PROJECT_METADATA_READONLY_INPUT_CLASS);
+  const projectClientOptions = useMemo(() => createProjectClientOptions(clientOptions), [clientOptions]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-auto p-2">
@@ -666,15 +674,28 @@ function ProjectIdentityFields({
       </ProjectDataField>
 
       <ProjectDataField label="Client">
-        <ControlInput
-          name={readOnly ? undefined : "clientName"}
-          value={readOnly ? client : undefined}
-          defaultValue={readOnly ? undefined : client}
-          placeholder="Client name"
-          readOnly={readOnly}
-          aria-readonly={readOnly ? "true" : undefined}
-          className={cn(metadataInputClassName, "text-secondary")}
-        />
+        {readOnly ? (
+          <ControlInput
+            value={client}
+            placeholder="Client name"
+            readOnly
+            aria-readonly="true"
+            className={cn(metadataInputClassName, "text-secondary")}
+          />
+        ) : (
+          <CreatableCombobox
+            name="clientName"
+            value={client}
+            selectedId={projectClientOptions.find((option) => option.label === client)?.id ?? null}
+            options={projectClientOptions}
+            onChange={(change) => onClientChange(change.label)}
+            ariaLabel="Client"
+            placeholder="Client name"
+            createLabel={(value) => `Create "${value}"`}
+            emptyLabel="No clients match"
+            inputClassName={cn(metadataInputClassName, "text-secondary")}
+          />
+        )}
       </ProjectDataField>
 
       <ProjectDataField label="Project address">
@@ -768,6 +789,7 @@ export function ProjectDashboardClient({
   projectActivityPage,
   googleMapsApiKey,
   googleMapsMapId,
+  clientOptions = [],
 }: ProjectDashboardClientProps) {
   const metadata = useMemo(() => readProjectMetadata(project?.metadata ?? null), [project?.metadata]);
   const name = project?.name ?? fallback.name;
@@ -783,12 +805,17 @@ export function ProjectDashboardClient({
     projectLocation ? { latitude: projectLocation.latitude, longitude: projectLocation.longitude } : null
   ), [projectLocation]);
   const [addressValue, setAddressValue] = useState(location);
+  const [clientValue, setClientValue] = useState(client);
   const [locationPin, setLocationPin] = useState<ProjectLocationPin | null>(initialPin);
   const [locationSaveStatus, setLocationSaveStatus] = useState("");
 
   useEffect(() => {
     queueMicrotask(() => setAddressValue(location));
   }, [location]);
+
+  useEffect(() => {
+    queueMicrotask(() => setClientValue(client));
+  }, [client]);
 
   useEffect(() => {
     queueMicrotask(() => setLocationPin(initialPin));
@@ -842,12 +869,14 @@ export function ProjectDashboardClient({
             <ProjectIdentityFrame createdLabel={createdLabel} updatedLabel={updatedLabel}>
               <ProjectIdentityFields
                 name={name}
-                client={client}
+                client={clientValue}
+                clientOptions={clientOptions}
                 location={addressValue}
                 googleMapsApiKey={googleMapsApiKey}
                 locationSaveStatus={locationSaveStatus}
                 readOnly={false}
                 onLocationChange={setAddressValue}
+                onClientChange={setClientValue}
                 onPlaceSelect={handleGooglePlaceSelect}
               />
             </ProjectIdentityFrame>
@@ -856,12 +885,14 @@ export function ProjectDashboardClient({
           <ProjectIdentityFrame createdLabel={createdLabel} updatedLabel={updatedLabel}>
             <ProjectIdentityFields
               name={name}
-              client={client}
+              client={clientValue}
+              clientOptions={clientOptions}
               location={addressValue}
               googleMapsApiKey={googleMapsApiKey}
               locationSaveStatus=""
               readOnly
               onLocationChange={setAddressValue}
+              onClientChange={setClientValue}
               onPlaceSelect={handleGooglePlaceSelect}
             />
           </ProjectIdentityFrame>

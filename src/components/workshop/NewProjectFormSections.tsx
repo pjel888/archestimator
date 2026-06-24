@@ -16,6 +16,7 @@ import {
   type ProjectLocationPin,
 } from "@/components/workshop/ProjectLocationMap";
 import { CREATE_PROJECT_CURRENCY_OPTIONS } from "./new-project-form-currency-options";
+import { createProjectClientOptions } from "./project-client-options";
 
 // Re-export so existing importers (ProjectDetailsModal) keep working from the
 // canonical location without touching their import paths.
@@ -105,12 +106,15 @@ type ProjectFieldsProps = {
   projectNameErrorId?: string;
   isSubmitting: boolean;
   projectCode: string;
+  clientName: string;
+  clientOptions?: string[];
   currencyCode: string;
   currencySearchValue: string;
   googleMapsApiKey: string;
   locationValue: string;
   onProjectNameChange?: () => void;
   onProjectCodeChange: (value: string) => void;
+  onClientNameChange: (value: string) => void;
   onGenerateProjectCode: () => void;
   onCurrencyChange: (value: { code: string; searchValue: string }) => void;
   onLocationChange: (value: string) => void;
@@ -122,12 +126,15 @@ export function ProjectFields({
   projectNameErrorId,
   isSubmitting,
   projectCode,
+  clientName,
+  clientOptions = [],
   currencyCode,
   currencySearchValue,
   googleMapsApiKey,
   locationValue,
   onProjectNameChange,
   onProjectCodeChange,
+  onClientNameChange,
   onGenerateProjectCode,
   onCurrencyChange,
   onLocationChange,
@@ -135,6 +142,7 @@ export function ProjectFields({
 }: ProjectFieldsProps) {
   const locationInputId = useId();
   const selectedCurrencyOption = CREATE_PROJECT_CURRENCY_OPTIONS.find((option) => option.id === currencyCode) ?? null;
+  const projectClientOptions = createProjectClientOptions(clientOptions);
 
   return (
     <div data-create-project-fields className="grid gap-2">
@@ -156,17 +164,24 @@ export function ProjectFields({
           className={CREATE_PROJECT_INPUT_CLASS}
         />
       </label>
-      <label htmlFor="new-project-client" className="space-y-1">
+      <div className="space-y-1">
         <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
           Client
         </span>
-        <ControlInput
+        <CreatableCombobox
           id="new-project-client"
           name="clientName"
+          value={clientName}
+          selectedId={projectClientOptions.find((option) => option.label === clientName)?.id ?? null}
+          options={projectClientOptions}
+          onChange={(change) => onClientNameChange(change.label)}
+          ariaLabel="Client"
           placeholder="Client name"
-          className={CREATE_PROJECT_INPUT_CLASS}
+          createLabel={(value) => `Create "${value}"`}
+          emptyLabel="No clients match"
+          inputClassName={CREATE_PROJECT_INPUT_CLASS}
         />
-      </label>
+      </div>
       <div className="space-y-1">
         <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
           Currency
