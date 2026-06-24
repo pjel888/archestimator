@@ -181,7 +181,7 @@ const TIER_SHAPE = [
 
 const VALIDATION = [
   "At least 5 qualified discovery calls with teams who estimate today.",
-  "At least 2 beta users building a real or serious-demo estimate.",
+  "At least 2 active users building a real or serious-demo estimate.",
   "A clear signal on document handoff and proposal value.",
   "The support burden understood before pricing for scale.",
   "A Van Westendorp Price Sensitivity Meter study with target users.",

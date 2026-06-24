@@ -146,7 +146,7 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
         source: "§7.2, §9.2",
       },
       {
-        claim: "Beta onboarding and first-run flow with demo-data/reset rules.",
+        claim: "Onboarding and first-run flow with demo-data/reset rules.",
         status: "Planned",
         source: "§7.5, §18.3",
       },
@@ -220,7 +220,7 @@ export const ALL_CLAIM_ROWS: readonly ClaimRowData[] = CLAIM_GROUPS.flatMap((g) 
 /** The 3-row footer abbreviation (doc 06 §2.4). */
 export const FOOTER_CLAIM_ROWS: readonly ClaimRowData[] = [
   {
-    claim: "Pre-launch MVP. Live foundation: estimate tree, reusable library, Activity, proposal handoff.",
+    claim: "Live foundation: estimate tree, reusable library, Activity, proposal handoff.",
     status: "Live",
     source: "§7.2",
   },

@@ -27,7 +27,7 @@ export function WorkshopFeedbackModal({ className }: WorkshopFeedbackModalProps)
     <>
       <button
         type="button"
-        aria-label="Send beta feedback"
+        aria-label="Send feedback"
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
@@ -41,9 +41,9 @@ export function WorkshopFeedbackModal({ className }: WorkshopFeedbackModalProps)
       </button>
       <Modal
         open={open}
-        title="Beta feedback"
+        title="Feedback"
         description="Report workflow blockers, confusing screens, export issues, and missing estimating details."
-        closeLabel="Close beta feedback"
+        closeLabel="Close feedback"
         className="max-w-[680px]"
         bodyClassName="bg-surface p-3"
         onOpenChange={setOpen}

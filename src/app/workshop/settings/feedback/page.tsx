@@ -26,7 +26,7 @@ const betaFeedbackDateFormatter = new Intl.DateTimeFormat("en", {
 
 function feedbackNotice(error?: string, saved?: string) {
   if (saved) return { tone: "success" as const, text: "Feedback status updated." };
-  if (error === "forbidden") return { tone: "error" as const, text: "Only platform admins can review beta feedback." };
+  if (error === "forbidden") return { tone: "error" as const, text: "Only platform admins can review feedback." };
   if (error === "invalid") return { tone: "error" as const, text: "Choose a valid feedback status before saving." };
   if (error === "save") return { tone: "error" as const, text: "Feedback status could not be saved." };
   return null;
@@ -47,12 +47,12 @@ export default async function BetaFeedbackReviewPage({
 
   return (
     <WorkshopPageShell
-      title="Beta feedback"
+      title="Feedback review"
       eyebrow="Settings"
-      description="Review authenticated beta feedback and keep triage status current."
+      description="Review authenticated feedback and keep triage status current."
       breadcrumbs={[
         { label: "Settings", href: "/workshop/settings" },
-        "Beta feedback",
+        "Feedback review",
       ]}
       contentClassName="overflow-y-auto p-2"
     >
@@ -73,7 +73,7 @@ export default async function BetaFeedbackReviewPage({
         {!queue.authorized ? (
           <section className="border border-hairline bg-white p-2">
             <p className="text-[10px] leading-4 text-tertiary">
-              Only platform admins can review beta feedback.
+              Only platform admins can review feedback.
             </p>
           </section>
         ) : (
@@ -102,11 +102,11 @@ export default async function BetaFeedbackReviewPage({
 
             <section className="border border-hairline bg-white">
               <div className="border-b border-hairline p-2 text-[10px] leading-4 text-tertiary">
-                Showing {queue.submissions.length} latest beta feedback submissions.
+                Showing {queue.submissions.length} latest feedback submissions.
               </div>
               {queue.submissions.length === 0 ? (
                 <p className="p-2 text-[10px] leading-4 text-tertiary">
-                  No beta feedback matches this view.
+                  No feedback matches this view.
                 </p>
               ) : (
                 <div className="overflow-x-auto">

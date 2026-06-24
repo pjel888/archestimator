@@ -6,7 +6,7 @@ import { sanitizeNextPath } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Start free — Archestimator",
-  description: "Request access to the Archestimator closed beta.",
+  description: "Estimating and proposal workspace for AEC teams. Build structured estimates from your own prices and suppliers.",
   robots: { index: false, follow: false },
   alternates: { canonical: "/signup" },
 };
@@ -21,7 +21,7 @@ export default async function SignupPage({
 
   // L-FUN-2 GATED: when self-serve is enabled, replace <ClosedBetaGate> with
   // <SignupForm>. Until then the signup route is a request-access gate that
-  // routes beta requests through the /contact intake with intent=beta-request.
+  // routes access requests through the /contact intake with intent=started.
   return (
     <AuthLayout route="signup" sent={sent} errorCode={error}>
       <ClosedBetaGate next={safeNext} />

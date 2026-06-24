@@ -432,7 +432,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
         if (cancelled) return;
         setInviteDeliveryConfigured(false);
         setInviteDeliveryMessage(
-          "Teamspace invite delivery status could not be verified. Send beta invites manually outside the app.",
+          "Teamspace invite delivery status could not be verified. Send invites manually outside the app.",
         );
       }
     }

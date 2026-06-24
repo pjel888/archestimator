@@ -84,5 +84,5 @@ export async function getClosedBetaAccessForEmail({
 }
 
 export function buildClosedBetaAccessPath(status: ClosedBetaAccessStatus) {
-  return status === "revoked" ? "/beta/access-required?status=revoked" : "/beta/access-required";
+  return status === "revoked" ? "/access-required?status=revoked" : "/access-required";
 }

@@ -113,6 +113,21 @@ const nextConfig: NextConfig = {
         destination: "/workshop/projects/:projectId/data",
         permanent: true,
       },
+      {
+        source: "/beta/access-required",
+        destination: "/access-required",
+        permanent: false,
+      },
+      {
+        source: "/beta",
+        destination: "/access-required",
+        permanent: false,
+      },
+      {
+        source: "/workshop/settings/beta-users",
+        destination: "/workshop/settings/users",
+        permanent: false,
+      },
     ];
   },
   async headers() {

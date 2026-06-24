@@ -1,6 +1,6 @@
 const SUPPORT_EMAIL = "support@archestimator.com";
 
-type ContactInquiryType = "early-access" | "walkthrough" | "general" | "feedback";
+type ContactInquiryType = "started" | "walkthrough" | "general" | "feedback";
 
 type SupportMailtoInput = {
   name: string;
@@ -11,18 +11,19 @@ type SupportMailtoInput = {
 };
 
 const inquiryLabels: Record<ContactInquiryType, string> = {
-  "early-access": "Early access request",
+  started: "Getting started",
   walkthrough: "Product walkthrough request",
   feedback: "Product feedback",
   general: "General question",
 };
 
 export function normalizeInquiryType(value: string): ContactInquiryType {
-  if (value === "access") return "early-access";
+  if (value === "access") return "started";
   if (value === "demo") return "walkthrough";
   if (value === "feedback") return "feedback";
   if (value === "walkthrough") return "walkthrough";
-  if (value === "early-access") return "early-access";
+  if (value === "started") return "started";
+  if (value === "early-access") return "started";
   return "general";
 }
 

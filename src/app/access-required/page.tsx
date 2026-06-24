@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const SUPPORT_EMAIL = "support@archestimator.com";
 const SUPPORT_MAILTO =
-  "mailto:support@archestimator.com?subject=Archestimator%20beta%20access";
+  "mailto:support@archestimator.com?subject=Archestimator%20access";
 
 export default function BetaAccessRequiredPage({
   searchParams,
@@ -15,9 +15,9 @@ export default function BetaAccessRequiredPage({
         <div className="w-full rounded-xs border border-hairline bg-white p-3 shadow-[0_18px_60px_-44px_rgba(17,24,39,0.45)]">
           <div className="border-b border-hairline pb-2">
             <p className="text-[8px] font-medium uppercase tracking-normal text-muted">Archestimator</p>
-            <h1 className="mt-1 text-[12px] font-medium tracking-normal text-ink">Invite-only beta access</h1>
+            <h1 className="mt-1 text-[12px] font-medium tracking-normal text-ink">Invite-only access</h1>
             <p className="mt-1 text-[10px] leading-4 text-muted">
-              This account is signed in, but it is not currently enabled for the closed beta.
+              This account is signed in, but it is not currently enabled for access.
             </p>
           </div>
 
@@ -58,7 +58,7 @@ async function BetaAccessStatusCopy({
     >
       {isRevoked
         ? `Access for this account has been paused. Email ${SUPPORT_EMAIL} if this looks wrong.`
-        : `Beta access is granted manually while the product is in closed testing. Email ${SUPPORT_EMAIL} with the account you want enabled.`}
+        : `Access is granted manually. Email ${SUPPORT_EMAIL} with the account you want enabled.`}
     </div>
   );
 }

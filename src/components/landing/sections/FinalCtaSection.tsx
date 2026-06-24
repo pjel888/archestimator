@@ -1,11 +1,10 @@
 import { LandingCTAs } from "./LandingCTAs";
-import { MaturityTag } from "@/components/landing/shell/MaturityTag";
 
 /**
  * FinalCtaSection - public page closing CTA.
  *
- * Calm, not loud. Restates the hook, carries both CTAs, persistent maturity
- * tag. Sits on a closing glass panel. RSC; `isLoggedIn` swaps the primary.
+ * Calm, not loud. Restates the hook and carries both CTAs.
+ * Sits on a closing glass panel. RSC; `isLoggedIn` swaps the primary.
  */
 export interface FinalCtaSectionProps {
   isLoggedIn?: boolean;
@@ -32,12 +31,6 @@ export function FinalCtaSection({ isLoggedIn = false }: FinalCtaSectionProps) {
           send a proposal your client can actually review and approve.
         </p>
         <LandingCTAs isLoggedIn={isLoggedIn} location="final-cta" className="mt-[var(--landing-space-sm)]" />
-        <div className="mt-[var(--landing-space-xs)] flex items-center gap-[var(--landing-space-2xs)]">
-          <MaturityTag size="md" />
-          <span className="text-landing-text-caption text-landing-ink-muted">
-            Closed beta access is founder-led and no card is required.
-          </span>
-        </div>
       </div>
     </section>
   );

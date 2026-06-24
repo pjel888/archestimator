@@ -12,7 +12,7 @@ import { StatusPill } from "@/components/landing/shared/StatusPill";
 export const metadata: Metadata = buildLandingMetadata({
   title: "Trust",
   description:
-    "What Archestimator will and will not claim. Trust, for a pre-launch product, comes from honesty — the full claims ledger, the privacy posture, the security as shipped, and the maturity plainly stated.",
+    "What Archestimator will and will not claim. Trust comes from honesty — the full claims ledger, the privacy posture, the security as shipped, and the maturity plainly stated.",
   path: "/trust",
 });
 
@@ -29,7 +29,7 @@ export default async function TrustPage() {
             eyebrow="Trust"
             accentRail
             heading="What we will and will not claim."
-            lead="Trust, for a pre-launch product, comes from honesty. So here is exactly what Archestimator does today, what is improving, what is on the roadmap, and what it is not."
+            lead="Trust comes from honesty. So here is exactly what Archestimator does today, what is improving, what is on the roadmap, and what it is not."
           >
             {null}
           </SectionShell>
@@ -164,7 +164,7 @@ const SECURITY_CLAIMS = [
 ] as const;
 
 const LIMITATIONS = [
-  "Pre-launch MVP, not production-hardened enterprise SaaS.",
+  "A focused tool for working estimators, not enterprise SaaS.",
   "AI is on the roadmap, not in the product today.",
   "Exports are working documents, not immutable issued records, legal documents, or POs.",
   "Not procurement, ERP, or payment execution.",

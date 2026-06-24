@@ -48,7 +48,7 @@ export function WorkshopSettingsModal({
       <Modal
         open={open}
         title="Settings"
-        description="Manage account, workspace, and beta operations."
+        description="Manage account, workspace, and access operations."
         closeLabel="Close settings"
         className="max-w-[920px]"
         bodyClassName="bg-white p-0"

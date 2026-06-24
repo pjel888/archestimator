@@ -23,7 +23,7 @@ type ContactPageProps = {
 function parseContactIntent(value: string | string[] | undefined): ContactIntent {
   const intent = Array.isArray(value) ? value[0] : value;
   if (intent === "walkthrough") return "walkthrough";
-  if (intent === "early-access") return "early-access";
+  if (intent === "started") return "started";
   return "general";
 }
 

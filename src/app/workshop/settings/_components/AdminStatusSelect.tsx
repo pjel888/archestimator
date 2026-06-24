@@ -4,7 +4,7 @@ import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropd
 import { cn } from "@/lib/ui/cn";
 
 /**
- * Client island for the platform-admin settings pages. The beta-users and
+ * Client island for the platform-admin settings pages. The users and
  * feedback review pages stay server components; only this value picker
  * hydrates. The hidden native control inside `DropdownSelect` serializes
  * `name=value` into the surrounding form — including the empty string, so

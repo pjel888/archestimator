@@ -67,21 +67,21 @@ const supportSettings = [
     href: "/workshop/feedback",
     icon: <EnvelopeSimple size={15} weight="regular" aria-hidden="true" />,
     id: "feedback",
-    notes: ["Beta feedback", "Workflow blockers", "Proposal or export issues"],
+    notes: ["Product feedback", "Workflow blockers", "Proposal or export issues"],
     title: "Send feedback",
   },
   {
     category: "Support",
-    description: "Request account deletion, data export, or beta support follow-up.",
+    description: "Request account deletion, data export, or support follow-up.",
     href: "mailto:support@archestimator.com",
     icon: <Lifebuoy size={15} weight="regular" aria-hidden="true" />,
     id: "data-requests",
-    notes: ["Data export", "Account deletion", "Closed beta support"],
+    notes: ["Data export", "Account deletion", "Support follow-up"],
     title: "Data requests",
   },
   {
     category: "Support",
-    description: "Review beta terms, privacy status, and estimate accuracy limits.",
+    description: "Review terms, privacy status, and estimate accuracy limits.",
     href: "/terms",
     icon: <FileText size={15} weight="regular" aria-hidden="true" />,
     id: "terms-privacy",
@@ -92,22 +92,22 @@ const supportSettings = [
 
 const platformSettings = [
   {
-    category: "Beta operations",
-    description: "Add, activate, revoke, and annotate closed beta allowlist rows.",
-    href: "/workshop/settings/beta-users",
+    category: "Access operations",
+    description: "Add, activate, revoke, and annotate allowlist rows.",
+    href: "/workshop/settings/users",
     icon: <UsersThree size={15} weight="regular" aria-hidden="true" />,
-    id: "beta-users",
-    notes: ["Allowlist rows", "Access status", "Beta user notes"],
-    title: "Beta users",
+    id: "users",
+    notes: ["Allowlist rows", "Access status", "User notes"],
+    title: "Users",
   },
   {
-    category: "Beta operations",
-    description: "Review authenticated beta feedback and keep triage status current.",
+    category: "Access operations",
+    description: "Review authenticated feedback and keep triage status current.",
     href: "/workshop/settings/feedback",
     icon: <Wrench size={15} weight="regular" aria-hidden="true" />,
-    id: "beta-feedback",
-    notes: ["Authenticated feedback", "Triage status", "Beta workflow evidence"],
-    title: "Beta feedback",
+    id: "feedback-triage",
+    notes: ["Authenticated feedback", "Triage status", "Workflow evidence"],
+    title: "Feedback triage",
   },
 ] as const satisfies readonly SettingsPage[];
 
@@ -117,9 +117,9 @@ const baseSettingsGroups: readonly SettingsGroup[] = [
 ] as const;
 
 const platformSettingsGroup: SettingsGroup = {
-  id: "beta-operations",
+  id: "access-operations",
   pages: platformSettings,
-  title: "Beta operations",
+  title: "Access operations",
 } as const;
 
 function SettingsRailRow({

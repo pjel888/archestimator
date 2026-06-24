@@ -7,7 +7,7 @@ import type { Database } from "@/lib/supabase/types";
 
 const PROTECTED_PREFIXES = ["/workshop"];
 const AUTH_ROUTES = [LOGIN_PATH];
-const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share", "/beta"];
+const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share", "/access-required"];
 const MARKETING_PAGE_PATHS = new Set(["/", "/about", "/features", "/pricing", "/contact", "/privacy", "/terms"]);
 const MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate";
 const SENSITIVE_ROUTE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";

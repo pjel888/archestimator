@@ -31,11 +31,11 @@ const betaUserDateFormatter = new Intl.DateTimeFormat("en", {
 const statusFilterOptions = [{ value: "", label: "All statuses" }, ...statusOptions];
 
 function betaUserNotice(params: { created?: string; error?: string; saved?: string }) {
-  if (params.created) return { tone: "success" as const, text: "Beta user added to the allowlist." };
-  if (params.saved) return { tone: "success" as const, text: "Beta user access updated." };
-  if (params.error === "forbidden") return { tone: "error" as const, text: "Only platform admins can manage beta users." };
-  if (params.error === "invalid") return { tone: "error" as const, text: "Enter a valid beta email and status." };
-  if (params.error === "save") return { tone: "error" as const, text: "Beta user access could not be saved." };
+  if (params.created) return { tone: "success" as const, text: "User added to the allowlist." };
+  if (params.saved) return { tone: "success" as const, text: "User access updated." };
+  if (params.error === "forbidden") return { tone: "error" as const, text: "Only platform admins can manage users." };
+  if (params.error === "invalid") return { tone: "error" as const, text: "Enter a valid email and status." };
+  if (params.error === "save") return { tone: "error" as const, text: "User access could not be saved." };
   return null;
 }
 
@@ -55,12 +55,12 @@ export default async function BetaUsersPage({
 
   return (
     <WorkshopPageShell
-      title="Beta users"
+      title="Users"
       eyebrow="Settings"
-      description="Manage the closed beta email allowlist without exposing it to regular members."
+      description="Manage the email allowlist without exposing it to regular members."
       breadcrumbs={[
         { label: "Settings", href: "/workshop/settings" },
-        "Beta users",
+        "Users",
       ]}
       contentClassName="overflow-y-auto p-2"
     >
@@ -81,13 +81,13 @@ export default async function BetaUsersPage({
         {!queue.authorized ? (
           <section className="border border-hairline bg-white p-2">
             <p className="text-[10px] leading-4 text-tertiary">
-              Only platform admins can manage beta users.
+              Only platform admins can manage users.
             </p>
           </section>
         ) : (
           <>
             <section className="border border-hairline bg-white p-2">
-              <h2 className="text-[11px] font-medium leading-4 text-ink">Add beta user</h2>
+              <h2 className="text-[11px] font-medium leading-4 text-ink">Add user</h2>
               <form action={createClosedBetaAllowlistEntry} className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)_auto] md:items-end">
                 <label htmlFor="beta-allowlist-email" className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                   Google email
@@ -124,7 +124,7 @@ export default async function BetaUsersPage({
               </form>
             </section>
 
-            <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/workshop/settings/beta-users">
+            <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/workshop/settings/users">
               <div className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                 Status
                 <AdminStatusSelect
@@ -148,11 +148,11 @@ export default async function BetaUsersPage({
 
             <section className="border border-hairline bg-white">
               <div className="border-b border-hairline p-2 text-[10px] leading-4 text-tertiary">
-                Showing {queue.rows.length} latest beta allowlist rows.
+                Showing {queue.rows.length} latest allowlist rows.
               </div>
               {queue.rows.length === 0 ? (
                 <p className="p-2 text-[10px] leading-4 text-tertiary">
-                  No beta users match this view.
+                  No users match this view.
                 </p>
               ) : (
                 <div className="overflow-x-auto">

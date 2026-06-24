@@ -8,7 +8,7 @@ import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
  *
  * Excluded (per doc 23 §7 + doc 13 §4): /login, /signup (noindex,nofollow
  * conversion dead-ends), /newdesign/** (preview), /legacy (rollback host),
- * /workshop/** (auth-gated app), /beta/* (auth-gated).
+ * /workshop/** (auth-gated app), /access-required (auth-gated).
  *
  * L-SEO-1 GATED: the origin is a placeholder until the production domain is
  * confirmed; the sitemap uses LANDING_SITE_ORIGIN so it updates in one place.

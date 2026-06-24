@@ -11,7 +11,7 @@ import {
 } from "@/lib/auth/beta-allowlist-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const betaUsersPath = "/workshop/settings/beta-users";
+const betaUsersPath = "/workshop/settings/users";
 
 type ClosedBetaAllowlistMutationRpcClient = {
   rpc: (

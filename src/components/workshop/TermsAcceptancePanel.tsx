@@ -64,7 +64,7 @@ export function TermsAcceptancePanel({
             Review and accept Terms
           </h1>
           <p className="mt-1 max-w-2xl text-[10px] leading-4 text-tertiary">
-            Protected workshop access requires affirmative acceptance of the current closed-beta Terms of Service.
+            Protected workshop access requires affirmative acceptance of the current Terms of Service.
             {userEmail ? ` Signed in as ${userEmail}.` : null}
           </p>
         </div>

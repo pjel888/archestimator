@@ -5,7 +5,7 @@ import { EnvelopeOpen } from "@phosphor-icons/react/dist/ssr";
 
 import { buildSupportMailto, normalizeInquiryType, SUPPORT_EMAIL } from "./contact-mailto";
 
-export type ContactIntent = "early-access" | "walkthrough" | "general";
+export type ContactIntent = "started" | "walkthrough" | "general";
 type ContactInquiryType = ContactIntent | "feedback";
 
 type ContactFormState = {
@@ -54,7 +54,7 @@ function contactFormReducer(state: ContactFormState, action: ContactFormAction):
   }
 }
 
-export function ContactForm({ initialIntent = "early-access" }: { initialIntent?: ContactIntent }) {
+export function ContactForm({ initialIntent = "started" }: { initialIntent?: ContactIntent }) {
   const [formState, dispatchForm] = useReducer(contactFormReducer, initialIntent, getInitialContactFormState);
   const { name, email, org, inquiryType, message, mailtoLink, errorMsg } = formState;
 
@@ -201,7 +201,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
               onChange={(e) => dispatchForm({ type: "inquiry", value: normalizeInquiryType(e.target.value) })}
               className="min-h-10 w-full appearance-none rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
             >
-              <option value="early-access">Request early access</option>
+              <option value="started">Start with an estimate</option>
               <option value="walkthrough">Book a walkthrough</option>
               <option value="feedback">Share product feedback</option>
               <option value="general">General question</option>

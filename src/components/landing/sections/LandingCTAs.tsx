@@ -7,7 +7,7 @@ import { cn } from "@/lib/ui/cn";
  * Signed-in visitors go directly to the workspace.
  */
 
-const REQUEST_EARLY_ACCESS_HREF = "/contact?intent=early-access";
+const START_HREF = "/contact?intent=started";
 const BOOK_WALKTHROUGH_HREF = "/contact?intent=walkthrough";
 
 export interface LandingCTAsProps {
@@ -28,8 +28,8 @@ export function LandingCTAs({
   secondary = true,
   location = "hero",
 }: LandingCTAsProps) {
-  const primaryHref = isLoggedIn ? "/workshop" : REQUEST_EARLY_ACCESS_HREF;
-  const primaryLabel = isLoggedIn ? "Open workspace" : "Request early access";
+  const primaryHref = isLoggedIn ? "/workshop" : START_HREF;
+  const primaryLabel = isLoggedIn ? "Open workspace" : "Start with an estimate";
   return (
     <div
       className={cn(

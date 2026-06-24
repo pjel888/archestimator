@@ -29,12 +29,12 @@ describe("contact form support mailto", () => {
       name: "Pat Founder",
       email: "pat@example.com",
       org: "  ",
-      inquiryType: "early-access",
-      message: "Please add this Google account to the beta.",
+      inquiryType: "started",
+      message: "Please add this Google account to the allowlist.",
     });
 
     expect(decodeURIComponent(mailto)).toContain("Organization: Not provided");
-    expect(decodeURIComponent(mailto)).toContain("Inquiry type: Early access request");
+    expect(decodeURIComponent(mailto)).toContain("Inquiry type: Getting started");
   });
 
   it("preselects walkthrough intent when routed from the landing CTA", () => {

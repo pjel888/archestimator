@@ -18,20 +18,20 @@ export default async function WorkshopFeedbackPage({
 }) {
   const params = await searchParams;
   const errorMessage = feedbackErrorMessage(params.error);
-  const fallbackMailto = "mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback";
+  const fallbackMailto = "mailto:support@archestimator.com?subject=Archestimator%20feedback";
 
   return (
     <WorkshopPageShell
-      title="Beta feedback"
+      title="Feedback"
       eyebrow="Support"
-      description="Report workflow blockers, confusing screens, export issues, and missing estimating details during the closed beta."
+      description="Report workflow blockers, confusing screens, export issues, and missing estimating details."
       breadcrumbs={[{ label: "Workshop", href: "/workshop" }, "Feedback"]}
       contentClassName="overflow-y-auto p-2"
     >
       <div className="space-y-3">
         {params.saved ? (
           <output className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
-            Feedback saved. Philip will review beta issues during the monitoring window.
+            Feedback saved. Philip will review submitted issues.
           </output>
         ) : null}
         {params.fallback ? (

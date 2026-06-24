@@ -166,7 +166,7 @@ export default async function AboutPage() {
 }
 
 const LIMITATIONS = [
-  "Pre-launch MVP, not production-hardened enterprise SaaS.",
+  "A focused tool for working estimators, not enterprise SaaS.",
   "AI is on the roadmap, not in the product today.",
   "Exports are working documents, not immutable issued records, legal documents, or POs.",
   "Not procurement, ERP, or payment execution.",
