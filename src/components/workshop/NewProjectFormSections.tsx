@@ -1,10 +1,11 @@
 "use client";
 
+import { useId } from "react";
 import { MagicWand, MapPin, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
-import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
+import { CreatableCombobox } from "@/components/ui/creatable-combobox";
 import { cn } from "@/lib/ui/cn";
 import {
   ProjectAddressAutocomplete,
@@ -14,6 +15,11 @@ import {
   ProjectLocationMap,
   type ProjectLocationPin,
 } from "@/components/workshop/ProjectLocationMap";
+import { CREATE_PROJECT_CURRENCY_OPTIONS } from "./new-project-form-currency-options";
+
+// Re-export so existing importers (ProjectDetailsModal) keep working from the
+// canonical location without touching their import paths.
+export { CREATE_PROJECT_CURRENCY_OPTIONS } from "./new-project-form-currency-options";
 
 export type CreateProjectStatus =
   | { state: "idle" }
@@ -38,28 +44,6 @@ type CreateProjectFooterProps = {
 const CREATE_PROJECT_FIELD_LABEL_CLASS =
   "text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary";
 const CREATE_PROJECT_INPUT_CLASS = "h-8 bg-white/92 px-2 !text-[10px]";
-export const CREATE_PROJECT_CURRENCY_OPTIONS: CreatableComboboxOption[] = [
-  { id: "PHP", label: "PHP", description: "Philippine peso" },
-  { id: "USD", label: "USD", description: "US dollar" },
-  { id: "EUR", label: "EUR", description: "Euro" },
-  { id: "GBP", label: "GBP", description: "British pound" },
-  { id: "JPY", label: "JPY", description: "Japanese yen" },
-  { id: "SGD", label: "SGD", description: "Singapore dollar" },
-  { id: "AUD", label: "AUD", description: "Australian dollar" },
-  { id: "CAD", label: "CAD", description: "Canadian dollar" },
-  { id: "HKD", label: "HKD", description: "Hong Kong dollar" },
-  { id: "CNY", label: "CNY", description: "Chinese yuan" },
-  { id: "KRW", label: "KRW", description: "South Korean won" },
-  { id: "THB", label: "THB", description: "Thai baht" },
-  { id: "IDR", label: "IDR", description: "Indonesian rupiah" },
-  { id: "MYR", label: "MYR", description: "Malaysian ringgit" },
-  { id: "VND", label: "VND", description: "Vietnamese dong" },
-  { id: "INR", label: "INR", description: "Indian rupee" },
-  { id: "AED", label: "AED", description: "UAE dirham" },
-  { id: "SAR", label: "SAR", description: "Saudi riyal" },
-  { id: "CHF", label: "CHF", description: "Swiss franc" },
-  { id: "NZD", label: "NZD", description: "New Zealand dollar" },
-];
 
 export function CreateProjectHeader() {
   return (
@@ -149,6 +133,7 @@ export function ProjectFields({
   onLocationChange,
   onLocationPlaceSelect,
 }: ProjectFieldsProps) {
+  const locationInputId = useId();
   const selectedCurrencyOption = CREATE_PROJECT_CURRENCY_OPTIONS.find((option) => option.id === currencyCode) ?? null;
 
   return (
@@ -220,11 +205,12 @@ export function ProjectFields({
         onChange={onProjectCodeChange}
         onGenerate={onGenerateProjectCode}
       />
-      <label className="space-y-1">
+      <label htmlFor={locationInputId} className="space-y-1">
         <span className={CREATE_PROJECT_FIELD_LABEL_CLASS}>
           Location
         </span>
         <ProjectAddressAutocomplete
+          id={locationInputId}
           apiKey={googleMapsApiKey}
           name="location"
           value={locationValue}

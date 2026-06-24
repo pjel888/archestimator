@@ -19,6 +19,7 @@ export type ProjectGooglePlaceSelection = {
 type ProjectAddressAutocompleteProps = {
   readonly apiKey: string;
   readonly name?: string;
+  readonly id?: string;
   readonly value: string;
   readonly readOnly: boolean;
   readonly inputClassName?: string;
@@ -199,6 +200,7 @@ function usePlacesLibraryState() {
 export function ProjectAddressAutocomplete({
   apiKey,
   name,
+  id,
   value,
   readOnly,
   inputClassName,
@@ -213,7 +215,8 @@ export function ProjectAddressAutocomplete({
   const [isPending, startTransition] = useTransition();
   const isFocusedRef = useRef(false);
   const sessionTokenRef = useRef<unknown>(null);
-  const inputId = useId();
+  const generatedInputId = useId();
+  const inputId = id ?? generatedInputId;
   const listboxId = `${inputId}-suggestions`;
   const canUseGooglePlaces = !readOnly && hasGoogleMapsApiKey(apiKey);
   const {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useReducer, useState, type FormEvent } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 
 import { createEstimateSheetDraft } from "@/lib/estimates/actions";
@@ -105,6 +105,68 @@ function locationFormData(projectId: string, selection: ProjectGooglePlaceSelect
   return formData;
 }
 
+// Related form-field state grouped so one logical update (e.g. picking a
+// location) dispatches a single transition instead of fanning out across many
+// independent useState calls. selectedPlace lives here too: it is read only in
+// the submit handler, never in render, so keeping it in the reducer (rather
+// than useState) avoids a pointless re-render every time it changes.
+type NewProjectFormFields = {
+  currencyCode: string;
+  currencySearchValue: string;
+  locationValue: string;
+  selectedPlace: ProjectGooglePlaceSelection | null;
+  locationPin: ProjectLocationPin | null;
+  selectedImage: File | null;
+  previewUrl: string;
+};
+
+type NewProjectFormFieldsAction =
+  | { type: "currencyChanged"; code: string; searchValue: string }
+  | { type: "locationTextChanged"; value: string }
+  | { type: "locationPlaceSelected"; selection: ProjectGooglePlaceSelection }
+  | { type: "imageChosen"; image: File; previewUrl: string }
+  | { type: "imageCleared"; previewUrl: string };
+
+const INITIAL_PROJECT_FORM_FIELDS: NewProjectFormFields = {
+  currencyCode: "PHP",
+  currencySearchValue: "PHP",
+  locationValue: "",
+  selectedPlace: null,
+  locationPin: null,
+  selectedImage: null,
+  previewUrl: "",
+};
+
+function projectFormFieldsReducer(state: NewProjectFormFields, action: NewProjectFormFieldsAction): NewProjectFormFields {
+  switch (action.type) {
+    case "currencyChanged":
+      return { ...state, currencyCode: action.code, currencySearchValue: action.searchValue };
+    case "locationTextChanged": {
+      if (state.locationValue === action.value) return state;
+      // Typing a new address invalidates any previously chosen place + pin.
+      const clearPlace = !state.selectedPlace || state.selectedPlace.addressText !== action.value;
+      return {
+        ...state,
+        locationValue: action.value,
+        selectedPlace: clearPlace ? null : state.selectedPlace,
+        locationPin: clearPlace ? null : state.locationPin,
+      };
+    }
+    case "locationPlaceSelected":
+      return {
+        ...state,
+        selectedPlace: action.selection,
+        locationPin: { latitude: action.selection.latitude, longitude: action.selection.longitude },
+      };
+    case "imageChosen":
+      return { ...state, selectedImage: action.image, previewUrl: action.previewUrl };
+    case "imageCleared":
+      return { ...state, selectedImage: null, previewUrl: action.previewUrl };
+    default:
+      return state;
+  }
+}
+
 export function NewProjectForm({
   onSuccess,
   onOptimisticProjectChange,
@@ -116,13 +178,8 @@ export function NewProjectForm({
   const imageInputId = useId();
   const statusId = useId();
   const [projectCode, setProjectCode] = useState(generateProjectCode);
-  const [currencyCode, setCurrencyCode] = useState("PHP");
-  const [currencySearchValue, setCurrencySearchValue] = useState("PHP");
-  const [locationValue, setLocationValue] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState<ProjectGooglePlaceSelection | null>(null);
-  const [locationPin, setLocationPin] = useState<ProjectLocationPin | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [fields, dispatchFields] = useReducer(projectFormFieldsReducer, INITIAL_PROJECT_FORM_FIELDS);
+  const { currencyCode, currencySearchValue, locationValue, selectedPlace, locationPin, selectedImage, previewUrl } = fields;
   const [status, setStatus] = useState<CreateProjectStatus>({ state: "idle" });
   const isProjectNameInvalid =
     status.state === "error" && status.field === "projectName";
@@ -150,31 +207,23 @@ export function NewProjectForm({
       return;
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSelectedImage(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    dispatchFields({ type: "imageChosen", image: file, previewUrl: URL.createObjectURL(file) });
     setStatus({ state: "idle" });
   }
 
   function clearProjectImage() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSelectedImage(null);
-    setPreviewUrl("");
+    dispatchFields({ type: "imageCleared", previewUrl: "" });
     setStatus({ state: "idle" });
   }
 
   function handleLocationChange(value: string) {
-    setLocationValue(value);
     setStatus((current) => current.state === "error" && current.field !== "projectName" ? { state: "idle" } : current);
-    setSelectedPlace((current) => {
-      if (!current || current.addressText === value) return current;
-      setLocationPin(null);
-      return null;
-    });
+    dispatchFields({ type: "locationTextChanged", value });
   }
 
   function handleLocationPlaceSelect(selection: ProjectGooglePlaceSelection) {
-    setSelectedPlace(selection);
-    setLocationPin({ latitude: selection.latitude, longitude: selection.longitude });
+    dispatchFields({ type: "locationPlaceSelected", selection });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -348,8 +397,7 @@ export function NewProjectForm({
               onProjectCodeChange={(value) => setProjectCode(value.toUpperCase())}
               onGenerateProjectCode={() => setProjectCode(generateProjectCode())}
               onCurrencyChange={({ code, searchValue }) => {
-                setCurrencyCode(code);
-                setCurrencySearchValue(searchValue);
+                dispatchFields({ type: "currencyChanged", code, searchValue });
               }}
               onLocationChange={handleLocationChange}
               onLocationPlaceSelect={handleLocationPlaceSelect}
