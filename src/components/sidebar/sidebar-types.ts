@@ -1,6 +1,6 @@
 export const SIDEBAR_WIDTH_EXPANDED = 288;
 export const SIDEBAR_PADDING = 8;
-export const SIDEBAR_ICON_SLOT = 48;
+const SIDEBAR_ICON_SLOT = 48;
 export const SIDEBAR_WIDTH_COLLAPSED = SIDEBAR_PADDING * 2 + SIDEBAR_ICON_SLOT;
 /**
  * Outer corner radius of the floating glass panel (matches the `--glass-radius`

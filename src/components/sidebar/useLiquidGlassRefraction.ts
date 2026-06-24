@@ -106,7 +106,7 @@ const ELASTICITY_EPSILON = 0.01;
  * damping. Fully disabled (returns `{}`) unless `enabled` is true; it also
  * respects reduced-motion and never runs without a Chromium-gated caller.
  */
-export function useGlassElasticity(
+function useGlassElasticity(
   ref: RefObject<HTMLElement | null>,
   opts: GlassElasticityOptions = {},
 ): CSSProperties {

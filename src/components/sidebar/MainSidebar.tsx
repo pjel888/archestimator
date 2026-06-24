@@ -118,6 +118,7 @@ function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
   return base.join(" ");
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function MainSidebar({
   favoriteProjects = EMPTY_FAVORITE_PROJECTS,
   favoriteProjectsFresh = true,
