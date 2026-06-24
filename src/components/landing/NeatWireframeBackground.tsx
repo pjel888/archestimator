@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { NeatConfig, NeatGradient as NeatGradientInstance } from '@firecms/neat'
 
-const NEAT_STATIC_FALLBACK_QUERY = '(prefers-reduced-motion: reduce), (pointer: coarse), (max-width: 767px)'
+import { shouldUseStaticNeatFallback } from './neat-wireframe-utils'
+
 const NEAT_IDLE_ACTIVATION_TIMEOUT_MS = 1800
 const NEAT_TIMEOUT_ACTIVATION_DELAY_MS = 1200
 
@@ -51,13 +52,6 @@ const neatConfig: NeatConfig = {
   vignetteIntensity: 0,
   bloomIntensity: 0,
   chromaticAberration: 0,
-}
-
-export function shouldUseStaticNeatFallback() {
-  if (typeof window === 'undefined') return true
-  if (typeof window.matchMedia !== 'function') return false
-
-  return window.matchMedia(NEAT_STATIC_FALLBACK_QUERY).matches
 }
 
 function scheduleNeatActivation(callback: () => void) {

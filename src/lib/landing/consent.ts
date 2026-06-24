@@ -1,5 +1,5 @@
 export const LANDING_CONSENT_COOKIE_NAME = "archestimator_cookie_consent";
-export const LANDING_CONSENT_VERSION = 1;
+const LANDING_CONSENT_VERSION = 1;
 export const LANDING_CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
 
 export interface LandingConsentState {

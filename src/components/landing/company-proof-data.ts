@@ -17,11 +17,11 @@ export type CompanyProofLogo = {
 
 export type CompanyProofRenderState = "placeholder" | "verified";
 
-export function isVerifiedCompanyProof(item: CompanyProofLogo) {
+function isVerifiedCompanyProof(item: CompanyProofLogo) {
   return !item.isPlaceholder && item.relationship !== "placeholder" && item.permissionConfirmed;
 }
 
-export function isPlaceholderCompanyProof(item: CompanyProofLogo) {
+function isPlaceholderCompanyProof(item: CompanyProofLogo) {
   return item.isPlaceholder === true && item.relationship === "placeholder";
 }
 
@@ -41,17 +41,17 @@ export function getRenderableCompanyProofItems(items: CompanyProofLogo[]): {
   };
 }
 
-export const companyProofCopy = {
+const companyProofCopy = {
   eyebrow: "Build it. Send it. Revise it. Get it approved.",
   headline: "Build structured estimates, turn them into client-ready proposal links, collect comments and revision requests, and keep every decision tied to the numbers behind it.",
   description:
     "No scattered spreadsheets, lost email threads, or disconnected PDFs. Archestimator keeps the estimate, proposal, comments, revisions, and client response moving through the same workflow.",
 };
 
-export const companyProofGovernanceNote =
+const companyProofGovernanceNote =
   "Placeholder profiles only. Real customer proof will replace this rail before any public trust claim.";
 
-export const placeholderCompanyProof: CompanyProofLogo[] = [
+const placeholderCompanyProof: CompanyProofLogo[] = [
   {
     name: "Northline Builders",
     initials: "NB",

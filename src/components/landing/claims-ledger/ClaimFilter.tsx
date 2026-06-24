@@ -66,6 +66,7 @@ export function ClaimFilter({ className }: ClaimFilterProps) {
   );
 
   return (
+    // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- This is a named filter control group; <address> would be the wrong semantic element.
     <div
       role="group"
       aria-label="Filter claims by status"

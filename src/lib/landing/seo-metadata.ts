@@ -70,7 +70,7 @@ export function buildLandingMetadata(meta: LandingRouteMeta): Metadata {
  * preview/rollback routes (/newdesign/**, /legacy). Self-canonical,
  * noindex,nofollow, sitemap-excluded (doc 13 §4 / doc 23 §7).
  */
-export function buildNoIndexMetadata(meta: { title: string; path: string }): Metadata {
+function buildNoIndexMetadata(meta: { title: string; path: string }): Metadata {
   const title = withBrand(meta.title);
   return {
     title,

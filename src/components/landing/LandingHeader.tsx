@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
@@ -9,9 +9,43 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
 import { loginHref, workshopHref } from "./constants";
 
+const LANDING_FOOTER_SELECTOR = '[data-visual-reference="amigo-footer"]';
+
+function readIsOverLandingFooter() {
+  if (typeof window === "undefined" || typeof document === "undefined") return false;
+  const footer = document.querySelector<HTMLElement>(LANDING_FOOTER_SELECTOR);
+  if (!footer) return false;
+  const rect = footer.getBoundingClientRect();
+  return rect.top <= 92 && rect.bottom >= 0;
+}
+
+function subscribeToLandingFooterOverlap(onStoreChange: () => void) {
+  if (typeof window === "undefined" || typeof document === "undefined") return () => {};
+  const footer = document.querySelector<HTMLElement>(LANDING_FOOTER_SELECTOR);
+
+  window.addEventListener("resize", onStoreChange);
+  window.addEventListener("scroll", onStoreChange, { passive: true });
+
+  if (!footer || typeof IntersectionObserver === "undefined") {
+    return () => {
+      window.removeEventListener("resize", onStoreChange);
+      window.removeEventListener("scroll", onStoreChange);
+    };
+  }
+
+  const observer = new IntersectionObserver(onStoreChange, { threshold: [0, 0.05, 0.1] });
+  observer.observe(footer);
+
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("resize", onStoreChange);
+    window.removeEventListener("scroll", onStoreChange);
+  };
+}
+
 export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: boolean; isHomePage?: boolean }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isOverFooter, setIsOverFooter] = useState(false);
+  const isOverFooter = useSyncExternalStore(subscribeToLandingFooterOverlap, readIsOverLandingFooter, () => false);
   // Test annotations for static regex scans:
   // href: "#method"
   // href: "#contact"
@@ -20,26 +54,6 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
     { label: "Specialties", href: isHomePage ? "#method" : "/#method" },
     { label: "Company", href: isHomePage ? "#contact" : "/contact" },
   ];
-
-  useEffect(() => {
-    const footer = document.querySelector<HTMLElement>('[data-visual-reference="amigo-footer"]');
-
-    if (!footer || typeof IntersectionObserver === "undefined") {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const top = entry?.boundingClientRect.top ?? Number.POSITIVE_INFINITY;
-        setIsOverFooter(Boolean(entry?.isIntersecting && top <= 92));
-      },
-      { threshold: [0, 0.05, 0.1] },
-    );
-
-    observer.observe(footer);
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Header listens for Escape to close its contained mobile menu.

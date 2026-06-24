@@ -9,7 +9,7 @@ type AnimatedMetricValueProps = {
 };
 
 export function AnimatedMetricValue({ start, intervalMs = 2200, className }: AnimatedMetricValueProps) {
-  const [value, setValue] = useState(start);
+  const [ticks, setTicks] = useState(0);
   const formatter = useMemo(() => new Intl.NumberFormat("en-US"), []);
 
   useEffect(() => {
@@ -17,11 +17,11 @@ export function AnimatedMetricValue({ start, intervalMs = 2200, className }: Ani
     if (prefersReducedMotion.matches) return;
 
     const interval = window.setInterval(() => {
-      setValue((current) => current + 1);
+      setTicks((current) => current + 1);
     }, intervalMs);
 
     return () => window.clearInterval(interval);
   }, [intervalMs]);
 
-  return <span className={className}>{formatter.format(value)}</span>;
+  return <span className={className}>{formatter.format(start + ticks)}</span>;
 }

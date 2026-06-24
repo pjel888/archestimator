@@ -7,8 +7,8 @@ import { cn } from "@/lib/ui/cn";
  * Signed-in visitors go directly to the workspace.
  */
 
-export const REQUEST_EARLY_ACCESS_HREF = "/contact?intent=early-access";
-export const BOOK_WALKTHROUGH_HREF = "/contact?intent=walkthrough";
+const REQUEST_EARLY_ACCESS_HREF = "/contact?intent=early-access";
+const BOOK_WALKTHROUGH_HREF = "/contact?intent=walkthrough";
 
 export interface LandingCTAsProps {
   isLoggedIn?: boolean;

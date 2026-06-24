@@ -1,74 +1,73 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useReducer, type FormEvent } from "react";
 import { EnvelopeOpen } from "@phosphor-icons/react/dist/ssr";
 
-const SUPPORT_EMAIL = "support@archestimator.com";
+import { buildSupportMailto, normalizeInquiryType, SUPPORT_EMAIL } from "./contact-mailto";
 
 export type ContactIntent = "early-access" | "walkthrough" | "general";
 type ContactInquiryType = ContactIntent | "feedback";
 
-type SupportMailtoInput = {
+type ContactFormState = {
   name: string;
   email: string;
   org: string;
-  inquiryType: string;
+  inquiryType: ContactInquiryType;
   message: string;
+  mailtoLink: string;
+  errorMsg: string;
 };
 
-const inquiryLabels: Record<ContactInquiryType, string> = {
-  "early-access": "Early access request",
-  walkthrough: "Product walkthrough request",
-  feedback: "Product feedback",
-  general: "General question",
-};
+type ContactFormAction =
+  | { type: "field"; field: "name" | "email" | "org" | "message"; value: string }
+  | { type: "inquiry"; value: ContactInquiryType }
+  | { type: "submit:error"; message: string }
+  | { type: "submit:success"; mailtoLink: string }
+  | { type: "reset"; initialIntent: ContactIntent };
 
-function normalizeInquiryType(value: string): ContactInquiryType {
-  if (value === "access") return "early-access";
-  if (value === "demo") return "walkthrough";
-  if (value === "feedback") return "feedback";
-  if (value === "walkthrough") return "walkthrough";
-  if (value === "early-access") return "early-access";
-  return "general";
+function getInitialContactFormState(initialIntent: ContactIntent): ContactFormState {
+  return {
+    name: "",
+    email: "",
+    org: "",
+    inquiryType: initialIntent,
+    message: "",
+    mailtoLink: "",
+    errorMsg: "",
+  };
 }
 
-export function buildSupportMailto(input: SupportMailtoInput) {
-  const inquiryType = normalizeInquiryType(input.inquiryType);
-  const inquiryLabel = inquiryLabels[inquiryType];
-  const subject = `Archestimator ${inquiryLabel}`;
-  const body = [
-    `Name: ${input.name.trim()}`,
-    `Email: ${input.email.trim()}`,
-    `Organization: ${input.org.trim() || "Not provided"}`,
-    `Inquiry type: ${inquiryLabel}`,
-    "",
-    "Message:",
-    input.message.trim(),
-  ].join("\n");
-
-  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+function contactFormReducer(state: ContactFormState, action: ContactFormAction): ContactFormState {
+  switch (action.type) {
+    case "field":
+      return { ...state, [action.field]: action.value };
+    case "inquiry":
+      return { ...state, inquiryType: action.value };
+    case "submit:error":
+      return { ...state, errorMsg: action.message, mailtoLink: "" };
+    case "submit:success":
+      return { ...state, errorMsg: "", mailtoLink: action.mailtoLink };
+    case "reset":
+      return getInitialContactFormState(action.initialIntent);
+    default:
+      return state;
+  }
 }
 
 export function ContactForm({ initialIntent = "early-access" }: { initialIntent?: ContactIntent }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [org, setOrg] = useState("");
-  const [inquiryType, setInquiryType] = useState<ContactInquiryType>(initialIntent);
-  const [message, setMessage] = useState("");
-  const [mailtoLink, setMailtoLink] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [formState, dispatchForm] = useReducer(contactFormReducer, initialIntent, getInitialContactFormState);
+  const { name, email, org, inquiryType, message, mailtoLink, errorMsg } = formState;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
 
     if (!name.trim() || !email.trim() || !message.trim()) {
-      setErrorMsg("Please fill out all required fields.");
+      dispatchForm({ type: "submit:error", message: "Please fill out all required fields." });
       return;
     }
 
     const nextMailtoLink = buildSupportMailto({ name, email, org, inquiryType, message });
-    setMailtoLink(nextMailtoLink);
+    dispatchForm({ type: "submit:success", mailtoLink: nextMailtoLink });
     window.open(nextMailtoLink, "_self");
   };
 
@@ -100,14 +99,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
           </a>
           <button
             type="button"
-            onClick={() => {
-              setMailtoLink("");
-              setName("");
-              setEmail("");
-              setOrg("");
-              setInquiryType(initialIntent);
-              setMessage("");
-            }}
+            onClick={() => dispatchForm({ type: "reset", initialIntent })}
             className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-[#cfcfca] bg-white px-5 text-[11px] font-bold uppercase tracking-normal text-[#17181c] transition hover:bg-[#eeeeec] active:scale-95"
           >
             Start another message
@@ -153,7 +145,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
             required
             aria-required="true"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => dispatchForm({ type: "field", field: "name", value: e.target.value })}
             placeholder="Your name"
             className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
           />
@@ -172,7 +164,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
             required
             aria-required="true"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => dispatchForm({ type: "field", field: "email", value: e.target.value })}
             placeholder="you@company.com"
             className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
           />
@@ -189,7 +181,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
             id="contact-org"
             type="text"
             value={org}
-            onChange={(e) => setOrg(e.target.value)}
+            onChange={(e) => dispatchForm({ type: "field", field: "org", value: e.target.value })}
             placeholder="Company or studio name"
             className="mt-2 min-h-10 w-full rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
           />
@@ -206,7 +198,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
             <select
               id="contact-inquiry"
               value={inquiryType}
-              onChange={(e) => setInquiryType(normalizeInquiryType(e.target.value))}
+              onChange={(e) => dispatchForm({ type: "inquiry", value: normalizeInquiryType(e.target.value) })}
               className="min-h-10 w-full appearance-none rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
             >
               <option value="early-access">Request early access</option>
@@ -233,7 +225,7 @@ export function ContactForm({ initialIntent = "early-access" }: { initialIntent?
             aria-required="true"
             rows={4}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => dispatchForm({ type: "field", field: "message", value: e.target.value })}
             placeholder="Tell us what you estimate, where your current workflow breaks, and what you want to see."
             className="mt-2 w-full resize-y rounded-[6px] border border-[#cfcfca] bg-white p-3 text-[14px] text-[#111111] outline-none transition placeholder:text-[#a6a6a4] focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
           />

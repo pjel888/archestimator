@@ -238,10 +238,11 @@ function Hero({ isLoggedIn }: LandingPageProps) {
     <section className={styles.hero} aria-labelledby="landing-hero-title">
       <HeroMountMotion className={styles.heroGrid}>
         <div className={styles.heroCopy} data-landing-v3-reveal>
-          <p className={styles.heroEyebrow} data-hero-motion="eyebrow">Construction estimating, proposals, and approvals, connected.</p>
+          <p className={styles.heroEyebrow} data-hero-motion="eyebrow">AEC construction cost estimating &amp; proposal platform</p>
           <h1 id="landing-hero-title" data-hero-motion="title">The estimate that keeps working after you send it.</h1>
-          <p data-hero-motion="intro">
-            Scope, rates, revisions, feedback, and approvals stay in one connected commercial record.
+          <p className={styles.heroIntro} data-hero-motion="intro">
+            <span>archestimator is the premier tool for winning bids.</span>
+            <span>one workflow from cost estimating to client approval.</span>
           </p>
           <div className={styles.ctaRow}>
             <span data-hero-motion="cta">
@@ -271,7 +272,7 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricValue={248}
                 metricIntervalMs={2400}
                 ledgerTitle="Build estimates around real scope"
-                body="Estimate Smarter is the workspace for shaping, reusing, and assembling project costs before they become a proposal."
+                body="Estimates that mirror the way you actually build."
                 features={[
                   {
                     label: "Domain-shaped estimate tree",
@@ -304,7 +305,7 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricValue={67}
                 metricIntervalMs={3200}
                 ledgerTitle="Turn the estimate into a client decision"
-                body="Propose Better is how the estimate becomes a clear, trackable package your client can review without losing the pricing context."
+                body="Proposals clients actually read."
                 features={[
                   {
                     label: "Branded proposal links",
@@ -337,7 +338,7 @@ function Hero({ isLoggedIn }: LandingPageProps) {
                 metricValue={19}
                 metricIntervalMs={4200}
                 ledgerTitle="Record the decision and every change after"
-                body="Win Faster is not only about winning the first bid. It keeps comments, approvals, declined proposals, and later change orders attached to the same record."
+                body="Close the bid. Close the change. Keep the record."
                 features={[
                   {
                     label: "Client comments, accept, and decline",
