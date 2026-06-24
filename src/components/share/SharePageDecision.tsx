@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useMemo, useReducer, useRef } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
@@ -11,8 +12,10 @@ import {
   type ShareReviewTarget,
   type ShareReviewTargetKind,
 } from "@/components/share/share-review-target";
-
-type DecisionType = "accepted" | "declined" | "revision_requested";
+import {
+  SharePageDecisionConfirmDialog,
+  type ShareDecisionType as DecisionType,
+} from "@/components/share/SharePageDecisionConfirmDialog";
 
 interface SharePageDecisionProps {
   token: string;
@@ -59,6 +62,73 @@ type DecisionGetResponse = {
       };
 };
 
+type DecisionUiState = {
+  submittedDecision: DecisionState | null;
+  pendingDecision: DecisionType | null;
+  noteDraft: string;
+  signerNameDraft: string;
+  isSubmitting: boolean;
+  error: string | null;
+  lastAnnouncement: string;
+};
+
+type DecisionUiAction =
+  | { type: "openConfirm"; decision: DecisionType }
+  | { type: "closeConfirm" }
+  | { type: "noteDraftChanged"; value: string }
+  | { type: "signerNameDraftChanged"; value: string }
+  | { type: "submitStarted" }
+  | { type: "submitFinished" }
+  | { type: "setError"; message: string | null }
+  | { type: "announce"; message: string }
+  | { type: "persistedDecisionLoaded"; decision: DecisionState };
+
+const initialDecisionUiState: DecisionUiState = {
+  submittedDecision: null,
+  pendingDecision: null,
+  noteDraft: "",
+  signerNameDraft: "",
+  isSubmitting: false,
+  error: null,
+  lastAnnouncement: "",
+};
+
+function decisionUiReducer(state: DecisionUiState, action: DecisionUiAction): DecisionUiState {
+  switch (action.type) {
+    case "openConfirm":
+      return {
+        ...state,
+        pendingDecision: action.decision,
+        noteDraft: "",
+        signerNameDraft: "",
+        error: null,
+      };
+    case "closeConfirm":
+      return {
+        ...state,
+        pendingDecision: null,
+        noteDraft: "",
+        signerNameDraft: "",
+      };
+    case "noteDraftChanged":
+      return { ...state, noteDraft: action.value };
+    case "signerNameDraftChanged":
+      return { ...state, signerNameDraft: action.value };
+    case "submitStarted":
+      return { ...state, isSubmitting: true, error: null };
+    case "submitFinished":
+      return { ...state, isSubmitting: false };
+    case "setError":
+      return { ...state, error: action.message };
+    case "announce":
+      return { ...state, lastAnnouncement: action.message };
+    case "persistedDecisionLoaded":
+      return { ...state, submittedDecision: action.decision };
+    default:
+      return state;
+  }
+}
+
 function readErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
@@ -74,18 +144,6 @@ function formatDecisionDate(value: string | undefined) {
   const time = new Date(value);
   if (Number.isNaN(time.getTime())) return "the recorded time";
   return decisionDateFormatter.format(time);
-}
-
-function confirmTitle(decision: DecisionType) {
-  if (decision === "accepted") return "Approve this proposal?";
-  if (decision === "declined") return "Decline this proposal?";
-  return "Request changes?";
-}
-
-function confirmBody(decision: DecisionType) {
-  if (decision === "accepted") return "We'll notify the project team and keep comments open for follow-up.";
-  if (decision === "declined") return "We'll notify the project team. You can still leave comments if context would help.";
-  return "Send your requested changes to the project team. Comments remain open for details and follow-up.";
 }
 
 function normalizeDecision(payload: DecisionGetResponse["decision"]): DecisionState | null {
@@ -105,6 +163,19 @@ function normalizeDecision(payload: DecisionGetResponse["decision"]): DecisionSt
   };
 }
 
+async function fetchPersistedDecision(token: string, signal?: AbortSignal) {
+  const res = await fetch(`/api/share/${encodeURIComponent(token)}/decision`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (res.status === 401 || res.status === 404) return null;
+  if (!res.ok) throw new Error("Could not load your response.");
+
+  const json = (await res.json().catch(() => ({}))) as DecisionGetResponse;
+  return normalizeDecision(json.decision ?? null);
+}
+
 function targetStateFromReviewTarget(target: ShareReviewTarget): DecisionTargetState {
   return {
     targetKind: target.kind,
@@ -117,84 +188,50 @@ function targetStateFromReviewTarget(target: ShareReviewTarget): DecisionTargetS
 
 export default function SharePageDecision({ token, viewToken, reviewTarget }: SharePageDecisionProps) {
   const { isValid } = useSharedLinkSession();
+  const queryClient = useQueryClient();
   const activeReviewTarget = normalizeShareReviewTarget(reviewTarget);
   const activeReviewTargetLabel = shareReviewTargetDisplay(activeReviewTarget);
-  const [decided, setDecided] = useState<DecisionState | null>(null);
-  const [pendingDecision, setPendingDecision] = useState<DecisionType | null>(null);
-  const [noteDraft, setNoteDraft] = useState("");
-  const [signerNameDraft, setSignerNameDraft] = useState("");
-  const [isLoadingDecision, setIsLoadingDecision] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastAnnouncement, setLastAnnouncement] = useState("");
+  const decisionQueryKey = useMemo(() => ["share-decision", token] as const, [token]);
+  const [decisionUiState, dispatchDecisionUi] = useReducer(decisionUiReducer, initialDecisionUiState);
+  const { submittedDecision, pendingDecision, noteDraft, signerNameDraft, isSubmitting, error, lastAnnouncement } =
+    decisionUiState;
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const {
+    data: persistedDecision,
+    error: persistedDecisionError,
+    isFetching: isPersistedDecisionFetching,
+  } = useQuery({
+    queryKey: decisionQueryKey,
+    queryFn: ({ signal }) => fetchPersistedDecision(token, signal),
+    enabled: isValid,
+    retry: false,
+  });
+  const decided = submittedDecision ?? persistedDecision ?? null;
+  const isLoadingDecision = isPersistedDecisionFetching && !decided;
+  const loadDecisionError = persistedDecisionError
+    ? readErrorMessage(persistedDecisionError, "Could not load your response.")
+    : null;
+  const announcement = lastAnnouncement || (persistedDecision ? `Previous response loaded: ${decisionLabel(persistedDecision.decision)}.` : "");
 
   const announce = useCallback((msg: string) => {
-    setLastAnnouncement(msg);
+    dispatchDecisionUi({ type: "announce", message: msg });
   }, []);
 
   const refetchPersistedDecision = useCallback(async () => {
-    const res = await fetch(`/api/share/${encodeURIComponent(token)}/decision`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
+    const loadedDecision = await queryClient.fetchQuery({
+      queryKey: decisionQueryKey,
+      queryFn: ({ signal }) => fetchPersistedDecision(token, signal),
+      staleTime: 0,
     });
-    if (res.status === 401 || res.status === 404) return false;
-    if (!res.ok) return false;
-
-    const json = (await res.json().catch(() => ({}))) as DecisionGetResponse;
-    const loadedDecision = normalizeDecision(json.decision ?? null);
     if (!loadedDecision) return false;
 
-    setDecided(loadedDecision);
+    dispatchDecisionUi({ type: "persistedDecisionLoaded", decision: loadedDecision });
     announce("Decision already recorded on this link.");
     return true;
-  }, [announce, token]);
-
-  useEffect(() => {
-    if (!isValid) return;
-
-    const controller = new AbortController();
-    async function loadDecision() {
-      setIsLoadingDecision(true);
-      setError(null);
-
-      try {
-        const res = await fetch(`/api/share/${encodeURIComponent(token)}/decision`, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          signal: controller.signal,
-        });
-        if (res.status === 401 || res.status === 404) return;
-        if (!res.ok) throw new Error("Could not load your response.");
-        const json = (await res.json().catch(() => ({}))) as DecisionGetResponse;
-        const loadedDecision = normalizeDecision(json.decision ?? null);
-        if (loadedDecision) {
-          setDecided(loadedDecision);
-          announce(`Previous response loaded: ${decisionLabel(loadedDecision.decision)}.`);
-        }
-      } catch (error: unknown) {
-        if (!controller.signal.aborted) {
-          setError(readErrorMessage(error, "Could not load your response."));
-        }
-      } finally {
-        if (!controller.signal.aborted) setIsLoadingDecision(false);
-      }
-    }
-
-    const timeout = window.setTimeout(() => {
-      void loadDecision();
-    }, 0);
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [announce, isValid, token]);
+  }, [announce, decisionQueryKey, queryClient, token]);
 
   const closeConfirm = useCallback(() => {
-    setPendingDecision(null);
-    setNoteDraft("");
-    setSignerNameDraft("");
+    dispatchDecisionUi({ type: "closeConfirm" });
     window.setTimeout(() => previouslyFocusedRef.current?.focus(), 0);
   }, []);
 
@@ -222,28 +259,18 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
 
   const openConfirm = (decision: DecisionType) => {
     previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setPendingDecision(decision);
-    setNoteDraft("");
-    setSignerNameDraft("");
-    setError(null);
-    window.setTimeout(() => {
-      const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
-        "input, textarea, button, [href], select, [tabindex]:not([tabindex='-1'])",
-      );
-      firstFocusable?.focus();
-    }, 0);
+    dispatchDecisionUi({ type: "openConfirm", decision });
   };
 
   const confirmDecision = async () => {
     if (!pendingDecision || isSubmitting) return;
     const signerName = signerNameDraft.trim();
     if (pendingDecision === "accepted" && !signerName) {
-      setError("Your name is required to approve this proposal.");
+      dispatchDecisionUi({ type: "setError", message: "Your name is required to approve this proposal." });
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
+    dispatchDecisionUi({ type: "submitStarted" });
 
     const payload = {
       decision: pendingDecision,
@@ -267,14 +294,17 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
       const json = (await res.json().catch(() => ({}))) as { error?: string };
 
       if (res.status === 409 && /snapshot|stale|changed/i.test(json?.error || "")) {
-        setError("This shared page was updated while you were deciding. Your draft is preserved. Refresh to review the latest version.");
+        dispatchDecisionUi({
+          type: "setError",
+          message: "This shared page was updated while you were deciding. Your draft is preserved. Refresh to review the latest version.",
+        });
         return;
       }
 
       if (res.status === 409 || /already submitted/i.test(json?.error || "")) {
         const loadedDecision = await refetchPersistedDecision();
         if (!loadedDecision) {
-          setError("Decision already recorded. Reload to view the saved response.");
+          dispatchDecisionUi({ type: "setError", message: "Decision already recorded. Reload to view the saved response." });
         }
         closeConfirm();
         return;
@@ -285,47 +315,23 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
         throw new Error(msg);
       }
 
-      setDecided({
-        decision: pendingDecision,
-        note: payload.note || undefined,
-        submittedAt: new Date().toISOString(),
-        signerName: payload.signerName,
-        ...targetState,
+      dispatchDecisionUi({
+        type: "persistedDecisionLoaded",
+        decision: {
+          decision: pendingDecision,
+          note: payload.note || undefined,
+          submittedAt: new Date().toISOString(),
+          signerName: payload.signerName,
+          ...targetState,
+        },
       });
       announce(`Decision recorded: ${decisionLabel(pendingDecision)}.`);
       closeConfirm();
     } catch (error: unknown) {
       const msg = readErrorMessage(error, "Failed to submit decision. Please try again.");
-      setError(msg);
+      dispatchDecisionUi({ type: "setError", message: msg });
     } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeConfirm();
-      return;
-    }
-
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>(
-        "button:not([disabled]), textarea:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])",
-      ) ?? [],
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (!first || !last) return;
-
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
+      dispatchDecisionUi({ type: "submitFinished" });
     }
   };
 
@@ -352,8 +358,8 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
         ) : null}
         {decided.note && <div className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">Note: {decided.note}</div>}
         <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-secondary">{recordedLine} You can still add comments below.</div>
-        {error && <div role="alert" className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error}</div>}
-        <div aria-live="polite" className="sr-only">{lastAnnouncement}</div>
+        {(error || loadDecisionError) && <div role="alert" className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error ?? loadDecisionError}</div>}
+        <div aria-live="polite" className="sr-only">{announcement}</div>
       </section>
     );
   }
@@ -409,85 +415,22 @@ export default function SharePageDecision({ token, viewToken, reviewTarget }: Sh
         </div>
       </div>
 
-      {error && <p role="alert" className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
+      {(error || loadDecisionError) && <p role="alert" className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error ?? loadDecisionError}</p>}
 
       {pendingDecision && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="presentation"
-          onClick={closeConfirm}
-        >
-          <div
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="decision-confirm-title"
-            className="w-full max-w-md rounded-xs border border-hairline bg-proposalPaper p-4 text-[13px] leading-[18px] tracking-normal text-ink shadow-sm"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={handleDialogKeyDown}
-          >
-            <h2 id="decision-confirm-title" className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">
-              {confirmTitle(pendingDecision)}
-            </h2>
-            <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">{confirmBody(pendingDecision)}</p>
-            <div className="mt-3 rounded-xs border border-hairline bg-white px-2 py-1 text-[12px] leading-[16px] tracking-normal text-secondary">
-              Applies to {activeReviewTargetLabel}
-            </div>
-
-            {pendingDecision === "accepted" ? (
-              <div className="mt-3">
-                <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-secondary" htmlFor="decision-signer-name">
-                  Your name
-                </label>
-                <input
-                  id="decision-signer-name"
-                  className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
-                  maxLength={120}
-                  placeholder="Enter your name"
-                  value={signerNameDraft}
-                  onChange={(event) => setSignerNameDraft(event.target.value)}
-                  disabled={isSubmitting}
-                  autoComplete="name"
-                  required
-                />
-              </div>
-            ) : null}
-
-            <div className="mt-3">
-              <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-secondary" htmlFor="decision-note">
-                Note (optional)
-              </label>
-              <textarea
-                id="decision-note"
-                className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
-                rows={3}
-                maxLength={2000}
-                placeholder={pendingDecision === "revision_requested" ? "Describe the requested changes..." : "Add a note (optional)"}
-                value={noteDraft}
-                onChange={(event) => setNoteDraft(event.target.value)}
-                disabled={isSubmitting}
-              />
-              <div className="mt-0.5 text-right text-[11px] leading-[15px] tracking-normal text-secondary">{noteDraft.length}/2000</div>
-            </div>
-
-            {error && <p role="alert" className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={closeConfirm} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button
-                variant={pendingDecision === "declined" ? "secondary" : "primary"}
-                size="sm"
-                onClick={confirmDecision}
-                disabled={isSubmitting || (pendingDecision === "accepted" && !signerNameDraft.trim())}
-              >
-                {isSubmitting ? "Recording..." : "Confirm"}
-              </Button>
-            </div>
-            <div aria-live="polite" className="sr-only">{lastAnnouncement}</div>
-          </div>
-        </div>
+        <SharePageDecisionConfirmDialog
+          decision={pendingDecision}
+          activeReviewTargetLabel={activeReviewTargetLabel}
+          noteDraft={noteDraft}
+          signerNameDraft={signerNameDraft}
+          isSubmitting={isSubmitting}
+          error={error}
+          announcement={announcement}
+          onClose={closeConfirm}
+          onConfirm={confirmDecision}
+          onNoteDraftChange={(value) => dispatchDecisionUi({ type: "noteDraftChanged", value })}
+          onSignerNameDraftChange={(value) => dispatchDecisionUi({ type: "signerNameDraftChanged", value })}
+        />
       )}
     </section>
   );

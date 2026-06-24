@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { loadSharedLinkActivity, type ActivityItem } from "@/lib/publication/actions"; // server action callable from client
 
@@ -11,36 +11,92 @@ type SharedLinkActivityFeedProps = {
   onActivitySeen?: () => void;
 };
 
+type ActivityFeedState = {
+  activities: ActivityItem[];
+  loading: boolean;
+  loadingMore: boolean;
+  error: string | null;
+  hasMore: boolean;
+  nextCursor: string | null;
+  newActivityNotice: boolean;
+};
+
+type ActivityFeedAction =
+  | { type: "load:start"; cursor?: string | null }
+  | {
+      type: "load:success";
+      cursor?: string | null;
+      activities: ActivityItem[];
+      hasMore: boolean;
+      nextCursor: string | null;
+      showNewActivityNotice: boolean;
+    }
+  | { type: "load:error"; message: string }
+  | { type: "notice:clear" };
+
+const INITIAL_ACTIVITY_FEED_STATE: ActivityFeedState = {
+  activities: [],
+  loading: true,
+  loadingMore: false,
+  error: null,
+  hasMore: false,
+  nextCursor: null,
+  newActivityNotice: false,
+};
+
+function activityFeedReducer(state: ActivityFeedState, action: ActivityFeedAction): ActivityFeedState {
+  switch (action.type) {
+    case "load:start":
+      return {
+        ...state,
+        loading: action.cursor ? state.loading : true,
+        loadingMore: Boolean(action.cursor),
+        error: null,
+      };
+    case "load:success":
+      return {
+        ...state,
+        activities: action.cursor ? [...state.activities, ...action.activities] : action.activities,
+        loading: false,
+        loadingMore: false,
+        error: null,
+        hasMore: action.hasMore,
+        nextCursor: action.nextCursor,
+        newActivityNotice: state.newActivityNotice || action.showNewActivityNotice,
+      };
+    case "load:error":
+      return {
+        ...state,
+        loading: false,
+        loadingMore: false,
+        error: action.message,
+      };
+    case "notice:clear":
+      return { ...state, newActivityNotice: false };
+    default:
+      return state;
+  }
+}
+
 export default function SharedLinkActivityFeed({ publicationToken, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [newActivityNotice, setNewActivityNotice] = useState(false);
+  const [feedState, dispatchFeed] = useReducer(activityFeedReducer, INITIAL_ACTIVITY_FEED_STATE);
+  const { activities, loading, loadingMore, error, hasMore, nextCursor, newActivityNotice } = feedState;
   const loadingRef = useRef(false);
   const newestIdRef = useRef<string | null>(null);
 
   const load = useCallback(async (cursor?: string | null) => {
-    if (cursor) setLoadingMore(true);
-    else setLoading(true);
+    dispatchFeed({ type: "load:start", cursor });
     loadingRef.current = true;
-    setError(null);
     try {
+      let nextActivities: ActivityItem[];
+      let nextHasMore: boolean;
+      let nextCursorValue: string | null;
       if (isOwner) {
         // Owner path: server action (full, including internal via RBAC inside action)
         const res = await loadSharedLinkActivity(publicationToken, { limit: 50, cursor: cursor ?? undefined });
-        setActivities((current) => cursor ? [...current, ...(res.activities as ActivityItem[])] : (res.activities as ActivityItem[]));
-        setHasMore(res.hasMore);
-        setNextCursor(res.nextCursor ?? null);
-        if (!cursor) {
-          const newNewest = (res.activities as ActivityItem[])[0]?.id ?? null;
-          if (newestIdRef.current !== null && newNewest !== null && newNewest !== newestIdRef.current) {
-            setNewActivityNotice(true);
-          }
-          newestIdRef.current = newNewest;
-        }
+        nextActivities = res.activities as ActivityItem[];
+        nextHasMore = res.hasMore;
+        nextCursorValue = res.nextCursor ?? null;
       } else {
         // Public/recipient path: filtered route (never leaks is_internal)
         const url = new URL(`/api/share/${encodeURIComponent(publicationToken)}/activity`, window.location.origin);
@@ -50,23 +106,28 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
           headers: { "Cache-Control": "no-store" },
         });
         const json = (await res.json()) as { activities?: ActivityItem[]; hasMore?: boolean; nextCursor?: string };
-        setActivities((current) => cursor ? [...current, ...(json.activities || [])] : (json.activities || []));
-        setHasMore(Boolean(json.hasMore));
-        setNextCursor(json.nextCursor ?? null);
-        if (!cursor) {
-          const newNewest = (json.activities ?? [])[0]?.id ?? null;
-          if (newestIdRef.current !== null && newNewest !== null && newNewest !== newestIdRef.current) {
-            setNewActivityNotice(true);
-          }
-          newestIdRef.current = newNewest;
-        }
+        nextActivities = json.activities || [];
+        nextHasMore = Boolean(json.hasMore);
+        nextCursorValue = json.nextCursor ?? null;
       }
+      let showNewActivityNotice = false;
+      if (!cursor) {
+        const newNewest = nextActivities[0]?.id ?? null;
+        showNewActivityNotice = newestIdRef.current !== null && newNewest !== null && newNewest !== newestIdRef.current;
+        newestIdRef.current = newNewest;
+      }
+      dispatchFeed({
+        type: "load:success",
+        cursor,
+        activities: nextActivities,
+        hasMore: nextHasMore,
+        nextCursor: nextCursorValue,
+        showNewActivityNotice,
+      });
       onActivitySeen?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load activity");
+      dispatchFeed({ type: "load:error", message: e instanceof Error ? e.message : "Failed to load activity" });
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
       loadingRef.current = false;
     }
   }, [publicationToken, isOwner, onActivitySeen]);
@@ -117,7 +178,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
     <section data-testid="activity-feed" className="rounded-xs text-[10px] text-ink" aria-label="Shared link activity">
       <div className="mb-2 flex items-center justify-between text-[9px] text-secondary">
         <span>Activity</span>
-        <Button type="button" variant="ghost" size="sm" onClick={() => { setNewActivityNotice(false); load(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => { dispatchFeed({ type: "notice:clear" }); load(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
       </div>
       <div aria-live="polite" className="sr-only">
         {newActivityNotice ? "New shared link activity loaded." : ""}

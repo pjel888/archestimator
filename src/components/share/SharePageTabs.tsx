@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useCallback, useMemo, useReducer, useSyncExternalStore } from "react";
 // react-doctor-disable-next-line react-doctor/no-flush-sync -- beforeprint must synchronously commit the print package before browser snapshot.
 import { flushSync } from "react-dom";
 
@@ -26,6 +26,8 @@ interface SharePageTabsProps {
 }
 
 const COLLATED_ROW_LIMIT = 250;
+const SCROLL_FADE_LEFT = 1;
+const SCROLL_FADE_RIGHT = 2;
 const shareTabsMoneyFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -34,6 +36,71 @@ const shareTabsPercentFormatter = new Intl.NumberFormat("en-PH", {
   style: "percent",
   maximumFractionDigits: 0,
 });
+
+type ShareEstimateViewMode = "tree" | "collated";
+
+type SharePageTabsState = {
+  activeIdOverride: string | null;
+  sheetViews: Record<string, ShareEstimateViewMode>;
+  gridSearchByEstimateId: Record<string, string>;
+  estimateTabOverrides: Record<string, string>;
+  renderPrintPackage: boolean;
+  selectedReviewTargetKey: string | null;
+};
+
+type SharePageTabsAction =
+  | { type: "activeEstimateSelected"; estimateId: string }
+  | { type: "viewChanged"; estimateId: string; view: ShareEstimateViewMode }
+  | { type: "gridSearchChanged"; key: string; value: string }
+  | { type: "estimateTabSelected"; estimateId: string; tabId: string }
+  | { type: "printPackageVisibilityChanged"; visible: boolean }
+  | { type: "reviewTargetSelected"; key: string };
+
+const INITIAL_SHARE_PAGE_TABS_STATE: SharePageTabsState = {
+  activeIdOverride: null,
+  sheetViews: {},
+  gridSearchByEstimateId: {},
+  estimateTabOverrides: {},
+  renderPrintPackage: false,
+  selectedReviewTargetKey: null,
+};
+
+function sharePageTabsReducer(state: SharePageTabsState, action: SharePageTabsAction): SharePageTabsState {
+  switch (action.type) {
+    case "activeEstimateSelected":
+      return {
+        ...state,
+        activeIdOverride: action.estimateId,
+      };
+    case "viewChanged":
+      return {
+        ...state,
+        sheetViews: { ...state.sheetViews, [action.estimateId]: action.view },
+      };
+    case "gridSearchChanged":
+      return {
+        ...state,
+        gridSearchByEstimateId: { ...state.gridSearchByEstimateId, [action.key]: action.value },
+      };
+    case "estimateTabSelected":
+      return {
+        ...state,
+        estimateTabOverrides: { ...state.estimateTabOverrides, [action.estimateId]: action.tabId },
+      };
+    case "printPackageVisibilityChanged":
+      return {
+        ...state,
+        renderPrintPackage: action.visible,
+      };
+    case "reviewTargetSelected":
+      return {
+        ...state,
+        selectedReviewTargetKey: action.key,
+      };
+    default:
+      return state;
+  }
+}
 
 function formatMoney(value: number, currencyCode: string) {
   return `${currencyCode} ${shareTabsMoneyFormatter.format(value)}`;
@@ -167,6 +234,7 @@ function SharePrintEstimatePackage({
   );
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export default function SharePageTabs({
   estimates,
   currencyCode,
@@ -176,21 +244,20 @@ export default function SharePageTabs({
   const storageKey = `share-tab:${token}`;
   const hydrated = useIsHydrated();
   // The persisted active tab lives in sessionStorage, which only exists in the
-  // browser. Reading it during the lazy useState initializer made the first
+  // browser. Reading it during the lazy state initializer made the first
   // client render (the stored tab) diverge from the server render (which always
   // falls back to estimates[0]) → hydration mismatch on the tablist + panel.
   // Start from `null` (server-identical) and fold the stored value in only after
   // hydration, while still letting an explicit user selection take precedence.
-  const [activeIdOverride, setActiveIdOverride] = useState<string | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  // P2: Sub-tab view mode per sheet (Tree View | Collated View)
-  const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "collated">>({});
-  const [gridSearchByEstimateId, setGridSearchByEstimateId] = useState<Record<string, string>>({});
-  const [estimateTabOverrides, setEstimateTabOverrides] = useState<Record<string, string>>({});
-  const [renderPrintPackage, setRenderPrintPackage] = useState(false);
-  const [selectedReviewTargetKey, setSelectedReviewTargetKey] = useState<string | null>(null);
+  const [tabsState, dispatchTabsState] = useReducer(sharePageTabsReducer, INITIAL_SHARE_PAGE_TABS_STATE);
+  const {
+    activeIdOverride,
+    sheetViews,
+    gridSearchByEstimateId,
+    estimateTabOverrides,
+    renderPrintPackage,
+    selectedReviewTargetKey,
+  } = tabsState;
 
   const fallbackActiveId = estimates[0]?.id ?? "";
   const storedActiveId = hydrated ? readStoredActiveEstimateId(storageKey, estimates) : null;
@@ -201,9 +268,9 @@ export default function SharePageTabs({
   const contentRef = useRef<HTMLDivElement>(null);
   const estimateTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const setViewForCurrentSheet = (view: "tree" | "collated") => {
+  const setViewForCurrentSheet = (view: ShareEstimateViewMode) => {
     if (activeId) {
-      setSheetViews(prev => ({ ...prev, [activeId]: view }));
+      dispatchTabsState({ type: "viewChanged", estimateId: activeId, view });
     }
   };
 
@@ -225,11 +292,44 @@ export default function SharePageTabs({
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const getScrollFadeSnapshot = useCallback(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return 0;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollElement;
+    let mask = 0;
+    if (scrollLeft > 2) mask |= SCROLL_FADE_LEFT;
+    if (scrollLeft + clientWidth < scrollWidth - 2) mask |= SCROLL_FADE_RIGHT;
+    return mask;
+  }, []);
+
+  const subscribeToScrollFades = useCallback((onStoreChange: () => void) => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return () => {};
+
+    const resizeObserver = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(onStoreChange)
+      : null;
+    resizeObserver?.observe(scrollElement);
+    scrollElement.addEventListener("scroll", onStoreChange, { passive: true });
+    window.addEventListener("resize", onStoreChange);
+    queueMicrotask(onStoreChange);
+
+    return () => {
+      resizeObserver?.disconnect();
+      scrollElement.removeEventListener("scroll", onStoreChange);
+      window.removeEventListener("resize", onStoreChange);
+    };
+  }, []);
+
+  const scrollFadeMask = useSyncExternalStore(subscribeToScrollFades, getScrollFadeSnapshot, () => 0);
+  const canScrollLeft = Boolean(scrollFadeMask & SCROLL_FADE_LEFT);
+  const canScrollRight = Boolean(scrollFadeMask & SCROLL_FADE_RIGHT);
+
   // Persist on change
   const updateActive = useCallback(
     (id: string) => {
       if (!id || id === activeId) return;
-      setActiveIdOverride(id);
+      dispatchTabsState({ type: "activeEstimateSelected", estimateId: id });
       try {
         window.sessionStorage.setItem(storageKey, id);
       } catch {
@@ -283,32 +383,6 @@ export default function SharePageTabs({
     [estimates, updateActive]
   );
 
-  // Update scroll fade indicators (lightweight, on mount + scroll)
-  const updateScrollFades = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 2);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    updateScrollFades();
-    const resizeObserver = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(updateScrollFades)
-      : null;
-    resizeObserver?.observe(el);
-    el.addEventListener("scroll", updateScrollFades, { passive: true });
-    window.addEventListener("resize", updateScrollFades);
-    return () => {
-      resizeObserver?.disconnect();
-      el.removeEventListener("scroll", updateScrollFades);
-      window.removeEventListener("resize", updateScrollFades);
-    };
-  }, [updateScrollFades]);
-
   // All hooks must be called unconditionally at the top (rules of hooks).
   const wouldBeActiveId = activeId || (estimates[0]?.id ?? "");
   const wouldBeActive = estimates.find((e) => e.id === wouldBeActiveId) ?? estimates[0];
@@ -330,7 +404,7 @@ export default function SharePageTabs({
   const updateActiveEstimateTab = useCallback(
     (id: string) => {
       if (!wouldBeActive || !id || id === activeEstimateTabId) return;
-      setEstimateTabOverrides((prev) => ({ ...prev, [wouldBeActive.id]: id }));
+      dispatchTabsState({ type: "estimateTabSelected", estimateId: wouldBeActive.id, tabId: id });
     },
     [activeEstimateTabId, wouldBeActive],
   );
@@ -431,14 +505,14 @@ export default function SharePageTabs({
 
   const handleEstimateReview = useCallback(() => {
     const target = createEstimateReviewTarget();
-    setSelectedReviewTargetKey(`estimate:${target.estimateId ?? activeEstimate.id}`);
+    dispatchTabsState({ type: "reviewTargetSelected", key: `estimate:${target.estimateId ?? activeEstimate.id}` });
     onReviewTargetChange?.(target);
   }, [activeEstimate.id, createEstimateReviewTarget, onReviewTargetChange]);
 
   const handleRowReview = useCallback(
     (row: (typeof activeContentRows)[number]) => {
       const target = createRowReviewTarget(row);
-      setSelectedReviewTargetKey(`row:${row.id}`);
+      dispatchTabsState({ type: "reviewTargetSelected", key: `row:${row.id}` });
       onReviewTargetChange?.(target);
     },
     [createRowReviewTarget, onReviewTargetChange],
@@ -447,10 +521,10 @@ export default function SharePageTabs({
   useEffect(() => {
     const showPrintPackage = () => {
       // react-doctor-disable-next-line react-doctor/no-flush-sync -- beforeprint must commit the print package before the browser snapshots the document.
-      flushSync(() => setRenderPrintPackage(true));
+      flushSync(() => dispatchTabsState({ type: "printPackageVisibilityChanged", visible: true }));
     };
     const hidePrintPackage = () => {
-      setRenderPrintPackage(false);
+      dispatchTabsState({ type: "printPackageVisibilityChanged", visible: false });
     };
 
     window.addEventListener("beforeprint", showPrintPackage);
@@ -683,7 +757,7 @@ export default function SharePageTabs({
                   value={activeGridSearch}
                   onChange={(event) => {
                     const next = event.target.value;
-                    setGridSearchByEstimateId((prev) => ({ ...prev, [gridSearchKey || activeEstimate.id]: next }));
+                    dispatchTabsState({ type: "gridSearchChanged", key: gridSearchKey || activeEstimate.id, value: next });
                   }}
                   placeholder="Filter rows"
                   className="h-8 min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:border-focus"

@@ -47,6 +47,6 @@ export function shareReviewTargetDisplay(target: ShareReviewTarget | null | unde
   return normalized.kind === "proposal" ? "Proposal" : normalized.label;
 }
 
-export function isSpecificShareReviewTarget(target: ShareReviewTarget | null | undefined) {
+function isSpecificShareReviewTarget(target: ShareReviewTarget | null | undefined) {
   return normalizeShareReviewTarget(target).kind !== "proposal";
 }

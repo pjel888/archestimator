@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useReducer } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
@@ -56,6 +56,134 @@ interface SharePageCommentsProps {
 
 type QueuedComment = { body: string; ts: number; reviewTarget?: ShareReviewTarget };
 
+type SharePageCommentsState = {
+  comments: Comment[];
+  draft: string;
+  isLoadingComments: boolean;
+  isPosting: boolean;
+  error: string | null;
+  loadError: string | null;
+  lastAnnouncement: string;
+  isExpanded: boolean;
+  retryStatus: string | null;
+  pendingCount: number;
+};
+
+type SharePageCommentsAction =
+  | { type: "announcementSet"; message: string }
+  | { type: "commentsLoadStarted" }
+  | { type: "commentsLoaded"; comments: Comment[] }
+  | { type: "commentsLoadFailed"; error: string }
+  | { type: "commentsLoadSettled" }
+  | { type: "draftChanged"; draft: string; clearError?: boolean }
+  | { type: "errorSet"; error: string | null }
+  | { type: "expandedToggled" }
+  | { type: "optimisticCommentAdded"; comment: Comment }
+  | { type: "commentConfirmed"; tempId: string; confirmedComment: Comment | null; fallbackId: string }
+  | { type: "commentRemoved"; tempId: string }
+  | { type: "postingChanged"; isPosting: boolean }
+  | { type: "retryStatusSet"; retryStatus: string | null }
+  | { type: "pendingCountSet"; pendingCount: number };
+
+const INITIAL_SHARE_PAGE_COMMENTS_STATE: SharePageCommentsState = {
+  comments: [],
+  draft: "",
+  isLoadingComments: false,
+  isPosting: false,
+  error: null,
+  loadError: null,
+  lastAnnouncement: "",
+  isExpanded: true,
+  retryStatus: null,
+  pendingCount: 0,
+};
+
+function sharePageCommentsReducer(state: SharePageCommentsState, action: SharePageCommentsAction): SharePageCommentsState {
+  switch (action.type) {
+    case "announcementSet":
+      return {
+        ...state,
+        lastAnnouncement: action.message,
+      };
+    case "commentsLoadStarted":
+      return {
+        ...state,
+        isLoadingComments: true,
+        loadError: null,
+      };
+    case "commentsLoaded":
+      return {
+        ...state,
+        comments: action.comments,
+      };
+    case "commentsLoadFailed":
+      return {
+        ...state,
+        loadError: action.error,
+      };
+    case "commentsLoadSettled":
+      return {
+        ...state,
+        isLoadingComments: false,
+      };
+    case "draftChanged":
+      return {
+        ...state,
+        draft: action.draft,
+        error: action.clearError ? null : state.error,
+      };
+    case "errorSet":
+      return {
+        ...state,
+        error: action.error,
+      };
+    case "expandedToggled":
+      return {
+        ...state,
+        isExpanded: !state.isExpanded,
+      };
+    case "optimisticCommentAdded":
+      return {
+        ...state,
+        comments: [...state.comments, action.comment],
+        draft: "",
+        error: null,
+        isPosting: true,
+      };
+    case "commentConfirmed":
+      return {
+        ...state,
+        comments: state.comments.map((comment) =>
+          comment.id === action.tempId
+            ? action.confirmedComment ?? { ...comment, id: action.fallbackId, isOptimistic: false }
+            : comment,
+        ),
+      };
+    case "commentRemoved":
+      return {
+        ...state,
+        comments: state.comments.filter((comment) => comment.id !== action.tempId),
+      };
+    case "postingChanged":
+      return {
+        ...state,
+        isPosting: action.isPosting,
+      };
+    case "retryStatusSet":
+      return {
+        ...state,
+        retryStatus: action.retryStatus,
+      };
+    case "pendingCountSet":
+      return {
+        ...state,
+        pendingCount: action.pendingCount,
+      };
+    default:
+      return state;
+  }
+}
+
 function readErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "";
 }
@@ -76,26 +204,32 @@ function mapLoadedComment(comment: LoadedComment): Comment {
   };
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export default function SharePageComments({ token, viewToken, reviewTarget }: SharePageCommentsProps) {
   const { isValid } = useSharedLinkSession();
   const activeReviewTarget = normalizeShareReviewTarget(reviewTarget);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [draft, setDraft] = useState("");
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [lastAnnouncement, setLastAnnouncement] = useState("");
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [commentsState, dispatchCommentsState] = useReducer(sharePageCommentsReducer, INITIAL_SHARE_PAGE_COMMENTS_STATE);
+  const {
+    comments,
+    draft,
+    isLoadingComments,
+    isPosting,
+    error,
+    loadError,
+    lastAnnouncement,
+    isExpanded,
+    retryStatus,
+    pendingCount,
+  } = commentsState;
 
   const MAX = 1000;
   const remaining = MAX - draft.length;
   const activeReviewTargetLabel = shareReviewTargetDisplay(activeReviewTarget);
 
   const announce = useCallback((msg: string) => {
-    setLastAnnouncement(msg);
+    dispatchCommentsState({ type: "announcementSet", message: msg });
     // screen reader will pick up aria-live change
-  }, [setLastAnnouncement]);
+  }, []);
 
   // P12: client retry (3 attempts: immediate, +2s, +5s) + offline queue (sessionStorage + reconnect auto-flush)
   // Additive to P6 optimistic UI, error states, aria, design tokens. No behavior change on first-try success.
@@ -126,15 +260,13 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     } catch {}
   }, [QUEUE_KEY]);
 
-  const [retryStatus, setRetryStatus] = useState<string | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
   const staleSnapshot = error?.toLowerCase().includes("shared page was updated") ?? false;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       try {
         const savedDraft = sessionStorage.getItem(DRAFT_KEY);
-        if (savedDraft) setDraft(savedDraft.slice(0, MAX));
+        if (savedDraft) dispatchCommentsState({ type: "draftChanged", draft: savedDraft.slice(0, MAX) });
       } catch {}
     }, 0);
     return () => window.clearTimeout(timeout);
@@ -152,8 +284,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
 
   const loadComments = useCallback(async (signal?: AbortSignal) => {
     if (!isValid) return;
-    setIsLoadingComments(true);
-    setLoadError(null);
+    dispatchCommentsState({ type: "commentsLoadStarted" });
 
     try {
       const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
@@ -166,15 +297,15 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
 
       const json = (await res.json().catch(() => ({}))) as { comments?: LoadedComment[] };
       const loadedComments = Array.isArray(json.comments) ? json.comments : [];
-      setComments(loadedComments.map(mapLoadedComment));
+      dispatchCommentsState({ type: "commentsLoaded", comments: loadedComments.map(mapLoadedComment) });
     } catch (error: unknown) {
       if (!signal?.aborted) {
-        setLoadError(readErrorMessage(error) || "Could not load discussion.");
+        dispatchCommentsState({ type: "commentsLoadFailed", error: readErrorMessage(error) || "Could not load discussion." });
       }
     } finally {
-      if (!signal?.aborted) setIsLoadingComments(false);
+      if (!signal?.aborted) dispatchCommentsState({ type: "commentsLoadSettled" });
     }
-  }, [isValid, token, setComments, setIsLoadingComments, setLoadError]);
+  }, [isValid, token]);
 
   useEffect(() => {
     if (!isValid) return;
@@ -218,13 +349,13 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
       announce(deliveredCount === 1 ? "Queued comment delivered." : `${deliveredCount} queued comments delivered.`);
     }
     saveQueue(remaining);
-    setPendingCount(remaining.length);
+    dispatchCommentsState({ type: "pendingCountSet", pendingCount: remaining.length });
   }, [token, viewToken, loadQueue, saveQueue, announce]);
 
   // Auto-flush on reconnect (and on mount if online)
   useEffect(() => {
     const onOnline = () => {
-      setRetryStatus(null);
+      dispatchCommentsState({ type: "retryStatusSet", retryStatus: null });
       flushQueue();
     };
     window.addEventListener("online", onOnline);
@@ -234,7 +365,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
         void flushQueue();
       }
       // update pending badge count
-      setPendingCount(loadQueue().length);
+      dispatchCommentsState({ type: "pendingCountSet", pendingCount: loadQueue().length });
     }, 0);
     return () => {
       window.clearTimeout(timeoutId);
@@ -247,7 +378,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     const delays = isTest ? [0, 0, 0] : [0, 2000, 5000]; // real delays only in prod; tests control timing
     let lastErr: unknown = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
-      setRetryStatus(attempt > 1 ? `Retrying (${attempt}/3)...` : null);
+      dispatchCommentsState({ type: "retryStatusSet", retryStatus: attempt > 1 ? `Retrying (${attempt}/3)...` : null });
       if (delays[attempt - 1] > 0) {
         // react-doctor-disable-next-line react-doctor/async-await-in-loop -- Retry backoff must run sequentially between attempts.
         await new Promise((r) => setTimeout(r, delays[attempt - 1]));
@@ -262,7 +393,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
           body: JSON.stringify({ body: bodyStr, viewToken, ...serializeShareReviewTarget(target) }),
         });
         if (res.ok) {
-          setRetryStatus(null);
+          dispatchCommentsState({ type: "retryStatusSet", retryStatus: null });
           return res;
         }
         const errorPayload = (await res.json().catch(() => ({}))) as { error?: string };
@@ -274,7 +405,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
         if (attempt === 3) break;
       }
     }
-    setRetryStatus(null);
+    dispatchCommentsState({ type: "retryStatusSet", retryStatus: null });
     throw lastErr instanceof Error ? lastErr : new Error("Failed after retries");
   }, [token, viewToken]);
 
@@ -283,7 +414,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     if (!body || !isValid || isPosting) return;
 
     if (body.length > MAX) {
-      setError("Comment too long (max 1000 characters).");
+      dispatchCommentsState({ type: "errorSet", error: "Comment too long (max 1000 characters)." });
       return;
     }
 
@@ -301,10 +432,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
       targetSecondaryLabel: targetForSubmit.secondaryLabel ?? null,
       isOptimistic: true,
     };
-    setComments((prev) => [...prev, optimistic]);
-    setDraft("");
-    setError(null);
-    setIsPosting(true);
+    dispatchCommentsState({ type: "optimisticCommentAdded", comment: optimistic });
     announce("Comment posted. Waiting for confirmation.");
 
     try {
@@ -318,17 +446,18 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
 
       const postPayload = (await res.json().catch(() => ({ id: tempId }))) as CommentPostResponse;
       const confirmedComment = postPayload.comment ? mapLoadedComment(postPayload.comment) : null;
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === tempId ? confirmedComment ?? { ...c, id: postPayload.id || tempId, isOptimistic: false } : c
-        )
-      );
+      dispatchCommentsState({
+        type: "commentConfirmed",
+        tempId,
+        confirmedComment,
+        fallbackId: postPayload.id || tempId,
+      });
       announce("Comment added successfully.");
       // best-effort: if any pending, try flush (reconnect or post-success window)
       if (navigator.onLine) flushQueue();
     } catch (error: unknown) {
       // Revert optimistic
-      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      dispatchCommentsState({ type: "commentRemoved", tempId });
       const errorMessage = readErrorMessage(error);
       const isOffline = !navigator.onLine;
       if (isOffline || errorMessage.includes("fetch")) {
@@ -336,21 +465,21 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
         const q = loadQueue();
         q.push({ body, ts: Date.now(), reviewTarget: targetForSubmit });
         saveQueue(q);
-        setPendingCount(q.length);
-        setError("You appear to be offline. Comment queued — will retry on reconnect.");
+        dispatchCommentsState({ type: "pendingCountSet", pendingCount: q.length });
+        dispatchCommentsState({ type: "errorSet", error: "You appear to be offline. Comment queued — will retry on reconnect." });
       } else {
         const msg = /snapshot|stale|changed/i.test(errorMessage)
           ? "This shared page was updated while you were writing. Your draft is preserved. Refresh to post against the latest version."
           : errorMessage.includes("rate") || errorMessage.includes("429")
             ? "Rate limit reached. Slow down and try again."
             : "Failed to post comment. Please try again.";
-        if (/snapshot|stale|changed/i.test(errorMessage)) setDraft(body);
-        setError(msg);
+        if (/snapshot|stale|changed/i.test(errorMessage)) dispatchCommentsState({ type: "draftChanged", draft: body });
+        dispatchCommentsState({ type: "errorSet", error: msg });
       }
       announce("Failed to post comment.");
     } finally {
-      setIsPosting(false);
-      setRetryStatus(null);
+      dispatchCommentsState({ type: "postingChanged", isPosting: false });
+      dispatchCommentsState({ type: "retryStatusSet", retryStatus: null });
     }
   }, [
     activeReviewTarget,
@@ -362,10 +491,6 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     loadQueue,
     saveQueue,
     flushQueue,
-    setComments,
-    setDraft,
-    setError,
-    setIsPosting,
   ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -403,7 +528,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsExpanded((value) => !value)}
+            onClick={() => dispatchCommentsState({ type: "expandedToggled" })}
             aria-expanded={isExpanded}
             aria-controls="share-page-discussion-body"
           >
@@ -466,7 +591,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
                 Refresh
               </Button>
             ) : (
-              <Button variant="ghost" size="sm" className="ml-2" onClick={() => setError(null)}>
+              <Button variant="ghost" size="sm" className="ml-2" onClick={() => dispatchCommentsState({ type: "errorSet", error: null })}>
                 Dismiss
               </Button>
             )}
@@ -488,8 +613,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
           value={draft}
           onChange={(e) => {
             const v = e.target.value.slice(0, MAX);
-            setDraft(v);
-            if (error) setError(null);
+            dispatchCommentsState({ type: "draftChanged", draft: v, clearError: Boolean(error) });
           }}
           onKeyDown={handleKeyDown}
           placeholder="Add a comment, note, or question for the project team..."
