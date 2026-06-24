@@ -84,17 +84,19 @@ No source edited, no files deleted, no `package.json` changed, no migrations app
 - **Mega-file LOC counts** are from the code-review-graph index (last updated 2026-06-19). Real LOC may drift; re-verify with `wc -l` before any refactor.
 - **Second codebase pass** ran in parallel with this plan; its findings are appended to `02_CODEBASE_ANALYSIS.md` § "Second-pass findings" and routed into `06_TIER_3_QUICK_CUTS.md`.
 
-## The single most valuable next step
+## The single most valuable next step (refreshed 2026-06-24)
 
-**Execute Wave 1A** (see `07_IMPLEMENTATION_WAVES.md`) after a fresh baseline snapshot:
+**Execute Wave 1A残余** (see `07_IMPLEMENTATION_WAVES.md`) after a fresh baseline snapshot — T1.1 and T1.2 are already done, so the remaining Wave 1A is:
 
-1. Remove `class-variance-authority` from `package.json` (0 imports, zero risk)
-2. Remove `three` from `package.json` (0 imports, zero risk)
-3. Swap `@next/third-parties` GoogleAnalytics → `next/script` in `LandingAnalyticsLoader.tsx`, then remove `@next/third-parties` dep (low risk, pattern exists)
-4. Narrow `d3` → `d3-shape` (low risk, only `d3-shape` is imported)
+1. ~~Remove `class-variance-authority`~~ — ✅ DONE 2026-06-23 (`e65e2848`)
+2. ~~Remove `three`~~ — ✅ DONE 2026-06-24 (React Doctor cleanup)
+3. **Swap `@next/third-parties` GoogleAnalytics → `next/script`** in `LandingAnalyticsLoader.tsx`, then remove `@next/third-parties` dep (low risk, `ClarityScript.tsx` pattern exists; MUST preserve `window.gtag`)
+4. **Narrow `d3` → `d3-shape`** (low risk, only `d3-shape` is imported by `CostDonutChart.tsx`)
 5. Gate: `bun install && bun run type-check && bun run build`, targeted tests, and baseline-diff validation from `08_VERIFICATION_STRATEGY.md`
 
-This is ~15 minutes of work and immediately shrinks the dependency tree. Then decide Wave 2A (visual deps and feature cuts) with the owner using `13_VISUAL_DECISION_AND_QA_MATRIX.md`.
+Then decide Wave 2A residual: the **T1.5 `@firecms/neat`** owner decision using `13_VISUAL_DECISION_AND_QA_MATRIX.md`. (T1.6/T1.7/T1.8 are already executed via cleanup — `lenis`, `rough-notation`, `roughjs` are gone.)
+
+This is ~10 minutes of remaining Wave 1A work plus one owner decision. Then the ongoing Wave 3 discipline (`/ponytail-review` on every PR touching a Tier 2 file) is where the durable value lives.
 
 ## Ponytail operating model (the ongoing discipline)
 

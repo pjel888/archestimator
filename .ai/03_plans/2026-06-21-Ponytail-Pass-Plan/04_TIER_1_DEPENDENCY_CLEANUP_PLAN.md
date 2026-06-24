@@ -12,6 +12,8 @@ This document is the step-by-step plan for each Tier 1 dependency removal/swap. 
 
 ## T1.1 — Remove `class-variance-authority`
 
+> **✅ EXECUTED 2026-06-23** — commit `e65e2848` "chore(deps): remove class-variance-authority and use local react-doctor binary". Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. Steps below are retained as the historical record of the executed change.
+
 **Risk:** Zero · **Effort:** 2 minutes · **LOC delta:** 0 in app code
 
 ### Steps
@@ -56,6 +58,8 @@ cleanup plan cross-reference). Wave 1 of Ponytail Pass Plan.
 ---
 
 ## T1.2 — Remove `three`
+
+> **✅ EXECUTED 2026-06-24** — removed as part of the React Doctor warning cleanup pass (see `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` and `.ai/10_state/current-state.md` 2026-06-24 entry: "removed unused packages (`lenis`, `rough-notation`, `roughjs`, `three`, `@types/three`)"). Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit.
 
 **Risk:** Zero · **Effort:** 2 minutes · **LOC delta:** 0 in app code
 
@@ -364,6 +368,8 @@ For each visual dep where the owner decides **swap**, the step-by-step is:
 
 ### T1.6 `lenis` swap (if owner approves)
 
+> **✅ EXECUTED 2026-06-24 (cleanup consumed, no swap needed)** — `lenis` was removed outright by the React Doctor warning cleanup pass (see `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` and `.ai/10_state/current-state.md` 2026-06-24). The landing-v3 refactor (`66bfc93e`, `5d127690`, `bc81a8af`) removed `LandingSmoothScrollProvider.tsx` and its `ReactLenis` wrapper before the dep was deleted. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The owner-decision matrix below is retained as a historical record; no further action required.
+
 1. Read `src/components/landing/LandingSmoothScrollProvider.tsx` (lines 3-4, 20-41)
 2. Replace `ReactLenis` wrapper with `html { scroll-behavior: smooth; }` in `globals.css` + `scroll-margin-top` / anchor offsets + a `prefers-reduced-motion` guard
 3. **Preserve `data-lenis-prevent` exclusion semantics** (or drop them intentionally — document the decision)
@@ -376,6 +382,8 @@ For each visual dep where the owner decides **swap**, the step-by-step is:
 
 ### T1.7 `rough-notation` swap (if owner approves)
 
+> **✅ EXECUTED 2026-06-24 (cleanup consumed, no swap needed)** — `rough-notation` was removed outright by the React Doctor warning cleanup pass (see `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` and `.ai/10_state/current-state.md` 2026-06-24). The landing-v3 refactor retired the legacy `HeroSection.tsx` / `LaunchFeatureHeading.tsx` surfaces that consumed it. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit.
+
 1. Read `src/components/landing/HeroSection.tsx` (lines 7, 147-245) and `LaunchFeatureHeading.tsx` (lines 4, 11-34)
 2. Replace `annotate(...)` calls with CSS `text-decoration: wavy underline` or an SVG underline/circle overlay path
 3. The hero already has some inline SVG highlight scaffolding — reuse or extend it
@@ -387,6 +395,8 @@ For each visual dep where the owner decides **swap**, the step-by-step is:
 9. Commit: `chore(landing): swap rough-notation for CSS/SVG underline overlays`
 
 ### T1.8 `roughjs` swap (if owner approves)
+
+> **✅ EXECUTED 2026-06-24 (cleanup consumed, no swap needed)** — `roughjs` was removed outright by the React Doctor warning cleanup pass (see `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` and `.ai/10_state/current-state.md` 2026-06-24). The landing-v3 refactor retired the legacy `AnimatedProposalRecordSection.tsx` illustration that consumed it (the ~684 LOC dependent on `rough.svg()` went with the component). Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The largest single-dep LOC cut in the original plan (−500) was realized as a deletion, not a swap.
 
 1. Read `src/components/landing/AnimatedProposalRecordSection.tsx` (lines 12-13, 164-608, 630-848 — ~684 LOC depend on roughjs)
 2. Replace the sketch-style SVG illustration with an authored SVG asset (static or CSS-animated) — cards, arrows, dashed revision loop, bubble quote

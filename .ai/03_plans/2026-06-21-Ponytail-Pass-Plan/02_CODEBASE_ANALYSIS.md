@@ -99,7 +99,9 @@ These are not "pure wins" because each replacement changes first-viewport or lan
 
 ### T1.5 `@firecms/neat` — single-use visual dep
 
-- **Evidence (Agent A):** Only importer is `src/components/landing/NeatWireframeBackground.tsx:4,116,120-172`. Uses `NeatConfig` (type) and `NeatGradient` (lazy-imported after idle time to mount a full-size animated canvas). Fallback render is a static warm linear-gradient block.
+> **⏳ PENDING — 2026-06-24 audit confirms still 1 importer and dep still in `package.json` (v0.8.0). Owner decision still required.**
+
+- **Evidence (2026-06-24 re-audit):** Only importer is `src/components/landing/NeatWireframeBackground.tsx`. Uses `NeatConfig` (type) and `NeatGradient` (lazy-imported after idle time to mount a full-size animated canvas). Fallback render is a static warm linear-gradient block.
 - **Ponytail ask:** "Does a native platform feature cover it? CSS gradient / SVG noise / `backdrop-filter`."
 - **Action options:**
   - **A (keep):** Keep for closed beta if the visual is owner-approved. ~1 dep.
@@ -111,39 +113,15 @@ These are not "pure wins" because each replacement changes first-viewport or lan
 
 ### T1.6 `lenis` — single-use smooth-scroll dep
 
-- **Evidence (Agent A):** Only importer is `src/components/landing/LandingSmoothScrollProvider.tsx:3-4,20-41`. Uses `ReactLenis` to wrap landing content unless reduced motion is preferred. Options: smooth wheel/anchor scrolling, `lerp`, `data-lenis-prevent` exclusion.
-- **Ponytail ask:** "Native platform feature? `scroll-behavior: smooth` + CSS, or `requestAnimationFrame`-based local handler."
-- **Action options:**
-  - **A (keep):** Keep for closed beta if smooth scroll is owner-approved. ~1 dep.
-  - **B (swap):** `html { scroll-behavior: smooth; }` + `scroll-margin-top` / anchor offsets + respect `prefers-reduced-motion`. Drop dep. −30 LOC.
-- **Risk:** Low-medium — mostly UX feel and anchor scrolling, not data flow. Must preserve reduced-motion pass-through and `data-lenis-prevent` exclusion semantics (or drop intentionally).
-- **LOC delta (swap):** −30.
-- **Verification:** 3 affected tests pass: `public-page-shell.test.tsx`, `live-estimate-node-route.test.ts`, `landing-company-proof.test.ts`. Landing page scroll feels acceptable. Reduced-motion respected. `bun run build` pass.
-- **Owner decision needed:** Is Lenis momentum scroll a launch-critical UX?
+> **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `lenis` removed outright by the React Doctor warning cleanup. Landing-v3 refactor (`66bfc93e`, `5d127690`) removed `LandingSmoothScrollProvider.tsx` and its `ReactLenis` wrapper before the dep was deleted. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The historical analysis below is retained for traceability.
 
 ### T1.7 `rough-notation` — single-use annotation dep
 
-- **Evidence (Agent A):** Importers: `src/components/landing/HeroSection.tsx:7,147-245`, `src/components/landing/LaunchFeatureHeading.tsx:4,11-34`. Hero: underline/circle annotations on "proposal/approval" and "Precision/Win". Launch heading: underlines "archestimator".
-- **Ponytail ask:** "Can this be CSS/SVG? `text-decoration: underline; text-decoration-style: wavy;` or an SVG underline path."
-- **Action options:**
-  - **A (keep):** Keep for closed beta if the hand-drawn look is owner-approved. ~1 dep.
-  - **B (swap):** CSS `text-decoration: wavy underline` or an authored SVG underline/circle overlay. Drop dep. −120 LOC.
-- **Risk:** Medium — visual-only, 2 components, but headline styling and motion are landing-page visible.
-- **LOC delta (swap):** −120.
-- **Verification:** 3 affected tests pass: `landing-interactivity.test.tsx`, `landing-amigo-redesign.test.tsx`, `landing-company-proof.test.ts`. Visual QA on hero + feature heading.
-- **Owner decision needed:** Is the hand-drawn underline a launch-critical visual?
+> **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `rough-notation` removed outright by the React Doctor warning cleanup. Landing-v3 refactor retired the legacy `HeroSection.tsx` / `LaunchFeatureHeading.tsx` surfaces that consumed it. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit.
 
 ### T1.8 `roughjs` — single-use illustration dep
 
-- **Evidence (Agent A):** Only importer is `src/components/landing/AnimatedProposalRecordSection.tsx:12-13,164-608,630-848`. Uses `rough.svg(svg)` for sketch-style SVG outlines of cards, arrows, dashed revision loop, and bubble quote in the "One Workflow" illustration. **~684 lines of the file depend on roughjs.**
-- **Ponytail ask:** "Can this be an authored SVG? A static SVG asset?"
-- **Action options:**
-  - **A (keep):** Keep for closed beta if the illustration is owner-approved. ~1 dep.
-  - **B (swap):** Authored SVG asset (static or CSS-animated). Drop dep. **−500 LOC** (much larger than first-pass estimated).
-- **Risk:** High — large custom visual composition with many geometry-dependent paths.
-- **LOC delta (swap):** −500.
-- **Verification:** 2 affected tests pass: `closed-beta-pricing-copy.test.ts`, `landing-amigo-redesign.test.tsx`. Visual QA on the section.
-- **Owner decision needed:** Is the hand-drawn illustration a launch-critical visual? This is the largest single-dep LOC cut in the plan, but also the highest visual complexity.
+> **✅ EXECUTED 2026-06-24 (cleanup consumed)** — `roughjs` removed outright by the React Doctor warning cleanup. Landing-v3 refactor retired the legacy `AnimatedProposalRecordSection.tsx` illustration that consumed it. Confirmed 0 importers and absent from `package.json` as of 2026-06-24 audit. The original −500 LOC cut was realized as a deletion, not a swap.
 
 ## Findings — Tier 2: Mega-files (apply ponytail on any edit)
 

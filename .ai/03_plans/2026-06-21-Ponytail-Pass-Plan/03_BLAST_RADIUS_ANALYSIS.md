@@ -126,17 +126,17 @@ This document analyzes the blast radius of every proposed change in the Ponytail
 
 ## Tier 2 mega-file blast radius (VALIDATED by Agent B)
 
-### Coupling summary (validated)
+### Coupling summary (REFRESHED 2026-06-24 — see `16_AUDIT_LOG_2026-06-24.md`)
 
-| File | LOC | Importers | Tests | Hot path | Coupling | Refactor risk | Dead exports |
-|------|----:|---:|---:|---|---|---|---:|
-| `EstimateSheetContent.tsx` | 2950 | 1 (dynamic) | 16 | Yes — core estimate editor | Very-high | High | **25** |
-| `component-library/index.tsx` | 2541 | 2 | 1 | Yes — library sidebar | High | High | 0 |
-| `workspace-repository.ts` | 2695 | **37** | 10 | Yes — workshop data | Very-high | High | **13** |
-| `package-builder/draft.ts` | 2412 | 1 | 2 | Only if AI enabled | Medium | Medium | 0 |
-| `read-context.ts` | 2023 | 1 | 2 | Only if AI enabled | Medium | Medium | 2 |
-| `publication/actions.ts` | ~1538 | 5 | 3 | Yes — share links | High | High | 1 |
-| `component-library/actions.ts` | ~1591 | **14** | 3 | Yes — library CRUD | Very-high | High | **16** |
+| File | LOC (06-24) | LOC (06-21) | Importers (06-24) | Tests | Hot path | Coupling | Refactor risk | Dead exports (06-21 baseline) |
+|------|----:|----:|---:|---:|---|---|---|---:|
+| `EstimateSheetContent.tsx` | **3550** | 2950 | 1 (dynamic) | 16 | Yes — core estimate editor | Very-high | High | **25** (re-verify; reducer extraction landed 06-24) |
+| `component-library/index.tsx` | **3409** | 2541 | 2 | 1 | Yes — library sidebar | High | High | 0 |
+| `workspace-repository.ts` | **3242** | 2695 | **36** (was 37) | 10 | Yes — workshop data | Very-high | High | **13** |
+| `package-builder/draft.ts` | **2443** | 2412 | 1 | 2 | Only if AI enabled | Medium | Medium | 0 |
+| `read-context.ts` | **2020** | 2023 | 1 | 2 | Only if AI enabled | Medium | Medium | 2 |
+| `publication/actions.ts` | **1637** | ~1538 | **4** (was 5) | 3 | Yes — share links | High | High | 1 |
+| `component-library/actions.ts` | **1749** | ~1591 | **14** | 3 | Yes — library CRUD | Very-high | High | **16** |
 
 **Key findings:**
 - **`workspace-repository.ts` has 37 source importers** — the widest fanout in the set. Any change to its public API touches 37 files. But it has 13 dead exports that can be safely removed in a first pass.

@@ -14,17 +14,19 @@ This document defines the per-file strategy for the 7 mega-files (>1500 LOC sour
 4. **Extract concerns only when a natural edit boundary appears.** Don't invent refactor boundaries — wait for a real feature edit that touches the concern.
 5. **Track LOC over time.** Monthly `/ponytail-audit` to measure shrinkage.
 
-## Mega-file inventory (VALIDATED by Agent B)
+## Mega-file inventory (REFRESHED 2026-06-24 — see `16_AUDIT_LOG_2026-06-24.md`)
 
-| # | File | LOC | Importers | Tests | Coupling | Risk | Strategy | Priority |
-|---|------|----:|---:|---:|---|---|---|---:|
-| T2.1 | `src/components/workshop/EstimateSheetContent.tsx` | 2950 | 1 (dynamic) | 16 | Very-high | High | split-by-concern | 4 |
-| T2.2 | `src/components/workshop/component-library/index.tsx` | 2541 | 2 | 1 | High | High | split-by-concern | 5 |
-| T2.3 | `src/lib/repositories/workspace-repository.ts` | 2695 | **37** | 10 | Very-high | High | split-by-concern | **1** |
-| T2.4 | `src/lib/ai/package-builder/draft.ts` | 2412 | 1 | 2 | Medium | Medium | diff-by-diff | 7 (conditional) |
-| T2.5 | `src/lib/ai/read-context.ts` | 2023 | 1 | 2 | Medium | Medium | diff-by-diff | 6 (conditional) |
-| T2.6 | `src/lib/publication/actions.ts` | ~1538 | 5 | 3 | High | High | split-by-concern | 2 |
-| T2.7 | `src/lib/component-library/actions.ts` | 1591 | **14** | 3 | Very-high | High | split-by-concern | 3 |
+> **All Tier 2 files have GROWN since the 2026-06-21 plan snapshot.** Internal reducer extractions landed for T2.1 and T2.2 (see `.ai/10_state/current-state.md` 2026-06-24 entries). React Doctor flagged 31 `no-giant-component` findings; they are locally suppressed and tracked in `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` as deferred structural work — not lint-only cleanup. The dead-export inventories below are spot-checked; re-verify with `rg` before any dead-export removal PR.
+
+| # | File | LOC (2026-06-24) | LOC (2026-06-21) | Δ | Importers (2026-06-24) | Tests | Coupling | Risk | Strategy | Priority |
+|---|------|----:|----:|---:|---:|---:|---|---|---|---:|
+| T2.1 | `src/components/workshop/EstimateSheetContent.tsx` | **3550** | 2950 | +600 | 1 (dynamic) | 16 | Very-high | High | split-by-concern | 4 |
+| T2.2 | `src/components/workshop/component-library/index.tsx` | **3409** | 2541 | +868 | 2 | 1 | High | High | split-by-concern | 5 |
+| T2.3 | `src/lib/repositories/workspace-repository.ts` | **3242** | 2695 | +547 | **36** (was 37) | 10 | Very-high | High | split-by-concern | **1** |
+| T2.4 | `src/lib/ai/package-builder/draft.ts` | **2443** | 2412 | +31 | 1 | 2 | Medium | Medium | diff-by-diff | 7 (conditional) |
+| T2.5 | `src/lib/ai/read-context.ts` | **2020** | 2023 | −3 | 1 | 2 | Medium | Medium | diff-by-diff | 6 (conditional) |
+| T2.6 | `src/lib/publication/actions.ts` | **1637** | ~1538 | +99 | **4** (was 5) | 3 | High | High | split-by-concern | 2 |
+| T2.7 | `src/lib/component-library/actions.ts` | **1749** | ~1591 | +158 | **14** | 3 | Very-high | High | split-by-concern | 3 |
 
 **Priority rationale (revised from Agent B data):**
 - **Agent B recommended:** `workspace-repository.ts` first (clearest separation of concerns despite wide fanout).
