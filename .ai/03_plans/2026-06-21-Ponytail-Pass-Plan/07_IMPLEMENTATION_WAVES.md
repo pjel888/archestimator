@@ -25,37 +25,17 @@ This document defines the phased execution plan for the Ponytail Pass. Waves are
 
 **Prerequisite:** Check `git log` — if `2026-06-14-Codebase-Cleanup-Plan` already executed any of T1.1/T1.2/T1.4, skip them.
 
-### Wave 1 steps (in order)
+### Wave 1 steps (in order — **T1.1/T1.2 ✅ DONE; start at T1.3**)
 
-#### Step 1.1 — Remove `class-variance-authority` (T1.1)
+> **2026-06-24 audit:** Step 1.1 (`class-variance-authority`) executed via commit `e65e2848` on 2026-06-23. Step 1.2 (`three`) executed 2026-06-24 via the React Doctor warning cleanup pass (`.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md`). Start Wave 1A residuals at Step 1.3.
 
-```bash
-# Pre-check
-rg "from ['\"]class-variance-authority['\"]|require\(['\"]class-variance-authority['\"]\)|cva\(" src tests --type ts --type tsx
-# Expected: 0 matches
+#### ~~Step 1.1 — Remove `class-variance-authority` (T1.1)~~ ✅ DONE 2026-06-23
 
-# Edit package.json — remove "class-variance-authority" line
-bun install
-bun run type-check
-bun run build
-```
+> Commit: `e65e2848` "chore(deps): remove class-variance-authority and use local react-doctor binary". Confirmed absent from `package.json` and 0 importers as of 2026-06-24 audit.
 
-**Gate:** `type-check` exit 0, `build` exit 0, no new type errors.
+#### ~~Step 1.2 — Remove `three` (T1.2)~~ ✅ DONE 2026-06-24
 
-#### Step 1.2 — Remove `three` (T1.2)
-
-```bash
-# Pre-check (multi-pattern)
-rg "from ['\"]three['\"]|require\(['\"]three['\"]\)|THREE\.|threejs" src tests src/stories .storybook --type ts --type tsx
-# Expected: 0 matches (known false positive: src/stories/charts/project-cost-comparison.stories.tsx:106 local const THREE, not the package)
-
-# Edit package.json — remove "three" line AND "@types/three" from devDependencies
-bun install
-bun run type-check
-bun run build
-```
-
-**Gate:** `type-check` exit 0, `build` exit 0.
+> Removed as part of the React Doctor warning cleanup pass (`.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md`). `package.json` confirms `three` and `@types/three` are absent. Confirmed 0 importers as of 2026-06-24 audit.
 
 #### Step 1.3 — Swap `@next/third-parties` → `next/script` (T1.3)
 

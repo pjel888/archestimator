@@ -1,15 +1,17 @@
 # 06 — Tier 3 Quick Cuts
 
-**Date:** 2026-06-21 · **Status:** PLANNING / READINESS ONLY
+**Date:** 2026-06-21 · **Last audited:** 2026-06-24 (see `16_AUDIT_LOG_2026-06-24.md`) · **Status:** PLANNING / READINESS ONLY (with drift corrections)
 
 Small over-engineering fixes that don't require owner decisions. Each is a contained edit with a clear verification gate. Execute in Wave 2 (see `07_IMPLEMENTATION_WAVES.md`).
 
 ## T3.1 — Remove `src/components/landing/index.ts` barrel
 
-**What:** 27-line pure re-export file. Ponytail: "boilerplate nobody asked for."
+> **⚠️ 2026-06-24 AUDIT:** Barrel still exists but **shrunk from 27 LOC to 8 LOC** — it now re-exports only 8 items (`CookieConsentBanner`, `LandingFooter`, `LandingHeader`, `PublicPageShell`, `ContactForm`, `ClarityScript`, `LandingAnalyticsLoader`, `ABExperimentProvider`). Importer count grew from 7 to **8 source importers**. The barrel is smaller and more focused post-landing-v3 refactor; cut value is reduced but the pattern is still present.
+
+**What:** 8-line pure re-export file (was 27-line at 2026-06-21). Ponytail: "boilerplate nobody asked for."
 
 **Blast radius:**
-- Importers: 7 source files — `src/app/about/page.tsx`, `src/app/terms/page.tsx`, `src/app/features/page.tsx`, `src/app/privacy/page.tsx`, `src/app/contact/page.tsx`, `src/app/page.tsx`, `src/app/pricing/page.tsx`.
+- Importers: **8 source files** as of 2026-06-24 (was 7 at plan date).
 - Update each to direct file import (e.g., `from "@/components/landing/HeroSection"`), then delete the barrel.
 
 **Action:**
@@ -44,7 +46,9 @@ bun run type-check && bun run build
 
 ## T3.3 — Fix empty catches in `ProjectEstimatesTable.tsx:99-121`
 
-**What:** localStorage read/write wrappers with empty `catch` blocks (lines 99-121). Ponytail: **data-loss handling is never on the chopping block.** Empty `catch` blocks swallow errors that could lose user data.
+> **✅ FIXED (2026-06-24 audit).** File-wide `rg "catch\s*\([^)]*\)\s*\{\s*\}"` returns **0 empty catch blocks**. The cited lines 99-121 now contain type definitions and virtualization constants — the localStorage wrappers with empty catches were refactored (likely via reducer consolidation in commits `b3c57c1d`, `372f514a`, or React Doctor cleanup `577dad5f`). **No further action required.** Section retained as historical record.
+
+**What (historical):** localStorage read/write wrappers with empty `catch` blocks (lines 99-121 at 2026-06-21). Ponytail: **data-loss handling is never on the chopping block.** Empty `catch` blocks swallow errors that could lose user data.
 
 **Blast radius:** 1 file (`ProjectEstimatesTable.tsx`). The wrappers are local to the file.
 
@@ -87,7 +91,9 @@ bun run build
 
 ## T3.4 — Remove `as unknown as` cast in `reusable-sources/actions.ts:192-217`
 
-**What:** `supabase as unknown as` cast wrapping one optional tab query (lines 192-217). Ponytail: **no `as any` / cast escapes.**
+> **⚠️ 2026-06-24 AUDIT:** Pattern still present but **moved from line 192-217 to line 207**. A **second cast appeared at line 434** (`source_root_node_id: (input.source.nodeId ?? null) as unknown as string`). File total is 451 LOC. The ponytail action (replace with typed guard) still applies; update line references and address both casts when executing.
+
+**What:** `supabase as unknown as` cast wrapping one optional tab query. Ponytail: **no `as any` / cast escapes.** Plus a second cast at line 434 (new since 2026-06-21).
 
 **Blast radius:** 1 file (`reusable-sources/actions.ts`). The cast wraps a specific optional query.
 
@@ -179,7 +185,9 @@ bun run build
 
 ### T3.7 Repeated RBAC/limiter boilerplate in `publication/actions.ts:1205`
 
-- **Pattern:** `assertProjectPublicationManager` appears 7 times in the file.
+> **⚠️ 2026-06-24 AUDIT:** `assertProjectPublicationManager` occurrence count **grew from 7 to 10**. The extraction value increased proportionally. Line 1205 reference should be re-verified before execution (file grew from ~1538 to 1637 LOC).
+
+- **Pattern:** `assertProjectPublicationManager` appears **10 times** as of 2026-06-24 (was 7 at 2026-06-21).
 - **Ponytail action:** Extract shared `assertPublicationAccess` helper. (Overlaps with T2.6 mega-file strategy.)
 - **Risk:** Low — but publication actions is a Tier 2 mega-file. Diff-by-diff.
 - **LOC delta:** ~−40.

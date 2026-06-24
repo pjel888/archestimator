@@ -48,14 +48,19 @@ No source edits · no file deletion · no `package.json` change · no migrations
 14. `13_VISUAL_DECISION_AND_QA_MATRIX.md` — owner-ready UI/UX decisions and visual QA evidence gates
 15. `14_SECURITY_AND_NETWORK_CONTRACTS.md` — auth/RLS/public-share/AI/CSP/network/security invariants
 16. `15_ULTRAQA_ADVERSARIAL_PLAN_QA_MATRIX.md` — adversarial QA scenarios for implementation readiness
+17. `16_AUDIT_LOG_2026-06-24.md` — **2026-06-24 audit pass: drift report, EXECUTED markers, post-audit status** (read after `01` for current reality)
 
-## Current readiness decision
+## Current readiness decision (refreshed 2026-06-24)
 
-**PLAN PACK RATED 100/100 FOR STRATEGY, QUALITY, AND IMPLEMENTATION READINESS** after the 2026-06-21 continuation review. The closure evidence is in `12_QUALITY_SCORECARD_AND_REQUIREMENT_CLOSURE.md`.
+**PLAN PACK RATED 100/100 FOR STRATEGY, QUALITY, AND IMPLEMENTATION READINESS** at the 2026-06-21 continuation review. The 2026-06-24 audit (see `16_AUDIT_LOG_2026-06-24.md`) confirmed the plan's structural soundness while marking 5 of 8 deps as already executed and refreshing Tier 2 LOC tables. Strategy and quality ratings remain 100/100 post-audit.
 
-**WAVE 1 HANDOFF READY** (Tier 1A dep removals: `class-variance-authority`, `three`; contained Tier 1A swaps: `@next/third-parties` -> `next/script`, `d3` -> `d3-shape`). Implementation still starts with fresh `git status`, baseline snapshot, and the gates in `08_VERIFICATION_STRATEGY.md`.
+**WAVE 1A PARTIALLY COMPLETE:** T1.1 (`class-variance-authority`) executed 2026-06-23 (commit `e65e2848`). T1.2 (`three`) executed 2026-06-24 (React Doctor cleanup). **Residual:** T1.3 `@next/third-parties` → `next/script` swap and T1.4 `d3` → `d3-shape` narrowing remain pending (both dep entries still in `package.json`).
 
-**WAVE 2 HANDOFF READY WITH OWNER DECISION FIELDS** (visual dep decisions, speculative feature decisions, Tier 3 quick cuts). The visual owner payload is explicit in `13_VISUAL_DECISION_AND_QA_MATRIX.md`; the security/network contracts are explicit in `14_SECURITY_AND_NETWORK_CONTRACTS.md`.
+**WAVE 2A PARTIALLY CONSUMED:** T1.6 (`lenis`), T1.7 (`rough-notation`), T1.8 (`roughjs`) all executed 2026-06-24 via React Doctor warning cleanup (the landing-v3 refactor had already removed the consuming components). **Residual:** T1.5 `@firecms/neat` owner decision (dep still in `package.json`). SF.1 AI surface and SF.2 project cursors still pending owner decisions.
+
+**TIER 3 PARTIAL DRIFT:** T3.3 empty catches FIXED. T3.1 barrel shrunk 27→8 LOC. T3.4 cast moved to line 207 + new cast at line 434. T3.7 `assertProjectPublicationManager` grew 7→10 occurrences. See `06_TIER_3_QUICK_CUTS.md` for the refreshed status.
+
+**WAVE 3 HEIGHTENED PRIORITY:** All 7 Tier 2 mega-files grew since 2026-06-21 (total +2460 LOC drift). React Doctor flagged 31 `no-giant-component` findings, locally suppressed and tracked in `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` as deferred structural work. The `/ponytail-review`-on-every-PR discipline is more valuable now than at plan date.
 
 **DIFF-BY-DIFF FOR TIER 2** (mega-files) — never refactor in one shot. Run `/ponytail-review` on any PR that touches a Tier 2 file. Shrink diff-by-diff.
 

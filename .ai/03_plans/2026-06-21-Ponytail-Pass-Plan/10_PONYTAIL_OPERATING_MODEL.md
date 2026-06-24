@@ -328,7 +328,7 @@ Ponytail ships 2 lifecycle hooks (in `~/.local/share/ponytail/hooks/claude-codex
 | OpenCode plugin | `~/.config/opencode/opencode.jsonc` → `plugin` array | registered 2026-06-21 |
 | OpenCode commands | `~/.config/opencode/command/ponytail*.md` (symlinks) | linked 2026-06-21 |
 | Claude plugin | `~/.claude/plugins/cache/ponytail/ponytail/4.7.0/` | installed 2026-06-21 |
-| Codex plugin | `~/.codex/plugins/cache/ponytail/ponytail/4.7.0/` | installed 2026-06-21 (hooks need trust) |
+| Codex plugin | `~/.codex/plugins/cache/ponytail/ponytail/4.8.2/` | **updated from 4.7.0 → 4.8.2** (confirmed 2026-06-24 audit; plan's original 4.7.0 claim is stale for Codex) |
 | Ponytail clone | `~/.local/share/ponytail/` | cloned 2026-06-21 |
 
 ## Full ruleset text (verbatim, extracted from source)
