@@ -13,7 +13,7 @@ import { cn } from "@/lib/ui/cn";
  */
 
 const ADMIN_STATUS_SELECT_TRIGGER_CLASS =
-  "h-7 rounded-xs border border-hairline bg-white px-2 !text-[10px] font-normal leading-3 text-ink focus:border-focus";
+  "h-7 rounded-xs border border-hairline bg-white px-2 !text-[10px] font-normal leading-3 text-ink focus:bg-accentSoft";
 
 export type AdminStatusSelectProps = {
   name: string;

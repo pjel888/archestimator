@@ -931,7 +931,7 @@ function ShareModal(props: ShareModalProps) {
               <input
                 id="teamspace-invite-email"
                 className={cn(
-                  "min-h-7 w-full min-w-0 rounded-xs border bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus",
+                  "min-h-7 w-full min-w-0 rounded-xs border bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft",
                   inviteEmailError ? "border-danger" : "border-hairline",
                 )}
                 type="email"
@@ -1137,7 +1137,7 @@ function ShareModal(props: ShareModalProps) {
                       </label>
                       <input
                         id={`sheet-invite-${sheet.estimateId}`}
-                        className="min-h-6 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[9px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus"
+                        className="min-h-6 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[9px] leading-3 text-ink outline-none placeholder:text-tertiary focus:bg-accentSoft"
                         type="email"
                         value={sheetInviteEmailById[sheet.estimateId] ?? ""}
                         placeholder="email"
@@ -1190,7 +1190,7 @@ function ShareModal(props: ShareModalProps) {
               </label>
               <input
                 id="teamspace-project-share-link"
-                className="min-h-6 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[9px] leading-3 text-secondary outline-none focus:border-focus"
+                className="min-h-6 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[9px] leading-3 text-secondary outline-none focus:bg-accentSoft"
                 aria-label="Private project link"
                 readOnly
                 value={projectSharePath}

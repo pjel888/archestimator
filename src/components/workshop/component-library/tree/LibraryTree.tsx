@@ -336,7 +336,7 @@ function FolderRenameInput({
           onCancel();
         }
       }}
-      className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none focus:border-ink focus:ring-1 focus:ring-ink/20"
+      className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none focus:bg-accentSoft"
     />
   );
 }

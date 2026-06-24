@@ -94,8 +94,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain('label="Updated"');
     expect(projectDashboardClient).toContain("grid grid-cols-2 divide-x divide-[color:var(--glass-border)] border-t border-[color:var(--glass-border)] bg-white/25");
     expect(projectDashboardClient).not.toContain("mt-auto grid grid-cols-2 divide-x divide-hairline");
-    expect(projectDashboardClient).toContain("text-[8px] font-medium uppercase tracking-normal text-gray-400");
-    expect(projectDashboardClient).toContain("text-[8px] font-medium leading-3 text-tertiary");
+    expect(projectDashboardClient).toContain("text-[9px] font-medium uppercase tracking-normal text-gray-400");
+    expect(projectDashboardClient).toContain("text-[10px] font-medium leading-3 text-tertiary");
     expect(projectDashboardClient).not.toContain("ReadOnlyProjectDataField");
     expect(projectDashboardClient).not.toContain("ProjectActionTile");
     expect(projectDashboardClient).not.toContain("ProjectMetric");

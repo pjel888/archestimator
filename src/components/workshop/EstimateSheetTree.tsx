@@ -1428,8 +1428,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             }
           }}
           className={cn(
-            "h-5 min-h-0 flex-1 rounded-xs border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:border-accent focus:bg-white focus-visible:ring-2 focus-visible:ring-accentSoft",
-            editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger" : "",
+            "h-5 min-h-0 flex-1 rounded-xs border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:bg-accentSoft",
+            editingNodeError ? "border-danger focus:bg-dangerSoft/30" : "",
           )}
         />
         <button

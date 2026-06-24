@@ -97,7 +97,7 @@ export default async function BetaUsersPage({
                     type="email"
                     required
                     placeholder="reviewer@example.com"
-                    className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
+                    className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:bg-accentSoft"
                   />
                 </label>
                 <div className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
@@ -115,7 +115,7 @@ export default async function BetaUsersPage({
                     id="beta-allowlist-notes"
                     name="notes"
                     placeholder="Cohort, source, or support context"
-                    className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
+                    className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:bg-accentSoft"
                   />
                 </label>
                 <Button type="submit" variant="primary" size="sm">
@@ -196,7 +196,7 @@ export default async function BetaUsersPage({
                                 name="notes"
                                 aria-label={`Notes for ${row.normalized_email}`}
                                 defaultValue={row.notes ?? ""}
-                                className="h-7 min-w-44 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus:ring-2 focus:ring-focus"
+                                className="h-7 min-w-44 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus:bg-accentSoft"
                               />
                               <Button type="submit" variant="secondary" size="sm">
                                 Save notes

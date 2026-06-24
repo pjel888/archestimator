@@ -165,7 +165,7 @@ export function BulkDestructivePreviewModal({
             value={typedPhrase}
             onChange={(event) => setTypedPhrase(event.target.value)}
             aria-label={`Type ${requiredPhrase} to confirm`}
-            className="h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium tracking-normal text-ink outline-none transition focus:border-focus focus:ring-2 focus:ring-focus/20"
+            className="h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium tracking-normal text-ink outline-none transition focus:bg-accentSoft"
             disabled={loading || executing}
           />
           <span className="block text-[9px] leading-3 text-tertiary">{confirmationHint}</span>

@@ -371,7 +371,7 @@ function ProjectEstimateBlankNameCreateCell({
   return (
     <input
       aria-label="Create estimate from blank name cell"
-      className="h-6 min-w-0 w-full rounded-xs border border-transparent bg-transparent px-1 !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:border-accent focus:bg-accentSoft disabled:opacity-60"
+      className="h-6 min-w-0 w-full rounded-xs border border-transparent bg-transparent px-1 !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:bg-accentSoft disabled:opacity-60"
       disabled={isDisabled}
       onBlur={handleBlur}
       onChange={(event) => setDraft(event.currentTarget.value)}

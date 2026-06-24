@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { classifyEstimateRowSource, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { cn } from "@/lib/ui/cn";
-import { estimateSurfaceClass } from "../../estimate-surface-class";
 import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import {
   getComponentImageUrl as getMaterialCardImageUrl,
@@ -180,7 +179,7 @@ function ExpressMaterialEditor({
   const editorLabel = editableRow.name || item.material || "Project Component";
   const imageUrl = editableRow.imageUrl.trim();
   const imageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
-  const cardInputClass = "h-4 border-transparent bg-transparent px-0 py-0 shadow-none hover:border-hairline focus:border-accent focus:bg-white focus:px-1 focus:ring-1 focus:ring-accent";
+  const cardInputClass = "h-4 border-transparent bg-transparent px-0 py-0 shadow-none hover:border-hairline focus:bg-accentSoft";
 
   return (
     <div
@@ -324,7 +323,7 @@ function ExpressMaterialEditor({
             aria-label="Component description"
             placeholder="Description"
             rows={1}
-            className="h-4 min-h-4 flex-1 resize-none overflow-hidden rounded-xs border border-transparent bg-transparent p-0 text-[10px] leading-4 text-secondary/60 outline-none placeholder:text-secondary/60 transition hover:border-hairline hover:text-secondary focus:border-accent focus:bg-white focus:px-1 focus:text-secondary focus:ring-1 focus:ring-accent"
+            className="h-4 min-h-4 flex-1 resize-none overflow-hidden rounded-xs border border-transparent bg-transparent p-0 text-[10px] leading-4 text-secondary/60 outline-none placeholder:text-secondary/60 transition hover:border-hairline hover:text-secondary focus:bg-accentSoft"
           />
         )}
         unit={(
