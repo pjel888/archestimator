@@ -150,7 +150,7 @@ describe("ui tree", () => {
     expect(row("a").querySelector('[data-tree-rail="drag"]')).not.toHaveClass("w-0");
   });
 
-  it("keeps the keyboard-focused row visually distinguishable from selection", async () => {
+  it("keeps the keyboard-focused row distinct with a left border only", async () => {
     render(
       <Tree
         nodes={sampleNodes()}
@@ -164,7 +164,8 @@ describe("ui tree", () => {
 
     await waitFor(() => expect(row("b")).toHaveFocus());
     expect(row("b")).toHaveAttribute("tabindex", "0");
-    expect(row("b")).toHaveClass("border-l-focus", "bg-surfaceMuted");
+    expect(row("b")).toHaveClass("border-l-focus");
+    expect(row("b")).not.toHaveClass("bg-surfaceMuted");
     expect(row("a")).toHaveClass("bg-accentSoft");
     expect(row("a")).not.toHaveClass("border-l-focus");
   });
