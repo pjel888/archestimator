@@ -18,6 +18,7 @@ const doto = Doto({
   weight: "variable",
   display: "swap",
 });
+const enableVercelMetrics = process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS_IN_DEV === "1";
 
 export const metadata: Metadata = {
   metadataBase: new URL(LANDING_SITE_ORIGIN), // L-SEO-1 placeholder origin until domain confirmed
@@ -48,8 +49,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* Arms the deferred liquid-glass blur after first paint + idle. Renders
             null; the glass surfaces ship blur-off so first paint stays cheap. */}
         <LiquidGlassReady />
-        <VercelWebAnalytics />
-        <SpeedInsights />
+        {enableVercelMetrics ? (
+          <>
+            <VercelWebAnalytics />
+            <SpeedInsights />
+          </>
+        ) : null}
       </body>
     </html>
   );

@@ -22,6 +22,7 @@ describe("Vercel Web Analytics integration", () => {
   it("loads the supported Next.js Analytics component with a redaction policy", () => {
     expect(packageJson.dependencies).toHaveProperty("@vercel/analytics");
     expect(rootLayout).toContain('import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";');
+    expect(rootLayout).toContain('const enableVercelMetrics = process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS_IN_DEV === "1";');
     expect(rootLayout).toContain("<VercelWebAnalytics />");
     expect(analyticsComponent).toContain('"use client";');
     expect(analyticsComponent).toContain('import { Analytics } from "@vercel/analytics/next";');
@@ -32,6 +33,7 @@ describe("Vercel Web Analytics integration", () => {
   it("mounts Speed Insights (Option B, owner-approved 2026-06-20) for real-user field metrics", () => {
     expect(packageJson.dependencies).toHaveProperty("@vercel/speed-insights");
     expect(rootLayout).toContain('import { SpeedInsights } from "@vercel/speed-insights/next";');
+    expect(rootLayout).toContain("enableVercelMetrics ? (");
     expect(rootLayout).toContain("<SpeedInsights />");
     // Web Analytics keeps its stricter beforeSend drop-policy regardless of Speed Insights.
     expect(analyticsComponent).toContain("<Analytics beforeSend={redactVercelAnalyticsEvent} />");
