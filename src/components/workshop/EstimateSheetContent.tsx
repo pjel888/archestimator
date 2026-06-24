@@ -15,7 +15,7 @@ import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-too
 import { dispatchProjectTotalChange } from "@/components/workshop/project-total-events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
+import { useEstimateRowMutations, type EstimateRowMutationError, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
 import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
@@ -1303,9 +1303,29 @@ export function EstimateSheetContent({
   const surfaceVariant = useEstimateSurfaceVariant();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : undefined;
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
+  // Toast for save transitions is fired from the transition event itself (the
+  // callback below) rather than from an effect spying on saveState, so it runs
+  // at the real source without an extra render.
+  const { toast } = useToast();
+  const notifySaveState = useCallback((state: EstimateSaveState, error: EstimateRowMutationError | null) => {
+    if (state === "saving") {
+      toast({ id: "estimate-row-save", tone: "loading", message: "Saving row changes..." });
+      return;
+    }
+    if (state === "saved") {
+      toast({
+        id: "estimate-row-save",
+        tone: "success",
+        message: error?.message.includes("refreshed") ? "Saved. Recovered edit." : "Saved.",
+      });
+      return;
+    }
+    if (state === "failed") {
+      toast({ id: "estimate-row-save", tone: "error", message: error?.message ?? "Could not save." });
+    }
+  }, [toast]);
   const {
     saveState,
-    rowMutationError,
     markRowDirty: markRowDirtyNow,
     insertRow,
     replaceRow,
@@ -1313,7 +1333,7 @@ export function EstimateSheetContent({
     promoteRow,
     deleteRow,
     updateRow,
-  } = useEstimateRowMutations(estimateId, dataTabId, workspaceId, projectId);
+  } = useEstimateRowMutations(estimateId, dataTabId, workspaceId, projectId, notifySaveState);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1538,26 +1558,6 @@ export function EstimateSheetContent({
   const isLazyLibraryLoading = shouldLoadLibraryLazily && !lazyLibrary && !isLazyLibraryError;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const queryClient = useQueryClient();
-  // U2: project-source insert is non-optimistic (the full source subtree isn't
-  // resident client-side); failures surface through the existing toast.
-  const { toast } = useToast();
-  useEffect(() => {
-    if (saveState === "saving") {
-      toast({ id: "estimate-row-save", tone: "loading", message: "Saving row changes..." });
-      return;
-    }
-    if (saveState === "saved") {
-      toast({
-        id: "estimate-row-save",
-        tone: "success",
-        message: rowMutationError?.message.includes("refreshed") ? "Saved. Recovered edit." : "Saved.",
-      });
-      return;
-    }
-    if (saveState === "failed") {
-      toast({ id: "estimate-row-save", tone: "error", message: rowMutationError?.message ?? "Could not save." });
-    }
-  }, [rowMutationError, saveState, toast]);
   // Library mutations in the sidebar update its local state; the lazy query
   // cache must also be marked stale or remounts re-seed from pre-mutation data.
   // Non-exact invalidation on the shared prefix covers both the lite (panel) and

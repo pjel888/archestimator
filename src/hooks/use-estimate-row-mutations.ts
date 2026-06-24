@@ -201,39 +201,49 @@ function createMutationId() {
   return `00000000-0000-4000-8000-${suffix}`;
 }
 
-function useSaveState() {
+function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: EstimateRowMutationError | null) => void) {
   const [saveState, setSaveState] = useState<EstimateSaveState>("idle");
   const [activeMutationCount, setActiveMutationCount] = useState(0);
   const [rowMutationError, setRowMutationError] = useState<EstimateRowMutationError | null>(null);
+  // Keep the latest change-listener without re-creating the transition setters
+  // (which are dependencies of every React Query mutation option below).
+  const onSaveStateChangeRef = useRef(onSaveStateChange);
+  onSaveStateChangeRef.current = onSaveStateChange;
+  const transitionTo = useCallback((next: EstimateSaveState, error: EstimateRowMutationError | null) => {
+    setSaveState(next);
+    onSaveStateChangeRef.current?.(next, error);
+  }, []);
 
   const markRowDirty = useCallback(() => {
-    setSaveState("dirty");
-  }, []);
+    transitionTo("dirty", rowMutationError);
+  }, [rowMutationError, transitionTo]);
 
   const markSaving = useCallback(() => {
     setActiveMutationCount((count) => count + 1);
-    setSaveState("saving");
     setRowMutationError(null);
-  }, []);
+    transitionTo("saving", null);
+  }, [transitionTo]);
 
   const markSaved = useCallback(() => {
     setActiveMutationCount((count) => {
       const nextCount = Math.max(0, count - 1);
-      setSaveState(nextCount > 0 ? "saving" : "saved");
+      if (nextCount > 0) return nextCount;
+      transitionTo("saved", null);
       return nextCount;
     });
-  }, []);
+  }, [transitionTo]);
 
   const markFailed = useCallback((error?: Error, input?: { rowId?: string }) => {
     setActiveMutationCount((count) => {
       const nextCount = Math.max(0, count - 1);
-      setSaveState(nextCount > 0 ? "saving" : "failed");
+      if (nextCount === 0) {
+        const nextError = error ? toEstimateRowMutationError(error, input) : rowMutationError;
+        setRowMutationError(nextError);
+        transitionTo("failed", nextError);
+      }
       return nextCount;
     });
-    if (error) {
-      setRowMutationError(toEstimateRowMutationError(error, input));
-    }
-  }, []);
+  }, [rowMutationError, transitionTo]);
 
   const clearRowMutationError = useCallback(() => setRowMutationError(null), []);
 
@@ -248,9 +258,15 @@ function withoutClientCallbacks<T extends { onError?: unknown; onSuccess?: unkno
   return next;
 }
 
-export function useEstimateRowMutations(estimateId?: string, estimateTabId?: string, workspaceId?: string, projectId?: string) {
+export function useEstimateRowMutations(
+  estimateId?: string,
+  estimateTabId?: string,
+  workspaceId?: string,
+  projectId?: string,
+  onSaveStateChange?: (state: EstimateSaveState, error: EstimateRowMutationError | null) => void,
+) {
   const queryClient = useQueryClient();
-  const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState();
+  const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
   const rowOperationIdsRef = useRef<Record<string, number>>({});
   const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
