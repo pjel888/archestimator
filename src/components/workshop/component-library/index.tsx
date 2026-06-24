@@ -1412,7 +1412,9 @@ function EstimateRightSidebarBase({
 
     const storedTab = stored.storedPrefs.activeTab ?? stored.legacyStoredTab;
     if (storedTab === "templates") setActiveTab("templates");
-    else if (storedTab === "project") setActiveTab("project");
+    // Guard the "project" tab at the point it is chosen rather than correcting
+    // it later with an effect: if project sources are disabled, never land here.
+    else if (storedTab === "project" && enableReusableProjectSources) setActiveTab("project");
 
     const storedMode = stored.storedPrefs.componentViewMode ?? stored.legacyStoredTab;
     if (storedMode === "brand") setComponentViewMode("brand");
@@ -1632,7 +1634,10 @@ function EstimateRightSidebarBase({
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
-  }, [handleLibraryStorage, useStoredPreferences]);
+    // handleLibraryStorage comes from useEffectEvent, so it must NOT be listed
+    // here: its identity changes every render on purpose, and listing it would
+    // tear down and rebuild this listener on every render.
+  }, [useStoredPreferences]);
 
   const favoriteIds = useMemo(
     () => filterMapBy(libraryItems, (item) => item.isFavorite === true, (item) => item.id),
@@ -2450,7 +2455,10 @@ function EstimateRightSidebarBase({
   ]);
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
-    setActiveTab(tab);
+    // Guard the "project" tab at the point it is chosen, instead of correcting
+    // it later with an effect: when project sources are disabled the tab is
+    // unreachable in the UI, so this only defends the call site directly.
+    setActiveTab(tab === "project" && !enableReusableProjectSources ? "components" : tab);
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
@@ -2459,6 +2467,7 @@ function EstimateRightSidebarBase({
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, [
+    enableReusableProjectSources,
     setActiveTab,
     setBulkSelectedNodeIds,
     setPreviewItemId,
@@ -2468,10 +2477,6 @@ function EstimateRightSidebarBase({
     setTemplateSourceFilter,
     setViewModeMenuOpen,
   ]);
-
-  useEffect(() => {
-    if (!enableReusableProjectSources && activeTab === "project") setActiveTab("components");
-  }, [activeTab, enableReusableProjectSources, setActiveTab]);
 
   const handleComponentViewModeChange = useCallback((mode: ComponentViewMode) => {
     setComponentViewMode(mode);

@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import Image from "next/image";
-import { flushSync } from "react-dom";
 import {
   CaretDown,
   CaretRight,
@@ -295,6 +294,52 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
   );
 }
 
+function FolderRenameInput({
+  value,
+  onChange,
+  onCommit,
+  onCancel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onCommit: (value: string) => void;
+  onCancel: () => void;
+}) {
+  // Focus moves here intentionally when a folder rename begins (inline edit
+  // focus management). autoFocus is avoided so it doesn't steal focus on load;
+  // instead the input is focused once on mount via a ref + effect.
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+  return (
+    <input
+      ref={inputRef}
+      aria-label="Folder name"
+      value={value}
+      onFocus={(event) => event.currentTarget.select()}
+      onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      onBlur={(event) => onCommit(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          onCommit(event.currentTarget.value);
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          onCancel();
+        }
+      }}
+      className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none focus:border-ink focus:ring-1 focus:ring-ink/20"
+    />
+  );
+}
+
 function toUiNodes(nodes: LibraryTreeNode[], draggableFolders: boolean): UiTreeNode[] {
   return nodes.map((node) => {
     const isItem = Boolean(node.item);
@@ -339,21 +384,21 @@ function getLibraryNode(node: UiTreeNode): LibraryTreeNode | undefined {
   return node.data?.libraryNode as LibraryTreeNode | undefined;
 }
 
-function LibraryTreeSkeleton({ ariaLabel }: { ariaLabel: string }) {
-  const rows = [
-    { indent: 0, width: "62%" },
-    { indent: 16, width: "74%" },
-    { indent: 16, width: "48%" },
-    { indent: 0, width: "54%" },
-    { indent: 16, width: "68%" },
-    { indent: 32, width: "42%" },
-    { indent: 0, width: "58%" },
-    { indent: 16, width: "52%" },
-  ];
+const LIBRARY_TREE_SKELETON_ROWS = [
+  { indent: 0, width: "62%" },
+  { indent: 16, width: "74%" },
+  { indent: 16, width: "48%" },
+  { indent: 0, width: "54%" },
+  { indent: 16, width: "68%" },
+  { indent: 32, width: "42%" },
+  { indent: 0, width: "58%" },
+  { indent: 16, width: "52%" },
+];
 
+function LibraryTreeSkeleton({ ariaLabel }: { ariaLabel: string }) {
   return (
     <output aria-label={ariaLabel} className="block space-y-px py-0.5">
-      {rows.map((row, index) => (
+      {LIBRARY_TREE_SKELETON_ROWS.map((row, index) => (
         <div key={index} className="flex min-h-7 items-center px-1" aria-hidden="true">
           <span className="mr-0.5 size-3.5 shrink-0 rounded-xs bg-surfaceMuted" />
           <span className="mr-1.5 size-3 shrink-0 rounded-xs bg-surfaceMuted" style={{ marginLeft: row.indent }} />
@@ -402,7 +447,11 @@ export function LibraryTree({
 }: LibraryTreeProps) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
-  const [suppressNextContextMenuCloseAutoFocus, setSuppressNextContextMenuCloseAutoFocus] = useState(false);
+  // A ref (not state): this flag is only read inside the context menu's close
+  // handler to decide whether to suppress autofocus — it never renders, so it
+  // must not trigger a re-render. Assigning ref.current commits synchronously,
+  // which is what the rename flow needs before the menu closes.
+  const suppressNextContextMenuCloseAutoFocusRef = useRef(false);
 
   const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
   const uiNodes = useMemo(() => toUiNodes(nodes, reorderEnabled), [nodes, reorderEnabled]);
@@ -477,7 +526,10 @@ export function LibraryTree({
 
   const startFolderRenameFromContextMenu = useCallback((nodeId: string) => {
     if (!onFolderRename) return;
-    flushSync(() => setSuppressNextContextMenuCloseAutoFocus(true));
+    // Set the suppress flag synchronously (ref assignment commits immediately,
+    // no flushSync needed) so the menu's onCloseAutoFocus sees it before the
+    // rename input takes over focus.
+    suppressNextContextMenuCloseAutoFocusRef.current = true;
     window.setTimeout(() => {
       onFolderRename(nodeId);
     }, 0);
@@ -533,28 +585,11 @@ export function LibraryTree({
       const item = getLibraryNode(treeNode)?.item;
       if (!item && treeNode.id === editingNodeId) {
         return (
-          <input
-            aria-label="Folder name"
+          <FolderRenameInput
             value={editingNodeValue}
-            autoFocus
-            onFocus={(event) => event.currentTarget.select()}
-            onClick={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onChange={(event) => onEditingNodeValueChange?.(event.currentTarget.value)}
-            onBlur={(event) => onEditingNodeCommit?.(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onEditingNodeCommit?.(event.currentTarget.value);
-                return;
-              }
-              if (event.key === "Escape") {
-                event.preventDefault();
-                onEditingNodeCancel?.();
-              }
-            }}
-            className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none focus:border-ink focus:ring-1 focus:ring-ink/20"
+            onChange={(value) => onEditingNodeValueChange?.(value)}
+            onCommit={(value) => onEditingNodeCommit?.(value)}
+            onCancel={() => onEditingNodeCancel?.()}
           />
         );
       }
@@ -638,9 +673,9 @@ export function LibraryTree({
         data-library-tree-context-menu="true"
         alignOffset={4}
         onCloseAutoFocus={(event) => {
-          if (!suppressNextContextMenuCloseAutoFocus) return;
+          if (!suppressNextContextMenuCloseAutoFocusRef.current) return;
           event.preventDefault();
-          setSuppressNextContextMenuCloseAutoFocus(false);
+          suppressNextContextMenuCloseAutoFocusRef.current = false;
         }}
       >
         <ContextActionMenuContent groups={contextMenuGroups} />
