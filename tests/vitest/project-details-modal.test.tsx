@@ -4,10 +4,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectDetailsModal } from "@/components/workshop/ProjectDetailsModal";
 import { updateProjectDetails } from "@/lib/projects/actions";
+import { saveProjectLocation } from "@/lib/projects/location-actions";
 import type { Tables } from "@/lib/supabase/types";
+
+const placesMocks = vi.hoisted(() => {
+  const fetchFields = vi.fn(async () => undefined);
+  const fetchAutocompleteSuggestions = vi.fn();
+  const importLibrary = vi.fn();
+  const loadGoogleMapsApi = vi.fn();
+
+  class MockAutocompleteSessionToken {}
+
+  return {
+    fetchFields,
+    fetchAutocompleteSuggestions,
+    importLibrary,
+    loadGoogleMapsApi,
+    MockAutocompleteSessionToken,
+  };
+});
 
 vi.mock("@/lib/projects/actions", () => ({
   updateProjectDetails: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/lib/projects/location-actions", () => ({
+  saveProjectLocation: vi.fn(async () => ({ status: "success", message: "Project pin saved." })),
+}));
+
+vi.mock("@/lib/projects/location-action-state", () => ({
+  initialProjectLocationActionState: { status: "idle", message: "" },
+}));
+
+vi.mock("@/lib/google-maps/loader", () => ({
+  hasGoogleMapsApiKey: (apiKey: string | null | undefined) => Boolean(apiKey?.trim()),
+  loadGoogleMapsApi: placesMocks.loadGoogleMapsApi,
 }));
 
 const PROJECT = {
@@ -25,6 +56,22 @@ const PROJECT = {
 } satisfies Tables<"projects">;
 
 const updateProjectDetailsMock = vi.mocked(updateProjectDetails);
+const saveProjectLocationMock = vi.mocked(saveProjectLocation);
+
+function makeSuggestion(label: string, latitude: number, longitude: number) {
+  return {
+    placePrediction: {
+      text: { toString: () => label },
+      toPlace: () => ({
+        id: `place-${latitude}`,
+        displayName: label.split(",")[0],
+        formattedAddress: label,
+        location: { lat: () => latitude, lng: () => longitude },
+        fetchFields: placesMocks.fetchFields,
+      }),
+    },
+  };
+}
 
 describe("ProjectDetailsModal", () => {
   afterEach(() => {
@@ -35,6 +82,29 @@ describe("ProjectDetailsModal", () => {
     cleanup();
     updateProjectDetailsMock.mockReset();
     updateProjectDetailsMock.mockResolvedValue(undefined);
+    saveProjectLocationMock.mockReset();
+    saveProjectLocationMock.mockResolvedValue({ status: "success", message: "Project pin saved." });
+    placesMocks.fetchFields.mockClear();
+    placesMocks.fetchAutocompleteSuggestions.mockReset();
+    placesMocks.importLibrary.mockReset();
+    placesMocks.loadGoogleMapsApi.mockReset();
+    placesMocks.importLibrary.mockImplementation(async (libraryName: string) => {
+      if (libraryName === "places") {
+        return {
+          AutocompleteSessionToken: placesMocks.MockAutocompleteSessionToken,
+          AutocompleteSuggestion: {
+            fetchAutocompleteSuggestions: placesMocks.fetchAutocompleteSuggestions,
+          },
+        };
+      }
+      throw new Error(`Unexpected Google library ${libraryName}`);
+    });
+    placesMocks.loadGoogleMapsApi.mockResolvedValue({ importLibrary: placesMocks.importLibrary });
+    placesMocks.fetchAutocompleteSuggestions.mockResolvedValue({
+      suggestions: [
+        makeSuggestion("Makati City, Metro Manila, Philippines", 14.5547, 121.0244),
+      ],
+    });
   });
 
   it("closes and refreshes only after a successful details save", async () => {
@@ -57,6 +127,67 @@ describe("ProjectDetailsModal", () => {
       expect(onSaved).toHaveBeenCalledTimes(1);
     });
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(onSaved.mock.invocationCallOrder[0]);
+  });
+
+  it("saves all editable details fields and keeps manual location text as a project field", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+
+    render(<ProjectDetailsModal project={PROJECT} onClose={onClose} onSaved={onSaved} />);
+
+    fireEvent.change(screen.getByLabelText("Client"), { target: { value: "Updated Client" } });
+    fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Manual Site Address" } });
+    fireEvent.change(screen.getByLabelText("Project code"), { target: { value: "AE-MANUAL-1" } });
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+
+    await waitFor(() => {
+      expect(updateProjectDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    const payload = updateProjectDetailsMock.mock.calls[0]?.[0];
+    expect(payload?.get("clientName")).toBe("Updated Client");
+    expect(payload?.get("location")).toBe("Manual Site Address");
+    expect(payload?.get("projectCode")).toBe("AE-MANUAL-1");
+    expect(payload?.get("currencyCode")).toBe("PHP");
+    expect(saveProjectLocationMock).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves selected Google place coordinates after the details payload", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+
+    render(<ProjectDetailsModal project={PROJECT} onClose={onClose} onSaved={onSaved} googleMapsApiKey="test-google-browser-key" />);
+
+    const locationInput = screen.getByRole("combobox", { name: "Location" });
+    fireEvent.focus(locationInput);
+    fireEvent.change(locationInput, { target: { value: "Makati City" } });
+
+    await screen.findByRole("listbox", { name: "Project address suggestions" });
+    fireEvent.keyDown(locationInput, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(locationInput).toHaveValue("Makati City, Metro Manila, Philippines");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save details" }));
+
+    await waitFor(() => {
+      expect(updateProjectDetailsMock).toHaveBeenCalledTimes(1);
+      expect(saveProjectLocationMock).toHaveBeenCalledTimes(1);
+    });
+    const locationPayload = saveProjectLocationMock.mock.calls[0]?.[1];
+    expect(locationPayload?.get("projectId")).toBe(PROJECT.id);
+    expect(locationPayload?.get("latitude")).toBe("14.5547");
+    expect(locationPayload?.get("longitude")).toBe("121.0244");
+    expect(locationPayload?.get("addressText")).toBe("Makati City, Metro Manila, Philippines");
+    expect(locationPayload?.get("source")).toBe("geocoded");
+    expect(locationPayload?.get("geocoderName")).toBe("google");
+    expect(locationPayload?.get("syncProjectAddress")).toBe("1");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
   it("keeps edited values visible and exposes the save error when the action fails", async () => {

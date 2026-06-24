@@ -677,6 +677,7 @@ function canAssignProjectToGroup(item: ProjectListItem) {
 type ProjectCardRowProps = {
   item: ProjectListItem;
   viewMode: ProjectCardViewMode;
+  googleMapsApiKey: string;
   canFavorite: boolean;
   isFavorite: boolean;
   favoriteBusy: boolean;
@@ -705,6 +706,7 @@ type ProjectCardRowProps = {
 const ProjectCardRow = memo(function ProjectCardRow({
   item,
   viewMode,
+  googleMapsApiKey,
   canFavorite,
   isFavorite,
   favoriteBusy,
@@ -763,6 +765,7 @@ const ProjectCardRow = memo(function ProjectCardRow({
     <LiveProjectCard
       project={item.project}
       accessKind={item.accessKind}
+      googleMapsApiKey={googleMapsApiKey}
       currentUserRole={item.currentUserRole}
       ownerWorkspaceName={item.ownerWorkspaceName}
       pendingInvite={item.pendingInvite}
@@ -1390,6 +1393,7 @@ export function ProjectsPageClient({
         key={item.project.id}
         item={item}
         viewMode={projectViewMode}
+        googleMapsApiKey={googleMapsApiKey}
         canFavorite={canFavoriteProject && !isProjectSetupPending}
         isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
         favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}

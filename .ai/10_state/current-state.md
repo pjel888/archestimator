@@ -42,6 +42,34 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project modal location editing and map thumbnail fallback fixed locally (2026-06-24):**
+
+- Create/edit project modal location behavior is now aligned: create still uses
+  Google Places autocomplete and exact `project_locations` persistence, and
+  `ProjectDetailsModal` now uses the same address autocomplete/pin preview path
+  instead of a plain text-only location input. Manual typed locations still save
+  through `projects.location`; selected Google places additionally call
+  `saveProjectLocation` with geocoded coordinates and `syncProjectAddress`.
+- Project cards now prefer uploaded project image metadata first, then a Google
+  Static Maps thumbnail derived from the saved project location when a browser
+  Maps key is available, and only then fall back to a deterministic generated
+  gradient/motif placeholder. Failed map image loads also fall through to the
+  generated fallback.
+- Verification passed: `bun run test:dom -- tests/vitest/project-details-modal.test.tsx
+  tests/vitest/new-project-form-validation.test.tsx
+  tests/vitest/project-creation-ui.test.ts
+  tests/vitest/projects-page-create-optimistic.test.tsx
+  tests/vitest/project-address-autocomplete.test.tsx
+  tests/vitest/project-location-actions.test.ts
+  tests/vitest/project-location-map-provider.test.tsx
+  tests/vitest/project-location-repository.test.ts
+  tests/vitest/projects-page-card-layout.test.tsx
+  tests/vitest/project-location-map-source.test.ts
+  tests/vitest/project-location-schema.test.ts` (11 files / 47 tests),
+  `bunx tsc --noEmit --pretty false`, `git diff --check`, and focused ESLint
+  on touched source/test files with 0 errors and only the pre-existing
+  `projects-page-client.tsx` unused-disable warnings.
+
 **React Doctor full cleanup is clean (2026-06-24):**
 
 - Final full React Doctor scan is clean. Evidence:

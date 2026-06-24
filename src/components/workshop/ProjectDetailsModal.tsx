@@ -34,8 +34,12 @@ import {
   CREATE_PROJECT_CURRENCY_OPTIONS,
   ProjectLocationPreview,
 } from "@/components/workshop/NewProjectFormSections";
+import { ProjectAddressAutocomplete, type ProjectGooglePlaceSelection } from "@/components/workshop/ProjectAddressAutocomplete";
+import type { ProjectLocationPin } from "@/components/workshop/ProjectLocationMap";
 import { generateProjectCode } from "@/lib/projects/project-code";
 import { updateProjectDetails } from "@/lib/projects/actions";
+import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
+import { saveProjectLocation } from "@/lib/projects/location-actions";
 import type { Json, Tables } from "@/lib/supabase/types";
 
 type ProjectDetailsModalProps = {
@@ -93,6 +97,9 @@ type ProjectDetailsState = {
   currencySearchValue: string;
   projectCode: string;
   projectImage: ProjectImageDraft | null;
+  locationValue: string;
+  selectedPlace: ProjectGooglePlaceSelection | null;
+  locationPin: ProjectLocationPin | null;
   imageRemoved: boolean;
   imageUpload: ImageUploadState;
   isSaving: boolean;
@@ -111,6 +118,8 @@ type ProjectDetailsAction =
   | { type: "currency:select"; code: string; label: string }
   | { type: "currency:clear" }
   | { type: "currency:input"; value: string; matchingCode?: string }
+  | { type: "locationTextChanged"; value: string }
+  | { type: "locationPlaceSelected"; selection: ProjectGooglePlaceSelection }
   | { type: "save:start" }
   | { type: "save:error"; message: string }
   | { type: "imageUpload"; upload: ImageUploadState }
@@ -135,6 +144,9 @@ function getInitialProjectDetailsState({
         thumbnailPath: metadata.projectImageThumbnailPath,
       }
       : null,
+    locationValue: project.location ?? "",
+    selectedPlace: null,
+    locationPin: null,
     imageRemoved: false,
     imageUpload: { state: "idle" },
     isSaving: false,
@@ -158,6 +170,26 @@ function projectDetailsReducer(state: ProjectDetailsState, action: ProjectDetail
         currencySearchValue: action.value,
         currencyCode: action.matchingCode ?? state.currencyCode,
       };
+    case "locationTextChanged": {
+      if (state.locationValue === action.value) return state;
+      const clearPlace = !state.selectedPlace || state.selectedPlace.addressText !== action.value;
+      return {
+        ...state,
+        locationValue: action.value,
+        selectedPlace: clearPlace ? null : state.selectedPlace,
+        locationPin: clearPlace ? null : state.locationPin,
+      };
+    }
+    case "locationPlaceSelected":
+      return {
+        ...state,
+        locationValue: action.selection.addressText,
+        selectedPlace: action.selection,
+        locationPin: {
+          latitude: action.selection.latitude,
+          longitude: action.selection.longitude,
+        },
+      };
     case "save:start":
       return { ...state, isSaving: true, saveError: null };
     case "save:error":
@@ -171,6 +203,20 @@ function projectDetailsReducer(state: ProjectDetailsState, action: ProjectDetail
     default:
       return state;
   }
+}
+
+function locationFormData(projectId: string, selection: ProjectGooglePlaceSelection) {
+  const formData = new FormData();
+  formData.set("projectId", projectId);
+  formData.set("latitude", String(selection.latitude));
+  formData.set("longitude", String(selection.longitude));
+  formData.set("addressText", selection.addressText);
+  formData.set("displayLabel", selection.displayLabel ?? "");
+  formData.set("source", "geocoded");
+  formData.set("geocoderName", "google");
+  formData.set("providerPlaceId", selection.providerPlaceId ?? "");
+  formData.set("syncProjectAddress", "1");
+  return formData;
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
@@ -195,6 +241,9 @@ export function ProjectDetailsModal({
     currencySearchValue,
     projectCode,
     projectImage,
+    locationValue,
+    selectedPlace,
+    locationPin,
     imageRemoved,
     imageUpload,
     isSaving,
@@ -213,6 +262,15 @@ export function ProjectDetailsModal({
     const formData = new FormData(event.currentTarget);
     try {
       await updateProjectDetails(formData);
+      if (selectedPlace) {
+        const locationResult = await saveProjectLocation(
+          initialProjectLocationActionState,
+          locationFormData(project.id, selectedPlace),
+        );
+        if (locationResult.status === "error") {
+          throw new Error(locationResult.message);
+        }
+      }
       // Close after the save resolves so the underlying list reconciles with
       // the modal already dismissed — no page-reload flash while it is open.
       onClose();
@@ -474,7 +532,16 @@ export function ProjectDetailsModal({
                           </label>
                           <label htmlFor="project-details-location" className="space-y-1">
                             <FieldLabel>Location</FieldLabel>
-                            <ControlInput id="project-details-location" name="location" defaultValue={project.location ?? ""} placeholder="City / site location" className="h-8 bg-white/92 px-2 !text-[10px]" />
+                            <ProjectAddressAutocomplete
+                              id="project-details-location"
+                              apiKey={googleMapsApiKey}
+                              name="location"
+                              value={locationValue}
+                              readOnly={false}
+                              onValueChange={(value) => dispatchDetails({ type: "locationTextChanged", value })}
+                              onPlaceSelect={(selection) => dispatchDetails({ type: "locationPlaceSelected", selection })}
+                              inputClassName="h-8 bg-white/92 px-2 !text-[10px] text-ink"
+                            />
                           </label>
                           <dl className="grid grid-cols-2 gap-2 rounded-xs border border-hairline bg-white/80 p-2 text-[10px] leading-4">
                             <div className="min-w-0">
@@ -498,8 +565,8 @@ export function ProjectDetailsModal({
                     <ProjectLocationPreview
                       apiKey={googleMapsApiKey}
                       mapId={googleMapsMapId}
-                      addressLabel={project.location ?? ""}
-                      pin={null}
+                      addressLabel={locationValue}
+                      pin={locationPin}
                       className="aspect-[4/3] h-auto"
                     />
                   </div>

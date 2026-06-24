@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
+  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -42,6 +43,7 @@ describe("project location actions", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    authMocks.requireAuth.mockResolvedValue(undefined);
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", email: "owner@example.test" });
     workspaceRepositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({
       project: { id: "project-1", workspace_id: "workspace-1" },

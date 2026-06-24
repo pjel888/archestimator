@@ -36,6 +36,7 @@ type LiveProjectCardProps = {
   project: Tables<"projects">;
   viewMode?: ProjectCardViewMode;
   accessKind?: ProjectAccessKind;
+  googleMapsApiKey?: string;
   currentUserRole?: CollaborationRole;
   ownerWorkspaceName?: string | null;
   pendingInvite?: WorkshopPendingInviteSummary | null;
@@ -107,6 +108,25 @@ function getProjectMotif(project: Tables<"projects">) {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
+function getProjectMapThumbnailUrl(project: Tables<"projects">, apiKey: string) {
+  const location = project.location?.trim();
+  const key = apiKey.trim();
+  if (!location || !key) return null;
+
+  const params = new URLSearchParams({
+    center: location,
+    zoom: "14",
+    size: "640x480",
+    scale: "2",
+    maptype: "roadmap",
+    key,
+  });
+  params.append("markers", `color:0xF24405|${location}`);
+  params.append("style", "feature:poi|visibility:off");
+  params.append("style", "feature:transit|visibility:off");
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+}
+
 const roleLabels: Record<CollaborationRole, string> = {
   owner: "Owner",
   admin: "Admin",
@@ -145,6 +165,7 @@ function LiveProjectCardImpl({
   project,
   viewMode = "large",
   accessKind = "owned",
+  googleMapsApiKey = "",
   currentUserRole = "owner",
   ownerWorkspaceName = null,
   pendingInvite = null,
@@ -163,6 +184,7 @@ function LiveProjectCardImpl({
   groupAssignMenu,
 }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
+  const mapImageUrl = imageUrl ? null : getProjectMapThumbnailUrl(project, googleMapsApiKey);
   const isListView = viewMode === "list";
   const isPendingInvite = accessKind === "pending-invite";
   const isExpiredPendingInvite = isPendingInvite && pendingInvite?.state === "expired";
@@ -371,8 +393,10 @@ function LiveProjectCardImpl({
         )}
       >
         <ProjectCardThumbnail
+          fallbackSeed={`${project.id}:${project.name}`}
           imageUrl={imageUrl}
           isListView={isListView}
+          mapImageUrl={mapImageUrl}
           motif={motif}
           motifSize="text-[9px]"
           wrapperClass="size-12 shrink-0 rounded-xs border border-hairline"
@@ -522,8 +546,10 @@ function LiveProjectCardImpl({
       )}
     >
       <ProjectCardThumbnail
+        fallbackSeed={`${project.id}:${project.name}`}
         imageUrl={imageUrl}
         isListView={isListView}
+        mapImageUrl={mapImageUrl}
         motif={motif}
         motifSize={motifSize}
         wrapperClass={cn("w-full border-b border-hairline", thumbnailAspectClass)}

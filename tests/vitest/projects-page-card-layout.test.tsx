@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
@@ -61,6 +61,61 @@ function projectItem(
 }
 
 describe("Projects page card layout", () => {
+  it("prioritizes uploaded thumbnails, map thumbnails, and generated fallback gradients", () => {
+    window.localStorage.setItem("archestimator_projects_view_mode_v1", "large");
+
+    const uploadedProject = {
+      ...PROJECT_FIXTURE,
+      id: "11111111-1111-4111-8111-111111111112",
+      metadata: {
+        projectImageUrl: "/api/projects/images?path=project-images/full.webp",
+        projectImageThumbnailUrl: "/api/projects/images?path=project-images/thumb.webp",
+      },
+    } satisfies Tables<"projects">;
+
+    const { rerender } = render(
+      <ProjectsPageClient
+        googleMapsApiKey="test-google-browser-key"
+        projects={[projectItem(uploadedProject)]}
+      />,
+    );
+
+    let card = screen.getByLabelText("Lewis Residence project, owned access");
+    let thumbnail = card.querySelector("[data-project-card-thumbnail]");
+    expect(thumbnail?.querySelector("img")?.getAttribute("src")).toContain("/api/projects/images?path=project-images/thumb.webp");
+    expect(thumbnail?.querySelector("img")?.getAttribute("src")).not.toContain("staticmap");
+    expect(thumbnail?.querySelector("[data-project-card-generated-gradient]")).toBeNull();
+
+    rerender(
+      <ProjectsPageClient
+        googleMapsApiKey="test-google-browser-key"
+        projects={[projectItem(PROJECT_FIXTURE)]}
+      />,
+    );
+
+    card = screen.getByLabelText("Lewis Residence project, owned access");
+    thumbnail = card.querySelector("[data-project-card-thumbnail]");
+    const mapImage = thumbnail?.querySelector("img");
+    expect(mapImage?.getAttribute("src")).toContain("https://maps.googleapis.com/maps/api/staticmap");
+    expect(mapImage?.getAttribute("src")).toContain("Quezon+City");
+    expect(thumbnail?.querySelector("[data-project-card-generated-gradient]")).toBeNull();
+
+    if (!mapImage) throw new Error("Expected map thumbnail image");
+    fireEvent.error(mapImage);
+
+    expect(thumbnail?.querySelector("img")).toBeNull();
+    expect(within(thumbnail as HTMLElement).getByText("LR")).toBeInTheDocument();
+    expect(thumbnail?.querySelector("[data-project-card-generated-gradient]")).not.toBeNull();
+
+    rerender(<ProjectsPageClient projects={[projectItem({ ...PROJECT_FIXTURE, location: null })]} />);
+
+    card = screen.getByLabelText("Lewis Residence project, owned access");
+    thumbnail = card.querySelector("[data-project-card-thumbnail]");
+    expect(thumbnail?.querySelector("img")).toBeNull();
+    expect(within(thumbnail as HTMLElement).getByText("LR")).toBeInTheDocument();
+    expect(thumbnail?.querySelector("[data-project-card-generated-gradient]")).not.toBeNull();
+  });
+
   it("keeps large cards stable while favorite sheet details reveal as an overlay", () => {
     window.localStorage.setItem("archestimator_projects_view_mode_v1", "large");
 

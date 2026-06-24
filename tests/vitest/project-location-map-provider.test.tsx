@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectLocationMap } from "@/components/workshop/ProjectLocationMap";
@@ -44,7 +44,9 @@ type IdleCallback = (deadline: { didTimeout: boolean; timeRemaining: () => numbe
 const idleCallbacks: IdleCallback[] = [];
 
 function flushIdleCallback(index = 0) {
-  idleCallbacks[index]?.({ didTimeout: false, timeRemaining: () => 50 });
+  act(() => {
+    idleCallbacks[index]?.({ didTimeout: false, timeRemaining: () => 50 });
+  });
 }
 
 describe("ProjectLocationMap", () => {
@@ -92,6 +94,10 @@ describe("ProjectLocationMap", () => {
         mapId="archestimator-map"
         pin={{ latitude: 14.599512, longitude: 120.984222 }}
         addressLabel="Quezon City"
+        overlaySummary={<span>Location summary</span>}
+        rightRail={<span>Location rail</span>}
+        lowerLeftSummary={<span>Budget summary</span>}
+        lowerLeftDetail={<span>Activity detail</span>}
       />,
     );
 

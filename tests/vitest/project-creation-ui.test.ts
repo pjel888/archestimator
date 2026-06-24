@@ -113,6 +113,14 @@ describe("project creation UI governance", () => {
     expect(liveProjectCard).toContain('const thumbnailAspectClass = "aspect-[4/3]"');
     expect(projectCardSource).toContain("data-project-card-thumbnail");
     expect(projectCardSource).toContain('"relative shrink-0 overflow-hidden bg-surfaceMuted"');
+    expect(liveProjectCard).toContain("getProjectMapThumbnailUrl");
+    expect(liveProjectCard).toContain("https://maps.googleapis.com/maps/api/staticmap");
+    expect(liveProjectCard).toContain("const mapImageUrl = imageUrl ? null : getProjectMapThumbnailUrl(project, googleMapsApiKey)");
+    expect(projectCardThumbnail).toContain("PROJECT_THUMBNAIL_GRADIENTS");
+    expect(projectCardThumbnail).toContain("data-project-card-generated-gradient");
+    expect(projectCardThumbnail).toContain("setFailedMapImageUrl(mapImageUrl ?? null)");
+    expect(projectCardThumbnail).toContain("mapImageUrl");
+    expect(projectCardThumbnail).toContain('loading="lazy"');
     expect(projectCardSource).not.toContain("aspect-square");
     expect(projectCardSource).not.toContain("aspect-[3/2]");
     expect(projectCardSource).toContain('"size-12 shrink-0 rounded-xs border border-hairline"');
@@ -206,6 +214,11 @@ describe("project creation UI governance", () => {
     expect(newProjectForm).toContain("saveProjectLocation");
     expect(newProjectForm).toContain("locationFormData");
     expect(newProjectForm).toContain('formData.set("geocoderName", "google")');
+    expect(projectDetailsModal).toContain("ProjectAddressAutocomplete");
+    expect(projectDetailsModal).toContain("saveProjectLocation");
+    expect(projectDetailsModal).toContain("locationFormData(project.id, selectedPlace)");
+    expect(projectDetailsModal).toContain('formData.set("syncProjectAddress", "1")');
+    expect(projectDetailsModal).toContain('pin={locationPin}');
     expect(newProjectForm).toContain('"Project location can be refined later."');
     expect(newProjectFormSections).toContain("Project Code");
     expect(newProjectFormSections).toContain("projectCode?: string | null");
