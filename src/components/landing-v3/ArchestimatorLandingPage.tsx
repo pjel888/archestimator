@@ -247,7 +247,7 @@ function Hero({ isLoggedIn }: LandingPageProps) {
         <HeroMountMotion className={styles.heroGrid}>
           <div className={styles.heroCopy} data-landing-v3-reveal>
             <p className={styles.heroEyebrow} data-hero-motion="eyebrow">AEC construction cost estimating &amp; proposal platform</p>
-            <h1 id="landing-hero-title" data-hero-motion="title">The estimate that keeps working after you send it.</h1>
+            <h1 id="landing-hero-title" data-hero-motion="title">Turn your estimates into client-approved proposals.</h1>
             <p className={styles.heroIntro} data-hero-motion="intro">
               <span>archestimator is the premier tool for winning construction bids.</span>
               <span>one workflow from cost estimating to client approval.</span>
