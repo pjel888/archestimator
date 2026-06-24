@@ -3,12 +3,12 @@
 import { useCallback, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { useLayoutEffect, useSyncExternalStore } from "react";
 
-import { dispatchProjectBudgetChange } from "@/components/workshop/ProjectTotalHeader";
+import { dispatchProjectBudgetChange } from "@/components/workshop/project-total-events";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { updateEstimateDetails } from "@/lib/estimates/actions";
 import { cn } from "@/lib/ui/cn";
 
-export const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-estimate-metadata-change";
+const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-estimate-metadata-change";
 const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
 
 export type ProjectEstimateMetadata = {
@@ -35,7 +35,7 @@ declare global {
   }
 }
 
-export function dispatchProjectEstimateMetadataChange(metadata: ProjectEstimateMetadata | null) {
+function dispatchProjectEstimateMetadataChange(metadata: ProjectEstimateMetadata | null) {
   if (typeof window === "undefined") return;
   window.__archestimatorProjectEstimateMetadata = metadata;
   window.dispatchEvent(new CustomEvent<ProjectEstimateMetadata | null>(PROJECT_ESTIMATE_METADATA_CHANGE_EVENT, { detail: metadata }));

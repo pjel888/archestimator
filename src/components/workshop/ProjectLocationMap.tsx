@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { hasGoogleMapsApiKey, loadGoogleMapsApi } from "@/lib/google-maps/loader";
 import { PROJECT_LOCATION_MAP_STYLES } from "@/lib/google-maps/project-location-map-style";
@@ -41,6 +41,11 @@ type MapsLibrary = {
 
 type MapStatus = "idle" | "ready" | "fallback";
 
+type MapViewState = {
+  status: MapStatus;
+  fallbackReason: string;
+};
+
 const DEFAULT_CENTER: GoogleLatLngLiteral = { lat: 14.599512, lng: 120.984222 };
 const PROJECT_LOCATION_FROSTED_PANEL_CLASS =
   "border-l border-white/45 bg-[linear-gradient(135deg,rgba(255,255,255,0.42),rgba(255,255,255,0.16)_48%,rgba(255,255,255,0.28))] shadow-[inset_1px_0_0_rgba(255,255,255,0.52),inset_0_1px_0_rgba(255,255,255,0.34),0_18px_56px_-48px_rgba(17,17,17,0.46)] ring-1 ring-black/[0.018] backdrop-blur-[10px] backdrop-saturate-125";
@@ -51,6 +56,29 @@ function toMapPosition(pin: ProjectLocationPin | null): GoogleLatLngLiteral {
 
 function formatCoordinate(value: number) {
   return value.toFixed(6);
+}
+
+function useMapLoadRequest(hasMapsApiKey: boolean) {
+  const shouldLoadMapRef = useRef(false);
+  const listenersRef = useRef<Set<() => void> | null>(null);
+  if (listenersRef.current === null) listenersRef.current = new Set();
+  const subscribe = useCallback((listener: () => void) => {
+    const listeners = listenersRef.current;
+    if (!listeners) return () => undefined;
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+  const getSnapshot = useCallback(() => shouldLoadMapRef.current, []);
+  const shouldLoadMap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const requestMapLoad = useCallback(() => {
+    if (!hasMapsApiKey || shouldLoadMapRef.current) return;
+    shouldLoadMapRef.current = true;
+    for (const listener of listenersRef.current ?? []) listener();
+  }, [hasMapsApiKey]);
+
+  return { requestMapLoad, shouldLoadMap };
 }
 
 export function ProjectLocationMap({
@@ -64,19 +92,18 @@ export function ProjectLocationMap({
 }: ProjectLocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
-  const [status, setStatus] = useState<MapStatus>("idle");
-  const [fallbackReason, setFallbackReason] = useState("Google Maps loading");
-  const [shouldLoadMap, setShouldLoadMap] = useState(false);
+  const [mapViewState, setMapViewState] = useState<MapViewState>({
+    status: "idle",
+    fallbackReason: "Google Maps loading",
+  });
   const hasMapsApiKey = hasGoogleMapsApiKey(apiKey);
-  const renderedStatus: MapStatus = hasMapsApiKey ? status : "fallback";
-  const renderedFallbackReason = hasMapsApiKey ? fallbackReason : "Google Maps API key missing";
+  const { requestMapLoad, shouldLoadMap } = useMapLoadRequest(hasMapsApiKey);
+  const renderedStatus: MapStatus = hasMapsApiKey ? mapViewState.status : "fallback";
+  const renderedFallbackReason = hasMapsApiKey ? mapViewState.fallbackReason : "Google Maps API key missing";
   const center = useMemo(() => toMapPosition(pin), [pin]);
   const coordinateLabel = pin ? `${formatCoordinate(pin.latitude)}, ${formatCoordinate(pin.longitude)}` : null;
   const clearMapRef = useCallback(() => {
     mapRef.current = null;
-  }, []);
-  const requestMapLoad = useCallback(() => {
-    setShouldLoadMap(true);
   }, []);
 
   useEffect(() => {
@@ -86,7 +113,7 @@ export function ProjectLocationMap({
     let idleHandle: number | null = null;
     let timeoutHandle: number | null = null;
     const scheduleLoad = () => {
-      if (!cancelled) setShouldLoadMap(true);
+      if (!cancelled) requestMapLoad();
     };
 
     if (typeof window.requestIdleCallback === "function") {
@@ -104,7 +131,7 @@ export function ProjectLocationMap({
         window.clearTimeout(timeoutHandle);
       }
     };
-  }, [hasMapsApiKey, shouldLoadMap]);
+  }, [hasMapsApiKey, requestMapLoad, shouldLoadMap]);
 
   useEffect(() => {
     if (!hasMapsApiKey || !shouldLoadMap) return;
@@ -113,13 +140,6 @@ export function ProjectLocationMap({
     if (!container) return;
 
     let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) {
-        setStatus("idle");
-        setFallbackReason("Google Maps loading");
-      }
-    });
-
     loadGoogleMapsApi(apiKey)
       .then((api) => api.importLibrary("maps"))
       .then((library) => {
@@ -141,12 +161,11 @@ export function ProjectLocationMap({
         });
         mapRef.current = map;
 
-        setStatus("ready");
+        setMapViewState({ status: "ready", fallbackReason: "Google Maps loading" });
       })
       .catch(() => {
         if (!cancelled) {
-          setStatus("fallback");
-          setFallbackReason("Google Maps failed to load");
+          setMapViewState({ status: "fallback", fallbackReason: "Google Maps failed to load" });
         }
       });
 
@@ -158,10 +177,10 @@ export function ProjectLocationMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || status !== "ready") return;
+    if (!map || mapViewState.status !== "ready") return;
     map.setCenter(center);
     map.setZoom(pin ? 15 : 11);
-  }, [center, pin, status]);
+  }, [center, mapViewState.status, pin]);
 
   if (renderedStatus === "fallback") {
     return (

@@ -44,6 +44,7 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
     const definition = getResizableEstimateColumnDefinition(columnId);
     const width = resizeController.getWidth(columnId);
     return (
+      // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- This is a keyboard-resizable splitter, not a static horizontal rule.
       <span
         role="separator"
         tabIndex={0}
@@ -69,7 +70,6 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
 
   return (
     <div
-      role="row"
       aria-label="Estimate column ruler"
       className="sticky top-0 z-20 grid min-h-8 border-x border-t border-hairline bg-white text-[10px] font-medium text-ink"
       style={{ gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}
@@ -78,7 +78,6 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
       {ESTIMATE_COLUMN_DEFINITIONS.map((column) => (
         <div
           key={column.id}
-          role="columnheader"
           className={cn(
             "relative flex min-w-0 items-center justify-center border-b border-r border-hairline px-1",
             column.id === "actions" && "border-r-0",

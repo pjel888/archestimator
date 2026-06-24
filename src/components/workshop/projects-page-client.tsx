@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, memo, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { Suspense, memo, useDeferredValue, useEffect, useMemo, useReducer, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -151,6 +151,54 @@ const PROJECT_ACCESS_TAB_ITEMS = PROJECT_ACCESS_TABS.map(({ id, label }) => ({ i
 type ProjectAccessTab = (typeof PROJECT_ACCESS_TABS)[number]["id"];
 type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
 type ProjectSortDirection = "asc" | "desc";
+type ProjectDeleteState = "idle" | "loading" | "ready" | "executing";
+type StateUpdater<T> = T | ((current: T) => T);
+type ProjectsPageClientState = {
+  isModalOpen: boolean;
+  expandedProject: Tables<"projects"> | null;
+  searchQuery: string;
+  optimisticProjectCreates: Record<string, NewProjectOptimisticSnapshot>;
+  activeTab: ProjectAccessTab;
+  favoriteOverrides: Record<string, boolean>;
+  pendingFavoriteId: string | null;
+  selectedProjectIds: Set<string>;
+  sortField: ProjectSortField;
+  sortDirection: ProjectSortDirection;
+  sortTouched: boolean;
+  groupOverrides: Record<string, string | null>;
+  pendingGroupProjectId: string | null;
+  collapsedGroupKeys: Set<string>;
+  manageGroupsOpen: boolean;
+  deleteProjectTargetIds: string[];
+  deleteProjectPreview: BulkActionPreviewResult | null;
+  deleteProjectError: string | null;
+  deleteProjectState: ProjectDeleteState;
+  bulkDeleteModalMounted: boolean;
+};
+type ProjectsPageClientInit = {
+  initialTab: ProjectAccessTab;
+};
+type ProjectsPageClientAction =
+  | { type: "setIsModalOpen"; value: StateUpdater<boolean> }
+  | { type: "setExpandedProject"; value: StateUpdater<Tables<"projects"> | null> }
+  | { type: "setSearchQuery"; value: string }
+  | { type: "setOptimisticProjectCreates"; value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>> }
+  | { type: "setActiveTab"; value: ProjectAccessTab }
+  | { type: "setFavoriteOverrides"; value: StateUpdater<Record<string, boolean>> }
+  | { type: "setPendingFavoriteId"; value: string | null }
+  | { type: "setSelectedProjectIds"; value: StateUpdater<Set<string>> }
+  | { type: "setSortField"; value: ProjectSortField }
+  | { type: "setSortDirection"; value: ProjectSortDirection }
+  | { type: "setSortTouched"; value: boolean }
+  | { type: "setGroupOverrides"; value: StateUpdater<Record<string, string | null>> }
+  | { type: "setPendingGroupProjectId"; value: string | null }
+  | { type: "setCollapsedGroupKeys"; value: StateUpdater<Set<string>> }
+  | { type: "setManageGroupsOpen"; value: boolean }
+  | { type: "setDeleteProjectTargetIds"; value: string[] }
+  | { type: "setDeleteProjectPreview"; value: StateUpdater<BulkActionPreviewResult | null> }
+  | { type: "setDeleteProjectError"; value: string | null }
+  | { type: "setDeleteProjectState"; value: ProjectDeleteState }
+  | { type: "setBulkDeleteModalMounted"; value: boolean };
 type ProjectDateGroup = {
   key: string;
   label: string;
@@ -162,6 +210,85 @@ type ProjectAccessTabsProps = {
   viewMode: ProjectCardViewMode;
   onTabChange: (tab: ProjectAccessTab) => void;
 };
+
+function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
+  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
+}
+
+function createProjectsPageClientState({
+  initialTab,
+}: ProjectsPageClientInit): ProjectsPageClientState {
+  return {
+    isModalOpen: false,
+    expandedProject: null,
+    searchQuery: "",
+    optimisticProjectCreates: {},
+    activeTab: initialTab,
+    favoriteOverrides: {},
+    pendingFavoriteId: null,
+    selectedProjectIds: new Set(),
+    sortField: "updated_at",
+    sortDirection: "desc",
+    sortTouched: false,
+    groupOverrides: {},
+    pendingGroupProjectId: null,
+    collapsedGroupKeys: new Set(),
+    manageGroupsOpen: false,
+    deleteProjectTargetIds: [],
+    deleteProjectPreview: null,
+    deleteProjectError: null,
+    deleteProjectState: "idle",
+    bulkDeleteModalMounted: false,
+  };
+}
+
+function projectsPageClientReducer(
+  state: ProjectsPageClientState,
+  action: ProjectsPageClientAction,
+): ProjectsPageClientState {
+  switch (action.type) {
+    case "setIsModalOpen":
+      return { ...state, isModalOpen: resolveStateUpdater(state.isModalOpen, action.value) };
+    case "setExpandedProject":
+      return { ...state, expandedProject: resolveStateUpdater(state.expandedProject, action.value) };
+    case "setSearchQuery":
+      return { ...state, searchQuery: action.value };
+    case "setOptimisticProjectCreates":
+      return { ...state, optimisticProjectCreates: resolveStateUpdater(state.optimisticProjectCreates, action.value) };
+    case "setActiveTab":
+      return { ...state, activeTab: action.value };
+    case "setFavoriteOverrides":
+      return { ...state, favoriteOverrides: resolveStateUpdater(state.favoriteOverrides, action.value) };
+    case "setPendingFavoriteId":
+      return { ...state, pendingFavoriteId: action.value };
+    case "setSelectedProjectIds":
+      return { ...state, selectedProjectIds: resolveStateUpdater(state.selectedProjectIds, action.value) };
+    case "setSortField":
+      return { ...state, sortField: action.value };
+    case "setSortDirection":
+      return { ...state, sortDirection: action.value };
+    case "setSortTouched":
+      return { ...state, sortTouched: action.value };
+    case "setGroupOverrides":
+      return { ...state, groupOverrides: resolveStateUpdater(state.groupOverrides, action.value) };
+    case "setPendingGroupProjectId":
+      return { ...state, pendingGroupProjectId: action.value };
+    case "setCollapsedGroupKeys":
+      return { ...state, collapsedGroupKeys: resolveStateUpdater(state.collapsedGroupKeys, action.value) };
+    case "setManageGroupsOpen":
+      return { ...state, manageGroupsOpen: action.value };
+    case "setDeleteProjectTargetIds":
+      return { ...state, deleteProjectTargetIds: action.value };
+    case "setDeleteProjectPreview":
+      return { ...state, deleteProjectPreview: resolveStateUpdater(state.deleteProjectPreview, action.value) };
+    case "setDeleteProjectError":
+      return { ...state, deleteProjectError: action.value };
+    case "setDeleteProjectState":
+      return { ...state, deleteProjectState: action.value };
+    case "setBulkDeleteModalMounted":
+      return { ...state, bulkDeleteModalMounted: action.value };
+  }
+}
 
 function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectListItem): ProjectListItem {
   if ("project" in projectOrItem) return projectOrItem;
@@ -656,6 +783,7 @@ const ProjectCardRow = memo(function ProjectCardRow({
   );
 });
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
@@ -665,12 +793,84 @@ export function ProjectsPageClient({
   const router = useNavigationRouter();
   const { toast } = useToast();
   const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [expandedProject, setExpandedProject] =
-    useState<Tables<"projects"> | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [optimisticProjectCreates, setOptimisticProjectCreates] = useState<Record<string, NewProjectOptimisticSnapshot>>({});
+  // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure server project normalization in render, not effect-driven event logic.
   const serverProjectItems = useMemo(() => projects.map(normalizeProjectListItem), [projects]);
+  const initialTab: ProjectAccessTab =
+    serverProjectItems.every((item) => item.accessKind !== "owned") &&
+    serverProjectItems.some((item) => item.accessKind !== "owned")
+      ? "shared-to-you"
+      : "your-projects";
+  const [pageState, dispatchPageState] = useReducer(
+    projectsPageClientReducer,
+    { initialTab },
+    createProjectsPageClientState,
+  );
+  const {
+    isModalOpen,
+    expandedProject,
+    searchQuery,
+    optimisticProjectCreates,
+    activeTab,
+    favoriteOverrides,
+    pendingFavoriteId,
+    selectedProjectIds,
+    sortField,
+    sortDirection,
+    sortTouched,
+    groupOverrides,
+    pendingGroupProjectId,
+    collapsedGroupKeys,
+    manageGroupsOpen,
+    deleteProjectTargetIds,
+    deleteProjectPreview,
+    deleteProjectError,
+    deleteProjectState,
+    bulkDeleteModalMounted,
+  } = pageState;
+  const pageStateSetters = useMemo(() => ({
+    setIsModalOpen: (value: StateUpdater<boolean>) => dispatchPageState({ type: "setIsModalOpen", value }),
+    setExpandedProject: (value: StateUpdater<Tables<"projects"> | null>) => dispatchPageState({ type: "setExpandedProject", value }),
+    setSearchQuery: (value: string) => dispatchPageState({ type: "setSearchQuery", value }),
+    setOptimisticProjectCreates: (value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>>) => dispatchPageState({ type: "setOptimisticProjectCreates", value }),
+    setActiveTab: (value: ProjectAccessTab) => dispatchPageState({ type: "setActiveTab", value }),
+    setFavoriteOverrides: (value: StateUpdater<Record<string, boolean>>) => dispatchPageState({ type: "setFavoriteOverrides", value }),
+    setPendingFavoriteId: (value: string | null) => dispatchPageState({ type: "setPendingFavoriteId", value }),
+    setSelectedProjectIds: (value: StateUpdater<Set<string>>) => dispatchPageState({ type: "setSelectedProjectIds", value }),
+    setSortField: (value: ProjectSortField) => dispatchPageState({ type: "setSortField", value }),
+    setSortDirection: (value: ProjectSortDirection) => dispatchPageState({ type: "setSortDirection", value }),
+    setSortTouched: (value: boolean) => dispatchPageState({ type: "setSortTouched", value }),
+    setGroupOverrides: (value: StateUpdater<Record<string, string | null>>) => dispatchPageState({ type: "setGroupOverrides", value }),
+    setPendingGroupProjectId: (value: string | null) => dispatchPageState({ type: "setPendingGroupProjectId", value }),
+    setCollapsedGroupKeys: (value: StateUpdater<Set<string>>) => dispatchPageState({ type: "setCollapsedGroupKeys", value }),
+    setManageGroupsOpen: (value: boolean) => dispatchPageState({ type: "setManageGroupsOpen", value }),
+    setDeleteProjectTargetIds: (value: string[]) => dispatchPageState({ type: "setDeleteProjectTargetIds", value }),
+    setDeleteProjectPreview: (value: StateUpdater<BulkActionPreviewResult | null>) => dispatchPageState({ type: "setDeleteProjectPreview", value }),
+    setDeleteProjectError: (value: string | null) => dispatchPageState({ type: "setDeleteProjectError", value }),
+    setDeleteProjectState: (value: ProjectDeleteState) => dispatchPageState({ type: "setDeleteProjectState", value }),
+    setBulkDeleteModalMounted: (value: boolean) => dispatchPageState({ type: "setBulkDeleteModalMounted", value }),
+  }), []);
+  const {
+    setIsModalOpen,
+    setExpandedProject,
+    setSearchQuery,
+    setOptimisticProjectCreates,
+    setActiveTab,
+    setFavoriteOverrides,
+    setPendingFavoriteId,
+    setSelectedProjectIds,
+    setSortField,
+    setSortDirection,
+    setSortTouched,
+    setGroupOverrides,
+    setPendingGroupProjectId,
+    setCollapsedGroupKeys,
+    setManageGroupsOpen,
+    setDeleteProjectTargetIds,
+    setDeleteProjectPreview,
+    setDeleteProjectError,
+    setDeleteProjectState,
+    setBulkDeleteModalMounted,
+  } = pageStateSetters;
   const optimisticProjectItems = useMemo(
     () => Object.values(optimisticProjectCreates).map(optimisticProjectSnapshotToListItem),
     [optimisticProjectCreates],
@@ -705,20 +905,11 @@ export function ProjectsPageClient({
     () => projectItems.filter((item) => item.accessKind !== "owned"),
     [projectItems],
   );
-  const initialTab: ProjectAccessTab =
-    ownedProjectItems.length === 0 && sharedProjectItems.length > 0 ? "shared-to-you" : "your-projects";
-  const [activeTab, setActiveTab] = useState<ProjectAccessTab>(initialTab);
   const projectViewMode = useSyncExternalStore(
     subscribeProjectViewModePreference,
     readProjectViewModePreference,
     getProjectViewModeServerSnapshot,
   );
-  const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
-  const [pendingFavoriteId, setPendingFavoriteId] = useState<string | null>(null);
-  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(() => new Set());
-  const [sortField, setSortField] = useState<ProjectSortField>("updated_at");
-  const [sortDirection, setSortDirection] = useState<ProjectSortDirection>("desc");
-  const [sortTouched, setSortTouched] = useState(false);
   const organizeByDefault = defaultOrganizeByForSortField(sortField);
   const storedOrganizeBy = useSyncExternalStore(
     subscribeProjectOrganizeByPreference,
@@ -736,17 +927,8 @@ export function ProjectsPageClient({
   // item.groupId ?? null. The override is set immediately on assign and cleared ONLY by
   // the reconciliation effect once the transition settles AND SSR is authoritative —
   // never inside a non-awaitable router.refresh().then().
-  const [groupOverrides, setGroupOverrides] = useState<Record<string, string | null>>({});
-  const [pendingGroupProjectId, setPendingGroupProjectId] = useState<string | null>(null);
-  const [collapsedGroupKeys, setCollapsedGroupKeys] = useState<Set<string>>(() => new Set());
-  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
-  const [deleteProjectTargetIds, setDeleteProjectTargetIds] = useState<string[]>([]);
-  const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
-  const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
-  const [deleteProjectState, setDeleteProjectState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
   // Defer the BulkDestructivePreviewModal chunk until the first delete is initiated, then keep
   // it mounted so its open/close animation stays intact (re-opens are instant — chunk cached).
-  const [bulkDeleteModalMounted, setBulkDeleteModalMounted] = useState(false);
   // Shared transition for group-CRUD (create/rename/recolor/delete) and the
   // delete-preview/execute flow. Its pending flag is intentionally NOT consumed — the
   // reconciliation gate tracks the assignment-only transition below (F3), so only the
@@ -880,26 +1062,29 @@ export function ProjectsPageClient({
     // AND SSR is authoritative for each id. The updater returns the SAME reference when nothing
     // changed (`changed ? next : current`), so this cannot cascade renders.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGroupOverrides((current) => {
-      const keys = Object.keys(current);
-      if (keys.length === 0) return current;
-      const ssrGroupById = new Map(projectItems.map((entry) => [entry.project.id, entry.groupId ?? null]));
-      let changed = false;
-      const next = { ...current };
-      for (const id of keys) {
-        // A project that vanished from SSR entirely (deleted) also drops its stale override.
-        if (!ssrGroupById.has(id)) {
-          delete next[id];
-          changed = true;
-          continue;
+    dispatchPageState({
+      type: "setGroupOverrides",
+      value: (current) => {
+        const keys = Object.keys(current);
+        if (keys.length === 0) return current;
+        const ssrGroupById = new Map(projectItems.map((entry) => [entry.project.id, entry.groupId ?? null]));
+        let changed = false;
+        const next = { ...current };
+        for (const id of keys) {
+          // A project that vanished from SSR entirely (deleted) also drops its stale override.
+          if (!ssrGroupById.has(id)) {
+            delete next[id];
+            changed = true;
+            continue;
+          }
+          // SSR is authoritative for this id ⇒ drop the now-redundant override.
+          if (ssrGroupById.get(id) === (next[id] ?? null)) {
+            delete next[id];
+            changed = true;
+          }
         }
-        // SSR is authoritative for this id ⇒ drop the now-redundant override.
-        if (ssrGroupById.get(id) === (next[id] ?? null)) {
-          delete next[id];
-          changed = true;
-        }
-      }
-      return changed ? next : current;
+        return changed ? next : current;
+      },
     });
   }, [isGroupAssignPending, projectItems]);
   const expandedProjectItem = useMemo(
@@ -913,18 +1098,21 @@ export function ProjectsPageClient({
     // refreshed server props prove the project row is present. router.refresh() is
     // non-awaitable, and clearing earlier would recreate the observed empty-list lag.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOptimisticProjectCreates((current) => {
-      const entries = Object.entries(current);
-      if (entries.length === 0) return current;
-      let changed = false;
-      const next = { ...current };
-      for (const [clientId, snapshot] of entries) {
-        if (!snapshot.project.id.startsWith("pending-project-") && serverProjectIds.has(snapshot.project.id)) {
-          delete next[clientId];
-          changed = true;
+    dispatchPageState({
+      type: "setOptimisticProjectCreates",
+      value: (current) => {
+        const entries = Object.entries(current);
+        if (entries.length === 0) return current;
+        let changed = false;
+        const next = { ...current };
+        for (const [clientId, snapshot] of entries) {
+          if (!snapshot.project.id.startsWith("pending-project-") && serverProjectIds.has(snapshot.project.id)) {
+            delete next[clientId];
+            changed = true;
+          }
         }
-      }
-      return changed ? next : current;
+        return changed ? next : current;
+      },
     });
   }, [serverProjectItems]);
 
@@ -940,7 +1128,7 @@ export function ProjectsPageClient({
       {
         label: "Add projects",
         icon: <Plus size={12} weight="regular" aria-hidden="true" />,
-        onClick: () => setIsModalOpen(true),
+        onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true }),
         className:
           "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800",
       },

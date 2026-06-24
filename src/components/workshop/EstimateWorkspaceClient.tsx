@@ -1,17 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/ui/cn";
 import {
   EstimateSurfaceVariantProvider,
-  estimateSurfaceClass,
   useEstimateSurfaceVariant,
   type EstimateSurfaceVariant,
 } from "./estimate-surface-variant";
+import { estimateSurfaceClass } from "./estimate-surface-class";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
@@ -113,11 +113,6 @@ export function EstimateWorkspaceClient({
     : defaultTabId;
   const displayActiveTabId = resolvedActiveTabId ?? fallbackTabs[0]?.id ?? "legacy-main";
   const routeSelectedNodeId = resolvedActiveTabId === activeTabId ? selectedNodeId : null;
-
-  useEffect(() => {
-    if (!tabQueriesEnabled || !defaultTabId || resolvedActiveTabId) return;
-    setActiveTabId(defaultTabId);
-  }, [defaultTabId, resolvedActiveTabId, setActiveTabId, tabQueriesEnabled]);
 
   return (
     <EstimateSurfaceVariantProvider variant={surfaceVariant}>

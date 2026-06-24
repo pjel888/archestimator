@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useReducer, type ReactNode } from "react";
 import { Circle } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,57 @@ function summarizeSourceNode(node: EstimateTreeNode) {
   return summary;
 }
 
+type TemplateFormState = {
+  name: string;
+  category: string;
+  description: string;
+  error: string;
+  pending: boolean;
+};
+
+type TemplateFormAction =
+  | { type: "name"; value: string }
+  | { type: "category"; value: string }
+  | { type: "description"; value: string }
+  | { type: "reset" }
+  | { type: "validation:error"; message: string }
+  | { type: "submit:start" }
+  | { type: "submit:success" }
+  | { type: "submit:error"; message: string };
+
+function getInitialTemplateFormState(defaultCategory = ""): TemplateFormState {
+  return {
+    name: "",
+    category: defaultCategory,
+    description: "",
+    error: "",
+    pending: false,
+  };
+}
+
+function templateFormReducer(state: TemplateFormState, action: TemplateFormAction): TemplateFormState {
+  switch (action.type) {
+    case "name":
+      return { ...state, name: action.value, error: state.error ? "" : state.error };
+    case "category":
+      return { ...state, category: action.value };
+    case "description":
+      return { ...state, description: action.value };
+    case "reset":
+      return { ...state, name: "", category: "", description: "", error: "" };
+    case "validation:error":
+      return { ...state, error: action.message };
+    case "submit:start":
+      return { ...state, pending: true, error: "" };
+    case "submit:success":
+      return { name: "", category: "", description: "", error: "", pending: false };
+    case "submit:error":
+      return { ...state, error: action.message, pending: false };
+    default:
+      return state;
+  }
+}
+
 export type NewTemplateModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -76,12 +127,13 @@ export function NewTemplateModal({
   onCreated,
   mode = "estimate-node",
 }: NewTemplateModalProps) {
-  const [name, setName] = useState("");
   // Consumers mount this modal per open, so the default lands on first render.
-  const [category, setCategory] = useState(defaultCategory ?? "");
-  const [description, setDescription] = useState("");
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
+  const [formState, dispatchForm] = useReducer(
+    templateFormReducer,
+    defaultCategory,
+    getInitialTemplateFormState,
+  );
+  const { name, category, description, error, pending } = formState;
 
   const scratchMode = mode === "scratch";
   const tabMode = mode === "estimate-tab";
@@ -94,10 +146,7 @@ export function NewTemplateModal({
       : Boolean(sourceNode && projectId && estimateId && !pending);
 
   const resetForm = useCallback(() => {
-    setName("");
-    setCategory("");
-    setDescription("");
-    setError("");
+    dispatchForm({ type: "reset" });
   }, []);
 
   const handleOpenChange = useCallback(
@@ -114,12 +163,11 @@ export function NewTemplateModal({
     if (!scratchMode && (!sourceNode || !projectId || !estimateId)) return;
     if (tabMode && !sourceTabId) return;
     if (!name.trim()) {
-      setError("Template name is required.");
+      dispatchForm({ type: "validation:error", message: "Template name is required." });
       return;
     }
 
-    setPending(true);
-    setError("");
+    dispatchForm({ type: "submit:start" });
     try {
       let result: { template: EstimateTemplate };
       if (scratchMode) {
@@ -146,15 +194,16 @@ export function NewTemplateModal({
           description,
         });
       }
-      resetForm();
+      dispatchForm({ type: "submit:success" });
       onOpenChange(false);
       onCreated(result.template);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Could not create the template.");
-    } finally {
-      setPending(false);
+      dispatchForm({
+        type: "submit:error",
+        message: submitError instanceof Error ? submitError.message : "Could not create the template.",
+      });
     }
-  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, scratchMode, sourceNode, sourceTabId, sourceTabName, tabMode]);
+  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, scratchMode, sourceNode, sourceTabId, sourceTabName, tabMode]);
 
   return (
     <Modal
@@ -199,8 +248,7 @@ export function NewTemplateModal({
             value={name}
             placeholder={sourceLabel ? `${sourceLabel} template` : "Template name"}
             onChange={(event) => {
-              setName(event.target.value);
-              if (error) setError("");
+              dispatchForm({ type: "name", value: event.target.value });
             }}
             autoFocus
           />
@@ -212,7 +260,7 @@ export function NewTemplateModal({
             value={category}
             placeholder="General"
             list="new-template-category-options"
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) => dispatchForm({ type: "category", value: event.target.value })}
           />
           <datalist id="new-template-category-options">
             {existingCategories.map((existingCategory) => (
@@ -227,7 +275,7 @@ export function NewTemplateModal({
             aria-label="Template description"
             className="min-h-14 border border-hairline bg-white px-2 py-1 !text-[10px] font-medium text-ink outline-none transition focus:border-accent"
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => dispatchForm({ type: "description", value: event.target.value })}
           />
         </Field>
 

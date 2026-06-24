@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { ImageSquare } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
-import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter";
+import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter-model";
 import {
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
-import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
+import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import { getCostLibraryComponentUsage } from "@/lib/component-library/actions";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { EstimateRowItem } from "@/lib/estimates/types";
@@ -94,21 +95,12 @@ export function ComponentInspectorDock({
     counts: ComponentUsageCounts | null;
     error: boolean;
   }>({ itemId: item.id, counts: null, error: false });
-  const [historyState, setHistoryState] = useState({ itemId: item.id, showAll: false });
+  const historyItemIdRef = useRef(item.id);
+  const [showAllHistoryState, setShowAllHistoryState] = useState(false);
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const usage = usageState.itemId === item.id ? usageState.counts : null;
   const usageError = usageState.itemId === item.id ? usageState.error : false;
-  const showAllHistory = historyState.itemId === item.id ? historyState.showAll : false;
-
-  useEffect(() => {
-    if (usageState.itemId === item.id) return;
-    setUsageState({ itemId: item.id, counts: null, error: false });
-  }, [item.id, usageState.itemId]);
-
-  useEffect(() => {
-    if (historyState.itemId === item.id) return;
-    setHistoryState({ itemId: item.id, showAll: false });
-  }, [historyState.itemId, item.id]);
+  const showAllHistory = historyItemIdRef.current === item.id ? showAllHistoryState : false;
 
   useEffect(() => {
     let stale = false;
@@ -256,7 +248,13 @@ export function ComponentInspectorDock({
                     variant="plain"
                     size="xs"
                     className="min-w-0 px-0 !text-[9px]"
-                    onClick={() => setHistoryState((current) => ({ ...current, showAll: !current.showAll }))}
+                    onClick={() =>
+                      setShowAllHistoryState((current) => {
+                        const isCurrentItem = historyItemIdRef.current === item.id;
+                        historyItemIdRef.current = item.id;
+                        return isCurrentItem ? !current : true;
+                      })
+                    }
                   >
                     {showAllHistory ? "Show fewer entries" : `View all ${priceHistory.length} entries`}
                   </Button>

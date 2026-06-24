@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,77 @@ type TargetResolutionState =
   | { state: "resolved"; target: ResolvedInsertTarget }
   | { state: "empty"; message: string }
   | { state: "error"; message: string };
+
+type InsertPickerState = {
+  targets: TargetsState;
+  selectedProjectId: string;
+  selectedEstimateId: string;
+  targetResolutionRecord: {
+    key: string;
+    resolution: TargetResolutionState;
+  };
+  submitError: string;
+  dependencyOverrideRecord: {
+    templateId: string;
+    value: boolean;
+  };
+  pending: boolean;
+};
+
+type InsertPickerAction =
+  | { type: "targets:loading" }
+  | { type: "targets:ready"; projects: EstimateInsertTargetProject[] }
+  | { type: "targets:error"; message: string }
+  | { type: "project"; projectId: string }
+  | { type: "estimate"; estimateId: string }
+  | { type: "resolution"; key: string; resolution: TargetResolutionState }
+  | { type: "submit:error"; message: string }
+  | { type: "submit:start" }
+  | { type: "submit:finish" }
+  | { type: "dependencyOverride"; templateId: string; value: boolean };
+
+function getInitialInsertPickerState(templateId: string): InsertPickerState {
+  return {
+    targets: { state: "loading" },
+    selectedProjectId: "",
+    selectedEstimateId: "",
+    targetResolutionRecord: { key: "", resolution: { state: "idle" } },
+    submitError: "",
+    dependencyOverrideRecord: { templateId, value: false },
+    pending: false,
+  };
+}
+
+function insertPickerReducer(state: InsertPickerState, action: InsertPickerAction): InsertPickerState {
+  switch (action.type) {
+    case "targets:loading":
+      return { ...state, targets: { state: "loading" } };
+    case "targets:ready":
+      return { ...state, targets: { state: "ready", projects: action.projects } };
+    case "targets:error":
+      return { ...state, targets: { state: "error", message: action.message } };
+    case "project":
+      return { ...state, selectedProjectId: action.projectId, selectedEstimateId: "", submitError: "" };
+    case "estimate":
+      return { ...state, selectedEstimateId: action.estimateId, submitError: "" };
+    case "resolution":
+      return { ...state, targetResolutionRecord: { key: action.key, resolution: action.resolution } };
+    case "submit:error":
+      return { ...state, submitError: action.message };
+    case "submit:start":
+      return { ...state, pending: true, submitError: "" };
+    case "submit:finish":
+      return { ...state, pending: false };
+    case "dependencyOverride":
+      return {
+        ...state,
+        dependencyOverrideRecord: { templateId: action.templateId, value: action.value },
+        submitError: "",
+      };
+    default:
+      return state;
+  }
+}
 
 export type InsertIntoEstimatePickerProps = {
   open: boolean;
@@ -82,27 +153,25 @@ export function InsertIntoEstimatePicker(props: InsertIntoEstimatePickerProps) {
   return <OpenInsertIntoEstimatePicker {...props} />;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted }: InsertIntoEstimatePickerProps) {
-  const [targets, setTargets] = useState<TargetsState>({ state: "loading" });
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [selectedEstimateId, setSelectedEstimateId] = useState("");
-  const [targetResolutionRecord, setTargetResolutionRecord] = useState<{
-    key: string;
-    resolution: TargetResolutionState;
-  }>({ key: "", resolution: { state: "idle" } });
-  const [submitError, setSubmitError] = useState("");
-  const [dependencyOverrideRecord, setDependencyOverrideRecord] = useState(() => ({
-    templateId: template.id,
-    value: false,
-  }));
-  const [pending, setPending] = useState(false);
+  const [pickerState, dispatchPicker] = useReducer(insertPickerReducer, template.id, getInitialInsertPickerState);
+  const {
+    targets,
+    selectedProjectId,
+    selectedEstimateId,
+    targetResolutionRecord,
+    submitError,
+    dependencyOverrideRecord,
+    pending,
+  } = pickerState;
   const dependencyHealth = useMemo(() => getTemplateDependencyHealth(template), [template]);
   const hasDependencyWarnings = dependencyHealth.warningIssues.length > 0;
   const hasDependencyBlocks = dependencyHealth.blockedIssues.length > 0;
   const dependencyOverride = dependencyOverrideRecord.templateId === template.id ? dependencyOverrideRecord.value : false;
   const setDependencyOverride = useCallback(
     (value: boolean) => {
-      setDependencyOverrideRecord({ templateId: template.id, value });
+      dispatchPicker({ type: "dependencyOverride", templateId: template.id, value });
     },
     [template.id],
   );
@@ -111,10 +180,10 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
   // already reads "loading", so the mount effect does not set state itself.
   const fetchTargets = useCallback(() => {
     listEstimateInsertTargets()
-      .then(({ projects }) => setTargets({ state: "ready", projects }))
+      .then(({ projects }) => dispatchPicker({ type: "targets:ready", projects }))
       .catch((error: unknown) => {
-        setTargets({
-          state: "error",
+        dispatchPicker({
+          type: "targets:error",
           message: error instanceof Error ? error.message : "Could not load projects.",
         });
       });
@@ -125,7 +194,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
   }, [fetchTargets]);
 
   const retryLoadTargets = useCallback(() => {
-    setTargets({ state: "loading" });
+    dispatchPicker({ type: "targets:loading" });
     fetchTargets();
   }, [fetchTargets]);
 
@@ -161,7 +230,8 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
       .then((result) => {
         if (!active) return;
         const resolved = normalizeResolvedTarget(result);
-        setTargetResolutionRecord({
+        dispatchPicker({
+          type: "resolution",
           key: selectedTargetKey,
           resolution: resolved
             ? { state: "resolved", target: resolved }
@@ -173,7 +243,8 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
       })
       .catch((error: unknown) => {
         if (!active) return;
-        setTargetResolutionRecord({
+        dispatchPicker({
+          type: "resolution",
           key: selectedTargetKey,
           resolution: { state: "error", message: formatInsertError(error, selectedEstimateNameForResolution) },
         });
@@ -214,25 +285,25 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     if (pending || !selectedProject || !selectedEstimate) return;
     if (hasDependencyBlocks) return;
     if (hasDependencyWarnings && !dependencyOverride) {
-      setSubmitError("Review dependency warnings before inserting.");
+      dispatchPicker({ type: "submit:error", message: "Review dependency warnings before inserting." });
       return;
     }
-    setPending(true);
-    setSubmitError("");
+    dispatchPicker({ type: "submit:start" });
     try {
       const resolvedTarget = normalizeResolvedTarget(await resolveEstimateTemplateInsertTarget({
         projectId: selectedProject.id,
         estimateId: selectedEstimate.id,
       }));
       if (!resolvedTarget) {
-        setTargetResolutionRecord({
+        dispatchPicker({
+          type: "resolution",
           key: selectedTargetKey,
           resolution: { state: "empty", message: STALE_TARGET_MESSAGE },
         });
-        setSubmitError("");
         return;
       }
-      setTargetResolutionRecord({
+      dispatchPicker({
+        type: "resolution",
         key: selectedTargetKey,
         resolution: { state: "resolved", target: resolvedTarget },
       });
@@ -245,9 +316,9 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
       onInserted(selectedEstimate.name);
       onOpenChange(false);
     } catch (error) {
-      setSubmitError(formatInsertError(error, selectedEstimate.name));
+      dispatchPicker({ type: "submit:error", message: formatInsertError(error, selectedEstimate.name) });
     } finally {
-      setPending(false);
+      dispatchPicker({ type: "submit:finish" });
     }
   }, [
     dependencyOverride,
@@ -323,11 +394,10 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
                 <input
                   type="checkbox"
                   className="mt-0.5 size-3"
-                  checked={dependencyOverride}
-                  onChange={(event) => {
-                    setDependencyOverride(event.target.checked);
-                    setSubmitError("");
-                  }}
+	                checked={dependencyOverride}
+	                onChange={(event) => {
+	                  setDependencyOverride(event.target.checked);
+	                }}
                   aria-label="Insert anyway after reviewing dependency warnings"
                 />
                 <span>Insert anyway after reviewing dependency warnings</span>
@@ -364,9 +434,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
                 value={selectedProjectId}
                 placeholder="Select a project"
                 onValueChange={(value) => {
-                  setSelectedProjectId(value);
-                  setSelectedEstimateId("");
-                  setSubmitError("");
+                  dispatchPicker({ type: "project", projectId: value });
                 }}
               />
             </div>
@@ -381,8 +449,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
                     value={selectedEstimateId}
                     placeholder="Select an estimate"
                     onValueChange={(value) => {
-                      setSelectedEstimateId(value);
-                      setSubmitError("");
+                      dispatchPicker({ type: "estimate", estimateId: value });
                     }}
                   />
                 </div>

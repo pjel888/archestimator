@@ -3,6 +3,11 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { getBudgetHealthGradientStop } from "@/lib/project-charts/budget-health-gradient";
+import {
+  PROJECT_BUDGET_CHANGE_EVENT,
+  PROJECT_TOTAL_CHANGE_EVENT,
+  type ProjectBudgetWindow,
+} from "./project-total-events";
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -23,33 +28,6 @@ const compactPesoFormatter = new Intl.NumberFormat("en-PH", {
 
 function formatCompactPeso(value: number) {
   return compactPesoFormatter.format(value).replace("₱", "₱ ");
-}
-
-const PROJECT_TOTAL_CHANGE_EVENT = "archestimator:project-total-change";
-export const PROJECT_BUDGET_CHANGE_EVENT = "archestimator:project-budget-change";
-
-type ProjectTotalChangeDetail = {
-  total: number;
-};
-
-type ProjectBudgetChangeDetail = {
-  budget: number;
-};
-
-type ProjectBudgetWindow = Window & {
-  __archestimatorProjectBudget?: number;
-  __archestimatorProjectEstimateMetadata?: { projectBudget?: unknown } | null;
-};
-
-export function dispatchProjectTotalChange(total: number) {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<ProjectTotalChangeDetail>(PROJECT_TOTAL_CHANGE_EVENT, { detail: { total } }));
-}
-
-export function dispatchProjectBudgetChange(budget: number) {
-  if (typeof window === "undefined") return;
-  (window as ProjectBudgetWindow).__archestimatorProjectBudget = budget;
-  window.dispatchEvent(new CustomEvent<ProjectBudgetChangeDetail>(PROJECT_BUDGET_CHANGE_EVENT, { detail: { budget } }));
 }
 
 const BUDGET_WARNING_THRESHOLD_PERCENT = 85;
@@ -164,14 +142,20 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         <span>Budget health</span>
         <span className={textClassName}>{shortStatusText}</span>
       </div>
-      <div
-        className="flex h-1.5 items-center gap-px overflow-hidden"
-        role="meter"
+      <meter
+        className="sr-only"
+        min={0}
+        max={meterMax}
+        value={meterValue}
         aria-label="Budget health"
         aria-valuemin={0}
         aria-valuemax={meterMax}
         aria-valuenow={meterValue}
         aria-valuetext={fullStatusText}
+      />
+      <div
+        className="flex h-1.5 items-center gap-px overflow-hidden"
+        aria-hidden="true"
         data-budget-health-meter
       >
         {segments.map((segment) => (
@@ -210,7 +194,7 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
     if (!isEstimateSheetRoute) return;
 
     function handleProjectTotalChange(event: Event) {
-      const customEvent = event as CustomEvent<ProjectTotalChangeDetail>;
+      const customEvent = event as CustomEvent<{ total: number }>;
       if (typeof customEvent.detail?.total === "number") setTotal(customEvent.detail.total);
     }
 

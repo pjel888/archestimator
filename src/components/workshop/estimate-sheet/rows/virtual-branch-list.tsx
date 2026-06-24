@@ -7,7 +7,7 @@ import { WORKSHOP_ESTIMATE_MASTER_COLUMN_VIRTUALIZATION } from "@/lib/workshop/v
 import type { EstimateTreeNode } from "../../estimate-tree-data";
 import { EstimateSheetBranch, type BreadcrumbNode, type EstimateSheetBranchProps } from "./branch";
 import { useEstimateSheetExpansion } from "./expansion";
-import { getNodeCode } from "./node-visuals";
+import { getNodeCode } from "./node-visuals-utils";
 
 type EstimateSheetVirtualBranchListProps = Omit<
   EstimateSheetBranchProps,

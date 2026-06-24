@@ -1,15 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/ui/cn";
-import {
-  getComponentSourceTrustChips,
-  getTemplateSourceTrustChips,
-  type SourceTrustChipSpec,
-  type SourceTrustChipTone,
-} from "./source-trust-model";
-
-export { getComponentSourceTrustChips, getTemplateSourceTrustChips };
-export type { SourceTrustChipSpec, SourceTrustChipTone };
+import type { SourceTrustChipSpec, SourceTrustChipTone } from "./source-trust-model";
 
 const TRUST_CHIP_TONE_CLASSES: Record<SourceTrustChipTone, string> = {
   neutral: "border-hairline bg-surfaceMuted text-secondary",

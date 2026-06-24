@@ -13,10 +13,11 @@ import {
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
 import {
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
-import { getTemplateSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
+import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { getTemplateSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 

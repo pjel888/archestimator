@@ -3,13 +3,14 @@
 import {
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
   useTransition,
   type CSSProperties,
   type FormEvent,
   type ReactNode,
 } from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Check,
@@ -71,6 +72,126 @@ const SHEET_ACCESS_MODE_OPTIONS = [
 ];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PENDING_INVITE_PREVIEW_COUNT = 3;
+
+type ActionMessageTone = "neutral" | "warning";
+type StateUpdater<T> = T | ((current: T) => T);
+
+type ProjectTeamspaceHeaderState = {
+  open: boolean;
+  inviteEmail: string;
+  inviteEmailError: string | null;
+  inviteRole: CollaborationRole;
+  sheetInviteEmailById: Record<string, string>;
+  sheetInviteRoleById: Record<string, CollaborationRole>;
+  actionMessage: string | null;
+  actionMessageTone: ActionMessageTone;
+  actionAssertive: boolean;
+  pendingRemoval: ProjectCollaboratorSummary | null;
+  notifyRemovedCollaborator: boolean;
+  inviteDeliveryConfigured: boolean | null;
+  inviteDeliveryMessage: string | null;
+  busyRowId: string | null;
+  doneRowId: string | null;
+  showAllPending: boolean;
+  presenceAnnouncement: string;
+};
+
+type ProjectTeamspaceHeaderAction =
+  | { type: "openChanged"; open: boolean }
+  | { type: "inviteEmailChanged"; inviteEmail: string }
+  | { type: "inviteEmailErrorChanged"; inviteEmailError: string | null }
+  | { type: "inviteRoleChanged"; inviteRole: CollaborationRole }
+  | { type: "sheetInviteEmailByIdChanged"; sheetInviteEmailById: StateUpdater<Record<string, string>> }
+  | { type: "sheetInviteRoleByIdChanged"; sheetInviteRoleById: StateUpdater<Record<string, CollaborationRole>> }
+  | { type: "actionMessageChanged"; actionMessage: string | null }
+  | { type: "actionResultChanged"; actionMessage: string; actionMessageTone: ActionMessageTone; actionAssertive: boolean }
+  | { type: "pendingRemovalChanged"; pendingRemoval: ProjectCollaboratorSummary | null }
+  | { type: "notifyRemovedCollaboratorChanged"; notifyRemovedCollaborator: boolean }
+  | { type: "inviteDeliveryConfiguredChanged"; inviteDeliveryConfigured: boolean | null }
+  | { type: "inviteDeliveryMessageChanged"; inviteDeliveryMessage: string | null }
+  | { type: "busyRowIdChanged"; busyRowId: StateUpdater<string | null> }
+  | { type: "doneRowIdChanged"; doneRowId: StateUpdater<string | null> }
+  | { type: "showAllPendingChanged"; showAllPending: boolean }
+  | { type: "presenceAnnouncementChanged"; presenceAnnouncement: string };
+
+function resolveStateUpdater<T>(current: T, updater: StateUpdater<T>): T {
+  return typeof updater === "function" ? (updater as (current: T) => T)(current) : updater;
+}
+
+function createProjectTeamspaceHeaderState(): ProjectTeamspaceHeaderState {
+  return {
+    open: false,
+    inviteEmail: "",
+    inviteEmailError: null,
+    inviteRole: "editor",
+    sheetInviteEmailById: {},
+    sheetInviteRoleById: {},
+    actionMessage: null,
+    actionMessageTone: "neutral",
+    actionAssertive: false,
+    pendingRemoval: null,
+    notifyRemovedCollaborator: false,
+    inviteDeliveryConfigured: null,
+    inviteDeliveryMessage: null,
+    busyRowId: null,
+    doneRowId: null,
+    showAllPending: false,
+    presenceAnnouncement: "",
+  };
+}
+
+function projectTeamspaceHeaderReducer(
+  state: ProjectTeamspaceHeaderState,
+  action: ProjectTeamspaceHeaderAction,
+): ProjectTeamspaceHeaderState {
+  switch (action.type) {
+    case "openChanged":
+      return { ...state, open: action.open };
+    case "inviteEmailChanged":
+      return { ...state, inviteEmail: action.inviteEmail };
+    case "inviteEmailErrorChanged":
+      return { ...state, inviteEmailError: action.inviteEmailError };
+    case "inviteRoleChanged":
+      return { ...state, inviteRole: action.inviteRole };
+    case "sheetInviteEmailByIdChanged":
+      return {
+        ...state,
+        sheetInviteEmailById: resolveStateUpdater(state.sheetInviteEmailById, action.sheetInviteEmailById),
+      };
+    case "sheetInviteRoleByIdChanged":
+      return {
+        ...state,
+        sheetInviteRoleById: resolveStateUpdater(state.sheetInviteRoleById, action.sheetInviteRoleById),
+      };
+    case "actionMessageChanged":
+      return { ...state, actionMessage: action.actionMessage };
+    case "actionResultChanged":
+      return {
+        ...state,
+        actionMessage: action.actionMessage,
+        actionMessageTone: action.actionMessageTone,
+        actionAssertive: action.actionAssertive,
+      };
+    case "pendingRemovalChanged":
+      return { ...state, pendingRemoval: action.pendingRemoval };
+    case "notifyRemovedCollaboratorChanged":
+      return { ...state, notifyRemovedCollaborator: action.notifyRemovedCollaborator };
+    case "inviteDeliveryConfiguredChanged":
+      return { ...state, inviteDeliveryConfigured: action.inviteDeliveryConfigured };
+    case "inviteDeliveryMessageChanged":
+      return { ...state, inviteDeliveryMessage: action.inviteDeliveryMessage };
+    case "busyRowIdChanged":
+      return { ...state, busyRowId: resolveStateUpdater(state.busyRowId, action.busyRowId) };
+    case "doneRowIdChanged":
+      return { ...state, doneRowId: resolveStateUpdater(state.doneRowId, action.doneRowId) };
+    case "showAllPendingChanged":
+      return { ...state, showAllPending: action.showAllPending };
+    case "presenceAnnouncementChanged":
+      return { ...state, presenceAnnouncement: action.presenceAnnouncement };
+    default:
+      return state;
+  }
+}
 
 function getInitials(name: string) {
   const parts = name
@@ -142,11 +263,14 @@ function CollaboratorAvatar({
       data-teamspace-online={online ? "true" : "false"}
     >
       {collaborator.avatarUrl ? (
-        <span
-          role="img"
-          aria-label={collaborator.displayName}
-          className="h-full w-full bg-cover bg-center"
-          style={{ backgroundImage: `url("${collaborator.avatarUrl}")` }}
+        <Image
+          src={collaborator.avatarUrl}
+          alt={collaborator.displayName}
+          fill
+          sizes={size === "header" ? "24px" : "28px"}
+          className="object-cover"
+          referrerPolicy="no-referrer"
+          unoptimized
         />
       ) : (
         <span aria-hidden="true">{initials}</span>
@@ -190,6 +314,7 @@ function activityLabel(online: boolean, surface: string | undefined) {
   return "Active now";
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps) {
   const query = useProjectCollaborationQuery(summary);
   const liveSummary = query.data ?? summary;
@@ -198,23 +323,60 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const pathname = usePathname();
   const activeSurface = useMemo(() => routeToActiveSurface(pathname), [pathname]);
 
-  const [open, setOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteEmailError, setInviteEmailError] = useState<string | null>(null);
-  const [inviteRole, setInviteRole] = useState<CollaborationRole>("editor");
-  const [sheetInviteEmailById, setSheetInviteEmailById] = useState<Record<string, string>>({});
-  const [sheetInviteRoleById, setSheetInviteRoleById] = useState<Record<string, CollaborationRole>>({});
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionMessageTone, setActionMessageTone] = useState<"neutral" | "warning">("neutral");
-  const [actionAssertive, setActionAssertive] = useState(false);
-  const [pendingRemoval, setPendingRemoval] = useState<ProjectCollaboratorSummary | null>(null);
-  const [notifyRemovedCollaborator, setNotifyRemovedCollaborator] = useState(false);
-  const [inviteDeliveryConfigured, setInviteDeliveryConfigured] = useState<boolean | null>(null);
-  const [inviteDeliveryMessage, setInviteDeliveryMessage] = useState<string | null>(null);
-  const [busyRowId, setBusyRowId] = useState<string | null>(null);
-  const [doneRowId, setDoneRowId] = useState<string | null>(null);
-  const [showAllPending, setShowAllPending] = useState(false);
-  const [presenceAnnouncement, setPresenceAnnouncement] = useState("");
+  const [teamspaceState, dispatchTeamspace] = useReducer(
+    projectTeamspaceHeaderReducer,
+    undefined,
+    createProjectTeamspaceHeaderState,
+  );
+  const {
+    open,
+    inviteEmail,
+    inviteEmailError,
+    inviteRole,
+    sheetInviteEmailById,
+    sheetInviteRoleById,
+    actionMessage,
+    actionMessageTone,
+    actionAssertive,
+    pendingRemoval,
+    notifyRemovedCollaborator,
+    inviteDeliveryConfigured,
+    inviteDeliveryMessage,
+    busyRowId,
+    doneRowId,
+    showAllPending,
+    presenceAnnouncement,
+  } = teamspaceState;
+  const setOpen = (open: boolean) => dispatchTeamspace({ type: "openChanged", open });
+  const setInviteEmail = (inviteEmail: string) => dispatchTeamspace({ type: "inviteEmailChanged", inviteEmail });
+  const setInviteEmailError = (inviteEmailError: string | null) =>
+    dispatchTeamspace({ type: "inviteEmailErrorChanged", inviteEmailError });
+  const setInviteRole = (inviteRole: CollaborationRole) =>
+    dispatchTeamspace({ type: "inviteRoleChanged", inviteRole });
+  const setSheetInviteEmailById = (sheetInviteEmailById: StateUpdater<Record<string, string>>) =>
+    dispatchTeamspace({ type: "sheetInviteEmailByIdChanged", sheetInviteEmailById });
+  const setSheetInviteRoleById = (sheetInviteRoleById: StateUpdater<Record<string, CollaborationRole>>) =>
+    dispatchTeamspace({ type: "sheetInviteRoleByIdChanged", sheetInviteRoleById });
+  const setActionMessage = (actionMessage: string | null) =>
+    dispatchTeamspace({ type: "actionMessageChanged", actionMessage });
+  const setActionResult = (actionMessage: string, actionMessageTone: ActionMessageTone, actionAssertive: boolean) =>
+    dispatchTeamspace({ type: "actionResultChanged", actionMessage, actionMessageTone, actionAssertive });
+  const setPendingRemoval = (pendingRemoval: ProjectCollaboratorSummary | null) =>
+    dispatchTeamspace({ type: "pendingRemovalChanged", pendingRemoval });
+  const setNotifyRemovedCollaborator = (notifyRemovedCollaborator: boolean) =>
+    dispatchTeamspace({ type: "notifyRemovedCollaboratorChanged", notifyRemovedCollaborator });
+  const setInviteDeliveryConfigured = (inviteDeliveryConfigured: boolean | null) =>
+    dispatchTeamspace({ type: "inviteDeliveryConfiguredChanged", inviteDeliveryConfigured });
+  const setInviteDeliveryMessage = (inviteDeliveryMessage: string | null) =>
+    dispatchTeamspace({ type: "inviteDeliveryMessageChanged", inviteDeliveryMessage });
+  const setBusyRowId = (busyRowId: StateUpdater<string | null>) =>
+    dispatchTeamspace({ type: "busyRowIdChanged", busyRowId });
+  const setDoneRowId = (doneRowId: StateUpdater<string | null>) =>
+    dispatchTeamspace({ type: "doneRowIdChanged", doneRowId });
+  const setShowAllPending = (showAllPending: boolean) =>
+    dispatchTeamspace({ type: "showAllPendingChanged", showAllPending });
+  const setPresenceAnnouncement = (presenceAnnouncement: string) =>
+    dispatchTeamspace({ type: "presenceAnnouncementChanged", presenceAnnouncement });
   const [isPending, startTransition] = useTransition();
 
   const currentUser = useMemo(
@@ -292,9 +454,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const projectSharePath = `/workshop/projects/${activeSummary.projectId}`;
 
   function setResult(message: string, tone: "neutral" | "warning", assertive = false) {
-    setActionMessageTone(tone);
-    setActionAssertive(assertive);
-    setActionMessage(message);
+    setActionResult(message, tone, assertive);
   }
 
   function runAccessAction(
@@ -670,6 +830,7 @@ type ShareModalProps = {
   actionAssertive: boolean;
 };
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function ShareModal(props: ShareModalProps) {
   const {
     open,

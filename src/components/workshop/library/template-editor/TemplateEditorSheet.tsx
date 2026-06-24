@@ -16,7 +16,8 @@ import {
 import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "../../estimate-sheet/rows/constants";
 import { EstimateDropZone } from "../../estimate-sheet/rows/drop-zones";
-import { NodeIcon, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "../../estimate-sheet/rows/node-visuals";
+import { NodeIcon } from "../../estimate-sheet/rows/node-visuals";
+import { nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "../../estimate-sheet/rows/node-visuals-utils";
 import { pesoFormatter } from "../../component-library/helpers";
 import {
   computeTemplateNodeTotal,
@@ -24,11 +25,12 @@ import {
   type EstimateTemplate,
 } from "../../component-library/templates";
 import {
-  librarySurfaceClass,
   type LibrarySurfaceVariant,
   useLibrarySurfaceVariant,
 } from "../library-surface-variant";
-import { getTemplateSourceTrustChips, SourceTrustChips } from "../source-trust-chips";
+import { librarySurfaceClass } from "../library-surface-class";
+import { SourceTrustChips } from "../source-trust-chips";
+import { getTemplateSourceTrustChips } from "../source-trust-model";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 

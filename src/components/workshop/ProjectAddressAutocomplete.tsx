@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useReducer, useRef, useSyncExternalStore, useTransition, type KeyboardEvent } from "react";
 
 import { ControlInput } from "@/components/ui/control-input";
-import { DropdownPopupPanel, scrollPopupItemIntoView, useDropdownPopup } from "@/components/ui/dropdown-popup";
+import { DropdownPopupPanel, useDropdownPopup } from "@/components/ui/dropdown-popup";
+import { scrollPopupItemIntoView } from "@/components/ui/dropdown-popup-utils";
 import { hasGoogleMapsApiKey, loadGoogleMapsApi } from "@/lib/google-maps/loader";
 import { cn } from "@/lib/ui/cn";
 
@@ -54,7 +55,25 @@ type PlacesLibrary = {
   };
 };
 
+type ProjectAddressAutocompleteState = {
+  readonly suggestions: GoogleAutocompleteSuggestion[];
+  readonly status: string;
+  readonly activeIndex: number;
+};
+
+type ProjectAddressAutocompleteAction =
+  | { readonly type: "replaceSuggestions"; readonly suggestions: GoogleAutocompleteSuggestion[] }
+  | { readonly type: "suggestionsUnavailable"; readonly message: string }
+  | { readonly type: "setStatus"; readonly status: string }
+  | { readonly type: "setActiveIndex"; readonly activeIndex: number }
+  | { readonly type: "moveActiveIndex"; readonly direction: 1 | -1 };
+
 const PROJECT_ADDRESS_AUTOCOMPLETE_TYPES = ["street_address", "route", "locality", "sublocality", "neighborhood"] as const;
+const EMPTY_PROJECT_ADDRESS_AUTOCOMPLETE_STATE: ProjectAddressAutocompleteState = {
+  suggestions: [],
+  status: "",
+  activeIndex: -1,
+};
 
 function readCoordinatePart(value: (() => number) | number | undefined) {
   return typeof value === "function" ? value() : value;
@@ -87,6 +106,96 @@ function splitSuggestionLabel(label: string) {
   };
 }
 
+function projectAddressAutocompleteReducer(
+  state: ProjectAddressAutocompleteState,
+  action: ProjectAddressAutocompleteAction,
+): ProjectAddressAutocompleteState {
+  switch (action.type) {
+    case "replaceSuggestions":
+      return {
+        ...state,
+        suggestions: action.suggestions,
+        activeIndex: action.suggestions.length > 0 ? 0 : -1,
+      };
+    case "suggestionsUnavailable":
+      return {
+        ...state,
+        suggestions: [],
+        activeIndex: -1,
+        status: action.message,
+      };
+    case "setStatus":
+      return {
+        ...state,
+        status: action.status,
+      };
+    case "setActiveIndex":
+      return {
+        ...state,
+        activeIndex: action.activeIndex,
+      };
+    case "moveActiveIndex": {
+      if (state.suggestions.length === 0) return state;
+      const fallback = action.direction === 1 ? 0 : state.suggestions.length - 1;
+      const nextActiveIndex = state.activeIndex < 0
+        ? fallback
+        : (state.activeIndex + action.direction + state.suggestions.length) % state.suggestions.length;
+      return {
+        ...state,
+        activeIndex: nextActiveIndex,
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+function usePlacesLoadRequest(canUseGooglePlaces: boolean) {
+  const shouldLoadPlacesRef = useRef(false);
+  const listenersRef = useRef<Set<() => void> | null>(null);
+  if (listenersRef.current === null) listenersRef.current = new Set();
+  const subscribe = useCallback((listener: () => void) => {
+    const listeners = listenersRef.current;
+    if (!listeners) return () => undefined;
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+  const getSnapshot = useCallback(() => shouldLoadPlacesRef.current, []);
+  const shouldLoadPlaces = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const requestPlacesLoad = useCallback(() => {
+    if (!canUseGooglePlaces || shouldLoadPlacesRef.current) return;
+    shouldLoadPlacesRef.current = true;
+    for (const listener of listenersRef.current ?? []) listener();
+  }, [canUseGooglePlaces]);
+
+  return { requestPlacesLoad, shouldLoadPlaces };
+}
+
+function usePlacesLibraryState() {
+  const placesLibraryRef = useRef<PlacesLibrary | null>(null);
+  const listenersRef = useRef<Set<() => void> | null>(null);
+  if (listenersRef.current === null) listenersRef.current = new Set();
+  const subscribe = useCallback((listener: () => void) => {
+    const listeners = listenersRef.current;
+    if (!listeners) return () => undefined;
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+  const getSnapshot = useCallback(() => placesLibraryRef.current, []);
+  const placesLibrary = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const setPlacesLibrary = useCallback((nextLibrary: PlacesLibrary | null) => {
+    if (placesLibraryRef.current === nextLibrary) return;
+    placesLibraryRef.current = nextLibrary;
+    for (const listener of listenersRef.current ?? []) listener();
+  }, []);
+
+  return { placesLibrary, setPlacesLibrary };
+}
+
 export function ProjectAddressAutocomplete({
   apiKey,
   name,
@@ -96,13 +205,13 @@ export function ProjectAddressAutocomplete({
   onValueChange,
   onPlaceSelect,
 }: ProjectAddressAutocompleteProps) {
-  const [placesLibrary, setPlacesLibrary] = useState<PlacesLibrary | null>(null);
-  const [suggestions, setSuggestions] = useState<GoogleAutocompleteSuggestion[]>([]);
-  const [status, setStatus] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
-  const [shouldLoadPlaces, setShouldLoadPlaces] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const { placesLibrary, setPlacesLibrary } = usePlacesLibraryState();
+  const [{ suggestions, status, activeIndex }, dispatchAutocomplete] = useReducer(
+    projectAddressAutocompleteReducer,
+    EMPTY_PROJECT_ADDRESS_AUTOCOMPLETE_STATE,
+  );
   const [isPending, startTransition] = useTransition();
+  const isFocusedRef = useRef(false);
   const sessionTokenRef = useRef<unknown>(null);
   const inputId = useId();
   const listboxId = `${inputId}-suggestions`;
@@ -119,12 +228,10 @@ export function ProjectAddressAutocomplete({
   } = useDropdownPopup({
     align: "start",
     side: "bottom",
-    onClose: () => setActiveIndex(-1),
+    onClose: () => dispatchAutocomplete({ type: "setActiveIndex", activeIndex: -1 }),
   });
   const activeOptionId = open && activeIndex >= 0 ? suggestionOptionId(listboxId, activeIndex) : undefined;
-  const requestPlacesLoad = useCallback(() => {
-    setShouldLoadPlaces(true);
-  }, []);
+  const { requestPlacesLoad, shouldLoadPlaces } = usePlacesLoadRequest(canUseGooglePlaces);
 
   useEffect(() => {
     if (!canUseGooglePlaces || !shouldLoadPlaces) return;
@@ -138,17 +245,29 @@ export function ProjectAddressAutocomplete({
         setPlacesLibrary(nextLibrary);
       })
       .catch(() => {
-        if (!cancelled) setStatus("Google address search unavailable");
+        if (!cancelled) dispatchAutocomplete({ type: "setStatus", status: "Google address search unavailable" });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [apiKey, canUseGooglePlaces, shouldLoadPlaces]);
+  }, [apiKey, canUseGooglePlaces, setPlacesLibrary, shouldLoadPlaces]);
+
+  const replaceSuggestions = useCallback(
+    (nextSuggestions: GoogleAutocompleteSuggestion[]) => {
+      dispatchAutocomplete({ type: "replaceSuggestions", suggestions: nextSuggestions });
+      if (isFocusedRef.current && nextSuggestions.length > 0) {
+        openPopup();
+        return;
+      }
+      close("manual");
+    },
+    [close, openPopup],
+  );
 
   useEffect(() => {
     if (!placesLibrary || readOnly || value.trim().length < 3) {
-      queueMicrotask(() => setSuggestions([]));
+      queueMicrotask(() => replaceSuggestions([]));
       return;
     }
 
@@ -164,13 +283,10 @@ export function ProjectAddressAutocomplete({
         sessionToken: sessionTokenRef.current,
       })
         .then((result) => {
-          if (!cancelled) setSuggestions((result.suggestions ?? []).filter((suggestion) => Boolean(suggestion.placePrediction)));
+          if (!cancelled) replaceSuggestions((result.suggestions ?? []).filter((suggestion) => Boolean(suggestion.placePrediction)));
         })
         .catch(() => {
-          if (!cancelled) {
-            setSuggestions([]);
-            setStatus("Google suggestions unavailable");
-          }
+          if (!cancelled) dispatchAutocomplete({ type: "suggestionsUnavailable", message: "Google suggestions unavailable" });
         });
     }, 350);
 
@@ -178,20 +294,7 @@ export function ProjectAddressAutocomplete({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [placesLibrary, readOnly, value]);
-
-  useEffect(() => {
-    queueMicrotask(() => setActiveIndex(suggestions.length > 0 ? 0 : -1));
-  }, [suggestions]);
-
-  useEffect(() => {
-    if (isFocused && suggestions.length > 0) {
-      openPopup();
-      return;
-    }
-
-    close("manual");
-  }, [close, isFocused, openPopup, suggestions.length]);
+  }, [placesLibrary, readOnly, replaceSuggestions, value]);
 
   useEffect(() => {
     if (!open || activeIndex < 0) return;
@@ -207,18 +310,18 @@ export function ProjectAddressAutocomplete({
     close("select");
     startTransition(async () => {
       try {
-        setStatus("Saving Google place");
+        dispatchAutocomplete({ type: "setStatus", status: "Saving Google place" });
         const place = prediction.toPlace();
         await place.fetchFields({ fields: ["id", "displayName", "formattedAddress", "location"] });
         const pin = readPlacePin(place);
         const addressText = place.formattedAddress ?? place.displayName ?? prediction.text.toString();
         if (!pin) {
-          setStatus("Google place did not include coordinates");
+          dispatchAutocomplete({ type: "setStatus", status: "Google place did not include coordinates" });
           return;
         }
 
         onValueChange(addressText);
-        setSuggestions([]);
+        replaceSuggestions([]);
         sessionTokenRef.current = placesLibrary ? new placesLibrary.AutocompleteSessionToken() : null;
         await onPlaceSelect({
           addressText,
@@ -227,20 +330,16 @@ export function ProjectAddressAutocomplete({
           latitude: pin.latitude,
           longitude: pin.longitude,
         });
-        setStatus("");
+        dispatchAutocomplete({ type: "setStatus", status: "" });
       } catch {
-        setStatus("Google place could not be saved");
+        dispatchAutocomplete({ type: "setStatus", status: "Google place could not be saved" });
       }
     });
   }
 
   function moveActiveIndex(direction: 1 | -1) {
     if (suggestions.length === 0) return;
-    setActiveIndex((current) => {
-      const fallback = direction === 1 ? 0 : suggestions.length - 1;
-      if (current < 0) return fallback;
-      return (current + direction + suggestions.length) % suggestions.length;
-    });
+    dispatchAutocomplete({ type: "moveActiveIndex", direction });
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -249,7 +348,7 @@ export function ProjectAddressAutocomplete({
 
     if (event.key === "Escape" && (open || suggestions.length > 0)) {
       event.preventDefault();
-      setSuggestions([]);
+      replaceSuggestions([]);
       closeAndFocusTrigger("escape");
       return;
     }
@@ -289,13 +388,14 @@ export function ProjectAddressAutocomplete({
         autoComplete="off"
         onFocus={() => {
           requestPlacesLoad();
-          setIsFocused(true);
+          isFocusedRef.current = true;
           if (suggestions.length > 0) openPopup();
         }}
         onBlur={(event) => {
           const relatedTarget = event.relatedTarget as Node | null;
           if (relatedTarget && panelRef.current?.contains(relatedTarget)) return;
-          setIsFocused(false);
+          isFocusedRef.current = false;
+          close("manual");
         }}
         onClick={() => {
           requestPlacesLoad();
@@ -304,7 +404,7 @@ export function ProjectAddressAutocomplete({
         onKeyDown={handleInputKeyDown}
         onChange={(event) => {
           requestPlacesLoad();
-          setStatus("");
+          dispatchAutocomplete({ type: "setStatus", status: "" });
           onValueChange(event.currentTarget.value);
         }}
         placeholder="Search or type project address"
@@ -349,7 +449,7 @@ export function ProjectAddressAutocomplete({
                   isActive ? "bg-accentSoft" : "hover:bg-surfaceMuted",
                 )}
                 onMouseDown={(event) => event.preventDefault()}
-                onMouseEnter={() => setActiveIndex(index)}
+                onMouseEnter={() => dispatchAutocomplete({ type: "setActiveIndex", activeIndex: index })}
                 onClick={() => handleSuggestionSelect(suggestion)}
               >
                 <span className="block truncate text-[10px] font-medium leading-4 text-ink">{primary}</span>

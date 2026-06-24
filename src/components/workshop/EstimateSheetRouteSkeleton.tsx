@@ -5,9 +5,9 @@ import { cn } from "@/lib/ui/cn";
 
 import {
   EstimateSurfaceVariantProvider,
-  estimateSurfaceClass,
   useEstimateSurfaceVariant,
 } from "./estimate-surface-variant";
+import { estimateSurfaceClass } from "./estimate-surface-class";
 
 const TREE_ROW_COUNT = 10;
 const SHEET_ROW_COUNT = 12;

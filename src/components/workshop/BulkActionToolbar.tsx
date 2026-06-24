@@ -53,6 +53,7 @@ export function BulkActionToolbar({
               {selectedCount} selected
             </p>
           </div>
+          {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Bulk action buttons are a named control group; <address> would be incorrect. */}
           <div
             data-bulk-action-icon-floor
             className="grid h-9 w-full grid-cols-[2rem_2rem_1px_2rem] items-center justify-center gap-1 rounded-xs border border-hairline bg-white p-0.5 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]"

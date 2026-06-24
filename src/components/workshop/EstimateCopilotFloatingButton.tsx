@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { FormEvent, useCallback, useReducer, useRef } from "react";
 import { ChatCircleDots, PaperPlaneRight, Plus, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -277,6 +277,133 @@ function updateSessionMessage(
   );
 }
 
+type AskFlipFooterState = {
+  open: boolean;
+  input: string;
+  sessions: ChatSession[];
+  activeSessionId: string;
+  isSending: boolean;
+  error: string | null;
+};
+
+type AskFlipFooterAction =
+  | { type: "openChanged"; open: boolean }
+  | { type: "openToggled" }
+  | { type: "inputChanged"; input: string }
+  | { type: "sendStarted"; sessionId: string; prompt: string; userMessage: ChatMessage }
+  | { type: "assistantMessageAdded"; sessionId: string; message: ChatMessage; staleDraftMessageId?: string }
+  | { type: "sendFailed"; error: string }
+  | { type: "sendSettled" }
+  | { type: "sessionMessageUpdated"; sessionId: string; messageId: string; updater: (message: ChatMessage) => ChatMessage }
+  | { type: "newSessionStarted"; session: ChatSession }
+  | { type: "activeSessionChanged"; sessionId: string };
+
+function createInitialAskFlipFooterState(): AskFlipFooterState {
+  return {
+    open: false,
+    input: "",
+    sessions: [createInitialSession()],
+    activeSessionId: "ask-flip-session-current-page",
+    isSending: false,
+    error: null,
+  };
+}
+
+function askFlipFooterReducer(state: AskFlipFooterState, action: AskFlipFooterAction): AskFlipFooterState {
+  switch (action.type) {
+    case "openChanged":
+      return {
+        ...state,
+        open: action.open,
+      };
+    case "openToggled":
+      return {
+        ...state,
+        open: !state.open,
+      };
+    case "inputChanged":
+      return {
+        ...state,
+        input: action.input,
+      };
+    case "sendStarted":
+      return {
+        ...state,
+        input: "",
+        error: null,
+        isSending: true,
+        sessions: state.sessions.map((session) =>
+          session.id === action.sessionId
+            ? {
+                ...session,
+                title: session.messages.some((message) => message.role === "user") ? session.title : makeSessionTitle(action.prompt),
+                messages: [...session.messages, action.userMessage],
+              }
+            : session,
+        ),
+      };
+    case "assistantMessageAdded":
+      return {
+        ...state,
+        sessions: state.sessions.map((session) =>
+          session.id === action.sessionId
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages.map((message) =>
+                    action.staleDraftMessageId === message.id && message.packageDraft
+                      ? {
+                          ...message,
+                          packageDraft: {
+                            ...message.packageDraft,
+                            confirmed: false,
+                            isStale: true,
+                            error: undefined,
+                          },
+                        }
+                      : message,
+                  ),
+                  action.message,
+                ],
+              }
+            : session,
+        ),
+      };
+    case "sendFailed":
+      return {
+        ...state,
+        error: action.error,
+      };
+    case "sendSettled":
+      return {
+        ...state,
+        isSending: false,
+      };
+    case "sessionMessageUpdated":
+      return {
+        ...state,
+        sessions: updateSessionMessage(state.sessions, action.sessionId, action.messageId, action.updater),
+      };
+    case "newSessionStarted":
+      return {
+        ...state,
+        sessions: [action.session, ...state.sessions],
+        activeSessionId: action.session.id,
+        input: "",
+        error: null,
+        open: true,
+      };
+    case "activeSessionChanged":
+      return {
+        ...state,
+        activeSessionId: action.sessionId,
+        error: null,
+      };
+    default:
+      return state;
+  }
+}
+
 function PackageDraftPreview({
   state,
   onConfirm,
@@ -545,17 +672,14 @@ function PackageDraftPreview({
   );
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function AskFlipFooterAssistant({
   projectName,
   estimateName,
   selectedNodeName,
 }: EstimateCopilotFloatingButtonProps) {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const [sessions, setSessions] = useState<ChatSession[]>(() => [createInitialSession()]);
-  const [activeSessionId, setActiveSessionId] = useState("ask-flip-session-current-page");
-  const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(askFlipFooterReducer, undefined, createInitialAskFlipFooterState);
+  const { open, input, sessions, activeSessionId, isSending, error } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const activeSession = sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
   const messages = activeSession?.messages ?? [];
@@ -572,21 +696,8 @@ export function AskFlipFooterAssistant({
     const prompt = input.trim();
     if (!prompt || isSending) return;
 
-    setError(null);
-    setInput("");
     const userMessage: ChatMessage = { id: makeMessageId(), role: "user", content: prompt };
-    setSessions((current) =>
-      current.map((session) =>
-        session.id === activeSessionId
-          ? {
-              ...session,
-              title: session.messages.some((message) => message.role === "user") ? session.title : makeSessionTitle(prompt),
-              messages: [...session.messages, userMessage],
-            }
-          : session,
-      ),
-    );
-    setIsSending(true);
+    dispatch({ type: "sendStarted", sessionId: activeSessionId, prompt, userMessage });
 
     try {
       const pendingDraftEntry = getLatestRevisablePackageDraft(messages);
@@ -622,69 +733,54 @@ export function AskFlipFooterAssistant({
           ? "I drafted a library component for review."
           : "I drafted a package for review."
         : payload.message?.trim() || "I could not produce a useful answer.";
-      setSessions((current) =>
-        current.map((session) =>
-          session.id === activeSessionId
+      dispatch({
+        type: "assistantMessageAdded",
+        sessionId: activeSessionId,
+        staleDraftMessageId: usesPendingDraft ? pendingDraftEntry?.messageId : undefined,
+        message: {
+          id: assistantMessageId,
+          role: "assistant",
+          content: assistantMessage,
+          packageDraft: payload.draft && payload.draftHash && payload.draftToken
             ? {
-                ...session,
-                messages: [
-                  ...session.messages.map((message) =>
-                    usesPendingDraft && pendingDraftEntry?.messageId === message.id && message.packageDraft
-                      ? {
-                          ...message,
-                          packageDraft: {
-                            ...message.packageDraft,
-                            confirmed: false,
-                            isStale: true,
-                            error: undefined,
-                          },
-                        }
-                      : message,
-                  ),
-                  {
-                    id: assistantMessageId,
-                    role: "assistant",
-                    content: assistantMessage,
-                    packageDraft: payload.draft && payload.draftHash && payload.draftToken
-                      ? {
-                          draft: payload.draft,
-                          draftHash: payload.draftHash,
-                          draftToken: payload.draftToken,
-                          idempotencyKey: `ask-flip-apply-${assistantMessageId}`,
-                          confirmed: false,
-                          applyStatus: "ready",
-                          error: payload.serverValidation?.eligible === false ? payload.serverValidation.reasons.join(" ") : undefined,
-                        }
-                      : undefined,
-                  },
-                ],
+                draft: payload.draft,
+                draftHash: payload.draftHash,
+                draftToken: payload.draftToken,
+                idempotencyKey: `ask-flip-apply-${assistantMessageId}`,
+                confirmed: false,
+                applyStatus: "ready",
+                error: payload.serverValidation?.eligible === false ? payload.serverValidation.reasons.join(" ") : undefined,
               }
-            : session,
-        ),
-      );
+            : undefined,
+        },
+      });
     } catch (sendError) {
       const errorMessage = sendError instanceof Error ? sendError.message : "AI request failed.";
-      setError(errorMessage);
+      dispatch({ type: "sendFailed", error: errorMessage });
     } finally {
-      setIsSending(false);
+      dispatch({ type: "sendSettled" });
       window.requestAnimationFrame(() => inputRef.current?.focus());
     }
   }
 
   async function handleConfirmDraft(messageId: string, confirmed: boolean) {
-    setSessions((current) =>
-      updateSessionMessage(current, activeSessionId, messageId, (message) =>
+    dispatch({
+      type: "sessionMessageUpdated",
+      sessionId: activeSessionId,
+      messageId,
+      updater: (message) =>
         message.packageDraft ? { ...message, packageDraft: { ...message.packageDraft, confirmed, error: undefined } } : message,
-      ),
-    );
+    });
   }
 
   async function handleApplyDraft(messageId: string, packageDraft: PackageDraftPreviewState) {
-    setSessions((current) =>
-      updateSessionMessage(current, activeSessionId, messageId, (message) =>
+    dispatch({
+      type: "sessionMessageUpdated",
+      sessionId: activeSessionId,
+      messageId,
+      updater: (message) =>
         message.packageDraft ? { ...message, packageDraft: { ...message.packageDraft, applyStatus: "applying", error: undefined } } : message,
-      ),
-    );
+    });
 
     try {
       const response = await fetch("/api/ai/package-builder", {
@@ -701,26 +797,33 @@ export function AskFlipFooterAssistant({
       });
       const payload = (await response.json().catch(() => ({}))) as PackageBuilderApplyResponse;
       if (!response.ok || !payload.result) throw new Error(payload.error || "Package Apply failed.");
-      setSessions((current) =>
-        updateSessionMessage(current, activeSessionId, messageId, (message) =>
+      dispatch({
+        type: "sessionMessageUpdated",
+        sessionId: activeSessionId,
+        messageId,
+        updater: (message) =>
           message.packageDraft
             ? { ...message, packageDraft: { ...message.packageDraft, applyStatus: "applied", applyResult: payload.result, error: undefined } }
             : message,
-        ),
-      );
+      });
     } catch (applyError) {
       const errorMessage = applyError instanceof Error ? applyError.message : "Package Apply failed.";
-      setSessions((current) =>
-        updateSessionMessage(current, activeSessionId, messageId, (message) =>
+      dispatch({
+        type: "sessionMessageUpdated",
+        sessionId: activeSessionId,
+        messageId,
+        updater: (message) =>
           message.packageDraft ? { ...message, packageDraft: { ...message.packageDraft, applyStatus: "ready", error: errorMessage } } : message,
-        ),
-      );
+      });
     }
   }
 
   async function handleRejectDraft(messageId: string, packageDraft: PackageDraftPreviewState) {
-    setSessions((current) =>
-      updateSessionMessage(current, activeSessionId, messageId, (message) =>
+    dispatch({
+      type: "sessionMessageUpdated",
+      sessionId: activeSessionId,
+      messageId,
+      updater: (message) =>
         message.packageDraft
           ? {
               ...message,
@@ -732,8 +835,7 @@ export function AskFlipFooterAssistant({
               },
             }
           : message,
-      ),
-    );
+    });
 
     try {
       const response = await fetch("/api/ai/package-builder", {
@@ -750,8 +852,11 @@ export function AskFlipFooterAssistant({
       });
       const payload = (await response.json().catch(() => ({}))) as PackageBuilderFeedbackResponse;
       if (!response.ok || payload.decision !== "rejected") throw new Error(payload.error || "Package draft feedback failed.");
-      setSessions((current) =>
-        updateSessionMessage(current, activeSessionId, messageId, (message) =>
+      dispatch({
+        type: "sessionMessageUpdated",
+        sessionId: activeSessionId,
+        messageId,
+        updater: (message) =>
           message.packageDraft
             ? {
                 ...message,
@@ -759,12 +864,14 @@ export function AskFlipFooterAssistant({
                 packageDraft: undefined,
               }
             : message,
-        ),
-      );
+      });
     } catch (feedbackError) {
       const errorMessage = feedbackError instanceof Error ? feedbackError.message : "Package draft feedback failed.";
-      setSessions((current) =>
-        updateSessionMessage(current, activeSessionId, messageId, (message) =>
+      dispatch({
+        type: "sessionMessageUpdated",
+        sessionId: activeSessionId,
+        messageId,
+        updater: (message) =>
           message.packageDraft
             ? {
                 ...message,
@@ -775,8 +882,7 @@ export function AskFlipFooterAssistant({
                 },
               }
             : message,
-        ),
-      );
+      });
     }
   }
 
@@ -786,11 +892,7 @@ export function AskFlipFooterAssistant({
       title: "New chat",
       messages: [],
     };
-    setSessions((current) => [nextSession, ...current]);
-    setActiveSessionId(nextSession.id);
-    setInput("");
-    setError(null);
-    setOpen(true);
+    dispatch({ type: "newSessionStarted", session: nextSession });
     window.requestAnimationFrame(() => inputRef.current?.focus());
   }
 
@@ -828,8 +930,7 @@ export function AskFlipFooterAssistant({
                       )}
                       aria-current={isActive ? "true" : undefined}
                       onClick={() => {
-                        setActiveSessionId(session.id);
-                        setError(null);
+                        dispatch({ type: "activeSessionChanged", sessionId: session.id });
                         window.requestAnimationFrame(() => inputRef.current?.focus());
                       }}
                     >
@@ -853,7 +954,7 @@ export function AskFlipFooterAssistant({
                 size="icon-sm"
                 className="size-7 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
                 aria-label="Close Ask Flip"
-                onClick={() => setOpen(false)}
+                onClick={() => dispatch({ type: "openChanged", open: false })}
               >
                 <X size={13} weight="regular" aria-hidden="true" />
               </Button>
@@ -896,7 +997,7 @@ export function AskFlipFooterAssistant({
                 ref={inputRef}
                 aria-label="Ask Flip message"
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(event) => dispatch({ type: "inputChanged", input: event.target.value })}
                 placeholder="Ask Flip"
                 className="min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink outline-none transition placeholder:text-tertiary focus:border-accent"
                 maxLength={8_000}
@@ -921,7 +1022,7 @@ export function AskFlipFooterAssistant({
         className="h-8 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink shadow-none hover:bg-surfaceMuted"
         aria-label="Open Ask Flip"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => dispatch({ type: "openToggled" })}
       >
         <ChatCircleDots size={13} weight="regular" aria-hidden="true" />
         <span>Ask Flip</span>

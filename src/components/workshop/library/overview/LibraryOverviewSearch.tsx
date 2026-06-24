@@ -1,34 +1,83 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
 import {
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   searchLibraryOverview,
   type LibraryOverviewSearchResult,
 } from "@/lib/component-library/actions";
 import { cn } from "@/lib/ui/cn";
+import { LibraryOverviewSearchGroup } from "./LibraryOverviewSearchGroup";
+import {
+  libraryOverviewSearchOptionDomId,
+  type LibraryOverviewSearchEntry,
+} from "./LibraryOverviewSearchModel";
 
 const SEARCH_DEBOUNCE_MS = 150;
 const LISTBOX_ID = "library-overview-search-results";
 
-type SearchEntry = {
-  id: string;
-  title: string;
-  meta?: string;
-  href: string;
-  kind: "component" | "template" | "see-all";
+type LibraryOverviewSearchState = {
+  query: string;
+  open: boolean;
+  pending: boolean;
+  results: LibraryOverviewSearchResult | null;
+  highlightedId: string | null;
 };
 
-function optionDomId(entryId: string) {
-  return `library-overview-search-option-${entryId}`;
+type LibraryOverviewSearchAction =
+  | { type: "query"; value: string }
+  | { type: "open" }
+  | { type: "close" }
+  | { type: "search:start" }
+  | { type: "search:success"; results: LibraryOverviewSearchResult }
+  | { type: "search:error" }
+  | { type: "highlight"; entryId: string };
+
+const EMPTY_SEARCH_RESULTS: LibraryOverviewSearchResult = { components: [], templates: [] };
+
+const INITIAL_SEARCH_STATE: LibraryOverviewSearchState = {
+  query: "",
+  open: false,
+  pending: false,
+  results: null,
+  highlightedId: null,
+};
+
+function libraryOverviewSearchReducer(
+  state: LibraryOverviewSearchState,
+  action: LibraryOverviewSearchAction,
+): LibraryOverviewSearchState {
+  switch (action.type) {
+    case "query": {
+      const query = action.value;
+      if (!query.trim()) {
+        return { ...INITIAL_SEARCH_STATE, query };
+      }
+      return { ...state, query, open: true, highlightedId: null };
+    }
+    case "open":
+      return { ...state, open: true };
+    case "close":
+      return { ...state, open: false };
+    case "search:start":
+      return { ...state, pending: true };
+    case "search:success":
+      return { ...state, results: action.results, pending: false, highlightedId: null };
+    case "search:error":
+      return { ...state, results: EMPTY_SEARCH_RESULTS, pending: false, highlightedId: null };
+    case "highlight":
+      return { ...state, highlightedId: action.entryId };
+    default:
+      return state;
+  }
 }
 
 /**
@@ -45,11 +94,8 @@ export function LibraryOverviewSearch() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const requestIdRef = useRef(0);
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [results, setResults] = useState<LibraryOverviewSearchResult | null>(null);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [searchState, dispatchSearch] = useReducer(libraryOverviewSearchReducer, INITIAL_SEARCH_STATE);
+  const { query, open, pending, results, highlightedId } = searchState;
 
   const trimmedQuery = query.trim();
 
@@ -57,16 +103,10 @@ export function LibraryOverviewSearch() {
   // server action from the first keystroke. Empty-query resets happen in the
   // change handler; the effect only owns the debounced fetch.
   const updateQuery = useCallback((value: string) => {
-    setQuery(value);
     if (!value.trim()) {
       requestIdRef.current += 1;
-      setResults(null);
-      setPending(false);
-      setOpen(false);
-      setHighlightedId(null);
-      return;
     }
-    setOpen(true);
+    dispatchSearch({ type: "query", value });
   }, []);
 
   useEffect(() => {
@@ -74,17 +114,15 @@ export function LibraryOverviewSearch() {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     const timer = setTimeout(() => {
-      setPending(true);
+      dispatchSearch({ type: "search:start" });
       searchLibraryOverview({ query: trimmedQuery })
         .then((nextResults) => {
           if (requestIdRef.current !== requestId) return;
-          setResults(nextResults);
-          setPending(false);
+          dispatchSearch({ type: "search:success", results: nextResults });
         })
         .catch(() => {
           if (requestIdRef.current !== requestId) return;
-          setResults({ components: [], templates: [] });
-          setPending(false);
+          dispatchSearch({ type: "search:error" });
         });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -110,13 +148,13 @@ export function LibraryOverviewSearch() {
     function handlePointerDown(event: PointerEvent) {
       if (!(event.target instanceof Node)) return;
       if (containerRef.current?.contains(event.target)) return;
-      setOpen(false);
+      dispatchSearch({ type: "close" });
     }
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
-  const componentEntries = useMemo<SearchEntry[]>(() => {
+  const componentEntries = useMemo<LibraryOverviewSearchEntry[]>(() => {
     if (!results || results.components.length === 0) return [];
     return [
       ...results.components.map((component) => ({
@@ -135,7 +173,7 @@ export function LibraryOverviewSearch() {
     ];
   }, [results]);
 
-  const templateEntries = useMemo<SearchEntry[]>(() => {
+  const templateEntries = useMemo<LibraryOverviewSearchEntry[]>(() => {
     if (!results || results.templates.length === 0) return [];
     return [
       ...results.templates.map((template) => ({
@@ -158,13 +196,12 @@ export function LibraryOverviewSearch() {
   const hasResults = flatEntries.length > 0;
   const showNoResults = Boolean(results) && !pending && !hasResults;
 
-  // Results changed under the highlight: re-anchor to the first entry.
+  // A stale highlight falls back to the first entry on Enter.
   const highlightedEntry = flatEntries.find((entry) => entry.id === highlightedId) ?? null;
-  if (highlightedId !== null && !highlightedEntry) setHighlightedId(null);
 
   const activateEntry = useCallback(
-    (entry: SearchEntry) => {
-      setOpen(false);
+    (entry: LibraryOverviewSearchEntry) => {
+      dispatchSearch({ type: "close" });
       router.push(entry.href);
     },
     [router],
@@ -180,7 +217,7 @@ export function LibraryOverviewSearch() {
             ? 0
             : flatEntries.length - 1
           : (currentIndex + delta + flatEntries.length) % flatEntries.length;
-      setHighlightedId(flatEntries[nextIndex].id);
+      dispatchSearch({ type: "highlight", entryId: flatEntries[nextIndex].id });
     },
     [flatEntries, highlightedId],
   );
@@ -190,13 +227,13 @@ export function LibraryOverviewSearch() {
       if (event.key === "Escape") {
         if (open) {
           event.preventDefault();
-          setOpen(false);
+          dispatchSearch({ type: "close" });
         }
         return;
       }
       if (!open && trimmedQuery && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
         event.preventDefault();
-        setOpen(true);
+        dispatchSearch({ type: "open" });
         return;
       }
       if (!open) return;
@@ -220,44 +257,6 @@ export function LibraryOverviewSearch() {
     [activateEntry, flatEntries, highlightedEntry, moveHighlight, open, trimmedQuery],
   );
 
-  const renderGroup = (label: string, entries: SearchEntry[]) => {
-    if (entries.length === 0) return null;
-    return (
-      <div role="group" aria-label={label}>
-        <p className="px-2 pb-0.5 pt-2 text-[8px] font-medium uppercase leading-3 text-tertiary" aria-hidden="true">
-          {label}
-        </p>
-        {entries.map((entry) => {
-          const highlighted = entry.id === (highlightedEntry?.id ?? null);
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              id={optionDomId(entry.id)}
-              role="option"
-              aria-selected={highlighted}
-              data-library-overview-search-result={entry.id}
-              className={`flex w-full items-baseline gap-1.5 px-2 py-1.5 text-left transition hover:bg-surfaceMuted ${highlighted ? "bg-surfaceMuted" : ""}`}
-              onPointerEnter={() => setHighlightedId(entry.id)}
-              onClick={() => activateEntry(entry)}
-            >
-              {entry.kind === "see-all" ? (
-                <span className="text-[9px] font-medium leading-3 text-secondary">{entry.title}</span>
-              ) : (
-                <>
-                  <span className="min-w-0 truncate text-[10px] font-medium leading-4 text-ink">{entry.title}</span>
-                  {entry.meta ? (
-                    <span className="min-w-0 truncate text-[9px] font-normal leading-3 text-tertiary">{entry.meta}</span>
-                  ) : null}
-                </>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div ref={containerRef} className="relative w-[360px] max-w-full" data-library-overview-search="true">
       <SearchInput
@@ -268,7 +267,7 @@ export function LibraryOverviewSearch() {
         role="combobox"
         aria-expanded={open}
         aria-controls={LISTBOX_ID}
-        aria-activedescendant={highlightedEntry ? optionDomId(highlightedEntry.id) : undefined}
+        aria-activedescendant={highlightedEntry ? libraryOverviewSearchOptionDomId(highlightedEntry.id) : undefined}
         shortcutKey="⌘K"
         value={query}
         onChange={(event) => updateQuery(event.target.value)}
@@ -279,6 +278,7 @@ export function LibraryOverviewSearch() {
         onKeyDown={handleKeyDown}
       />
       {open ? (
+        // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Library search renders a custom ARIA listbox, not a native datalist.
         <div
           id={LISTBOX_ID}
           role="listbox"
@@ -291,8 +291,20 @@ export function LibraryOverviewSearch() {
         >
           {hasResults ? (
             <>
-              {renderGroup("Components", componentEntries)}
-              {renderGroup("Templates", templateEntries)}
+              <LibraryOverviewSearchGroup
+                label="Components"
+                entries={componentEntries}
+                highlightedId={highlightedEntry?.id ?? null}
+                onActivate={activateEntry}
+                onHighlight={(entryId) => dispatchSearch({ type: "highlight", entryId })}
+              />
+              <LibraryOverviewSearchGroup
+                label="Templates"
+                entries={templateEntries}
+                highlightedId={highlightedEntry?.id ?? null}
+                onActivate={activateEntry}
+                onHighlight={(entryId) => dispatchSearch({ type: "highlight", entryId })}
+              />
             </>
           ) : showNoResults ? (
             <div className="flex flex-col items-start gap-1 px-2 py-2">

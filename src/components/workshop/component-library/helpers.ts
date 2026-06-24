@@ -475,10 +475,6 @@ export function parseLibraryJson(text: string): LibraryImportResult {
   }
 }
 
-export function parseLibraryImportText(text: string, fileName: string): LibraryImportResult {
-  return fileName.toLowerCase().endsWith(".json") ? parseLibraryJson(text) : parseLibraryCsv(text);
-}
-
 export function exportLibraryItemsToJson(items: EstimateRowItem[], bundles: LibraryBundle[] = []) {
   return JSON.stringify(
     {

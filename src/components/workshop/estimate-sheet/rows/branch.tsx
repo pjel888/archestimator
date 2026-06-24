@@ -5,7 +5,7 @@ import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
-import { pesoFormatter, type RowDetailTab } from "../activity-history";
+import { pesoFormatter, type RowDetailTab } from "../activity-history-model";
 import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
   readEstimateTemplateDragPayload,
@@ -16,8 +16,9 @@ import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
-import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
-import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../../estimate-surface-variant";
+import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals-utils";
+import { estimateSurfaceClass } from "../../estimate-surface-class";
+import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable, type EstimateTableColumnResizeConfig } from "./row-table";
 import type { ExpressInsertDraftState } from "./cells";
@@ -157,6 +158,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();

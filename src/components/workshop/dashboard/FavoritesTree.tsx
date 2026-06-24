@@ -34,6 +34,7 @@ const FOCUS_RING =
 const ROW_LINK =
   "flex min-w-0 flex-1 items-center gap-2 rounded-xs px-2 py-2 hover:bg-surface-muted";
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function FavoritesTree({
   favoriteProjects,
   favoritesScope,
@@ -75,6 +76,7 @@ export function FavoritesTree({
     );
     if (newlySheetfulProjectIds.length === 0) return;
 
+    // react-doctor-disable-next-line react-doctor/no-derived-state -- Expansion is user state; this only auto-opens projects when they newly gain favorite sheets.
     setOpenIds((current) => {
       const next = new Set(current);
       for (const id of newlySheetfulProjectIds) next.add(id);
@@ -279,6 +281,7 @@ export function FavoritesTree({
               </div>
 
               {hasSheets && open ? (
+                // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Sheet links are grouped under their project; <address> would be semantically wrong.
                 <div role="group" className="pl-16">
                   {project.favoriteEstimateSheets.map((sheet) => {
                     const sheetKey = `sheet:${sheet.id}`;

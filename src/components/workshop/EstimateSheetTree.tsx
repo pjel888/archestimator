@@ -1,7 +1,7 @@
 "use client";
 
 import { unstable_rethrow, usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef } from "react";
 import {
   ArrowCounterClockwise,
   Check,
@@ -34,7 +34,8 @@ import {
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
-import { estimateSurfaceClass, useEstimateSurfaceVariant } from "./estimate-surface-variant";
+import { estimateSurfaceClass } from "./estimate-surface-class";
+import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import {
   evaluateEstimateTreeDrop,
   getEstimateTreeContentSignature,
@@ -209,6 +210,99 @@ function filterEstimateTreeNodes(nodes: EstimateTreeNode[], query: string): Esti
 }
 
 type EstimateTreeStructureFilter = { hideEmptyAreas: boolean };
+type StateUpdater<T> = T | ((current: T) => T);
+
+type EstimateSheetTreeState = {
+  reorderStatus: ReorderStatus;
+  editingNodeId: string | null;
+  editingNodeName: string;
+  editingNodeError: string | null;
+  deleteTargetNode: EstimateTreeNode | null;
+  deletePending: boolean;
+  bulkDeleteConfirmOpen: boolean;
+  bulkDeletePending: boolean;
+  bulkSelectedNodeIds: Set<string>;
+  contextMenuNode: EstimateTreeNode | null;
+  contextMenuOpen: boolean;
+  treeSearchQuery: string;
+  treeFilter: EstimateTreeStructureFilter;
+};
+
+type EstimateSheetTreeAction =
+  | { type: "reorderStatusChanged"; reorderStatus: ReorderStatus }
+  | { type: "editingNodeIdChanged"; editingNodeId: StateUpdater<string | null> }
+  | { type: "editingNodeNameChanged"; editingNodeName: string }
+  | { type: "editingNodeErrorChanged"; editingNodeError: string | null }
+  | { type: "deleteTargetNodeChanged"; deleteTargetNode: EstimateTreeNode | null }
+  | { type: "deletePendingChanged"; deletePending: boolean }
+  | { type: "bulkDeleteConfirmOpenChanged"; bulkDeleteConfirmOpen: boolean }
+  | { type: "bulkDeletePendingChanged"; bulkDeletePending: boolean }
+  | { type: "bulkSelectedNodeIdsChanged"; bulkSelectedNodeIds: StateUpdater<Set<string>> }
+  | { type: "contextMenuNodeChanged"; contextMenuNode: EstimateTreeNode | null }
+  | { type: "contextMenuOpenChanged"; contextMenuOpen: boolean }
+  | { type: "treeSearchQueryChanged"; treeSearchQuery: string }
+  | { type: "treeFilterChanged"; treeFilter: StateUpdater<EstimateTreeStructureFilter> };
+
+function resolveStateUpdater<T>(current: T, updater: StateUpdater<T>): T {
+  return typeof updater === "function" ? (updater as (current: T) => T)(current) : updater;
+}
+
+function createEstimateSheetTreeState(): EstimateSheetTreeState {
+  return {
+    reorderStatus: { state: "idle" },
+    editingNodeId: null,
+    editingNodeName: "",
+    editingNodeError: null,
+    deleteTargetNode: null,
+    deletePending: false,
+    bulkDeleteConfirmOpen: false,
+    bulkDeletePending: false,
+    bulkSelectedNodeIds: new Set(),
+    contextMenuNode: null,
+    contextMenuOpen: false,
+    treeSearchQuery: "",
+    treeFilter: { hideEmptyAreas: false },
+  };
+}
+
+function estimateSheetTreeReducer(
+  state: EstimateSheetTreeState,
+  action: EstimateSheetTreeAction,
+): EstimateSheetTreeState {
+  switch (action.type) {
+    case "reorderStatusChanged":
+      return { ...state, reorderStatus: action.reorderStatus };
+    case "editingNodeIdChanged":
+      return { ...state, editingNodeId: resolveStateUpdater(state.editingNodeId, action.editingNodeId) };
+    case "editingNodeNameChanged":
+      return { ...state, editingNodeName: action.editingNodeName };
+    case "editingNodeErrorChanged":
+      return { ...state, editingNodeError: action.editingNodeError };
+    case "deleteTargetNodeChanged":
+      return { ...state, deleteTargetNode: action.deleteTargetNode };
+    case "deletePendingChanged":
+      return { ...state, deletePending: action.deletePending };
+    case "bulkDeleteConfirmOpenChanged":
+      return { ...state, bulkDeleteConfirmOpen: action.bulkDeleteConfirmOpen };
+    case "bulkDeletePendingChanged":
+      return { ...state, bulkDeletePending: action.bulkDeletePending };
+    case "bulkSelectedNodeIdsChanged":
+      return {
+        ...state,
+        bulkSelectedNodeIds: resolveStateUpdater(state.bulkSelectedNodeIds, action.bulkSelectedNodeIds),
+      };
+    case "contextMenuNodeChanged":
+      return { ...state, contextMenuNode: action.contextMenuNode };
+    case "contextMenuOpenChanged":
+      return { ...state, contextMenuOpen: action.contextMenuOpen };
+    case "treeSearchQueryChanged":
+      return { ...state, treeSearchQuery: action.treeSearchQuery };
+    case "treeFilterChanged":
+      return { ...state, treeFilter: resolveStateUpdater(state.treeFilter, action.treeFilter) };
+    default:
+      return state;
+  }
+}
 
 /**
  * Structural filter: prune subtrees that contain zero estimate items anywhere.
@@ -273,6 +367,7 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
   }
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
   const surfaceVariant = useEstimateSurfaceVariant();
   const pathname = usePathname();
@@ -309,21 +404,54 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const lastObservedPropNodesRef = useRef(nodes);
   const stalePropSignatureToIgnoreRef = useRef<string | null>(null);
   const pendingPropNodesRef = useRef<EstimateTreeNode[] | null>(null);
-  const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
-  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [editingNodeName, setEditingNodeName] = useState("");
-  const [editingNodeError, setEditingNodeError] = useState<string | null>(null);
-  const [deleteTargetNode, setDeleteTargetNode] = useState<EstimateTreeNode | null>(null);
-  const [deletePending, setDeletePending] = useState(false);
-  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
-  const [bulkDeletePending, setBulkDeletePending] = useState(false);
-  const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
-  const [contextMenuNode, setContextMenuNode] = useState<EstimateTreeNode | null>(null);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
-  const [treeSearchQuery, setTreeSearchQuery] = useState("");
+  const [treeState, dispatchTreeState] = useReducer(
+    estimateSheetTreeReducer,
+    undefined,
+    createEstimateSheetTreeState,
+  );
+  const {
+    reorderStatus,
+    editingNodeId,
+    editingNodeName,
+    editingNodeError,
+    deleteTargetNode,
+    deletePending,
+    bulkDeleteConfirmOpen,
+    bulkDeletePending,
+    bulkSelectedNodeIds,
+    contextMenuNode,
+    contextMenuOpen,
+    treeSearchQuery,
+    treeFilter,
+  } = treeState;
+  const setReorderStatus = (reorderStatus: ReorderStatus) =>
+    dispatchTreeState({ type: "reorderStatusChanged", reorderStatus });
+  const setEditingNodeId = (editingNodeId: StateUpdater<string | null>) =>
+    dispatchTreeState({ type: "editingNodeIdChanged", editingNodeId });
+  const setEditingNodeName = (editingNodeName: string) =>
+    dispatchTreeState({ type: "editingNodeNameChanged", editingNodeName });
+  const setEditingNodeError = (editingNodeError: string | null) =>
+    dispatchTreeState({ type: "editingNodeErrorChanged", editingNodeError });
+  const setDeleteTargetNode = (deleteTargetNode: EstimateTreeNode | null) =>
+    dispatchTreeState({ type: "deleteTargetNodeChanged", deleteTargetNode });
+  const setDeletePending = (deletePending: boolean) =>
+    dispatchTreeState({ type: "deletePendingChanged", deletePending });
+  const setBulkDeleteConfirmOpen = (bulkDeleteConfirmOpen: boolean) =>
+    dispatchTreeState({ type: "bulkDeleteConfirmOpenChanged", bulkDeleteConfirmOpen });
+  const setBulkDeletePending = (bulkDeletePending: boolean) =>
+    dispatchTreeState({ type: "bulkDeletePendingChanged", bulkDeletePending });
+  const setBulkSelectedNodeIds = (bulkSelectedNodeIds: StateUpdater<Set<string>>) =>
+    dispatchTreeState({ type: "bulkSelectedNodeIdsChanged", bulkSelectedNodeIds });
+  const setContextMenuNode = (contextMenuNode: EstimateTreeNode | null) =>
+    dispatchTreeState({ type: "contextMenuNodeChanged", contextMenuNode });
+  const setContextMenuOpen = (contextMenuOpen: boolean) =>
+    dispatchTreeState({ type: "contextMenuOpenChanged", contextMenuOpen });
+  const setTreeSearchQuery = (treeSearchQuery: string) =>
+    dispatchTreeState({ type: "treeSearchQueryChanged", treeSearchQuery });
+  const setTreeFilter = (treeFilter: StateUpdater<EstimateTreeStructureFilter>) =>
+    dispatchTreeState({ type: "treeFilterChanged", treeFilter });
   // D3 (Req 10 left): structured filter. No group-by (D6 — the Area hierarchy IS
   // the grouping).
-  const [treeFilter, setTreeFilter] = useState<EstimateTreeStructureFilter>({ hideEmptyAreas: false });
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, activeTabId);
   const currentRouteNodeId = useMemo(
     () => getEstimateRouteNodeIdFromPathname(pathname, estimateId) ?? selectedNodeId,
@@ -370,37 +498,41 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     };
   }, [treeSelectionNodes]);
 
-  useEffect(() => {
-    if (reorderStatus.state === "saving") {
+  const reportReorderStatus = useEffectEvent((status: ReorderStatus) => {
+    if (status.state === "saving") {
       toast({
         id: "estimate-tree-mutation",
-        message: reorderStatus.message,
+        message: status.message,
         tone: "loading",
         durationMs: null,
       });
       return;
     }
 
-    if (reorderStatus.state === "error") {
+    if (status.state === "error") {
       toast({
         id: "estimate-tree-mutation",
-        message: reorderStatus.message,
+        message: status.message,
         tone: "error",
       });
       return;
     }
 
-    if (reorderStatus.state === "saved") {
+    if (status.state === "saved") {
       toast({
         id: "estimate-tree-mutation",
-        message: reorderStatus.message,
+        message: status.message,
         tone: "success",
       });
       return;
     }
 
     dismissToast("estimate-tree-mutation");
-  }, [dismissToast, reorderStatus, toast]);
+  });
+
+  useEffect(() => {
+    reportReorderStatus(reorderStatus);
+  }, [reorderStatus]);
 
   useEffect(() => {
     return () => dismissToast("estimate-tree-mutation");
@@ -453,6 +585,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       pendingPropNodesRef.current = nodes;
       return;
     }
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- Local tree reconciliation from incoming props; no parent callback or upward data handoff occurs.
     syncLocalNodesFromProps(nodes);
   }, [nodes, syncLocalNodesFromProps]);
 
@@ -1412,9 +1545,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                 <input
                   type="checkbox"
                   checked={treeFilter.hideEmptyAreas}
-                  onChange={(event) =>
-                    setTreeFilter((current) => ({ ...current, hideEmptyAreas: event.currentTarget.checked }))
-                  }
+                  onChange={(event) => {
+                    const hideEmptyAreas = event.currentTarget.checked;
+                    setTreeFilter((current) => ({ ...current, hideEmptyAreas }));
+                  }}
                   className="size-3 rounded-xs accent-brand-orange"
                 />
                 Hide empty areas

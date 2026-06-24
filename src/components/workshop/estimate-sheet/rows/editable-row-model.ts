@@ -6,7 +6,7 @@ import {
   toEditableContingencyMode,
   type CostAdjustmentMode,
   type FlattenedEstimateRow,
-} from "../activity-history";
+} from "../activity-history-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import {
   reportEstimateNodeTotalCompute,

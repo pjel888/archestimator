@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
-import { useMemo, useState } from "react";
+import { useMemo, useReducer } from "react";
 
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,97 @@ const GROUPING_OPTIONS = [
 
 const COMPARISON_TABLE_ID = "project-charts-comparison-table";
 
+type ProjectChartsState = {
+  groupingMode: ProjectChartGroupingMode;
+  selectedEstimateIds: string[];
+  preferredBaselineEstimateId: string | null;
+  viewMode: ChartViewMode;
+  hoverBucketId: string | null;
+  pinnedBucketId: string | null;
+};
+
+type ProjectChartsAction =
+  | { type: "grouping"; groupingMode: ProjectChartGroupingMode }
+  | { type: "baseline"; estimateId: string | null }
+  | { type: "view"; viewMode: ChartViewMode }
+  | { type: "addEstimate"; estimateId: string }
+  | { type: "removeEstimate"; estimateId: string }
+  | { type: "hoverBucket"; bucketId: string | null }
+  | { type: "togglePinnedBucket"; bucketId: string };
+
+type ProjectChartsInitialStateArgs = {
+  initialGroupingMode: ProjectChartGroupingMode;
+  initialLeftEstimateId: string | null;
+  initialRightEstimateId: string | null;
+  defaultPair: ReturnType<typeof getProjectChartDefaultPair>;
+  loadedEstimateIds: Set<string>;
+};
+
+function getInitialProjectChartsState({
+  initialGroupingMode,
+  initialLeftEstimateId,
+  initialRightEstimateId,
+  defaultPair,
+  loadedEstimateIds,
+}: ProjectChartsInitialStateArgs): ProjectChartsState {
+  const seed = [
+    initialLeftEstimateId ?? defaultPair.leftEstimateId,
+    initialRightEstimateId ?? defaultPair.rightEstimateId,
+  ].filter((id): id is string => Boolean(id) && loadedEstimateIds.has(id as string));
+  const fallback = seed.length > 0 ? seed : [...loadedEstimateIds].slice(0, 2);
+  const selectedEstimateIds = [...new Set(fallback)].slice(0, MAX_CHART_COLUMNS);
+
+  return {
+    groupingMode: initialGroupingMode,
+    selectedEstimateIds,
+    preferredBaselineEstimateId: selectedEstimateIds[0] ?? null,
+    viewMode: selectedEstimateIds.length >= 2 ? "variance" : "composition",
+    hoverBucketId: null,
+    pinnedBucketId: null,
+  };
+}
+
+function projectChartsReducer(state: ProjectChartsState, action: ProjectChartsAction): ProjectChartsState {
+  switch (action.type) {
+    case "grouping":
+      return { ...state, groupingMode: action.groupingMode };
+    case "baseline":
+      return { ...state, preferredBaselineEstimateId: action.estimateId };
+    case "view":
+      return { ...state, viewMode: action.viewMode };
+    case "addEstimate": {
+      if (state.selectedEstimateIds.length >= MAX_CHART_COLUMNS || state.selectedEstimateIds.includes(action.estimateId)) {
+        return state;
+      }
+      return {
+        ...state,
+        selectedEstimateIds: [...state.selectedEstimateIds, action.estimateId].slice(0, MAX_CHART_COLUMNS),
+      };
+    }
+    case "removeEstimate": {
+      if (state.selectedEstimateIds.length <= 1) return state;
+      const selectedEstimateIds = state.selectedEstimateIds.filter((id) => id !== action.estimateId);
+      return {
+        ...state,
+        selectedEstimateIds,
+        preferredBaselineEstimateId:
+          state.preferredBaselineEstimateId && selectedEstimateIds.includes(state.preferredBaselineEstimateId)
+            ? state.preferredBaselineEstimateId
+            : selectedEstimateIds[0] ?? null,
+      };
+    }
+    case "hoverBucket":
+      return { ...state, hoverBucketId: action.bucketId };
+    case "togglePinnedBucket":
+      return {
+        ...state,
+        pinnedBucketId: state.pinnedBucketId === action.bucketId ? null : action.bucketId,
+      };
+    default:
+      return state;
+  }
+}
+
 export function ProjectChartsClient({
   data,
   initialLeftEstimateId,
@@ -64,23 +155,19 @@ export function ProjectChartsClient({
   // Only estimates the server actually aggregated have series to chart.
   const loadedEstimateIds = useMemo(() => new Set(Object.keys(data.seriesByEstimateId)), [data.seriesByEstimateId]);
 
-  const [groupingMode, setGroupingMode] = useState<ProjectChartGroupingMode>(initialGroupingMode);
-  const [selectedEstimateIds, setSelectedEstimateIds] = useState<string[]>(() => {
-    const seed = [
-      initialLeftEstimateId ?? defaultPair.leftEstimateId,
-      initialRightEstimateId ?? defaultPair.rightEstimateId,
-    ].filter((id): id is string => Boolean(id) && loadedEstimateIds.has(id as string));
-    const fallback = seed.length > 0 ? seed : [...loadedEstimateIds].slice(0, 2);
-    return [...new Set(fallback)].slice(0, MAX_CHART_COLUMNS);
-  });
-  const [preferredBaselineEstimateId, setPreferredBaselineEstimateId] = useState<string | null>(
-    () => selectedEstimateIds[0] ?? null,
+  const [chartState, dispatchChart] = useReducer(
+    projectChartsReducer,
+    {
+      initialGroupingMode,
+      initialLeftEstimateId,
+      initialRightEstimateId,
+      defaultPair,
+      loadedEstimateIds,
+    },
+    getInitialProjectChartsState,
   );
-  const [viewMode, setViewMode] = useState<ChartViewMode>(() =>
-    selectedEstimateIds.length >= 2 ? "variance" : "composition",
-  );
-  const [hoverBucketId, setHoverBucketId] = useState<string | null>(null);
-  const [pinnedBucketId, setPinnedBucketId] = useState<string | null>(null);
+  const { groupingMode, selectedEstimateIds, preferredBaselineEstimateId, viewMode, hoverBucketId, pinnedBucketId } =
+    chartState;
 
   const baselineEstimateId =
     preferredBaselineEstimateId && selectedEstimateIds.includes(preferredBaselineEstimateId)
@@ -123,25 +210,19 @@ export function ProjectChartsClient({
   function addEstimate() {
     const next = addableEstimates[0];
     if (!next) return;
-    setSelectedEstimateIds((current) => [...current, next.id].slice(0, MAX_CHART_COLUMNS));
+    dispatchChart({ type: "addEstimate", estimateId: next.id });
   }
 
   function removeEstimate(estimateId: string) {
-    if (selectedEstimateIds.length <= 1) return;
-
-    const nextSelectedEstimateIds = selectedEstimateIds.filter((id) => id !== estimateId);
-    setSelectedEstimateIds(nextSelectedEstimateIds);
-    setPreferredBaselineEstimateId((current) =>
-      current && nextSelectedEstimateIds.includes(current) ? current : nextSelectedEstimateIds[0] ?? null,
-    );
+    dispatchChart({ type: "removeEstimate", estimateId });
   }
 
   function setActiveBucket(bucketId: string | null) {
-    setHoverBucketId(bucketId);
+    dispatchChart({ type: "hoverBucket", bucketId });
   }
 
   function togglePin(bucketId: string) {
-    setPinnedBucketId((current) => (current === bucketId ? null : bucketId));
+    dispatchChart({ type: "togglePinnedBucket", bucketId });
   }
 
   const viewOptions = (hasComparison
@@ -171,7 +252,7 @@ export function ProjectChartsClient({
               ariaLabel="Break down by"
               options={GROUPING_OPTIONS}
               value={groupingMode}
-              onValueChange={setGroupingMode}
+              onValueChange={(nextGroupingMode) => dispatchChart({ type: "grouping", groupingMode: nextGroupingMode })}
             />
           </ControlField>
 
@@ -181,7 +262,7 @@ export function ProjectChartsClient({
                 aria-label="Baseline estimate"
                 options={estimateSelectOptions}
                 value={baselineEstimateId ?? undefined}
-                onValueChange={setPreferredBaselineEstimateId}
+                onValueChange={(estimateId) => dispatchChart({ type: "baseline", estimateId })}
               />
             </ControlField>
           ) : null}
@@ -198,7 +279,7 @@ export function ProjectChartsClient({
                     removable={selectedEstimateIds.length > 1}
                     onRemove={() => removeEstimate(id)}
                     removeLabel={`Remove ${estimate.name}`}
-                    onClick={() => setPreferredBaselineEstimateId(id)}
+                    onClick={() => dispatchChart({ type: "baseline", estimateId: id })}
                   >
                     {estimate.name}
                   </Chip>
@@ -218,7 +299,7 @@ export function ProjectChartsClient({
               ariaLabel="Chart view"
               options={viewOptions}
               value={effectiveViewMode}
-              onValueChange={(next) => setViewMode(next)}
+              onValueChange={(nextViewMode) => dispatchChart({ type: "view", viewMode: nextViewMode })}
             />
           </ControlField>
         </div>

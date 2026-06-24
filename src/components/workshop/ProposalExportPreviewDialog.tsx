@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 
 import type { ProposalExportModel } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
+import { clampRate } from "./proposal-export-preview-utils";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
@@ -51,14 +52,23 @@ type ProposalExportPreviewScopeControls = {
   onScopeChange: (scope: ProposalExportPreviewScope) => void;
 };
 
+type ProposalExportPreviewDownloadStatus =
+  | { kind: "hidden" }
+  | { kind: "ready" }
+  | { kind: "preparing" }
+  | { kind: "disabled" };
+
+type ProposalExportPreviewStatus = {
+  freshness: "current" | "stale";
+  download: ProposalExportPreviewDownloadStatus;
+  downloadError?: string | null;
+};
+
 type ProposalExportPreviewDialogProps = {
   open: boolean;
   model: ProposalExportModel | null;
-  isStale?: boolean;
+  status?: ProposalExportPreviewStatus;
   onDownload?: () => void;
-  isDownloading?: boolean;
-  downloadError?: string | null;
-  canDownload?: boolean;
   scopeControls?: ProposalExportPreviewScopeControls;
   exportSettings?: ProposalExportUserSettings;
   onExportSettingsChange?: (settings: ProposalExportUserSettings) => void;
@@ -74,18 +84,6 @@ const previewPesoFormatter = new Intl.NumberFormat("en-PH", {
 
 function formatMoney(value: number) {
   return previewPesoFormatter.format(value).replace("₱", "₱ ");
-}
-
-// P2-T2/T3: clamp a typed rate to 0–100. A cleared field emits "" and Number("") === 0
-// (which IS finite), so without the empty/whitespace guard clearing the input would silently
-// commit 0% instead of keeping the prior rate — making the fallback unreachable for the only
-// non-numeric value a number input actually emits. Treat empty/in-progress input as "keep
-// current" so clearing the field never zeroes the rate behind the user's back.
-export function clampRate(raw: string, fallback: number) {
-  if (raw.trim() === "") return fallback;
-  const value = Number(raw);
-  if (!Number.isFinite(value)) return fallback;
-  return Math.min(100, Math.max(0, value));
 }
 
 const settingsCheckboxLabelClass = "flex items-center gap-1.5 text-[10px] text-secondary";
@@ -130,21 +128,25 @@ const previewActionTextClass = "text-[11px] font-medium leading-none tracking-no
 const previewStatusBadgeClass =
   "inline-flex h-7 items-center justify-center rounded-xs px-2 text-[11px] font-medium leading-none tracking-normal whitespace-nowrap";
 
+const DEFAULT_PROPOSAL_EXPORT_PREVIEW_STATUS: ProposalExportPreviewStatus = {
+  freshness: "current",
+  download: { kind: "hidden" },
+  downloadError: null,
+};
+
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function ProposalExportPreviewDialog({
   open,
   model,
-  isStale = false,
+  status = DEFAULT_PROPOSAL_EXPORT_PREVIEW_STATUS,
   onDownload,
-  isDownloading = false,
-  downloadError = null,
-  canDownload = true,
   scopeControls,
   exportSettings,
   onExportSettingsChange,
   onRefresh,
   onClose,
 }: ProposalExportPreviewDialogProps) {
-  const sectionRef = useRef<HTMLElement>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   // Local draft strings for the rate inputs (RV-4). A controlled number input bound to the
   // committed rate can never show empty, so clearing it would snap back and "clear then type"
   // would append onto the old value (e.g. 12 → 128 → clamped 100). The draft lets the field
@@ -152,6 +154,37 @@ export function ProposalExportPreviewDialog({
   // keystroke via clampRate, and the draft is dropped on blur to re-sync with the committed value.
   const [contingencyRateDraft, setContingencyRateDraft] = useState<string | null>(null);
   const [vatRateDraft, setVatRateDraft] = useState<string | null>(null);
+  const closePreview = useEffectEvent(() => onClose());
+
+  const handleNativeDialogPointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (event.target === dialogRef.current) onClose();
+    },
+    [onClose],
+  );
+
+  const openDialogElement = useCallback(
+    (node: HTMLDialogElement | null) => {
+      dialogRef.current?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
+      dialogRef.current = node;
+      if (!node) return;
+
+      node.addEventListener("pointerdown", handleNativeDialogPointerDown);
+      if (node.open) return;
+
+      if (typeof node.showModal === "function") {
+        try {
+          node.showModal();
+        } catch {
+          node.setAttribute("open", "");
+        }
+        return;
+      }
+
+      node.setAttribute("open", "");
+    },
+    [handleNativeDialogPointerDown],
+  );
 
   // F-06 (P1-T3): keyboard accessibility — initial focus on open, Esc-to-close, and a Tab
   // focus trap, mirroring the sibling modals in EstimateSheetContent. Focus-return to the
@@ -159,13 +192,13 @@ export function ProposalExportPreviewDialog({
   // background keydown handlers (e.g. the sheet's own Escape listener).
   useEffect(() => {
     if (!open) return;
-    const node = sectionRef.current;
+    const node = dialogRef.current;
     const focusFrame = window.requestAnimationFrame(() => node?.focus());
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        closePreview();
         return;
       }
       if (event.key === "Tab" && node) trapFocus(node, event);
@@ -175,7 +208,7 @@ export function ProposalExportPreviewDialog({
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || typeof document === "undefined") return null;
 
@@ -189,24 +222,26 @@ export function ProposalExportPreviewDialog({
   const contentSheets = model
     ? buildExportContents(isMultiTabAllTabs, scopeControls?.tabCount ?? 1, exportSettings?.includeInternalBreakdown ?? false)
     : [];
+  const isPreviewStale = status.freshness === "stale";
+  const downloadStatus = status.download.kind;
+  const showDownloadButton = Boolean(onDownload && downloadStatus !== "hidden");
+  const downloadInProgress = downloadStatus === "preparing";
+  const downloadDisabled = downloadStatus !== "ready";
+  const downloadError = status.downloadError ?? null;
 
   const dialog = (
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/25 p-2 backdrop-blur-md"
+    <dialog
+      ref={openDialogElement}
+      tabIndex={-1}
+      aria-modal="true"
+      aria-label="Excel export preview"
       data-testid="proposal-preview-overlay"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+      className="z-[1000] m-auto flex h-[min(900px,94vh)] max-h-[94vh] w-[min(1360px,98vw)] flex-col overflow-hidden border border-hairline bg-white p-0 text-ink shadow-2xl outline-none backdrop:bg-black/25 backdrop:backdrop-blur-md"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
       }}
     >
-      <section
-        ref={sectionRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Excel export preview"
-        className="flex h-[min(900px,94vh)] max-h-[94vh] w-[min(1360px,98vw)] flex-col overflow-hidden border border-hairline bg-white shadow-2xl outline-none"
-      >
         <header className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
           <div className="min-w-0">
             <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
@@ -217,7 +252,7 @@ export function ProposalExportPreviewDialog({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            {isStale ? (
+            {isPreviewStale ? (
               <span className={cn(previewStatusBadgeClass, "bg-amber-50 text-amber-700")}>
                 Preview is stale. Refresh to rebuild from current sheet rows.
               </span>
@@ -237,7 +272,7 @@ export function ProposalExportPreviewDialog({
                 Refresh preview
               </span>
             </button>
-            {onDownload ? (
+            {showDownloadButton ? (
               <button
                 type="button"
                 className={cn(
@@ -245,16 +280,16 @@ export function ProposalExportPreviewDialog({
                   "bg-primary text-white hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60",
                 )}
                 onClick={onDownload}
-                disabled={isDownloading || !canDownload}
-                aria-busy={isDownloading}
+                disabled={downloadDisabled}
+                aria-busy={downloadInProgress}
               >
-                {isDownloading ? (
+                {downloadInProgress ? (
                   <ArrowClockwise size={11} weight="regular" aria-hidden="true" className="animate-spin" />
                 ) : (
                   <FileXls size={11} weight="regular" aria-hidden="true" />
                 )}
                 <span className={previewActionTextClass} data-testid="proposal-preview-download-label">
-                  {isDownloading ? "Preparing…" : "Download editable XLSX"}
+                  {downloadInProgress ? "Preparing…" : "Download editable XLSX"}
                 </span>
               </button>
             ) : null}
@@ -284,6 +319,7 @@ export function ProposalExportPreviewDialog({
             {scopeControls ? (
               <div className="flex flex-wrap items-center gap-2 border-b border-hairline bg-white px-3 py-2 text-[10px] text-secondary">
                 <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Export scope</span>
+                {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Export scope buttons are a named control group, not an address block. */}
                 <div className="flex items-center gap-1" role="group" aria-label="Proposal export scope">
                   <button
                     type="button"
@@ -480,8 +516,7 @@ export function ProposalExportPreviewDialog({
             Build a preview to see what the export will contain.
           </div>
         )}
-      </section>
-    </div>
+    </dialog>
   );
 
   return createPortal(dialog, document.body);

@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
 } from "react";
@@ -42,14 +43,6 @@ import type { LibraryTreeNode } from "../component-library/tree/types";
 import {
   ALL_COMPONENTS_FOLDER_ID,
   COMPONENT_VIEW_MODES,
-  isAllComponentsFolderId,
-  type ComponentViewMode,
-  type CreateLibraryFolderHandler,
-  type ReorderStatus,
-} from "./library-folder-tree-shared";
-
-export {
-  ALL_COMPONENTS_FOLDER_ID,
   isAllComponentsFolderId,
   type ComponentViewMode,
   type CreateLibraryFolderHandler,
@@ -151,7 +144,7 @@ function filterFolderTree(
   });
 }
 
-export function getAllFolderTreeItemIds(nodes: LibraryFolderTreeNode[]): string[] {
+function getAllFolderTreeItemIds(nodes: LibraryFolderTreeNode[]): string[] {
   return nodes.flatMap((node) => [node.id, ...getAllFolderTreeItemIds(node.children ?? [])]);
 }
 
@@ -402,6 +395,7 @@ type LibraryFolderTreeProps = {
   onDeleteFolders?: (folderIds: string[]) => boolean | void;
 };
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function LibraryFolderTree({
   folders,
   nodes,
@@ -867,6 +861,118 @@ function resolveModeValue(value: string | ((mode: ComponentViewMode) => string),
   return typeof value === "function" ? value(mode) : value;
 }
 
+type LibraryFolderTreeSurfaceState = {
+  searchQuery: string;
+  internalViewMode: ComponentViewMode;
+  viewModeMenuOpen: boolean;
+  expandedFolderItemIds: string[];
+  expandedSupplierNodeIds: string[];
+  expandedBrandNodeIds: string[];
+};
+
+type LibraryFolderTreeSurfaceAction =
+  | { type: "searchQueryChanged"; query: string }
+  | { type: "internalViewModeChanged"; mode: ComponentViewMode }
+  | { type: "viewModeMenuOpenChanged"; open: boolean }
+  | { type: "viewModeMenuToggled" }
+  | { type: "expandedFolderItemIdsChanged"; ids: string[] }
+  | { type: "expandedSupplierNodeIdsChanged"; ids: string[] }
+  | { type: "expandedBrandNodeIdsChanged"; ids: string[] }
+  | { type: "supplierNodeToggled"; nodeId: string }
+  | { type: "brandNodeToggled"; nodeId: string }
+  | { type: "folderCreatedExpanded"; folderId: string; parentId: string | null };
+
+function createInitialLibraryFolderTreeSurfaceState({
+  defaultViewMode,
+  displayedFolderNodes,
+  supplierNodes,
+  brandNodes,
+}: {
+  defaultViewMode: ComponentViewMode;
+  displayedFolderNodes: LibraryFolderTreeNode[];
+  supplierNodes: LibraryTreeNode[];
+  brandNodes: LibraryTreeNode[];
+}): LibraryFolderTreeSurfaceState {
+  return {
+    searchQuery: "",
+    internalViewMode: defaultViewMode,
+    viewModeMenuOpen: false,
+    expandedFolderItemIds: getAllFolderTreeItemIds(displayedFolderNodes),
+    expandedSupplierNodeIds: getAllNodeIds(supplierNodes),
+    expandedBrandNodeIds: getAllNodeIds(brandNodes),
+  };
+}
+
+function libraryFolderTreeSurfaceReducer(
+  state: LibraryFolderTreeSurfaceState,
+  action: LibraryFolderTreeSurfaceAction,
+): LibraryFolderTreeSurfaceState {
+  switch (action.type) {
+    case "searchQueryChanged":
+      return {
+        ...state,
+        searchQuery: action.query,
+      };
+    case "internalViewModeChanged":
+      return {
+        ...state,
+        internalViewMode: action.mode,
+        viewModeMenuOpen: false,
+      };
+    case "viewModeMenuOpenChanged":
+      return {
+        ...state,
+        viewModeMenuOpen: action.open,
+      };
+    case "viewModeMenuToggled":
+      return {
+        ...state,
+        viewModeMenuOpen: !state.viewModeMenuOpen,
+      };
+    case "expandedFolderItemIdsChanged":
+      return {
+        ...state,
+        expandedFolderItemIds: action.ids,
+      };
+    case "expandedSupplierNodeIdsChanged":
+      return {
+        ...state,
+        expandedSupplierNodeIds: action.ids,
+      };
+    case "expandedBrandNodeIdsChanged":
+      return {
+        ...state,
+        expandedBrandNodeIds: action.ids,
+      };
+    case "supplierNodeToggled":
+      return {
+        ...state,
+        expandedSupplierNodeIds: state.expandedSupplierNodeIds.includes(action.nodeId)
+          ? state.expandedSupplierNodeIds.filter((id) => id !== action.nodeId)
+          : [...state.expandedSupplierNodeIds, action.nodeId],
+      };
+    case "brandNodeToggled":
+      return {
+        ...state,
+        expandedBrandNodeIds: state.expandedBrandNodeIds.includes(action.nodeId)
+          ? state.expandedBrandNodeIds.filter((id) => id !== action.nodeId)
+          : [...state.expandedBrandNodeIds, action.nodeId],
+      };
+    case "folderCreatedExpanded": {
+      const expanded = new Set(state.expandedFolderItemIds.map(String));
+      if (action.parentId) expanded.add(toLibraryFolderTreeItemId(action.parentId));
+      expanded.add(toLibraryFolderTreeItemId(action.folderId));
+      return {
+        ...state,
+        expandedFolderItemIds: Array.from(expanded),
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function LibraryFolderTreeSurface({
   className,
   folders,
@@ -917,19 +1023,26 @@ export function LibraryFolderTreeSurface({
   noSupplierMatchesLabel,
   noBrandMatchesLabel,
 }: LibraryFolderTreeSurfaceProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [internalViewMode, setInternalViewMode] = useState<ComponentViewMode>(defaultViewMode);
-  const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
-  const viewMode = controlledViewMode ?? internalViewMode;
   const displayedFolderNodes = useMemo(
     () => (showAllComponentsRoot ? withAllComponentsRoot(folderNodes) : folderNodes),
     [folderNodes, showAllComponentsRoot],
   );
+  const [surfaceState, dispatchSurface] = useReducer(
+    libraryFolderTreeSurfaceReducer,
+    { defaultViewMode, displayedFolderNodes, supplierNodes, brandNodes },
+    createInitialLibraryFolderTreeSurfaceState,
+  );
+  const {
+    searchQuery,
+    internalViewMode,
+    viewModeMenuOpen,
+    expandedFolderItemIds,
+    expandedSupplierNodeIds,
+    expandedBrandNodeIds,
+  } = surfaceState;
+  const viewMode = controlledViewMode ?? internalViewMode;
   const effectiveSelectedFolderId = showAllComponentsRoot ? (selectedFolderId ?? ALL_COMPONENTS_FOLDER_ID) : selectedFolderId;
-  const [expandedFolderItemIds, setExpandedFolderItemIds] = useState<string[]>(() => getAllFolderTreeItemIds(displayedFolderNodes));
-  const [expandedSupplierNodeIds, setExpandedSupplierNodeIds] = useState(() => getAllNodeIds(supplierNodes));
-  const [expandedBrandNodeIds, setExpandedBrandNodeIds] = useState(() => getAllNodeIds(brandNodes));
   const filteredSupplierNodes = filterTree(supplierNodes, searchQuery);
   const filteredBrandNodes = filterTree(brandNodes, searchQuery);
   const normalizedSearchQuery = normalizeLabel(searchQuery);
@@ -945,18 +1058,18 @@ export function LibraryFolderTreeSurface({
   const isBrandMode = viewMode === "brand";
 
   const changeViewMode = useCallback((nextMode: ComponentViewMode) => {
-    if (controlledViewMode === undefined) setInternalViewMode(nextMode);
+    if (controlledViewMode === undefined) dispatchSurface({ type: "internalViewModeChanged", mode: nextMode });
     onViewModeChange?.(nextMode);
-    setViewModeMenuOpen(false);
-  }, [controlledViewMode, onViewModeChange, setViewModeMenuOpen]);
+    dispatchSurface({ type: "viewModeMenuOpenChanged", open: false });
+  }, [controlledViewMode, onViewModeChange]);
 
   useEffect(() => {
     if (!viewModeMenuOpen) return;
     function handlePointerDown(event: PointerEvent) {
-      if (!headerRef.current?.contains(event.target as Node)) setViewModeMenuOpen(false);
+      if (!headerRef.current?.contains(event.target as Node)) dispatchSurface({ type: "viewModeMenuOpenChanged", open: false });
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setViewModeMenuOpen(false);
+      if (event.key === "Escape") dispatchSurface({ type: "viewModeMenuOpenChanged", open: false });
     }
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
@@ -967,15 +1080,11 @@ export function LibraryFolderTreeSurface({
   }, [viewModeMenuOpen]);
 
   function toggleSupplierNode(nodeId: string) {
-    setExpandedSupplierNodeIds((current) =>
-      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
-    );
+    dispatchSurface({ type: "supplierNodeToggled", nodeId });
   }
 
   function toggleBrandNode(nodeId: string) {
-    setExpandedBrandNodeIds((current) =>
-      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
-    );
+    dispatchSurface({ type: "brandNodeToggled", nodeId });
   }
 
   const handleCreateFolder = useCallback(() => {
@@ -986,15 +1095,10 @@ export function LibraryFolderTreeSurface({
       onCreated: (folder) => {
         changeViewMode("default");
         onSelectFolder(folder.id);
-        setExpandedFolderItemIds((current) => {
-          const expanded = new Set(current.map(String));
-          if (parentId) expanded.add(toLibraryFolderTreeItemId(parentId));
-          expanded.add(toLibraryFolderTreeItemId(folder.id));
-          return Array.from(expanded);
-        });
+        dispatchSurface({ type: "folderCreatedExpanded", parentId, folderId: folder.id });
       },
     });
-  }, [changeViewMode, effectiveSelectedFolderId, onCreateFolder, onSelectFolder, setExpandedFolderItemIds]);
+  }, [changeViewMode, effectiveSelectedFolderId, onCreateFolder, onSelectFolder]);
 
   const addActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
     if (!onCreateFolder) return [];
@@ -1115,25 +1219,25 @@ export function LibraryFolderTreeSurface({
         ariaLabel={toolbarAriaLabel}
         labelPrefix={resolveModeValue(toolbarLabelPrefix, viewMode)}
         searchValue={searchQuery}
-        onSearchValueChange={setSearchQuery}
+        onSearchValueChange={(query) => dispatchSurface({ type: "searchQueryChanged", query })}
         searchPlaceholder={treeSearchPlaceholder}
         searchLabel={resolveModeValue(searchAriaLabel, viewMode)}
         showDefaultActions={false}
         onExpandAll={() => {
-          if (isFolderMode) setExpandedFolderItemIds(getAllFolderTreeItemIds(displayedFolderNodes));
-          else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds(getAllNodeIds(brandNodes));
-          else if (supplierNodes.length > 0) setExpandedSupplierNodeIds(getAllNodeIds(supplierNodes));
+          if (isFolderMode) dispatchSurface({ type: "expandedFolderItemIdsChanged", ids: getAllFolderTreeItemIds(displayedFolderNodes) });
+          else if (isBrandMode && brandNodes.length > 0) dispatchSurface({ type: "expandedBrandNodeIdsChanged", ids: getAllNodeIds(brandNodes) });
+          else if (supplierNodes.length > 0) dispatchSurface({ type: "expandedSupplierNodeIdsChanged", ids: getAllNodeIds(supplierNodes) });
         }}
         onCollapseAll={() => {
-          if (isFolderMode) setExpandedFolderItemIds([]);
-          else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds([]);
-          else if (supplierNodes.length > 0) setExpandedSupplierNodeIds([]);
+          if (isFolderMode) dispatchSurface({ type: "expandedFolderItemIdsChanged", ids: [] });
+          else if (isBrandMode && brandNodes.length > 0) dispatchSurface({ type: "expandedBrandNodeIdsChanged", ids: [] });
+          else if (supplierNodes.length > 0) dispatchSurface({ type: "expandedSupplierNodeIdsChanged", ids: [] });
         }}
         leadingActions={[
           {
             label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Default"}`,
             icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
-            onClick: () => setViewModeMenuOpen((current) => !current),
+            onClick: () => dispatchSurface({ type: "viewModeMenuToggled" }),
             pressed: viewModeMenuOpen,
           },
         ]}
@@ -1166,7 +1270,7 @@ export function LibraryFolderTreeSurface({
               searchQuery={searchQuery}
               disabled={treeMutationPending}
               expandedItemIds={expandedFolderItemIds}
-              onExpandedItemIdsChange={setExpandedFolderItemIds}
+              onExpandedItemIdsChange={(ids) => dispatchSurface({ type: "expandedFolderItemIdsChanged", ids })}
               enableFolderActions={enableFolderActions}
               enableDragAndDrop={enableFolderDragAndDrop}
               selectedTitleOnly={selectedTitleOnly}

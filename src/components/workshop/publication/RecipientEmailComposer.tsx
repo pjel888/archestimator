@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,177 @@ type LocalRecipient = {
 
 type SharedLinkRecipient = Awaited<ReturnType<typeof listSharedLinkRecipients>>[number];
 type RecipientEmailResult = Awaited<ReturnType<typeof addSharedLinkRecipients>>["emailResults"][number];
+
+type RecipientEmailComposerState = {
+  input: string;
+  chips: LocalRecipient[];
+  isSending: boolean;
+  isLoadingList: boolean;
+  localMessage: RecipientComposerMessage | null;
+  resendingRecipientId: string | null;
+  pendingRemoval: LocalRecipient | null;
+  pendingResend: LocalRecipient | null;
+  emailDeliveryConfigured: boolean | null;
+  emailDeliveryMessage: string | null;
+};
+
+type RecipientEmailComposerAction =
+  | { type: "inputChanged"; input: string }
+  | { type: "messageChanged"; message: RecipientComposerMessage | null }
+  | { type: "listLoadStarted" }
+  | { type: "listLoadSucceeded"; chips: LocalRecipient[]; emailDeliveryConfigured: boolean; emailDeliveryMessage: string | null }
+  | { type: "listLoadFailed"; emailDeliveryMessage: string }
+  | { type: "listLoadSettled" }
+  | { type: "emailsParsed"; chips: LocalRecipient[] }
+  | { type: "chipRemovedByEmail"; email: string }
+  | { type: "chipRemovedById"; id: string }
+  | { type: "lastLocalChipRemoved" }
+  | { type: "localOnlyChipsCleared" }
+  | { type: "chipsReplaced"; chips: LocalRecipient[] }
+  | { type: "recipientEmailResultsApplied"; emailResults: RecipientEmailResult[] }
+  | { type: "recipientResendApplied"; recipientId: string; ok: boolean; message: string }
+  | { type: "recipientRetryFailed"; email: string; message: string }
+  | { type: "sendingChanged"; isSending: boolean }
+  | { type: "resendingRecipientChanged"; recipientId: string | null }
+  | { type: "pendingRemovalChanged"; recipient: LocalRecipient | null }
+  | { type: "pendingResendChanged"; recipient: LocalRecipient | null };
+
+const INITIAL_RECIPIENT_EMAIL_COMPOSER_STATE: RecipientEmailComposerState = {
+  input: "",
+  chips: [],
+  isSending: false,
+  isLoadingList: false,
+  localMessage: null,
+  resendingRecipientId: null,
+  pendingRemoval: null,
+  pendingResend: null,
+  emailDeliveryConfigured: null,
+  emailDeliveryMessage: null,
+};
+
+function recipientEmailComposerReducer(
+  state: RecipientEmailComposerState,
+  action: RecipientEmailComposerAction,
+): RecipientEmailComposerState {
+  switch (action.type) {
+    case "inputChanged":
+      return {
+        ...state,
+        input: action.input,
+      };
+    case "messageChanged":
+      return {
+        ...state,
+        localMessage: action.message,
+      };
+    case "listLoadStarted":
+      return {
+        ...state,
+        isLoadingList: true,
+      };
+    case "listLoadSucceeded":
+      return {
+        ...state,
+        chips: action.chips,
+        emailDeliveryConfigured: action.emailDeliveryConfigured,
+        emailDeliveryMessage: action.emailDeliveryMessage,
+      };
+    case "listLoadFailed":
+      return {
+        ...state,
+        chips: [],
+        emailDeliveryConfigured: false,
+        emailDeliveryMessage: action.emailDeliveryMessage,
+      };
+    case "listLoadSettled":
+      return {
+        ...state,
+        isLoadingList: false,
+      };
+    case "emailsParsed":
+      return {
+        ...state,
+        chips: action.chips,
+        input: "",
+      };
+    case "chipRemovedByEmail":
+      return {
+        ...state,
+        chips: state.chips.filter((chip) => chip.email.toLowerCase() !== action.email.toLowerCase()),
+      };
+    case "chipRemovedById":
+      return {
+        ...state,
+        chips: state.chips.filter((chip) => chip.id !== action.id),
+      };
+    case "lastLocalChipRemoved":
+      return {
+        ...state,
+        chips: state.chips[state.chips.length - 1]?.id ? state.chips : state.chips.slice(0, -1),
+      };
+    case "localOnlyChipsCleared":
+      return {
+        ...state,
+        chips: state.chips.filter((chip) => chip.id),
+        input: "",
+      };
+    case "chipsReplaced":
+      return {
+        ...state,
+        chips: action.chips,
+      };
+    case "recipientEmailResultsApplied":
+      return {
+        ...state,
+        chips: applyRecipientEmailResults(state.chips, action.emailResults),
+      };
+    case "recipientResendApplied":
+      return {
+        ...state,
+        chips: state.chips.map((chip) =>
+          chip.id === action.recipientId
+            ? {
+                ...chip,
+                delivery_status: action.ok ? "sent" : "pending",
+                sendStatus: action.ok ? undefined : "failed",
+                sendError: action.ok ? undefined : action.message,
+              }
+            : chip,
+        ),
+      };
+    case "recipientRetryFailed":
+      return {
+        ...state,
+        chips: state.chips.map((chip) =>
+          chip.email.toLowerCase() === action.email.toLowerCase()
+            ? { ...chip, sendStatus: "failed", sendError: action.message }
+            : chip,
+        ),
+      };
+    case "sendingChanged":
+      return {
+        ...state,
+        isSending: action.isSending,
+      };
+    case "resendingRecipientChanged":
+      return {
+        ...state,
+        resendingRecipientId: action.recipientId,
+      };
+    case "pendingRemovalChanged":
+      return {
+        ...state,
+        pendingRemoval: action.recipient,
+      };
+    case "pendingResendChanged":
+      return {
+        ...state,
+        pendingResend: action.recipient,
+      };
+    default:
+      return state;
+  }
+}
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -114,31 +285,35 @@ function applyRecipientEmailResults(
   return updated;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function RecipientEmailComposer({ publicationId, baseClientLink, currentUserEmail, projectName, isPublicationBusy = false, onMessage }: RecipientEmailComposerProps) {
-  const [input, setInput] = useState("");
-  const [chips, setChips] = useState<LocalRecipient[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const [isLoadingList, setIsLoadingList] = useState(false);
-  const [localMessage, setLocalMessage] = useState<RecipientComposerMessage | null>(null);
-  const [resendingRecipientId, setResendingRecipientId] = useState<string | null>(null);
-  const [pendingRemoval, setPendingRemoval] = useState<LocalRecipient | null>(null);
+  const [state, dispatch] = useReducer(recipientEmailComposerReducer, INITIAL_RECIPIENT_EMAIL_COMPOSER_STATE);
+  const {
+    input,
+    chips,
+    isSending,
+    isLoadingList,
+    localMessage,
+    resendingRecipientId,
+    pendingRemoval,
+    pendingResend,
+    emailDeliveryConfigured,
+    emailDeliveryMessage,
+  } = state;
   // AC-MOD-13 (MOD-REC-06): a recipient who has already opened/responded keeps their live token;
   // resending rotates it and downgrades their status. Gate those resends behind a confirm so the
   // owner doesn't silently invalidate an engaged recipient's link. pending/sent resend directly.
-  const [pendingResend, setPendingResend] = useState<LocalRecipient | null>(null);
-  const [emailDeliveryConfigured, setEmailDeliveryConfigured] = useState<boolean | null>(null);
-  const [emailDeliveryMessage, setEmailDeliveryMessage] = useState<string | null>(null);
   const projectLabel = projectName?.trim() || "this project";
   const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail ?? "");
 
   function setRecipientMessage(text: string, tone: RecipientComposerMessage["tone"]) {
     const next = { text, tone };
-    setLocalMessage(next);
+    dispatch({ type: "messageChanged", message: next });
     onMessage?.(next);
   }
 
   function clearRecipientMessage() {
-    setLocalMessage(null);
+    dispatch({ type: "messageChanged", message: null });
     onMessage?.(null);
   }
 
@@ -147,7 +322,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
     let cancelled = false;
     async function load() {
       if (!publicationId) return;
-      setIsLoadingList(true);
+      dispatch({ type: "listLoadStarted" });
       try {
         const [rows, readiness] = await Promise.all([
           listSharedLinkRecipients({ publicationId }),
@@ -161,19 +336,23 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
             delivery_status: r.delivery_status || "pending",
             email_unsubscribed_at: r.email_unsubscribed_at,
           }));
-          setChips(mapped);
-          setEmailDeliveryConfigured(readiness.configured);
-          setEmailDeliveryMessage(readiness.message);
+          dispatch({
+            type: "listLoadSucceeded",
+            chips: mapped,
+            emailDeliveryConfigured: readiness.configured,
+            emailDeliveryMessage: readiness.message,
+          });
         }
       } catch {
         // Fail closed: recipient management remains visible, but email sending stays disabled.
         if (!cancelled) {
-          setChips([]);
-          setEmailDeliveryConfigured(false);
-          setEmailDeliveryMessage("Email delivery status could not be verified. Copy the share link manually.");
+          dispatch({
+            type: "listLoadFailed",
+            emailDeliveryMessage: "Email delivery status could not be verified. Copy the share link manually.",
+          });
         }
       } finally {
-        if (!cancelled) setIsLoadingList(false);
+        if (!cancelled) dispatch({ type: "listLoadSettled" });
       }
     }
     void load();
@@ -200,19 +379,18 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       added++;
     }
     if (added > 0) {
-      setChips(next);
-      setInput("");
+      dispatch({ type: "emailsParsed", chips: next });
       clearRecipientMessage();
     }
   }
 
   function removeChip(email: string) {
-    setChips((prev) => prev.filter((c) => c.email.toLowerCase() !== email.toLowerCase()));
+    dispatch({ type: "chipRemovedByEmail", email });
   }
 
   async function handleSend() {
     if (chips.length === 0 || isSending || emailDeliveryConfigured !== true) return;
-    setIsSending(true);
+    dispatch({ type: "sendingChanged", isSending: true });
     clearRecipientMessage();
 
     try {
@@ -224,7 +402,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
 
       if (payload.length === 0) {
         setRecipientMessage("All listed recipients already invited.", "success");
-        setIsSending(false);
+        dispatch({ type: "sendingChanged", isSending: false });
         return;
       }
 
@@ -240,14 +418,14 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       // an id) without waiting for a modal remount.
       const updated = applyRecipientEmailResults(chips, result.emailResults);
 
-      setChips(updated);
+      dispatch({ type: "chipsReplaced", chips: updated });
       const msg = result.message || (result.ok ? "Recipients added." : "Some recipients could not be added.");
       setRecipientMessage(msg, result.ok ? "success" : "error");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to add recipients.";
       setRecipientMessage(msg, "error");
     } finally {
-      setIsSending(false);
+      dispatch({ type: "sendingChanged", isSending: false });
     }
   }
 
@@ -259,7 +437,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
     }
     try {
       await removeSharedLinkRecipient({ publicationId, recipientId: rec.id });
-      setChips((prev) => prev.filter((c) => c.id !== rec.id));
+      dispatch({ type: "chipRemovedById", id: rec.id });
       const msg = `Removed ${rec.email}`;
       setRecipientMessage(msg, "success");
     } catch {
@@ -271,7 +449,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   async function handleResend(rec: LocalRecipient) {
     const retryKey = rec.id ?? rec.email;
     if (!rec.id || resendingRecipientId || emailDeliveryConfigured !== true) return;
-    setResendingRecipientId(retryKey);
+    dispatch({ type: "resendingRecipientChanged", recipientId: retryKey });
     clearRecipientMessage();
 
     try {
@@ -280,24 +458,13 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         recipientId: rec.id,
         baseClientLink,
       });
-      setChips((prev) =>
-        prev.map((chip) =>
-          chip.id === rec.id
-            ? {
-                ...chip,
-                delivery_status: result.ok ? "sent" : "pending",
-                sendStatus: result.ok ? undefined : "failed",
-                sendError: result.ok ? undefined : result.message,
-              }
-            : chip,
-        ),
-      );
+      dispatch({ type: "recipientResendApplied", recipientId: rec.id, ok: result.ok, message: result.message });
       setRecipientMessage(result.message, result.ok ? "success" : "error");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Recipient resend failed.";
       setRecipientMessage(msg, "error");
     } finally {
-      setResendingRecipientId(null);
+      dispatch({ type: "resendingRecipientChanged", recipientId: null });
     }
   }
 
@@ -308,7 +475,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
     }
     if (resendingRecipientId || emailDeliveryConfigured !== true) return;
     const retryKey = rec.email;
-    setResendingRecipientId(retryKey);
+    dispatch({ type: "resendingRecipientChanged", recipientId: retryKey });
     clearRecipientMessage();
 
     try {
@@ -317,21 +484,15 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         recipients: [{ email: rec.email, displayName: rec.displayName || undefined }],
         baseClientLink,
       });
-      setChips((prev) => applyRecipientEmailResults(prev, result.emailResults));
+      dispatch({ type: "recipientEmailResultsApplied", emailResults: result.emailResults });
       const msg = result.message || (result.ok ? "Recipient sent." : "Recipient retry failed.");
       setRecipientMessage(msg, result.ok ? "success" : "error");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Recipient retry failed.";
-      setChips((prev) =>
-        prev.map((chip) =>
-          chip.email.toLowerCase() === rec.email.toLowerCase()
-            ? { ...chip, sendStatus: "failed", sendError: msg }
-            : chip,
-        ),
-      );
+      dispatch({ type: "recipientRetryFailed", email: rec.email, message: msg });
       setRecipientMessage(msg, "error");
     } finally {
-      setResendingRecipientId(null);
+      dispatch({ type: "resendingRecipientChanged", recipientId: null });
     }
   }
 
@@ -394,7 +555,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                   onClick={() => {
                     // AC-MOD-13 (MOD-REC-06): opened/responded recipients confirm first; the rest resend now.
                     if (resendNeedsConfirm(chip)) {
-                      setPendingResend(chip);
+                      dispatch({ type: "pendingResendChanged", recipient: chip });
                     } else {
                       void handleResend(chip);
                     }
@@ -415,7 +576,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                   // DELETE on shared_link_responses) — gate behind a confirm.
                   // Local-only chips have nothing persisted, so remove inline.
                   if (chip.id) {
-                    setPendingRemoval(chip);
+                    dispatch({ type: "pendingRemovalChanged", recipient: chip });
                   } else {
                     removeChip(chip.email);
                   }
@@ -432,7 +593,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
           className="min-w-[120px] flex-1 bg-transparent text-[10px] leading-4 outline-none placeholder:text-secondary px-1"
           placeholder="name@company.com, another@..."
           value={input}
-          onChange={(e) => setInput(e.currentTarget.value)}
+          onChange={(e) => dispatch({ type: "inputChanged", input: e.currentTarget.value })}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === ",") {
               e.preventDefault();
@@ -442,7 +603,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               // AC-MOD-13 (MOD-RECIP-BACKSPACE-01): Backspace removes the last chip only when it is
               // local-only (no id). Persisted recipients must go through the confirm flow — dropping
               // them here only hides them from view, so the owner thinks an active recipient is gone.
-              setChips((p) => (p[p.length - 1]?.id ? p : p.slice(0, -1)));
+              dispatch({ type: "lastLocalChipRemoved" });
             }
           }}
           onBlur={() => { if (input.trim()) parseAndAddEmails(input); }}
@@ -469,8 +630,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
             // AC-MOD-13 (MOD-ACT-05): "Clear" only discards local-only (unsent) chips. Persisted
             // recipients stay — they're removed only via the per-chip confirm flow, never bulk-cleared
             // (a bulk clear would just hide them until reopen and read as a silent removal).
-            setChips((prev) => prev.filter((c) => c.id));
-            setInput("");
+            dispatch({ type: "localOnlyChipsCleared" });
             clearRecipientMessage();
           }}
           disabled={emailDisabled || isSending || chips.every((c) => Boolean(c.id))}
@@ -503,7 +663,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         title="Remove recipient?"
         tone={pendingRemoval?.delivery_status === "responded" ? "destructive" : "default"}
         onOpenChange={(next) => {
-          if (!next) setPendingRemoval(null);
+          if (!next) dispatch({ type: "pendingRemovalChanged", recipient: null });
         }}
         className="max-w-sm"
       >
@@ -526,7 +686,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               variant="ghost"
               size="sm"
               className="min-h-7 rounded-xs px-2 text-[10px]"
-              onClick={() => setPendingRemoval(null)}
+              onClick={() => dispatch({ type: "pendingRemovalChanged", recipient: null })}
             >
               Cancel
             </Button>
@@ -538,7 +698,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               aria-label="Remove recipient"
               onClick={() => {
                 if (pendingRemoval) void handleRemove(pendingRemoval);
-                setPendingRemoval(null);
+                dispatch({ type: "pendingRemovalChanged", recipient: null });
               }}
             >
               Remove recipient
@@ -553,7 +713,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         open={pendingResend !== null}
         title="Resend a new link?"
         onOpenChange={(next) => {
-          if (!next) setPendingResend(null);
+          if (!next) dispatch({ type: "pendingResendChanged", recipient: null });
         }}
         className="max-w-sm"
       >
@@ -569,7 +729,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               variant="ghost"
               size="sm"
               className="min-h-7 rounded-xs px-2 text-[10px]"
-              onClick={() => setPendingResend(null)}
+              onClick={() => dispatch({ type: "pendingResendChanged", recipient: null })}
             >
               Cancel
             </Button>
@@ -581,7 +741,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               aria-label="Resend new link"
               onClick={() => {
                 const target = pendingResend;
-                setPendingResend(null);
+                dispatch({ type: "pendingResendChanged", recipient: null });
                 if (target) void handleResend(target);
               }}
             >

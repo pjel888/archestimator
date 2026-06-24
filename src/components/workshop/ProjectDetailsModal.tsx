@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useId, useMemo, useReducer, useRef, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 // NOTE: keep this a pure client overlay — saving runs the server action and then
 // closes the modal, instead of a raw `<form action={serverAction}>` whose
@@ -94,15 +94,45 @@ function FieldLabel({ children }: { children: ReactNode }) {
   return <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">{children}</span>;
 }
 
-export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved }: ProjectDetailsModalProps) {
-  const metadata = readProjectMetadata(project.metadata);
-  const fileInputId = useId();
-  const initialCurrencyCode = normalizeCurrencyCode(project.currency_code);
-  const [currencyCode, setCurrencyCode] = useState(initialCurrencyCode);
-  const [currencySearchValue, setCurrencySearchValue] = useState(initialCurrencyCode);
-  const [projectCode, setProjectCode] = useState(project.project_code ?? "");
-  const [projectImage, setProjectImage] = useState<ProjectImageDraft | null>(() => (
-    metadata.projectImageUrl
+type ProjectDetailsState = {
+  currencyCode: string;
+  currencySearchValue: string;
+  projectCode: string;
+  projectImage: ProjectImageDraft | null;
+  imageRemoved: boolean;
+  imageUpload: ImageUploadState;
+  isSaving: boolean;
+  saveError: string | null;
+};
+
+type ProjectDetailsInitialStateArgs = {
+  project: Tables<"projects">;
+  metadata: ProjectMetadata;
+  initialCurrencyCode: string;
+};
+
+type ProjectDetailsAction =
+  | { type: "projectCode"; value: string }
+  | { type: "generateProjectCode" }
+  | { type: "currency:select"; code: string; label: string }
+  | { type: "currency:clear" }
+  | { type: "currency:input"; value: string; matchingCode?: string }
+  | { type: "save:start" }
+  | { type: "save:error"; message: string }
+  | { type: "imageUpload"; upload: ImageUploadState }
+  | { type: "imageUpload:success"; image: ProjectImageDraft; upload: ImageUploadState }
+  | { type: "image:remove" };
+
+function getInitialProjectDetailsState({
+  project,
+  metadata,
+  initialCurrencyCode,
+}: ProjectDetailsInitialStateArgs): ProjectDetailsState {
+  return {
+    currencyCode: initialCurrencyCode,
+    currencySearchValue: initialCurrencyCode,
+    projectCode: project.project_code ?? "",
+    projectImage: metadata.projectImageUrl
       ? {
         bucket: metadata.projectImageBucket,
         url: metadata.projectImageUrl,
@@ -110,84 +140,187 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
         path: metadata.projectImagePath,
         thumbnailPath: metadata.projectImageThumbnailPath,
       }
-      : null
-  ));
-  const [imageRemoved, setImageRemoved] = useState(false);
-  const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
+      : null,
+    imageRemoved: false,
+    imageUpload: { state: "idle" },
+    isSaving: false,
+    saveError: null,
+  };
+}
+
+function projectDetailsReducer(state: ProjectDetailsState, action: ProjectDetailsAction): ProjectDetailsState {
+  switch (action.type) {
+    case "projectCode":
+      return { ...state, projectCode: action.value.toUpperCase() };
+    case "generateProjectCode":
+      return { ...state, projectCode: generateProjectCode() };
+    case "currency:select":
+      return { ...state, currencyCode: action.code, currencySearchValue: action.label };
+    case "currency:clear":
+      return { ...state, currencyCode: "PHP", currencySearchValue: "" };
+    case "currency:input":
+      return {
+        ...state,
+        currencySearchValue: action.value,
+        currencyCode: action.matchingCode ?? state.currencyCode,
+      };
+    case "save:start":
+      return { ...state, isSaving: true, saveError: null };
+    case "save:error":
+      return { ...state, isSaving: false, saveError: action.message };
+    case "imageUpload":
+      return { ...state, imageUpload: action.upload };
+    case "imageUpload:success":
+      return { ...state, projectImage: action.image, imageRemoved: false, imageUpload: action.upload };
+    case "image:remove":
+      return { ...state, projectImage: null, imageRemoved: true, imageUpload: { state: "idle" } };
+    default:
+      return state;
+  }
+}
+
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
+export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved }: ProjectDetailsModalProps) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const metadata = readProjectMetadata(project.metadata);
+  const fileInputId = useId();
+  const initialCurrencyCode = normalizeCurrencyCode(project.currency_code);
+  const [detailsState, dispatchDetails] = useReducer(
+    projectDetailsReducer,
+    { project, metadata, initialCurrencyCode },
+    getInitialProjectDetailsState,
+  );
+  const {
+    currencyCode,
+    currencySearchValue,
+    projectCode,
+    projectImage,
+    imageRemoved,
+    imageUpload,
+    isSaving,
+    saveError,
+  } = detailsState;
   const selectedCurrencyOption = useMemo(
     () => PROJECT_CURRENCY_OPTIONS.find((option) => option.id === currencyCode) ?? null,
     [currencyCode],
   );
   const imageUploadBusy = imageUpload.state === "uploading";
   const imagePreviewUrl = projectImage?.thumbnailUrl || projectImage?.url;
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const closeDialog = useCallback(() => {
+    if (dialogRef.current?.open) {
+      if (typeof dialogRef.current.close === "function") {
+        try {
+          dialogRef.current.close();
+        } catch {
+          dialogRef.current.removeAttribute("open");
+        }
+      } else {
+        dialogRef.current.removeAttribute("open");
+      }
+    }
+    onClose();
+  }, [onClose]);
+
+  const handleNativeDialogPointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (event.target === dialogRef.current) closeDialog();
+    },
+    [closeDialog],
+  );
+
+  const openDialogElement = useCallback(
+    (node: HTMLDialogElement | null) => {
+      dialogRef.current?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
+      dialogRef.current = node;
+      if (!node) return;
+      node.addEventListener("pointerdown", handleNativeDialogPointerDown);
+      if (node.open) return;
+      if (typeof node.showModal === "function") {
+        try {
+          node.showModal();
+        } catch {
+          node.setAttribute("open", "");
+        }
+      } else {
+        node.setAttribute("open", "");
+      }
+    },
+    [handleNativeDialogPointerDown],
+  );
 
   function handleSaveDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSaving(true);
-    setSaveError(null);
+    dispatchDetails({ type: "save:start" });
     const formData = new FormData(event.currentTarget);
     void updateProjectDetails(formData)
       .then(() => {
         // Close after the save resolves so the underlying list reconciles with
         // the modal already dismissed — no page-reload flash while it is open.
-        onClose();
+        closeDialog();
         onSaved?.();
       })
       .catch((error: unknown) => {
         // Keep the modal open so the edit can be retried; nothing was lost.
-        setSaveError(error instanceof Error ? error.message : "Could not save project details.");
-        setIsSaving(false);
+        dispatchDetails({ type: "save:error", message: error instanceof Error ? error.message : "Could not save project details." });
       });
   }
 
   async function handleProjectImageUpload(file: File) {
     if (file.type && !ALLOWED_PROJECT_IMAGE_TYPES.has(file.type)) {
-      setImageUpload({ state: "error", message: "Use a JPG, PNG, WebP, or AVIF image." });
+      dispatchDetails({ type: "imageUpload", upload: { state: "error", message: "Use a JPG, PNG, WebP, or AVIF image." } });
       return;
     }
     if (file.size > MAX_PROJECT_IMAGE_BYTES) {
-      setImageUpload({ state: "error", message: "Choose an image under 12 MB." });
+      dispatchDetails({ type: "imageUpload", upload: { state: "error", message: "Choose an image under 12 MB." } });
       return;
     }
 
     const previousImage = projectImage;
-    setImageUpload({ state: "uploading", message: "Uploading image to Supabase Storage...", progress: 5 });
+    dispatchDetails({ type: "imageUpload", upload: { state: "uploading", message: "Uploading image to Supabase Storage...", progress: 5 } });
 
     try {
       const uploadedImage = await uploadProjectImage(file, project.id, (progress) => {
-        setImageUpload({ state: "uploading", message: "Uploading image to Supabase Storage...", progress });
+        dispatchDetails({ type: "imageUpload", upload: { state: "uploading", message: "Uploading image to Supabase Storage...", progress } });
       });
-      setProjectImage(uploadedImage);
-      setImageRemoved(false);
-      setImageUpload({
-        state: "uploaded",
-        message: `Stored WebP image (${formatUploadBytes(uploadedImage.originalBytes)} -> ${formatUploadBytes(uploadedImage.optimizedBytes)}).`,
+      dispatchDetails({
+        type: "imageUpload:success",
+        image: uploadedImage,
+        upload: {
+          state: "uploaded",
+          message: `Stored WebP image (${formatUploadBytes(uploadedImage.originalBytes)} -> ${formatUploadBytes(uploadedImage.optimizedBytes)}).`,
+        },
       });
       if (previousImage && previousImage.path !== metadata.projectImagePath && previousImage.path !== uploadedImage.path) {
         void removeProjectImageUpload(previousImage);
       }
     } catch (uploadError) {
-      setImageUpload({ state: "error", message: uploadError instanceof Error ? uploadError.message : "Could not upload image." });
+      dispatchDetails({
+        type: "imageUpload",
+        upload: { state: "error", message: uploadError instanceof Error ? uploadError.message : "Could not upload image." },
+      });
     }
   }
 
   function removeProjectImage() {
     if (projectImage && projectImage.path !== metadata.projectImagePath) void removeProjectImageUpload(projectImage);
-    setProjectImage(null);
-    setImageRemoved(true);
-    setImageUpload({ state: "idle" });
+    dispatchDetails({ type: "image:remove" });
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/25 p-2 backdrop-blur-md">
-      <button type="button" className="absolute inset-0 cursor-pointer" aria-label="Close project details" onClick={onClose} />
+    <dialog
+      ref={openDialogElement}
+      aria-modal="true"
+      aria-labelledby="project-details-title"
+      className="z-40 w-[calc(100%-1rem)] max-w-3xl border-0 bg-transparent p-0 text-ink backdrop:bg-black/25 backdrop:backdrop-blur-md"
+      onCancel={(event) => {
+        event.preventDefault();
+        closeDialog();
+      }}
+    >
       <section
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="project-details-title"
-        className="relative z-10 flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xs border border-white/70 bg-white/88 shadow-[0_24px_80px_-42px_rgba(17,17,17,0.65)] ring-1 ring-black/5 backdrop-blur-xl"
+        className="relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-xs border border-white/70 bg-white/88 shadow-[0_24px_80px_-42px_rgba(17,17,17,0.65)] ring-1 ring-black/5 backdrop-blur-xl"
       >
         <div className="flex items-center justify-between border-b border-hairline bg-white/80 px-3 py-2">
           <div className="min-w-0">
@@ -202,7 +335,7 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
             size="icon-sm"
             className="size-7 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
             aria-label="Close project details"
-            onClick={onClose}
+            onClick={closeDialog}
           >
             <X size={14} weight="regular" />
           </Button>
@@ -311,7 +444,7 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
                     id="project-details-code"
                     name="projectCode"
                     value={projectCode}
-                    onChange={(event) => setProjectCode(event.currentTarget.value.toUpperCase())}
+                    onChange={(event) => dispatchDetails({ type: "projectCode", value: event.currentTarget.value })}
                     placeholder="A7K9M2Q4"
                     className="h-8 px-2 uppercase"
                   />
@@ -322,7 +455,7 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
                     className="size-8 shrink-0 rounded-xs"
                     aria-label="Generate project code"
                     title="Generate project code"
-                    onClick={() => setProjectCode(generateProjectCode())}
+                    onClick={() => dispatchDetails({ type: "generateProjectCode" })}
                   >
                     <MagicWand size={13} weight="regular" aria-hidden="true" />
                   </Button>
@@ -341,19 +474,16 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
                   options={PROJECT_CURRENCY_OPTIONS}
                   onChange={(change) => {
                     if (change.reason === "select" && change.id) {
-                      setCurrencyCode(change.id);
-                      setCurrencySearchValue(change.label);
+                      dispatchDetails({ type: "currency:select", code: change.id, label: change.label });
                       return;
                     }
                     if (change.reason === "clear") {
-                      setCurrencyCode("PHP");
-                      setCurrencySearchValue("");
+                      dispatchDetails({ type: "currency:clear" });
                       return;
                     }
                     const nextValue = change.label.toUpperCase();
-                    setCurrencySearchValue(nextValue);
                     const matchingOption = PROJECT_CURRENCY_OPTIONS.find((option) => option.id === nextValue);
-                    if (matchingOption) setCurrencyCode(matchingOption.id);
+                    dispatchDetails({ type: "currency:input", value: nextValue, matchingCode: matchingOption?.id });
                   }}
                   ariaLabel="Currency"
                   placeholder="Search currency"
@@ -412,6 +542,6 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
           </div>
         </form>
       </section>
-    </div>
+    </dialog>
   );
 }

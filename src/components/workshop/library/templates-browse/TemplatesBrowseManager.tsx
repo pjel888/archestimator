@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowSquareOut,
@@ -31,9 +31,9 @@ import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import {
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import {
   filterTemplatesByQuery,
   summarizeEstimateTemplate,
@@ -163,6 +163,7 @@ type TemplatesBrowseTreePanelProps = {
   onNewTemplate: (category?: string) => void;
 };
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function TemplatesBrowseTreePanel({
   templates,
   selectedCategory,
@@ -515,11 +516,197 @@ export type TemplatesBrowseManagerProps = {
   onTemplatesInvalidated?: () => void;
 };
 
+type TemplateTextPromptState = {
+  title: string;
+  label: string;
+  confirmLabel: string;
+  initialValue: string;
+  onSubmit: (value: string) => void;
+};
+
+type TemplateMovePromptState = {
+  template: EstimateTemplate;
+  value: string;
+  selectedId: string | null;
+};
+
+type TemplatesBrowseManagerState = {
+  templateState: { source: EstimateTemplate[]; items: EstimateTemplate[] };
+  selectedCategory: string | null;
+  selectedTemplateId: string | null;
+  status: TemplatesBrowseStatus;
+  newTemplate: { open: boolean; category?: string };
+  textPrompt: TemplateTextPromptState | null;
+  textPromptValue: string;
+  movePrompt: TemplateMovePromptState | null;
+  insertTarget: EstimateTemplate | null;
+  deleteTarget: EstimateTemplate | null;
+  deletePending: boolean;
+};
+
+type TemplatesBrowseManagerAction =
+  | { type: "templateItemsUpdated"; source: EstimateTemplate[]; baseItems: EstimateTemplate[]; updater: (items: EstimateTemplate[]) => EstimateTemplate[] }
+  | { type: "allSelected" }
+  | { type: "categorySelected"; category: string }
+  | { type: "selectedCategoryChanged"; category: string | null }
+  | { type: "templateSelected"; templateId: string | null }
+  | { type: "statusChanged"; status: TemplatesBrowseStatus }
+  | { type: "newTemplateOpened"; category?: string }
+  | { type: "newTemplateClosed" }
+  | { type: "templateCreated"; source: EstimateTemplate[]; baseItems: EstimateTemplate[]; template: EstimateTemplate }
+  | { type: "textPromptOpened"; prompt: TemplateTextPromptState }
+  | { type: "textPromptValueChanged"; value: string }
+  | { type: "textPromptClosed" }
+  | { type: "movePromptOpened"; template: EstimateTemplate }
+  | { type: "movePromptChanged"; value: string; selectedId: string | null }
+  | { type: "movePromptClosed" }
+  | { type: "insertTargetChanged"; template: EstimateTemplate | null }
+  | { type: "deleteTargetChanged"; template: EstimateTemplate | null }
+  | { type: "deletePendingChanged"; pending: boolean };
+
+function createInitialTemplatesBrowseManagerState(templates: EstimateTemplate[]): TemplatesBrowseManagerState {
+  return {
+    templateState: { source: templates, items: templates },
+    selectedCategory: null,
+    selectedTemplateId: null,
+    status: { state: "idle" },
+    newTemplate: { open: false },
+    textPrompt: null,
+    textPromptValue: "",
+    movePrompt: null,
+    insertTarget: null,
+    deleteTarget: null,
+    deletePending: false,
+  };
+}
+
+function templatesBrowseManagerReducer(
+  state: TemplatesBrowseManagerState,
+  action: TemplatesBrowseManagerAction,
+): TemplatesBrowseManagerState {
+  switch (action.type) {
+    case "templateItemsUpdated":
+      return {
+        ...state,
+        templateState: {
+          source: action.source,
+          items: action.updater(action.baseItems),
+        },
+      };
+    case "allSelected":
+      return {
+        ...state,
+        selectedCategory: null,
+        selectedTemplateId: null,
+      };
+    case "categorySelected":
+      return {
+        ...state,
+        selectedCategory: action.category,
+        selectedTemplateId: null,
+      };
+    case "selectedCategoryChanged":
+      return {
+        ...state,
+        selectedCategory: action.category,
+      };
+    case "templateSelected":
+      return {
+        ...state,
+        selectedTemplateId: action.templateId,
+      };
+    case "statusChanged":
+      return {
+        ...state,
+        status: action.status,
+      };
+    case "newTemplateOpened":
+      return {
+        ...state,
+        newTemplate: { open: true, category: action.category },
+      };
+    case "newTemplateClosed":
+      return {
+        ...state,
+        newTemplate: { open: false },
+      };
+    case "templateCreated":
+      return {
+        ...state,
+        templateState: {
+          source: action.source,
+          items: [...action.baseItems.filter((entry) => entry.id !== action.template.id), action.template],
+        },
+        selectedTemplateId: action.template.id,
+        status: { state: "saved", message: "Template created." },
+      };
+    case "textPromptOpened":
+      return {
+        ...state,
+        textPrompt: action.prompt,
+        textPromptValue: action.prompt.initialValue,
+      };
+    case "textPromptValueChanged":
+      return {
+        ...state,
+        textPromptValue: action.value,
+      };
+    case "textPromptClosed":
+      return {
+        ...state,
+        textPrompt: null,
+      };
+    case "movePromptOpened":
+      return {
+        ...state,
+        movePrompt: {
+          template: action.template,
+          value: "",
+          selectedId: action.template.category,
+        },
+      };
+    case "movePromptChanged":
+      return {
+        ...state,
+        movePrompt: state.movePrompt
+          ? {
+              ...state.movePrompt,
+              value: action.value,
+              selectedId: action.selectedId,
+            }
+          : state.movePrompt,
+      };
+    case "movePromptClosed":
+      return {
+        ...state,
+        movePrompt: null,
+      };
+    case "insertTargetChanged":
+      return {
+        ...state,
+        insertTarget: action.template,
+      };
+    case "deleteTargetChanged":
+      return {
+        ...state,
+        deleteTarget: action.template,
+      };
+    case "deletePendingChanged":
+      return {
+        ...state,
+        deletePending: action.pending,
+      };
+    default:
+      return state;
+  }
+}
+
 /**
  * Templates browse tab (Library unification Phase 2): left templates tree,
  * center `TemplateGallery`, right `TemplatePreviewDock`. Selection state
  * lives here so the tree, gallery, and preview dock stay in sync.
  */
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function TemplatesBrowseManager({
   templates = [],
   onTemplatesMutated = noopTemplatesMutated,
@@ -529,43 +716,34 @@ export function TemplatesBrowseManager({
   const surfaceVariant = useLibrarySurfaceVariant();
   // Mutations patch the route shell's warm query cache (T4). No-op when bare.
   const syncTemplatesCache = onTemplatesMutated;
-  const [templateState, setTemplateState] = useState<{ source: EstimateTemplate[]; items: EstimateTemplate[] }>(() => ({
-    source: templates,
-    items: templates,
-  }));
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [status, setStatus] = useState<TemplatesBrowseStatus>({ state: "idle" });
-  const [newTemplate, setNewTemplate] = useState<{ open: boolean; category?: string }>({ open: false });
-  // U12 (C5): replaces the native browser prompt for rename/move with an in-DS
-  // modal (SF Pro, tokens, focus management). One reusable text prompt.
-  const [textPrompt, setTextPrompt] = useState<
-    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
-    | null
-  >(null);
-  const [textPromptValue, setTextPromptValue] = useState("");
-  const [movePrompt, setMovePrompt] = useState<{ template: EstimateTemplate; value: string; selectedId: string | null } | null>(null);
-  const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
-    setTextPrompt(next);
-    setTextPromptValue(next.initialValue);
+  const [state, dispatch] = useReducer(templatesBrowseManagerReducer, templates, createInitialTemplatesBrowseManagerState);
+  const {
+    templateState,
+    selectedCategory,
+    selectedTemplateId,
+    status,
+    newTemplate,
+    textPrompt,
+    textPromptValue,
+    movePrompt,
+    insertTarget,
+    deleteTarget,
+    deletePending,
+  } = state;
+
+  const openTextPrompt = useCallback((prompt: TemplateTextPromptState) => {
+    dispatch({ type: "textPromptOpened", prompt });
   }, []);
   const submitTextPrompt = useCallback(() => {
     if (!textPrompt) return;
     const value = textPromptValue.trim();
     const handler = textPrompt.onSubmit;
-    setTextPrompt(null);
+    dispatch({ type: "textPromptClosed" });
     if (value) handler(value);
   }, [textPrompt, textPromptValue]);
-  const [insertTarget, setInsertTarget] = useState<EstimateTemplate | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<EstimateTemplate | null>(null);
-  const [deletePending, setDeletePending] = useState(false);
 
   // Server refreshes re-seed the local list; optimistic edits hold otherwise.
-  let localTemplates = templateState.items;
-  if (templateState.source !== templates) {
-    localTemplates = templates;
-    setTemplateState({ source: templates, items: templates });
-  }
+  const localTemplates = templateState.source === templates ? templateState.items : templates;
 
   const categories = useMemo(() => getTemplateCategories(localTemplates), [localTemplates]);
   const scopedTemplates = useMemo(
@@ -576,26 +754,24 @@ export function TemplatesBrowseManager({
   const scopeLabel = selectedCategory ?? "All Templates";
 
   const setItems = useCallback((updater: (items: EstimateTemplate[]) => EstimateTemplate[]) => {
-    setTemplateState((current) => ({ ...current, items: updater(current.items) }));
-  }, []);
+    dispatch({ type: "templateItemsUpdated", source: templates, baseItems: localTemplates, updater });
+  }, [localTemplates, templates]);
 
   const selectAll = useCallback(() => {
-    setSelectedCategory(null);
-    setSelectedTemplateId(null);
+    dispatch({ type: "allSelected" });
   }, []);
 
   const selectCategory = useCallback((category: string) => {
-    setSelectedCategory(category);
-    setSelectedTemplateId(null);
+    dispatch({ type: "categorySelected", category });
   }, []);
 
   const selectTemplate = useCallback((templateId: string) => {
-    setSelectedTemplateId(templateId);
+    dispatch({ type: "templateSelected", templateId });
   }, []);
 
   const closePreview = useCallback(() => {
     const templateId = selectedTemplateId;
-    setSelectedTemplateId(null);
+    dispatch({ type: "templateSelected", templateId: null });
     if (templateId) {
       requestAnimationFrame(() => {
         document
@@ -613,17 +789,15 @@ export function TemplatesBrowseManager({
   );
 
   const openNewTemplate = useCallback((category?: string) => {
-    setNewTemplate({ open: true, category });
+    dispatch({ type: "newTemplateOpened", category });
   }, []);
 
   const handleTemplateCreated = useCallback(
     (template: EstimateTemplate) => {
-      setItems((items) => [...items.filter((entry) => entry.id !== template.id), template]);
-      setSelectedTemplateId(template.id);
-      setStatus({ state: "saved", message: "Template created." });
+      dispatch({ type: "templateCreated", source: templates, baseItems: localTemplates, template });
       syncTemplatesCache((items) => [...items.filter((entry) => entry.id !== template.id), template]);
     },
-    [syncTemplatesCache, setItems],
+    [localTemplates, syncTemplatesCache, templates],
   );
 
   const applyRenameTemplate = useCallback(
@@ -631,17 +805,20 @@ export function TemplatesBrowseManager({
       if (name === template.name) return;
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
-      setStatus({ state: "saving", message: "Renaming template…" });
+      dispatch({ type: "statusChanged", status: { state: "saving", message: "Renaming template…" } });
       renameEstimateTemplate({ templateId: template.id, name })
         .then(() => {
-          setStatus({ state: "saved", message: "Template renamed." });
+          dispatch({ type: "statusChanged", status: { state: "saved", message: "Template renamed." } });
           syncTemplatesCache((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
         })
         .catch((error: unknown) => {
           setItems((items) => items.map((entry) => (entry.id === previous.id ? previous : entry)));
-          setStatus({
-            state: "error",
-            message: error instanceof Error ? error.message : "Could not rename template.",
+          dispatch({
+            type: "statusChanged",
+            status: {
+              state: "error",
+              message: error instanceof Error ? error.message : "Could not rename template.",
+            },
           });
         });
     },
@@ -663,18 +840,21 @@ export function TemplatesBrowseManager({
 
   const duplicateTemplate = useCallback(
     (template: EstimateTemplate) => {
-      setStatus({ state: "saving", message: "Duplicating template…" });
+      dispatch({ type: "statusChanged", status: { state: "saving", message: "Duplicating template…" } });
       duplicateEstimateTemplate({ templateId: template.id })
         .then(({ template: duplicated }) => {
           setItems((items) => [...items.filter((entry) => entry.id !== duplicated.id), duplicated]);
-          setSelectedTemplateId(duplicated.id);
-          setStatus({ state: "saved", message: "Template duplicated." });
+          dispatch({ type: "templateSelected", templateId: duplicated.id });
+          dispatch({ type: "statusChanged", status: { state: "saved", message: "Template duplicated." } });
           syncTemplatesCache((items) => [...items.filter((entry) => entry.id !== duplicated.id), duplicated]);
         })
         .catch((error: unknown) => {
-          setStatus({
-            state: "error",
-            message: error instanceof Error ? error.message : "Could not duplicate template.",
+          dispatch({
+            type: "statusChanged",
+            status: {
+              state: "error",
+              message: error instanceof Error ? error.message : "Could not duplicate template.",
+            },
           });
         });
     },
@@ -687,10 +867,10 @@ export function TemplatesBrowseManager({
       if (!nextCategory || nextCategory === template.category) return;
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, category: nextCategory } : entry)));
-      setStatus({ state: "saving", message: "Moving template…" });
+      dispatch({ type: "statusChanged", status: { state: "saving", message: "Moving template…" } });
       moveEstimateTemplateToCategory({ templateId: template.id, category: nextCategory })
         .then(() => {
-          setStatus({ state: "saved", message: `Moved to ${nextCategory}.` });
+          dispatch({ type: "statusChanged", status: { state: "saved", message: `Moved to ${nextCategory}.` } });
           syncTemplatesCache((items) =>
             items.map((entry) => (entry.id === template.id ? { ...entry, category: nextCategory } : entry)),
           );
@@ -698,9 +878,12 @@ export function TemplatesBrowseManager({
         })
         .catch((error: unknown) => {
           setItems((items) => items.map((entry) => (entry.id === previous.id ? previous : entry)));
-          setStatus({
-            state: "error",
-            message: error instanceof Error ? error.message : "Could not move template.",
+          dispatch({
+            type: "statusChanged",
+            status: {
+              state: "error",
+              message: error instanceof Error ? error.message : "Could not move template.",
+            },
           });
         });
     },
@@ -709,7 +892,7 @@ export function TemplatesBrowseManager({
 
   const moveTemplatePrompt = useCallback(
     (template: EstimateTemplate) => {
-      setMovePrompt({ template, value: "", selectedId: template.category });
+      dispatch({ type: "movePromptOpened", template });
     },
     [],
   );
@@ -729,7 +912,7 @@ export function TemplatesBrowseManager({
     if (!movePrompt) return;
     const category = movePrompt.value.trim();
     const template = movePrompt.template;
-    setMovePrompt(null);
+    dispatch({ type: "movePromptClosed" });
     if (category) moveTemplateToCategory(template, category);
   }, [movePrompt, moveTemplateToCategory]);
 
@@ -738,21 +921,24 @@ export function TemplatesBrowseManager({
       if (name === category) return;
       const previousItems = localTemplates;
       setItems((items) => items.map((entry) => (entry.category === category ? { ...entry, category: name } : entry)));
-      if (selectedCategory === category) setSelectedCategory(name);
-      setStatus({ state: "saving", message: "Renaming group…" });
+      if (selectedCategory === category) dispatch({ type: "selectedCategoryChanged", category: name });
+      dispatch({ type: "statusChanged", status: { state: "saving", message: "Renaming group…" } });
       renameTemplateCategory({ from: category, to: name })
         .then(() => {
-          setStatus({ state: "saved", message: "Group renamed." });
+          dispatch({ type: "statusChanged", status: { state: "saved", message: "Group renamed." } });
           syncTemplatesCache((items) =>
             items.map((entry) => (entry.category === category ? { ...entry, category: name } : entry)),
           );
         })
         .catch((error: unknown) => {
           setItems(() => previousItems);
-          if (selectedCategory === category) setSelectedCategory(category);
-          setStatus({
-            state: "error",
-            message: error instanceof Error ? error.message : "Could not rename group.",
+          if (selectedCategory === category) dispatch({ type: "selectedCategoryChanged", category });
+          dispatch({
+            type: "statusChanged",
+            status: {
+              state: "error",
+              message: error instanceof Error ? error.message : "Could not rename group.",
+            },
           });
         });
     },
@@ -775,29 +961,32 @@ export function TemplatesBrowseManager({
   const confirmDeleteTemplate = useCallback(() => {
     const template = deleteTarget;
     if (!template || deletePending) return;
-    setDeletePending(true);
-    setStatus({ state: "saving", message: "Deleting template…" });
+    dispatch({ type: "deletePendingChanged", pending: true });
+    dispatch({ type: "statusChanged", status: { state: "saving", message: "Deleting template…" } });
     deleteEstimateTemplate({ templateId: template.id })
       .then(() => {
         setItems((items) => items.filter((entry) => entry.id !== template.id));
-        setSelectedTemplateId((current) => (current === template.id ? null : current));
-        setStatus({ state: "saved", message: "Template deleted." });
+        if (selectedTemplateId === template.id) dispatch({ type: "templateSelected", templateId: null });
+        dispatch({ type: "statusChanged", status: { state: "saved", message: "Template deleted." } });
         syncTemplatesCache((items) => items.filter((entry) => entry.id !== template.id));
       })
       .catch((error: unknown) => {
-        setStatus({
-          state: "error",
-          message: error instanceof Error ? error.message : "Could not delete template.",
+        dispatch({
+          type: "statusChanged",
+          status: {
+            state: "error",
+            message: error instanceof Error ? error.message : "Could not delete template.",
+          },
         });
       })
       .finally(() => {
-        setDeletePending(false);
-        setDeleteTarget(null);
+        dispatch({ type: "deletePendingChanged", pending: false });
+        dispatch({ type: "deleteTargetChanged", template: null });
       });
-  }, [deletePending, deleteTarget, syncTemplatesCache, setItems]);
+  }, [deletePending, deleteTarget, selectedTemplateId, syncTemplatesCache, setItems]);
 
   const handleInserted = useCallback((estimateName: string) => {
-    setStatus({ state: "saved", message: `Inserted into ${estimateName}.` });
+    dispatch({ type: "statusChanged", status: { state: "saved", message: `Inserted into ${estimateName}.` } });
   }, []);
 
   return (
@@ -820,10 +1009,10 @@ export function TemplatesBrowseManager({
             onSelectCategory={selectCategory}
             onSelectTemplate={selectTemplate}
             onOpenTemplate={openTemplate}
-            onInsertIntoEstimate={setInsertTarget}
+            onInsertIntoEstimate={(template) => dispatch({ type: "insertTargetChanged", template })}
             onRenameTemplate={renameTemplate}
             onDuplicateTemplate={duplicateTemplate}
-            onRequestDeleteTemplate={setDeleteTarget}
+            onRequestDeleteTemplate={(template) => dispatch({ type: "deleteTargetChanged", template })}
             onMoveTemplateToCategory={moveTemplateToCategory}
             onMoveTemplatePrompt={moveTemplatePrompt}
             onRenameCategory={renameCategory}
@@ -838,10 +1027,10 @@ export function TemplatesBrowseManager({
               status={status}
               onSelectTemplate={selectTemplate}
               onOpenTemplate={openTemplate}
-              onInsertIntoEstimate={setInsertTarget}
+              onInsertIntoEstimate={(template) => dispatch({ type: "insertTargetChanged", template })}
               onRenameTemplate={renameTemplate}
               onDuplicateTemplate={duplicateTemplate}
-              onRequestDeleteTemplate={setDeleteTarget}
+              onRequestDeleteTemplate={(template) => dispatch({ type: "deleteTargetChanged", template })}
               onNewTemplate={() => openNewTemplate(selectedCategory ?? undefined)}
             />
           </div>
@@ -850,7 +1039,7 @@ export function TemplatesBrowseManager({
               template={selectedTemplate}
               onClose={closePreview}
               onOpenTemplate={openTemplate}
-              onInsertIntoEstimate={setInsertTarget}
+              onInsertIntoEstimate={(template) => dispatch({ type: "insertTargetChanged", template })}
             />
           ) : null}
         </section>
@@ -864,7 +1053,7 @@ export function TemplatesBrowseManager({
           existingCategories={categories}
           defaultCategory={newTemplate.category}
           onOpenChange={(open) => {
-            if (!open) setNewTemplate({ open: false });
+            if (!open) dispatch({ type: "newTemplateClosed" });
           }}
           onCreated={handleTemplateCreated}
         />
@@ -875,7 +1064,7 @@ export function TemplatesBrowseManager({
           open={Boolean(insertTarget)}
           template={insertTarget}
           onOpenChange={(open) => {
-            if (!open) setInsertTarget(null);
+            if (!open) dispatch({ type: "insertTargetChanged", template: null });
           }}
           onInserted={handleInserted}
         />
@@ -885,7 +1074,7 @@ export function TemplatesBrowseManager({
         <ConfirmDialog
           open={Boolean(deleteTarget)}
           onOpenChange={(open) => {
-            if (!open && !deletePending) setDeleteTarget(null);
+            if (!open && !deletePending) dispatch({ type: "deleteTargetChanged", template: null });
           }}
           title="Delete template?"
           description={`"${deleteTarget.name}" will be removed from the library. Estimates already built from it keep their rows.`}
@@ -900,7 +1089,7 @@ export function TemplatesBrowseManager({
         <ConfirmDialog
           open
           onOpenChange={(open) => {
-            if (!open) setTextPrompt(null);
+            if (!open) dispatch({ type: "textPromptClosed" });
           }}
           title={textPrompt.title}
           description="Enter a new name and confirm to apply."
@@ -913,7 +1102,7 @@ export function TemplatesBrowseManager({
               aria-label={textPrompt.label}
               autoFocus
               value={textPromptValue}
-              onChange={(event) => setTextPromptValue(event.target.value)}
+              onChange={(event) => dispatch({ type: "textPromptValueChanged", value: event.target.value })}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -929,7 +1118,7 @@ export function TemplatesBrowseManager({
         <ConfirmDialog
           open
           onOpenChange={(open) => {
-            if (!open) setMovePrompt(null);
+            if (!open) dispatch({ type: "movePromptClosed" });
           }}
           title={`Move "${movePrompt.template.name}" to group`}
           description={`Current group: ${movePrompt.template.category}. Choose an existing group or create a new one.`}
@@ -946,15 +1135,7 @@ export function TemplatesBrowseManager({
               placeholder="Search or create a group"
               createLabel={(value) => `Create "${value}"`}
               onChange={(change) => {
-                setMovePrompt((current) =>
-                  current
-                    ? {
-                        ...current,
-                        value: change.label,
-                        selectedId: change.id,
-                      }
-                    : current,
-                );
+                dispatch({ type: "movePromptChanged", value: change.label, selectedId: change.id });
               }}
             />
           </div>

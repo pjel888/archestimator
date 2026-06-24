@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -78,6 +78,61 @@ type ProjectEstimatesClientProps = {
   parentProject?: EstimateFavoriteParentProject;
   scope?: EstimateFavoriteScope;
 };
+
+type ProjectEstimatesUiState = {
+  searchQuery: string;
+  isCreating: boolean;
+  createError: string | null;
+  filter: EstimateFilter;
+  sortField: EstimateSortField;
+  sortDirection: EstimateSortDirection;
+};
+
+type ProjectEstimatesUiAction =
+  | { type: "search"; value: string }
+  | { type: "create:start" }
+  | { type: "create:error"; message: string }
+  | { type: "create:finish" }
+  | { type: "filter"; filter: EstimateFilter }
+  | { type: "sortField"; sortField: EstimateSortField }
+  | { type: "sortDirection"; sortDirection: EstimateSortDirection };
+
+const INITIAL_PROJECT_ESTIMATES_UI_STATE: ProjectEstimatesUiState = {
+  searchQuery: "",
+  isCreating: false,
+  createError: null,
+  filter: "all",
+  sortField: "updated_at",
+  sortDirection: "desc",
+};
+
+function projectEstimatesUiReducer(
+  state: ProjectEstimatesUiState,
+  action: ProjectEstimatesUiAction,
+): ProjectEstimatesUiState {
+  switch (action.type) {
+    case "search":
+      return { ...state, searchQuery: action.value };
+    case "create:start":
+      return { ...state, isCreating: true, createError: null };
+    case "create:error":
+      return { ...state, createError: action.message };
+    case "create:finish":
+      return { ...state, isCreating: false };
+    case "filter":
+      return { ...state, filter: action.filter };
+    case "sortField":
+      return {
+        ...state,
+        sortField: action.sortField,
+        sortDirection: defaultSortDirectionForEstimateField(action.sortField),
+      };
+    case "sortDirection":
+      return { ...state, sortDirection: action.sortDirection };
+    default:
+      return state;
+  }
+}
 
 function getEstimateSortDirectionLabel(field: EstimateSortField, direction: EstimateSortDirection) {
   if (field === "name") return direction === "asc" ? "A to Z" : "Z to A";
@@ -182,17 +237,13 @@ function getNextOptimisticEstimateSheetCode(estimates: ProjectEstimateTableRow[]
 
 export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById, estimates, projectId, projectName, parentProject, scope }: ProjectEstimatesClientProps) {
   const router = useNavigationRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
+  const [uiState, dispatchUi] = useReducer(projectEstimatesUiReducer, INITIAL_PROJECT_ESTIMATES_UI_STATE);
+  const { searchQuery, isCreating, createError, filter, sortField, sortDirection } = uiState;
   const createInFlightRef = useRef(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   // Per-mount client store seeded from the server prop. Created once via the
   // lazy initializer so it resets on project change but survives re-renders.
   const [store] = useState(() => createProjectEstimatesStore(estimates));
-  const [filter, setFilter] = useState<EstimateFilter>("all");
-  const [sortField, setSortField] = useState<EstimateSortField>("updated_at");
-  const [sortDirection, setSortDirection] = useState<EstimateSortDirection>("desc");
 
   // Reseed settled rows when the server prop changes (external refresh, cross-tab
   // update, navigation). Pending optimistic rows are preserved by the store.
@@ -222,16 +273,15 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
     if (!canCreateEstimates || createInFlightRef.current) return false;
 
     createInFlightRef.current = true;
-    setIsCreating(true);
-    setCreateError(null);
+    dispatchUi({ type: "create:start" });
 
     if (!OPTIMISTIC_ESTIMATE_LIST_ENABLED) {
       void createDraftEstimate(requestedName)
         .then(() => router.refresh())
-        .catch((error: unknown) => setCreateError(error instanceof Error ? error.message : "Could not create estimate."))
+        .catch((error: unknown) => dispatchUi({ type: "create:error", message: error instanceof Error ? error.message : "Could not create estimate." }))
         .finally(() => {
           createInFlightRef.current = false;
-          setIsCreating(false);
+          dispatchUi({ type: "create:finish" });
         });
       return true;
     }
@@ -266,11 +316,11 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
       .then((result) => store.getState().reconcileInsert(tempId, result.row))
       .catch((error: unknown) => {
         store.getState().rollbackInsert(tempId);
-        setCreateError(error instanceof Error ? error.message : "Could not create estimate.");
+        dispatchUi({ type: "create:error", message: error instanceof Error ? error.message : "Could not create estimate." });
       })
       .finally(() => {
         createInFlightRef.current = false;
-        setIsCreating(false);
+        dispatchUi({ type: "create:finish" });
       });
     return true;
   }
@@ -283,7 +333,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
         ariaLabel="Project estimate tools"
         labelPrefix="estimates"
         searchValue={searchQuery}
-        onSearchValueChange={setSearchQuery}
+        onSearchValueChange={(value) => dispatchUi({ type: "search", value })}
         searchPlaceholder="Search Estimates"
         searchLabel="Search Estimates"
         showBottomBorder={false}
@@ -304,7 +354,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
               options={ESTIMATE_FILTER_OPTIONS}
               value={filter}
               onValueChange={(next) => {
-                if (isEstimateFilter(next)) setFilter(next);
+                if (isEstimateFilter(next)) dispatchUi({ type: "filter", filter: next });
               }}
               variant="boxed"
               triggerDisplay="icon"
@@ -317,8 +367,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
               value={sortField}
               onValueChange={(next) => {
                 if (isEstimateSortField(next)) {
-                  setSortField(next);
-                  setSortDirection(defaultSortDirectionForEstimateField(next));
+                  dispatchUi({ type: "sortField", sortField: next });
                 }
               }}
               variant="boxed"
@@ -330,7 +379,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
               options={sortDirectionOptions}
               value={sortDirection}
               onValueChange={(next) => {
-                if (isEstimateSortDirection(next)) setSortDirection(next);
+                if (isEstimateSortDirection(next)) dispatchUi({ type: "sortDirection", sortDirection: next });
               }}
               variant="boxed"
               triggerDisplay="icon"

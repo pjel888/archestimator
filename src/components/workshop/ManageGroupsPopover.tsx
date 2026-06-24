@@ -1,7 +1,7 @@
 "use client";
 
 import type { Ref } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, GearSix, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -43,27 +43,16 @@ export function ManageGroupsPopover({
 
   // useDropdownPopup gives Escape, outside-pointer dismissal, ancestor-scroll/resize
   // close, focus return to the trigger, and a positioned panel — the focus-trap and
-  // a11y contract a hand-rolled <div role="dialog"> lacked (LD-10). Even in controlled
-  // mode the popup's INTERNAL open state must track the controlled prop so its
-  // layout-effect computes the panel position (an unpositioned panel renders
-  // visibility:hidden and is invisible to assistive tech / RTL queries).
-  const isControlled = controlledOpen !== undefined;
+  // a11y contract a hand-rolled <div role="dialog"> lacked (LD-10).
   const { open, position, rootRef, triggerRef, panelRef, openPopup, close } = useDropdownPopup({
     align: "end",
     side: "bottom",
-    onClose: isControlled ? () => onOpenChange?.(false) : undefined,
+    open: controlledOpen,
+    onOpenChange,
   });
 
-  // Mirror the controlled prop into the popup's internal open state.
-  useEffect(() => {
-    if (!isControlled) return;
-    if (controlledOpen && !open) openPopup();
-    else if (!controlledOpen && open) close("manual");
-  }, [controlledOpen, isControlled, open, openPopup, close]);
-
   const setOpen = (next: boolean) => {
-    if (isControlled) onOpenChange?.(next);
-    else if (next) openPopup();
+    if (next) openPopup();
     else close("manual");
   };
 

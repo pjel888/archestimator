@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore, useTransition } from "react";
 import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ import {
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { Modal } from "@/components/ui/modal";
 import { SectionLabel } from "@/components/ui/section-label";
-import { TabStrip, getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip";
+import { TabStrip } from "@/components/ui/tab-strip";
+import { getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip-utils";
 import { cn } from "@/lib/ui/cn";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import {
@@ -28,10 +29,6 @@ import { SheetPickerList } from "./publication/SheetPickerList";
 export { SheetPickerList };
 export type { SheetPickerListProps } from "./publication/SheetPickerList";
 import {
-  readPublicationServerSignature,
-  shouldUseOptimisticPublicationResult,
-} from "./publication/publication-optimistic";
-export {
   readPublicationServerSignature,
   shouldUseOptimisticPublicationResult,
 } from "./publication/publication-optimistic";
@@ -72,12 +69,24 @@ type LocationVisibilityDraft = {
   summaryKey: string;
 };
 
+type ActivitySeenState = { storageKey: string; value: string | null };
+
 type PublicationLocalResult = {
   clientLinkPath: string | null;
   passwordRequired: boolean;
   status: ProjectPublicationStatus;
   summaryKey: string;
   baseServerSignature: string;
+};
+
+type RefreshedPublicationMetadata = {
+  projectId: string;
+  data: Pick<ProjectPublicationSummary, "openCount" | "latestOpenedAt" | "latestActivityAt" | "latestRecipientOpen">;
+};
+
+type SelectedEstimateOverride = {
+  ids: string[];
+  summaryKey: string;
 };
 
 type PublicationTabId = "content" | "recipients" | "activity";
@@ -279,6 +288,110 @@ function readServerOrigin() {
   return "";
 }
 
+type ProjectPublicationHeaderState = {
+  open: boolean;
+  actionFeedback: ActionFeedback | null;
+  activitySeenState: ActivitySeenState;
+  localResult: PublicationLocalResult | null;
+  refreshedMetadata: RefreshedPublicationMetadata | null;
+  destructiveAction: DestructivePublicationAction | null;
+  passwordDraft: PasswordDraft;
+  expiryDraft: ExpiryDraft;
+  locationVisibilityDraft: LocationVisibilityDraft;
+  confirmInFlight: boolean;
+  selectedEstimateOverride: SelectedEstimateOverride | null;
+  activeTab: PublicationTabId;
+};
+
+type ProjectPublicationHeaderInitialState = {
+  summary: ProjectPublicationSummary | null;
+  summaryKey: string;
+  activitySeenStorageKey: string;
+};
+
+type ProjectPublicationHeaderAction =
+  | { type: "openChanged"; open: boolean }
+  | { type: "actionFeedbackChanged"; actionFeedback: ActionFeedback | null }
+  | { type: "activitySeenChanged"; activitySeenState: ActivitySeenState }
+  | { type: "localResultChanged"; localResult: PublicationLocalResult | null }
+  | { type: "refreshedMetadataChanged"; refreshedMetadata: RefreshedPublicationMetadata | null }
+  | { type: "destructiveActionChanged"; destructiveAction: DestructivePublicationAction | null }
+  | { type: "passwordDraftChanged"; passwordDraft: PasswordDraft }
+  | { type: "expiryDraftChanged"; expiryDraft: ExpiryDraft }
+  | { type: "locationVisibilityDraftChanged"; locationVisibilityDraft: LocationVisibilityDraft }
+  | { type: "confirmInFlightChanged"; confirmInFlight: boolean }
+  | { type: "selectedEstimateOverrideChanged"; selectedEstimateOverride: SelectedEstimateOverride | null }
+  | { type: "activeTabChanged"; activeTab: PublicationTabId };
+
+function createProjectPublicationHeaderState({
+  summary,
+  summaryKey,
+  activitySeenStorageKey,
+}: ProjectPublicationHeaderInitialState): ProjectPublicationHeaderState {
+  return {
+    open: false,
+    actionFeedback: null,
+    activitySeenState: {
+      storageKey: activitySeenStorageKey,
+      value: readStoredActivitySeenAt(activitySeenStorageKey),
+    },
+    localResult: null,
+    refreshedMetadata: null,
+    destructiveAction: null,
+    passwordDraft: {
+      password: "",
+      requirePassword: Boolean(summary?.passwordRequired),
+      summaryKey,
+    },
+    expiryDraft: {
+      value: isoToDateTimeLocalValue(summary?.expiresAt),
+      summaryKey,
+    },
+    locationVisibilityDraft: {
+      value: readLocationVisibility(summary?.locationVisibility),
+      summaryKey,
+    },
+    confirmInFlight: false,
+    selectedEstimateOverride: null,
+    activeTab: "content",
+  };
+}
+
+function projectPublicationHeaderReducer(
+  state: ProjectPublicationHeaderState,
+  action: ProjectPublicationHeaderAction,
+): ProjectPublicationHeaderState {
+  switch (action.type) {
+    case "openChanged":
+      return { ...state, open: action.open };
+    case "actionFeedbackChanged":
+      return { ...state, actionFeedback: action.actionFeedback };
+    case "activitySeenChanged":
+      return { ...state, activitySeenState: action.activitySeenState };
+    case "localResultChanged":
+      return { ...state, localResult: action.localResult };
+    case "refreshedMetadataChanged":
+      return { ...state, refreshedMetadata: action.refreshedMetadata };
+    case "destructiveActionChanged":
+      return { ...state, destructiveAction: action.destructiveAction };
+    case "passwordDraftChanged":
+      return { ...state, passwordDraft: action.passwordDraft };
+    case "expiryDraftChanged":
+      return { ...state, expiryDraft: action.expiryDraft };
+    case "locationVisibilityDraftChanged":
+      return { ...state, locationVisibilityDraft: action.locationVisibilityDraft };
+    case "confirmInFlightChanged":
+      return { ...state, confirmInFlight: action.confirmInFlight };
+    case "selectedEstimateOverrideChanged":
+      return { ...state, selectedEstimateOverride: action.selectedEstimateOverride };
+    case "activeTabChanged":
+      return { ...state, activeTab: action.activeTab };
+    default:
+      return state;
+  }
+}
+
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function ProjectPublicationHeader({
   summary,
   currentUserEmail = null,
@@ -287,37 +400,53 @@ export function ProjectPublicationHeader({
   const summaryKey = readSummaryKey(summary);
   const activitySeenStorageKey = readActivitySeenStorageKey(summary, summaryKey);
   const hydrated = useIsHydrated();
-  const [open, setOpen] = useState(false);
-  const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
-  const [activitySeenState, setActivitySeenState] = useState<{ storageKey: string; value: string | null }>(() => ({
-    storageKey: activitySeenStorageKey,
-    value: readStoredActivitySeenAt(activitySeenStorageKey),
-  }));
-  const [localResult, setLocalResult] = useState<PublicationLocalResult | null>(null);
+  const [publicationHeaderState, dispatchPublicationHeader] = useReducer(
+    projectPublicationHeaderReducer,
+    { summary, summaryKey, activitySeenStorageKey },
+    createProjectPublicationHeaderState,
+  );
+  const {
+    open,
+    actionFeedback,
+    activitySeenState,
+    localResult,
+    refreshedMetadata,
+    destructiveAction,
+    passwordDraft,
+    expiryDraft,
+    locationVisibilityDraft,
+    confirmInFlight,
+    selectedEstimateOverride,
+    activeTab,
+  } = publicationHeaderState;
+  const setOpen = (open: boolean) => dispatchPublicationHeader({ type: "openChanged", open });
+  const setActionFeedback = (actionFeedback: ActionFeedback | null) =>
+    dispatchPublicationHeader({ type: "actionFeedbackChanged", actionFeedback });
+  const setActivitySeenState = (activitySeenState: ActivitySeenState) =>
+    dispatchPublicationHeader({ type: "activitySeenChanged", activitySeenState });
+  const setLocalResult = (localResult: PublicationLocalResult | null) =>
+    dispatchPublicationHeader({ type: "localResultChanged", localResult });
   // MOD-ACT-03: live metadata refetch. Holds ONLY the activity/metadata fields (never
   // status/clientLinkPath/lifecycle) so the open-count, "last opened", and activity dot can
   // update while the modal is mounted without touching the optimistic lifecycle reconcile.
-  const [refreshedMetadata, setRefreshedMetadata] = useState<{
-    projectId: string;
-    data: Pick<ProjectPublicationSummary, "openCount" | "latestOpenedAt" | "latestActivityAt" | "latestRecipientOpen">;
-  } | null>(null);
-  const [destructiveAction, setDestructiveAction] = useState<DestructivePublicationAction | null>(null);
-  const [passwordDraft, setPasswordDraft] = useState<PasswordDraft>(() => ({
-    password: "",
-    requirePassword: Boolean(summary?.passwordRequired),
-    summaryKey,
-  }));
+  const setRefreshedMetadata = (refreshedMetadata: RefreshedPublicationMetadata | null) =>
+    dispatchPublicationHeader({ type: "refreshedMetadataChanged", refreshedMetadata });
+  const setDestructiveAction = (destructiveAction: DestructivePublicationAction | null) =>
+    dispatchPublicationHeader({ type: "destructiveActionChanged", destructiveAction });
+  const setPasswordDraft = (passwordDraft: PasswordDraft) =>
+    dispatchPublicationHeader({ type: "passwordDraftChanged", passwordDraft });
   // AC-MOD-10: owner-set expiry draft (datetime-local string; "" = no expiry).
-  const [expiryDraft, setExpiryDraft] = useState<ExpiryDraft>(() => ({
-    value: isoToDateTimeLocalValue(summary?.expiresAt),
-    summaryKey,
-  }));
-  const [locationVisibilityDraft, setLocationVisibilityDraft] = useState<LocationVisibilityDraft>(() => ({
-    value: readLocationVisibility(summary?.locationVisibility),
-    summaryKey,
-  }));
+  const setExpiryDraft = (expiryDraft: ExpiryDraft) =>
+    dispatchPublicationHeader({ type: "expiryDraftChanged", expiryDraft });
+  const setLocationVisibilityDraft = (locationVisibilityDraft: LocationVisibilityDraft) =>
+    dispatchPublicationHeader({ type: "locationVisibilityDraftChanged", locationVisibilityDraft });
+  const setConfirmInFlight = (confirmInFlight: boolean) =>
+    dispatchPublicationHeader({ type: "confirmInFlightChanged", confirmInFlight });
+  const setSelectedEstimateOverride = (selectedEstimateOverride: SelectedEstimateOverride | null) =>
+    dispatchPublicationHeader({ type: "selectedEstimateOverrideChanged", selectedEstimateOverride });
+  const setActiveTab = (activeTab: PublicationTabId) =>
+    dispatchPublicationHeader({ type: "activeTabChanged", activeTab });
   const [isPending, startTransition] = useTransition();
-  const [confirmInFlight, setConfirmInFlight] = useState(false);
   // AC-MOD-21: synchronous in-flight latch so a rapid double-click on the destructive confirm
   // dispatches at most one action (the `isPending` transition flag updates a tick too late to
   // stop a second click in the same event loop).
@@ -341,10 +470,6 @@ export function ProjectPublicationHeader({
     if (curatedAvailableIds.length > 0) return curatedAvailableIds;
     return allEstimateIds;
   }, [projectEstimateSheets, summarySelectedEstimateIds]);
-  const [selectedEstimateOverride, setSelectedEstimateOverride] = useState<{
-    ids: string[];
-    summaryKey: string;
-  } | null>(null);
   const selectedEstimateIds =
     selectedEstimateOverride?.summaryKey === summaryKey
       ? selectedEstimateOverride.ids
@@ -359,7 +484,6 @@ export function ProjectPublicationHeader({
     summary?.status === "published" &&
     !areStringSetsEqual(selectedEstimateIds, summarySelectedEstimateIds);
 
-  const [activeTab, setActiveTab] = useState<PublicationTabId>("content");
   const browserOrigin = useSyncExternalStore(subscribeToOriginChange, readBrowserOrigin, readServerOrigin);
   const serverSignature = readPublicationServerSignature(summary);
   const hasLocalResult = shouldUseOptimisticPublicationResult(localResult, summaryKey, serverSignature);

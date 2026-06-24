@@ -167,6 +167,7 @@ export function ResizableSidePanel({
   }
 
   const resizer = (
+    // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- This interactive splitter contains grip visuals; native <hr> is void and cannot host them.
     <div
       aria-hidden={collapsed}
       aria-label={`Resize ${ariaLabel}`}

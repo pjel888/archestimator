@@ -1,21 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { memo, useMemo, type ReactNode } from "react";
-import {
-  ArrowRight,
-  ArrowSquareOut,
-  ArrowsOutSimple,
-  Clock,
-  DotsThreeVertical,
-  MapPin,
-  Star,
-} from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Clock, MapPin, Star } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { acceptPendingInvitationById } from "@/lib/collaboration/pending-invite-actions";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
@@ -25,6 +13,15 @@ import type {
   ProjectFavoriteEstimateSheetSummary,
   WorkshopPendingInviteSummary,
 } from "@/lib/repositories/workspace-repository";
+import { ProjectCardDetailsControl } from "./ProjectCardDetailsControl";
+import { ProjectCardFavoriteControl } from "./ProjectCardFavoriteControl";
+import { ProjectCardFooterAction } from "./ProjectCardFooterAction";
+import { ProjectCardSelectControl } from "./ProjectCardSelectControl";
+import { ProjectCardStatusSlot } from "./ProjectCardStatusSlot";
+import { ProjectCardSetupOverlay } from "./ProjectCardSetupOverlay";
+import { ProjectCardThumbnail } from "./ProjectCardThumbnail";
+import { ProjectCardThumbnailReveal } from "./ProjectCardThumbnailReveal";
+import { ProjectCardTitleBlock } from "./ProjectCardTitleBlock";
 
 const EMPTY_FAVORITE_ESTIMATE_SHEETS: ProjectFavoriteEstimateSheetSummary[] = [];
 
@@ -143,6 +140,7 @@ function getAccessibleAccessLabel({
   return `${projectName} project, shared project, ${role} access`;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function LiveProjectCardImpl({
   project,
   viewMode = "large",
@@ -203,206 +201,52 @@ function LiveProjectCardImpl({
     </span>
   ) : null;
 
-  const selectControl = canShowSelect ? (
-    <label
-      className={cn(
-        "workshop-project-card-control grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border border-hairline text-ink",
-        // When a selection is active the checkbox must stay clickable, so it drops
-        // the reveal gate and re-asserts pointer-events over the wrapper's none.
-        selectedForDeletion || selectionActive ? "opacity-100 pointer-events-auto" : REVEAL_ON_INTENT,
-        !canSelect ? "cursor-not-allowed text-tertiary" : null,
-      )}
-      title="Select project for deletion"
-    >
-      <span className="sr-only">{`Select ${project.name} for deletion`}</span>
-      <input
-        type="checkbox"
-        className="size-3 rounded-xs border-hairline accent-danger"
-        aria-label={`Select ${project.name} for deletion`}
-        checked={selectedForDeletion}
-        disabled={!canSelect}
-        onChange={() => onToggleSelected?.(project.id)}
-      />
-    </label>
-  ) : null;
+  function handleToggleSelected() {
+    onToggleSelected?.(project.id);
+  }
 
-  const favoriteControl = canToggleFavorite ? (
-    <Button
-      type="button"
-      variant="secondary"
-      size="icon-xs"
-      className={cn(
-        CONTROL_BUTTON,
-        "cursor-pointer aria-busy:cursor-wait aria-disabled:opacity-60",
-        // Favorited stays visible with a quiet pressed surface instead of a
-        // louder accent color.
-        isFavorite
-          ? "pointer-events-auto opacity-100 aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink"
-          : cn("text-secondary hover:text-ink", favoriteBusy ? "opacity-100" : REVEAL_ON_INTENT),
-      )}
-      aria-label={
-        isFavorite
-          ? `Remove ${project.name} from favorite projects`
-          : `Add ${project.name} to favorite projects`
-      }
-      aria-pressed={isFavorite}
-      // Stay focusable while saving (native `disabled` would drop keyboard focus to
-      // <body>); the click is guarded instead, and aria-busy announces the in-flight state.
-      aria-busy={favoriteBusy}
-      aria-disabled={favoriteBusy}
-      onClick={() => {
-        if (favoriteBusy) return;
-        onToggleFavorite?.(project.id, !isFavorite);
-      }}
-    >
-      <Star size={13} weight="regular" aria-hidden="true" />
-    </Button>
-  ) : null;
+  function handleToggleFavorite() {
+    onToggleFavorite?.(project.id, !isFavorite);
+  }
+
+  const selectControl = (
+    <ProjectCardSelectControl
+      canSelect={canSelect}
+      canShowSelect={canShowSelect}
+      projectName={project.name}
+      revealOnIntentClassName={REVEAL_ON_INTENT}
+      selectedForDeletion={selectedForDeletion}
+      selectionActive={selectionActive}
+      onToggleSelected={handleToggleSelected}
+    />
+  );
+
+  const favoriteControl = (
+    <ProjectCardFavoriteControl
+      canToggleFavorite={canToggleFavorite}
+      controlButtonClassName={CONTROL_BUTTON}
+      favoriteBusy={favoriteBusy}
+      isFavorite={isFavorite}
+      projectName={project.name}
+      revealOnIntentClassName={REVEAL_ON_INTENT}
+      onToggleFavorite={handleToggleFavorite}
+    />
+  );
 
   const statusChips = [accessChip, invitesChip].filter(Boolean);
 
-  function renderStatusSlot() {
-    return (
-      <div
-        data-project-card-status-slot=""
-        aria-label={statusChips.length > 0 ? "Project status" : "No project status"}
-        className={cn(
-          "flex h-[18px] min-w-0 flex-nowrap items-center gap-1 overflow-hidden",
-          statusChips.length === 0 ? "items-start" : null,
-        )}
-      >
-        {statusChips}
-      </div>
-    );
+  function handleExpandDetails() {
+    onExpand?.(project);
   }
 
-  function renderDetailsControl({ reveal }: { reveal: boolean }) {
-    if (isPendingInvite) return null;
-
-    return (
-      <Button
-        type="button"
-        variant="secondary"
-        size="icon-xs"
-        className={cn(
-          CONTROL_BUTTON,
-          "relative z-20 text-ink",
-          reveal ? REVEAL_ON_INTENT : "pointer-events-auto opacity-100",
-        )}
-        aria-label={`Expand ${project.name} details`}
-        aria-disabled={setupNavigationDisabled}
-        data-project-card-details-action=""
-        onClick={() => {
-          if (setupNavigationDisabled) return;
-          onExpand?.(project);
-        }}
-      >
-        <DotsThreeVertical size={15} weight="regular" aria-hidden="true" />
-      </Button>
-    );
-  }
-
-  const expandControl = renderDetailsControl({ reveal: true });
-
-  function renderThumbnailReveal() {
-    const maxVisible = viewMode === "small" ? 2 : viewMode === "medium" ? 3 : 5;
-    const sheets = visibleFavoriteEstimateSheets.slice(0, maxVisible);
-    const hiddenCount = visibleFavoriteEstimateSheets.length - sheets.length;
-    const hasSheets = sheets.length > 0;
-
-    return (
-      <div
-        data-project-card-hover-reveal=""
-        aria-label={
-          hasSheets
-            ? `Hover details for ${project.name}`
-            : `Hover controls for ${project.name}`
-        }
-        className={cn(
-          "workshop-project-card-thumbnail-reveal pointer-events-none absolute inset-0 z-10 flex flex-col overflow-hidden opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
-          "p-2",
-        )}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="pointer-events-auto">{selectControl}</div>
-          <div className="flex items-center gap-1">
-            <div className="pointer-events-auto">{favoriteControl}</div>
-          </div>
-        </div>
-        <div
-          data-project-card-favorite-sheets=""
-          aria-label={
-            hasSheets
-              ? `Favorite estimate sheets for ${project.name}`
-              : `No favorite estimate sheets for ${project.name}`
-          }
-          className={cn("mt-2 min-h-0 min-w-0", hasSheets ? "block" : "hidden")}
-        >
-          {hasSheets ? (
-            <>
-              <div className="flex min-w-0 items-center gap-1 text-[8px] font-medium uppercase leading-[10px] text-secondary">
-                <Star size={10} weight="regular" aria-hidden="true" className="shrink-0 text-warning" />
-              </div>
-              <div
-                className={cn(
-                  "mt-2 min-w-0 text-[9px] font-medium leading-3 text-ink",
-                  viewMode === "large" ? "grid grid-cols-1 gap-1.5" : "space-y-1",
-                )}
-              >
-                {sheets.map((sheet) => (
-                  <Link
-                    key={sheet.id}
-                    href={getFavoriteEstimateSheetHref(sheet)}
-                    prefetch={false}
-                    className="flex min-w-0 items-center gap-1.5 rounded-xs text-ink hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                    title={sheet.sheet_code ? `${sheet.name} (${sheet.sheet_code})` : sheet.name}
-                  >
-                    <span className="block min-w-0 flex-1 truncate">{sheet.name}</span>
-                    <ArrowsOutSimple size={10} weight="regular" aria-hidden="true" className="shrink-0 text-white" />
-                  </Link>
-                ))}
-                {hiddenCount > 0 ? (
-                  <span className="block truncate text-tertiary">+{hiddenCount} more</span>
-                ) : null}
-              </div>
-            </>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
-
-  function renderTitleBlock() {
-    return (
-      <>
-        <div className="flex min-w-0 items-start justify-between gap-2">
-          <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
-            {project.client_name ?? "No client yet"}
-          </p>
-          <div className="flex shrink-0 items-center gap-1">
-            {groupAssignMenu}
-            {renderDetailsControl({ reveal: false })}
-          </div>
-        </div>
-        <div className="min-w-0">
-          <h2
-            className={cn(
-              "min-w-0 font-medium tracking-normal text-ink [overflow-wrap:anywhere]",
-              viewMode === "large" ? "line-clamp-2 min-h-[28px] text-[12px] leading-[1.18]" : null,
-              viewMode === "medium" ? "line-clamp-2 min-h-[26px] text-[11px] leading-[1.18]" : null,
-              viewMode === "small" ? "line-clamp-2 min-h-6 text-[10px] leading-[1.2]" : null,
-            )}
-          >
-            {project.name}
-          </h2>
-        </div>
-        <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
-          <MapPin size={12} aria-hidden="true" className="shrink-0" />
-          <span className="truncate">{project.location ?? "No location"}</span>
-        </p>
-      </>
-    );
-  }
+  const expandControl = isPendingInvite ? null : (
+    <ProjectCardDetailsControl
+      className={cn(CONTROL_BUTTON, "relative z-20 text-ink", REVEAL_ON_INTENT)}
+      disabled={setupNavigationDisabled}
+      projectName={project.name}
+      onExpand={handleExpandDetails}
+    />
+  );
 
   function renderTileMeta() {
     return (
@@ -462,134 +306,43 @@ function LiveProjectCardImpl({
     );
   }
 
-  function renderThumb({
-    wrapperClass,
-    motifSize,
-    withOverlay,
-  }: {
-    wrapperClass: string;
-    motifSize: string;
-    withOverlay: boolean;
-  }) {
-    return (
-      <div className={cn("relative shrink-0 overflow-hidden bg-surfaceMuted", wrapperClass)} data-project-card-thumbnail>
-        {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt=""
-            fill
-            sizes={isListView ? "64px" : "(max-width: 768px) 100vw, 320px"}
-            unoptimized
-            loading="lazy"
-            className="object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center px-2">
-            <span className={cn("truncate font-medium tracking-normal text-secondary", motifSize)}>
-              {motif}
-            </span>
-          </div>
-        )}
-
-        {withOverlay ? (
-          renderThumbnailReveal()
-        ) : null}
-      </div>
-    );
-  }
-
-  function renderFooterAction(): ReactNode {
-    if (setupNavigationDisabled && !isPendingInvite) {
-      return (
-        <span
-          aria-disabled="true"
-          className={cn("cursor-wait opacity-70", OPEN_CONTROL_LINK)}
-        >
-          <ArrowSquareOut
-            size={15}
-            data-project-card-open-icon="square-out"
-            className="shrink-0"
-            aria-hidden="true"
-          />
-        </span>
-      );
-    }
-
-    if (isExpiredPendingInvite) {
-      return (
-        <Button type="button" variant="secondary" size="sm" className="min-h-7 shrink-0 px-2.5 text-[10px]" disabled>
-          Expired
-        </Button>
-      );
-    }
-    if (isPendingInvite && pendingInvite) {
-      return (
-        <form action={acceptPendingInvitationById}>
-          <input type="hidden" name="invitationId" value={pendingInvite.id} />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            className="min-h-7 shrink-0 px-2.5 text-[10px]"
-            aria-label={`Accept invite for ${project.name}`}
-          >
-            Accept
-            <ArrowRight size={12} className="shrink-0" aria-hidden="true" />
-          </Button>
-        </form>
-      );
-    }
-    return (
-      <Link
-        href={projectHref}
-        prefetch={false}
-        aria-label={openLabel}
-        onBlur={() => cancel(projectHref)}
-        onFocus={() => prefetch(projectHref)}
-        onMouseEnter={() => prefetch(projectHref)}
-        onMouseLeave={() => cancel(projectHref)}
-        className={OPEN_CONTROL_LINK}
-      >
-        <ArrowSquareOut
-          size={15}
-          data-project-card-open-icon="square-out"
-          className="shrink-0"
-          aria-hidden="true"
-        />
-      </Link>
-    );
-  }
-
-  function renderSetupOverlay() {
-    if (!setupStatus) return null;
-    const isError = setupStatus.state === "error";
-
-    return (
-      <div
-        data-project-card-setup-overlay=""
-        className={cn(
-          "pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-white/72 p-3 backdrop-blur-[2px]",
-          isError ? "bg-white/82" : null,
-        )}
-      >
-        <div
-          role={isError ? "alert" : "status"}
-          aria-live="polite"
-          className={cn(
-            "flex max-w-full items-center gap-2 rounded-xs border bg-white/95 px-2.5 py-2 text-[10px] font-medium leading-3 shadow-sm",
-            isError ? "border-danger/30 text-danger" : "border-hairline text-ink",
-          )}
-        >
-          {setupBusy ? (
-            <Spinner size="xs" decorative className="shrink-0" />
-          ) : (
-            <span className="size-2 shrink-0 rounded-full bg-danger" aria-hidden="true" />
-          )}
-          <span className="min-w-0 text-balance">{setupStatus.message}</span>
-        </div>
-      </div>
-    );
-  }
+  const footerAction = (
+    <ProjectCardFooterAction
+      isExpiredPendingInvite={isExpiredPendingInvite}
+      isPendingInvite={isPendingInvite}
+      openControlLinkClassName={OPEN_CONTROL_LINK}
+      openLabel={openLabel}
+      pendingInvite={pendingInvite}
+      projectHref={projectHref}
+      projectName={project.name}
+      setupNavigationDisabled={setupNavigationDisabled}
+      onCancelPrefetch={cancel}
+      onPrefetch={prefetch}
+    />
+  );
+  const thumbnailReveal = (
+    <ProjectCardThumbnailReveal
+      controlButtonClassName={CONTROL_BUTTON}
+      favoriteControl={{
+        canToggle: canToggleFavorite,
+        favoriteBusy,
+        isFavorite,
+        onToggle: handleToggleFavorite,
+      }}
+      getSheetHref={getFavoriteEstimateSheetHref}
+      projectName={project.name}
+      revealOnIntentClassName={REVEAL_ON_INTENT}
+      selectControl={{
+        canSelect,
+        canShow: canShowSelect,
+        selectedForDeletion,
+        selectionActive,
+        onToggle: handleToggleSelected,
+      }}
+      viewMode={viewMode}
+      visibleFavoriteEstimateSheets={visibleFavoriteEstimateSheets}
+    />
+  );
 
   const cardLabel = getAccessibleAccessLabel({
     accessKind,
@@ -617,11 +370,13 @@ function LiveProjectCardImpl({
           selectedForDeletion ? "ring-1 ring-inset ring-ink" : null,
         )}
       >
-        {renderThumb({
-          wrapperClass: "size-12 shrink-0 rounded-xs border border-hairline",
-          motifSize: "text-[9px]",
-          withOverlay: false,
-        })}
+        <ProjectCardThumbnail
+          imageUrl={imageUrl}
+          isListView={isListView}
+          motif={motif}
+          motifSize="text-[9px]"
+          wrapperClass="size-12 shrink-0 rounded-xs border border-hairline"
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -667,7 +422,9 @@ function LiveProjectCardImpl({
           ) : null}
         </div>
 
-        <div className="hidden w-[156px] shrink-0 lg:block">{renderStatusSlot()}</div>
+        <div className="hidden w-[156px] shrink-0 lg:block">
+          <ProjectCardStatusSlot statusChips={statusChips} />
+        </div>
 
         <p className="hidden min-w-0 max-w-[180px] items-center gap-1 text-[9px] leading-3 text-secondary sm:flex">
           <MapPin size={12} aria-hidden="true" className="shrink-0" />
@@ -701,7 +458,7 @@ function LiveProjectCardImpl({
           {groupAssignMenu}
           {expandControl}
           {isPendingInvite ? (
-            renderFooterAction()
+            footerAction
           ) : (
             <span
               aria-hidden="true"
@@ -730,7 +487,7 @@ function LiveProjectCardImpl({
             className="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
           />
         )}
-        {renderSetupOverlay()}
+        <ProjectCardSetupOverlay setupStatus={setupStatus} setupBusy={setupBusy} />
       </article>
     );
   }
@@ -764,11 +521,15 @@ function LiveProjectCardImpl({
             : "[contain-intrinsic-size:auto_190px]",
       )}
     >
-      {renderThumb({
-        wrapperClass: cn("w-full border-b border-hairline", thumbnailAspectClass),
-        motifSize,
-        withOverlay: true,
-      })}
+      <ProjectCardThumbnail
+        imageUrl={imageUrl}
+        isListView={isListView}
+        motif={motif}
+        motifSize={motifSize}
+        wrapperClass={cn("w-full border-b border-hairline", thumbnailAspectClass)}
+      >
+        {thumbnailReveal}
+      </ProjectCardThumbnail>
 
       <div
         data-project-card-tile-content=""
@@ -782,8 +543,18 @@ function LiveProjectCardImpl({
             viewMode === "large" ? "min-h-[70px]" : viewMode === "medium" ? "min-h-[64px]" : "min-h-[58px]",
           )}
         >
-          {renderTitleBlock()}
-          {renderStatusSlot()}
+          <ProjectCardTitleBlock
+            clientName={project.client_name}
+            detailsControlClassName={cn(CONTROL_BUTTON, "relative z-20 text-ink", "pointer-events-auto opacity-100")}
+            groupAssignMenu={groupAssignMenu}
+            isPendingInvite={isPendingInvite}
+            location={project.location}
+            projectName={project.name}
+            setupNavigationDisabled={setupNavigationDisabled}
+            viewMode={viewMode}
+            onExpandDetails={handleExpandDetails}
+          />
+          <ProjectCardStatusSlot statusChips={statusChips} />
         </div>
 
         {showMeta ? renderTileMeta() : null}
@@ -799,7 +570,7 @@ function LiveProjectCardImpl({
             <span className="truncate font-sans text-[9px] font-medium text-secondary">
               {project.project_code ?? "—"}
             </span>
-            {renderFooterAction()}
+            {footerAction}
           </div>
         ) : null}
       </div>
@@ -817,7 +588,7 @@ function LiveProjectCardImpl({
           className="absolute inset-0 z-10 rounded-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         />
       ) : null}
-      {renderSetupOverlay()}
+      <ProjectCardSetupOverlay setupStatus={setupStatus} setupBusy={setupBusy} />
     </article>
   );
 }

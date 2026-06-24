@@ -5,13 +5,14 @@ import Image from "next/image";
 import { ImageSquare } from "@phosphor-icons/react/dist/ssr";
 
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
-import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter";
+import { COMPONENT_LIFECYCLE_FACET_LABELS } from "@/components/workshop/library/component-facet-filter-model";
 import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
 import {
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
-import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
+import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import type { LibraryOverviewComponent } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 

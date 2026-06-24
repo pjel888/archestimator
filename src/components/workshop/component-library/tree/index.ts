@@ -1,6 +1,6 @@
 export { LibraryTree } from "./LibraryTree";
+export { TemplatesTree } from "./TemplatesTree";
 export {
-  TemplatesTree,
   buildTemplatesTreeNodes,
   buildTemplatesSelectionNodes,
   getCheckedProjectSourceTargets,
@@ -10,8 +10,9 @@ export {
   getTemplatesTreeAllNodeIds,
   templatesTreeCategoryId,
   templatesTreeSectionId,
-} from "./TemplatesTree";
-export type { CheckedTemplateUnits, TemplatesTreeDatum, TemplatesTreeProps } from "./TemplatesTree";
+} from "./TemplatesTreeModel";
+export type { TemplatesTreeProps } from "./TemplatesTree";
+export type { CheckedTemplateUnits, TemplatesTreeDatum } from "./TemplatesTreeModel";
 export {
   buildProjectComponentTree,
   buildComponentLibraryNavigationTree,

@@ -53,17 +53,16 @@ export function ProjectCompositionBars({
                 {formatChartMoney(estimate.total, view.currencyCode)}
               </span>
             </div>
-            <div className="flex h-3 w-full overflow-hidden rounded-xs bg-surfaceMuted" role="img" aria-label={`${estimate.name} composition`}>
+            <div className="flex h-3 w-full overflow-hidden rounded-xs bg-surfaceMuted">
               {orderedBuckets.map((bucket) => {
                 const share = bucket.perEstimateShares[estimate.id] ?? 0;
                 if (share <= 0) return null;
                 const isActive = bucket.id === activeBucketId;
                 return (
-                  <span
+                  <button
                     key={bucket.id}
+                    type="button"
                     data-bucket-id={bucket.id}
-                    role="button"
-                    tabIndex={0}
                     aria-label={`Toggle ${bucket.label} pin`}
                     title={`${bucket.label}: ${formatChartShare(share)} · ${formatChartMoney(bucket.perEstimateTotals[estimate.id] ?? 0, view.currencyCode)}`}
                     onMouseEnter={() => onActiveBucketChange(bucket.id)}
@@ -71,12 +70,10 @@ export function ProjectCompositionBars({
                     onFocus={() => onActiveBucketChange(bucket.id)}
                     onBlur={() => onActiveBucketChange(null)}
                     onClick={() => onTogglePin(bucket.id)}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      onTogglePin(bucket.id);
-                    }}
-                    className={cn("h-full cursor-pointer transition-opacity motion-reduce:transition-none", activeBucketId && !isActive ? "opacity-45" : "opacity-100")}
+                    className={cn(
+                      "h-full shrink-0 cursor-pointer appearance-none border-0 p-0 transition-opacity motion-reduce:transition-none",
+                      activeBucketId && !isActive ? "opacity-45" : "opacity-100",
+                    )}
                     style={{ width: `${share * 100}%`, backgroundColor: bucket.color }}
                   />
                 );

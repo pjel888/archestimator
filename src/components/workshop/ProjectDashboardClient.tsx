@@ -448,41 +448,48 @@ function ProjectEstimateBudgetHealthPanel({
             {!cell.sheet ? (
               <span className="text-[8px] leading-3 text-tertiary">No estimate sheet</span>
             ) : (
-              <div
-                className="relative h-full min-h-[48px] w-2 overflow-hidden rounded-xs bg-white/45"
-                role="meter"
-                aria-label={`${cell.sheet.name} budget health`}
-                aria-valuemin={0}
-                aria-valuemax={Math.max(100, Math.round(cell.usagePercent))}
-                aria-valuenow={cell.hasBudget ? Math.round(cell.usagePercent) : 0}
-                aria-valuetext={cell.meterLabel}
-                data-project-location-budget-meter
-                data-budget-health-state={cell.state}
-              >
-                <span
-                  className={cn("absolute inset-x-0 bottom-0 rounded-xs", budgetHealthFillClass(cell.state))}
-                  style={{ height: formatTrackPercent(cell.inBudgetFillPercent) }}
-                  data-project-location-budget-fill
+              <>
+                <meter
+                  className="sr-only"
+                  min={0}
+                  max={Math.max(100, Math.round(cell.usagePercent))}
+                  value={cell.hasBudget ? Math.round(cell.usagePercent) : 0}
+                  aria-label={`${cell.sheet.name} budget health`}
+                  aria-valuemin={0}
+                  aria-valuemax={Math.max(100, Math.round(cell.usagePercent))}
+                  aria-valuenow={cell.hasBudget ? Math.round(cell.usagePercent) : 0}
+                  aria-valuetext={cell.meterLabel}
                 />
-                {cell.overBudgetFillPercent > 0 ? (
+                <div
+                  className="relative h-full min-h-[48px] w-2 overflow-hidden rounded-xs bg-white/45"
+                  aria-hidden="true"
+                  data-project-location-budget-meter
+                  data-budget-health-state={cell.state}
+                >
                   <span
-                    className={`absolute inset-x-0 rounded-xs ${BUDGET_HEALTH_OVERBUDGET_FILL_CLASS}`}
-                    style={{
-                      bottom: formatTrackPercent(cell.budgetTickPercent),
-                      height: formatTrackPercent(cell.overBudgetFillPercent),
-                    }}
-                    data-project-location-budget-overflow
+                    className={cn("absolute inset-x-0 bottom-0 rounded-xs", budgetHealthFillClass(cell.state))}
+                    style={{ height: formatTrackPercent(cell.inBudgetFillPercent) }}
+                    data-project-location-budget-fill
                   />
-                ) : null}
-                {cell.hasBudget ? (
-                  <span
-                    className={`absolute -left-0.5 h-px w-3 ${BUDGET_HEALTH_BUDGET_TICK_CLASS} shadow-[0_0_0_1px_rgba(255,255,255,0.8)]`}
-                    style={{ bottom: formatTrackPercent(cell.budgetTickPercent) }}
-                    data-project-location-budget-tick
-                    aria-hidden="true"
-                  />
-                ) : null}
-              </div>
+                  {cell.overBudgetFillPercent > 0 ? (
+                    <span
+                      className={`absolute inset-x-0 rounded-xs ${BUDGET_HEALTH_OVERBUDGET_FILL_CLASS}`}
+                      style={{
+                        bottom: formatTrackPercent(cell.budgetTickPercent),
+                        height: formatTrackPercent(cell.overBudgetFillPercent),
+                      }}
+                      data-project-location-budget-overflow
+                    />
+                  ) : null}
+                  {cell.hasBudget ? (
+                    <span
+                      className={`absolute -left-0.5 h-px w-3 ${BUDGET_HEALTH_BUDGET_TICK_CLASS} shadow-[0_0_0_1px_rgba(255,255,255,0.8)]`}
+                      style={{ bottom: formatTrackPercent(cell.budgetTickPercent) }}
+                      data-project-location-budget-tick
+                    />
+                  ) : null}
+                </div>
+              </>
             )}
           </div>
         ))}
@@ -547,7 +554,7 @@ function ProjectActivityFeedPanel({ page }: { readonly page: ProjectActivityPage
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto pr-1" role="list" aria-label="Latest project activity">
+        <div className="min-h-0 flex-1 overflow-auto pr-1">
           {groups.map((group) => {
             const collapsed = collapsedGroups.has(group.label);
             const groupId = `project-activity-group-${group.label.replace(/\W+/g, "-").toLowerCase()}`;

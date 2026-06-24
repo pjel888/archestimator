@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { CaretDown, Circle, Cube, FolderSimple, FunnelSimple, Plus, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -18,32 +18,27 @@ import { filterMap } from "@/lib/util/array";
 import type { EstimateRowItem } from "../estimate-tree-data";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "../tree-visual-style";
 import { WorkshopTreeRow, WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
-
-export type EstimateActivityScope =
-  | { mode: "row"; rowId: string }
-  | { mode: "sheet" }
-  | { mode: "node"; nodeId: string; includeDescendants: boolean };
-
-export type RowDetailTab = "details" | "component" | "activity";
-
-export type RowDetailsState = {
-  rowId: string;
-  tab: RowDetailTab;
-};
-
-export type ActivityFilterState = {
-  eventType: string;
-  search: string;
-  dateFrom: string;
-  dateTo: string;
-};
-
-export const DEFAULT_ACTIVITY_FILTERS: ActivityFilterState = {
-  eventType: "",
-  search: "",
-  dateFrom: "",
-  dateTo: "",
-};
+import {
+  BLANK_ESTIMATE_ROW_AUDIT_LABEL,
+  BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
+  DEFAULT_ACTIVITY_FILTERS,
+  clampContingencyPercentage,
+  createActivityFilterKey,
+  formatPeso,
+  getActivityScopeKey,
+  getComponentImageUrl,
+  isBlankEstimateRowItem,
+  pesoFormatter,
+  toEditableContingencyMode,
+  type ActivityFilterState,
+  type ActivityScopeTreeItem,
+  type CostAdjustmentMode,
+  type EstimateActivityScope,
+  type EstimateMaterialCardItem,
+  type FlattenedEstimateRow,
+  type RowDetailTab,
+  type RowDetailsState,
+} from "./activity-history-model";
 
 const ACTIVITY_FILTER_EVENT_TYPES = [
   { value: "", label: "All events" },
@@ -69,71 +64,11 @@ const ACTIVITY_FILTER_EVENT_TYPES = [
 
 const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Sheets" }];
 
-export type FlattenedEstimateRow = {
-  item: EstimateRowItem;
-  nodeId: string;
-  nodePath: string[];
-  quantity: number;
-  contingencyPercentage: number;
-  contingencyValue: number;
-  miscCost: number;
-  lineTotal: number;
-};
-
-export type ActivityScopeTreeItem = {
-  id: string;
-  scope: EstimateActivityScope;
-  depth: number;
-  kind: "sheet" | "group" | "area" | "row";
-  label: string;
-  eyebrow: string;
-  description?: string;
-  total: number | null;
-  row: FlattenedEstimateRow | null;
-};
-export type EstimateMaterialCardItem = Pick<EstimateRowItem, "material" | "supplier" | "itemCost" | "description" | "unit" | "imageUrl" | "category">;
-
-export const pesoFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-});
 const auditNumberFormatter = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 });
-
-export type CostAdjustmentMode = "contingency" | "discount";
-
-export { BLANK_ESTIMATE_ROW_AUDIT_LABEL, BLANK_ESTIMATE_ROW_COMPONENT_LABEL } from "@/lib/activity/activity-composer";
-import { BLANK_ESTIMATE_ROW_AUDIT_LABEL, BLANK_ESTIMATE_ROW_COMPONENT_LABEL } from "@/lib/activity/activity-composer";
-export const BLANK_ESTIMATE_ROW_TAG = "manual-row-placeholder";
-
-export function clampContingencyPercentage(value: number) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(100, Math.max(-100, value));
-}
-
-export function toEditableContingencyMode(value: number): CostAdjustmentMode {
-  return value < 0 ? "discount" : "contingency";
-}
 
 function formatCostAdjustmentPercentage(value: number) {
   const modeLabel = toEditableContingencyMode(value) === "discount" ? "Discount" : "Contingency";
   return `${modeLabel} ${formatAuditNumber(Math.abs(clampContingencyPercentage(value)))}%`;
-}
-
-export function isBlankEstimateRowItem(item: EstimateRowItem) {
-  const isTaggedPlaceholder = item.tags?.includes(BLANK_ESTIMATE_ROW_TAG);
-  const isPersistedPlaceholder =
-    item.source === "project" &&
-    item.material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL &&
-    item.itemCost === 0 &&
-    item.category === "Unassigned" &&
-    !item.imageUrl;
-
-  return (
-    item.source === "project" &&
-    item.material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL &&
-    (isTaggedPlaceholder || isPersistedPlaceholder)
-  );
 }
 
 function AddTreeActionIcon() {
@@ -143,10 +78,6 @@ function AddTreeActionIcon() {
       <Plus size={8} weight="regular" className="absolute right-0 top-0" />
     </span>
   );
-}
-
-export function formatPeso(value: number) {
-  return pesoFormatter.format(value).replace("₱", "₱ ");
 }
 
 function formatSignedPeso(value: number | null | undefined) {
@@ -255,31 +186,6 @@ function getEventSummary(event: EstimateSheetHistoryEvent) {
   if (activity.summary) return activity.summary;
   if (activity.target.secondaryLabel) return activity.target.secondaryLabel;
   return activity.target.label || "Estimate activity";
-}
-
-const componentImageFallbacks: Record<string, string> = {
-  furniture: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80",
-  cabinetry: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=600&q=80",
-  finishes: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=600&q=80",
-  "wall paints / interior finishes": "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=600&q=80",
-  "electrical fixtures": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
-  "lighting fixtures": "https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?auto=format&fit=crop&w=600&q=80",
-  "plumbing fixtures": "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=600&q=80",
-  "kitchen fixtures": "https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=600&q=80",
-  outdoor: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80",
-};
-
-export function getComponentImageUrl(item: EstimateMaterialCardItem) {
-  if (item.imageUrl) return item.imageUrl;
-  const category = item.category?.toLowerCase();
-  if (category && componentImageFallbacks[category]) return componentImageFallbacks[category];
-  const material = item.material.toLowerCase();
-  if (material.includes("paint") || material.includes("skimcoat") || material.includes("wallpaper")) return componentImageFallbacks["wall paints / interior finishes"];
-  if (material.includes("light") || material.includes("outlet") || material.includes("switch") || material.includes("led")) return componentImageFallbacks["electrical fixtures"];
-  if (material.includes("toilet") || material.includes("lavatory") || material.includes("vanity") || material.includes("sink")) return componentImageFallbacks["plumbing fixtures"];
-  if (material.includes("tile") || material.includes("floor")) return componentImageFallbacks.finishes;
-  if (material.includes("wardrobe") || material.includes("cabinet")) return componentImageFallbacks.cabinetry;
-  return componentImageFallbacks.furniture;
 }
 
 function getEventSnapshotRecord(snapshot: unknown) {
@@ -562,34 +468,6 @@ function getAuditSupportingSummary(event: EstimateSheetHistoryEvent, summary: st
   return summary;
 }
 
-function getLocalDateBoundaryISOString(value: string, boundary: "start" | "end") {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return undefined;
-
-  const year = Number(match[1]);
-  const monthIndex = Number(match[2]) - 1;
-  const day = Number(match[3]);
-  const date = boundary === "start"
-    ? new Date(year, monthIndex, day, 0, 0, 0, 0)
-    : new Date(year, monthIndex, day, 23, 59, 59, 999);
-
-  if (date.getFullYear() !== year || date.getMonth() !== monthIndex || date.getDate() !== day) return undefined;
-  return date.toISOString();
-}
-
-export function getActivityFilterInput(filters: ActivityFilterState) {
-  return {
-    eventTypes: filters.eventType ? [filters.eventType] : undefined,
-    dateFrom: filters.dateFrom ? getLocalDateBoundaryISOString(filters.dateFrom, "start") : undefined,
-    dateTo: filters.dateTo ? getLocalDateBoundaryISOString(filters.dateTo, "end") : undefined,
-    search: filters.search.trim() || undefined,
-  };
-}
-
-export function createActivityFilterKey(filters: ActivityFilterState) {
-  return `${filters.eventType}|${filters.search.trim()}|${filters.dateFrom}|${filters.dateTo}`;
-}
-
 function hasActivityFilters(filters: ActivityFilterState) {
   return createActivityFilterKey(filters) !== createActivityFilterKey(DEFAULT_ACTIVITY_FILTERS);
 }
@@ -616,6 +494,7 @@ function ActivityFilterDropdown({
   if (!open) return null;
 
   return (
+    // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Filter controls need a labelled ARIA group; <address> is not appropriate here.
     <div
       role="group"
       aria-label="Activity filter options"
@@ -1100,6 +979,103 @@ function RowDetailField({ label, value }: { label: string; value: string | numbe
   );
 }
 
+function useNativeModalDialog(onClose: () => void) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  const handleDialogMouseDown = useCallback(
+    (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.target === dialogRef.current) onClose();
+    },
+    [onClose],
+  );
+
+  return useCallback(
+    (node: HTMLDialogElement | null) => {
+      dialogRef.current?.removeEventListener("mousedown", handleDialogMouseDown);
+      dialogRef.current = node;
+      if (!node) return;
+
+      node.addEventListener("mousedown", handleDialogMouseDown);
+      if (node.open) return;
+
+      if (typeof node.showModal === "function") {
+        try {
+          node.showModal();
+        } catch {
+          node.setAttribute("open", "");
+        }
+        return;
+      }
+
+      node.setAttribute("open", "");
+    },
+    [handleDialogMouseDown],
+  );
+}
+
+type RowActivityState = {
+  events: EstimateSheetHistoryEvent[];
+  nextCursor: EstimateSheetVersionControlData["rowNextCursor"];
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  error: string;
+};
+
+type RowActivityAction =
+  | { type: "initialLoadStarted" }
+  | { type: "loadMoreStarted" }
+  | { type: "loaded"; events: EstimateSheetHistoryEvent[]; nextCursor: EstimateSheetVersionControlData["rowNextCursor"]; append: boolean }
+  | { type: "failed"; error: string }
+  | { type: "settled" };
+
+const INITIAL_ROW_ACTIVITY_STATE: RowActivityState = {
+  events: [],
+  nextCursor: null,
+  isLoading: false,
+  isLoadingMore: false,
+  error: "",
+};
+
+function rowActivityReducer(state: RowActivityState, action: RowActivityAction): RowActivityState {
+  switch (action.type) {
+    case "initialLoadStarted":
+      return {
+        events: [],
+        nextCursor: null,
+        isLoading: true,
+        isLoadingMore: false,
+        error: "",
+      };
+    case "loadMoreStarted":
+      return {
+        ...state,
+        isLoadingMore: true,
+        error: "",
+      };
+    case "loaded":
+      return {
+        ...state,
+        events: action.append ? [...state.events, ...action.events] : action.events,
+        nextCursor: action.nextCursor,
+        error: "",
+      };
+    case "failed":
+      return {
+        ...state,
+        error: action.error,
+      };
+    case "settled":
+      return {
+        ...state,
+        isLoading: false,
+        isLoadingMore: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export function RowDetailsModal({
   row,
   tab,
@@ -1115,13 +1091,10 @@ export function RowDetailsModal({
   onTabChange: (tab: RowDetailTab) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useNativeModalDialog(onClose);
   const item = row?.item ?? null;
   const isBlankRow = item ? isBlankEstimateRowItem(item) : false;
-  const [events, setEvents] = useState<EstimateSheetHistoryEvent[]>([]);
-  const [nextCursor, setNextCursor] = useState<EstimateSheetVersionControlData["rowNextCursor"]>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState("");
+  const [rowActivity, dispatchRowActivity] = useReducer(rowActivityReducer, INITIAL_ROW_ACTIVITY_STATE);
   const requestGenerationRef = useRef(0);
   const rowId = item?.id ?? "";
 
@@ -1129,13 +1102,10 @@ export function RowDetailsModal({
     if (!projectId || !estimateId || !rowId) return;
     const requestGeneration = requestGenerationRef.current;
     if (cursor) {
-      setIsLoadingMore(true);
+      dispatchRowActivity({ type: "loadMoreStarted" });
     } else {
-      setIsLoading(true);
-      setEvents([]);
-      setNextCursor(null);
+      dispatchRowActivity({ type: "initialLoadStarted" });
     }
-    setError("");
 
     fetchEstimateSheetVersionControl({
       projectId,
@@ -1147,17 +1117,23 @@ export function RowDetailsModal({
     })
       .then((data) => {
         if (requestGenerationRef.current !== requestGeneration) return;
-        setEvents((current) => (cursor ? [...current, ...data.rowEvents] : data.rowEvents));
-        setNextCursor(data.rowNextCursor);
+        dispatchRowActivity({
+          type: "loaded",
+          events: data.rowEvents,
+          nextCursor: data.rowNextCursor,
+          append: Boolean(cursor),
+        });
       })
       .catch((caughtError: unknown) => {
         if (requestGenerationRef.current !== requestGeneration) return;
-        setError(caughtError instanceof Error ? caughtError.message : "Row activity could not load.");
+        dispatchRowActivity({
+          type: "failed",
+          error: caughtError instanceof Error ? caughtError.message : "Row activity could not load.",
+        });
       })
       .finally(() => {
         if (requestGenerationRef.current !== requestGeneration) return;
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        dispatchRowActivity({ type: "settled" });
       });
   }, [estimateId, projectId, rowId]);
 
@@ -1179,22 +1155,15 @@ export function RowDetailsModal({
   const showReferenceImage = Boolean(item && !isBlankRow && (!isExpressComponentRow(item) || item.imageUrl));
 
   return (
-    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop mouse dismissal is paired with keyboard dismissal in the dialog content.
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
-      onMouseDown={(event) => {
-        // A popup (dropdown listbox) dismissed by this gesture suppresses
-        // the rest of it; this backdrop must not also close the modal.
-        if (event.defaultPrevented) return;
-        if (event.target === event.currentTarget) onClose();
+    <dialog
+      ref={dialogRef}
+      aria-label="Row item details"
+      className="z-50 m-auto flex h-[min(720px,calc(100dvh-32px))] w-[min(940px,calc(100vw-32px))] min-w-0 flex-col overflow-hidden border border-hairline bg-[#FBFCFD] p-0 text-ink shadow-2xl outline-none backdrop:bg-black/20 max-sm:h-[calc(100dvh-16px)] max-sm:w-[calc(100vw-16px)]"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
       }}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Row item details"
-        className="flex h-[min(720px,calc(100dvh-32px))] w-[min(940px,calc(100vw-32px))] min-w-0 flex-col overflow-hidden border border-hairline bg-[#FBFCFD] shadow-2xl max-sm:h-[calc(100dvh-16px)] max-sm:w-[calc(100vw-16px)]"
-      >
         <div className="flex h-10 shrink-0 items-center justify-between border-b border-hairline bg-white px-3">
           <div className="min-w-0">
             <p className="text-[9px] font-medium text-ink">Row Item</p>
@@ -1296,34 +1265,26 @@ export function RowDetailsModal({
               ) : null}
               {tab === "activity" ? (
                 <EventList
-                  events={events}
-                  isLoading={isLoading}
-                  error={error}
+                  events={rowActivity.events}
+                  isLoading={rowActivity.isLoading}
+                  error={rowActivity.error}
                   emptyLabel="No row activity yet"
                   emptyDescription="Edits, replacements, and value changes for this row will appear here."
                   onRetry={() => {
                     requestGenerationRef.current += 1;
                     loadRowActivity();
                   }}
-                  nextCursor={nextCursor}
-                  isLoadingMore={isLoadingMore}
+                  nextCursor={rowActivity.nextCursor}
+                  isLoadingMore={rowActivity.isLoadingMore}
                   loadMoreLabel="Load more row activity"
-                  onLoadMore={() => loadRowActivity(nextCursor)}
+                  onLoadMore={() => loadRowActivity(rowActivity.nextCursor)}
                 />
               ) : null}
             </div>
           </div>
         </div>
-      </section>
-    </div>
+    </dialog>
   );
-}
-
-export function getActivityScopeKey(scope: EstimateActivityScope | null) {
-  if (!scope) return "";
-  if (scope.mode === "row") return `row:${scope.rowId}`;
-  if (scope.mode === "node") return `node:${scope.nodeId}:${scope.includeDescendants ? "desc" : "direct"}`;
-  return "sheet";
 }
 
 function getActivityEventsForScope(scope: EstimateActivityScope, historyData: EstimateSheetVersionControlData | null) {
@@ -1582,6 +1543,7 @@ export function ActivityHistoryModal({
   onLoadMore: () => void;
   onScopeSelect: (scope: EstimateActivityScope) => void;
 }) {
+  const dialogRef = useNativeModalDialog(onClose);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const activeScopeKey = getActivityScopeKey(scope);
   const events = getActivityEventsForScope(scope, historyData);
@@ -1601,22 +1563,15 @@ export function ActivityHistoryModal({
   };
 
   return (
-    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop mouse dismissal is paired with keyboard dismissal in the dialog content.
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
-      onMouseDown={(event) => {
-        // A popup (dropdown listbox) dismissed by this gesture suppresses
-        // the rest of it; this backdrop must not also close the modal.
-        if (event.defaultPrevented) return;
-        if (event.target === event.currentTarget) onClose();
+    <dialog
+      ref={dialogRef}
+      aria-label="Activity History"
+      className="z-50 m-auto flex h-[min(860px,calc(100dvh-32px))] w-[min(1180px,calc(100vw-32px))] min-w-0 flex-col overflow-hidden border border-hairline bg-[#FBFCFD] p-0 text-ink shadow-2xl outline-none backdrop:bg-black/20 max-sm:h-[calc(100dvh-16px)] max-sm:w-[calc(100vw-16px)]"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
       }}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Activity History"
-        className="flex h-[min(860px,calc(100dvh-32px))] w-[min(1180px,calc(100vw-32px))] min-w-0 flex-col overflow-hidden border border-hairline bg-[#FBFCFD] shadow-2xl max-sm:h-[calc(100dvh-16px)] max-sm:w-[calc(100vw-16px)]"
-      >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-hairline bg-white px-4">
           <div className="min-w-0">
             <p className="text-[11px] font-medium text-ink">Activity History</p>
@@ -1707,7 +1662,6 @@ export function ActivityHistoryModal({
             </div>
           </div>
         </div>
-      </section>
-    </div>
+    </dialog>
   );
 }

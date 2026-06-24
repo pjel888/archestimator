@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useReducer, useRef, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -12,14 +12,16 @@ import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
   ComponentAppliedFacetChips,
+  ComponentFacetFilterPopover,
+} from "@/components/workshop/library/component-facet-filter";
+import {
   buildComponentFacetOptions,
   componentMatchesFacets,
-  ComponentFacetFilterPopover,
   COMPONENT_LIFECYCLE_FACET_LABELS,
   countActiveComponentFacets,
   parseComponentFacetSearchParams,
   type ComponentFacetFilters,
-} from "@/components/workshop/library/component-facet-filter";
+} from "@/components/workshop/library/component-facet-filter-model";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
@@ -38,10 +40,11 @@ import {
   COMPONENT_ROUTE_PARAM,
 } from "@/components/workshop/library/component-route-state";
 import {
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
-import { getComponentSourceTrustChips, SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
+import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
+import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import { promoteExpressRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
 import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { EditComponentDrawer } from "@/components/workshop/library/EditComponentDrawer";
@@ -161,11 +164,252 @@ type DenseSortState = {
   direction: DenseSortDirection;
 };
 
+type ComponentLibrarySheetState = {
+  searchQuery: string;
+  searchOpen: boolean;
+  facetFilters: ComponentFacetFilters;
+  collapsedCatalogueBranchIds: Set<string>;
+  displayMode: ComponentLibraryDisplayMode;
+  denseSort: DenseSortState;
+};
+
+type ComponentLibrarySheetAction =
+  | { type: "searchQueryChanged"; query: string }
+  | { type: "searchOpenChanged"; open: boolean }
+  | { type: "facetFiltersChanged"; filters: ComponentFacetFilters }
+  | { type: "facetParamsApplied"; filters: ComponentFacetFilters }
+  | { type: "catalogueBranchToggled"; branchId: string }
+  | { type: "displayModeChanged"; mode: ComponentLibraryDisplayMode }
+  | { type: "denseSortChanged"; key: DenseSortKey };
+
+function getInitialComponentLibraryDisplayMode(denseModeEnabled: boolean): ComponentLibraryDisplayMode {
+  if (!denseModeEnabled) return "cards";
+  try {
+    const stored = window.localStorage.getItem(LIBRARY_DISPLAY_MODE_STORAGE_KEY);
+    if (stored === "cards" || stored === "dense") return stored;
+  } catch {}
+  return "cards";
+}
+
+function createInitialComponentLibrarySheetState({
+  denseModeEnabled,
+  facetParamsKey,
+}: {
+  denseModeEnabled: boolean;
+  facetParamsKey: string;
+}): ComponentLibrarySheetState {
+  return {
+    searchQuery: "",
+    searchOpen: false,
+    facetFilters: parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)),
+    collapsedCatalogueBranchIds: new Set(),
+    displayMode: getInitialComponentLibraryDisplayMode(denseModeEnabled),
+    denseSort: { key: "folder", direction: "asc" },
+  };
+}
+
+function componentLibrarySheetReducer(
+  state: ComponentLibrarySheetState,
+  action: ComponentLibrarySheetAction,
+): ComponentLibrarySheetState {
+  switch (action.type) {
+    case "searchQueryChanged":
+      return {
+        ...state,
+        searchQuery: action.query,
+      };
+    case "searchOpenChanged":
+      return {
+        ...state,
+        searchOpen: action.open,
+      };
+    case "facetFiltersChanged":
+    case "facetParamsApplied":
+      return {
+        ...state,
+        facetFilters: action.filters,
+      };
+    case "catalogueBranchToggled": {
+      const collapsedCatalogueBranchIds = new Set(state.collapsedCatalogueBranchIds);
+      if (collapsedCatalogueBranchIds.has(action.branchId)) {
+        collapsedCatalogueBranchIds.delete(action.branchId);
+      } else {
+        collapsedCatalogueBranchIds.add(action.branchId);
+      }
+      return {
+        ...state,
+        collapsedCatalogueBranchIds,
+      };
+    }
+    case "displayModeChanged":
+      return {
+        ...state,
+        displayMode: action.mode,
+      };
+    case "denseSortChanged":
+      return {
+        ...state,
+        denseSort: getNextDenseSortState(state.denseSort, action.key),
+      };
+    default:
+      return state;
+  }
+}
+
 type SheetStatus =
   | { state: "idle" }
   | { state: "saving"; message: string }
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
+
+type StateUpdater<T> = T | ((current: T) => T);
+type LibraryItemState = { source: EstimateRowItem[]; items: EstimateRowItem[] };
+type ArchiveComponentState = "idle" | "loading" | "ready" | "executing";
+
+type FolderTextPrompt = {
+  title: string;
+  label: string;
+  confirmLabel: string;
+  initialValue: string;
+  onSubmit: (value: string) => void;
+};
+
+type ComponentLibraryManagerState = {
+  localFolders: LibraryFolderRecord[];
+  viewMode: ComponentViewMode;
+  selectedFolderId: string | null;
+  selectedSupplierNodeId: string;
+  selectedBrandNodeId: string;
+  reorderStatus: ReorderStatus;
+  sheetStatus: SheetStatus;
+  addComponentOpen: boolean;
+  libraryItemState: LibraryItemState;
+  selectedItemIds: Set<string>;
+  promotingItemId: string | null;
+  archiveComponentTargetIds: string[];
+  archiveComponentPreview: BulkActionPreviewResult | null;
+  archiveComponentError: string | null;
+  archiveComponentState: ArchiveComponentState;
+  folderTextPrompt: FolderTextPrompt | null;
+  folderTextPromptValue: string;
+  deleteFolderTarget: { folderId: string; currentName: string } | null;
+  componentRouteStateVersion: number;
+  editDrawerOpen: boolean;
+};
+
+type ComponentLibraryManagerInit = {
+  normalizedPropFolders: LibraryFolderRecord[];
+  addComponentInitiallyOpen: boolean;
+  libraryItems: EstimateRowItem[];
+};
+
+type ComponentLibraryManagerAction =
+  | { type: "localFoldersChanged"; value: StateUpdater<LibraryFolderRecord[]> }
+  | { type: "viewModeChanged"; value: StateUpdater<ComponentViewMode> }
+  | { type: "selectedFolderIdChanged"; value: StateUpdater<string | null> }
+  | { type: "selectedSupplierNodeIdChanged"; value: StateUpdater<string> }
+  | { type: "selectedBrandNodeIdChanged"; value: StateUpdater<string> }
+  | { type: "reorderStatusChanged"; value: StateUpdater<ReorderStatus> }
+  | { type: "sheetStatusChanged"; value: StateUpdater<SheetStatus> }
+  | { type: "addComponentOpenChanged"; value: StateUpdater<boolean> }
+  | { type: "libraryItemStateChanged"; value: StateUpdater<LibraryItemState> }
+  | { type: "selectedItemIdsChanged"; value: StateUpdater<Set<string>> }
+  | { type: "promotingItemIdChanged"; value: StateUpdater<string | null> }
+  | { type: "archiveComponentTargetIdsChanged"; value: StateUpdater<string[]> }
+  | { type: "archiveComponentPreviewChanged"; value: StateUpdater<BulkActionPreviewResult | null> }
+  | { type: "archiveComponentErrorChanged"; value: StateUpdater<string | null> }
+  | { type: "archiveComponentStateChanged"; value: StateUpdater<ArchiveComponentState> }
+  | { type: "folderTextPromptChanged"; value: StateUpdater<FolderTextPrompt | null> }
+  | { type: "folderTextPromptValueChanged"; value: StateUpdater<string> }
+  | { type: "deleteFolderTargetChanged"; value: StateUpdater<{ folderId: string; currentName: string } | null> }
+  | { type: "componentRouteStateVersionBumped" }
+  | { type: "editDrawerOpenChanged"; value: StateUpdater<boolean> };
+
+function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
+  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
+}
+
+function createInitialComponentLibraryManagerState({
+  normalizedPropFolders,
+  addComponentInitiallyOpen,
+  libraryItems,
+}: ComponentLibraryManagerInit): ComponentLibraryManagerState {
+  return {
+    localFolders: normalizedPropFolders,
+    viewMode: "default",
+    selectedFolderId: ALL_COMPONENTS_FOLDER_ID,
+    selectedSupplierNodeId: "all-suppliers",
+    selectedBrandNodeId: "all-brands",
+    reorderStatus: { state: "idle" },
+    sheetStatus: { state: "idle" },
+    addComponentOpen: addComponentInitiallyOpen,
+    libraryItemState: {
+      source: libraryItems,
+      items: libraryItems,
+    },
+    selectedItemIds: new Set(),
+    promotingItemId: null,
+    archiveComponentTargetIds: [],
+    archiveComponentPreview: null,
+    archiveComponentError: null,
+    archiveComponentState: "idle",
+    folderTextPrompt: null,
+    folderTextPromptValue: "",
+    deleteFolderTarget: null,
+    componentRouteStateVersion: 0,
+    editDrawerOpen: false,
+  };
+}
+
+function componentLibraryManagerReducer(
+  state: ComponentLibraryManagerState,
+  action: ComponentLibraryManagerAction,
+): ComponentLibraryManagerState {
+  switch (action.type) {
+    case "localFoldersChanged":
+      return { ...state, localFolders: resolveStateUpdater(state.localFolders, action.value) };
+    case "viewModeChanged":
+      return { ...state, viewMode: resolveStateUpdater(state.viewMode, action.value) };
+    case "selectedFolderIdChanged":
+      return { ...state, selectedFolderId: resolveStateUpdater(state.selectedFolderId, action.value) };
+    case "selectedSupplierNodeIdChanged":
+      return { ...state, selectedSupplierNodeId: resolveStateUpdater(state.selectedSupplierNodeId, action.value) };
+    case "selectedBrandNodeIdChanged":
+      return { ...state, selectedBrandNodeId: resolveStateUpdater(state.selectedBrandNodeId, action.value) };
+    case "reorderStatusChanged":
+      return { ...state, reorderStatus: resolveStateUpdater(state.reorderStatus, action.value) };
+    case "sheetStatusChanged":
+      return { ...state, sheetStatus: resolveStateUpdater(state.sheetStatus, action.value) };
+    case "addComponentOpenChanged":
+      return { ...state, addComponentOpen: resolveStateUpdater(state.addComponentOpen, action.value) };
+    case "libraryItemStateChanged":
+      return { ...state, libraryItemState: resolveStateUpdater(state.libraryItemState, action.value) };
+    case "selectedItemIdsChanged":
+      return { ...state, selectedItemIds: resolveStateUpdater(state.selectedItemIds, action.value) };
+    case "promotingItemIdChanged":
+      return { ...state, promotingItemId: resolveStateUpdater(state.promotingItemId, action.value) };
+    case "archiveComponentTargetIdsChanged":
+      return { ...state, archiveComponentTargetIds: resolveStateUpdater(state.archiveComponentTargetIds, action.value) };
+    case "archiveComponentPreviewChanged":
+      return { ...state, archiveComponentPreview: resolveStateUpdater(state.archiveComponentPreview, action.value) };
+    case "archiveComponentErrorChanged":
+      return { ...state, archiveComponentError: resolveStateUpdater(state.archiveComponentError, action.value) };
+    case "archiveComponentStateChanged":
+      return { ...state, archiveComponentState: resolveStateUpdater(state.archiveComponentState, action.value) };
+    case "folderTextPromptChanged":
+      return { ...state, folderTextPrompt: resolveStateUpdater(state.folderTextPrompt, action.value) };
+    case "folderTextPromptValueChanged":
+      return { ...state, folderTextPromptValue: resolveStateUpdater(state.folderTextPromptValue, action.value) };
+    case "deleteFolderTargetChanged":
+      return { ...state, deleteFolderTarget: resolveStateUpdater(state.deleteFolderTarget, action.value) };
+    case "componentRouteStateVersionBumped":
+      return { ...state, componentRouteStateVersion: state.componentRouteStateVersion + 1 };
+    case "editDrawerOpenChanged":
+      return { ...state, editDrawerOpen: resolveStateUpdater(state.editDrawerOpen, action.value) };
+    default:
+      return state;
+  }
+}
 
 function findNode(nodes: LibraryTreeNode[], nodeId: string): LibraryTreeNode | null {
   for (const node of nodes) {
@@ -1227,6 +1471,7 @@ function ComponentLibraryTreePanel({
   );
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function ComponentLibrarySheet({
   selectedFolderNode,
   selectedFolderId,
@@ -1273,34 +1518,35 @@ function ComponentLibrarySheet({
   promotingItemId?: string | null;
 }) {
   const surfaceVariant = useLibrarySurfaceVariant();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchParams = useSearchParams();
   const facetParamsKey = searchParams?.toString() ?? "";
-  const [appliedFacetParamsKey, setAppliedFacetParamsKey] = useState(facetParamsKey);
-  const [facetFilters, setFacetFilters] = useState<ComponentFacetFilters>(() =>
-    parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)),
+  const denseModeEnabled = isLibraryDenseModeEnabled();
+  const [sheetState, dispatchSheet] = useReducer(
+    componentLibrarySheetReducer,
+    { denseModeEnabled, facetParamsKey },
+    createInitialComponentLibrarySheetState,
   );
+  const {
+    searchQuery,
+    searchOpen,
+    facetFilters,
+    collapsedCatalogueBranchIds,
+    displayMode,
+    denseSort,
+  } = sheetState;
+  const appliedFacetParamsKeyRef = useRef(facetParamsKey);
   // Health-line deep links re-target this route with new facet params while
   // the manager stays mounted; re-seed the facet state when they change.
   useEffect(() => {
-    if (facetParamsKey === appliedFacetParamsKey) return;
-    setAppliedFacetParamsKey(facetParamsKey);
-    setFacetFilters(parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)));
-  }, [appliedFacetParamsKey, facetParamsKey]);
-  const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
-  const denseModeEnabled = isLibraryDenseModeEnabled();
-  const [displayMode, setDisplayMode] = useState<ComponentLibraryDisplayMode>(() => {
-    if (!denseModeEnabled) return "cards";
-    try {
-      const stored = window.localStorage.getItem(LIBRARY_DISPLAY_MODE_STORAGE_KEY);
-      if (stored === "cards" || stored === "dense") return stored;
-    } catch {}
-    return "cards";
-  });
+    if (facetParamsKey === appliedFacetParamsKeyRef.current) return;
+    appliedFacetParamsKeyRef.current = facetParamsKey;
+    dispatchSheet({
+      type: "facetParamsApplied",
+      filters: parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)),
+    });
+  }, [facetParamsKey]);
   const effectiveDisplayMode: ComponentLibraryDisplayMode = denseModeEnabled ? displayMode : "cards";
-  const [denseSort, setDenseSort] = useState<DenseSortState>({ key: "folder", direction: "asc" });
   const sheetItems = useMemo(() => {
     if (viewMode === "suppliers") {
       if (!selectedSupplierNode || selectedSupplierNode.id === "all-suppliers") return getSupplierBackedItems(libraryItems);
@@ -1332,7 +1578,7 @@ function ComponentLibrarySheet({
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
       if (document.querySelector("[role='dialog'], [role='alertdialog']")) return;
       event.preventDefault();
-      setSearchOpen(true);
+      dispatchSheet({ type: "searchOpenChanged", open: true });
       requestAnimationFrame(() => searchInputRef.current?.focus());
     }
 
@@ -1358,24 +1604,16 @@ function ComponentLibrarySheet({
   );
   const resultSummary = getCatalogueScopeSummary(sheetItems.length);
   const toggleCatalogueBranch = (branchId: string) => {
-    setCollapsedCatalogueBranchIds((current) => {
-      const next = new Set(current);
-      if (next.has(branchId)) {
-        next.delete(branchId);
-      } else {
-        next.add(branchId);
-      }
-      return next;
-    });
+    dispatchSheet({ type: "catalogueBranchToggled", branchId });
   };
   const changeDisplayMode = (mode: ComponentLibraryDisplayMode) => {
-    setDisplayMode(mode);
+    dispatchSheet({ type: "displayModeChanged", mode });
     try {
       window.localStorage.setItem(LIBRARY_DISPLAY_MODE_STORAGE_KEY, mode);
     } catch {}
   };
   const changeDenseSort = (key: DenseSortKey) => {
-    setDenseSort((current) => getNextDenseSortState(current, key));
+    dispatchSheet({ type: "denseSortChanged", key });
   };
   const selectedLabel = viewMode === "suppliers"
     ? selectedSupplierNode?.label ?? "All Suppliers"
@@ -1411,18 +1649,18 @@ function ComponentLibrarySheet({
           ariaLabel="Component table tools"
           labelPrefix="component table"
           searchValue={searchQuery}
-          onSearchValueChange={setSearchQuery}
+          onSearchValueChange={(query) => dispatchSheet({ type: "searchQueryChanged", query })}
           searchPlaceholder="Search components"
           searchLabel="Search components"
           searchOpen={searchOpen}
-          onSearchOpenChange={setSearchOpen}
+          onSearchOpenChange={(open) => dispatchSheet({ type: "searchOpenChanged", open })}
           searchInputRef={searchInputRef}
           showDefaultActions={false}
           filterSlot={
             <ComponentFacetFilterPopover
               options={facetOptions}
               filters={facetFilters}
-              onFiltersChange={setFacetFilters}
+              onFiltersChange={(filters) => dispatchSheet({ type: "facetFiltersChanged", filters })}
             />
           }
           addActions={[
@@ -1450,6 +1688,7 @@ function ComponentLibrarySheet({
           </p>
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             {denseModeEnabled ? (
+              // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Display mode buttons are a named control group; <address> would be incorrect.
               <div
                 role="group"
                 aria-label="Component display mode"
@@ -1495,7 +1734,7 @@ function ComponentLibrarySheet({
         <ComponentAppliedFacetChips
           filters={facetFilters}
           options={facetOptions}
-          onFiltersChange={setFacetFilters}
+          onFiltersChange={(filters) => dispatchSheet({ type: "facetFiltersChanged", filters })}
           className={surfaceVariant === "glass" ? "estimate-glass-chrome estimate-glass-divider border-b-0 bg-transparent" : undefined}
         />
         {status.state !== "idle" ? (
@@ -1686,6 +1925,7 @@ function ComponentLibrarySheetPanel({
   );
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function ComponentLibraryManager({
   categoryTree = componentCategoryTree,
   suppliers = [],
@@ -1726,10 +1966,84 @@ export function ComponentLibraryManager({
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
   const normalizedPropFolders = useMemo(
+    // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure prop normalization for reducer seeding, not effect-driven event logic.
     () => normalizeLibraryFolderRecords(libraryFolders ?? []),
     [libraryFolders],
   );
-  const [localFolders, setLocalFolders] = useState<LibraryFolderRecord[]>(normalizedPropFolders);
+  // Library Optimization Plan P1 T8 (F23): the Overview "Add component" CTA navigates
+  // here with ?add=component; open the Add Component modal on arrival instead of just
+  // landing on the tab. Seeding the initial state from the param (not an effect) opens
+  // it exactly once on mount with no cascading re-render.
+  const pathname = usePathname();
+  const addComponentSearchParams = useSearchParams();
+  const componentRouteSearchParamsKey = addComponentSearchParams?.toString() ?? "";
+  const routeComponentId = addComponentSearchParams?.get(COMPONENT_ROUTE_PARAM) ?? null;
+  const addComponentInitiallyOpen = addComponentSearchParams?.get("add") === "component";
+  const [managerState, dispatchManager] = useReducer(
+    componentLibraryManagerReducer,
+    // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: reducer initializer payload, not effect-driven event logic.
+    { normalizedPropFolders, addComponentInitiallyOpen, libraryItems },
+    createInitialComponentLibraryManagerState,
+  );
+  const {
+    localFolders,
+    viewMode,
+    selectedFolderId,
+    selectedSupplierNodeId,
+    selectedBrandNodeId,
+    reorderStatus,
+    sheetStatus,
+    addComponentOpen,
+    libraryItemState,
+    selectedItemIds,
+    promotingItemId,
+    archiveComponentTargetIds,
+    archiveComponentPreview,
+    archiveComponentError,
+    archiveComponentState,
+    folderTextPrompt,
+    folderTextPromptValue,
+    deleteFolderTarget,
+    editDrawerOpen,
+  } = managerState;
+  const setLocalFolders = (value: StateUpdater<LibraryFolderRecord[]>) =>
+    dispatchManager({ type: "localFoldersChanged", value });
+  const setViewMode = (value: StateUpdater<ComponentViewMode>) =>
+    dispatchManager({ type: "viewModeChanged", value });
+  const setSelectedFolderId = (value: StateUpdater<string | null>) =>
+    dispatchManager({ type: "selectedFolderIdChanged", value });
+  const setSelectedSupplierNodeId = (value: StateUpdater<string>) =>
+    dispatchManager({ type: "selectedSupplierNodeIdChanged", value });
+  const setSelectedBrandNodeId = (value: StateUpdater<string>) =>
+    dispatchManager({ type: "selectedBrandNodeIdChanged", value });
+  const setReorderStatus = (value: StateUpdater<ReorderStatus>) =>
+    dispatchManager({ type: "reorderStatusChanged", value });
+  const setSheetStatus = (value: StateUpdater<SheetStatus>) =>
+    dispatchManager({ type: "sheetStatusChanged", value });
+  const setAddComponentOpen = (value: StateUpdater<boolean>) =>
+    dispatchManager({ type: "addComponentOpenChanged", value });
+  const setLibraryItemState = (value: StateUpdater<LibraryItemState>) =>
+    dispatchManager({ type: "libraryItemStateChanged", value });
+  const setSelectedItemIds = (value: StateUpdater<Set<string>>) =>
+    dispatchManager({ type: "selectedItemIdsChanged", value });
+  const setPromotingItemId = (value: StateUpdater<string | null>) =>
+    dispatchManager({ type: "promotingItemIdChanged", value });
+  const setArchiveComponentTargetIds = (value: StateUpdater<string[]>) =>
+    dispatchManager({ type: "archiveComponentTargetIdsChanged", value });
+  const setArchiveComponentPreview = (value: StateUpdater<BulkActionPreviewResult | null>) =>
+    dispatchManager({ type: "archiveComponentPreviewChanged", value });
+  const setArchiveComponentError = (value: StateUpdater<string | null>) =>
+    dispatchManager({ type: "archiveComponentErrorChanged", value });
+  const setArchiveComponentState = (value: StateUpdater<ArchiveComponentState>) =>
+    dispatchManager({ type: "archiveComponentStateChanged", value });
+  const setFolderTextPrompt = (value: StateUpdater<FolderTextPrompt | null>) =>
+    dispatchManager({ type: "folderTextPromptChanged", value });
+  const setFolderTextPromptValue = (value: StateUpdater<string>) =>
+    dispatchManager({ type: "folderTextPromptValueChanged", value });
+  const setDeleteFolderTarget = (value: StateUpdater<{ folderId: string; currentName: string } | null>) =>
+    dispatchManager({ type: "deleteFolderTargetChanged", value });
+  const setEditDrawerOpen = (value: StateUpdater<boolean>) =>
+    dispatchManager({ type: "editDrawerOpenChanged", value });
   // Reorder + any external folder edit goes through here so the warm query cache
   // (T4) stays coherent with localFolders. The same functional updater is applied
   // independently to both — they start equal, so they stay equal.
@@ -1744,49 +2058,19 @@ export function ComponentLibraryManager({
       syncLibraryFoldersCache(() => action);
     }
   };
-  const [viewMode, setViewMode] = useState<ComponentViewMode>("default");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(ALL_COMPONENTS_FOLDER_ID);
-  const [selectedSupplierNodeId, setSelectedSupplierNodeId] = useState("all-suppliers");
-  const [selectedBrandNodeId, setSelectedBrandNodeId] = useState("all-brands");
-  const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
-  const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
-  // Library Optimization Plan P1 T8 (F23): the Overview "Add component" CTA navigates
-  // here with ?add=component; open the Add Component modal on arrival instead of just
-  // landing on the tab. Seeding the initial state from the param (not an effect) opens
-  // it exactly once on mount with no cascading re-render.
-  const pathname = usePathname();
-  const addComponentSearchParams = useSearchParams();
-  const componentRouteSearchParamsKey = addComponentSearchParams?.toString() ?? "";
-  const routeComponentId = addComponentSearchParams?.get(COMPONENT_ROUTE_PARAM) ?? null;
-  const [addComponentOpen, setAddComponentOpen] = useState(
-    () => addComponentSearchParams?.get("add") === "component",
-  );
-  const [libraryItemState, setLibraryItemState] = useState<{ source: EstimateRowItem[]; items: EstimateRowItem[] }>(() => ({
-    source: libraryItems,
-    items: libraryItems,
-  }));
-  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => new Set());
-  const [promotingItemId, setPromotingItemId] = useState<string | null>(null);
-  const [archiveComponentTargetIds, setArchiveComponentTargetIds] = useState<string[]>([]);
-  const [archiveComponentPreview, setArchiveComponentPreview] = useState<BulkActionPreviewResult | null>(null);
-  const [archiveComponentError, setArchiveComponentError] = useState<string | null>(null);
-  const [archiveComponentState, setArchiveComponentState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
-  const [folderTextPrompt, setFolderTextPrompt] = useState<
-    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
-    | null
-  >(null);
-  const [folderTextPromptValue, setFolderTextPromptValue] = useState("");
-  const [deleteFolderTarget, setDeleteFolderTarget] = useState<{ folderId: string; currentName: string } | null>(null);
   const [isTreeMutationPending, startTreeMutation] = useTransition();
-  const [, bumpComponentRouteStateVersion] = useState(0);
-  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [isDuplicatePending, startDuplicateTransition] = useTransition();
 
   const localLibraryItems = libraryItemState.source === libraryItems ? libraryItemState.items : libraryItems;
-  useEffect(() => {
-    if (libraryItemState.source === libraryItems) return;
-    setLibraryItemState({ source: libraryItems, items: libraryItems });
-  }, [libraryItemState.source, libraryItems]);
+  function updateLocalLibraryItems(updater: (items: EstimateRowItem[]) => EstimateRowItem[]) {
+    setLibraryItemState((current) => {
+      const currentItems = current.source === libraryItems ? current.items : libraryItems;
+      return {
+        source: libraryItems,
+        items: updater(currentItems),
+      };
+    });
+  }
 
   const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;
   const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive 1 component?" : `Archive ${archiveComponentTargetIds.length} components?`;
@@ -1866,10 +2150,7 @@ export function ComponentLibraryManager({
   }
 
   function handleComponentCreated(item: EstimateRowItem) {
-    setLibraryItemState((current) => ({
-      ...current,
-      items: [item, ...current.items.filter((entry) => entry.id !== item.id)],
-    }));
+    updateLocalLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
     if (item.libraryFolderId) setSelectedFolderId(item.libraryFolderId);
     if (item.supplierId) setSelectedSupplierNodeId(toSupplierTreeNodeId(item.supplierId));
     if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
@@ -1900,7 +2181,7 @@ export function ComponentLibraryManager({
     });
     const historyMethod = mode === "push" ? "pushState" : "replaceState";
     window.history[historyMethod](null, "", href);
-    bumpComponentRouteStateVersion((version) => version + 1);
+    dispatchManager({ type: "componentRouteStateVersionBumped" });
   }
 
   useEffect(() => {
@@ -1956,10 +2237,7 @@ export function ComponentLibraryManager({
   }
 
   function handleComponentEdited(patch: Partial<EstimateRowItem> & { id: string }) {
-    setLibraryItemState((current) => ({
-      ...current,
-      items: current.items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)),
-    }));
+    updateLocalLibraryItems((items) => items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)));
     setSheetStatus({ state: "saved", message: "Component updated." });
     syncLibraryItemsCache((items) => items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)));
   }
@@ -2052,10 +2330,7 @@ export function ComponentLibraryManager({
         estimateId: targetEstimateId,
         rowId: item.id,
       });
-      setLibraryItemState((current) => ({
-        ...current,
-        items: current.items.filter((entry) => entry.id !== item.id),
-      }));
+      updateLocalLibraryItems((items) => items.filter((entry) => entry.id !== item.id));
       syncLibraryItemsCache((items) => items.filter((entry) => entry.id !== item.id));
       setSelectedItemIds((current) => {
         const next = new Set(current);
@@ -2126,10 +2401,7 @@ export function ComponentLibraryManager({
             return;
           }
           const archivedIds = result.archivedIds?.length ? result.archivedIds : archiveComponentTargetIds;
-          setLibraryItemState((current) => ({
-            ...current,
-            items: current.items.filter((item) => !archivedIds.includes(item.id)),
-          }));
+          updateLocalLibraryItems((items) => items.filter((item) => !archivedIds.includes(item.id)));
           setSelectedItemIds((current) => {
             const next = new Set(current);
             for (const id of archivedIds) next.delete(id);
@@ -2273,10 +2545,9 @@ export function ComponentLibraryManager({
     if (item.libraryFolderId === targetFolderId) return;
     const previousItem = item;
 
-    setLibraryItemState((current) => ({
-      ...current,
-      items: current.items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
-    }));
+    updateLocalLibraryItems((items) =>
+      items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
+    );
 
     try {
       await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
@@ -2285,10 +2556,9 @@ export function ComponentLibraryManager({
         items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
       );
     } catch (error) {
-      setLibraryItemState((current) => ({
-        ...current,
-        items: current.items.map((entry) => (entry.id === previousItem.id ? previousItem : entry)),
-      }));
+      updateLocalLibraryItems((items) =>
+        items.map((entry) => (entry.id === previousItem.id ? previousItem : entry)),
+      );
       throw error;
     }
   }

@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 
-import { getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip";
-import { getLibraryActiveTab, LIBRARY_TABS_ID_BASE } from "./LibraryTabsLayoutClient";
+import { getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip-utils";
+import { getLibraryActiveTab, LIBRARY_TABS_ID_BASE } from "./library-tabs-model";
 
 /**
  * Library Optimization Plan P3 T21 (F27): labels the Library tab content region as the

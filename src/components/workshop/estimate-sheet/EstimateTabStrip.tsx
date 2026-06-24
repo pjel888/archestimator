@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type Ref } from "react";
+import { useCallback, useEffect, useEffectEvent, useImperativeHandle, useMemo, useReducer, useRef, type DragEvent, type KeyboardEvent, type Ref } from "react";
 import { CopySimple, PencilSimple, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
@@ -59,6 +59,93 @@ export type EstimateTabStripProps = {
 
 type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "delete" | null;
 
+type EstimateTabStripState = {
+  editingTabId: string | null;
+  editingName: string;
+  pendingAction: PendingAction;
+  error: string;
+  announcement: string;
+  contextMenuTabId: string | null;
+  enteringTabIds: ReadonlySet<string>;
+};
+
+type EstimateTabStripAction =
+  | { type: "renameStarted"; tabId: string; name: string }
+  | { type: "renameNameChanged"; name: string }
+  | { type: "renameEnded" }
+  | { type: "pendingStarted"; pendingAction: NonNullable<PendingAction> }
+  | { type: "pendingSettled" }
+  | { type: "errorChanged"; error: string }
+  | { type: "announcementChanged"; announcement: string }
+  | { type: "contextMenuTabChanged"; tabId: string | null }
+  | { type: "enteringTabIdsChanged"; tabIds: ReadonlySet<string> };
+
+const INITIAL_ESTIMATE_TAB_STRIP_STATE: EstimateTabStripState = {
+  editingTabId: null,
+  editingName: "",
+  pendingAction: null,
+  error: "",
+  announcement: "",
+  contextMenuTabId: null,
+  enteringTabIds: new Set(),
+};
+
+function estimateTabStripReducer(state: EstimateTabStripState, action: EstimateTabStripAction): EstimateTabStripState {
+  switch (action.type) {
+    case "renameStarted":
+      return {
+        ...state,
+        editingTabId: action.tabId,
+        editingName: action.name,
+        error: "",
+      };
+    case "renameNameChanged":
+      return {
+        ...state,
+        editingName: action.name,
+      };
+    case "renameEnded":
+      return {
+        ...state,
+        editingTabId: null,
+        error: "",
+      };
+    case "pendingStarted":
+      return {
+        ...state,
+        pendingAction: action.pendingAction,
+        error: "",
+      };
+    case "pendingSettled":
+      return {
+        ...state,
+        pendingAction: null,
+      };
+    case "errorChanged":
+      return {
+        ...state,
+        error: action.error,
+      };
+    case "announcementChanged":
+      return {
+        ...state,
+        announcement: action.announcement,
+      };
+    case "contextMenuTabChanged":
+      return {
+        ...state,
+        contextMenuTabId: action.tabId,
+      };
+    case "enteringTabIdsChanged":
+      return {
+        ...state,
+        enteringTabIds: action.tabIds,
+      };
+    default:
+      return state;
+  }
+}
+
 const SPRING_LOADED_TAB_DELAY_MS = 450;
 const CROSS_TAB_NODE_MOVE_TOAST_ID = "estimate-tab-cross-tab-node-move";
 const CROSS_TAB_NODE_MOVE_MESSAGE = "Moving between tabs isn't supported yet — duplicate the tab or save the group as a template.";
@@ -83,6 +170,7 @@ function getNextTabName(tabs: readonly EstimateTabSummary[]) {
   return formatEstimatePageTabName(index);
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function EstimateTabStrip({
   tabs,
   activeTabId,
@@ -111,12 +199,16 @@ export function EstimateTabStrip({
   // instead of racing the Radix close-auto-focus return-to-trigger.
   const pendingFocusTabIdRef = useRef<string | null>(null);
   const manageMenuCloseFocusRef = useRef(false);
-  const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [error, setError] = useState("");
-  const [announcement, setAnnouncement] = useState("");
-  const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(estimateTabStripReducer, INITIAL_ESTIMATE_TAB_STRIP_STATE);
+  const {
+    editingTabId,
+    editingName,
+    pendingAction,
+    error,
+    announcement,
+    contextMenuTabId,
+    enteringTabIds,
+  } = state;
   const lastAnnouncedTabIdRef = useRef<string | null>(null);
   const suppressNextSelectionAnnouncementRef = useRef(false);
   // Mirrors EstimateSheetTree: a menu-triggered rename must survive the Radix
@@ -130,7 +222,6 @@ export function EstimateTabStrip({
   // restrained enter motion — all respecting prefers-reduced-motion.
   const previousTabIdsRef = useRef<Set<string>>(null!);
   if (previousTabIdsRef.current === null) previousTabIdsRef.current = new Set(orderedTabs.map((tab) => tab.id));
-  const [enteringTabIds, setEnteringTabIds] = useState<ReadonlySet<string>>(() => new Set());
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   const focusTab = useCallback((index: number) => {
@@ -156,7 +247,7 @@ export function EstimateTabStrip({
       if (suppressNextSelectionAnnouncementRef.current) {
         suppressNextSelectionAnnouncementRef.current = false;
       } else {
-        setAnnouncement(`${activeTab.name} tab selected.`);
+        dispatch({ type: "announcementChanged", announcement: `${activeTab.name} tab selected.` });
       }
     }
     lastAnnouncedTabIdRef.current = activeTab.id;
@@ -261,8 +352,8 @@ export function EstimateTabStrip({
     const addedIds = currentIds.filter((id) => !previousIds.has(id));
     previousTabIdsRef.current = new Set(currentIds);
     if (addedIds.length === 0 || prefersReducedMotion) return undefined;
-    setEnteringTabIds(new Set(addedIds));
-    const timer = window.setTimeout(() => setEnteringTabIds(new Set()), 200);
+    dispatch({ type: "enteringTabIdsChanged", tabIds: new Set(addedIds) });
+    const timer = window.setTimeout(() => dispatch({ type: "enteringTabIdsChanged", tabIds: new Set() }), 200);
     return () => window.clearTimeout(timer);
   }, [orderedTabs, prefersReducedMotion]);
 
@@ -313,15 +404,13 @@ export function EstimateTabStrip({
       message: CROSS_TAB_NODE_MOVE_MESSAGE,
       tone: "error",
     });
-    setAnnouncement(CROSS_TAB_NODE_MOVE_MESSAGE);
+    dispatch({ type: "announcementChanged", announcement: CROSS_TAB_NODE_MOVE_MESSAGE });
   }, [clearSpringLoadedTabTarget, resolvedActiveTabId, toast]);
 
   const beginRename = useCallback((tab: EstimateTabSummary) => {
     if (!lifecycleActionsReady) return;
     armContextMenuRenameHandoff();
-    setError("");
-    setEditingTabId(tab.id);
-    setEditingName(tab.name);
+    dispatch({ type: "renameStarted", tabId: tab.id, name: tab.name });
   }, [armContextMenuRenameHandoff, lifecycleActionsReady]);
 
   const commitRename = useCallback(async () => {
@@ -334,48 +423,45 @@ export function EstimateTabStrip({
     const focusRenamedTab = () => focusTab(orderedTabs.findIndex((tab) => tab.id === renamedTabId));
     const nextName = editingName.trim();
     if (!nextName) {
-      setError("Tab name is required.");
+      dispatch({ type: "errorChanged", error: "Tab name is required." });
       return;
     }
     const currentTab = orderedTabs.find((tab) => tab.id === editingTabId);
     if (currentTab?.name === nextName) {
-      setEditingTabId(null);
-      setError("");
+      dispatch({ type: "renameEnded" });
       window.requestAnimationFrame(focusRenamedTab);
       return;
     }
 
-    setPendingAction("rename");
-    setError("");
+    dispatch({ type: "pendingStarted", pendingAction: "rename" });
     try {
       const result = await renameEstimateTab({ projectId, estimateId, tabId: editingTabId, name: nextName });
       if (result.tabs) onTabsChange?.(result.tabs);
-      setEditingTabId(null);
-      setAnnouncement(`Renamed tab to ${nextName}.`);
+      dispatch({ type: "renameEnded" });
+      dispatch({ type: "announcementChanged", announcement: `Renamed tab to ${nextName}.` });
       window.requestAnimationFrame(focusRenamedTab);
     } catch (renameError) {
-      setError(renameError instanceof Error ? renameError.message : "Could not rename tab.");
+      dispatch({ type: "errorChanged", error: renameError instanceof Error ? renameError.message : "Could not rename tab." });
     } finally {
-      setPendingAction(null);
+      dispatch({ type: "pendingSettled" });
     }
   }, [editingName, editingTabId, estimateId, focusTab, onTabsChange, orderedTabs, projectId]);
 
   const createTab = useCallback(async () => {
     if (!projectId || !estimateId || !lifecycleActionsReady || !canCreateTabs) return;
-    setPendingAction("create");
-    setError("");
+    dispatch({ type: "pendingStarted", pendingAction: "create" });
     try {
       const result = await createEstimateTab({ projectId, estimateId, name: getNextTabName(orderedTabs) });
       if (result.tabs) onTabsChange?.(result.tabs);
       suppressNextSelectionAnnouncementRef.current = true;
       onTabChange(result.estimateTabId);
       const nextTab = result.tabs?.find((tab) => tab.id === result.estimateTabId);
-      setAnnouncement(`Created ${nextTab?.name ?? "tab"}.`);
+      dispatch({ type: "announcementChanged", announcement: `Created ${nextTab?.name ?? "tab"}.` });
       if (nextTab) beginRename(nextTab);
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Could not create tab.");
+      dispatch({ type: "errorChanged", error: createError instanceof Error ? createError.message : "Could not create tab." });
     } finally {
-      setPendingAction(null);
+      dispatch({ type: "pendingSettled" });
     }
   }, [beginRename, canCreateTabs, estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId]);
 
@@ -391,9 +477,13 @@ export function EstimateTabStrip({
   // rename, delete, duplicate) — preserving the original in-strip button's
   // `disabled={Boolean(pendingAction)}` serialization guard.
   const actionPending = Boolean(pendingAction);
+  const reportCreateTabStateChange = useEffectEvent((state: { canCreate: boolean; pending: boolean }) => {
+    onCreateTabStateChange?.(state);
+  });
   useEffect(() => {
-    onCreateTabStateChange?.({ canCreate, pending: actionPending });
-  }, [canCreate, actionPending, onCreateTabStateChange]);
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- TabStrip owns lifecycle pending state and reports it to the sibling header button.
+    reportCreateTabStateChange({ canCreate, pending: actionPending });
+  }, [actionPending, canCreate]);
 
   const releaseMenuCloseFocusToActiveTab = useCallback(() => {
     if (!manageMenuCloseFocusRef.current) return;
@@ -405,8 +495,7 @@ export function EstimateTabStrip({
   const duplicateTab = useCallback(async (tabId: string) => {
     if (!projectId || !estimateId || !lifecycleActionsReady) return;
     manageMenuCloseFocusRef.current = true;
-    setPendingAction("duplicate");
-    setError("");
+    dispatch({ type: "pendingStarted", pendingAction: "duplicate" });
     try {
       const result = await duplicateEstimateTab({ projectId, estimateId, tabId });
       // Only arm the pending-focus handoff when a canonical list comes back; the
@@ -417,15 +506,15 @@ export function EstimateTabStrip({
         onTabChange(result.estimateTabId);
         pendingFocusTabIdRef.current = result.estimateTabId;
         const nextTab = result.tabs.find((tab) => tab.id === result.estimateTabId);
-        setAnnouncement(`Duplicated ${nextTab?.name ?? "tab"}.`);
+        dispatch({ type: "announcementChanged", announcement: `Duplicated ${nextTab?.name ?? "tab"}.` });
       } else {
         releaseMenuCloseFocusToActiveTab();
       }
     } catch (duplicateError) {
       releaseMenuCloseFocusToActiveTab();
-      setError(duplicateError instanceof Error ? duplicateError.message : "Could not duplicate tab.");
+      dispatch({ type: "errorChanged", error: duplicateError instanceof Error ? duplicateError.message : "Could not duplicate tab." });
     } finally {
-      setPendingAction(null);
+      dispatch({ type: "pendingSettled" });
     }
   }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, projectId, releaseMenuCloseFocusToActiveTab]);
 
@@ -439,8 +528,7 @@ export function EstimateTabStrip({
     if (!moved) return;
     reordered.splice(nextIndex, 0, moved);
 
-    setPendingAction("reorder");
-    setError("");
+    dispatch({ type: "pendingStarted", pendingAction: "reorder" });
     try {
       const result = await reorderEstimateTabs({
         projectId,
@@ -448,12 +536,12 @@ export function EstimateTabStrip({
         updates: reordered.map((tab, index) => ({ id: tab.id, sortOrder: index })),
       });
       onTabsChange?.(result.tabs ?? reordered.map((tab, index) => ({ ...tab, sortOrder: index })));
-      setAnnouncement(`${moved.name} tab moved ${direction < 0 ? "left" : "right"}.`);
+      dispatch({ type: "announcementChanged", announcement: `${moved.name} tab moved ${direction < 0 ? "left" : "right"}.` });
       window.requestAnimationFrame(() => focusTab(nextIndex));
     } catch (reorderError) {
-      setError(reorderError instanceof Error ? reorderError.message : "Could not reorder tabs.");
+      dispatch({ type: "errorChanged", error: reorderError instanceof Error ? reorderError.message : "Could not reorder tabs." });
     } finally {
-      setPendingAction(null);
+      dispatch({ type: "pendingSettled" });
     }
   }, [estimateId, focusTab, lifecycleActionsReady, onTabsChange, orderedTabs, projectId, resolvedActiveTabId]);
 
@@ -465,8 +553,7 @@ export function EstimateTabStrip({
     const targetWasActive = tabId === resolvedActiveTabId;
     if (targetWasActive) manageMenuCloseFocusRef.current = true;
 
-    setPendingAction("delete");
-    setError("");
+    dispatch({ type: "pendingStarted", pendingAction: "delete" });
     try {
       const result = await deleteEstimateTab({ projectId, estimateId, tabId });
       const nextTabs = result.tabs ?? orderedTabs.filter((tab) => tab.id !== tabId);
@@ -485,14 +572,14 @@ export function EstimateTabStrip({
           manageMenuCloseFocusRef.current = false;
         }
       }
-      setAnnouncement(`${targetTab.name} tab deleted.`);
+      dispatch({ type: "announcementChanged", announcement: `${targetTab.name} tab deleted.` });
     } catch (deleteError) {
       // The menu already closed with focus held off the trigger; hand focus back
       // to the active tab so keyboard users keep their place after a failed delete.
       releaseMenuCloseFocusToActiveTab();
-      setError(deleteError instanceof Error ? deleteError.message : "Could not delete tab.");
+      dispatch({ type: "errorChanged", error: deleteError instanceof Error ? deleteError.message : "Could not delete tab." });
     } finally {
-      setPendingAction(null);
+      dispatch({ type: "pendingSettled" });
     }
   }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId, releaseMenuCloseFocusToActiveTab, resolvedActiveTabId]);
 
@@ -572,7 +659,7 @@ export function EstimateTabStrip({
                   aria-label={`Rename ${displayName} tab`}
                   value={editingName}
                   disabled={pendingAction === "rename"}
-                  onChange={(event) => setEditingName(event.target.value)}
+                  onChange={(event) => dispatch({ type: "renameNameChanged", name: event.target.value })}
                   onBlur={() => {
                     // Ignore the transient blur from the menu-close focus return on an
                     // unchanged name so it does not commit prematurely (see U2 contract).
@@ -588,8 +675,7 @@ export function EstimateTabStrip({
                       event.preventDefault();
                       suppressContextMenuCloseAutoFocusRef.current = false;
                       ignoreRenameBlurDuringContextMenuCloseRef.current = false;
-                      setEditingTabId(null);
-                      setError("");
+                      dispatch({ type: "renameEnded" });
                     }
                   }}
                 />
@@ -631,7 +717,7 @@ export function EstimateTabStrip({
           const targetTab = orderedTabs[index];
           if (targetTab) beginRename(targetTab);
         },
-        onContextMenu: () => setContextMenuTabId(tab.id),
+        onContextMenu: () => dispatch({ type: "contextMenuTabChanged", tabId: tab.id }),
         onKeyDown: (event) => handleTabKeyDown(event, index),
         onDragOver: (event) => scheduleSpringLoadedTabTarget(event, tab.id),
         onDragLeave: clearSpringLoadedTabTarget,

@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,10 @@ type CommandPaletteProps = {
   onInsert: (item: EstimateRowItem) => boolean | void;
 };
 
+type OpenCommandPaletteProps = Omit<CommandPaletteProps, "open"> & {
+  items: EstimateRowItem[];
+};
+
 function stalenessClass(tone: ReturnType<typeof getStalenessTone>) {
   if (tone === "danger") return "text-danger";
   if (tone === "warning") return "text-warning";
@@ -39,26 +43,42 @@ export function CommandPalette({
   onClose,
   onInsert,
 }: CommandPaletteProps) {
+  if (!open) return null;
+
+  return (
+    <OpenCommandPalette
+      items={items}
+      canInsert={canInsert}
+      targetLabel={targetLabel}
+      onClose={onClose}
+      onInsert={onInsert}
+    />
+  );
+}
+
+function OpenCommandPalette({
+  items,
+  canInsert,
+  targetLabel,
+  onClose,
+  onInsert,
+}: OpenCommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => searchComponents(items, query).slice(0, 10), [items, query]);
   const clampedSelectedIndex = Math.min(selectedIndex, Math.max(0, results.length - 1));
 
   useEffect(() => {
-    if (!open) return;
     const frame = window.requestAnimationFrame(() => {
-      setQuery("");
-      setSelectedIndex(0);
       searchRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [open]);
+  }, []);
 
-  if (!open) return null;
-
-  const insertItem = (item: EstimateRowItem, keepOpen = false) => {
+  const insertItem = useCallback((item: EstimateRowItem, keepOpen = false) => {
     if (!canInsert) return;
     const inserted = onInsert(item) !== false;
     if (!inserted) return;
@@ -69,42 +89,75 @@ export function CommandPalette({
       return;
     }
     onClose();
-  };
+  }, [canInsert, onClose, onInsert]);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setSelectedIndex((index) => Math.min(index + 1, Math.max(0, results.length - 1)));
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setSelectedIndex((index) => Math.max(index - 1, 0));
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const selectedItem = results[clampedSelectedIndex]?.item;
-      if (selectedItem) insertItem(selectedItem, event.shiftKey);
-    }
-  };
+  const handleNativeDialogKeyDown = useCallback(
+    (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedIndex((index) => Math.min(index + 1, Math.max(0, results.length - 1)));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedIndex((index) => Math.max(index - 1, 0));
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const selectedItem = results[clampedSelectedIndex]?.item;
+        if (selectedItem) insertItem(selectedItem, event.shiftKey);
+      }
+    },
+    [clampedSelectedIndex, insertItem, onClose, results],
+  );
+
+  const handleNativeDialogPointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (event.target === dialogRef.current) onClose();
+    },
+    [onClose],
+  );
+
+  const openDialogElement = useCallback(
+    (node: HTMLDialogElement | null) => {
+      dialogRef.current?.removeEventListener("keydown", handleNativeDialogKeyDown);
+      dialogRef.current?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
+      dialogRef.current = node;
+      if (!node) return;
+      node.addEventListener("keydown", handleNativeDialogKeyDown);
+      node.addEventListener("pointerdown", handleNativeDialogPointerDown);
+      if (node.open) return;
+      if (typeof node.showModal === "function") {
+        try {
+          node.showModal();
+        } catch {
+          node.setAttribute("open", "");
+        }
+      } else {
+        node.setAttribute("open", "");
+      }
+    },
+    [handleNativeDialogKeyDown, handleNativeDialogPointerDown],
+  );
 
   return (
-    // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop click dismisses the palette; keyboard handling lives in the dialog content.
-    <div className="fixed inset-0 z-[1200] flex items-start justify-center bg-black/35 px-4 pt-[12vh]" onMouseDown={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-        className="w-full max-w-xl border border-hairline bg-white shadow-2xl"
-        onMouseDown={(event) => event.stopPropagation()}
-        onKeyDown={handleKeyDown}
-      >
+    <dialog
+      ref={openDialogElement}
+      aria-modal="true"
+      aria-label="Command palette"
+      className="z-[1200] mt-[12vh] w-[calc(100%-2rem)] max-w-xl border-0 bg-transparent p-0 text-ink backdrop:bg-black/35"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="w-full border border-hairline bg-white shadow-2xl">
         <div className="flex h-11 items-center gap-2 border-b border-hairline px-3">
           <MagnifyingGlass size={15} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
           <input
@@ -177,6 +230,6 @@ export function CommandPalette({
           <span>Esc closes</span>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

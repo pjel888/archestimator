@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
@@ -12,9 +12,9 @@ import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import {
   LibrarySurfaceVariantProvider,
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
@@ -26,9 +26,9 @@ import { filterTemplatesByQuery, type EstimateTemplate } from "../../component-l
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 import {
   getTemplateStructureAllNodeIds,
-  TemplateStructureTree,
   TEMPLATE_EDITOR_ROOT_NODE_ID,
-} from "./TemplateStructureTree";
+} from "./template-structure-tree-model";
+import { TemplateStructureTree } from "./TemplateStructureTree";
 import { TemplateEditorSheet, type TemplateSheetHandlers } from "./TemplateEditorSheet";
 import { useTemplateEditor } from "./use-template-editor";
 
@@ -51,6 +51,87 @@ function TemplateEditorDockFallback() {
   );
 }
 
+type TemplateEditorTextPrompt = {
+  title: string;
+  label: string;
+  confirmLabel: string;
+  initialValue: string;
+  onSubmit: (value: string) => void;
+};
+
+type TemplateEditorUiState = {
+  selectedNodeId: string | null;
+  treeSearchQuery: string;
+  expandedIds: string[];
+  textPrompt: TemplateEditorTextPrompt | null;
+  textPromptValue: string;
+  deleteNodeTarget: EstimateTreeNode | null;
+};
+
+type TemplateEditorUiAction =
+  | { type: "selectNode"; nodeId: string | null }
+  | { type: "treeSearch"; query: string }
+  | { type: "toggleExpanded"; nodeId: string }
+  | { type: "setExpanded"; nodeIds: string[] }
+  | { type: "ensureExpanded"; nodeId: string }
+  | { type: "openTextPrompt"; prompt: TemplateEditorTextPrompt }
+  | { type: "closeTextPrompt" }
+  | { type: "textPromptValue"; value: string }
+  | { type: "setDeleteNodeTarget"; node: EstimateTreeNode | null }
+  | { type: "confirmDeleteNode"; nodeId: string };
+
+function getInitialTemplateEditorUiState(template: EstimateTemplate): TemplateEditorUiState {
+  return {
+    selectedNodeId: null,
+    treeSearchQuery: "",
+    expandedIds: getTemplateStructureAllNodeIds(template),
+    textPrompt: null,
+    textPromptValue: "",
+    deleteNodeTarget: null,
+  };
+}
+
+function templateEditorUiReducer(
+  state: TemplateEditorUiState,
+  action: TemplateEditorUiAction,
+): TemplateEditorUiState {
+  switch (action.type) {
+    case "selectNode":
+      return { ...state, selectedNodeId: action.nodeId };
+    case "treeSearch":
+      return { ...state, treeSearchQuery: action.query };
+    case "toggleExpanded":
+      return {
+        ...state,
+        expandedIds: state.expandedIds.includes(action.nodeId)
+          ? state.expandedIds.filter((id) => id !== action.nodeId)
+          : [...state.expandedIds, action.nodeId],
+      };
+    case "setExpanded":
+      return { ...state, expandedIds: action.nodeIds };
+    case "ensureExpanded":
+      return state.expandedIds.includes(action.nodeId)
+        ? state
+        : { ...state, expandedIds: [...state.expandedIds, action.nodeId] };
+    case "openTextPrompt":
+      return { ...state, textPrompt: action.prompt, textPromptValue: action.prompt.initialValue };
+    case "closeTextPrompt":
+      return { ...state, textPrompt: null };
+    case "textPromptValue":
+      return { ...state, textPromptValue: action.value };
+    case "setDeleteNodeTarget":
+      return { ...state, deleteNodeTarget: action.node };
+    case "confirmDeleteNode":
+      return {
+        ...state,
+        selectedNodeId: state.selectedNodeId === action.nodeId ? null : state.selectedNodeId,
+        deleteNodeTarget: null,
+      };
+    default:
+      return state;
+  }
+}
+
 /**
  * Template editor composition: back strip + structure tree on the left,
  * estimate-style editable sheet in the center. The right Components dock
@@ -64,6 +145,7 @@ export function TemplateEditorClient({ template: serverTemplate, workspaceId }: 
   );
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { template: EstimateTemplate; workspaceId: string }) {
   const editor = useTemplateEditor(serverTemplate);
   const template = editor.template;
@@ -71,30 +153,26 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   const setBreadcrumb = useLibraryEditorChrome((state) => state.setBreadcrumb);
   const clearBreadcrumb = useLibraryEditorChrome((state) => state.clearBreadcrumb);
   const setSaveState = useLibraryEditorChrome((state) => state.setSaveState);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [treeSearchQuery, setTreeSearchQuery] = useState("");
-  const [expandedIds, setExpandedIds] = useState<string[]>(() => getTemplateStructureAllNodeIds(serverTemplate));
+  const [uiState, dispatchUi] = useReducer(
+    templateEditorUiReducer,
+    serverTemplate,
+    getInitialTemplateEditorUiState,
+  );
+  const { selectedNodeId, treeSearchQuery, expandedIds, textPrompt, textPromptValue, deleteNodeTarget } = uiState;
   const treeSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Library Optimization Plan P1 T8 (F22): replace native browser dialogs with
   // the in-DS dialog pattern (mirrors TemplatesBrowseManager). One reusable text prompt
   // for add/rename; a destructive ConfirmDialog for delete.
-  const [textPrompt, setTextPrompt] = useState<
-    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
-    | null
-  >(null);
-  const [textPromptValue, setTextPromptValue] = useState("");
-  const [deleteNodeTarget, setDeleteNodeTarget] = useState<EstimateTreeNode | null>(null);
   const componentLibraryQueryKey = useMemo(() => workspaceComponentLibraryQueryKey(workspaceId), [workspaceId]);
-  const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
-    setTextPrompt(next);
-    setTextPromptValue(next.initialValue);
+  const openTextPrompt = useCallback((next: TemplateEditorTextPrompt) => {
+    dispatchUi({ type: "openTextPrompt", prompt: next });
   }, []);
   const submitTextPrompt = useCallback(() => {
     if (!textPrompt) return;
     const value = textPromptValue.trim();
     const handler = textPrompt.onSubmit;
-    setTextPrompt(null);
+    dispatchUi({ type: "closeTextPrompt" });
     if (value) handler(value);
   }, [textPrompt, textPromptValue]);
 
@@ -113,13 +191,11 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   }, [template, treeSearchQuery]);
 
   function toggleExpanded(nodeId: string) {
-    setExpandedIds((current) =>
-      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
-    );
+    dispatchUi({ type: "toggleExpanded", nodeId });
   }
 
   function selectNode(nodeId: string) {
-    setSelectedNodeId(nodeId);
+    dispatchUi({ type: "selectNode", nodeId });
     if (nodeId === TEMPLATE_EDITOR_ROOT_NODE_ID) return;
     document
       .querySelector(`[data-template-editor-node="${CSS.escape(nodeId)}"]`)
@@ -133,12 +209,12 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         label: kind === "group" ? "Group name" : "Area name",
         confirmLabel: "Add",
         initialValue: "",
-        onSubmit: (name) => {
-          void editor.addNode(parentId, kind, name);
-          if (parentId) {
-            setExpandedIds((current) => (current.includes(parentId) ? current : [...current, parentId]));
-          }
-        },
+          onSubmit: (name) => {
+            void editor.addNode(parentId, kind, name);
+            if (parentId) {
+              dispatchUi({ type: "ensureExpanded", nodeId: parentId });
+            }
+          },
       });
     },
     [editor, openTextPrompt],
@@ -161,15 +237,14 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   );
 
   const deleteNode = useCallback((node: EstimateTreeNode) => {
-    setDeleteNodeTarget(node);
+    dispatchUi({ type: "setDeleteNodeTarget", node });
   }, []);
 
   const confirmDeleteNode = useCallback(() => {
     const node = deleteNodeTarget;
     if (!node) return;
     void editor.deleteNode(node.id);
-    setSelectedNodeId((current) => (current === node.id ? null : current));
-    setDeleteNodeTarget(null);
+    dispatchUi({ type: "confirmDeleteNode", nodeId: node.id });
   }, [deleteNodeTarget, editor]);
 
   // Dock dataset: same lazy query + cache key as the estimate workspace, so
@@ -274,13 +349,13 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
             ariaLabel="Template structure tools"
             labelPrefix="template structure"
             searchValue={treeSearchQuery}
-            onSearchValueChange={setTreeSearchQuery}
+            onSearchValueChange={(query) => dispatchUi({ type: "treeSearch", query })}
             searchPlaceholder="Search structure"
             searchLabel="Search template structure"
             searchInputRef={treeSearchInputRef}
             showDefaultActions={false}
-            onExpandAll={() => setExpandedIds(getTemplateStructureAllNodeIds(template))}
-            onCollapseAll={() => setExpandedIds([])}
+            onExpandAll={() => dispatchUi({ type: "setExpanded", nodeIds: getTemplateStructureAllNodeIds(template) })}
+            onCollapseAll={() => dispatchUi({ type: "setExpanded", nodeIds: [] })}
             addActions={[
               {
                 label: "Add group",
@@ -335,7 +410,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         <ConfirmDialog
           open
           onOpenChange={(open) => {
-            if (!open) setDeleteNodeTarget(null);
+            if (!open) dispatchUi({ type: "setDeleteNodeTarget", node: null });
           }}
           title={`Delete ${deleteNodeTarget.kind === "group" ? "group" : "area"}?`}
           description={`"${deleteNodeTarget.name}" and its rows and child nodes are removed from this template.`}
@@ -349,7 +424,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         <ConfirmDialog
           open
           onOpenChange={(open) => {
-            if (!open) setTextPrompt(null);
+            if (!open) dispatchUi({ type: "closeTextPrompt" });
           }}
           title={textPrompt.title}
           description="Enter a name and confirm to apply."
@@ -362,7 +437,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
               aria-label={textPrompt.label}
               autoFocus
               value={textPromptValue}
-              onChange={(event) => setTextPromptValue(event.target.value)}
+              onChange={(event) => dispatchUi({ type: "textPromptValue", value: event.target.value })}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();

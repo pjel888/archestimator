@@ -268,6 +268,4 @@ function WorkshopTreeNode<TNode>({
 export type { TabStripItem as WorkshopTreeTabItem } from "@/components/ui/tab-strip";
 export {
   TabStrip as WorkshopTreeTabs,
-  getTabStripPanelId,
-  getTabStripTabId,
 } from "@/components/ui/tab-strip";

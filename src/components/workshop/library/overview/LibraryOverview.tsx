@@ -12,9 +12,9 @@ import type { EstimateTemplate } from "@/components/workshop/component-library/t
 import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import {
   LibrarySurfaceVariantProvider,
-  librarySurfaceClass,
   useLibrarySurfaceVariant,
 } from "@/components/workshop/library/library-surface-variant";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import type {
   LibraryOverview as LibraryOverviewPayload,
   LibraryOverviewHealth,

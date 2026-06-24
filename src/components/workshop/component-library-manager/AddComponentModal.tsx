@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { type RefObject, useEffect, useId, useMemo, useReducer, useRef, useTransition } from "react";
 import { CaretDown, ImageSquare, Plus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -43,13 +43,13 @@ import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
 import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
+import { LibraryFolderTreePicker } from "./LibraryFolderTree";
 import {
   isAllComponentsFolderId,
-  LibraryFolderTreePicker,
   type ComponentViewMode,
   type CreateLibraryFolderHandler,
   type ReorderStatus,
-} from "./LibraryFolderTree";
+} from "./library-folder-tree-shared";
 
 type VariantDraft = {
   id: string;
@@ -694,11 +694,560 @@ function sectionTitleClassName() {
 
 const selectTriggerClassName = "h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
 
+type StateUpdater<T> = T | ((current: T) => T);
+
+type OpenAddComponentModalState = {
+  draft: ComponentDraft;
+  variantPreviewUrls: Record<string, string>;
+  sharedPreviewUrl: string;
+  imageUpload: ImageUploadState;
+  attachmentUpload: ImageUploadState;
+  costPickerOpen: boolean;
+  costManagerOpen: boolean;
+  discardDialogOpen: boolean;
+  duplicateCheckReady: boolean;
+  duplicateAcknowledged: boolean;
+  advancedDetailsOpen: boolean;
+  activeTab: AddComponentModalTab;
+  activeVariantId: string;
+  nestingViewMode: ComponentViewMode;
+  error: string;
+};
+
+type OpenAddComponentModalInit = {
+  initialDraft: ComponentDraft;
+  selectedSupplierId?: string | null;
+  selectedBrandId?: string | null;
+};
+
+type OpenAddComponentModalAction =
+  | { type: "setDraft"; value: StateUpdater<ComponentDraft> }
+  | { type: "setVariantPreviewUrls"; value: StateUpdater<Record<string, string>> }
+  | { type: "setSharedPreviewUrl"; value: string }
+  | { type: "setImageUpload"; value: ImageUploadState }
+  | { type: "setAttachmentUpload"; value: ImageUploadState }
+  | { type: "setCostPickerOpen"; value: StateUpdater<boolean> }
+  | { type: "setCostManagerOpen"; value: boolean }
+  | { type: "setDiscardDialogOpen"; value: boolean }
+  | { type: "setDuplicateCheckReady"; value: boolean }
+  | { type: "setDuplicateAcknowledged"; value: boolean }
+  | { type: "setAdvancedDetailsOpen"; value: StateUpdater<boolean> }
+  | { type: "setActiveTab"; value: AddComponentModalTab }
+  | { type: "setActiveVariantId"; value: string }
+  | { type: "setNestingViewMode"; value: ComponentViewMode }
+  | { type: "setError"; value: string };
+
+function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
+  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
+}
+
+function createOpenAddComponentModalState({
+  initialDraft,
+  selectedSupplierId,
+  selectedBrandId,
+}: OpenAddComponentModalInit): OpenAddComponentModalState {
+  return {
+    draft: initialDraft,
+    variantPreviewUrls: {},
+    sharedPreviewUrl: "",
+    imageUpload: { state: "idle" },
+    attachmentUpload: { state: "idle" },
+    costPickerOpen: false,
+    costManagerOpen: false,
+    discardDialogOpen: false,
+    duplicateCheckReady: false,
+    duplicateAcknowledged: false,
+    advancedDetailsOpen: false,
+    activeTab: "component",
+    activeVariantId: initialDraft.variants[0]?.id ?? "",
+    nestingViewMode: getInitialNestingViewMode(selectedSupplierId, selectedBrandId),
+    error: "",
+  };
+}
+
+function openAddComponentModalReducer(
+  state: OpenAddComponentModalState,
+  action: OpenAddComponentModalAction,
+): OpenAddComponentModalState {
+  switch (action.type) {
+    case "setDraft":
+      return { ...state, draft: resolveStateUpdater(state.draft, action.value) };
+    case "setVariantPreviewUrls":
+      return { ...state, variantPreviewUrls: resolveStateUpdater(state.variantPreviewUrls, action.value) };
+    case "setSharedPreviewUrl":
+      return { ...state, sharedPreviewUrl: action.value };
+    case "setImageUpload":
+      return { ...state, imageUpload: action.value };
+    case "setAttachmentUpload":
+      return { ...state, attachmentUpload: action.value };
+    case "setCostPickerOpen":
+      return { ...state, costPickerOpen: resolveStateUpdater(state.costPickerOpen, action.value) };
+    case "setCostManagerOpen":
+      return { ...state, costManagerOpen: action.value };
+    case "setDiscardDialogOpen":
+      return { ...state, discardDialogOpen: action.value };
+    case "setDuplicateCheckReady":
+      return { ...state, duplicateCheckReady: action.value };
+    case "setDuplicateAcknowledged":
+      return { ...state, duplicateAcknowledged: action.value };
+    case "setAdvancedDetailsOpen":
+      return { ...state, advancedDetailsOpen: resolveStateUpdater(state.advancedDetailsOpen, action.value) };
+    case "setActiveTab":
+      return { ...state, activeTab: action.value };
+    case "setActiveVariantId":
+      return { ...state, activeVariantId: action.value };
+    case "setNestingViewMode":
+      return { ...state, nestingViewMode: action.value };
+    case "setError":
+      return { ...state, error: action.value };
+  }
+}
+
+type ComputedMeasurements = {
+  footprintArea: number | null;
+  packageArea: number | null;
+  volume: number | null;
+};
+
+type AddComponentAdvancedDetailsProps = {
+  open: boolean;
+  id: string;
+  activeVariant: VariantDraft;
+  computedMeasurements: ComputedMeasurements;
+  attachmentInputId: string;
+  attachmentUpload: ImageUploadState;
+  onUpdateActiveVariant: (update: Partial<VariantDraft>) => void;
+  onUploadAttachment: (file: File) => void | Promise<void>;
+  onRemoveAttachment: (attachmentId: string) => void;
+};
+
+type BooleanStateSetter = (value: StateUpdater<boolean>) => void;
+
+type AddComponentCostPickerProps = {
+  activeCostEntry: VariantCostEntryDraft | undefined;
+  visibleCostEntries: VariantCostEntryDraft[];
+  unitCostError: string | undefined;
+  costPickerOpen: boolean;
+  costPickerListboxId: string;
+  costPickerRootRef: RefObject<HTMLDivElement | null>;
+  onBeginCostEdit: () => void;
+  onCommitCostInputEntry: () => void;
+  onSetCostPickerOpen: BooleanStateSetter;
+  onOpenCostManager: () => void;
+  onUpdateActiveCostEntry: (update: Partial<VariantCostEntryDraft>) => void;
+  onSelectCostEntry: (entryId: string) => void;
+  onDeleteCostEntry: (entryId: string) => void;
+};
+
+type AddComponentUnitControlsProps = {
+  activeVariant: VariantDraft;
+  contentConversion: ReturnType<typeof getContentConversionCopy>;
+  unitError: string | undefined;
+  onUpdateUnit: (unit: string) => void;
+  onUpdateActiveVariant: (update: Partial<VariantDraft>) => void;
+};
+
+function AddComponentUnitControls({
+  activeVariant,
+  contentConversion,
+  unitError,
+  onUpdateUnit,
+  onUpdateActiveVariant,
+}: AddComponentUnitControlsProps) {
+  return (
+    <div
+      className={cn(
+        "grid min-w-0 gap-x-2 gap-y-3 md:col-span-2",
+        contentConversion.visible
+          ? "md:grid-cols-[minmax(0,0.8fr)_minmax(18rem,1.2fr)]"
+          : "md:grid-cols-1",
+      )}
+    >
+      <ControlField as="div" label="Unit" required errorText={unitError} reserveHelperSpace>
+        <CreatableCombobox
+          ariaLabel="Unit"
+          ariaRequired
+          value={activeVariant.unit}
+          selectedId={getSelectedUnitId(activeVariant.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
+          options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
+          placeholder="Search or add unit"
+          emptyLabel="No units found"
+          createLabel={(value) => `Add unit "${value}"`}
+          onChange={(change) => onUpdateUnit(getUnitComboboxValue(change))}
+          invalid={Boolean(unitError)}
+          preferSelectionOnEnter
+          suppressCreateWhenSearchMatches
+          optionPresentation="unit"
+        />
+      </ControlField>
+      {contentConversion.visible ? (
+        <ControlField as="div" label={contentConversion.label} reserveHelperSpace>
+          <div className="grid min-w-0 grid-cols-[5.5rem_minmax(22ch,1fr)] gap-1">
+            <ControlInput
+              aria-label={contentConversion.quantityAriaLabel}
+              inputMode="decimal"
+              value={activeVariant.packageQuantity}
+              onChange={(event) => onUpdateActiveVariant({ packageQuantity: event.target.value })}
+              invalid={Number.isNaN(readOptionalPositiveNumber(activeVariant.packageQuantity))}
+              className={CONTROL_INPUT_SURFACE_CLASS}
+              placeholder="12"
+            />
+            <CreatableCombobox
+              ariaLabel={contentConversion.unitAriaLabel}
+              value={activeVariant.packageUnit}
+              selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
+              options={CONTENT_UNIT_COMBOBOX_OPTIONS}
+              placeholder="unit"
+              emptyLabel="No content units found"
+              createLabel={(value) => `Add unit "${value}"`}
+              inputClassName="min-w-[22ch]"
+              onChange={(change) => onUpdateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
+              preferSelectionOnEnter
+              suppressCreateWhenSearchMatches
+              optionPresentation="unit"
+            />
+          </div>
+        </ControlField>
+      ) : null}
+    </div>
+  );
+}
+
+function AddComponentCostPicker({
+  activeCostEntry,
+  visibleCostEntries,
+  unitCostError,
+  costPickerOpen,
+  costPickerListboxId,
+  costPickerRootRef,
+  onBeginCostEdit,
+  onCommitCostInputEntry,
+  onSetCostPickerOpen,
+  onOpenCostManager,
+  onUpdateActiveCostEntry,
+  onSelectCostEntry,
+  onDeleteCostEntry,
+}: AddComponentCostPickerProps) {
+  return (
+    <ControlField as="div" label="Unit cost" className="md:col-span-2" required errorText={unitCostError}>
+      <div ref={costPickerRootRef} className="relative grid gap-1">
+        <div className="flex min-h-8 items-center justify-between gap-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1">
+          <div className="min-w-0">
+            <div className="truncate text-[10px] font-medium leading-4 text-ink">Cost baseline</div>
+            <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            aria-label="Open cost manager"
+            onClick={() => {
+              onBeginCostEdit();
+              onCommitCostInputEntry();
+              onSetCostPickerOpen(false);
+              onOpenCostManager();
+            }}
+            className="h-7 shrink-0 px-2"
+          >
+            Manage
+          </Button>
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_32px] gap-1">
+          <ControlInput
+            aria-label="Unit cost"
+            aria-required="true"
+            role="combobox"
+            aria-expanded={costPickerOpen}
+            aria-controls={costPickerListboxId}
+            inputMode="decimal"
+            value={activeCostEntry?.unitCost ?? ""}
+            onFocus={() => {
+              onBeginCostEdit();
+            }}
+            onClick={() => {
+              onBeginCostEdit();
+            }}
+            onBlur={(event) => {
+              onCommitCostInputEntry();
+              const nextTarget = event.relatedTarget as Node | null;
+              if (!nextTarget || !costPickerRootRef.current?.contains(nextTarget)) {
+                onSetCostPickerOpen(false);
+              }
+            }}
+            onChange={(event) => {
+              onUpdateActiveCostEntry({
+                unitCost: formatMoneyInputValue(event.target.value, activeCostEntry?.unitCost ?? "", event.nativeEvent),
+              });
+              onSetCostPickerOpen(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onCommitCostInputEntry();
+                onSetCostPickerOpen(false);
+              }
+            }}
+            invalid={Boolean(unitCostError)}
+            className={cn(CONTROL_INPUT_SURFACE_CLASS, "text-right tabular-nums")}
+            placeholder="0.00"
+          />
+          <button
+            type="button"
+            aria-label="Open cost entries"
+            title="Open cost entries"
+            aria-expanded={costPickerOpen}
+            aria-controls={costPickerListboxId}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              onBeginCostEdit();
+              onCommitCostInputEntry();
+              onSetCostPickerOpen((current) => !current);
+            }}
+            className="grid size-8 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            <CaretDown size={12} weight="regular" aria-hidden="true" />
+          </button>
+        </div>
+        {costPickerOpen ? (
+          <div className="absolute left-0 right-0 top-[38px] z-30 grid gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
+            {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Cost picker is a custom ARIA listbox, not a datalist input. */}
+            <div
+              id={costPickerListboxId}
+              role="listbox"
+              aria-label="Cost entries"
+              className="grid gap-1"
+            >
+              {visibleCostEntries.map((entry) => (
+                <div key={entry.id} className="grid grid-cols-[minmax(0,1fr)_28px] gap-1">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={entry.id === activeCostEntry?.id}
+                    onClick={() => onSelectCostEntry(entry.id)}
+                    className={cn(
+                      "grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xs px-2 text-left text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                      entry.id === activeCostEntry?.id ? "bg-accentSoft" : "bg-white",
+                    )}
+                  >
+                    <span className="truncate text-tertiary">{entry.pricingDate || "No date"}</span>
+                    <span className="justify-self-end tabular-nums">{formatAccountingMoney(entry.unitCost)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete cost entry ${entry.pricingDate || "No date"} ${formatAccountingMoney(entry.unitCost)}`}
+                    title="Delete cost entry"
+                    disabled={visibleCostEntries.length <= 1}
+                    onClick={() => onDeleteCostEntry(entry.id)}
+                    className="grid size-7 place-items-center rounded-xs border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash size={11} weight="regular" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {activeCostEntry ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-center gap-2 border-t border-hairline px-2 pt-1">
+                <span className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Date</span>
+                <ControlInput
+                  aria-label="Selected cost date"
+                  type="date"
+                  value={activeCostEntry.pricingDate || today()}
+                  onChange={(event) => onUpdateActiveCostEntry({ pricingDate: event.target.value })}
+                  className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7")}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </ControlField>
+  );
+}
+
+function AddComponentAdvancedDetails({
+  open,
+  id,
+  activeVariant,
+  computedMeasurements,
+  attachmentInputId,
+  attachmentUpload,
+  onUpdateActiveVariant,
+  onUploadAttachment,
+  onRemoveAttachment,
+}: AddComponentAdvancedDetailsProps) {
+  if (!open) return null;
+
+  return (
+    <div id={id} className="md:col-span-2 grid gap-3">
+      <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Component measurements">
+        <div className={sectionTitleClassName()}>Measurements</div>
+        <div className="mt-2 grid gap-x-2 gap-y-3 md:grid-cols-4">
+          <ControlField label="Length">
+            <ControlInput
+              aria-label="Length"
+              inputMode="decimal"
+              value={activeVariant.dimensionLength}
+              onChange={(event) => onUpdateActiveVariant({ dimensionLength: event.target.value })}
+              invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionLength))}
+              className={CONTROL_INPUT_SURFACE_CLASS}
+              placeholder="0"
+            />
+          </ControlField>
+          <ControlField label="Width">
+            <ControlInput
+              aria-label="Width"
+              inputMode="decimal"
+              value={activeVariant.dimensionWidth}
+              onChange={(event) => onUpdateActiveVariant({ dimensionWidth: event.target.value })}
+              invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionWidth))}
+              className={CONTROL_INPUT_SURFACE_CLASS}
+              placeholder="0"
+            />
+          </ControlField>
+          <ControlField label="Height">
+            <ControlInput
+              aria-label="Height"
+              inputMode="decimal"
+              value={activeVariant.dimensionHeight}
+              onChange={(event) => onUpdateActiveVariant({ dimensionHeight: event.target.value })}
+              invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionHeight))}
+              className={CONTROL_INPUT_SURFACE_CLASS}
+              placeholder="0"
+            />
+          </ControlField>
+          <ControlField as="div" label="Dimension unit">
+            <CreatableCombobox
+              ariaLabel="Dimension unit"
+              value={activeVariant.dimensionUnit}
+              selectedId={getSelectedUnitId(activeVariant.dimensionUnit, DIMENSION_UNIT_COMBOBOX_OPTIONS)}
+              options={DIMENSION_UNIT_COMBOBOX_OPTIONS}
+              placeholder="m"
+              emptyLabel="No dimension units found"
+              createLabel={(value) => `Add unit "${value}"`}
+              onChange={(change) => onUpdateActiveVariant({ dimensionUnit: getUnitComboboxValue(change) })}
+              preferSelectionOnEnter
+              suppressCreateWhenSearchMatches
+              optionPresentation="unit"
+              dropdownPlacement="top"
+            />
+          </ControlField>
+          <ControlField label="Area / item">
+            <ControlInput
+              aria-label="Computed footprint area"
+              disabled
+              readOnly
+              value={formatComputedMeasurement(computedMeasurements.footprintArea, activeVariant.dimensionUnit, 2)}
+              className={cn(
+                CONTROL_INPUT_SURFACE_CLASS,
+                "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
+              )}
+            />
+          </ControlField>
+          <ControlField label="Area / unit">
+            <ControlInput
+              aria-label="Computed package area"
+              disabled
+              readOnly
+              value={formatComputedMeasurement(computedMeasurements.packageArea, activeVariant.dimensionUnit, 2)}
+              className={cn(
+                CONTROL_INPUT_SURFACE_CLASS,
+                "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
+              )}
+            />
+          </ControlField>
+          <ControlField label="Volume">
+            <ControlInput
+              aria-label="Computed volume"
+              disabled
+              readOnly
+              value={formatComputedMeasurement(computedMeasurements.volume, activeVariant.dimensionUnit, 3)}
+              className={cn(
+                CONTROL_INPUT_SURFACE_CLASS,
+                "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
+              )}
+            />
+          </ControlField>
+          <div aria-hidden="true" className="hidden md:block" />
+        </div>
+      </div>
+      <ControlField label="Description" className="md:col-span-2">
+        <ControlTextarea
+          value={activeVariant.description}
+          onChange={(event) => onUpdateActiveVariant({ description: event.target.value })}
+          className="min-h-16"
+        />
+      </ControlField>
+      <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Variant attachments">
+        <div className="flex items-center justify-between gap-2">
+          <div className={sectionTitleClassName()}>Attachments</div>
+          <input
+            id={attachmentInputId}
+            type="file"
+            accept="application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            aria-label="Upload attachment"
+            disabled={attachmentUpload.state === "uploading"}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.currentTarget.value = "";
+              if (!file) return;
+              void onUploadAttachment(file);
+            }}
+            className="sr-only"
+          />
+          <label
+            htmlFor={attachmentInputId}
+            className="inline-flex min-h-7 cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
+          >
+            <UploadSimple size={11} weight="regular" aria-hidden="true" />
+            Attach file
+          </label>
+        </div>
+        <ul className="m-0 mt-2 grid list-none gap-1 p-0">
+          {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => (
+            <li
+              key={attachment.id}
+              className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2 rounded-xs border border-hairline bg-surfaceMuted px-2"
+            >
+              <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
+              <span className="shrink-0 text-[9px] font-medium text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
+              <button
+                type="button"
+                aria-label={`Remove attachment ${attachment.fileName}`}
+                title="Remove attachment"
+                onClick={() => onRemoveAttachment(attachment.id)}
+                className="grid size-7 place-items-center rounded-xs text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              >
+                <Trash size={11} weight="regular" aria-hidden="true" />
+              </button>
+            </li>
+          )) : (
+            <li className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
+              No attachments
+            </li>
+          )}
+        </ul>
+        {attachmentUpload.state !== "idle" ? (
+          <span
+            role={attachmentUpload.state === "error" ? "alert" : "status"}
+            className={cn(
+              "mt-1 block text-[9px] normal-case leading-3 tracking-normal",
+              attachmentUpload.state === "error" ? "text-danger" : "text-tertiary",
+            )}
+          >
+            {attachmentUpload.message}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function AddComponentModal(props: AddComponentModalProps) {
   if (!props.open) return null;
   return <OpenAddComponentModal {...props} />;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function OpenAddComponentModal({
   open,
   folders,
@@ -718,8 +1267,9 @@ function OpenAddComponentModal({
   treeMutationPending,
 }: AddComponentModalProps) {
   const userFolders = useMemo(() => getUserLibraryFolders(folders), [folders]);
-  const [initialDraft] = useState(() =>
-    getInitialDraft({
+  const initialDraftRef = useRef<ComponentDraft | null>(null);
+  if (initialDraftRef.current === null) {
+    initialDraftRef.current = getInitialDraft({
       folders: userFolders,
       categoryTree,
       selectedFolderId,
@@ -727,23 +1277,46 @@ function OpenAddComponentModal({
       selectedBrandId,
       suppliers,
       brands,
-    }),
-  );
-  const [draft, setDraft] = useState(initialDraft);
-  const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
-  const [sharedPreviewUrl, setSharedPreviewUrl] = useState("");
-  const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
-  const [attachmentUpload, setAttachmentUpload] = useState<ImageUploadState>({ state: "idle" });
-  const [costPickerOpen, setCostPickerOpen] = useState(false);
-  const [costManagerOpen, setCostManagerOpen] = useState(false);
-  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
-  const [duplicateCheckReady, setDuplicateCheckReady] = useState(false);
-  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
-  const [advancedDetailsOpen, setAdvancedDetailsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
-  const [activeVariantId, setActiveVariantId] = useState(() => initialDraft.variants[0]?.id ?? "");
-  const [nestingViewMode, setNestingViewMode] = useState<ComponentViewMode>(() => getInitialNestingViewMode(selectedSupplierId, selectedBrandId));
-  const [error, setError] = useState("");
+    });
+  }
+  const initialDraft = initialDraftRef.current;
+  const [modalState, dispatchModal] = useReducer(openAddComponentModalReducer, {
+    initialDraft,
+    selectedSupplierId,
+    selectedBrandId,
+  }, createOpenAddComponentModalState);
+  const {
+    draft,
+    variantPreviewUrls,
+    sharedPreviewUrl,
+    imageUpload,
+    attachmentUpload,
+    costPickerOpen,
+    costManagerOpen,
+    discardDialogOpen,
+    duplicateCheckReady,
+    duplicateAcknowledged,
+    advancedDetailsOpen,
+    activeTab,
+    activeVariantId,
+    nestingViewMode,
+    error,
+  } = modalState;
+  const setDraft = (value: StateUpdater<ComponentDraft>) => dispatchModal({ type: "setDraft", value });
+  const setVariantPreviewUrls = (value: StateUpdater<Record<string, string>>) => dispatchModal({ type: "setVariantPreviewUrls", value });
+  const setSharedPreviewUrl = (value: string) => dispatchModal({ type: "setSharedPreviewUrl", value });
+  const setImageUpload = (value: ImageUploadState) => dispatchModal({ type: "setImageUpload", value });
+  const setAttachmentUpload = (value: ImageUploadState) => dispatchModal({ type: "setAttachmentUpload", value });
+  const setCostPickerOpen = (value: StateUpdater<boolean>) => dispatchModal({ type: "setCostPickerOpen", value });
+  const setCostManagerOpen = (value: boolean) => dispatchModal({ type: "setCostManagerOpen", value });
+  const setDiscardDialogOpen = (value: boolean) => dispatchModal({ type: "setDiscardDialogOpen", value });
+  const setDuplicateCheckReady = (value: boolean) => dispatchModal({ type: "setDuplicateCheckReady", value });
+  const setDuplicateAcknowledged = (value: boolean) => dispatchModal({ type: "setDuplicateAcknowledged", value });
+  const setAdvancedDetailsOpen = (value: StateUpdater<boolean>) => dispatchModal({ type: "setAdvancedDetailsOpen", value });
+  const setActiveTab = (value: AddComponentModalTab) => dispatchModal({ type: "setActiveTab", value });
+  const setActiveVariantId = (value: string) => dispatchModal({ type: "setActiveVariantId", value });
+  const setNestingViewMode = (value: ComponentViewMode) => dispatchModal({ type: "setNestingViewMode", value });
+  const setError = (value: string) => dispatchModal({ type: "setError", value });
   const [isPending, startTransition] = useTransition();
   const thumbnailInputId = useId();
   const attachmentInputId = useId();
@@ -1870,192 +2443,28 @@ function OpenAddComponentModal({
                               className={CONTROL_INPUT_SURFACE_CLASS}
                             />
                           </ControlField>
-                          <ControlField as="div" label="Unit cost" className="md:col-span-2" required errorText={quickAddValidation.errors.unitCost}>
-                            <div ref={costPickerRootRef} className="relative grid gap-1">
-                              <div className="flex min-h-8 items-center justify-between gap-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1">
-                                <div className="min-w-0">
-                                  <div className="truncate text-[10px] font-medium leading-4 text-ink">Cost baseline</div>
-                                  <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  aria-label="Open cost manager"
-                                  onClick={() => {
-                                    beginCostEdit();
-                                    commitCostInputEntry();
-                                    setCostPickerOpen(false);
-                                    setCostManagerOpen(true);
-                                  }}
-                                  className="h-7 shrink-0 px-2"
-                                >
-                                  Manage
-                                </Button>
-                              </div>
-                              <div className="grid grid-cols-[minmax(0,1fr)_32px] gap-1">
-                                <ControlInput
-                                  aria-label="Unit cost"
-                                  aria-required="true"
-                                  role="combobox"
-                                  aria-expanded={costPickerOpen}
-                                  aria-controls={costPickerListboxId}
-                                  inputMode="decimal"
-                                  value={activeCostEntry?.unitCost ?? ""}
-                                  onFocus={() => {
-                                    beginCostEdit();
-                                  }}
-                                  onClick={() => {
-                                    beginCostEdit();
-                                  }}
-                                  onBlur={(event) => {
-                                    commitCostInputEntry();
-                                    const nextTarget = event.relatedTarget as Node | null;
-                                    if (!nextTarget || !costPickerRootRef.current?.contains(nextTarget)) {
-                                      setCostPickerOpen(false);
-                                    }
-                                  }}
-                                  onChange={(event) => {
-                                    updateActiveCostEntry({
-                                      unitCost: formatMoneyInputValue(event.target.value, activeCostEntry?.unitCost ?? "", event.nativeEvent),
-                                    });
-                                    setCostPickerOpen(false);
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                      event.preventDefault();
-                                      commitCostInputEntry();
-                                      setCostPickerOpen(false);
-                                    }
-                                  }}
-                                  invalid={Boolean(quickAddValidation.errors.unitCost)}
-                                  className={cn(CONTROL_INPUT_SURFACE_CLASS, "text-right tabular-nums")}
-                                  placeholder="0.00"
-                                />
-                                <button
-                                  type="button"
-                                  aria-label="Open cost entries"
-                                  title="Open cost entries"
-                                  aria-expanded={costPickerOpen}
-                                  aria-controls={costPickerListboxId}
-                                  onMouseDown={(event) => event.preventDefault()}
-                                  onClick={() => {
-                                    beginCostEdit();
-                                    commitCostInputEntry();
-                                    setCostPickerOpen((current) => !current);
-                                  }}
-                                  className="grid size-8 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                                >
-                                  <CaretDown size={12} weight="regular" aria-hidden="true" />
-                                </button>
-                              </div>
-                              {costPickerOpen ? (
-                                <div className="absolute left-0 right-0 top-[38px] z-30 grid gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
-                                  <div
-                                    id={costPickerListboxId}
-                                    role="listbox"
-                                    aria-label="Cost entries"
-                                    className="grid gap-1"
-                                  >
-                                    {visibleCostEntries.map((entry) => (
-                                      <div key={entry.id} className="grid grid-cols-[minmax(0,1fr)_28px] gap-1">
-                                        <button
-                                          type="button"
-                                          role="option"
-                                          aria-selected={entry.id === activeCostEntry?.id}
-                                          onClick={() => selectCostEntry(entry.id)}
-                                          className={cn(
-                                            "grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xs px-2 text-left text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                                            entry.id === activeCostEntry?.id ? "bg-accentSoft" : "bg-white",
-                                          )}
-                                        >
-                                          <span className="truncate text-tertiary">{entry.pricingDate || "No date"}</span>
-                                          <span className="justify-self-end tabular-nums">{formatAccountingMoney(entry.unitCost)}</span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          aria-label={`Delete cost entry ${entry.pricingDate || "No date"} ${formatAccountingMoney(entry.unitCost)}`}
-                                          title="Delete cost entry"
-                                          disabled={visibleCostEntries.length <= 1}
-                                          onClick={() => deleteCostEntry(entry.id)}
-                                          className="grid size-7 place-items-center rounded-xs border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
-                                        >
-                                          <Trash size={11} weight="regular" aria-hidden="true" />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  {activeCostEntry ? (
-                                    <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-center gap-2 border-t border-hairline px-2 pt-1">
-                                      <span className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Date</span>
-                                      <ControlInput
-                                        aria-label="Selected cost date"
-                                        type="date"
-                                        value={activeCostEntry.pricingDate || today()}
-                                        onChange={(event) => updateActiveCostEntry({ pricingDate: event.target.value })}
-                                        className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7")}
-                                      />
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </div>
-                          </ControlField>
-                          <div
-                            className={cn(
-                              "grid min-w-0 gap-x-2 gap-y-3 md:col-span-2",
-                              activeContentConversion.visible
-                                ? "md:grid-cols-[minmax(0,0.8fr)_minmax(18rem,1.2fr)]"
-                                : "md:grid-cols-1",
-                            )}
-                          >
-                            <ControlField as="div" label="Unit" required errorText={quickAddValidation.errors.unit} reserveHelperSpace>
-                              <CreatableCombobox
-                                ariaLabel="Unit"
-                                ariaRequired
-                                value={activeVariant.unit}
-                                selectedId={getSelectedUnitId(activeVariant.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
-                                options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
-                                placeholder="Search or add unit"
-                                emptyLabel="No units found"
-                                createLabel={(value) => `Add unit "${value}"`}
-                                onChange={(change) => updateActiveVariantUnit(getUnitComboboxValue(change))}
-                                invalid={Boolean(quickAddValidation.errors.unit)}
-                                preferSelectionOnEnter
-                                suppressCreateWhenSearchMatches
-                                optionPresentation="unit"
-                              />
-                            </ControlField>
-                            {activeContentConversion.visible ? (
-                              <ControlField as="div" label={activeContentConversion.label} reserveHelperSpace>
-                                <div className="grid min-w-0 grid-cols-[5.5rem_minmax(22ch,1fr)] gap-1">
-                                  <ControlInput
-                                    aria-label={activeContentConversion.quantityAriaLabel}
-                                    inputMode="decimal"
-                                    value={activeVariant.packageQuantity}
-                                    onChange={(event) => updateActiveVariant({ packageQuantity: event.target.value })}
-                                    invalid={Number.isNaN(readOptionalPositiveNumber(activeVariant.packageQuantity))}
-                                    className={CONTROL_INPUT_SURFACE_CLASS}
-                                    placeholder="12"
-                                  />
-                                  <CreatableCombobox
-                                    ariaLabel={activeContentConversion.unitAriaLabel}
-                                    value={activeVariant.packageUnit}
-                                    selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
-                                    options={CONTENT_UNIT_COMBOBOX_OPTIONS}
-                                    placeholder="unit"
-                                    emptyLabel="No content units found"
-                                    createLabel={(value) => `Add unit "${value}"`}
-                                    inputClassName="min-w-[22ch]"
-                                    onChange={(change) => updateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
-                                    preferSelectionOnEnter
-                                    suppressCreateWhenSearchMatches
-                                    optionPresentation="unit"
-                                  />
-                                </div>
-                              </ControlField>
-                            ) : null}
-                          </div>
+                          <AddComponentCostPicker
+                            activeCostEntry={activeCostEntry}
+                            visibleCostEntries={visibleCostEntries}
+                            unitCostError={quickAddValidation.errors.unitCost}
+                            costPickerOpen={costPickerOpen}
+                            costPickerListboxId={costPickerListboxId}
+                            costPickerRootRef={costPickerRootRef}
+                            onBeginCostEdit={beginCostEdit}
+                            onCommitCostInputEntry={commitCostInputEntry}
+                            onSetCostPickerOpen={setCostPickerOpen}
+                            onOpenCostManager={() => setCostManagerOpen(true)}
+                            onUpdateActiveCostEntry={updateActiveCostEntry}
+                            onSelectCostEntry={selectCostEntry}
+                            onDeleteCostEntry={deleteCostEntry}
+                          />
+                          <AddComponentUnitControls
+                            activeVariant={activeVariant}
+                            contentConversion={activeContentConversion}
+                            unitError={quickAddValidation.errors.unit}
+                            onUpdateUnit={updateActiveVariantUnit}
+                            onUpdateActiveVariant={updateActiveVariant}
+                          />
                           <div className="grid gap-x-2 gap-y-3 md:col-span-2 md:grid-cols-3">
                             <ControlField label="Pricing date" errorText={quickAddValidation.errors.pricingDate}>
                               <ControlInput
@@ -2104,169 +2513,17 @@ function OpenAddComponentModal({
                               className={cn("transition", advancedDetailsOpen ? "rotate-180" : "")}
                             />
                           </Button>
-                          {advancedDetailsOpen ? (
-                          <div id={advancedDetailsId} className="md:col-span-2 grid gap-3">
-                          <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Component measurements">
-                            <div className={sectionTitleClassName()}>Measurements</div>
-                            <div className="mt-2 grid gap-x-2 gap-y-3 md:grid-cols-4">
-                              <ControlField label="Length">
-                                <ControlInput
-                                  aria-label="Length"
-                                  inputMode="decimal"
-                                  value={activeVariant.dimensionLength}
-	                                  onChange={(event) => updateActiveVariant({ dimensionLength: event.target.value })}
-	                                  invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionLength))}
-	                                  className={CONTROL_INPUT_SURFACE_CLASS}
-	                                  placeholder="0"
-	                                />
-                              </ControlField>
-                              <ControlField label="Width">
-                                <ControlInput
-                                  aria-label="Width"
-                                  inputMode="decimal"
-                                  value={activeVariant.dimensionWidth}
-	                                  onChange={(event) => updateActiveVariant({ dimensionWidth: event.target.value })}
-	                                  invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionWidth))}
-	                                  className={CONTROL_INPUT_SURFACE_CLASS}
-	                                  placeholder="0"
-	                                />
-                              </ControlField>
-                              <ControlField label="Height">
-                                <ControlInput
-                                  aria-label="Height"
-                                  inputMode="decimal"
-                                  value={activeVariant.dimensionHeight}
-	                                  onChange={(event) => updateActiveVariant({ dimensionHeight: event.target.value })}
-	                                  invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionHeight))}
-	                                  className={CONTROL_INPUT_SURFACE_CLASS}
-	                                  placeholder="0"
-	                                />
-                              </ControlField>
-                              <ControlField as="div" label="Dimension unit">
-                                <CreatableCombobox
-                                  ariaLabel="Dimension unit"
-                                  value={activeVariant.dimensionUnit}
-                                  selectedId={getSelectedUnitId(activeVariant.dimensionUnit, DIMENSION_UNIT_COMBOBOX_OPTIONS)}
-                                  options={DIMENSION_UNIT_COMBOBOX_OPTIONS}
-                                  placeholder="m"
-                                  emptyLabel="No dimension units found"
-                                  createLabel={(value) => `Add unit "${value}"`}
-                                  onChange={(change) => updateActiveVariant({ dimensionUnit: getUnitComboboxValue(change) })}
-                                  preferSelectionOnEnter
-                                  suppressCreateWhenSearchMatches
-                                  optionPresentation="unit"
-                                  dropdownPlacement="top"
-                                />
-                              </ControlField>
-                              <ControlField label="Area / item">
-                                <ControlInput
-                                  aria-label="Computed footprint area"
-                                  disabled
-                                  readOnly
-                                  value={formatComputedMeasurement(computedMeasurements.footprintArea, activeVariant.dimensionUnit, 2)}
-                                  className={cn(
-                                    CONTROL_INPUT_SURFACE_CLASS,
-                                    "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
-                                  )}
-                                />
-                              </ControlField>
-                              <ControlField label="Area / unit">
-                                <ControlInput
-                                  aria-label="Computed package area"
-                                  disabled
-                                  readOnly
-                                  value={formatComputedMeasurement(computedMeasurements.packageArea, activeVariant.dimensionUnit, 2)}
-                                  className={cn(
-                                    CONTROL_INPUT_SURFACE_CLASS,
-                                    "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
-                                  )}
-                                />
-                              </ControlField>
-                              <ControlField label="Volume">
-                                <ControlInput
-                                  aria-label="Computed volume"
-                                  disabled
-                                  readOnly
-                                  value={formatComputedMeasurement(computedMeasurements.volume, activeVariant.dimensionUnit, 3)}
-                                  className={cn(
-                                    CONTROL_INPUT_SURFACE_CLASS,
-                                    "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
-                                  )}
-                                />
-                              </ControlField>
-                              <div aria-hidden="true" className="hidden md:block" />
-                            </div>
-                          </div>
-                          <ControlField label="Description" className="md:col-span-2">
-                            <ControlTextarea
-                              value={activeVariant.description}
-                              onChange={(event) => updateActiveVariant({ description: event.target.value })}
-                              className="min-h-16"
-                            />
-                          </ControlField>
-                          <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Variant attachments">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className={sectionTitleClassName()}>Attachments</div>
-                              <input
-                                id={attachmentInputId}
-                                type="file"
-                                accept="application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                aria-label="Upload attachment"
-                                disabled={attachmentUpload.state === "uploading"}
-                                onChange={(event) => {
-                                  const file = event.target.files?.[0];
-                                  event.currentTarget.value = "";
-                                  if (!file) return;
-                                  void handleAttachmentUpload(file);
-                                }}
-                                className="sr-only"
-                              />
-                              <label
-                                htmlFor={attachmentInputId}
-                                className="inline-flex min-h-7 cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
-                              >
-                                <UploadSimple size={11} weight="regular" aria-hidden="true" />
-                                Attach file
-                              </label>
-                            </div>
-                            <ul className="m-0 mt-2 grid list-none gap-1 p-0">
-                              {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => (
-                                <li
-                                  key={attachment.id}
-                                  className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2 rounded-xs border border-hairline bg-surfaceMuted px-2"
-                                >
-                                  <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
-                                  <span className="shrink-0 text-[9px] font-medium text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
-                                  <button
-                                    type="button"
-                                    aria-label={`Remove attachment ${attachment.fileName}`}
-                                    title="Remove attachment"
-                                    onClick={() => removeAttachment(attachment.id)}
-                                    className="grid size-7 place-items-center rounded-xs text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                                  >
-                                    <Trash size={11} weight="regular" aria-hidden="true" />
-                                  </button>
-                                </li>
-                              )) : (
-                                <li className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
-                                  No attachments
-                                </li>
-                              )}
-                            </ul>
-                            {attachmentUpload.state !== "idle" ? (
-                              <span
-                                role={attachmentUpload.state === "error" ? "alert" : "status"}
-                                className={cn(
-                                  "mt-1 block text-[9px] normal-case leading-3 tracking-normal",
-                                  attachmentUpload.state === "error" ? "text-danger" : "text-tertiary",
-                                )}
-                              >
-                                {attachmentUpload.message}
-                              </span>
-                            ) : null}
-                          </div>
-                          </div>
-                          ) : null}
+                          <AddComponentAdvancedDetails
+                            open={advancedDetailsOpen}
+                            id={advancedDetailsId}
+                            activeVariant={activeVariant}
+                            computedMeasurements={computedMeasurements}
+                            attachmentInputId={attachmentInputId}
+                            attachmentUpload={attachmentUpload}
+                            onUpdateActiveVariant={updateActiveVariant}
+                            onUploadAttachment={handleAttachmentUpload}
+                            onRemoveAttachment={removeAttachment}
+                          />
                         </div>
                       </div>
                     ) : null}
@@ -2422,6 +2679,7 @@ function OpenAddComponentModal({
               Add cost entry
             </Button>
           </div>
+          {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Cost manager entries use a custom ARIA listbox; native datalist would not preserve this UI. */}
           <div role="listbox" aria-label="Cost manager entries" className="grid max-h-[220px] gap-1 overflow-auto p-2 lg:max-h-none">
             {visibleCostEntries.map((entry) => (
               <div key={entry.id} className="grid grid-cols-[minmax(0,1fr)_28px] gap-1">

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type SetStateAction } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState, type ReactNode, type SetStateAction } from "react";
 import { FunnelSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -12,7 +12,7 @@ import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { FilterPopover } from "@/components/ui/overlays/popover";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
-import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
+import { dispatchProjectTotalChange } from "@/components/workshop/project-total-events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
@@ -36,7 +36,8 @@ import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMet
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
-import { estimateSurfaceClass, useEstimateSurfaceVariant } from "./estimate-surface-variant";
+import { estimateSurfaceClass } from "./estimate-surface-class";
+import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-flags";
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
@@ -104,7 +105,7 @@ import {
   type FlattenedEstimateRow,
   type RowDetailTab,
   type RowDetailsState,
-} from "./estimate-sheet/activity-history";
+} from "./estimate-sheet/activity-history-model";
 // Interaction-gated overlays from the activity-history barrel: each renders only
 // behind its open-state condition in JSX, so neither contributes to first paint.
 // Code-split out of the initial bundle (the non-component exports above stay
@@ -137,47 +138,56 @@ import {
   parseNonNegativeEditableNumber,
   type EditableRowValue,
 } from "./estimate-sheet/rows/editable-row-model";
-import { getNodeCode } from "./estimate-sheet/rows/node-visuals";
+import { getNodeCode } from "./estimate-sheet/rows/node-visuals-utils";
+import {
+  type ExpressInsertDraftState,
+} from "./estimate-sheet/rows/cells";
 import {
   canMakeProjectSpecific,
   canPromoteEstimateRowToLibrary,
-  type ExpressInsertDraftState,
-} from "./estimate-sheet/rows/cells";
+} from "./estimate-sheet/rows/cells-model";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
-/* Re-export component library helpers so existing imports don't break */
-export {
-  createComponent,
-  createDefaultLibraryBundles,
-  exportLibraryItemsToCsv,
-  expandLibraryBundle,
-  exportLibraryItemsToJson,
-  filterComponents,
-  getComponentDesignation,
-  getComponentDiscipline,
-  getComponentImageUrl,
-  getLibraryBundleTotal,
-  getComponentName,
-  getComponentPrice,
-  getStalenessLabel,
-  getStalenessTone,
-  groupComponents,
-  parseLibraryCsv,
-  parseLibraryImportText,
-  parseLibraryJson,
-  readLibraryPreferences,
-  safeSetJsonStorage,
-  searchComponents,
-  sortComponents,
-} from "./component-library/helpers";
 // D2 / Req 10: local bindings for the within-area group/sort transform. The
-// block above is a re-export (`export … from`) and creates NO local binding,
-// so these must be imported explicitly to be callable here.
+// sheet needs explicit local bindings to be callable here.
 import { groupComponents as groupSheetRows, sortComponents as sortSheetRows } from "./component-library/helpers";
-export { pesoFormatter };
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
+
+function useNativeModalDialog(onClose: () => void) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  const handleDialogMouseDown = useCallback(
+    (event: MouseEvent) => {
+      if (event.target === dialogRef.current) onClose();
+    },
+    [onClose],
+  );
+
+  return useCallback(
+    (node: HTMLDialogElement | null) => {
+      dialogRef.current?.removeEventListener("mousedown", handleDialogMouseDown);
+      dialogRef.current = node;
+      if (!node) return;
+
+      node.addEventListener("mousedown", handleDialogMouseDown);
+      if (node.open) return;
+
+      if (typeof node.showModal === "function") {
+        try {
+          node.showModal();
+        } catch {
+          node.setAttribute("open", "");
+        }
+        return;
+      }
+
+      node.setAttribute("open", "");
+    },
+    [handleDialogMouseDown],
+  );
+}
 
 // legacy "EstimateSheetContent" name kept for compatibility; see plan 2026-06-12 §01-17
 type EstimateSheetContentProps = {
@@ -435,7 +445,7 @@ function proposalPreviewModelSettings(settings: ProposalExportUserSettings) {
 
 
 
-export function createEstimateRowItemId() {
+function createEstimateRowItemId() {
   if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
 
   const bytes = new Uint8Array(16);
@@ -899,6 +909,110 @@ function filterEstimateSheetNodeByFacets(node: EstimateTreeNode, facets: SheetFa
 
 type SheetGroupMode = "default" | "category" | "supplier" | "cost";
 
+type EstimateCreateTabState = {
+  canCreate: boolean;
+  pending: boolean;
+};
+
+type EstimateSheetContentState = {
+  editableRows: Record<string, EditableRowValue>;
+  expressInsertDrafts: Record<string, ExpressInsertDraft>;
+  pendingLibraryCommitGate: PendingLibraryCommitGate | null;
+  showCommandPalette: boolean;
+  collapsedNodeIdsByScope: Record<string, string[]>;
+  bulkSelectedRowIds: Set<string>;
+  isProposalPreviewOpen: boolean;
+  proposalPreviewScope: ProposalExportPreviewScope;
+  proposalPreviewModel: ProposalExportModel | null;
+  proposalPreviewSignature: string;
+  isDownloadingProposal: boolean;
+  proposalDownloadError: string | null;
+  proposalExportSettings: ProposalExportUserSettings;
+  inspector: EstimateActivityScope | null;
+  rowDetails: RowDetailsState | null;
+  projectSpecificRowId: string;
+  promotingRowId: string | null;
+  activityFilters: ActivityFilterState;
+  historyData: EstimateSheetVersionControlData | null;
+  isHistoryLoading: boolean;
+  isHistoryLoadingMore: boolean;
+  historyError: string;
+  createTabState: EstimateCreateTabState;
+  sheetSearchQuery: string;
+  sheetFacets: SheetFacetState;
+  sheetGroupMode: SheetGroupMode;
+};
+
+type EstimateSheetContentAction = {
+  [K in keyof EstimateSheetContentState]: {
+    type: "fieldChanged";
+    field: K;
+    value: SetStateAction<EstimateSheetContentState[K]>;
+  };
+}[keyof EstimateSheetContentState];
+
+function estimateSheetContentFieldAction<K extends keyof EstimateSheetContentState>(
+  field: K,
+  value: SetStateAction<EstimateSheetContentState[K]>,
+): EstimateSheetContentAction {
+  return { type: "fieldChanged", field, value } as EstimateSheetContentAction;
+}
+
+function resolveEstimateSheetContentStateAction<T>(current: T, value: SetStateAction<T>): T {
+  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
+}
+
+function createInitialEstimateSheetContentState(nodes: EstimateTreeNode[]): EstimateSheetContentState {
+  return {
+    editableRows: collectEditableRows(nodes),
+    expressInsertDrafts: {},
+    pendingLibraryCommitGate: null,
+    showCommandPalette: false,
+    collapsedNodeIdsByScope: {},
+    bulkSelectedRowIds: new Set(),
+    isProposalPreviewOpen: false,
+    proposalPreviewScope: "all-tabs",
+    proposalPreviewModel: null,
+    proposalPreviewSignature: "",
+    isDownloadingProposal: false,
+    proposalDownloadError: null,
+    proposalExportSettings: DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS,
+    inspector: null,
+    rowDetails: null,
+    projectSpecificRowId: "",
+    promotingRowId: null,
+    activityFilters: DEFAULT_ACTIVITY_FILTERS,
+    historyData: null,
+    isHistoryLoading: false,
+    isHistoryLoadingMore: false,
+    historyError: "",
+    createTabState: { canCreate: false, pending: false },
+    sheetSearchQuery: "",
+    sheetFacets: EMPTY_SHEET_FACETS,
+    sheetGroupMode: "default",
+  };
+}
+
+function estimateSheetContentReducer(
+  state: EstimateSheetContentState,
+  action: EstimateSheetContentAction,
+): EstimateSheetContentState {
+  switch (action.type) {
+    case "fieldChanged": {
+      const currentValue = state[action.field] as never;
+      const nextValue = typeof action.value === "function"
+        ? (action.value as (current: never) => unknown)(currentValue)
+        : action.value;
+      return {
+        ...state,
+        [action.field]: nextValue,
+      } as EstimateSheetContentState;
+    }
+    default:
+      return state;
+  }
+}
+
 /**
  * Reorder each area's `estimateRowItems` WITHIN that area (hierarchy preserved):
  * - category/supplier: flatten `groupComponents` buckets back to one array;
@@ -1149,6 +1263,7 @@ function RemoteEstimateCursorMarker({
   );
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function EstimateSheetContent({
   selectedNodeId,
   nodes = sampleEstimateTree,
@@ -1218,21 +1333,122 @@ export function EstimateSheetContent({
   } = activeTreeQuery;
   const estimatePointerSurfaceRef = useRef<HTMLDivElement | null>(null);
   const skipEditableRowsSyncRef = useRef(0);
-  const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>({});
-  const [expressInsertDrafts, setExpressInsertDraftsState] = useState<Record<string, ExpressInsertDraft>>({});
-  const [pendingFocusRowId, setPendingFocusRowId] = useState("");
-  const [pendingLibraryCommitGate, setPendingLibraryCommitGate] = useState<PendingLibraryCommitGate | null>(null);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [collapsedNodeIdsByScope, setCollapsedNodeIdsByScope] = useState<Record<string, string[]>>({});
-  const [bulkSelectedRowIds, setBulkSelectedRowIds] = useState<Set<string>>(() => new Set());
-  const [isProposalPreviewOpen, setIsProposalPreviewOpen] = useState(false);
-  const [proposalPreviewScope, setProposalPreviewScope] = useState<ProposalExportPreviewScope>("all-tabs");
-  const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
-  const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
-  const [isDownloadingProposal, setIsDownloadingProposal] = useState(false);
-  const [proposalDownloadError, setProposalDownloadError] = useState<string | null>(null);
-  const [proposalExportSettings, setProposalExportSettings] = useState<ProposalExportUserSettings>(DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS);
+  const pendingFocusRowIdRef = useRef("");
+  const pendingFocusFrameIdRef = useRef(0);
+  const [contentState, dispatchContentState] = useReducer(
+    estimateSheetContentReducer,
+    nodes,
+    createInitialEstimateSheetContentState,
+  );
+  const {
+    editableRows,
+    expressInsertDrafts,
+    pendingLibraryCommitGate,
+    showCommandPalette,
+    collapsedNodeIdsByScope,
+    bulkSelectedRowIds,
+    isProposalPreviewOpen,
+    proposalPreviewScope,
+    proposalPreviewModel,
+    proposalPreviewSignature,
+    isDownloadingProposal,
+    proposalDownloadError,
+    proposalExportSettings,
+    inspector,
+    rowDetails,
+    projectSpecificRowId,
+    promotingRowId,
+    activityFilters,
+    historyData,
+    isHistoryLoading,
+    isHistoryLoadingMore,
+    historyError,
+    createTabState,
+    sheetSearchQuery,
+    sheetFacets,
+    sheetGroupMode,
+  } = contentState;
+  const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
+    dispatchContentState(estimateSheetContentFieldAction("editableRows", value));
+  });
+  const setExpressInsertDrafts = useStableCallback((updater: SetStateAction<Record<string, ExpressInsertDraft>>) => {
+    const next = resolveEstimateSheetContentStateAction(expressInsertDraftsRef.current, updater);
+    expressInsertDraftsRef.current = next;
+    dispatchContentState(estimateSheetContentFieldAction("expressInsertDrafts", next));
+  });
+  const setPendingLibraryCommitGate = useStableCallback((value: SetStateAction<PendingLibraryCommitGate | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("pendingLibraryCommitGate", value));
+  });
+  const setShowCommandPalette = useStableCallback((value: SetStateAction<boolean>) => {
+    dispatchContentState(estimateSheetContentFieldAction("showCommandPalette", value));
+  });
+  const setCollapsedNodeIdsByScope = useStableCallback((value: SetStateAction<Record<string, string[]>>) => {
+    dispatchContentState(estimateSheetContentFieldAction("collapsedNodeIdsByScope", value));
+  });
+  const setBulkSelectedRowIds = useStableCallback((value: SetStateAction<Set<string>>) => {
+    dispatchContentState(estimateSheetContentFieldAction("bulkSelectedRowIds", value));
+  });
+  const setIsProposalPreviewOpen = useStableCallback((value: SetStateAction<boolean>) => {
+    dispatchContentState(estimateSheetContentFieldAction("isProposalPreviewOpen", value));
+  });
+  const setProposalPreviewScope = useStableCallback((value: SetStateAction<ProposalExportPreviewScope>) => {
+    dispatchContentState(estimateSheetContentFieldAction("proposalPreviewScope", value));
+  });
+  const setProposalPreviewModel = useStableCallback((value: SetStateAction<ProposalExportModel | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("proposalPreviewModel", value));
+  });
+  const setProposalPreviewSignature = useStableCallback((value: SetStateAction<string>) => {
+    dispatchContentState(estimateSheetContentFieldAction("proposalPreviewSignature", value));
+  });
+  const setIsDownloadingProposal = useStableCallback((value: SetStateAction<boolean>) => {
+    dispatchContentState(estimateSheetContentFieldAction("isDownloadingProposal", value));
+  });
+  const setProposalDownloadError = useStableCallback((value: SetStateAction<string | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("proposalDownloadError", value));
+  });
+  const setProposalExportSettings = useStableCallback((value: SetStateAction<ProposalExportUserSettings>) => {
+    dispatchContentState(estimateSheetContentFieldAction("proposalExportSettings", value));
+  });
+  const setInspector = useStableCallback((value: SetStateAction<EstimateActivityScope | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("inspector", value));
+  });
+  const setRowDetails = useStableCallback((value: SetStateAction<RowDetailsState | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("rowDetails", value));
+  });
+  const setProjectSpecificRowId = useStableCallback((value: SetStateAction<string>) => {
+    dispatchContentState(estimateSheetContentFieldAction("projectSpecificRowId", value));
+  });
+  const setPromotingRowId = useStableCallback((value: SetStateAction<string | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("promotingRowId", value));
+  });
+  const setActivityFilters = useStableCallback((value: SetStateAction<ActivityFilterState>) => {
+    dispatchContentState(estimateSheetContentFieldAction("activityFilters", value));
+  });
+  const setHistoryData = useStableCallback((value: SetStateAction<EstimateSheetVersionControlData | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("historyData", value));
+  });
+  const setIsHistoryLoading = useStableCallback((value: SetStateAction<boolean>) => {
+    dispatchContentState(estimateSheetContentFieldAction("isHistoryLoading", value));
+  });
+  const setIsHistoryLoadingMore = useStableCallback((value: SetStateAction<boolean>) => {
+    dispatchContentState(estimateSheetContentFieldAction("isHistoryLoadingMore", value));
+  });
+  const setHistoryError = useStableCallback((value: SetStateAction<string>) => {
+    dispatchContentState(estimateSheetContentFieldAction("historyError", value));
+  });
+  const setCreateTabState = useStableCallback((value: SetStateAction<EstimateCreateTabState>) => {
+    dispatchContentState(estimateSheetContentFieldAction("createTabState", value));
+  });
+  const setSheetSearchQuery = useStableCallback((value: SetStateAction<string>) => {
+    dispatchContentState(estimateSheetContentFieldAction("sheetSearchQuery", value));
+  });
+  const setSheetFacets = useStableCallback((value: SetStateAction<SheetFacetState>) => {
+    dispatchContentState(estimateSheetContentFieldAction("sheetFacets", value));
+  });
+  const setSheetGroupMode = useStableCallback((value: SetStateAction<SheetGroupMode>) => {
+    dispatchContentState(estimateSheetContentFieldAction("sheetGroupMode", value));
+  });
   const estimateColumnResizeEnabled = WORKSHOP_VIRTUALIZATION_FLAGS.estimateColumnResize;
   const committedEstimateColumnWidths = useEstimateColumnWidthsStore((state) =>
     estimateId ? state.widthsByEstimateId[estimateId] ?? state.lastUsedWidths : EMPTY_ESTIMATE_COLUMN_WIDTHS,
@@ -1259,40 +1475,21 @@ export function EstimateSheetContent({
     hydrateEstimateColumnWidths(estimateId);
   }, [estimateColumnResizeEnabled, estimateId, hydrateEstimateColumnWidths]);
 
-  const setExpressInsertDrafts = useStableCallback((updater: SetStateAction<Record<string, ExpressInsertDraft>>) => {
-    setExpressInsertDraftsState((current) => {
-      const next = typeof updater === "function"
-        ? (updater as (value: Record<string, ExpressInsertDraft>) => Record<string, ExpressInsertDraft>)(current)
-        : updater;
-      expressInsertDraftsRef.current = next;
-      return next;
-    });
-  });
   const expressInsertDraftStates = useMemo<Record<string, ExpressInsertDraftState>>(
     () => Object.fromEntries(Object.entries(expressInsertDrafts).map(([rowId, draft]) => [rowId, draft.status])),
     [expressInsertDrafts],
   );
-  const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
   // P3-activity: per-node stored activity scope (direct-only vs descendants).
   // Stable identity (selector returns the same default {} until a flip), so the
   // activity cache key never becomes time-varying when a child is added.
   const activityScopeDirectOnly = useEstimateUiStore((s) => s.activityScopeDirectOnly);
-  const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
-  const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
-  const [promotingRowId, setPromotingRowId] = useState<string | null>(null);
-  const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
-  const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false);
-  const [historyError, setHistoryError] = useState("");
-  const [historyReloadToken, setHistoryReloadToken] = useState(0);
+  const [historyReloadToken, bumpHistoryReloadToken] = useReducer((current: number) => current + 1, 0);
   // C3/Req 13: ref to the tab strip's imperative handle so the middle-panel
   // header can trigger createTab without prop-drilling.
   const tabStripRef = useRef<EstimateTabStripHandle | null>(null);
   // Mirrors the tab strip's create-enabled / pending state for the header button.
   // Updated via onCreateTabStateChange (effect in EstimateTabStrip) so the header
   // re-renders on each transition even though refs don't cause re-renders.
-  const [createTabState, setCreateTabState] = useState({ canCreate: false, pending: false });
   const inspectorOpenerRef = useRef<HTMLElement | null>(null);
   const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
   const proposalPreviewOpenerRef = useRef<HTMLElement | null>(null);
@@ -1425,12 +1622,9 @@ export function EstimateSheetContent({
       ancestorPath: selectedNodePath.slice(0, -1).map((node) => ({ id: node.id, name: node.name })),
     };
   }, [estimateTree, resolvedSelectedNodeId]);
-  const [sheetSearchQuery, setSheetSearchQuery] = useState("");
   const sheetSearchActive = sheetSearchQuery.trim().length > 0;
   // D2 / Req 10 (middle): faceted filter + within-area group/sort. Client state
   // only; both compose into `displayedSheetNode` and NEVER reach the rows.
-  const [sheetFacets, setSheetFacets] = useState<SheetFacetState>(EMPTY_SHEET_FACETS);
-  const [sheetGroupMode, setSheetGroupMode] = useState<SheetGroupMode>("default");
   const facetsActive = sheetFacetsActive(sheetFacets);
   const groupActive = sheetGroupMode !== "default";
   // Render-only filtered copy: row edits and inserts keep targeting the real
@@ -1467,7 +1661,7 @@ export function EstimateSheetContent({
         [collapsedScopeKey]: Array.from(next),
       };
     });
-  }, [collapsedScopeKey]);
+  }, [collapsedScopeKey, setCollapsedNodeIdsByScope]);
   // Searches reveal every match: collapse state pauses while filtering, and the
   // per-node disclosure caret is suppressed (searchActive) so users can't toggle
   // collapse state they can't see take effect. State restores when search clears.
@@ -1505,7 +1699,7 @@ export function EstimateSheetContent({
     return () => {
       cancelled = true;
     };
-  }, [visibleSheetRowIds]);
+  }, [setBulkSelectedRowIds, visibleSheetRowIds]);
 
   const toggleRowSelection = useCallback((rowItemId: string, checked: boolean) => {
     setBulkSelectedRowIds((current) => {
@@ -1514,7 +1708,7 @@ export function EstimateSheetContent({
       else next.delete(rowItemId);
       return next;
     });
-  }, []);
+  }, [setBulkSelectedRowIds]);
   const toggleRowsSelection = useCallback((rowItemIds: string[], checked: boolean) => {
     setBulkSelectedRowIds((current) => {
       const next = new Set(current);
@@ -1524,8 +1718,8 @@ export function EstimateSheetContent({
       });
       return next;
     });
-  }, []);
-  const clearRowSelection = useCallback(() => setBulkSelectedRowIds(new Set()), []);
+  }, [setBulkSelectedRowIds]);
+  const clearRowSelection = useCallback(() => setBulkSelectedRowIds(new Set()), [setBulkSelectedRowIds]);
   const bulkSelectedRowCount = bulkSelectedRowIds.size;
   // P6 single-node model: a row OR a template/subtree inserts directly into ANY
   // selected node — no kind gate, no ancestor-group resolution, no area-wrap.
@@ -1576,6 +1770,8 @@ export function EstimateSheetContent({
     () => (projectSpecificRowId ? currentRows.find((row) => row.item.id === projectSpecificRowId) ?? null : null),
     [currentRows, projectSpecificRowId],
   );
+  const closeProjectSpecificDialog = useCallback(() => setProjectSpecificRowId(""), [setProjectSpecificRowId]);
+  const projectSpecificDialogRef = useNativeModalDialog(closeProjectSpecificDialog);
   const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
   const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), [setCollapsedNodeIds]);
   const collapseAll = useCallback(() => setCollapsedNodeIds(new Set(allNodeIds)), [allNodeIds, setCollapsedNodeIds]);
@@ -1584,7 +1780,7 @@ export function EstimateSheetContent({
   }, []);
   const openTemplateBrowser = useCallback(() => {
     setShowCommandPalette(true);
-  }, []);
+  }, [setShowCommandPalette]);
   const syncActiveTabRouteUrl = useCallback((nodeId: string | null) => {
     if (!projectId || !estimateId || typeof window === "undefined") return;
     const href = nodeId
@@ -1597,7 +1793,7 @@ export function EstimateSheetContent({
     const nextScopeKey = getActivityScopeKey(nextInspector);
     activateHistoryScope(nextScopeKey);
     setInspector(nextInspector);
-  }, [activateHistoryScope]);
+  }, [activateHistoryScope, setInspector]);
   const replaceActivityFilters = useCallback((nextFilters: ActivityFilterState) => {
     setActivityFilters(nextFilters);
     if (projectId && estimateId && inspector) {
@@ -1607,7 +1803,7 @@ export function EstimateSheetContent({
       setHistoryData(null);
       setHistoryError("");
     }
-  }, [estimateId, inspector, projectId]);
+  }, [estimateId, inspector, projectId, setActivityFilters, setHistoryData, setHistoryError, setIsHistoryLoading, setIsHistoryLoadingMore]);
   const resetActivityFilters = useCallback(() => {
     replaceActivityFilters(DEFAULT_ACTIVITY_FILTERS);
   }, [replaceActivityFilters]);
@@ -1619,12 +1815,13 @@ export function EstimateSheetContent({
       setHistoryData(null);
       setHistoryError("");
     }
-    setHistoryReloadToken((current) => current + 1);
-  }, [estimateId, projectId]);
+    bumpHistoryReloadToken();
+  }, [estimateId, projectId, setHistoryData, setHistoryError, setIsHistoryLoading, setIsHistoryLoadingMore]);
   const closeInspector = useCallback(() => {
     setActiveInspector(null);
     window.requestAnimationFrame(() => inspectorOpenerRef.current?.focus());
   }, [setActiveInspector]);
+  const closeInspectorFromKeyDown = useEffectEvent(() => closeInspector());
   const prepareHistoryLoad = useCallback(() => {
     if (projectId && estimateId) {
       setIsHistoryLoading(true);
@@ -1632,7 +1829,7 @@ export function EstimateSheetContent({
       setHistoryData(null);
       setHistoryError("");
     }
-  }, [estimateId, projectId]);
+  }, [estimateId, projectId, setHistoryData, setHistoryError, setIsHistoryLoading, setIsHistoryLoadingMore]);
   const openActivityHistory = useCallback((opener: HTMLElement, initialScope: EstimateActivityScope = { mode: "sheet" }) => {
     inspectorOpenerRef.current = opener;
     prepareHistoryLoad();
@@ -1641,14 +1838,15 @@ export function EstimateSheetContent({
   const openRowDetails = useCallback((rowItemId: string, opener: HTMLElement, tab: RowDetailTab = "details") => {
     rowDetailsOpenerRef.current = opener;
     setRowDetails({ rowId: rowItemId, tab });
-  }, []);
+  }, [setRowDetails]);
   const closeRowDetails = useCallback(() => {
     setRowDetails(null);
     window.requestAnimationFrame(() => rowDetailsOpenerRef.current?.focus());
-  }, []);
+  }, [setRowDetails]);
+  const closeRowDetailsFromKeyDown = useEffectEvent(() => closeRowDetails());
   const setRowDetailsTab = useCallback((tab: RowDetailTab) => {
     setRowDetails((current) => (current ? { ...current, tab } : current));
-  }, []);
+  }, [setRowDetails]);
   const selectActivityScope = useCallback((nextScope: EstimateActivityScope) => {
     if (getActivityScopeKey(nextScope) === inspectorScopeKey) return;
     prepareHistoryLoad();
@@ -1716,7 +1914,7 @@ export function EstimateSheetContent({
         if (!isCurrentHistoryRequest()) return;
         setIsHistoryLoadingMore(false);
       });
-  }, [activityFilters, estimateId, historyData, inspector, isHistoryLoadingMore, projectId]);
+  }, [activityFilters, estimateId, historyData, inspector, isHistoryLoadingMore, projectId, setHistoryData, setHistoryError, setIsHistoryLoadingMore]);
   const buildProposalPreview = useCallback((scope: ProposalExportPreviewScope = proposalPreviewScope) => {
     if (!resolvedProposalExportMetadata) return null;
 
@@ -1730,34 +1928,34 @@ export function EstimateSheetContent({
     setProposalPreviewModel(model);
     setProposalPreviewSignature(getProposalPreviewSignature(scope));
     return model;
-  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata]);
+  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata, setProposalPreviewModel, setProposalPreviewSignature]);
   const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
     setProposalPreviewScope(scope);
     setProposalDownloadError(null);
     if (isProposalPreviewOpen) buildProposalPreview(scope);
-  }, [buildProposalPreview, isProposalPreviewOpen]);
+  }, [buildProposalPreview, isProposalPreviewOpen, setProposalDownloadError, setProposalPreviewScope]);
   const changeProposalExportSettings = useCallback((next: ProposalExportUserSettings) => {
     // Settings changes mark the preview stale (the signature includes settings); the user
     // refreshes to rebuild — matching the existing stale-then-refresh pattern (avoids jank).
     setProposalExportSettings(next);
     setProposalDownloadError(null);
-  }, []);
+  }, [setProposalDownloadError, setProposalExportSettings]);
   const openProposalPreview = useCallback(() => {
     // Capture the opener so focus returns to it when the dialog closes (F-06/P1-T3),
     // mirroring inspectorOpenerRef / rowDetailsOpenerRef.
     proposalPreviewOpenerRef.current = (typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null);
     const model = buildProposalPreview();
     if (model) setIsProposalPreviewOpen(true);
-  }, [buildProposalPreview]);
+  }, [buildProposalPreview, setIsProposalPreviewOpen]);
   const closeProposalPreview = useCallback(() => {
     setIsProposalPreviewOpen(false);
     setProposalDownloadError(null);
     window.requestAnimationFrame(() => proposalPreviewOpenerRef.current?.focus());
-  }, []);
+  }, [setIsProposalPreviewOpen, setProposalDownloadError]);
   const refreshProposalPreview = useCallback(() => {
     setProposalDownloadError(null);
     buildProposalPreview();
-  }, [buildProposalPreview]);
+  }, [buildProposalPreview, setProposalDownloadError]);
   // F-05 (P1-T1): fetch-then-blob download. A bare <a href> saved the route's JSON
   // error body (413/404/500/429/401) to disk under the .xlsx name; here we inspect
   // response.ok + content-type, blob only on success, and surface the route's {error}
@@ -1788,7 +1986,7 @@ export function EstimateSheetContent({
     } finally {
       setIsDownloadingProposal(false);
     }
-  }, [proposalDownloadHref]);
+  }, [proposalDownloadHref, setIsDownloadingProposal, setProposalDownloadError]);
   const proposalPreviewScopeControls = hasMultiplePersistedTabs
     ? {
         selectedScope: proposalPreviewScope,
@@ -1842,7 +2040,7 @@ export function EstimateSheetContent({
     return () => {
       isActive = false;
     };
-  }, [activityFilterKey, activityFilters, estimateId, historyReloadToken, inspectorScopeKey, projectId]);
+  }, [activityFilterKey, activityFilters, estimateId, historyReloadToken, inspectorScopeKey, projectId, setHistoryData, setHistoryError, setIsHistoryLoading]);
 
   useEffect(() => {
     inspectorScopeRef.current = inspectorScopeKey;
@@ -1854,12 +2052,12 @@ export function EstimateSheetContent({
     function handleEscape(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      closeInspector();
+      closeInspectorFromKeyDown();
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [closeInspector, inspector]);
+  }, [inspector]);
 
   useEffect(() => {
     if (!rowDetails) return;
@@ -1867,12 +2065,12 @@ export function EstimateSheetContent({
     function handleEscape(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      closeRowDetails();
+      closeRowDetailsFromKeyDown();
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [closeRowDetails, rowDetails]);
+  }, [rowDetails]);
 
   useEffect(() => {
     dispatchProjectTotalChange(projectTotal);
@@ -1880,6 +2078,7 @@ export function EstimateSheetContent({
 
   useEffect(() => {
     if (!estimateId || activeSelectedNodeId === resolvedSelectedNodeId) return;
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- Workspace selection lives in the shared estimate store; this route/tab bridge is not parent data handoff.
     setSelectedNodeId(resolvedSelectedNodeId);
   }, [activeSelectedNodeId, estimateId, resolvedSelectedNodeId, setSelectedNodeId]);
 
@@ -1898,7 +2097,7 @@ export function EstimateSheetContent({
     if (!didRestoreTree) return;
     skipEditableRowsSyncRef.current += 1;
     setEditableRows(previousRows);
-  }, [restoreEstimateTree]);
+  }, [restoreEstimateTree, setEditableRows]);
 
   useEffect(() => {
     if (saveState === "dirty" || saveState === "saving") return;
@@ -1917,14 +2116,19 @@ export function EstimateSheetContent({
         };
       });
     });
-  }, [estimateTree, saveState]);
+  }, [estimateTree, saveState, setEditableRows]);
 
-  useEffect(() => {
-    if (!pendingFocusRowId) return;
+  const requestPendingRowFocus = useStableCallback((rowId: string) => {
+    pendingFocusRowIdRef.current = rowId;
+    if (pendingFocusFrameIdRef.current) window.cancelAnimationFrame(pendingFocusFrameIdRef.current);
     let attempts = 0;
-    let frameId = 0;
 
     function tryFocus() {
+      const pendingFocusRowId = pendingFocusRowIdRef.current;
+      if (!pendingFocusRowId) {
+        pendingFocusFrameIdRef.current = 0;
+        return;
+      }
       const focusTarget =
         document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"] [data-express-field="name"]`) ??
         document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
@@ -1932,18 +2136,25 @@ export function EstimateSheetContent({
         focusTarget.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
         focusTarget.focus();
         focusTarget.select();
-        setPendingFocusRowId("");
+        pendingFocusRowIdRef.current = "";
+        pendingFocusFrameIdRef.current = 0;
         return;
       }
 
       attempts += 1;
-      if (attempts < 5) frameId = window.requestAnimationFrame(tryFocus);
-      else setPendingFocusRowId("");
+      if (attempts < 5) pendingFocusFrameIdRef.current = window.requestAnimationFrame(tryFocus);
+      else {
+        pendingFocusRowIdRef.current = "";
+        pendingFocusFrameIdRef.current = 0;
+      }
     }
 
-    frameId = window.requestAnimationFrame(tryFocus);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [pendingFocusRowId]);
+    pendingFocusFrameIdRef.current = window.requestAnimationFrame(tryFocus);
+  });
+
+  useEffect(() => () => {
+    if (pendingFocusFrameIdRef.current) window.cancelAnimationFrame(pendingFocusFrameIdRef.current);
+  }, []);
 
   const commitRowItemUpdate = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
     if (!projectId || !estimateId) return;
@@ -2112,7 +2323,7 @@ export function EstimateSheetContent({
     const newItem = cloneLibraryItemForEstimate(libraryItem);
     const isExpressInsert = isExpressComponentRow(newItem);
     const mutationId = isExpressInsert ? createEstimateRowItemId() : undefined;
-    setPendingFocusRowId(newItem.id);
+    requestPendingRowFocus(newItem.id);
     if (isExpressInsert && mutationId) {
       setExpressInsertDrafts((current) => ({
         ...current,
@@ -2387,6 +2598,14 @@ export function EstimateSheetContent({
     },
     [insertTemplateNodeIntoParent, templateById],
   );
+  const insertTemplatesIntoParentByIdFromEvent = useEffectEvent((targetParentNodeId: string, templateIds: string[]) => {
+    insertTemplatesIntoParentById(targetParentNodeId, templateIds);
+  });
+  const insertTemplateNodeIntoParentByIdFromEvent = useEffectEvent(
+    (targetParentNodeId: string, templateId: string, templateNodeId: string) => {
+      insertTemplateNodeIntoParentById(targetParentNodeId, templateId, templateNodeId);
+    },
+  );
 
   const insertTemplateNodeIntoSelectedGroup = useCallback(
     (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
@@ -2411,7 +2630,7 @@ export function EstimateSheetContent({
       const activeElement = document.activeElement as HTMLElement | null;
       const activeTag = activeElement?.tagName;
       const isTypingTarget = activeElement?.isContentEditable || activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT";
-      const hasBlockingDialog = Boolean(document.querySelector("[role='dialog'], [role='alertdialog']"));
+      const hasBlockingDialog = Boolean(document.querySelector("dialog[open], [role='dialog'], [role='alertdialog']"));
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !hasBlockingDialog) {
         event.preventDefault();
@@ -2429,7 +2648,7 @@ export function EstimateSheetContent({
 
     window.addEventListener("keydown", handleCommandPaletteShortcut);
     return () => window.removeEventListener("keydown", handleCommandPaletteShortcut);
-  }, []);
+  }, [setShowCommandPalette]);
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
@@ -2450,16 +2669,16 @@ export function EstimateSheetContent({
       const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { targetParentNodeId?: string; templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
       if (typeof detail?.targetParentNodeId !== "string") return;
       if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
-        insertTemplateNodeIntoParentById(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
+        insertTemplateNodeIntoParentByIdFromEvent(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
         return;
       }
       if (!Array.isArray(detail.templateIds)) return;
       const templateIds = detail.templateIds.filter((templateId): templateId is string => typeof templateId === "string" && templateId.length > 0);
-      if (templateIds.length > 0) insertTemplatesIntoParentById(detail.targetParentNodeId, templateIds);
+      if (templateIds.length > 0) insertTemplatesIntoParentByIdFromEvent(detail.targetParentNodeId, templateIds);
     }
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-  }, [insertTemplatesIntoParentById, insertTemplateNodeIntoParentById]);
+  }, []);
 
   // U2: a project source dropped onto a group row hands the insert over here (the
   // sheet owns the tree + the action), mirroring the template-drop event flow.
@@ -2944,11 +3163,16 @@ export function EstimateSheetContent({
         <ProposalExportPreviewDialog
           open={isProposalPreviewOpen}
           model={proposalPreviewModel}
-          isStale={isProposalPreviewStale}
+          status={{
+            freshness: isProposalPreviewStale ? "stale" : "current",
+            download: isDownloadingProposal
+              ? { kind: "preparing" }
+              : Boolean(proposalDownloadHref) && !isProposalExportEmpty
+                ? { kind: "ready" }
+                : { kind: "disabled" },
+            downloadError: proposalDownloadError,
+          }}
           onDownload={downloadProposalExport}
-          isDownloading={isDownloadingProposal}
-          downloadError={proposalDownloadError}
-          canDownload={Boolean(proposalDownloadHref) && !isProposalExportEmpty}
           scopeControls={proposalPreviewScopeControls}
           exportSettings={proposalExportSettings}
           onExportSettingsChange={changeProposalExportSettings}
@@ -2986,36 +3210,31 @@ export function EstimateSheetContent({
         />
       ) : null}
       {projectSpecificRow ? (
-        // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Backdrop mouse dismissal is paired with dialog keyboard dismissal inside the row-details surface.
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setProjectSpecificRowId("");
+        <dialog
+          ref={projectSpecificDialogRef}
+          aria-label="Make Project Component"
+          className="z-50 m-auto w-[min(360px,calc(100vw-32px))] border border-hairline bg-white p-3 text-ink shadow-2xl outline-none backdrop:bg-black/20"
+          onCancel={(event) => {
+            event.preventDefault();
+            closeProjectSpecificDialog();
           }}
         >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Make Project Component"
-            className="w-[min(360px,calc(100vw-32px))] border border-hairline bg-white p-3 shadow-2xl"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-ink">Make Project Component</p>
-                <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                  {projectSpecificRow.item.material} will keep its current row values and stop following library updates.
-                </p>
-              </div>
-              <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Project Component dialog" onClick={() => setProjectSpecificRowId("")}>
-                <X size={13} weight="regular" aria-hidden="true" />
-              </Button>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-ink">Make Project Component</p>
+              <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                {projectSpecificRow.item.material} will keep its current row values and stop following library updates.
+              </p>
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setProjectSpecificRowId("")}>Cancel</Button>
-              <Button type="button" variant="primary" size="sm" onClick={confirmProjectSpecific}>Make Project Component</Button>
-            </div>
-          </section>
-        </div>
+            <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Project Component dialog" onClick={closeProjectSpecificDialog}>
+              <X size={13} weight="regular" aria-hidden="true" />
+            </Button>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={closeProjectSpecificDialog}>Cancel</Button>
+            <Button type="button" variant="primary" size="sm" onClick={confirmProjectSpecific}>Make Project Component</Button>
+          </div>
+        </dialog>
       ) : null}
       <section
         id="estimate-sheet-center-column"

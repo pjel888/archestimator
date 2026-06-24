@@ -1,0 +1,35 @@
+// Depth-driven inter-node rhythm. Sibling separation is intentionally spacious:
+// the old sm/md/lg rhythm felt like drawn dividers, while this reads as white
+// breathing room between sheet sections.
+export function groupGap(depth: number, variant: "paper" | "glass" = "paper") {
+  if (depth <= 0) return "mt-0";
+  if (variant === "glass") {
+    // Tighter inter-node rhythm for the dense glass workspace - the old
+    // 100px / 60px gaps read as "too much padding". Paper keeps its rhythm.
+    if (depth === 1) return "mt-10";
+    if (depth === 2) return "mt-6";
+    return "mt-4";
+  }
+  if (depth === 1) return "mt-[100px]";
+  if (depth === 2) return "mt-[60px]";
+  return "mt-10";
+}
+
+export function getNodeCode(parentCode: string, siblingIndex: number): string {
+  const segment = String(siblingIndex + 1).padStart(2, "0");
+  return parentCode ? `${parentCode}.${segment}` : segment;
+}
+
+// One neutral header/name/total chrome for every node (no group-vs-area split).
+export function nodeHeaderClasses() {
+  return "";
+}
+
+export function nodeNameClasses(depth = 0) {
+  if (depth <= 0) return "truncate text-[9px] font-medium uppercase tracking-normal text-ink";
+  return "truncate text-[10px] font-normal text-secondary";
+}
+
+export function nodeTotalClasses() {
+  return "shrink-0 text-right text-[10px] font-normal tabular-nums text-ink";
+}

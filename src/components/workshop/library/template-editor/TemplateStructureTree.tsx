@@ -14,8 +14,7 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "../../component-library/templates";
-
-export const TEMPLATE_EDITOR_ROOT_NODE_ID = "template-editor-root";
+import { TEMPLATE_EDITOR_ROOT_NODE_ID } from "./template-structure-tree-model";
 
 export type TemplateStructureTreeHandlers = {
   onAddNode: (parentId: string | null, kind: "group" | "area") => void;
@@ -41,16 +40,6 @@ function toStructureUiNode(node: EstimateTreeNode): UiTreeNode {
     icon: <NodeKindIcon kind={node.kind} />,
     children,
   };
-}
-
-export function getTemplateStructureAllNodeIds(template: EstimateTemplate): string[] {
-  const ids: string[] = [TEMPLATE_EDITOR_ROOT_NODE_ID];
-  function visit(node: EstimateTreeNode) {
-    ids.push(node.id);
-    node.children?.forEach(visit);
-  }
-  template.nodes.forEach(visit);
-  return ids;
 }
 
 type NodePlacement = { parent: EstimateTreeNode | null; siblings: EstimateTreeNode[] };

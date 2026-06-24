@@ -23,7 +23,8 @@ import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTre
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
-import { SourceTrustChips, getComponentSourceTrustChips } from "../../library/source-trust-chips";
+import { SourceTrustChips } from "../../library/source-trust-chips";
+import { getComponentSourceTrustChips } from "../../library/source-trust-model";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
 import { getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";

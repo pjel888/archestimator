@@ -7,8 +7,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LibrarySurfaceVariantProvider,
-  librarySurfaceClass,
 } from "@/components/workshop/library/library-surface-variant";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import {
   WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY,
   workspaceEstimateTemplatesQueryKey,

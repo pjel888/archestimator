@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
 import { WorkshopGlassBackdrop } from "@/components/workshop/WorkshopGlassBackdrop";
 import { cn } from "@/lib/ui/cn";
-import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
+import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./estimate-center-column-boundary-vars";
 import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
 
 type StaticWorkshopLoadingShellProps = {

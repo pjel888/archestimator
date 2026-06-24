@@ -12,7 +12,7 @@ import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
+import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./estimate-center-column-boundary-vars";
 import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
 import { WorkshopFeedbackModal } from "./WorkshopFeedbackModal";
 import { WorkshopSettingsModal } from "./WorkshopSettingsModal";

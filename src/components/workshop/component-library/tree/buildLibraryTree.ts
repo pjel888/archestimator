@@ -1,4 +1,4 @@
-import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import type { LibraryTreeNode, LibraryTreeTab } from "./types";
@@ -43,50 +43,6 @@ function normalizeLabel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function scoreCategoryMatch(componentCategory: string, nodeLabel: string): number {
-  const comp = normalizeLabel(componentCategory);
-  const node = normalizeLabel(nodeLabel);
-
-  if (comp === node) return 100;
-  if (comp.includes(node) || node.includes(comp)) return 80;
-
-  // Fuzzy partial word matches
-  const compWords = comp.split(" ");
-  const nodeWords = node.split(" ");
-  const shared = compWords.filter((w) => nodeWords.includes(w));
-  if (shared.length > 0) return shared.length * 15;
-
-  return 0;
-}
-
-function findBestCategoryNode(
-  nodes: LibraryTreeNode[],
-  componentCategory: string,
-  depth = 0
-): { node: LibraryTreeNode; score: number; depth: number } | null {
-  let best: { node: LibraryTreeNode; score: number; depth: number } | null = null;
-
-  for (const node of nodes) {
-    const score = scoreCategoryMatch(componentCategory, node.label);
-    if (score > 0) {
-      if (!best || score > best.score || (score === best.score && depth > best.depth)) {
-        best = { node, score, depth };
-      }
-    }
-
-    if (node.children) {
-      const childBest = findBestCategoryNode(node.children, componentCategory, depth + 1);
-      if (childBest) {
-        if (!best || childBest.score > best.score || (childBest.score === best.score && childBest.depth > best.depth)) {
-          best = childBest;
-        }
-      }
-    }
-  }
-
-  return best;
-}
-
 function findNodeById(nodes: LibraryTreeNode[], nodeId: string): LibraryTreeNode | null {
   for (const node of nodes) {
     if (node.id === nodeId) return node;
@@ -110,58 +66,6 @@ function collectItemsFromNode(node: LibraryTreeNode): EstimateRowItem[] {
 
   visit(node);
   return Array.from(itemsById.values());
-}
-
-function cloneTree(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
-  return nodes.map((node) => ({
-    ...node,
-    children: node.children ? cloneTree(node.children) : undefined,
-  }));
-}
-
-function buildCategoryTreeShell(categoryTree: ComponentLibraryTaxonomyNode[] = componentCategoryTree): LibraryTreeNode[] {
-  return cloneTree(categoryTree);
-}
-
-function attachComponentsToTree(
-  nodes: LibraryTreeNode[],
-  items: EstimateRowItem[],
-  getKey: (item: EstimateRowItem) => string
-): void {
-  const unmatched: EstimateRowItem[] = [];
-
-  for (const item of items) {
-    const key = getKey(item);
-    const exactNode = item.categoryNodeId ? findNodeById(nodes, item.categoryNodeId) : null;
-    const match = exactNode ? { node: exactNode, score: 1000, depth: item.categoryPath?.length ?? 0 } : findBestCategoryNode(nodes, key);
-    if (match) {
-      const target = match.node;
-      if (!target.children) target.children = [];
-      target.children.push({
-        id: item.id,
-        label: item.name ?? item.material,
-        kind: "component",
-        item,
-      });
-    } else {
-      unmatched.push(item);
-    }
-  }
-
-  // Add unmatched items to an "Uncategorized" bucket at the root
-  if (unmatched.length > 0) {
-    nodes.push({
-      id: "uncategorized",
-      label: "Uncategorized",
-      kind: "category",
-      children: unmatched.map((item) => ({
-        id: item.id,
-        label: item.name ?? item.material,
-        kind: "component",
-        item,
-      })),
-    });
-  }
 }
 
 function isProjectComponentFolderId(folderId: string | null | undefined) {
@@ -191,6 +95,64 @@ function createComponentTreeNode(item: EstimateRowItem): LibraryTreeNode {
     kind: "component",
     item,
   };
+}
+
+function buildReusableComponentFolderTree(
+  items: EstimateRowItem[],
+  folders: NonNullable<ComponentLibraryTreeSourceOptions["libraryFolders"]> = [],
+  includeComponentRows = true,
+): LibraryTreeNode[] {
+  const reusableFolders = folders.filter((folder) => !isProjectComponentFolderId(folder.id));
+  const folderById = new Map(reusableFolders.map((folder) => [folder.id, folder]));
+  const childrenByParentId = new Map<string | null, typeof reusableFolders>();
+
+  for (const folder of reusableFolders) {
+    const parentId = folder.parent_id && folderById.has(folder.parent_id) ? folder.parent_id : null;
+    childrenByParentId.set(parentId, [...(childrenByParentId.get(parentId) ?? []), folder]);
+  }
+
+  for (const siblings of childrenByParentId.values()) {
+    siblings.sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0) || left.name.localeCompare(right.name));
+  }
+
+  const itemsByFolderId = new Map<string, EstimateRowItem[]>();
+  const unfiledItems: EstimateRowItem[] = [];
+
+  for (const item of items) {
+    const folderId = item.libraryFolderId;
+    if (folderId && folderById.has(folderId)) {
+      itemsByFolderId.set(folderId, [...(itemsByFolderId.get(folderId) ?? []), item]);
+    } else {
+      unfiledItems.push(item);
+    }
+  }
+
+  function toFolderNode(folder: typeof reusableFolders[number]): LibraryTreeNode {
+    const childFolders = (childrenByParentId.get(folder.id) ?? []).map(toFolderNode);
+    const childItems = includeComponentRows
+      ? (itemsByFolderId.get(folder.id) ?? [])
+          .slice()
+          .sort((left, right) => (left.name ?? left.material).localeCompare(right.name ?? right.material))
+          .map(createComponentTreeNode)
+      : [];
+
+    return {
+      id: folder.id,
+      label: folder.name,
+      kind: "folder",
+      children: [...childFolders, ...childItems],
+    };
+  }
+
+  const folderNodes = (childrenByParentId.get(null) ?? []).map(toFolderNode);
+  const unfiledNodes = includeComponentRows
+    ? unfiledItems
+        .slice()
+        .sort((left, right) => (left.name ?? left.material).localeCompare(right.name ?? right.material))
+        .map(createComponentTreeNode)
+    : [];
+
+  return [...folderNodes, ...unfiledNodes];
 }
 
 function buildProjectComponentFolderTree(
@@ -270,35 +232,6 @@ function sortTreeNodes(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
       if (!aIsComp && bIsComp) return -1;
       return a.label.localeCompare(b.label);
     });
-}
-
-function sortComponentRowsOnly(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
-  return nodes.map((node) => {
-    if (!node.children) return node;
-
-    const children = sortComponentRowsOnly(node.children);
-    const folders = children.filter((child) => !child.item);
-    const components = children
-      .filter((child) => child.item)
-      .sort((a, b) => a.label.localeCompare(b.label));
-
-    return {
-      ...node,
-      children: [...folders, ...components],
-    };
-  });
-}
-
-function stripComponentRows(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
-  return nodes.flatMap((node) => {
-    if (node.item) return [];
-    return [
-      {
-        ...node,
-        children: node.children ? stripComponentRows(node.children) : undefined,
-      },
-    ];
-  });
 }
 
 function pruneEmptyFolders(nodes: LibraryTreeNode[], depth = 0): LibraryTreeNode[] {
@@ -496,13 +429,7 @@ function buildLibraryTree(
   const libraryItems = items.filter((item) => !isProjectComponentProjectionItem(item));
 
   if (tab === "categories") {
-    const tree = buildCategoryTreeShell(options.categoryTree);
-    attachComponentsToTree(tree, libraryItems, (item) => item.category);
-    if (!includeComponentRows) return stripComponentRows(tree);
-
-    const sortedTree = sortComponentRowsOnly(tree);
-    const categoryNodes = options.pruneEmptyFolders ? pruneEmptyFolders(sortedTree) : sortedTree;
-    return categoryNodes;
+    return buildReusableComponentFolderTree(libraryItems, options.libraryFolders, includeComponentRows);
   }
 
   if (tab === "suppliers") {

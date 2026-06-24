@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowsOutSimple, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
@@ -12,21 +12,22 @@ import { recordExpressComponentEvent } from "@/lib/estimates/express-components-
 import {
   EMPTY_ESTIMATE_COLUMN_WIDTHS,
   ESTIMATE_COLUMN_TEMPLATE,
-  getResizableEstimateColumnDefinition,
   isResizableEstimateColumnId,
   type EstimateColumnId,
   type EstimateColumnWidths,
-  type ResizableEstimateColumnId,
 } from "@/lib/estimate-sheet/column-model";
 import { cn } from "@/lib/ui/cn";
-import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../../estimate-surface-variant";
+import { estimateSurfaceClass } from "../../estimate-surface-class";
+import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
-import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history";
+import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history-model";
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { useEstimateColumnResizeController } from "../columns/use-estimate-column-resize-controller";
 import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "./constants";
-import { EstimateMaterialCell, MoneyInput, focusEstimateCellByRowId, handleEstimateCellKeyDown, type ExpressInsertDraftState } from "./cells";
+import { EstimateRowColumnResizeHandle } from "./column-resize-handle";
+import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState } from "./cells";
+import { focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import {
   COST_ADJUSTMENT_MODE_OPTIONS,
@@ -120,8 +121,14 @@ const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
+type ScrollMarginAction = { type: "reset" } | { type: "measure"; value: number };
 
-function handleSelectionCheckboxKeyDown(event: KeyboardEvent<HTMLSpanElement>, onToggle: () => void) {
+function scrollMarginReducer(current: number, action: ScrollMarginAction) {
+  if (action.type === "reset") return 0;
+  return Math.abs(current - action.value) < 0.5 ? current : action.value;
+}
+
+function handleSelectionCheckboxKeyDown(event: KeyboardEvent<HTMLInputElement>, onToggle: () => void) {
   if (event.key !== " " && event.key !== "Enter") return;
   event.preventDefault();
   event.stopPropagation();
@@ -525,7 +532,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
   const [activeExpressRowId, setActiveExpressRowId] = useState<string | null>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
+  const [scrollMargin, dispatchScrollMargin] = useReducer(scrollMarginReducer, 0);
   const selectableRowIds = useMemo(() => items.map((item) => item.id), [items]);
   const allRowsSelected = selectableRowIds.length > 0 && selectableRowIds.every((rowId) => selectedRowIds.has(rowId));
   const someRowsSelected = !allRowsSelected && selectableRowIds.some((rowId) => selectedRowIds.has(rowId));
@@ -562,10 +569,6 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   }, []);
 
   useEffect(() => {
-    if (activeExpressRowId && !items.some((item) => item.id === activeExpressRowId)) setActiveExpressRowId(null);
-  }, [activeExpressRowId, items]);
-
-  useEffect(() => {
     if (!hasActiveExpressEditor) return;
     recordExpressComponentEvent("virtualization_disabled", {
       rowId: activeExpressRowId ?? undefined,
@@ -586,14 +589,14 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
 
   useEffect(() => {
     if (!virtualEnabled) {
-      setScrollMargin(0);
+      dispatchScrollMargin({ type: "reset" });
       return undefined;
     }
 
     const tableRoot = scrollRootRef.current;
     const scrollElement = findScrollParent(tableRoot);
     if (!tableRoot || !scrollElement || scrollElement === tableRoot) {
-      setScrollMargin(0);
+      dispatchScrollMargin({ type: "reset" });
       return undefined;
     }
 
@@ -601,7 +604,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       const tableRect = tableRoot.getBoundingClientRect();
       const scrollRect = scrollElement.getBoundingClientRect();
       const nextScrollMargin = Math.max(0, tableRect.top - scrollRect.top + scrollElement.scrollTop);
-      setScrollMargin((current) => (Math.abs(current - nextScrollMargin) < 0.5 ? current : nextScrollMargin));
+      dispatchScrollMargin({ type: "measure", value: nextScrollMargin });
     };
 
     measureScrollMargin();
@@ -652,33 +655,6 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
     onInsertLibraryItem(targetNodeId, libraryItem);
   }
 
-  function renderResizeHandle(columnId: ResizableEstimateColumnId) {
-    if (!columnResize) return null;
-    const definition = getResizableEstimateColumnDefinition(columnId);
-    const width = columnResizeController.getWidth(columnId);
-    return (
-      <span
-        role="separator"
-        tabIndex={0}
-        aria-label={`Resize ${definition.label} column`}
-        aria-orientation="vertical"
-        aria-valuemin={definition.minWidth}
-        aria-valuemax={definition.maxWidth}
-        aria-valuenow={width}
-        title={`Resize ${definition.label}`}
-        draggable={false}
-        data-estimate-column-resize-handle={columnId}
-        className={cn(
-          "absolute inset-y-0 -left-3 z-10 flex w-6 cursor-col-resize touch-none items-center justify-center rounded-xs bg-transparent outline-none",
-          "hover:bg-accent/5 focus-visible:bg-accent/10 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/40 active:bg-accent/10",
-        )}
-        onPointerDown={(event) => columnResizeController.onPointerDown(columnId, event)}
-        onKeyDown={(event) => columnResizeController.onKeyDown(columnId, event)}
-        onDoubleClick={() => columnResizeController.onDoubleClick(columnId)}
-      />
-    );
-  }
-
   function headerCellClassName(columnId: string, className?: string) {
     return cn(
       "relative flex items-center justify-center border-r border-hairline",
@@ -721,27 +697,27 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 aria-hidden="true"
               />
               Materials
-              {renderResizeHandle("material")}
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="material" resizeController={columnResizeController} /> : null}
             </th>
             <th className={headerCellClassName("quantity")}>
               Qty
-              {renderResizeHandle("quantity")}
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="quantity" resizeController={columnResizeController} /> : null}
             </th>
             <th className={headerCellClassName("subTotal")}>
               Subtotal
-              {renderResizeHandle("subTotal")}
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="subTotal" resizeController={columnResizeController} /> : null}
             </th>
             <th className={headerCellClassName("adjustment", "text-center")}>
               Adjustment
-              {renderResizeHandle("adjustment")}
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="adjustment" resizeController={columnResizeController} /> : null}
             </th>
             <th className={headerCellClassName("miscCost", "text-center")}>
               Misc Cost
-              {renderResizeHandle("miscCost")}
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="miscCost" resizeController={columnResizeController} /> : null}
             </th>
             <th className={headerCellClassName("totalItemCosts", "text-center")}>
               Total Item Cost
-              {renderResizeHandle("totalItemCosts")}
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="totalItemCosts" resizeController={columnResizeController} /> : null}
             </th>
             <th aria-label="Row actions" />
           </tr>
