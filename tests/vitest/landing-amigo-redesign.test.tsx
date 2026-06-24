@@ -98,9 +98,9 @@ describe("landing-v3 homepage contract", () => {
     expect(activeCopy).not.toMatch(/Pre-launch MVP preview/i);
     expect(activeCopy).not.toMatch(new RegExp("for " + "contractors", "i"));
     expect(activeCopy).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
-    expect(activeCopy).toMatch(/The estimate that keeps working after you send it\./);
-    expect(activeCopy).toMatch(/archestimator is the premier tool for winning construction bids\./);
-    expect(activeCopy).toMatch(/one workflow from cost estimating to client approval\./);
+    expect(activeCopy).toMatch(/Where estimates become client‑approved proposals\./);
+    expect(activeCopy).toMatch(/Stop losing time to spreadsheets and revisions\./);
+    expect(activeCopy).toMatch(/archestimator turns estimating and proposals into one workflow so you spend less time working and more time winning\./);
     expect(activeCopy).toMatch(/Cost Estimators &middot; Architects &middot; Engineers &middot; Project Managers &middot; Construction Managers &middot; Construction Professionals/);
     expect(activeCopy).toMatch(/Reusable cost intelligence/);
     expect(activeCopy).toMatch(/Recorded decisions/);

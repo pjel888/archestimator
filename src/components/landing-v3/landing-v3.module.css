@@ -320,6 +320,8 @@
 }
 
 .heroCopy {
+  --hero-title-measure: min(100%, 35rem);
+
   display: grid;
   grid-template-columns: minmax(0, 38rem);
   grid-template-areas:
@@ -352,7 +354,7 @@
 
 .heroCopy h1 {
   grid-area: title;
-  max-width: 20ch;
+  max-width: var(--hero-title-measure);
   margin: 0;
   overflow: visible;
   padding-block: 0.04em 0.08em;
@@ -365,7 +367,7 @@
 
 .heroCopy > p:not(.heroEyebrow, .proofLine) {
   grid-area: intro;
-  max-width: 45ch;
+  max-width: min(var(--hero-title-measure), 38ch);
   margin: 0;
   color: rgb(38 38 38 / 0.92);
   font-size: 0.875rem;
@@ -376,11 +378,15 @@
 }
 
 .heroIntro {
-  max-width: 55ch;
+  max-width: min(100%, 38ch);
 }
 
 .heroIntro span {
   display: block;
+}
+
+.heroIntro span + span::before {
+  content: none;
 }
 
 .ctaRow {
@@ -443,6 +449,34 @@
   transform-origin: 50% 24%;
   animation: heroSoftwareMockupMount 1100ms cubic-bezier(0.18, 0.82, 0.2, 1) 140ms both;
   will-change: opacity, transform, filter;
+}
+
+@media (min-width: 2049px) {
+  .heroSoftwareMockupPlaceholder {
+    block-size: clamp(27.45rem, 19.5vw, 31.25rem);
+  }
+}
+
+@media (width >= 1181px) and (width <= 1439px) {
+  .heroStage {
+    margin-block-start: 0;
+  }
+
+  .heroSoftwareMockupPlaceholder {
+    display: none;
+  }
+
+  .heroIllustration {
+    margin-block-start: 0;
+  }
+}
+
+@media (width >= 1440px) and (width <= 1535px) {
+  .heroSoftwareMockupPlaceholder {
+    inset-inline-start: calc(
+      var(--hero-grid-padding) + ((var(--hero-stage-grid-cell) + var(--hero-grid-gap)) * 2) + 2.5rem
+    );
+  }
 }
 
 .heroSoftwareMockupPlaceholder::before,
@@ -916,7 +950,7 @@
   display: grid;
   container-type: inline-size;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  grid-auto-rows: var(--hero-grid-cell);
+  grid-auto-rows: min(var(--hero-grid-cell), 15.45rem);
   align-content: start;
   gap: var(--hero-grid-gap);
   padding: var(--hero-grid-padding);
@@ -2176,6 +2210,98 @@
 
   .footer nav {
     justify-content: flex-start;
+  }
+
+  .heroImageGrid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    align-content: start;
+    gap: 0.45rem;
+    padding: 0.5rem;
+  }
+
+  .heroImageGridBlockSmallA,
+  .heroImageGridBlockSmallB,
+  .heroImageGridBlockWide {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .heroImageGridBlock {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    gap: 0.35rem 0.7rem;
+    overflow: hidden;
+    padding: 0.55rem;
+  }
+
+  .heroMetricTopbar {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.35rem;
+  }
+
+  .heroMetricIndex {
+    font-size: 1.05rem;
+  }
+
+  .heroMetricIcon {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+
+  .heroMetricPanel,
+  .heroImageGridBlockWide .heroMetricPanel {
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    border-block: 0;
+    padding-block: 0;
+  }
+
+  .heroMetricCountPanel {
+    display: flex;
+    min-inline-size: 3.65rem;
+    flex-direction: column;
+    border-inline-end: 1px solid var(--hero-metric-line);
+    padding: 0 0.55rem 0 0;
+  }
+
+  .heroMetricLabel {
+    font-size: 0.5rem;
+  }
+
+  .heroMetricValue {
+    align-self: flex-start;
+    justify-self: start;
+    font-size: 1.18rem;
+  }
+
+  .heroMetricLedgerHeader {
+    min-height: 0;
+    flex-basis: auto;
+    border-block-end: 0;
+    padding-inline: 0.55rem 0;
+    font-size: 0.74rem;
+    line-height: 1.12;
+  }
+
+  .heroMetricBody,
+  .heroMetricFeatureList {
+    display: none;
+  }
+
+  .heroMetricTitle {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    font-size: 0.72rem;
+    opacity: 0.76;
+    text-align: start;
   }
 }
 

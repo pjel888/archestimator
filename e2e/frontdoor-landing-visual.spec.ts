@@ -16,7 +16,7 @@ test.describe("landing-v3 visual proof", () => {
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: "Turn your estimates into client-approved proposals.",
+          name: "Where estimates become client‑approved proposals.",
         }),
       ).toBeVisible();
 

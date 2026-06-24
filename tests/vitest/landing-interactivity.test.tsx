@@ -21,9 +21,9 @@ describe("deleted landing page implementation", () => {
     expect(page).not.toContain("@/components/frontdoor");
     expect(page).not.toMatch(new RegExp("Redesigned" + "LandingPage"));
     expect(page).not.toMatch(new RegExp("gpt" + "-taste"));
-    expect(landingV3).toMatch(/The estimate that keeps working after you send it\./);
-    expect(landingV3).toMatch(/archestimator is the premier tool for winning bids\./i);
-    expect(landingV3).toMatch(/one workflow from cost estimating to client approval\./i);
+    expect(landingV3).toMatch(/Where estimates become client‑approved proposals\./);
+    expect(landingV3).toMatch(/Stop losing time to spreadsheets and revisions\./);
+    expect(landingV3).toMatch(/archestimator turns estimating and proposals into one workflow so you spend less time working and more time winning\./);
     expect(`${page}\n${landingV3}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
     expect(`${page}\n${landingV3}`).not.toMatch(/Start Winning|Close Projects Faster/i);
   });
