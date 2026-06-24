@@ -1,7 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { librarySurfaceClass } from "@/components/workshop/library/library-surface-variant";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import { cn } from "@/lib/ui/cn";
 
 export default function Loading() {
