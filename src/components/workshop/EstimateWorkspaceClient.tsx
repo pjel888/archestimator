@@ -1,17 +1,16 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/ui/cn";
 import {
   EstimateSurfaceVariantProvider,
-  useEstimateSurfaceVariant,
   type EstimateSurfaceVariant,
 } from "./estimate-surface-variant";
 import { estimateSurfaceClass } from "./estimate-surface-class";
+import { EstimateSheetContent } from "./EstimateSheetContent";
+import { EstimateSheetTree } from "./EstimateSheetTree";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
@@ -24,20 +23,6 @@ import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
-
-const EstimateSheetTree = dynamic(() =>
-  import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
-  {
-    loading: () => <EstimateTreeFallback />,
-  },
-);
-
-const EstimateSheetContent = dynamic(() =>
-  import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
-  {
-    loading: () => <EstimateContentFallback />,
-  },
-);
 
 type EstimateWorkspaceClientProps = {
   projectId: string;
@@ -60,12 +45,19 @@ type EstimateWorkspaceClientProps = {
   librarySuppliers?: ComponentLibrarySupplierOption[];
   libraryBrands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
+  libraryShowSourceTrustChips?: boolean;
+  /** Disable localStorage-backed sidebar state when the workspace is rendered as a public/static mockup. */
+  libraryUseStoredPreferences?: boolean;
+  /** Disable reusable project-source loading when the workspace is rendered outside the private app surface. */
+  libraryEnableReusableProjectSources?: boolean;
   /**
    * Surface design language. "glass" is the live liquid-glass workspace (the
    * main estimate route passes it explicitly). "paper" is the legacy
    * solid-white look, kept as the prop default for any caller that omits it.
    */
   surfaceVariant?: EstimateSurfaceVariant;
+  /** Disable shallow URL writes when the workspace is embedded as a non-route mockup. */
+  disableRouteSync?: boolean;
 };
 
 export function EstimateWorkspaceClient({
@@ -88,7 +80,11 @@ export function EstimateWorkspaceClient({
   librarySuppliers,
   libraryBrands,
   libraryFolders,
+  libraryShowSourceTrustChips,
+  libraryUseStoredPreferences,
+  libraryEnableReusableProjectSources,
   surfaceVariant = "paper",
+  disableRouteSync = false,
 }: EstimateWorkspaceClientProps) {
   const queryClient = useQueryClient();
   const tabQueriesEnabled = Boolean(activeTabId);
@@ -113,6 +109,9 @@ export function EstimateWorkspaceClient({
     : defaultTabId;
   const displayActiveTabId = resolvedActiveTabId ?? fallbackTabs[0]?.id ?? "legacy-main";
   const routeSelectedNodeId = resolvedActiveTabId === activeTabId ? selectedNodeId : null;
+  const resolvedLibraryShowSourceTrustChips = libraryShowSourceTrustChips ?? projectId !== "hero-sanitized-project";
+  const resolvedLibraryUseStoredPreferences = libraryUseStoredPreferences ?? !disableRouteSync;
+  const resolvedLibraryEnableReusableProjectSources = libraryEnableReusableProjectSources ?? !disableRouteSync;
 
   return (
     <EstimateSurfaceVariantProvider variant={surfaceVariant}>
@@ -136,6 +135,7 @@ export function EstimateWorkspaceClient({
         projectName={projectName}
         selectedNodeId={routeSelectedNodeId}
         nodes={nodes}
+        disableRouteSync={disableRouteSync}
       />
       <EstimateSheetContent
         selectedNodeId={routeSelectedNodeId}
@@ -149,6 +149,7 @@ export function EstimateWorkspaceClient({
         loadLimitState={loadLimitState}
         canEditEstimate={canEditEstimate}
         initialTabId={activeTabId ?? undefined}
+        disableRouteSync={disableRouteSync}
         onActiveTabChange={setActiveTabId}
         onEstimateTabsChange={(tabs) => {
           // The tab CRUD actions already return the canonical tab array, so set
@@ -165,47 +166,11 @@ export function EstimateWorkspaceClient({
         librarySuppliers={librarySuppliers}
         libraryBrands={libraryBrands}
         libraryFolders={libraryFolders}
+        libraryShowSourceTrustChips={resolvedLibraryShowSourceTrustChips}
+        libraryUseStoredPreferences={resolvedLibraryUseStoredPreferences}
+        libraryEnableReusableProjectSources={resolvedLibraryEnableReusableProjectSources}
       />
     </section>
     </EstimateSurfaceVariantProvider>
-  );
-}
-
-function EstimateTreeFallback() {
-  const variant = useEstimateSurfaceVariant();
-  return (
-    <aside
-      className={cn("hidden w-[376px] shrink-0 p-2 lg:block", estimateSurfaceClass(variant, "treeRail"))}
-      aria-hidden="true"
-    >
-      <Skeleton className="h-7 w-full" />
-      <div className="mt-2 space-y-1">
-        {Array.from({ length: 10 }, (_, index) => (
-          <Skeleton key={index} className="h-6 w-full" />
-        ))}
-      </div>
-    </aside>
-  );
-}
-
-function EstimateContentFallback() {
-  const variant = useEstimateSurfaceVariant();
-  return (
-    <output
-      className={cn("flex min-h-0 min-w-0 flex-1 flex-col p-2", estimateSurfaceClass(variant, "centerColumnFallback"))}
-      aria-label="Loading estimate"
-    >
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-hairline" aria-hidden="true">
-        <Skeleton className="h-6 w-28" />
-        <Skeleton className="h-6 w-20" />
-        <Skeleton className="ml-auto h-6 w-24" />
-      </div>
-      <div className="min-h-0 flex-1 space-y-1 pt-2" aria-hidden="true">
-        {Array.from({ length: 12 }, (_, index) => (
-          <Skeleton key={index} className="h-7 w-full" />
-        ))}
-      </div>
-      <span className="sr-only">Loading estimate</span>
-    </output>
   );
 }

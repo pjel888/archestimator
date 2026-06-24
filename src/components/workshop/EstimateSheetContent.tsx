@@ -204,6 +204,7 @@ type EstimateSheetContentProps = {
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
   canEditEstimate?: boolean;
   initialTabId?: string;
+  disableRouteSync?: boolean;
   onActiveTabChange?: (tabId: string) => void;
   onEstimateTabsChange?: (tabs: EstimateTabSummary[]) => void;
   collaborationUserId?: string | null;
@@ -216,6 +217,10 @@ type EstimateSheetContentProps = {
   librarySuppliers?: ComponentLibrarySupplierOption[];
   libraryBrands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
+  libraryShowSourceTrustChips?: boolean;
+  libraryUseStoredPreferences?: boolean;
+  libraryEnableReusableProjectSources?: boolean;
+  libraryUsePersistentPanelWidth?: boolean;
 };
 
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
@@ -1276,6 +1281,7 @@ export function EstimateSheetContent({
   dataTabId,
   canEditEstimate = false,
   initialTabId,
+  disableRouteSync = false,
   onActiveTabChange,
   onEstimateTabsChange,
   collaborationUserId = null,
@@ -1288,6 +1294,10 @@ export function EstimateSheetContent({
   librarySuppliers,
   libraryBrands,
   libraryFolders,
+  libraryShowSourceTrustChips = true,
+  libraryUseStoredPreferences = true,
+  libraryEnableReusableProjectSources = true,
+  libraryUsePersistentPanelWidth = !disableRouteSync,
 }: EstimateSheetContentProps) {
   reportEstimateSheetContentRender();
   const surfaceVariant = useEstimateSurfaceVariant();
@@ -1296,7 +1306,6 @@ export function EstimateSheetContent({
   const {
     saveState,
     rowMutationError,
-    clearRowMutationError,
     markRowDirty: markRowDirtyNow,
     insertRow,
     replaceRow,
@@ -1526,11 +1535,29 @@ export function EstimateSheetContent({
     gcTime: 30 * 60 * 1000,
   });
   const lazyLibrary = shouldLoadLibraryLazily ? lazyLibraryData : undefined;
+  const isLazyLibraryLoading = shouldLoadLibraryLazily && !lazyLibrary && !isLazyLibraryError;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const queryClient = useQueryClient();
   // U2: project-source insert is non-optimistic (the full source subtree isn't
   // resident client-side); failures surface through the existing toast.
   const { toast } = useToast();
+  useEffect(() => {
+    if (saveState === "saving") {
+      toast({ id: "estimate-row-save", tone: "loading", message: "Saving row changes..." });
+      return;
+    }
+    if (saveState === "saved") {
+      toast({
+        id: "estimate-row-save",
+        tone: "success",
+        message: rowMutationError?.message.includes("refreshed") ? "Saved. Recovered edit." : "Saved.",
+      });
+      return;
+    }
+    if (saveState === "failed") {
+      toast({ id: "estimate-row-save", tone: "error", message: rowMutationError?.message ?? "Could not save." });
+    }
+  }, [rowMutationError, saveState, toast]);
   // Library mutations in the sidebar update its local state; the lazy query
   // cache must also be marked stale or remounts re-seed from pre-mutation data.
   // Non-exact invalidation on the shared prefix covers both the lite (panel) and
@@ -1782,13 +1809,14 @@ export function EstimateSheetContent({
     setShowCommandPalette(true);
   }, [setShowCommandPalette]);
   const syncActiveTabRouteUrl = useCallback((nodeId: string | null) => {
+    if (disableRouteSync) return;
     if (!projectId || !estimateId || typeof window === "undefined") return;
     const href = nodeId
       ? `/workshop/projects/${projectId}/estimates/${nodeId}`
       : `/workshop/projects/${projectId}/estimates/${estimateId}`;
     if (window.location.pathname === href) return;
     window.history.replaceState(null, "", href);
-  }, [estimateId, projectId]);
+  }, [disableRouteSync, estimateId, projectId]);
   const setActiveInspector = useCallback((nextInspector: EstimateActivityScope | null) => {
     const nextScopeKey = getActivityScopeKey(nextInspector);
     activateHistoryScope(nextScopeKey);
@@ -2683,6 +2711,7 @@ export function EstimateSheetContent({
   // U2: a project source dropped onto a group row hands the insert over here (the
   // sheet owns the tree + the action), mirroring the template-drop event flow.
   useEffect(() => {
+    if (!libraryEnableReusableProjectSources) return undefined;
     function handleInsertProjectSourceEvent(event: Event) {
       const detail = (event as CustomEvent<InsertProjectSourceEventDetail>).detail;
       if (!detail || typeof detail.targetParentNodeId !== "string" || !detail.source) return;
@@ -2690,7 +2719,7 @@ export function EstimateSheetContent({
     }
     window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
     return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
-  }, [insertProjectSourceIntoParentById]);
+  }, [insertProjectSourceIntoParentById, libraryEnableReusableProjectSources]);
 
   const commitReplaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
     const previousTree = estimateTree;
@@ -3362,37 +3391,6 @@ export function EstimateSheetContent({
             onCreateTabStateChange={setCreateTabState}
           />
         ) : null}
-        {saveState === "saving" || saveState === "saved" || saveState === "failed" ? (
-          <output
-            className={cn(
-              "mx-2 mt-2 rounded-xs border px-2 py-1 text-[10px] font-medium leading-4",
-              saveState === "failed"
-                ? "border-red-200 bg-red-50 text-red-700"
-                : saveState === "saving"
-                  ? "border-warningSoft bg-warningSoft/40 text-warning"
-                  : "border-successSoft bg-successSoft/40 text-success",
-            )}
-            aria-live="polite"
-          >
-            {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : "Could not save"}
-            {rowMutationError?.message.includes("refreshed") ? " · Recovered edit" : ""}
-          </output>
-        ) : null}
-        {rowMutationError ? (
-          <div className="mx-2 mt-2 flex items-start gap-2 rounded-xs border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] leading-4 text-red-700" role="alert">
-            <span className="min-w-0 flex-1">
-              {rowMutationError.message}
-            </span>
-            <button
-              type="button"
-              className="shrink-0 rounded-xs p-0.5 text-red-700 hover:bg-red-100"
-              aria-label="Dismiss row save error"
-              onClick={clearRowMutationError}
-            >
-              <X size={12} weight="regular" aria-hidden="true" />
-            </button>
-          </div>
-        ) : null}
         {didTruncateInitialTree ? (
           <output className="mx-2 mt-2 rounded-xs border border-warningSoft bg-warningSoft/40 px-2 py-1.5 text-[10px] leading-4 text-warning">
             This sheet view loaded the first {activeInitialLoadLimitState?.maxNodeCount?.toLocaleString() ?? "available"} nodes and {activeInitialLoadLimitState?.maxRowItemCount?.toLocaleString() ?? "available"} rows. Proposal exports use separate full-data limits.
@@ -3421,7 +3419,7 @@ export function EstimateSheetContent({
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 ref={estimatePointerSurfaceRef}
-                className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-0", bulkSelectedRowCount > 0 ? "pb-16" : "pb-1")}
+                className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-1", bulkSelectedRowCount > 0 ? "pb-16" : "pb-1")}
                 style={estimateColumnStyle}
                 data-estimate-pointer-surface
               >
@@ -3486,7 +3484,7 @@ export function EstimateSheetContent({
         )}
       </section>
       {renderSidebar ? (
-        shouldLoadLibraryLazily && !lazyLibrary ? (
+        shouldLoadLibraryLazily && isLazyLibraryError && !lazyLibrary ? (
           <ComponentLibrarySidebarFallback isError={isLazyLibraryError} onRetry={() => refetchLazyLibrary()} />
         ) : (
           <EstimateRightSidebar
@@ -3499,12 +3497,17 @@ export function EstimateSheetContent({
             templateTargetName={templateInsertionTargetLabel}
             canInsertTemplate={canInsertTemplateIntoSelectedNode}
             nodes={estimateTree}
-            initialLibraryItems={resolvedLibraryItems}
+            initialLibraryItems={resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS}
             templates={availableTemplates}
             categoryTree={libraryCategoryTree ?? lazyLibrary?.categoryTree}
             suppliers={librarySuppliers ?? lazyLibrary?.suppliers}
             brands={libraryBrands ?? lazyLibrary?.brands}
             libraryFolders={libraryFolders ?? lazyLibrary?.libraryFolders}
+            showSourceTrustChips={libraryShowSourceTrustChips}
+            libraryDataLoading={isLazyLibraryLoading}
+            useStoredPreferences={libraryUseStoredPreferences}
+            enableReusableProjectSources={libraryEnableReusableProjectSources}
+            usePersistentPanelWidth={libraryUsePersistentPanelWidth}
             onInsertTemplate={insertTemplateIntoSelectedGroup}
             onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
             onInsertProjectSource={insertProjectSourceIntoSelectedGroup}

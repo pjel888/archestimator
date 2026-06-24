@@ -68,6 +68,7 @@ type EstimateSheetTreeProps = {
   projectName: string;
   selectedNodeId: string | null;
   nodes: EstimateTreeNode[];
+  disableRouteSync?: boolean;
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
@@ -368,7 +369,7 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
+export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes, disableRouteSync = false }: EstimateSheetTreeProps) {
   const surfaceVariant = useEstimateSurfaceVariant();
   const pathname = usePathname();
   const { toast, dismissToast } = useToast();
@@ -673,6 +674,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   // links shareable without re-running the server route, which would remount
   // the whole workspace just to change the middle sheet.
   const syncEstimateRouteUrl = useCallback((nodeId: string | null) => {
+    if (disableRouteSync) return;
     if (typeof window === "undefined") return;
     const routeNodeId = nodeId && !isOptimisticEstimateNodeId(nodeId) ? nodeId : null;
     const href = routeNodeId
@@ -680,7 +682,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       : `/workshop/projects/${projectId}/estimates/${estimateId}`;
     if (window.location.pathname === href) return;
     window.history.replaceState(null, "", href);
-  }, [estimateId, projectId]);
+  }, [disableRouteSync, estimateId, projectId]);
 
   // Reordering pauses while a search filters the tree: visible sibling order
   // no longer matches the real tree, so drops would land unpredictably.
@@ -1510,6 +1512,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         minWidth={216}
         maxWidth={432}
         widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
+        persistWidth={!disableRouteSync}
       >
         {/* group/tree on the panel widens the rail-reveal scope: rows keep
             their drag/select space while the pointer or focus is anywhere in

@@ -23,6 +23,7 @@ type ResizableSidePanelProps = {
   maxWidth: number;
   widthOffset?: number;
   collapsedWidth?: number;
+  persistWidth?: boolean;
   children?: ReactNode;
 };
 
@@ -62,18 +63,19 @@ export function ResizableSidePanel({
   maxWidth,
   widthOffset = 0,
   collapsedWidth = 32,
+  persistWidth = true,
   children,
 }: ResizableSidePanelProps) {
   const glass = useEstimateSurfaceVariant() === "glass";
   const [collapsed, setCollapsed] = useState(false);
-  const [savedWidth, setSavedWidth] = useState(() => getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth));
+  const [savedWidth, setSavedWidth] = useState(() => persistWidth ? getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth) : defaultWidth);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const width = dragWidth ?? savedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
-  const cssVariable = getPanelWidthCssVariable(storageKey);
+  const cssVariable = persistWidth ? getPanelWidthCssVariable(storageKey) : null;
   const defaultActualWidth = defaultWidth + widthOffset;
   const panelStyle = {
     width: compactViewport || collapsed || dragWidth !== null || !cssVariable
@@ -85,6 +87,7 @@ export function ResizableSidePanel({
   const startWidth = useRef(defaultWidth);
 
   useEffect(() => {
+    if (!persistWidth) return;
     const panelWidthCssVariable = getPanelWidthCssVariable(storageKey);
     if (!panelWidthCssVariable) return;
     const targets = [
@@ -102,7 +105,7 @@ export function ResizableSidePanel({
         else target.style.removeProperty(panelWidthCssVariable);
       });
     };
-  }, [responsiveWidth, storageKey]);
+  }, [persistWidth, responsiveWidth, storageKey]);
 
   function startResize(event: React.MouseEvent) {
     if (collapsed) return;
@@ -127,7 +130,7 @@ export function ResizableSidePanel({
       const finalWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
       setSavedWidth(finalWidth);
       setDragWidth(finalWidth);
-      persistPanelWidth(storageKey, finalWidth);
+      if (persistWidth) persistPanelWidth(storageKey, finalWidth);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", onMove);
@@ -142,7 +145,7 @@ export function ResizableSidePanel({
     const finalWidth = Math.min(maxWidth, Math.max(minWidth, nextWidth));
     setSavedWidth(finalWidth);
     setDragWidth(finalWidth);
-    persistPanelWidth(storageKey, finalWidth);
+    if (persistWidth) persistPanelWidth(storageKey, finalWidth);
   }
 
   function handleResizeKeyDown(event: KeyboardEvent) {

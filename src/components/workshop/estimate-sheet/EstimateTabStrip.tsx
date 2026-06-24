@@ -149,6 +149,7 @@ function estimateTabStripReducer(state: EstimateTabStripState, action: EstimateT
 const SPRING_LOADED_TAB_DELAY_MS = 450;
 const CROSS_TAB_NODE_MOVE_TOAST_ID = "estimate-tab-cross-tab-node-move";
 const CROSS_TAB_NODE_MOVE_MESSAGE = "Moving between tabs isn't supported yet — duplicate the tab or save the group as a template.";
+const ESTIMATE_TAB_STRIP_ERROR_TOAST_ID = "estimate-tab-strip-error";
 
 function getDragTypes(event: DragEvent<HTMLElement>) {
   return Array.from(event.dataTransfer?.types ?? []);
@@ -210,6 +211,7 @@ export function EstimateTabStrip({
     enteringTabIds,
   } = state;
   const lastAnnouncedTabIdRef = useRef<string | null>(null);
+  const lastToastedErrorRef = useRef("");
   const suppressNextSelectionAnnouncementRef = useRef(false);
   // Mirrors EstimateSheetTree: a menu-triggered rename must survive the Radix
   // close-auto-focus, which would otherwise return focus to the trigger and fire
@@ -223,6 +225,20 @@ export function EstimateTabStrip({
   const previousTabIdsRef = useRef<Set<string>>(null!);
   if (previousTabIdsRef.current === null) previousTabIdsRef.current = new Set(orderedTabs.map((tab) => tab.id));
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+
+  useEffect(() => {
+    if (!error) {
+      lastToastedErrorRef.current = "";
+      return;
+    }
+    if (lastToastedErrorRef.current === error) return;
+    lastToastedErrorRef.current = error;
+    toast({
+      id: ESTIMATE_TAB_STRIP_ERROR_TOAST_ID,
+      message: error,
+      tone: "error",
+    });
+  }, [error, toast]);
 
   const focusTab = useCallback((index: number) => {
     const tab = orderedTabs[index];
@@ -746,7 +762,6 @@ export function EstimateTabStrip({
           )}
         </div>
       </div>
-      {error ? <p role="alert" className="px-2 pb-1 text-[10px] leading-4 text-danger">{error}</p> : null}
       <output aria-live="polite" aria-atomic="true" className="sr-only">
         {announcement}
       </output>

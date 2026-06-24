@@ -21,6 +21,7 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { stringifyJsonLd } from "@/lib/landing/json-ld";
 import { cn } from "@/lib/ui/cn";
 import { AnimatedMetricValue } from "./AnimatedMetricValue";
+import { HeroEstimateWorkspaceMockup } from "./HeroEstimateWorkspaceMockup";
 import { HeroImageZoom } from "./HeroImageZoom";
 import { HeroMountMotion } from "./HeroMountMotion";
 import { ProductStage } from "./ProductStage";
@@ -261,6 +262,16 @@ function Hero({ isLoggedIn }: LandingPageProps) {
             </div>
           </div>
           <div className={styles.heroStage} data-landing-v3-reveal>
+            <div className={styles.heroSoftwareMockupPlaceholder} aria-hidden="true">
+              <div className={styles.heroSoftwareMockupChrome}>
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className={styles.heroSoftwareMockupBody}>
+                <HeroEstimateWorkspaceMockup />
+              </div>
+            </div>
             <HeroImageZoom className={styles.heroIllustration} dataMotion="illustration">
               <span className={styles.heroIllustrationImageClip}>
                 <Image

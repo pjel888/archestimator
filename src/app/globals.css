@@ -1897,10 +1897,11 @@ input[type="number"] {
    Scoped to `group/tree-row`: underline TAB buttons also carry
    aria-selected="true" (Tabs.tsx), so an unscoped [aria-selected] would paint
    the active Estimate Tree / Components / Library tab a white slab. Rows keep
-   their lift; tabs stay transparent over the frosted rail. */
+   the left current rail without an extra selected fill; tabs stay transparent
+   over the frosted rail. */
 .estimate-glass-rail [class~="group/tree-row"][aria-current="page"],
 .estimate-glass-rail [class~="group/tree-row"][aria-selected="true"] {
-  background: rgba(255, 255, 255, 0.82);
+  background: transparent;
 }
 .estimate-glass-rail [class~="group/tree-row"]:hover {
   background: rgba(255, 255, 255, 0.45);
@@ -1915,6 +1916,12 @@ input[type="number"] {
 .estimate-glass-rail [class~="group/tree-row"]:focus,
 .estimate-glass-rail [class~="group/tree-row"]:focus-within {
   background: rgba(255, 255, 255, 0.6);
+}
+.estimate-glass-rail [class~="group/tree-row"][aria-current="page"]:focus,
+.estimate-glass-rail [class~="group/tree-row"][aria-current="page"]:focus-within,
+.estimate-glass-rail [class~="group/tree-row"][aria-selected="true"]:focus,
+.estimate-glass-rail [class~="group/tree-row"][aria-selected="true"]:focus-within {
+  background: transparent;
 }
 
 /* Active estimate row — the hardcoded paper-blue #F6FAFF slab + saturated blue

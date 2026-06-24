@@ -404,25 +404,465 @@
 }
 
 .heroStage {
+  --hero-grid-gap: 0.5rem;
+  --hero-grid-padding: 0.5rem;
+  --hero-stage-grid-cell: calc((100% - (var(--hero-grid-padding) * 2) - (var(--hero-grid-gap) * 7)) / 8);
+
   position: relative;
   inline-size: 100%;
   min-width: 0;
   margin-inline: auto;
+  margin-block-start: 10.625rem;
+}
+
+.heroSoftwareMockupPlaceholder {
+  position: absolute;
+  inset-block-start: -22.65rem;
+  inset-inline-start: calc(
+    var(--hero-grid-padding) + ((var(--hero-stage-grid-cell) + var(--hero-grid-gap)) * 2) + 0.25rem
+  );
+  inset-inline-end: calc(var(--hero-grid-padding) + 0.4rem);
+  z-index: 0;
+  display: grid;
+  grid-template-rows: 2.35rem minmax(0, 1fr);
+  block-size: 27.45rem;
+  pointer-events: none;
+  border-radius: var(--landing-radius-dense);
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.36)),
+    color-mix(in srgb, var(--canvas) 76%, white);
+  backdrop-filter: blur(18px) saturate(1.08);
+  box-shadow:
+    0 18px 42px rgb(38 44 58 / 0.12),
+    0 6px 18px rgb(38 44 58 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.78),
+    inset 1px 0 0 rgb(255 255 255 / 0.42),
+    inset -1px 0 0 rgb(255 255 255 / 0.3);
+  transform-origin: 50% 24%;
+  animation: heroSoftwareMockupMount 1100ms cubic-bezier(0.18, 0.82, 0.2, 1) 140ms both;
+  will-change: opacity, transform, filter;
+}
+
+.heroSoftwareMockupPlaceholder::before,
+.heroSoftwareMockupPlaceholder::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.heroSoftwareMockupPlaceholder::before {
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 4.5rem;
+  background:
+    radial-gradient(circle at 1rem 0.8rem, rgb(255 255 255 / 0.64), transparent 3.3rem),
+    linear-gradient(180deg, rgb(255 255 255 / 0.34), transparent);
+}
+
+.heroSoftwareMockupPlaceholder::after {
+  inset-block-end: -1px;
+  inset-inline: 0.5rem;
+  block-size: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.54), transparent);
+}
+
+.heroSoftwareMockupChrome {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-width: 0;
+  min-height: 0;
+  padding-inline: 0.85rem;
+}
+
+.heroSoftwareMockupChrome span {
+  display: block;
+  inline-size: 0.68rem;
+  block-size: 0.68rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  transform-origin: center;
+  animation: heroSoftwareMockupDotMount 520ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
+}
+
+.heroSoftwareMockupChrome span:nth-child(1) {
+  background: #f24405;
+  animation-delay: 420ms;
+}
+
+.heroSoftwareMockupChrome span:nth-child(2) {
+  background: #f2c20d;
+  animation-delay: 500ms;
+}
+
+.heroSoftwareMockupChrome span:nth-child(3) {
+  background: #b5c7b8;
+  animation-delay: 580ms;
+}
+
+.heroSoftwareMockupBody {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  margin-inline: 0.28rem;
+  margin-block-end: 0.28rem;
+  border-radius: var(--landing-radius-dense);
+  overflow: hidden;
+  background: rgb(238 240 243 / 0.96);
+  animation: heroSoftwareMockupBodyMount 940ms cubic-bezier(0.18, 0.82, 0.2, 1) 360ms both;
+  will-change: opacity, transform, clip-path;
+}
+
+.heroActualEstimateMockupViewport {
+  --hero-mockup-cursor-x: 87%;
+  --hero-mockup-cursor-y: 19%;
+
+  position: relative;
+  container-type: inline-size;
+  block-size: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.heroActualEstimateMockupScale {
+  inline-size: 1780px;
+  block-size: 900px;
+  min-width: 1780px;
+  min-height: 900px;
+  transform: scale(calc(100cqw / 1780px));
+  transform-origin: 0 0;
+}
+
+.heroActualEstimateMockupScale :global(.estimate-glass-well) {
+  background: #eef0f3;
+}
+
+.heroActualEstimateMockupScale :global(section[aria-label$=" estimates"]) {
+  gap: 4px;
+  padding: 4px;
+}
+
+.heroActualEstimateMockupScale :global(section[aria-label="Kitchen"]) {
+  padding-block-start: 6px;
+}
+
+.heroActualEstimateMockupScale :global(button[aria-label="Expand all tree"]),
+.heroActualEstimateMockupScale :global(button[aria-label="Collapse all tree"]),
+.heroActualEstimateMockupScale :global(button[aria-label="Expand all tab"]),
+.heroActualEstimateMockupScale :global(button[aria-label="Collapse all tab"]),
+.heroActualEstimateMockupScale :global(button[aria-label="Collapse Tree"]),
+.heroActualEstimateMockupScale :global(button[aria-label="Collapse Library"]),
+.heroActualEstimateMockupScale :global([role="separator"][aria-label="Resize Tree"]),
+.heroActualEstimateMockupScale :global([role="separator"][aria-label="Resize Library"]) {
+  display: none;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="ready"] {
+  --hero-mockup-cursor-x: 87%;
+  --hero-mockup-cursor-y: 19%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-faucet"] {
+  --hero-mockup-cursor-x: 68.75%;
+  --hero-mockup-cursor-y: 37.55%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"],
+.heroActualEstimateMockupViewport[data-hero-animation-phase="faucet-inserted"] {
+  --hero-mockup-cursor-x: 44.5%;
+  --hero-mockup-cursor-y: 43%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-ceramic"] {
+  --hero-mockup-cursor-x: 68.3%;
+  --hero-mockup-cursor-y: 63.1%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"],
+.heroActualEstimateMockupViewport[data-hero-animation-phase="ceramic-inserted"] {
+  --hero-mockup-cursor-x: 47%;
+  --hero-mockup-cursor-y: 67%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-fauxwood"] {
+  --hero-mockup-cursor-x: 68.3%;
+  --hero-mockup-cursor-y: 56.1%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"],
+.heroActualEstimateMockupViewport[data-hero-animation-phase="fauxwood-replaced"] {
+  --hero-mockup-cursor-x: 34%;
+  --hero-mockup-cursor-y: 70%;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"]) {
+  background: color-mix(in srgb, #f24405 7%, white);
+  box-shadow: inset 0 0 0 1px rgb(242 68 5 / 0.12);
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"]) {
+  margin-right: 0.25rem;
+  width: 1rem;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"] > span),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"] > span),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"] > span),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"] > span),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"] > span),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"] > span) {
+  opacity: 1;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"] svg),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"]
+  :global([data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"] svg),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"] svg),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"]
+  :global([data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"] svg),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="hover-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"] svg),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"]
+  :global([data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"] svg) {
+  color: #f24405;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"]
+  :global(section[aria-label="Kitchen"] .border-dashed),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"]
+  :global(section[aria-label="Kitchen"] .border-dashed) {
+  border-color: #f24405;
+  background: color-mix(in srgb, #f24405 10%, white);
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px rgb(242 68 5 / 0.16);
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"]
+  :global([aria-label="600x600 ceramic tiles replaceable estimate component"]) {
+  background: rgb(219 234 254 / 0.72);
+  box-shadow:
+    inset 0 0 0 2px var(--accent, #f24405),
+    0 0 0 2px rgb(242 68 5 / 0.1);
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="ceramic-inserted"]
+  :global([data-estimate-row-id="hero-estimate-row-kitchen-floor-finish"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="fauxwood-replaced"]
+  :global([data-estimate-row-id="hero-estimate-row-kitchen-floor-finish"]) {
+  animation: heroMockupRowPulse 2900ms ease-out 1;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="ceramic-inserted"]
+  :global(input[aria-label="600x600 ceramic tiles quantity"]),
+.heroActualEstimateMockupViewport[data-hero-animation-phase="fauxwood-replaced"]
+  :global(input[aria-label="200x1200 faux wood tiles quantity"]) {
+  background: color-mix(in srgb, #f24405 8%, white);
+  box-shadow: inset 0 0 0 1px rgb(242 68 5 / 0.24);
+}
+
+.heroMockupAnimationLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.heroMockupMouse {
+  position: absolute;
+  inset-inline-start: var(--hero-mockup-cursor-x);
+  inset-block-start: var(--hero-mockup-cursor-y);
+  display: grid;
+  inline-size: 0.97rem;
+  block-size: 1.3rem;
+  place-items: center;
+  color: #f24405;
+  transform: translate(-12%, -8%);
+  transition:
+    inset-inline-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    inset-block-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    transform 360ms ease;
+  filter:
+    drop-shadow(0 0.7rem 1.1rem rgb(38 44 58 / 0.3))
+    drop-shadow(0 0.1rem 0.08rem rgb(255 255 255 / 0.72));
+}
+
+.heroMockupMouse svg {
+  inline-size: 100%;
+  block-size: 100%;
+  fill: currentColor;
+}
+
+.heroMockupDragGhost {
+  position: absolute;
+  inset-inline-start: var(--hero-mockup-cursor-x);
+  inset-block-start: var(--hero-mockup-cursor-y);
+  display: grid;
+  gap: 0.1rem;
+  min-inline-size: 9.6rem;
+  max-inline-size: 12rem;
+  padding: 0.36rem 0.48rem;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: white;
+  color: color-mix(in srgb, var(--ink) 88%, black);
+  opacity: 0;
+  box-shadow:
+    0 0.8rem 1.7rem rgb(38 44 58 / 0.18),
+    inset 0 1px 0 rgb(255 255 255 / 0.82);
+  transform: translate(0.95rem, 0.72rem) scale(0.98);
+  transition:
+    inset-inline-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    inset-block-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    opacity 480ms ease,
+    transform 480ms ease;
+}
+
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-faucet"] .heroMockupDragGhost,
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-ceramic"] .heroMockupDragGhost,
+.heroActualEstimateMockupViewport[data-hero-animation-phase="drag-fauxwood"] .heroMockupDragGhost {
+  opacity: 1;
+  transform: translate(0.95rem, 0.72rem) scale(1);
+}
+
+.heroMockupDragGhost span,
+.heroMockupDragGhost small {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroMockupDragGhost span {
+  font-size: 0.6rem;
+  font-weight: 680;
+  line-height: 1.2;
+}
+
+.heroMockupDragGhost small {
+  color: var(--muted);
+  font-size: 0.5rem;
+  font-weight: 580;
+  line-height: 1.2;
+}
+
+@keyframes heroSoftwareMockupMount {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 1.15rem, 0) scale(0.985);
+    filter: blur(10px) saturate(0.9);
+  }
+
+  58% {
+    opacity: 1;
+    filter: blur(0) saturate(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes heroSoftwareMockupBodyMount {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.6rem, 0);
+    clip-path: inset(0 0 10% 0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes heroSoftwareMockupDotMount {
+  0% {
+    opacity: 0;
+    transform: translateY(0.22rem) scale(0.68);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translateY(-0.03rem) scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes heroMockupRowPulse {
+  0% {
+    box-shadow:
+      inset 0 0 0 1px rgb(242 68 5 / 0.24),
+      0 0 0 3px rgb(242 68 5 / 0.14);
+  }
+
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgb(242 68 5 / 0),
+      0 0 0 0 rgb(242 68 5 / 0);
+  }
 }
 
 .heroIllustration {
   --hero-image-scroll-scale: 1;
   --hero-image-mount-scale: 1;
-  --hero-grid-gap: 0.5rem;
-  --hero-grid-padding: 0.5rem;
 
   position: relative;
+  z-index: 1;
+  margin-block-start: 3.25rem;
   min-height: clamp(33rem, 53vw, 57rem);
   overflow: visible;
   border: 1px solid rgb(255 255 255 / 0.78);
   border-radius: 2px;
   background: #dfe4e7;
   box-shadow:
+    0 -18px 38px rgb(38 44 58 / 0.12),
     0 18px 40px rgb(61 61 61 / 0.08),
     inset 0 1px 0 rgb(255 255 255 / 0.76);
 }
@@ -1653,7 +2093,16 @@
   }
 
   .heroStage {
+    margin-block-start: 0;
     transform: none;
+  }
+
+  .heroSoftwareMockupPlaceholder {
+    display: none;
+  }
+
+  .heroIllustration {
+    margin-block-start: 0;
   }
 
   .workflowStage {
@@ -1783,6 +2232,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .heroMockupMouse,
+  .heroMockupDragGhost {
+    transition: none;
+  }
+
+  .heroMockupDragGhost {
+    display: none;
+  }
+
+  .heroSoftwareMockupPlaceholder,
+  .heroSoftwareMockupBody,
+  .heroSoftwareMockupChrome span {
+    animation: none !important;
+  }
+
   .root *,
   .root *::before,
   .root *::after {
