@@ -81,6 +81,7 @@ function ModeButtonsExample() {
 
   return (
     <StoryPanel className="p-0.5">
+      {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Story toolbar modes are a labelled button group; <address> would be semantically wrong. */}
       <div className="inline-flex flex-wrap items-center gap-0" role="group" aria-label="Estimate toolbar mode">
         {modes.map((item) => {
           const Icon = item.icon;

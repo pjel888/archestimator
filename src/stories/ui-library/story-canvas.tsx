@@ -55,7 +55,7 @@ const toneClassName: Record<Tone, string> = {
   danger: "border-dangerSoft bg-dangerSoft text-danger",
 };
 
-export const semanticIcons = [
+const semanticIcons = [
   { label: "Home", icon: HouseLine },
   { label: "Projects", icon: SquaresFour },
   { label: "Components", icon: CirclesFour },
