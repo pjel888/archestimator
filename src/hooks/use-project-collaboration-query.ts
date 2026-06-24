@@ -13,7 +13,7 @@ import type { CollaborationRole, ProjectCollaborationSummary } from "@/lib/colla
  * then refreshed by `invalidateProjectCollaboration` after a mutation — exactly
  * one collaboration refetch, never the publication header or sheets.
  */
-export function projectCollaborationQueryKey(projectId: string | null | undefined) {
+function projectCollaborationQueryKey(projectId: string | null | undefined) {
   return ["project-collaboration", projectId ?? "none"] as const;
 }
 

@@ -15,7 +15,7 @@ export const estimateQueryKeys = {
   areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const,
 };
 
-export function useEstimateQuery(estimateId: string) {
+function useEstimateQuery(estimateId: string) {
   return useQuery({
     queryKey: estimateQueryKeys.detail(estimateId),
     queryFn: () => estimateRepository.getEstimateTree(estimateId),
@@ -170,7 +170,7 @@ export function useEstimateTabsQuery({
   return { ...query, data, tabs: data ?? initialTabs };
 }
 
-export function useMoveEstimateRowItem(estimateId: string) {
+function useMoveEstimateRowItem(estimateId: string) {
   const queryClient = useQueryClient();
   const queryKey = estimateQueryKeys.detail(estimateId);
 
