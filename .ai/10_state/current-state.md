@@ -42,6 +42,33 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Workshop library route performance pass measured and slimmed locally (2026-06-24):**
+
+- `/workshop/library/components` now seeds the browse/table route with a
+  rows-only component dataset (`includeDetailGraph: false`) and hydrates the
+  selected component's full version/price-history/state-history/attachment graph
+  on inspector open. Synthetic 5,000-row evidence remains the main data-growth
+  proof: full detail payload was ~7.4 MB parse p95 27.28ms vs rows-lite ~2.0 MB
+  parse median 3.21ms in
+  `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-0a/`.
+- Local authenticated browser proof for the current default workspace found 0
+  components and 0 templates, so route timings are shell/bundle proof, not
+  data-heavy proof. Latest production artifact:
+  `.ai/99_scratch/library-perf/library-route-measure-after-20260624T165502Z.json`.
+  The library tab strip and cross-route links now opt out of eager Next route
+  prefetching; the production profiler showed sibling `_rsc` prefetches removed,
+  fetches down from 8 to 3 per measured route, and responses down from 40/48/45
+  to 31/41/38 for overview/components/templates. Overview/templates now stream
+  through async data children under the shell Suspense boundary and the library
+  routes have PERF_TRACE labels for future server timing; final measured ready
+  times were overview warm ~3.32s, components cold/warm ~2.35s/~2.43s, templates
+  cold/warm ~2.97s/~1.96s. Dev Vercel Analytics/Speed Insights are gated off by
+  default, dropping the two remote `va.vercel-scripts.com` debug scripts from
+  localhost route loads.
+- Verification passed: focused library/telemetry/tab-strip Vitest matrix (11
+  files / 115 tests), `bun run type-check`, `bun run build`, and
+  `git diff --check`.
+
 **Project modal location editing and map thumbnail fallback fixed locally (2026-06-24):**
 
 - Create/edit project modal location behavior is now aligned: create still uses
