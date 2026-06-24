@@ -34,13 +34,25 @@ export type LibraryTreeProps = {
   onItemDelete?: (item: EstimateRowItem) => void;
   /** Context-menu create on folder rows (opens the add-component flow). */
   onCreateComponent?: () => void;
+  /** Context-menu rename on editable folder rows. */
+  onFolderRename?: (nodeId: string) => void;
   addDisabled?: boolean;
   addLabel?: string;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;
   /** Shows fixed-size decorative thumbnails for component leaf rows only. */
   showThumbnails?: boolean;
+  /** Shows pricing freshness/confidence/lifecycle chips under component rows. */
+  showSourceTrustChips?: boolean;
+  editingNodeId?: string | null;
+  editingNodeValue?: string;
+  onEditingNodeValueChange?: (value: string) => void;
+  onEditingNodeCommit?: (value: string) => void;
+  onEditingNodeCancel?: () => void;
   /** Accessible label for the rendered tree. Defaults to Library components. */
   treeAriaLabel?: string;
+  /** Renders fixed in-tree skeleton rows while this tab's tree data is pending. */
+  loading?: boolean;
+  loadingAriaLabel?: string;
   /** Visible source scope shown on component rows, e.g. Library or Project. */
   sourceScopeLabel?: string;
   showItemAddAction?: boolean;

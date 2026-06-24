@@ -11,14 +11,14 @@ import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropd
 import { Modal } from "@/components/ui/modal";
 import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
-import { useToast } from "@/components/ui/toast";
+import { type ToastTone, useToast } from "@/components/ui/toast";
 import {
   pruneSelection,
   toggleCascadeSelection,
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { createLibraryFolder, deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
+import { createLibraryFolder, deleteEstimateTemplate, renameEstimateTemplate, renameLibraryFolder } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
@@ -103,7 +103,7 @@ type SourceErrorScope = "dataset" | "estimates" | "outline" | "search";
 function toUserSourceError(scope: SourceErrorScope): string {
   switch (scope) {
     case "dataset":
-      return "Couldn't load project sources. Use Retry in the project sources panel.";
+      return "Couldn't load project sources.";
     case "estimates":
       return "Couldn't load this project's estimates. Try again.";
     case "outline":
@@ -111,6 +111,12 @@ function toUserSourceError(scope: SourceErrorScope): string {
     case "search":
       return "Couldn't search project sources. Try again.";
   }
+}
+
+function getSidebarActionToastTone(message: string): ToastTone {
+  const lower = message.toLowerCase();
+  if (lower.startsWith("select an area") || lower.includes("could not") || lower.includes("not inserted")) return "error";
+  return "success";
 }
 
 // Stable default for the optional `templates` prop. A bare `= []` default mints a
@@ -145,11 +151,17 @@ const LIBRARY_TREE_TABS = [
   { id: "project", label: "Project" },
   { id: "templates", label: "Templates" },
 ] as const;
+const PUBLIC_LIBRARY_TREE_TABS = [
+  { id: "components", label: "Library" },
+  { id: "templates", label: "Templates" },
+] as const;
 
 const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
 const EMPTY_SUPPLIER_OPTIONS: ComponentLibrarySupplierOption[] = [];
 const EMPTY_COMPONENT_BRANDS: ComponentLibraryBrand[] = [];
 const EMPTY_LIBRARY_FOLDERS: LibraryFolderRecord[] = [];
+const PROJECT_SOURCES_LOAD_TOAST_ID = "component-library-project-sources-load";
+const PROJECT_SOURCE_INSERT_TOAST_ID = "component-library-project-source-insert";
 const PROJECT_SOURCE_NODE_PREFIX = "source-project-";
 const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
@@ -190,6 +202,26 @@ function useNativeSidebarDialog(onClose: () => void) {
 
 function isProjectComponentFolderRecord(folder: LibraryFolderRecord) {
   return folder.id.startsWith(`${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-`);
+}
+
+function toLibraryFolderRecord(folder: {
+  id: string;
+  workspace_id: string;
+  parent_id: string | null;
+  name: string;
+  sort_order: number;
+  source_category_node_id: string | null;
+  folder_kind: string;
+}): LibraryFolderRecord {
+  return {
+    id: folder.id,
+    workspace_id: folder.workspace_id,
+    parent_id: folder.parent_id,
+    name: folder.name,
+    sort_order: folder.sort_order,
+    source_category_node_id: folder.source_category_node_id,
+    folder_kind: folder.folder_kind === "taxonomy" ? "taxonomy" : "custom",
+  };
 }
 
 /**
@@ -559,6 +591,15 @@ type EstimateRightSidebarProps = {
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
+  showSourceTrustChips?: boolean;
+  /** True while the sidebar's library/template/project-component dataset is still loading. */
+  libraryDataLoading?: boolean;
+  /** Reads/writes the user's saved active sidebar tab and view prefs. Disable for public/mockup embeds. */
+  useStoredPreferences?: boolean;
+  /** Enables browsing reusable sources pulled from real projects. Disable for public/mockup embeds. */
+  enableReusableProjectSources?: boolean;
+  /** Reads/writes the user's saved sidebar width. Disable for public/mockup embeds. */
+  usePersistentPanelWidth?: boolean;
   // Fired after a server-confirmed library/template mutation so callers that
   // cache the lazy library dataset can invalidate it (remount freshness).
   onLibraryDataChanged?: () => void;
@@ -584,10 +625,7 @@ type EstimateRightSidebarState = {
   loadedProjectSources: ReusableEstimateSource[];
   templateSourceFilter: TemplateSourceFilter;
   projectSourcesLoading: boolean;
-  projectSourcesLoadError: boolean;
-  projectSourcesUpdated: boolean;
   projectSourceSearchResults: ProjectReusableEstimateSource[];
-  projectSourceSearchLoading: boolean;
   projectEstimateLoadingProjectIds: string[];
   projectOutlineLoadingEstimateIds: string[];
   templatesExpandedIds: string[];
@@ -602,6 +640,7 @@ type EstimateRightSidebarState = {
   addComponentOpen: boolean;
   addTemplateOpen: boolean;
   addTemplateGroupOpen: boolean;
+  discardComponentChangesOpen: boolean;
   templateGroupName: string;
   templateGroupError: string;
   customTemplateGroups: string[];
@@ -618,10 +657,13 @@ type EstimateRightSidebarState = {
   form: NewComponentFormType;
   formError: string;
   deleteCandidate: EstimateRowItem | null;
-  deletedItems: EstimateRowItem[];
   insertQuantity: number;
-  lastActionMessage: string;
   facetFilters: ComponentFacetFilters;
+  localLibraryFolders: LibraryFolderRecord[];
+  pendingLibraryFolder: LibraryFolderRecord | null;
+  editingFolderId: string | null;
+  editingFolderName: string;
+  editingFolderMode: "create" | "rename" | null;
   createFolderPending: boolean;
 };
 
@@ -676,10 +718,7 @@ function createInitialEstimateRightSidebarState({
     loadedProjectSources: projectSources,
     templateSourceFilter: "all",
     projectSourcesLoading: false,
-    projectSourcesLoadError: false,
-    projectSourcesUpdated: false,
     projectSourceSearchResults: [],
-    projectSourceSearchLoading: false,
     projectEstimateLoadingProjectIds: [],
     projectOutlineLoadingEstimateIds: [],
     templatesExpandedIds: Array.from(new Set([
@@ -698,6 +737,7 @@ function createInitialEstimateRightSidebarState({
     addComponentOpen: false,
     addTemplateOpen: false,
     addTemplateGroupOpen: false,
+    discardComponentChangesOpen: false,
     templateGroupName: "",
     templateGroupError: "",
     customTemplateGroups: [],
@@ -714,10 +754,13 @@ function createInitialEstimateRightSidebarState({
     form: defaultForm,
     formError: "",
     deleteCandidate: null,
-    deletedItems: [],
     insertQuantity: 1,
-    lastActionMessage: "",
     facetFilters: EMPTY_COMPONENT_FACET_FILTERS,
+    localLibraryFolders: libraryFolders,
+    pendingLibraryFolder: null,
+    editingFolderId: null,
+    editingFolderName: "",
+    editingFolderMode: null,
     createFolderPending: false,
   };
 }
@@ -909,18 +952,25 @@ function EstimateRightSidebarBase({
   suppliers = EMPTY_SUPPLIER_OPTIONS,
   brands = EMPTY_COMPONENT_BRANDS,
   libraryFolders = EMPTY_LIBRARY_FOLDERS,
+  showSourceTrustChips = true,
+  libraryDataLoading = false,
+  useStoredPreferences = true,
+  enableReusableProjectSources = true,
+  usePersistentPanelWidth = true,
   onLibraryDataChanged,
   templateCreateMode = "estimate-node",
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const surfaceVariant = useEstimateSurfaceVariant();
+  const effectiveProjectSources = enableReusableProjectSources ? projectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
   // Initial state must not read localStorage: SSR renders the fallbacks, so a
   // storage-aware initializer makes the client's first render diverge and
   // throws a hydration mismatch. Stored prefs apply in the mount effect below.
   const syncedTemplatesPropRef = useRef(templates);
+  const folderEditCommitInFlightRef = useRef(false);
   const [sidebarState, dispatchSidebarState] = useReducer(
     estimateRightSidebarReducer,
-    { initialLibraryItems, templates, projectSources, categoryTree, suppliers, brands, libraryFolders },
+    { initialLibraryItems, templates, projectSources: effectiveProjectSources, categoryTree, suppliers, brands, libraryFolders },
     createInitialEstimateRightSidebarState,
   );
   const {
@@ -935,10 +985,7 @@ function EstimateRightSidebarBase({
     loadedProjectSources,
     templateSourceFilter,
     projectSourcesLoading,
-    projectSourcesLoadError,
-    projectSourcesUpdated,
     projectSourceSearchResults,
-    projectSourceSearchLoading,
     projectEstimateLoadingProjectIds,
     projectOutlineLoadingEstimateIds,
     templatesExpandedIds,
@@ -953,6 +1000,7 @@ function EstimateRightSidebarBase({
     addComponentOpen,
     addTemplateOpen,
     addTemplateGroupOpen,
+    discardComponentChangesOpen,
     templateGroupName,
     templateGroupError,
     customTemplateGroups,
@@ -969,12 +1017,16 @@ function EstimateRightSidebarBase({
     form,
     formError,
     deleteCandidate,
-    deletedItems,
     insertQuantity,
-    lastActionMessage,
     facetFilters,
+    localLibraryFolders,
+    pendingLibraryFolder,
+    editingFolderId,
+    editingFolderName,
+    editingFolderMode,
     createFolderPending,
   } = sidebarState;
+  const { toast } = useToast();
   const setRecentIds = useCallback((value: SetStateAction<string[]>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("recentIds", value));
   }, []);
@@ -1008,17 +1060,8 @@ function EstimateRightSidebarBase({
   const setProjectSourcesLoading = useCallback((value: SetStateAction<boolean>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("projectSourcesLoading", value));
   }, []);
-  const setProjectSourcesLoadError = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectSourcesLoadError", value));
-  }, []);
-  const setProjectSourcesUpdated = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectSourcesUpdated", value));
-  }, []);
   const setProjectSourceSearchResults = useCallback((value: SetStateAction<ProjectReusableEstimateSource[]>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("projectSourceSearchResults", value));
-  }, []);
-  const setProjectSourceSearchLoading = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectSourceSearchLoading", value));
   }, []);
   const setProjectEstimateLoadingProjectIds = useCallback((value: SetStateAction<string[]>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("projectEstimateLoadingProjectIds", value));
@@ -1068,6 +1111,9 @@ function EstimateRightSidebarBase({
   const setAddTemplateGroupOpen = useCallback((value: SetStateAction<boolean>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("addTemplateGroupOpen", value));
   }, []);
+  const setDiscardComponentChangesOpen = useCallback((value: SetStateAction<boolean>) => {
+    dispatchSidebarState(estimateRightSidebarFieldAction("discardComponentChangesOpen", value));
+  }, []);
   const setTemplateGroupName = useCallback((value: SetStateAction<string>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("templateGroupName", value));
   }, []);
@@ -1116,17 +1162,31 @@ function EstimateRightSidebarBase({
   const setDeleteCandidate = useCallback((value: SetStateAction<EstimateRowItem | null>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("deleteCandidate", value));
   }, []);
-  const setDeletedItems = useCallback((value: SetStateAction<EstimateRowItem[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("deletedItems", value));
-  }, []);
   const setInsertQuantity = useCallback((value: SetStateAction<number>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("insertQuantity", value));
   }, []);
   const setLastActionMessage = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("lastActionMessage", value));
-  }, []);
+    const message = (typeof value === "function" ? value("") : value).trim();
+    if (!message) return;
+    toast({ tone: getSidebarActionToastTone(message), message });
+  }, [toast]);
   const setFacetFilters = useCallback((value: SetStateAction<ComponentFacetFilters>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("facetFilters", value));
+  }, []);
+  const setLocalLibraryFolders = useCallback((value: SetStateAction<LibraryFolderRecord[]>) => {
+    dispatchSidebarState(estimateRightSidebarFieldAction("localLibraryFolders", value));
+  }, []);
+  const setPendingLibraryFolder = useCallback((value: SetStateAction<LibraryFolderRecord | null>) => {
+    dispatchSidebarState(estimateRightSidebarFieldAction("pendingLibraryFolder", value));
+  }, []);
+  const setEditingFolderId = useCallback((value: SetStateAction<string | null>) => {
+    dispatchSidebarState(estimateRightSidebarFieldAction("editingFolderId", value));
+  }, []);
+  const setEditingFolderName = useCallback((value: SetStateAction<string>) => {
+    dispatchSidebarState(estimateRightSidebarFieldAction("editingFolderName", value));
+  }, []);
+  const setEditingFolderMode = useCallback((value: SetStateAction<EstimateRightSidebarState["editingFolderMode"]>) => {
+    dispatchSidebarState(estimateRightSidebarFieldAction("editingFolderMode", value));
   }, []);
   const setCreateFolderPending = useCallback((value: SetStateAction<boolean>) => {
     dispatchSidebarState(estimateRightSidebarFieldAction("createFolderPending", value));
@@ -1150,7 +1210,6 @@ function EstimateRightSidebarBase({
   const skeletonProjectIds = useDelayedIdSet(projectEstimateLoadingProjectIds, SKELETON_REVEAL_DELAY_MS);
   const skeletonEstimateIds = useDelayedIdSet(projectOutlineLoadingEstimateIds, SKELETON_REVEAL_DELAY_MS);
   // U1b: outline/source/search failures go to this toast, not inline banners.
-  const { toast } = useToast();
   // PERF-3: the text input stays bound to the immediate searchQuery (responsive
   // typing), but the expensive in-memory tree filtering/rebuilds read the
   // deferred value so a keystroke doesn't synchronously rebuild the whole tree.
@@ -1160,8 +1219,8 @@ function EstimateRightSidebarBase({
   const editItemIdRef = useRef<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const treeHeaderRef = useRef<HTMLDivElement>(null);
-  const deleteUndoTimerRef = useRef<number | null>(null);
-  const libraryPrefsHydratedRef = useRef(false);
+  const libraryToolsRef = useRef<HTMLDivElement>(null);
+  const libraryPrefsHydratedRef = useRef(!useStoredPreferences);
   const syncedInitialLibraryItemsRef = useRef(initialLibraryItems);
   const syncedLibraryFoldersRef = useRef(libraryFolders);
   const closeBulkDeleteConfirmDialog = useCallback(() => setBulkDeleteConfirmOpen(false), [setBulkDeleteConfirmOpen]);
@@ -1172,10 +1231,6 @@ function EstimateRightSidebarBase({
   const renameTemplateDialogRef = useNativeSidebarDialog(closeRenameTemplateDialog);
   const deleteTemplateDialogRef = useNativeSidebarDialog(closeDeleteTemplateDialog);
   const deleteComponentDialogRef = useNativeSidebarDialog(closeDeleteComponentDialog);
-  const clearDeleteUndoTimer = useCallback(() => {
-    if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
-  }, []);
-
   const selectedTargetNode = useMemo(() => {
     if (!nodes?.length || !activeSelectedNodeId) return null;
     return resolveEstimateWorkspaceSelection({
@@ -1203,14 +1258,24 @@ function EstimateRightSidebarBase({
     editItemIdRef.current = null;
   }, [setForm, setFormError]);
 
-  const closeNewComponent = useCallback(() => {
-    if (isFormDirty(form) && !window.confirm("Discard component changes?")) return;
+  const discardComponentChanges = useCallback(() => {
+    setDiscardComponentChangesOpen(false);
     setShowNewComponent(false);
     resetComponentForm();
-  }, [form, resetComponentForm, setShowNewComponent]);
+  }, [resetComponentForm, setDiscardComponentChangesOpen, setShowNewComponent]);
+
+  const closeNewComponent = useCallback(() => {
+    if (isFormDirty(form)) {
+      setDiscardComponentChangesOpen(true);
+      return;
+    }
+    setShowNewComponent(false);
+    resetComponentForm();
+  }, [form, resetComponentForm, setDiscardComponentChangesOpen, setShowNewComponent]);
   const sidebarKeyboardStateRef = useRef<{
     showNewComponent: boolean;
     addComponentOpen: boolean;
+    discardComponentChangesOpen: boolean;
     deleteCandidate: EstimateRowItem | null;
     renameTemplateTarget: EstimateTemplate | null;
     deleteTemplateTarget: EstimateTemplate | null;
@@ -1222,6 +1287,7 @@ function EstimateRightSidebarBase({
     previewItemId: string | null;
     closeNewComponent: () => void;
     setSearchOpen: (value: SetStateAction<boolean>) => void;
+    setDiscardComponentChangesOpen: (value: SetStateAction<boolean>) => void;
     setViewModeMenuOpen: (value: SetStateAction<boolean>) => void;
     setBulkDeleteConfirmOpen: (value: SetStateAction<boolean>) => void;
     setDeleteCandidate: (value: SetStateAction<EstimateRowItem | null>) => void;
@@ -1234,6 +1300,7 @@ function EstimateRightSidebarBase({
   sidebarKeyboardStateRef.current = {
     showNewComponent,
     addComponentOpen,
+    discardComponentChangesOpen,
     deleteCandidate,
     renameTemplateTarget,
     deleteTemplateTarget,
@@ -1245,6 +1312,7 @@ function EstimateRightSidebarBase({
     previewItemId,
     closeNewComponent,
     setSearchOpen,
+    setDiscardComponentChangesOpen,
     setViewModeMenuOpen,
     setBulkDeleteConfirmOpen,
     setDeleteCandidate,
@@ -1254,12 +1322,11 @@ function EstimateRightSidebarBase({
     setPreviewProjectSourceKey,
     setPreviewItemId,
   };
-  const canLoadProjectSourcesFromActions = Boolean(projectId && estimateId && projectSources.length === 0);
+  const canLoadProjectSourcesFromActions = enableReusableProjectSources && Boolean(projectId && estimateId && effectiveProjectSources.length === 0);
+  const retryProjectSourcesLoadRef = useRef<(() => void) | null>(null);
   const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
     if (!canLoadProjectSourcesFromActions) return Promise.resolve();
     setProjectSourcesLoading(true);
-    setProjectSourcesLoadError(false);
-    setProjectSourcesUpdated(false);
     projectEstimateLoadedProjectIdsRef.current = new Set();
     setProjectEstimateLoadingProjectIds([]);
     setProjectOutlineLoadingEstimateIds([]);
@@ -1267,16 +1334,20 @@ function EstimateRightSidebarBase({
       .then((result) => {
         if (!isCancelled?.()) {
           setLoadedProjectSources(result.sources);
-          setProjectSourcesLoadError(false);
-          setProjectSourcesUpdated(true);
         }
       })
       .catch((error: unknown) => {
         console.error("[templates] project sources load failed", error);
         if (!isCancelled?.()) {
-          setProjectSourcesLoadError(true);
-          setProjectSourcesUpdated(false);
-          toast({ tone: "error", message: toUserSourceError("dataset") });
+          toast({
+            id: PROJECT_SOURCES_LOAD_TOAST_ID,
+            tone: "error",
+            message: toUserSourceError("dataset"),
+            action: {
+              label: "Retry",
+              onClick: () => retryProjectSourcesLoadRef.current?.(),
+            },
+          });
         }
       })
       .finally(() => {
@@ -1287,11 +1358,17 @@ function EstimateRightSidebarBase({
     setLoadedProjectSources,
     setProjectEstimateLoadingProjectIds,
     setProjectOutlineLoadingEstimateIds,
-    setProjectSourcesLoadError,
     setProjectSourcesLoading,
-    setProjectSourcesUpdated,
     toast,
   ]);
+  useEffect(() => {
+    retryProjectSourcesLoadRef.current = () => {
+      void loadProjectSources();
+    };
+    return () => {
+      retryProjectSourcesLoadRef.current = null;
+    };
+  }, [loadProjectSources]);
   const hasLoadedProjectSources = useMemo(
     () => loadedProjectSources.some((source) => source.kind !== "custom-template"),
     [loadedProjectSources],
@@ -1344,6 +1421,7 @@ function EstimateRightSidebarBase({
   });
 
   useEffect(() => {
+    if (!useStoredPreferences) return undefined;
     if (libraryPrefsHydratedRef.current) return undefined;
     // Stored values must be read synchronously: the prefs-persist effect below
     // runs in the same flush and would overwrite them with the defaults.
@@ -1362,14 +1440,14 @@ function EstimateRightSidebarBase({
       cancelled = true;
     };
     // Stored prefs hydrate exactly once, after the SSR markup is committed.
-  }, []);
+  }, [useStoredPreferences]);
 
   useEffect(() => {
     // Persisting before stored prefs hydrate would clobber them with the
     // defaults (Strict Mode runs this effect before the hydrate microtask).
-    if (!libraryPrefsHydratedRef.current) return;
+    if (!useStoredPreferences || !libraryPrefsHydratedRef.current) return;
     safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
-  }, [activeTab, componentViewMode]);
+  }, [activeTab, componentViewMode, useStoredPreferences]);
 
   useEffect(() => {
     if (
@@ -1384,6 +1462,7 @@ function EstimateRightSidebarBase({
     const nextItems = hydrateSidebarLibraryItems(initialLibraryItems);
     const nextSplitItems = splitSidebarComponentItems(nextItems);
     setLibraryItems(nextItems);
+    setLocalLibraryFolders(libraryFolders);
     setPreviewItemId((current) => current && nextItems.some((item) => item.id === current) ? current : null);
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
@@ -1407,6 +1486,7 @@ function EstimateRightSidebarBase({
     libraryFolders,
     setExpandedNodeIdsByViewMode,
     setLibraryItems,
+    setLocalLibraryFolders,
     setPreviewItemId,
     setProjectExpandedNodeIds,
     suppliers,
@@ -1422,6 +1502,7 @@ function EstimateRightSidebarBase({
         event.key === "/" &&
         !state.showNewComponent &&
         !state.addComponentOpen &&
+        !state.discardComponentChangesOpen &&
         !state.deleteCandidate &&
         !state.renameTemplateTarget &&
         !state.deleteTemplateTarget &&
@@ -1436,6 +1517,7 @@ function EstimateRightSidebarBase({
       if (event.key === "Escape") {
         if (state.viewModeMenuOpen) state.setViewModeMenuOpen(false);
         else if (state.bulkDeleteConfirmOpen) state.setBulkDeleteConfirmOpen(false);
+        else if (state.discardComponentChangesOpen) state.setDiscardComponentChangesOpen(false);
         else if (state.deleteCandidate) state.setDeleteCandidate(null);
         else if (state.renameTemplateTarget) state.setRenameTemplateTarget(null);
         else if (state.deleteTemplateTarget) state.setDeleteTemplateTarget(null);
@@ -1451,7 +1533,9 @@ function EstimateRightSidebarBase({
   }, []);
 
   const handleViewModePointerDown = useEffectEvent((event: PointerEvent) => {
-    if (!treeHeaderRef.current?.contains(event.target as Node)) setViewModeMenuOpen(false);
+    const target = event.target as Node;
+    if (treeHeaderRef.current?.contains(target) || libraryToolsRef.current?.contains(target)) return;
+    setViewModeMenuOpen(false);
   });
 
   useEffect(() => {
@@ -1467,9 +1551,7 @@ function EstimateRightSidebarBase({
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (cancelled) return;
-      setLoadedProjectSources(projectSources);
-      setProjectSourcesLoadError(false);
-      setProjectSourcesUpdated(false);
+      setLoadedProjectSources(effectiveProjectSources);
       projectEstimateLoadedProjectIdsRef.current = new Set();
       setProjectEstimateLoadingProjectIds([]);
     }, 0);
@@ -1478,11 +1560,9 @@ function EstimateRightSidebarBase({
       window.clearTimeout(timer);
     };
   }, [
-    projectSources,
+    effectiveProjectSources,
     setLoadedProjectSources,
     setProjectEstimateLoadingProjectIds,
-    setProjectSourcesLoadError,
-    setProjectSourcesUpdated,
   ]);
 
   useEffect(() => {
@@ -1506,7 +1586,6 @@ function EstimateRightSidebarBase({
     const resetTimer = window.setTimeout(() => {
       if (cancelled) return;
       setProjectSourceSearchResults([]);
-      setProjectSourceSearchLoading(false);
     }, 0);
     if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
       return () => {
@@ -1514,11 +1593,6 @@ function EstimateRightSidebarBase({
         window.clearTimeout(resetTimer);
       };
     }
-    const loadingTimer = window.setTimeout(() => {
-      if (cancelled) return;
-      setProjectSourceSearchResults([]);
-      setProjectSourceSearchLoading(true);
-    }, 0);
     const timer = window.setTimeout(() => {
       searchReusableProjectSources({ query: projectSourceSearchQuery })
         .then((result) => {
@@ -1527,21 +1601,16 @@ function EstimateRightSidebarBase({
         .catch((error: unknown) => {
           console.error("[templates] project source search failed", error);
           if (!cancelled) toast({ tone: "error", message: toUserSourceError("search") });
-        })
-        .finally(() => {
-          if (!cancelled) setProjectSourceSearchLoading(false);
         });
     }, 250);
     return () => {
       cancelled = true;
       window.clearTimeout(resetTimer);
-      window.clearTimeout(loadingTimer);
       window.clearTimeout(timer);
     };
   }, [
     canLoadProjectSourcesFromActions,
     projectSourceSearchQuery,
-    setProjectSourceSearchLoading,
     setProjectSourceSearchResults,
     toast,
   ]);
@@ -1557,16 +1626,13 @@ function EstimateRightSidebarBase({
   });
 
   useEffect(() => {
+    if (!useStoredPreferences) return undefined;
     const handler = (event: StorageEvent) => {
       handleLibraryStorage(event);
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
-  }, []);
-
-  useEffect(() => {
-    return clearDeleteUndoTimer;
-  }, [clearDeleteUndoTimer]);
+  }, [handleLibraryStorage, useStoredPreferences]);
 
   const favoriteIds = useMemo(
     () => filterMapBy(libraryItems, (item) => item.isFavorite === true, (item) => item.id),
@@ -1576,9 +1642,13 @@ function EstimateRightSidebarBase({
   const splitComponentItems = useMemo(() => splitSidebarComponentItems(libraryItems), [libraryItems]);
   const reusableLibraryItems = splitComponentItems.libraryItems;
   const projectComponentItems = splitComponentItems.projectItems;
+  const effectiveLibraryFolders = useMemo(
+    () => (pendingLibraryFolder ? [pendingLibraryFolder, ...localLibraryFolders] : localLibraryFolders),
+    [localLibraryFolders, pendingLibraryFolder],
+  );
   const reusableLibraryFolders = useMemo(
-    () => libraryFolders.filter((folder) => !isProjectComponentFolderRecord(folder)),
-    [libraryFolders],
+    () => effectiveLibraryFolders.filter((folder) => !isProjectComponentFolderRecord(folder)),
+    [effectiveLibraryFolders],
   );
   const isLibraryTab = activeTab === "components";
   const isProjectTab = activeTab === "project";
@@ -1596,17 +1666,17 @@ function EstimateRightSidebarBase({
 
   const treeNodes = useMemo(() => {
     if (isTemplatesTab) return [];
-    if (isProjectTab) return buildProjectComponentTree(projectComponentItems, { libraryFolders });
-    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands, libraryFolders, pruneEmptyFolders: true });
+    if (isProjectTab) return buildProjectComponentTree(projectComponentItems, { libraryFolders: effectiveLibraryFolders });
+    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands, libraryFolders: effectiveLibraryFolders, pruneEmptyFolders: true });
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
-  }, [brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, libraryFolders, projectComponentItems, recentIds, suppliers]);
+  }, [brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, effectiveLibraryFolders, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, projectComponentItems, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
   // Always browse ALL projects' sources (the all/current-project scope toggle
   // was removed); no per-project filtering.
-  const visibleProjectSources = loadedProjectSources;
+  const visibleProjectSources = enableReusableProjectSources ? loadedProjectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
   const visibleProjectSourceSearchResults = useMemo(
     () => (projectSourceSearchQuery ? projectSourceSearchResults : []),
     [projectSourceSearchQuery, projectSourceSearchResults],
@@ -1646,31 +1716,6 @@ function EstimateRightSidebarBase({
     () => findProjectSourceByKey(visibleTemplateProjectSources, previewProjectSourceKey),
     [previewProjectSourceKey, visibleTemplateProjectSources],
   );
-  let templatesProjectSourceLoadStatus = null;
-  if (canLoadProjectSourcesFromActions && projectSourcesLoading) {
-    templatesProjectSourceLoadStatus = (
-      <output className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-        Refreshing project sources...
-      </output>
-    );
-  } else if (canLoadProjectSourcesFromActions && projectSourcesLoadError && !hasLoadedProjectSources) {
-    templatesProjectSourceLoadStatus = (
-      <div className="mb-2 rounded-xs border border-dashed border-dangerSoft bg-dangerSoft/30 p-2 text-[10px] leading-4 text-danger" role="alert">
-        <p className="font-medium text-danger">Couldn&apos;t load project sources.</p>
-        <p className="mt-0.5 text-danger">Retry to refresh the project source list.</p>
-        <Button type="button" variant="secondary" size="sm" className="mt-2 h-6 min-h-6 text-[9px]" onClick={() => void loadProjectSources()}>
-          Retry project sources
-        </Button>
-      </div>
-    );
-  } else if (canLoadProjectSourcesFromActions && projectSourcesUpdated) {
-    templatesProjectSourceLoadStatus = (
-      <output className="mb-2 rounded-xs border border-dashed border-successSoft bg-successSoft/30 p-2 text-[10px] leading-4 text-success">
-        Project sources updated.
-      </output>
-    );
-  }
-
   const templatesProjectSourceEmptyState = useMemo(() => {
     if (projectSourcesLoading) {
       // U23: the first project-source load shows fixed-height skeleton rows in
@@ -1688,20 +1733,6 @@ function EstimateRightSidebarBase({
     // Warm refresh failures surface via toast, not an inline banner.
     return undefined;
   }, [projectSourcesLoading]);
-  // U23: expand-time loading no longer shows a layout-shifting banner; the
-  // tree renders in-place skeleton rows under the expanding node instead.
-  const templatesProjectSourceSearchStatus = useMemo(() => {
-    if (!projectSourceSearchQuery) return null;
-    if (projectSourceSearchLoading) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-          Searching project sources…
-        </div>
-      );
-    }
-    // U1b: search failures surface via toast, not an inline banner.
-    return null;
-  }, [projectSourceSearchLoading, projectSourceSearchQuery]);
   const handleTemplateSourceFilterChange = useCallback((nextFilter: TemplateSourceFilter) => {
     setTemplateSourceFilter(nextFilter);
     setBulkSelectedNodeIds(new Set());
@@ -1841,24 +1872,193 @@ function EstimateRightSidebarBase({
     [insertLibraryItems],
   );
 
-  // Quick top-level folder create (legacy sidebar prompt flow). The new folder is usable in the Add Component folder
-  // picker and on /workshop/library; the sidebar's taxonomy tree doesn't render
-  // folders yet, so it won't appear here until a Folders view is built.
-  const createFolder = useCallback(async () => {
-    if (createFolderPending) return;
-    const name = window.prompt("Folder name")?.trim();
-    if (!name) return;
+  const cancelInlineFolderEdit = useCallback(() => {
+    if (!editingFolderId) return;
+    const folderId = editingFolderId;
+    if (editingFolderMode === "create") {
+      setPendingLibraryFolder(null);
+      setExpandedNodeIdsByViewMode((current) => ({
+        ...current,
+        default: current.default.filter((id) => id !== folderId),
+      }));
+    }
+    setEditingFolderId(null);
+    setEditingFolderName("");
+    setEditingFolderMode(null);
+    folderEditCommitInFlightRef.current = false;
+  }, [
+    editingFolderId,
+    editingFolderMode,
+    setEditingFolderId,
+    setEditingFolderMode,
+    setEditingFolderName,
+    setExpandedNodeIdsByViewMode,
+    setPendingLibraryFolder,
+  ]);
+
+  const commitInlineFolderEdit = useCallback(async (nextName?: string) => {
+    if (!editingFolderId || !editingFolderMode || createFolderPending || folderEditCommitInFlightRef.current) return;
+    const folderId = editingFolderId;
+    const name = (nextName ?? editingFolderName).trim();
+    if (!name) {
+      cancelInlineFolderEdit();
+      return;
+    }
+
+    if (editingFolderMode === "rename") {
+      const currentFolder = localLibraryFolders.find((folder) => folder.id === folderId);
+      if (!currentFolder || isProjectComponentFolderRecord(currentFolder) || currentFolder.folder_kind !== "custom") {
+        cancelInlineFolderEdit();
+        return;
+      }
+      if (name === currentFolder.name) {
+        cancelInlineFolderEdit();
+        return;
+      }
+
+      folderEditCommitInFlightRef.current = true;
+      try {
+        const result = await renameLibraryFolder(folderId, name);
+        const confirmedFolder = toLibraryFolderRecord(result.folder);
+        setLocalLibraryFolders((folders) =>
+          folders.map((folder) => (folder.id === confirmedFolder.id ? confirmedFolder : folder)),
+        );
+        setEditingFolderId(null);
+        setEditingFolderName("");
+        setEditingFolderMode(null);
+        onLibraryDataChanged?.();
+        setLastActionMessage(`Folder "${confirmedFolder.name}" renamed.`);
+      } catch {
+        setEditingFolderId(null);
+        setEditingFolderName("");
+        setEditingFolderMode(null);
+        setLastActionMessage("Could not rename the folder. You may not have permission to manage library folders.");
+      } finally {
+        folderEditCommitInFlightRef.current = false;
+      }
+      return;
+    }
+
+    folderEditCommitInFlightRef.current = true;
     setCreateFolderPending(true);
     try {
-      await createLibraryFolder(null, name);
+      const result = await createLibraryFolder(null, name, { placement: "top" });
+      const confirmedFolder = toLibraryFolderRecord(result.folder);
+      setLocalLibraryFolders((folders) => [confirmedFolder, ...folders.filter((folder) => folder.id !== confirmedFolder.id)]);
+      setPendingLibraryFolder(null);
+      setExpandedNodeIdsByViewMode((current) => ({
+        ...current,
+        default: Array.from(new Set([...current.default.filter((id) => id !== folderId), confirmedFolder.id])),
+      }));
+      setEditingFolderId(null);
+      setEditingFolderName("");
+      setEditingFolderMode(null);
       onLibraryDataChanged?.();
-      setLastActionMessage(`Folder "${name}" created.`);
+      setLastActionMessage(`Folder "${confirmedFolder.name}" created.`);
     } catch {
+      setPendingLibraryFolder(null);
+      setExpandedNodeIdsByViewMode((current) => ({
+        ...current,
+        default: current.default.filter((id) => id !== folderId),
+      }));
+      setEditingFolderId(null);
+      setEditingFolderName("");
+      setEditingFolderMode(null);
       setLastActionMessage("Could not create the folder. You may not have permission to manage library folders.");
     } finally {
+      folderEditCommitInFlightRef.current = false;
       setCreateFolderPending(false);
     }
-  }, [createFolderPending, onLibraryDataChanged, setCreateFolderPending, setLastActionMessage]);
+  }, [
+    cancelInlineFolderEdit,
+    createFolderPending,
+    editingFolderId,
+    editingFolderMode,
+    editingFolderName,
+    localLibraryFolders,
+    onLibraryDataChanged,
+    setCreateFolderPending,
+    setEditingFolderId,
+    setEditingFolderMode,
+    setEditingFolderName,
+    setExpandedNodeIdsByViewMode,
+    setLastActionMessage,
+    setLocalLibraryFolders,
+    setPendingLibraryFolder,
+  ]);
+
+  const createFolder = useCallback(() => {
+    if (createFolderPending || editingFolderId) return;
+    const tempId = `pending-library-folder-${Date.now().toString(36)}`;
+    const rootFolders = localLibraryFolders.filter((folder) => !folder.parent_id && !isProjectComponentFolderRecord(folder));
+    const nextSortOrder = rootFolders.length ? Math.min(...rootFolders.map((folder) => folder.sort_order ?? 0)) - 10 : 10;
+    const tempFolder: LibraryFolderRecord = {
+      id: tempId,
+      workspace_id: rootFolders[0]?.workspace_id ?? "pending",
+      parent_id: null,
+      name: "New folder",
+      sort_order: nextSortOrder,
+      source_category_node_id: null,
+      folder_kind: "custom",
+    };
+
+    setActiveTab("components");
+    setComponentViewMode("default");
+    setViewModeMenuOpen(false);
+    setSearchQuery("");
+    setSearchOpen(false);
+    setPendingLibraryFolder(tempFolder);
+    setExpandedNodeIdsByViewMode((current) => ({
+      ...current,
+      default: Array.from(new Set([...current.default, tempId])),
+    }));
+    setEditingFolderId(tempId);
+    setEditingFolderName(tempFolder.name);
+    setEditingFolderMode("create");
+  }, [
+    createFolderPending,
+    editingFolderId,
+    localLibraryFolders,
+    setActiveTab,
+    setComponentViewMode,
+    setEditingFolderId,
+    setEditingFolderMode,
+    setEditingFolderName,
+    setExpandedNodeIdsByViewMode,
+    setPendingLibraryFolder,
+    setSearchOpen,
+    setSearchQuery,
+    setViewModeMenuOpen,
+  ]);
+
+  const renameFolder = useCallback((folderId: string) => {
+    if (createFolderPending || editingFolderId) return;
+    const folder = localLibraryFolders.find((entry) => entry.id === folderId);
+    if (!folder || isProjectComponentFolderRecord(folder) || folder.folder_kind !== "custom") return;
+
+    setActiveTab("components");
+    setComponentViewMode("default");
+    setViewModeMenuOpen(false);
+    setSearchQuery("");
+    setSearchOpen(false);
+    setPendingLibraryFolder(null);
+    setEditingFolderId(folder.id);
+    setEditingFolderName(folder.name);
+    setEditingFolderMode("rename");
+  }, [
+    createFolderPending,
+    editingFolderId,
+    localLibraryFolders,
+    setActiveTab,
+    setComponentViewMode,
+    setEditingFolderId,
+    setEditingFolderMode,
+    setEditingFolderName,
+    setPendingLibraryFolder,
+    setSearchOpen,
+    setSearchQuery,
+    setViewModeMenuOpen,
+  ]);
 
   const addTemplate = useCallback(
     (template: EstimateTemplate) => {
@@ -1902,23 +2102,48 @@ function EstimateRightSidebarBase({
 
   const addProjectSource = useCallback(
     async (source: ProjectSourceInsertTarget) => {
+      if (!enableReusableProjectSources) return false;
       const sourceName = getProjectReusableSourceDisplayName(source);
       if (!canInsertTemplate) {
         setLastActionMessage("Select an Area before adding project sources.");
         return false;
       }
 
-      setLastActionMessage(`Adding ${sourceName}${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}...`);
-      const didInsert = onInsertProjectSource ? (await onInsertProjectSource(source)) !== false : false;
+      const targetSuffix = effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : "";
+      toast({
+        id: PROJECT_SOURCE_INSERT_TOAST_ID,
+        tone: "loading",
+        message: `Adding ${sourceName}${targetSuffix}...`,
+      });
+      let didInsert = false;
+      try {
+        didInsert = onInsertProjectSource ? (await onInsertProjectSource(source)) !== false : false;
+      } catch (error) {
+        console.error("[templates] project source insert failed", error);
+        toast({
+          id: PROJECT_SOURCE_INSERT_TOAST_ID,
+          tone: "error",
+          message: `${sourceName} was not inserted. Select an Area and try again.`,
+        });
+        return false;
+      }
       if (!didInsert) {
-        setLastActionMessage(`${sourceName} was not inserted. Select an Area and try again.`);
+        toast({
+          id: PROJECT_SOURCE_INSERT_TOAST_ID,
+          tone: "error",
+          message: `${sourceName} was not inserted. Select an Area and try again.`,
+        });
         return false;
       }
 
-      setLastActionMessage(`${sourceName} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      toast({
+        id: PROJECT_SOURCE_INSERT_TOAST_ID,
+        tone: "success",
+        message: `${sourceName} added${targetSuffix}.`,
+      });
       return true;
     },
-    [canInsertTemplate, effectiveTemplateTargetName, onInsertProjectSource, setLastActionMessage],
+    [canInsertTemplate, effectiveTemplateTargetName, enableReusableProjectSources, onInsertProjectSource, setLastActionMessage, toast],
   );
 
   const duplicateItem = useCallback((item: EstimateRowItem) => {
@@ -2140,9 +2365,10 @@ function EstimateRightSidebarBase({
   const startEditComponent = useCallback((item: EstimateRowItem) => {
     setForm(componentToForm(item));
     setFormError("");
+    setDiscardComponentChangesOpen(false);
     editItemIdRef.current = item.id;
     setShowNewComponent(true);
-  }, [setForm, setFormError, setShowNewComponent]);
+  }, [setDiscardComponentChangesOpen, setForm, setFormError, setShowNewComponent]);
 
   const saveNewComponent = useCallback(
     (addNow = false) => {
@@ -2162,6 +2388,7 @@ function EstimateRightSidebarBase({
           }
         : result.component;
       setLibraryItems((items) => (editingItemId ? items.map((item) => (item.id === editingItemId ? nextComponent : item)) : [nextComponent, ...items]));
+      setDiscardComponentChangesOpen(false);
       setShowNewComponent(false);
       resetComponentForm();
       setPreviewItemId(nextComponent.id);
@@ -2176,6 +2403,7 @@ function EstimateRightSidebarBase({
       libraryItems,
       onLibraryDataChanged,
       resetComponentForm,
+      setDiscardComponentChangesOpen,
       setFormError,
       setLastActionMessage,
       setLibraryItems,
@@ -2185,37 +2413,40 @@ function EstimateRightSidebarBase({
     ],
   );
 
+  const restoreDeletedLibraryItems = useCallback((itemsToRestore: EstimateRowItem[]) => {
+    if (!itemsToRestore.length) return;
+    setLibraryItems((items) => {
+      const currentIds = new Set(items.map((item) => item.id));
+      return [...itemsToRestore.filter((item) => !currentIds.has(item.id)), ...items];
+    });
+    setLastActionMessage(itemsToRestore.length === 1 ? `${getComponentName(itemsToRestore[0])} restored to this sidebar view.` : `${itemsToRestore.length} components restored to this sidebar view.`);
+    onLibraryDataChanged?.();
+  }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems]);
+
+  const showDeleteUndoToast = useCallback((itemsToRestore: EstimateRowItem[]) => {
+    if (!itemsToRestore.length) return;
+    toast({
+      id: "component-library-delete-undo",
+      tone: "neutral",
+      durationMs: 5000,
+      message: itemsToRestore.length === 1 ? `${getComponentName(itemsToRestore[0])} removed from this sidebar view.` : `${itemsToRestore.length} components removed from this sidebar view.`,
+      action: {
+        label: "Undo",
+        onClick: () => restoreDeletedLibraryItems(itemsToRestore),
+      },
+    });
+  }, [restoreDeletedLibraryItems, toast]);
+
   const deleteLibraryItem = useCallback((item: EstimateRowItem) => {
     setLibraryItems((items) => items.filter((entry) => entry.id !== item.id));
     setDeleteCandidate(null);
-    setDeletedItems([item]);
-    setLastActionMessage(`${getComponentName(item)} removed from this sidebar view. Undo is available.`);
-    clearDeleteUndoTimer();
-    deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
+    showDeleteUndoToast([item]);
     onLibraryDataChanged?.();
   }, [
-    clearDeleteUndoTimer,
     onLibraryDataChanged,
     setDeleteCandidate,
-    setDeletedItems,
-    setLastActionMessage,
     setLibraryItems,
-  ]);
-
-  const undoDelete = useCallback(() => {
-    if (!deletedItems.length) return;
-    setLibraryItems((items) => [...deletedItems, ...items]);
-    setLastActionMessage(deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} restored to this sidebar view.` : `${deletedItems.length} components restored to this sidebar view.`);
-    setDeletedItems([]);
-    clearDeleteUndoTimer();
-    onLibraryDataChanged?.();
-  }, [
-    clearDeleteUndoTimer,
-    deletedItems,
-    onLibraryDataChanged,
-    setDeletedItems,
-    setLastActionMessage,
-    setLibraryItems,
+    showDeleteUndoToast,
   ]);
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
@@ -2237,6 +2468,10 @@ function EstimateRightSidebarBase({
     setTemplateSourceFilter,
     setViewModeMenuOpen,
   ]);
+
+  useEffect(() => {
+    if (!enableReusableProjectSources && activeTab === "project") setActiveTab("components");
+  }, [activeTab, enableReusableProjectSources, setActiveTab]);
 
   const handleComponentViewModeChange = useCallback((mode: ComponentViewMode) => {
     setComponentViewMode(mode);
@@ -2338,27 +2573,20 @@ function EstimateRightSidebarBase({
     }
     const deletedItemIds = new Set(bulkSelectedItems.map((item) => item.id));
     setLibraryItems((items) => items.filter((entry) => !deletedItemIds.has(entry.id)));
-    setDeletedItems(bulkSelectedItems);
     setBulkDeleteConfirmOpen(false);
     clearBulkSelection();
     setPreviewItemId((current) => (current && deletedItemIds.has(current) ? null : current));
-    setLastActionMessage(
-      `${bulkSelectedItems.length} ${bulkSelectedItems.length === 1 ? "component" : "components"} removed from this sidebar view. Undo is available.`,
-    );
-    clearDeleteUndoTimer();
-    deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
+    showDeleteUndoToast(bulkSelectedItems);
     onLibraryDataChanged?.();
   }, [
     bulkSelectedItems,
     clearBulkSelection,
-    clearDeleteUndoTimer,
     isLibraryTab,
     onLibraryDataChanged,
     setBulkDeleteConfirmOpen,
-    setDeletedItems,
-    setLastActionMessage,
     setLibraryItems,
     setPreviewItemId,
+    showDeleteUndoToast,
   ]);
 
   const handleExpandAll = useCallback(() => {
@@ -2619,10 +2847,19 @@ function EstimateRightSidebarBase({
   const activeToolsLabel = isProjectTab ? "Project tools" : isTemplatesTab ? "Template tools" : "Library tools";
   const activeExpandedNodeIds = isProjectTab ? projectExpandedNodeIds : expandedNodeIdsByViewMode[componentViewMode];
   const activeLibraryTreeAriaLabel = isProjectTab ? "Project sources" : "Library sources";
-  const activeSourceScopeLabel = isProjectTab ? "Project" : "Library";
+  const activeSourceScopeLabel = projectId === "hero-sanitized-project" ? "" : isProjectTab ? "Project" : "Library";
+  const visibleLibraryTreeTabs = enableReusableProjectSources ? LIBRARY_TREE_TABS : PUBLIC_LIBRARY_TREE_TABS;
 
   return (
-    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={560} minWidth={360} maxWidth={560}>
+    <ResizableSidePanel
+      side="right"
+      ariaLabel="Library"
+      storageKey="estimate_component_library_width_v2"
+      defaultWidth={560}
+      minWidth={360}
+      maxWidth={560}
+      persistWidth={usePersistentPanelWidth}
+    >
       {/* group/tree on the panel keeps the tree's drag/select rail space open
           while the pointer or focus is anywhere in this sidebar, matching the
           estimate tree's behavior. */}
@@ -2645,7 +2882,7 @@ function EstimateRightSidebarBase({
           searchInputRef={searchRef}
           showDefaultActions={false}
           addActions={[]}
-          tabs={LIBRARY_TREE_TABS}
+          tabs={visibleLibraryTreeTabs}
           activeTab={activeTab}
           tabVariant="tabs"
           tabsAriaLabel="Estimate source sections"
@@ -2656,7 +2893,7 @@ function EstimateRightSidebarBase({
 
         {/* Under-tabs toolbar row: Filter · View-by · Add (D7).
             Wrapped in `relative` so the View-by popover anchors to this row. */}
-        <div className="relative">
+        <div ref={libraryToolsRef} className="relative">
           <div
             role="toolbar"
             aria-label={activeToolsLabel}
@@ -2674,6 +2911,7 @@ function EstimateRightSidebarBase({
             {isLibraryTab ? (
               <ToolbarIconButton
                 label="View by"
+                visibleLabel="View by"
                 onClick={() => setViewModeMenuOpen((current) => !current)}
                 aria-expanded={viewModeMenuOpen}
               >
@@ -2722,8 +2960,6 @@ function EstimateRightSidebarBase({
           <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
             {isTemplatesTab ? (
               <>
-                {templatesProjectSourceSearchStatus}
-                {templatesProjectSourceLoadStatus}
                 {templatesSourceFilterControls}
                 <TemplatesTree
                   templates={visibleTemplateList}
@@ -2732,6 +2968,8 @@ function EstimateRightSidebarBase({
                   searchQuery={deferredSearchQuery}
                   expandedNodeIds={templatesExpandedIds}
                   onToggle={handleTemplatesToggle}
+                  templatesLoading={libraryDataLoading}
+                  projectSourcesLoading={projectSourcesLoading}
                   loadingProjectIds={skeletonProjectIds}
                   loadingEstimateIds={skeletonEstimateIds}
                   onPrefetchNode={handleTemplatesPrefetch}
@@ -2779,10 +3017,17 @@ function EstimateRightSidebarBase({
                 onItemToggleFavorite={isLibraryTab ? toggleFavorite : undefined}
                 onItemDelete={isLibraryTab ? setDeleteCandidate : undefined}
                 onCreateComponent={isLibraryTab ? startNewComponent : undefined}
+                onFolderRename={isLibraryTab && componentViewMode === "default" ? renameFolder : undefined}
                 addDisabled={!canInsert}
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
                 showThumbnails
+                showSourceTrustChips={showSourceTrustChips}
+                editingNodeId={editingFolderId}
+                editingNodeValue={editingFolderName}
+                onEditingNodeValueChange={setEditingFolderName}
+                onEditingNodeCommit={commitInlineFolderEdit}
+                onEditingNodeCancel={cancelInlineFolderEdit}
                 treeAriaLabel={activeLibraryTreeAriaLabel}
                 sourceScopeLabel={activeSourceScopeLabel}
                 selectable
@@ -2790,6 +3035,8 @@ function EstimateRightSidebarBase({
                 onCheckToggle={handleBulkCheckToggle}
                 onReorder={isLibraryTab ? handleLibraryReorder : undefined}
                 reorderDisabled={searchQuery.trim().length > 0}
+                loading={libraryDataLoading}
+                loadingAriaLabel={isProjectTab ? "Loading Project tree" : "Loading Library tree"}
               />
             )}
           </div>
@@ -2967,25 +3214,30 @@ function EstimateRightSidebarBase({
           />
         </Modal>
 
-        {deletedItems.length ? (
-          <div className="absolute right-2 bottom-2 z-30 max-w-72 border border-hairline bg-white p-2 shadow-xl">
-            <p className="text-[9px] font-medium text-ink">
-              {deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} removed from this sidebar view.` : `${deletedItems.length} components removed from this sidebar view.`}
-            </p>
-            <Button type="button" variant="secondary" size="sm" className="mt-1 h-6 min-h-6 text-[9px]" onClick={undoDelete}>
-              Undo
-            </Button>
-          </div>
-        ) : null}
-
-        {lastActionMessage ? (
-          <div
-            aria-live="polite"
-            aria-atomic="true"
-            className="absolute bottom-2 left-2 z-30 max-w-80 rounded-xs border border-hairline bg-white px-2 py-1.5 text-[9px] font-medium leading-4 text-ink shadow-lg"
+        {discardComponentChangesOpen ? (
+          <Modal
+            open={discardComponentChangesOpen}
+            title="Discard component changes?"
+            description="This edit has unsaved changes."
+            tone="destructive"
+            closeLabel="Keep editing component"
+            className="max-w-sm"
+            onOpenChange={setDiscardComponentChangesOpen}
           >
-            {lastActionMessage}
-          </div>
+            <div className="grid gap-3">
+              <p className="text-[10px] leading-4 text-secondary">
+                Discard the unsaved component edits and close the form?
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => setDiscardComponentChangesOpen(false)}>
+                  Keep editing
+                </Button>
+                <Button type="button" variant="danger" size="sm" onClick={discardComponentChanges}>
+                  Discard changes
+                </Button>
+              </div>
+            </div>
+          </Modal>
         ) : null}
 
         {/* Bulk delete confirmation */}

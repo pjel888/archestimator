@@ -97,7 +97,7 @@ describe("component library lazy load (U4)", () => {
     expect(pageSource).not.toContain("component-library-repository");
   });
 
-  it("shows a sidebar skeleton, loads the library lazily, and reuses the cache on remount", async () => {
+  it("shows sidebar tabs with tree skeletons, loads the library lazily, and reuses the cache on remount", async () => {
     let resolveLoad: (dataset: typeof sampleDataset) => void = () => {};
     loadProjectLibraryMock.mockImplementation(
       () => new Promise((resolve) => {
@@ -108,7 +108,10 @@ describe("component library lazy load (U4)", () => {
     const queryClient = makeQueryClient();
     const view = renderSheet(queryClient);
 
-    expect(await screen.findByRole("status", { name: "Loading component library" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Library" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Templates" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading Library tree" })).toBeInTheDocument();
     expect(loadProjectLibraryMock).toHaveBeenCalledTimes(1);
     expect(loadProjectLibraryMock).toHaveBeenCalledWith("lazy-project");
     expect(loadLibraryMock).not.toHaveBeenCalled();
@@ -117,7 +120,7 @@ describe("component library lazy load (U4)", () => {
       resolveLoad(sampleDataset);
     });
     await waitFor(() => {
-      expect(screen.queryByRole("status", { name: "Loading component library" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("status", { name: "Loading Library tree" })).not.toBeInTheDocument();
     });
     expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Project" })).toBeInTheDocument();

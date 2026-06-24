@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 import Image from "next/image";
+import { flushSync } from "react-dom";
 import {
   CaretDown,
   CaretRight,
@@ -39,12 +40,14 @@ function createFolderActionGroups({
   onSelect,
   onToggle,
   onCreateComponent,
+  onRename,
 }: {
   hasChildren: boolean;
   expanded: boolean;
   onSelect: () => void;
   onToggle: () => void;
   onCreateComponent?: () => void;
+  onRename?: () => void;
 }): ActionMenuGroup[] {
   return [
     ...(onCreateComponent
@@ -66,6 +69,16 @@ function createFolderActionGroups({
       id: "folder-actions",
       items: [
         { id: "select", label: "Select", icon: menuIcon(Eye), onSelect },
+        ...(onRename
+          ? [
+              {
+                id: "rename",
+                label: "Rename",
+                icon: menuIcon(PencilSimple),
+                onSelect: onRename,
+              },
+            ]
+          : []),
         ...(hasChildren
           ? [
               {
@@ -153,6 +166,7 @@ function LibraryItemRowContent({
   addLabel,
   showAddAction,
   showThumbnail,
+  showSourceTrustChips,
   sourceScopeLabel = "Library",
   onAdd,
 }: {
@@ -161,12 +175,16 @@ function LibraryItemRowContent({
   addLabel?: string;
   showAddAction: boolean;
   showThumbnail: boolean;
+  showSourceTrustChips: boolean;
   sourceScopeLabel?: string;
   onAdd: () => void;
 }) {
   const name = getComponentName(item);
   const price = getComponentPrice(item);
-  const trustChips = getComponentSourceTrustChips(item);
+  const trustChips = showSourceTrustChips ? getComponentSourceTrustChips(item) : [];
+  const sourceScope = sourceScopeLabel.trim();
+  const supplierLabel = item.supplier || "No supplier";
+  const sourceLabel = sourceScope ? `${sourceScope} · ${supplierLabel}` : supplierLabel;
   const resolvedAddLabel = addDisabled
     ? `Select an area before adding ${name}`
     : addLabel
@@ -180,15 +198,15 @@ function LibraryItemRowContent({
         <span data-component-library-tree-label className="truncate text-[10px] font-medium leading-4 text-ink">
           {name}
         </span>
-        <span className="truncate text-[9px] leading-3 text-tertiary">
-          {sourceScopeLabel} · {item.supplier || "No supplier"}
-        </span>
-        <SourceTrustChips
-          chips={trustChips}
-          ariaLabel={`${name} source trust`}
-          className="mt-0.5"
-          maxChips={3}
-        />
+        <span className="truncate text-[9px] leading-3 text-tertiary">{sourceLabel}</span>
+        {showSourceTrustChips ? (
+          <SourceTrustChips
+            chips={trustChips}
+            ariaLabel={`${name} source trust`}
+            className="mt-0.5"
+            maxChips={3}
+          />
+        ) : null}
       </span>
       <span className="flex shrink-0 flex-col items-end">
         <span className="text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(price)}</span>
@@ -321,6 +339,31 @@ function getLibraryNode(node: UiTreeNode): LibraryTreeNode | undefined {
   return node.data?.libraryNode as LibraryTreeNode | undefined;
 }
 
+function LibraryTreeSkeleton({ ariaLabel }: { ariaLabel: string }) {
+  const rows = [
+    { indent: 0, width: "62%" },
+    { indent: 16, width: "74%" },
+    { indent: 16, width: "48%" },
+    { indent: 0, width: "54%" },
+    { indent: 16, width: "68%" },
+    { indent: 32, width: "42%" },
+    { indent: 0, width: "58%" },
+    { indent: 16, width: "52%" },
+  ];
+
+  return (
+    <output aria-label={ariaLabel} className="block space-y-px py-0.5">
+      {rows.map((row, index) => (
+        <div key={index} className="flex min-h-7 items-center px-1" aria-hidden="true">
+          <span className="mr-0.5 size-3.5 shrink-0 rounded-xs bg-surfaceMuted" />
+          <span className="mr-1.5 size-3 shrink-0 rounded-xs bg-surfaceMuted" style={{ marginLeft: row.indent }} />
+          <span className="h-2.5 animate-pulse rounded-xs bg-surfaceMuted" style={{ width: row.width }} />
+        </div>
+      ))}
+    </output>
+  );
+}
+
 export function LibraryTree({
   nodes,
   selectedNodeId,
@@ -335,12 +378,21 @@ export function LibraryTree({
   onItemToggleFavorite,
   onItemDelete,
   onCreateComponent,
+  onFolderRename,
   addDisabled,
   addLabel,
   showItemAddAction,
   onItemDragStart,
   showThumbnails = false,
+  showSourceTrustChips = true,
+  editingNodeId,
+  editingNodeValue = "",
+  onEditingNodeValueChange,
+  onEditingNodeCommit,
+  onEditingNodeCancel,
   treeAriaLabel = "Library components",
+  loading = false,
+  loadingAriaLabel,
   sourceScopeLabel = "Library",
   selectable = false,
   checkedIds,
@@ -350,6 +402,7 @@ export function LibraryTree({
 }: LibraryTreeProps) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [suppressNextContextMenuCloseAutoFocus, setSuppressNextContextMenuCloseAutoFocus] = useState(false);
 
   const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
   const uiNodes = useMemo(() => toUiNodes(nodes, reorderEnabled), [nodes, reorderEnabled]);
@@ -422,6 +475,14 @@ export function LibraryTree({
     setContextMenuNodeId(nodeId);
   }, []);
 
+  const startFolderRenameFromContextMenu = useCallback((nodeId: string) => {
+    if (!onFolderRename) return;
+    flushSync(() => setSuppressNextContextMenuCloseAutoFocus(true));
+    window.setTimeout(() => {
+      onFolderRename(nodeId);
+    }, 0);
+  }, [onFolderRename]);
+
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     const contextNode = contextMenuNodeId ? nodeById.get(contextMenuNodeId) : null;
     if (!contextNode) return [];
@@ -445,6 +506,7 @@ export function LibraryTree({
       onSelect: () => (onSelect ?? onToggle)(contextNode.id),
       onToggle: () => onToggle(contextNode.id),
       onCreateComponent,
+      onRename: onFolderRename ? () => startFolderRenameFromContextMenu(contextNode.id) : undefined,
     });
   }, [
     addDisabled,
@@ -461,12 +523,41 @@ export function LibraryTree({
     onItemPreview,
     onItemToggleFavorite,
     onSelect,
+    onFolderRename,
+    startFolderRenameFromContextMenu,
     onToggle,
   ]);
 
   const renderLibraryRowLabel = useCallback(
     (treeNode: UiTreeNode) => {
       const item = getLibraryNode(treeNode)?.item;
+      if (!item && treeNode.id === editingNodeId) {
+        return (
+          <input
+            aria-label="Folder name"
+            value={editingNodeValue}
+            autoFocus
+            onFocus={(event) => event.currentTarget.select()}
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onChange={(event) => onEditingNodeValueChange?.(event.currentTarget.value)}
+            onBlur={(event) => onEditingNodeCommit?.(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onEditingNodeCommit?.(event.currentTarget.value);
+                return;
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                onEditingNodeCancel?.();
+              }
+            }}
+            className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none focus:border-ink focus:ring-1 focus:ring-ink/20"
+          />
+        );
+      }
       if (!item) {
         return <span className="min-w-0 flex-1 truncate">{treeNode.label}</span>;
       }
@@ -477,13 +568,31 @@ export function LibraryTree({
           addLabel={addLabel}
           showAddAction={canShowAddAction}
           showThumbnail={showThumbnails}
+          showSourceTrustChips={showSourceTrustChips}
           sourceScopeLabel={sourceScopeLabel}
           onAdd={() => onItemAdd?.(item)}
         />
       );
     },
-    [addDisabled, addLabel, canShowAddAction, onItemAdd, showThumbnails, sourceScopeLabel],
+    [
+      addDisabled,
+      addLabel,
+      canShowAddAction,
+      editingNodeId,
+      editingNodeValue,
+      onEditingNodeCancel,
+      onEditingNodeCommit,
+      onEditingNodeValueChange,
+      onItemAdd,
+      showSourceTrustChips,
+      showThumbnails,
+      sourceScopeLabel,
+    ],
   );
+
+  if (loading) {
+    return <LibraryTreeSkeleton ariaLabel={loadingAriaLabel ?? `Loading ${treeAriaLabel}`} />;
+  }
 
   return (
     <ContextMenu onOpenChange={setContextMenuOpen}>
@@ -525,7 +634,15 @@ export function LibraryTree({
           />
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent data-library-tree-context-menu="true" alignOffset={4}>
+      <ContextMenuContent
+        data-library-tree-context-menu="true"
+        alignOffset={4}
+        onCloseAutoFocus={(event) => {
+          if (!suppressNextContextMenuCloseAutoFocus) return;
+          event.preventDefault();
+          setSuppressNextContextMenuCloseAutoFocus(false);
+        }}
+      >
         <ContextActionMenuContent groups={contextMenuGroups} />
       </ContextMenuContent>
     </ContextMenu>

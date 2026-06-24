@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
@@ -11,6 +12,8 @@ import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxon
 import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const templateActionMocks = vi.hoisted(() => ({
+  createLibraryFolder: vi.fn(),
+  renameLibraryFolder: vi.fn(),
   createEstimateTemplate: vi.fn(),
   createEstimateTemplateFromEstimateTab: vi.fn(),
   createEstimateTemplateFromEstimateNode: vi.fn(),
@@ -25,8 +28,20 @@ const reusableSourceActionMocks = vi.hoisted(() => ({
   searchReusableProjectSources: vi.fn(),
 }));
 
+const toastMocks = vi.hoisted(() => ({
+  toast: vi.fn(),
+  dismissToast: vi.fn(),
+  clearToasts: vi.fn(),
+}));
+
+vi.mock("@/components/ui/toast", () => ({
+  useToast: () => toastMocks,
+}));
+
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
+  createLibraryFolder: templateActionMocks.createLibraryFolder,
+  renameLibraryFolder: templateActionMocks.renameLibraryFolder,
   createEstimateTemplate: templateActionMocks.createEstimateTemplate,
   createEstimateTemplateFromEstimateTab: templateActionMocks.createEstimateTemplateFromEstimateTab,
   createEstimateTemplateFromEstimateNode: templateActionMocks.createEstimateTemplateFromEstimateNode,
@@ -140,6 +155,19 @@ function renderSidebar(props: ComponentProps<typeof EstimateRightSidebar> = {}) 
   return render(<EstimateRightSidebar initialLibraryItems={sidebarSeedItems} {...props} />);
 }
 
+type SidebarToastCall = {
+  message: string;
+  tone?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+};
+
+function findToastCall(message: string) {
+  return toastMocks.toast.mock.calls.map(([input]) => input as SidebarToastCall).find((input) => input.message === message);
+}
+
 function openComponentViewMenu() {
   fireEvent.click(screen.getByRole("button", { name: "View by" }));
   return screen.getByRole("menu", { name: "Component view mode" });
@@ -176,6 +204,8 @@ describe("component library UI", () => {
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation((handle) => window.clearTimeout(handle));
     window.localStorage.clear();
     useEstimateWorkshopDragState.setState({ activeDrag: null });
+    templateActionMocks.createLibraryFolder.mockReset();
+    templateActionMocks.renameLibraryFolder.mockReset();
     templateActionMocks.createEstimateTemplate.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
@@ -185,6 +215,9 @@ describe("component library UI", () => {
     reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
     reusableSourceActionMocks.searchReusableProjectSources.mockReset();
+    toastMocks.toast.mockReset();
+    toastMocks.dismissToast.mockReset();
+    toastMocks.clearToasts.mockReset();
   });
 
   afterEach(() => {
@@ -314,10 +347,18 @@ describe("component library UI", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete selected" }));
 
     expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat" })).not.toBeInTheDocument();
-    expect(screen.getByText("HEMLINGBY Loveseat removed from this sidebar view.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    const undoToast = findToastCall("HEMLINGBY Loveseat removed from this sidebar view.");
+    expect(undoToast).toEqual(expect.objectContaining({
+      tone: "neutral",
+      action: expect.objectContaining({ label: "Undo", onClick: expect.any(Function) }),
+    }));
+    expect(screen.queryByText("HEMLINGBY Loveseat removed from this sidebar view.")).not.toBeInTheDocument();
+
+    act(() => undoToast?.action?.onClick());
+
     expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
-    expect(screen.getByText("HEMLINGBY Loveseat restored to this sidebar view.")).toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: "HEMLINGBY Loveseat restored to this sidebar view." });
+    expect(screen.queryByText("HEMLINGBY Loveseat restored to this sidebar view.")).not.toBeInTheDocument();
   });
 
   it("shows left-aligned icon-only tools with tooltips and tree controls", () => {
@@ -360,7 +401,9 @@ describe("component library UI", () => {
     // After D1 wiring the placeholder is replaced by ComponentFacetFilterPopover,
     // whose trigger aria-label is "Filter components" (inactive state).
     expect(within(toolsRow).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
-    expect(within(toolsRow).getByRole("button", { name: "View by" })).toBeInTheDocument();
+    const viewByButton = within(toolsRow).getByRole("button", { name: "View by" });
+    expect(viewByButton).toBeInTheDocument();
+    expect(within(viewByButton).getByText("View by")).toBeInTheDocument();
     const addFolderButton = within(toolsRow).getByRole("button", { name: "Add folder" });
     const addComponentButton = within(toolsRow).getByRole("button", { name: "Add Component" });
     expect(addFolderButton).toBeInTheDocument();
@@ -391,6 +434,233 @@ describe("component library UI", () => {
     expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" })).toHaveAttribute("aria-checked", "false");
     expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("keeps the Library view-by menu open for real pointer interactions", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+
+    await user.click(screen.getByRole("button", { name: "View by" }));
+
+    const viewMode = await screen.findByRole("menu", { name: "Component view mode" });
+    fireEvent.pointerDown(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
+
+    expect(screen.getByRole("menu", { name: "Component view mode" })).toBeInTheDocument();
+  });
+
+  it("adds a library folder inline in the sidebar tree instead of opening a browser prompt", async () => {
+    templateActionMocks.createLibraryFolder.mockResolvedValueOnce({
+      folder: {
+        id: "folder-custom-new",
+        workspace_id: "workspace-1",
+        parent_id: null,
+        name: "Lighting",
+        sort_order: 0,
+        source_category_node_id: null,
+        folder_kind: "custom",
+      },
+    });
+    const promptSpy = vi.spyOn(window, "prompt");
+
+    renderSidebar({
+      libraryFolders: [
+        {
+          id: sidebarCustomFolderId,
+          workspace_id: "workspace-1",
+          parent_id: null,
+          name: "Furniture",
+          sort_order: 10,
+          source_category_node_id: null,
+          folder_kind: "custom",
+        },
+      ],
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+
+    expect(promptSpy).not.toHaveBeenCalled();
+    const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
+    expect(folderNameInput).toHaveValue("New folder");
+    expect(screen.getByRole("treeitem", { name: "New folder" })).toBeInTheDocument();
+
+    fireEvent.change(folderNameInput, { target: { value: "Lighting" } });
+    fireEvent.keyDown(folderNameInput, { key: "Enter" });
+
+    await waitFor(() => expect(templateActionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Lighting", { placement: "top" }));
+    expect(await screen.findByRole("treeitem", { name: "Lighting" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: 'Folder "Lighting" created.' });
+  });
+
+  it("renames a library folder inline from the folder context menu", async () => {
+    const user = userEvent.setup();
+    const furnitureFolder = {
+      id: sidebarCustomFolderId,
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Furniture",
+      sort_order: 10,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    templateActionMocks.renameLibraryFolder.mockResolvedValueOnce({
+      folder: {
+        ...furnitureFolder,
+        name: "Seating",
+      },
+    });
+
+    renderSidebar({
+      libraryFolders: [furnitureFolder],
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+    });
+
+    await user.pointer({ target: screen.getByRole("treeitem", { name: "Furniture" }), keys: "[MouseRight]" });
+    await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
+    expect(folderNameInput).toHaveValue("Furniture");
+
+    await user.clear(folderNameInput);
+    await user.type(folderNameInput, "Seating{Enter}");
+
+    await waitFor(() => expect(templateActionMocks.renameLibraryFolder).toHaveBeenCalledWith(sidebarCustomFolderId, "Seating"));
+    expect(await screen.findByRole("treeitem", { name: "Seating" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: 'Folder "Seating" renamed.' });
+  });
+
+  it("keeps the original folder name when inline folder rename fails", async () => {
+    const user = userEvent.setup();
+    const furnitureFolder = {
+      id: sidebarCustomFolderId,
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Furniture",
+      sort_order: 10,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    templateActionMocks.renameLibraryFolder.mockRejectedValueOnce(new Error("No access"));
+
+    renderSidebar({
+      libraryFolders: [furnitureFolder],
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+    });
+
+    await user.pointer({ target: screen.getByRole("treeitem", { name: "Furniture" }), keys: "[MouseRight]" });
+    await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
+    fireEvent.change(folderNameInput, { target: { value: "Seating" } });
+    fireEvent.blur(folderNameInput);
+
+    await waitFor(() => expect(templateActionMocks.renameLibraryFolder).toHaveBeenCalledWith(sidebarCustomFolderId, "Seating"));
+    expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Seating" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({
+      tone: "error",
+      message: "Could not rename the folder. You may not have permission to manage library folders.",
+    });
+  });
+
+  it("cancels the inline library folder row with Escape", () => {
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+    const folderNameInput = screen.getByRole("textbox", { name: "Folder name" });
+
+    fireEvent.keyDown(folderNameInput, { key: "Escape" });
+
+    expect(templateActionMocks.createLibraryFolder).not.toHaveBeenCalled();
+    expect(screen.queryByRole("treeitem", { name: "New folder" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+  });
+
+  it("removes the inline library folder row when folder creation fails", async () => {
+    templateActionMocks.createLibraryFolder.mockRejectedValueOnce(new Error("No access"));
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+    const folderNameInput = screen.getByRole("textbox", { name: "Folder name" });
+    fireEvent.change(folderNameInput, { target: { value: "Lighting" } });
+    fireEvent.keyDown(folderNameInput, { key: "Enter" });
+
+    await waitFor(() => expect(templateActionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Lighting", { placement: "top" }));
+    expect(screen.queryByRole("treeitem", { name: "Lighting" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({
+      tone: "error",
+      message: "Could not create the folder. You may not have permission to manage library folders.",
+    });
+  });
+
+  it("commits the inline library folder when the folder name input blurs", async () => {
+    templateActionMocks.createLibraryFolder.mockResolvedValueOnce({
+      folder: {
+        id: "folder-blur-created",
+        workspace_id: "workspace-1",
+        parent_id: null,
+        name: "Electrical",
+        sort_order: 0,
+        source_category_node_id: null,
+        folder_kind: "custom",
+      },
+    });
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+    const folderNameInput = screen.getByRole("textbox", { name: "Folder name" });
+    fireEvent.change(folderNameInput, { target: { value: "Electrical" } });
+    fireEvent.blur(folderNameInput);
+
+    await waitFor(() => expect(templateActionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Electrical", { placement: "top" }));
+    expect(await screen.findByRole("treeitem", { name: "Electrical" })).toBeInTheDocument();
+  });
+
+  it("ignores repeated Enter while inline folder creation is already pending", async () => {
+    let resolveCreate: (value: {
+      folder: {
+        id: string;
+        workspace_id: string;
+        parent_id: null;
+        name: string;
+        sort_order: number;
+        source_category_node_id: null;
+        folder_kind: "custom";
+      };
+    }) => void = () => {};
+    templateActionMocks.createLibraryFolder.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveCreate = resolve;
+    }));
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+    const folderNameInput = screen.getByRole("textbox", { name: "Folder name" });
+    fireEvent.change(folderNameInput, { target: { value: "Paint" } });
+    fireEvent.keyDown(folderNameInput, { key: "Enter" });
+    fireEvent.keyDown(folderNameInput, { key: "Enter" });
+
+    expect(templateActionMocks.createLibraryFolder).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveCreate({
+        folder: {
+          id: "folder-paint-created",
+          workspace_id: "workspace-1",
+          parent_id: null,
+          name: "Paint",
+          sort_order: 0,
+          source_category_node_id: null,
+          folder_kind: "custom",
+        },
+      });
+    });
+
+    expect(await screen.findByRole("treeitem", { name: "Paint" })).toBeInTheDocument();
+    expect(templateActionMocks.createLibraryFolder).toHaveBeenCalledTimes(1);
   });
 
   it("scopes reusable and project-owned components into separate source tabs", () => {
@@ -525,7 +795,8 @@ describe("component library UI", () => {
     fireEvent.click(screen.getAllByLabelText(/add to kitchen:/i)[0]);
 
     expect(window.localStorage.getItem(LIBRARY_RECENTS_KEY)).toBeNull();
-    expect(screen.getByText(/was not inserted/i)).toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith(expect.objectContaining({ tone: "error", message: expect.stringMatching(/was not inserted/i) }));
+    expect(screen.queryByText(/was not inserted/i)).not.toBeInTheDocument();
   });
 
   it("writes recents without adding a recent strip above the tree", () => {
@@ -982,14 +1253,53 @@ describe("component library UI", () => {
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate" }));
     expect(await screen.findByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).toBeInTheDocument();
-    expect(screen.getByText("HEMLINGBY Loveseat duplicated in this sidebar view.")).toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: "HEMLINGBY Loveseat duplicated in this sidebar view." });
+    expect(screen.queryByText("HEMLINGBY Loveseat duplicated in this sidebar view.")).not.toBeInTheDocument();
 
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat copy" }), { clientX: 16, clientY: 16 });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
     const dialog = await screen.findByRole("alertdialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
     expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).not.toBeInTheDocument();
-    expect(screen.getByText("HEMLINGBY Loveseat copy removed from this sidebar view.")).toBeInTheDocument();
+    expect(findToastCall("HEMLINGBY Loveseat copy removed from this sidebar view.")).toEqual(expect.objectContaining({
+      tone: "neutral",
+      action: expect.objectContaining({ label: "Undo", onClick: expect.any(Function) }),
+    }));
+    expect(screen.queryByText("HEMLINGBY Loveseat copy removed from this sidebar view.")).not.toBeInTheDocument();
+  });
+
+  it("uses an in-app discard dialog instead of a native confirm when closing dirty component edits", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderSidebar({
+      selectedNodeKind: "area",
+      selectedNodeName: "Kitchen",
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+      libraryFolders: sidebarCustomFolders,
+    });
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Edit" }));
+
+    const editDialog = await screen.findByRole("dialog", { name: "Edit component" });
+    fireEvent.change(within(editDialog).getByRole("textbox", { name: "Component name" }), {
+      target: { value: "HEMLINGBY Loveseat updated" },
+    });
+    fireEvent.click(within(editDialog).getByRole("button", { name: "Cancel" }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    const discardDialog = await screen.findByRole("alertdialog", { name: "Discard component changes?" });
+    expect(within(discardDialog).getByText("Discard the unsaved component edits and close the form?")).toBeInTheDocument();
+
+    fireEvent.click(within(discardDialog).getByRole("button", { name: "Keep editing" }));
+    expect(screen.queryByRole("alertdialog", { name: "Discard component changes?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Edit component" })).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Edit component" })).getByRole("button", { name: "Cancel" }));
+    const discardDialogAgain = await screen.findByRole("alertdialog", { name: "Discard component changes?" });
+    fireEvent.click(within(discardDialogAgain).getByRole("button", { name: "Discard changes" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit component" })).not.toBeInTheDocument());
+    expect(screen.queryByRole("alertdialog", { name: "Discard component changes?" })).not.toBeInTheDocument();
   });
 
   it("opens the create-template modal when the sheets tree hands a node over", async () => {
@@ -1366,6 +1676,42 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Project Stone Panel project component" })).toBeInTheDocument();
   });
 
+  it("shows tab-specific tree skeletons while sidebar library data is loading", () => {
+    renderSidebar({ initialLibraryItems: [], templates: [], libraryDataLoading: true });
+
+    expect(screen.getByRole("status", { name: "Loading Library tree" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Project" }));
+    expect(screen.getByRole("status", { name: "Loading Project tree" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.getAllByRole("treeitem", { name: "Loading reusable source" }).length).toBeGreaterThan(0);
+  });
+
+  it("shows a Projects skeleton in Templates while action-backed project sources load", async () => {
+    let resolveProjectSources: ((value: { sources: ReusableEstimateSource[] }) => void) | undefined;
+    reusableSourceActionMocks.listReusableProjectSources.mockReturnValue(
+      new Promise<{ sources: ReusableEstimateSource[] }>((resolve) => {
+        resolveProjectSources = resolve;
+      }),
+    );
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(await screen.findByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    expect(screen.getAllByRole("treeitem", { name: "Loading reusable source" }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Refreshing project sources...")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveProjectSources?.({ sources: projectSources.filter((source) => source.kind === "project") });
+    });
+
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("treeitem", { name: "Loading reusable source" })).toHaveLength(0);
+  });
+
   it("indents project-derived source levels clearly in the Templates tree", () => {
     openTemplatesTab({ projectSources });
 
@@ -1445,7 +1791,10 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
 
     await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("Refreshing project sources...")).not.toBeInTheDocument();
     expect(await screen.findByRole("treeitem", { name: "Hotel Refresh Project project source" })).toBeInTheDocument();
+    expect(screen.queryByText("Project sources updated.")).not.toBeInTheDocument();
+    expect(toastMocks.toast).not.toHaveBeenCalledWith({ tone: "success", message: "Project sources updated." });
     fireEvent.click(screen.getByRole("treeitem", { name: "Hotel Refresh Project project source" }));
     await waitFor(() =>
       expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-3" }),
@@ -1453,7 +1802,7 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Lobby Refresh Estimate estimate EST-003" })).toBeInTheDocument();
   });
 
-  it("shows a retry panel when project source auto-load fails", async () => {
+  it("toasts project source auto-load failures with a fixed retry action instead of an inline panel", async () => {
     reusableSourceActionMocks.listReusableProjectSources
       .mockRejectedValueOnce(new Error("provider unavailable"))
       .mockResolvedValueOnce({
@@ -1462,14 +1811,29 @@ describe("templates tree", () => {
 
     openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load project sources.");
-    expect(screen.queryByText(/Try Refresh/i)).not.toBeInTheDocument();
+    const loadErrorToast = await waitFor(() => {
+      const call = findToastCall("Couldn't load project sources.");
+      expect(call).toEqual(expect.objectContaining({
+        id: "component-library-project-sources-load",
+        tone: "error",
+        message: "Couldn't load project sources.",
+        action: expect.objectContaining({
+          label: "Retry",
+          onClick: expect.any(Function),
+        }),
+      }));
+      return call;
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load project sources.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Retry/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Retry project sources" }));
+    act(() => loadErrorToast?.action?.onClick());
 
     await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
-    expect(screen.getByText("Project sources updated.")).toBeInTheDocument();
+    expect(screen.queryByText("Project sources updated.")).not.toBeInTheDocument();
+    expect(toastMocks.toast).not.toHaveBeenCalledWith({ tone: "success", message: "Project sources updated." });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -1608,6 +1972,47 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
+  });
+
+  it("can disable stored sidebar prefs so embedded mockups stay on Library", async () => {
+    window.localStorage.setItem(LIBRARY_PREFS_KEY, JSON.stringify({ activeTab: "templates", componentViewMode: "suppliers" }));
+    window.localStorage.setItem("estimate_library_active_tab", "templates");
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+
+    renderSidebar({
+      templates: sidebarTemplates,
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      useStoredPreferences: false,
+      enableReusableProjectSources: false,
+    });
+
+    expect(screen.getByRole("tab", { name: "Library" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Project" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Templates" })).toHaveAttribute("aria-selected", "false");
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).not.toHaveBeenCalled());
+    expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
+  });
+
+  it("does not fetch or render project sources when reusable project sources are disabled", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+
+    openTemplatesTab({
+      projectSources,
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      enableReusableProjectSources: false,
+    });
+
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).not.toHaveBeenCalled());
+    expect(screen.queryByRole("tab", { name: "Project" })).not.toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Renovation Project project source" })).not.toBeInTheDocument();
   });
 
   it("shows all project sources by default with no scope toggle", () => {
@@ -1804,6 +2209,50 @@ describe("templates tree", () => {
       kind: "project-node",
       nodeId: "node-amenity",
     }));
+  });
+
+  it("keeps async project-source insert progress in a toast instead of inline status text", async () => {
+    let resolveInsert: ((value: boolean) => void) | undefined;
+    const insertPromise = new Promise<boolean>((resolve) => {
+      resolveInsert = resolve;
+    });
+    const onInsertProjectSource = vi.fn(() => insertPromise);
+    openTemplatesTab({
+      projectSources: projectSourcesWithMetadata,
+      onInsertProjectSource,
+      selectedNodeKind: "group",
+      selectedNodeName: "Main House",
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }));
+
+    const preview = screen.getByRole("region", { name: "Project source preview" });
+    fireEvent.click(within(preview).getByRole("button", { name: /Add .* Main House/ }));
+
+    await waitFor(() =>
+      expect(toastMocks.toast).toHaveBeenCalledWith({
+        id: "component-library-project-source-insert",
+        tone: "loading",
+        message: "Adding Amenity Millwork to Main House...",
+      }),
+    );
+    expect(screen.queryByText("Adding Amenity Millwork to Main House...")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveInsert?.(true);
+      await insertPromise;
+    });
+
+    await waitFor(() =>
+      expect(toastMocks.toast).toHaveBeenCalledWith({
+        id: "component-library-project-source-insert",
+        tone: "success",
+        message: "Amenity Millwork added to Main House.",
+      }),
+    );
   });
 
   it("previews loaded project-source outline rows for a tab", () => {

@@ -96,6 +96,60 @@ export function injectProjectSourceSkeletons(
   return nodes.map(visit);
 }
 
+function buildTemplateLoadingSection(section: "custom-templates" | "projects", withBoundary: boolean): UiTreeNode {
+  const label = section === "custom-templates" ? "Custom Templates" : "Projects";
+  const ariaLabel = section === "custom-templates" ? "Custom Templates reusable sources" : "Projects reusable sources";
+  return {
+    id: templatesTreeSectionId(section),
+    label,
+    ariaLabel,
+    isLeaf: false,
+    selectable: false,
+    rowClassName: withBoundary ? "mt-1 border-t-source-boundary" : undefined,
+    icon: treeIcon(FolderSimple),
+    data: { templatesNode: { type: "section", section } satisfies TemplatesTreeDatum },
+    children: buildSkeletonChildNodes(templatesTreeSectionId(section)),
+  } satisfies UiTreeNode;
+}
+
+function ensureTemplateLoadingSectionChildren(nodes: UiTreeNode[], section: "custom-templates" | "projects"): UiTreeNode[] {
+  const sectionId = templatesTreeSectionId(section);
+  return nodes.map((node) => {
+    if (node.id !== sectionId || (node.children?.length ?? 0) > 0) return node;
+    return { ...node, isLeaf: false, children: buildSkeletonChildNodes(sectionId) };
+  });
+}
+
+export function injectTemplateSourceLoadingSkeletons(
+  nodes: UiTreeNode[],
+  options: {
+    customTemplatesLoading?: boolean;
+    projectSourcesLoading?: boolean;
+  },
+): UiTreeNode[] {
+  if (!options.customTemplatesLoading && !options.projectSourcesLoading) return nodes;
+  let nextNodes = nodes;
+  const hasCustomTemplatesSection = nextNodes.some((node) => node.id === templatesTreeSectionId("custom-templates"));
+  const hasProjectsSection = nextNodes.some((node) => node.id === templatesTreeSectionId("projects"));
+
+  if (options.customTemplatesLoading) {
+    nextNodes = hasCustomTemplatesSection
+      ? ensureTemplateLoadingSectionChildren(nextNodes, "custom-templates")
+      : [buildTemplateLoadingSection("custom-templates", false), ...nextNodes];
+  }
+
+  if (options.projectSourcesLoading) {
+    nextNodes = hasProjectsSection
+      ? ensureTemplateLoadingSectionChildren(nextNodes, "projects")
+      : [
+          ...nextNodes,
+          buildTemplateLoadingSection("projects", nextNodes.length > 0),
+        ];
+  }
+
+  return nextNodes;
+}
+
 export function templatesTreeSectionId(section: "custom-templates" | "projects") {
   return `templates-tree-section-${section}`;
 }

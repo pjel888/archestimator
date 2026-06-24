@@ -33,6 +33,7 @@ import {
   filterProjectSourcesByQuery,
   getTemplatesTreeAllNodeIds,
   getTemplatesTreeDatum,
+  injectTemplateSourceLoadingSkeletons,
   injectProjectSourceSkeletons,
 } from "./TemplatesTreeModel";
 
@@ -91,6 +92,8 @@ export type TemplatesTreeProps = {
    * Project ids whose estimate list is loading (past the skeleton-reveal delay);
    * each shows in-place skeleton rows instead of a spinner (U6/U23).
    */
+  templatesLoading?: boolean;
+  projectSourcesLoading?: boolean;
   loadingProjectIds?: string[];
   /** Estimate ids whose outline is loading (past the skeleton-reveal delay). */
   loadingEstimateIds?: string[];
@@ -138,6 +141,8 @@ export function TemplatesTree({
   searchQuery,
   expandedNodeIds,
   onToggle,
+  templatesLoading = false,
+  projectSourcesLoading = false,
   loadingProjectIds = EMPTY_ID_LIST as string[],
   loadingEstimateIds = EMPTY_ID_LIST as string[],
   onPrefetchNode,
@@ -184,11 +189,14 @@ export function TemplatesTree({
   const loadingEstimateIdSet = useMemo(() => new Set(loadingEstimateIds), [loadingEstimateIds]);
   const uiNodes = useMemo(
     () => injectProjectSourceSkeletons(
-      buildTemplatesTreeNodes(filteredTemplates, filteredProjectSources, filteredCustomTemplateCategories),
+      injectTemplateSourceLoadingSkeletons(
+        buildTemplatesTreeNodes(filteredTemplates, filteredProjectSources, filteredCustomTemplateCategories),
+        { customTemplatesLoading: templatesLoading, projectSourcesLoading },
+      ),
       loadingProjectIdSet,
       loadingEstimateIdSet,
     ),
-    [filteredProjectSources, filteredTemplates, filteredCustomTemplateCategories, loadingProjectIdSet, loadingEstimateIdSet],
+    [filteredProjectSources, filteredTemplates, filteredCustomTemplateCategories, loadingProjectIdSet, loadingEstimateIdSet, projectSourcesLoading, templatesLoading],
   );
   const nodeById = useMemo(() => {
     const map = new Map<string, UiTreeNode>();

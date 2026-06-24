@@ -19,19 +19,37 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     const treeSource = source("src/components/workshop/component-library/tree/LibraryTree.tsx");
 
     expect(sidebarSource).toContain('activeLibraryTreeAriaLabel = isProjectTab ? "Project sources" : "Library sources"');
-    expect(sidebarSource).toContain('activeSourceScopeLabel = isProjectTab ? "Project" : "Library"');
+    expect(sidebarSource).toContain('activeSourceScopeLabel = projectId === "hero-sanitized-project" ? "" : isProjectTab ? "Project" : "Library"');
     expect(sidebarSource).toContain("treeAriaLabel={activeLibraryTreeAriaLabel}");
     expect(sidebarSource).toContain("sourceScopeLabel={activeSourceScopeLabel}");
     expect(treeSource).toContain("SourceTrustChips");
-    expect(treeSource).toContain("{sourceScopeLabel} · {item.supplier || \"No supplier\"}");
+    expect(treeSource).toContain("const sourceLabel = sourceScope ? `${sourceScope} · ${supplierLabel}` : supplierLabel;");
   });
 
-  it("surfaces sidebar actions visibly instead of relying on sr-only status text", () => {
+  it("routes sidebar action notifications through toast instead of inline status text", () => {
     const sidebarSource = source("src/components/workshop/component-library/index.tsx");
 
     expect(sidebarSource).not.toContain('className="sr-only">\n          {lastActionMessage}');
-    expect(sidebarSource).toContain("aria-live=\"polite\"");
-    expect(sidebarSource).toContain("{lastActionMessage}");
+    expect(sidebarSource).not.toContain("{lastActionMessage}");
+    expect(sidebarSource).not.toContain("Project sources updated.");
+    expect(sidebarSource).not.toContain("Refreshing project sources...");
+    expect(sidebarSource).toContain("toast({ tone: getSidebarActionToastTone(message), message })");
+    expect(sidebarSource).toContain('id: PROJECT_SOURCE_INSERT_TOAST_ID');
+    expect(sidebarSource).toContain('id: PROJECT_SOURCES_LOAD_TOAST_ID');
+    expect(sidebarSource).toContain('label: "Retry"');
+  });
+
+  it("routes transient estimate sheet save status through toast instead of an inline bar", () => {
+    const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
+    const tabStripSource = source("src/components/workshop/estimate-sheet/EstimateTabStrip.tsx");
+
+    expect(sheetSource).not.toContain("Saving...</");
+    expect(sheetSource).not.toContain("Could not save</");
+    expect(sheetSource).not.toContain("Dismiss row save error");
+    expect(sheetSource).toContain('id: "estimate-row-save"');
+    expect(tabStripSource).not.toContain('{error ? <p role="alert"');
+    expect(tabStripSource).toContain("ESTIMATE_TAB_STRIP_ERROR_TOAST_ID");
+    expect(tabStripSource).toContain("toast({");
   });
 
   it("routes risky Library commits through the Estimate Sheet source review gate", () => {
@@ -66,5 +84,24 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(projectionSource).toContain("projectRowLimit?: number");
     expect(projectionSource).toContain("projectRowsQuery.limit(projectRowLimit)");
     expect(sheetSource).toContain("return loadProjectComponentLibraryLite(projectId)");
+  });
+
+  it("keeps the public landing mockup on the generated library assets without private project surfaces", () => {
+    const heroSource = source("src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx");
+    const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
+    const treeSource = source("src/components/workshop/EstimateSheetTree.tsx");
+    const sidebarSource = source("src/components/workshop/component-library/index.tsx");
+
+    expect(heroSource).toContain("/component-thumbnails/hero-single-lever-kitchen-faucet.png");
+    expect(heroSource).toContain("/component-thumbnails/hero-600x600-ceramic-tiles.png");
+    expect(heroSource).toContain("/component-thumbnails/hero-200x1200-faux-wood-tiles.png");
+    expect(heroSource).toContain("disableRouteSync");
+    expect(heroSource).toContain("libraryUseStoredPreferences={false}");
+    expect(heroSource).toContain("libraryEnableReusableProjectSources={false}");
+    expect(treeSource).toContain("persistWidth={!disableRouteSync}");
+    expect(sheetSource).toContain("libraryUsePersistentPanelWidth = !disableRouteSync");
+    expect(sheetSource).toContain("usePersistentPanelWidth={libraryUsePersistentPanelWidth}");
+    expect(sidebarSource).toContain("persistWidth={usePersistentPanelWidth}");
+    expect(heroSource).not.toMatch(/Quartz kitchen countertop|Base cabinet modules|kitchen-quartz-countertop|kitchen-base-cabinets/);
   });
 });
