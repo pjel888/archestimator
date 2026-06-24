@@ -1,20 +1,25 @@
 # 01 — Executive Summary
 
-**Date:** 2026-06-21 · **Status:** PLANNING / READINESS ONLY · **Branch:** `main`
+**Date:** 2026-06-21 · **Last audited:** 2026-06-24 (see `16_AUDIT_LOG_2026-06-24.md`) · **Status:** PLANNING / READINESS ONLY · **Branch:** `main`
 **Posture:** Pre-launch closed beta, owner-only, no external users. Bias toward deletion/consolidation over speculative backward-compat — except security, auth, audit, data-integrity, and the active estimate-tree unification corridor.
 
-## Headline
+## Headline (refreshed 2026-06-24)
 
-Archestimator is a **large, healthy, well-instrumented** codebase (16,148 graph nodes, 1,429 files, 11,288 functions, 190,581 edges, 3,352 tests). It carries a normal amount of pre-launch **over-engineering** — the kind ponytail was designed to catch: unused dependencies, single-use visual packages, mega-files that grew one PR at a time, and speculative features gated off behind env flags.
+Archestimator is a **large, healthy, well-instrumented** codebase (16,148 graph nodes, 1,429 files, 11,288 functions, 190,581 edges, 3,352 tests at the 2026-06-19 snapshot; current source has drifted — see `16_AUDIT_LOG_2026-06-24.md`). It carries a normal amount of pre-launch **over-engineering** — the kind ponytail was designed to catch: unused dependencies, single-use visual packages, mega-files that grew one PR at a time, and speculative features gated off behind env flags.
 
-Ponytail v4.7.0 is now installed for OpenCode, Claude Code, and Codex. The plugin's benchmark shows **~54% less code** (up to 94% where an agent over-builds) on real Claude Code sessions. Applied to Archestimator, the biggest payoffs are:
+Ponytail v4.7.0 (Claude) / v4.8.2 (Codex, drifted from plan's v4.7.0 claim — see `10_PONYTAIL_OPERATING_MODEL.md`) / v4.7.0+ (OpenCode) is installed. Applied to Archestimator, the **post-2026-06-24 audit** payoffs are:
 
-1. **2 zero-risk dependency removals** already validated by the existing cleanup plan (`three`, `class-variance-authority`) — Wave 1A, execute after a fresh baseline snapshot.
-2. **2 contained dependency swaps/narrowings** (`@next/third-parties` -> `next/script`, `d3` -> `d3-shape`) — Wave 1A, but not zero-risk: analytics needs CSP/consent/network proof and charts need hydration proof.
-3. **4 visual dependency decisions** (`@firecms/neat`, `lenis`, `rough-notation`, `roughjs`) — Wave 2, owner input needed on which flourishes survive closed beta.
-4. **7 mega-files >1500 LOC** — not refactored in one shot, but shrunk diff-by-diff via `/ponytail-review` on every PR that touches them. **57 dead exports** identified across the 7 files — the safest first PRs.
-5. **2 speculative feature surfaces** (AI routes, project cursors) — Wave 2A owner decision on whether to keep hidden or cut for closed beta. AI routes default disabled; project-wide cursors default disabled, while estimate-sheet cursor broadcast is already enabled and must not be cut accidentally.
-6. **14 small over-engineering fixes** (barrel files, `as unknown as` casts, empty catches, hand-rolled HTML stripping, auth boilerplate, fixtures, registry bridges, duplicate formatting/parsing, and route evaluations) — Wave 2B/2C.
+1. **✅ DONE (Wave 1A + Wave 2A consumed by React Doctor cleanup):** `class-variance-authority` (commit `e65e2848`, 2026-06-23), `three`, `lenis`, `rough-notation`, `roughjs` all removed outright between 2026-06-23 and 2026-06-24. See `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` and `.ai/10_state/current-state.md` 2026-06-24 entries. **5 of the original 8 deps are gone.**
+2. **⏳ Still pending — Wave 1A:**
+   - **T1.3 `@next/third-parties` → `next/script`** — 1 importer (`LandingAnalyticsLoader.tsx`), dep still in `package.json`. Swap must preserve `window.gtag` for `experiment-tracker.ts`. CSP/consent/network proof required.
+   - **T1.4 `d3` → `d3-shape`** — only `d3-shape` imported by `CostDonutChart.tsx`; `d3` umbrella + `@types/d3` still in `package.json`.
+3. **⏳ Still pending — Wave 2A:**
+   - **T1.5 `@firecms/neat`** — 1 importer (`NeatWireframeBackground.tsx`), dep still in `package.json`. Owner decision required: keep or swap to CSS/SVG.
+4. **⚠️ Tier 2 mega-files — ALL GREW since plan snapshot.** 7 files, all >1500 LOC, total +2460 LOC drift since 2026-06-21 (largest: T2.2 component-library/index.tsx +868, T2.1 EstimateSheetContent.tsx +600, T2.3 workspace-repository.ts +547). React Doctor flagged 31 `no-giant-component` findings; locally suppressed, tracked as deferred structural work in `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md`. **57 dead exports identified at 2026-06-21 baseline** — re-verify before removal PRs because reducer extractions and subcomponent splits landed.
+5. **⏳ Speculative feature surfaces (owner decision):**
+   - **SF.1 AI surface** — flags still default false; all surfaces still present (`EstimateCopilotFloatingButton.tsx` 1036 LOC, `read-context.ts` 2020 LOC, `draft.ts` 2443 LOC, `apply.ts` 1366 LOC, `api/ai/ask/` + `api/ai/package-builder/`).
+   - **SF.2 Project cursors** — flag defaults unchanged (sheet cursor broadcast true, project-wide cursors false, follow mode false); surfaces all still present.
+6. **⚠️ Tier 3 quick cuts — partial drift.** See `06_TIER_3_QUICK_CUTS.md` for the refreshed status. T3.3 empty catches FIXED; T3.1 barrel shrunk 27→8 LOC; T3.7 publication RBAC grew 7→10 occurrences; T3.4 cast moved from line 192-217 to line 207 + new cast at line 434.
 
 ## What we found (by weight)
 
