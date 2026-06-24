@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const PACKAGE_BUILDER_SCHEMA_VERSION = 1;
+const PACKAGE_BUILDER_SCHEMA_VERSION = 1;
 const PACKAGE_BUILDER_INTENTS = ["create_package_project", "fill_current_estimate", "create_library_component"] as const;
 
 const PACKAGE_BUILDER_OPERATION_TYPES = [
@@ -1380,7 +1380,7 @@ export function parsePackageBuilderApplyRequest(value: unknown): PackageBuilderA
   };
 }
 
-export function calculatePackageRowTotal(row: Pick<PackageBuilderRowDraft, "quantity" | "unitCost" | "miscCost" | "contingencyPercentage">) {
+function calculatePackageRowTotal(row: Pick<PackageBuilderRowDraft, "quantity" | "unitCost" | "miscCost" | "contingencyPercentage">) {
   const subtotal = row.quantity * row.unitCost;
   const contingency = (subtotal * row.contingencyPercentage) / 100;
   return {

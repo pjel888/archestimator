@@ -84,7 +84,7 @@ export function base64UrlEncode(input: ArrayBuffer | Uint8Array): string {
 }
 
 /** Decode a base64url string into a Uint8Array. Throws on malformed input. */
-export function base64UrlDecode(input: string): Uint8Array {
+function base64UrlDecode(input: string): Uint8Array {
   const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
   const binary = typeof atob === "function" ? atob(padded) : Buffer.from(padded, "base64").toString("binary");

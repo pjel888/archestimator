@@ -6,7 +6,7 @@ export type EstimateTreeNodeKind = "group" | "area";
  * user reads as an "Area" — the internal `kind` discriminant stays only as a
  * vestigial write-path label (see the unification plan, P4/P6 split).
  */
-export const ESTIMATE_NODE_DISPLAY_NAME = "Area";
+const ESTIMATE_NODE_DISPLAY_NAME = "Area";
 
 const LEGACY_ESTIMATE_GROUP_NODE_KINDS = new Set(["lot", "general", "structure", "level", "assembly"]);
 

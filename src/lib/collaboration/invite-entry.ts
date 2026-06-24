@@ -5,11 +5,11 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/lib/supabase/types";
 
-export const PROJECT_INVITE_ENTRY_FLAG = "PROJECT_INVITE_ENTRY_ENABLED";
-export const INVITE_TOKEN_PEPPER_ENV = "ARCHESTIMATOR_INVITE_TOKEN_PEPPER";
-export const INVITE_TOKEN_HASH_VERSION = "v1";
-export const INVITE_TOKEN_BYTE_LENGTH = 32;
-export const INVITE_TOKEN_PEPPER_PATTERN = /^[a-f0-9]{64}$/i;
+const PROJECT_INVITE_ENTRY_FLAG = "PROJECT_INVITE_ENTRY_ENABLED";
+const INVITE_TOKEN_PEPPER_ENV = "ARCHESTIMATOR_INVITE_TOKEN_PEPPER";
+const INVITE_TOKEN_HASH_VERSION = "v1";
+const INVITE_TOKEN_BYTE_LENGTH = 32;
+const INVITE_TOKEN_PEPPER_PATTERN = /^[a-f0-9]{64}$/i;
 
 type InviteEntryEnv = Partial<
   Pick<NodeJS.ProcessEnv, "PROJECT_INVITE_ENTRY_ENABLED" | "ARCHESTIMATOR_INVITE_TOKEN_PEPPER">

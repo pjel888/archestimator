@@ -44,7 +44,7 @@ export function isProjectPageCursorsEnabled(): boolean {
  * Follow mode (T5.4). Deferred by decision D-6. Default OFF; enable with
  * `NEXT_PUBLIC_TEAMSPACE_FOLLOW_MODE=on` once the §4.5 edge contract is accepted.
  */
-export function isFollowModeEnabled(): boolean {
+function isFollowModeEnabled(): boolean {
   return readFlag(process.env.NEXT_PUBLIC_TEAMSPACE_FOLLOW_MODE) ?? false;
 }
 
@@ -54,7 +54,7 @@ export type TeamspaceFeatureFlags = {
   followMode: boolean;
 };
 
-export function readTeamspaceFeatureFlags(): TeamspaceFeatureFlags {
+function readTeamspaceFeatureFlags(): TeamspaceFeatureFlags {
   return {
     cursorBroadcast: isCursorBroadcastEnabled(),
     projectPageCursors: isProjectPageCursorsEnabled(),

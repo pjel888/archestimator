@@ -13,7 +13,7 @@ export function getProjectReusableSourceDisplayName(source: ProjectReusableEstim
   return source.name;
 }
 
-export function getReusableSourceDisplayName(source: ReusableEstimateSource) {
+function getReusableSourceDisplayName(source: ReusableEstimateSource) {
   if (source.kind === "custom-template") return source.template.name;
   return getProjectReusableSourceDisplayName(source);
 }

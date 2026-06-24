@@ -33,4 +33,4 @@ export const DECISION_ACTIONS: Record<string, ActivityAction> = {
   revision_requested: "requested_revision",
 };
 
-export const ESTIMATE_EVENT_TYPES = Object.keys(ESTIMATE_EVENT_ACTIONS);
+const ESTIMATE_EVENT_TYPES = Object.keys(ESTIMATE_EVENT_ACTIONS);

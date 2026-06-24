@@ -1,6 +1,6 @@
 import type { Tables } from "@/lib/supabase/types";
 
-export const NOTIFICATION_KINDS = [
+const NOTIFICATION_KINDS = [
   "release_announcement",
   "system_notice",
   "collaboration",
@@ -9,9 +9,9 @@ export const NOTIFICATION_KINDS = [
   "security_notice",
 ] as const;
 
-export const NOTIFICATION_SEVERITIES = ["info", "success", "warning", "critical"] as const;
+const NOTIFICATION_SEVERITIES = ["info", "success", "warning", "critical"] as const;
 
-export const NOTIFICATION_SURFACES = ["center", "modal", "toast_and_center"] as const;
+const NOTIFICATION_SURFACES = ["center", "modal", "toast_and_center"] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 export type NotificationSeverity = (typeof NOTIFICATION_SEVERITIES)[number];

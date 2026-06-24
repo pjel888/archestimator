@@ -100,7 +100,7 @@ export function normalizeProjectPublicationLocationVisibility(
   return "locality";
 }
 
-export function sanitizeProjectPublicationLocation(
+function sanitizeProjectPublicationLocation(
   location: string | null | undefined,
   visibility: ProjectPublicationLocationVisibility,
 ) {

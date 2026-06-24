@@ -15,7 +15,7 @@
  * enforces sheet access.
  */
 
-export const ACTIVE_SURFACES = [
+const ACTIVE_SURFACES = [
   "overview",
   "estimates",
   "data",

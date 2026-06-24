@@ -1397,4 +1397,4 @@ export const fallbackComponentLibraryDataset: ComponentLibraryDataset = {
   templates: [],
 };
 
-export const componentLibraryDatasetVersion = componentCategoryTaxonomyVersion;
+const componentLibraryDatasetVersion = componentCategoryTaxonomyVersion;

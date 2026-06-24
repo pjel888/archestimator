@@ -1,6 +1,6 @@
 const SVG_PRECISION = 4;
 
-export function roundSvgNumber(value: number, precision = SVG_PRECISION): number {
+function roundSvgNumber(value: number, precision = SVG_PRECISION): number {
   if (!Number.isFinite(value)) return 0;
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;

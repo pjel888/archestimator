@@ -25,7 +25,7 @@ function clientSafeActivityId(activity: ActivityViewModel) {
   return `activity_${activity.source}_${digest}`;
 }
 
-export function toClientSafeActivity(activity: ActivityViewModel): ActivityViewModel {
+function toClientSafeActivity(activity: ActivityViewModel): ActivityViewModel {
   const withoutRaw: Omit<ActivityViewModel, "raw"> = { ...activity };
   delete (withoutRaw as Partial<ActivityViewModel>).raw;
   return {

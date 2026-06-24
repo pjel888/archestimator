@@ -250,7 +250,7 @@ export function buildAiPackageToolCall(input: {
   };
 }
 
-export function buildAiDataAccessEvent(input: {
+function buildAiDataAccessEvent(input: {
   runId: string;
   userContext: AiRequestUserContext;
   eventName: string;

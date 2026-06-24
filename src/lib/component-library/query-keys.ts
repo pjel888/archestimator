@@ -4,7 +4,7 @@
 
 // Full dataset (with the per-item price-option/version/history graph) — used by the
 // Library management surfaces (template editor, component manager).
-export const WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"] as const;
+const WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-library"] as const;
 
 export function workspaceComponentLibraryQueryKey(workspaceId: string) {
   return [...WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, "workspace", workspaceId] as const;
@@ -15,7 +15,7 @@ export function workspaceComponentLibraryQueryKey(workspaceId: string) {
 // editor surfaces. Note the shared scoped prefix: a non-exact
 // `invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId) })`
 // still invalidates this lite key without crossing workspace boundaries.
-export const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT = "lite";
+const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT = "lite";
 
 export function workspaceComponentLibraryLiteQueryKey(workspaceId: string, projectId: string) {
   return [...workspaceComponentLibraryQueryKey(workspaceId), WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT, "project", projectId] as const;

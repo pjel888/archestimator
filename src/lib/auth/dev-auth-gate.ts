@@ -3,7 +3,7 @@ const DEV_AUTH_ADMIN_DB_FLAG = "ARCHESTIMATOR_DEV_AUTH_ADMIN_DB";
 const DEV_AUTH_BYPASS_SECRET_FLAG = "ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET";
 
 export const DEV_AUTH_BYPASS_SECRET_HEADER = "x-archestimator-dev-auth-bypass";
-export const DEV_AUTH_BYPASS_SECRET_COOKIE = "archestimator-dev-auth-bypass";
+const DEV_AUTH_BYPASS_SECRET_COOKIE = "archestimator-dev-auth-bypass";
 
 export type DevAuthBypassCookieReader = {
   get(name: string): { value?: string } | undefined;
@@ -17,7 +17,7 @@ export function isDevAdminDatabaseBypassEnabled() {
   return isDevAuthBypassEnabled() && process.env[DEV_AUTH_ADMIN_DB_FLAG] === "1";
 }
 
-export function getHostnameFromHostHeader(hostHeader: string | null | undefined) {
+function getHostnameFromHostHeader(hostHeader: string | null | undefined) {
   const host = hostHeader?.trim() ?? "";
   if (!host) return "";
   if (host.startsWith("[")) {

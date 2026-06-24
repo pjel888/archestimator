@@ -77,7 +77,7 @@ export function isResizableEstimateColumnId(id: EstimateColumnId): id is Resizab
   return RESIZABLE_COLUMN_SET.has(id);
 }
 
-export function getEstimateColumnDefinition(id: EstimateColumnId) {
+function getEstimateColumnDefinition(id: EstimateColumnId) {
   return ESTIMATE_COLUMN_DEFINITIONS.find((column) => column.id === id);
 }
 

@@ -1,4 +1,4 @@
-export const AUTH_ERROR_CODES = [
+const AUTH_ERROR_CODES = [
   "email_required",
   "auth_request_failed",
   "google_request_failed",
@@ -36,7 +36,7 @@ export function mapAuthErrorToCode({
   return fallbackCode;
 }
 
-export function isAuthErrorCode(value: unknown): value is AuthErrorCode {
+function isAuthErrorCode(value: unknown): value is AuthErrorCode {
   return (
     typeof value === "string" &&
     (AUTH_ERROR_CODES as readonly string[]).includes(value)

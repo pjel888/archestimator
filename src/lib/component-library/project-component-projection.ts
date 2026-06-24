@@ -10,9 +10,9 @@ import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-reposit
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 
-export const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
-export const PROJECT_COMPONENTS_EXPRESS_FOLDER_SUFFIX = "express";
-export const PROJECT_COMPONENTS_PROJECT_SPECIFIC_FOLDER_SUFFIX = "project-specific";
+const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
+const PROJECT_COMPONENTS_EXPRESS_FOLDER_SUFFIX = "express";
+const PROJECT_COMPONENTS_PROJECT_SPECIFIC_FOLDER_SUFFIX = "project-specific";
 const UNKNOWN_ESTIMATE_FOLDER_ID = "unknown-estimate";
 
 export type ProjectComponentProjectionRow = {
@@ -75,7 +75,7 @@ export function getProjectComponentsFolderId(projectId: string) {
   return `${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-${projectId}`;
 }
 
-export function getProjectComponentsGroupFolderId(projectId: string, group: "express" | "project-specific") {
+function getProjectComponentsGroupFolderId(projectId: string, group: "express" | "project-specific") {
   return `${getProjectComponentsFolderId(projectId)}-${group}`;
 }
 

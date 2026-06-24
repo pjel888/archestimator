@@ -163,7 +163,7 @@ export const CONTENT_UNIT_OPTIONS: ComponentUnitOption[] = [
   { value: "gal", label: "gal", description: "Liquid", searchText: "gallon" },
 ];
 
-export const PACKAGE_UNIT_OPTIONS: ComponentUnitOption[] = CONTENT_UNIT_OPTIONS;
+const PACKAGE_UNIT_OPTIONS: ComponentUnitOption[] = CONTENT_UNIT_OPTIONS;
 
 export const DIMENSION_UNIT_OPTIONS: ComponentUnitOption[] = [
   { value: "mm", label: "mm", description: "Millimeter" },
@@ -174,7 +174,7 @@ export const DIMENSION_UNIT_OPTIONS: ComponentUnitOption[] = [
   { value: "yd", label: "yd", description: "Yard" },
 ];
 
-export const MASS_UNIT_OPTIONS: ComponentUnitOption[] = [
+const MASS_UNIT_OPTIONS: ComponentUnitOption[] = [
   { value: "g", label: "g", description: "Gram" },
   { value: "kg", label: "kg", description: "Kilogram" },
   { value: "tonne", label: "tonne", description: "Metric tonne" },

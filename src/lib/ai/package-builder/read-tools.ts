@@ -15,7 +15,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TablesInsert } from "@/lib/supabase/types";
 import { filterMap, filterMapBy } from "@/lib/util/array";
 
-export const PACKAGE_BUILDER_READ_TOOL_NAMES = [
+const PACKAGE_BUILDER_READ_TOOL_NAMES = [
   "read_current_workspace_context",
   "list_accessible_projects",
   "read_project_summary",

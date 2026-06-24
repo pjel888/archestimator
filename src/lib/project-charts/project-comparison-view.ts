@@ -50,7 +50,7 @@ type RawFactsInput = {
  * Aggregate one estimate into pre-bucketed series for every grouping mode. Runs
  * server-side in the repository so raw facts never reach the client (`02` DB-4).
  */
-export function buildEstimateSeries(input: RawFactsInput, estimateId: string): ProjectChartEstimateSeries {
+function buildEstimateSeries(input: RawFactsInput, estimateId: string): ProjectChartEstimateSeries {
   const partial = {
     composition: buildProjectChartCostComposition(input.rows, estimateId),
   } as ProjectChartEstimateSeries;

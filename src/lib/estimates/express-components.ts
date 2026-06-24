@@ -55,13 +55,13 @@ type EstimateRowForClassification = {
   metadata?: unknown;
 };
 
-export const EXPRESS_COMPONENTS_FLAG = "NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED";
-export const EXPRESS_COMPONENT_PROMOTION_FLAG = "EXPRESS_COMPONENT_PROMOTION_ENABLED";
-export const EXPRESS_COMPONENT_PROJECT_FOLDER_FLAG = "EXPRESS_COMPONENT_PROJECT_FOLDER_ENABLED";
-export const LEGACY_BLANK_ROW_MATERIAL = "Drag or add a component here";
+const EXPRESS_COMPONENTS_FLAG = "NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED";
+const EXPRESS_COMPONENT_PROMOTION_FLAG = "EXPRESS_COMPONENT_PROMOTION_ENABLED";
+const EXPRESS_COMPONENT_PROJECT_FOLDER_FLAG = "EXPRESS_COMPONENT_PROJECT_FOLDER_ENABLED";
+const LEGACY_BLANK_ROW_MATERIAL = "Drag or add a component here";
 export const LEGACY_BLANK_ROW_TAG = "manual-row-placeholder";
 
-export function readFeatureFlag(value: string | undefined, fallback = true) {
+function readFeatureFlag(value: string | undefined, fallback = true) {
   const normalized = value?.trim().toLowerCase();
   if (!normalized) return fallback;
   if (["1", "on", "true", "yes", "enabled"].includes(normalized)) return true;

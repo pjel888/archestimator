@@ -55,7 +55,7 @@ export function getNodeById(nodes: EstimateNode[], nodeId: string) {
   return nodes.find((node) => node.id === nodeId) ?? null;
 }
 
-export function isDescendantNode(nodes: EstimateNode[], nodeId: string, possibleAncestorId: string) {
+function isDescendantNode(nodes: EstimateNode[], nodeId: string, possibleAncestorId: string) {
   let current = getNodeById(nodes, nodeId);
 
   while (current?.parentId) {

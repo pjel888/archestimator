@@ -505,7 +505,7 @@ function collaborationActionAndTitle(
  * as the estimate and shared-link composers so the project feed reads as one
  * surface (R14).
  */
-export function composeCollaborationActivity(
+function composeCollaborationActivity(
   event: CollaborationActivityInput,
   opts: ComposeActivityOptions = {},
 ): ActivityViewModel {

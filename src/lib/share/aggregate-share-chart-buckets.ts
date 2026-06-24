@@ -88,7 +88,7 @@ export function aggregateRowsByDiscipline(rows: PublicationSnapshotRow[]): CostB
   return buckets;
 }
 
-export const CHART_CONSTANTS = {
+const CHART_CONSTANTS = {
   TOP_BUCKET_LIMIT,
   PROJECT_CHART_COLORS,
 } as const;

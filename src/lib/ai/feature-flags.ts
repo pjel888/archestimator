@@ -1,5 +1,5 @@
-export const AI_ROUTES_ENABLED_ENV = "ARCHESTIMATOR_AI_ENABLED";
-export const ASK_FLIP_UI_ENABLED_ENV = "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED";
+const AI_ROUTES_ENABLED_ENV = "ARCHESTIMATOR_AI_ENABLED";
+const ASK_FLIP_UI_ENABLED_ENV = "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED";
 
 function readBooleanFeatureFlag(name: string, defaultValue: boolean) {
   const value = process.env[name]?.trim().toLowerCase();
