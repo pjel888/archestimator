@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowUpRight, FilePlus, FolderPlus, Package } from "@phosphor-icons/react/dist/ssr";
 
@@ -80,6 +80,10 @@ export function LibraryHubCard({
   const [estimatePending, startEstimateTransition] = useTransition();
   const [estimateError, setEstimateError] = useState<string | null>(null);
   const estimateTargetProject = recentProjects[0] ?? null;
+  const clientOptions = useMemo(
+    () => recentProjects.map((project) => project.client_name ?? ""),
+    [recentProjects],
+  );
 
   function createEstimateForLatestProject() {
     if (!estimateTargetProject || estimatePending) return;
@@ -150,7 +154,7 @@ export function LibraryHubCard({
           </span>
         </span>
       </div>
-      {newProjectOpen ? <NewProjectModal onClose={() => setNewProjectOpen(false)} /> : null}
+      {newProjectOpen ? <NewProjectModal onClose={() => setNewProjectOpen(false)} clientOptions={clientOptions} /> : null}
       {estimateError ? <p className="sr-only" role="status">{estimateError}</p> : null}
     </>
   );

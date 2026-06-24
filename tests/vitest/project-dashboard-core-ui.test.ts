@@ -58,7 +58,9 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain('name="projectCode"');
     expect(projectDashboardClient).toContain('name="projectImageUrl"');
     expect(projectDashboardClient).toContain('name="currencyCode"');
-    expect(projectDashboardClient).toContain('name={readOnly ? undefined : "clientName"}');
+    expect(projectDashboardClient).toContain("CreatableCombobox");
+    expect(projectDashboardClient).toContain('name="clientName"');
+    expect(projectDashboardClient).toContain('ariaLabel="Client"');
     expect(projectDashboardClient).toContain('name={readOnly ? undefined : "location"}');
     expect(projectDashboardClient).toContain('aria-live="polite"');
   });

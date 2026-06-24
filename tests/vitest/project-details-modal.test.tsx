@@ -170,6 +170,8 @@ describe("ProjectDetailsModal", () => {
 
     const clientInput = screen.getByRole("combobox", { name: "Client" });
     await user.click(clientInput);
+    await user.clear(clientInput);
+    await user.type(clientInput, "Acme");
     await user.click(screen.getByRole("option", { name: "Acme Developers" }));
     await user.click(screen.getByRole("button", { name: "Save details" }));
 
