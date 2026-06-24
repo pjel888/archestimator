@@ -2,10 +2,12 @@ import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  dispatchProjectBudgetChange,
-  dispatchProjectTotalChange,
   ProjectTotalHeader,
 } from "@/components/workshop/ProjectTotalHeader";
+import {
+  dispatchProjectBudgetChange,
+  dispatchProjectTotalChange,
+} from "@/components/workshop/project-total-events";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 
 const estimatePath = "/workshop/projects/project-1/estimates/node-1";

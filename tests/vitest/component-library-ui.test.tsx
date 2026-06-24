@@ -42,6 +42,13 @@ vi.mock("@/lib/reusable-sources/actions", () => ({
 }));
 
 const sidebarSeedItems = estimateLibraryItems.slice(0, 8);
+const sidebarCustomFolderId = "folder-furniture";
+const sidebarCustomFolders = [
+  { id: sidebarCustomFolderId, parent_id: null, name: "Furniture", sort_order: 1 },
+];
+const sidebarSeedItemsWithCustomFolder = sidebarSeedItems.map((item) =>
+  item.id === "lib-sofa" ? { ...item, libraryFolderId: sidebarCustomFolderId } : item,
+);
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
   {
     id: "db-section-components",
@@ -278,7 +285,13 @@ describe("component library UI", () => {
 
   it("cascade-selects folders and bulk-adds the selected components from the dock", () => {
     const onInsert = vi.fn(() => true);
-    renderSidebar({ onInsertComponent: onInsert, selectedNodeKind: "area", selectedNodeName: "Kitchen" });
+    renderSidebar({
+      onInsertComponent: onInsert,
+      selectedNodeKind: "area",
+      selectedNodeName: "Kitchen",
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+      libraryFolders: sidebarCustomFolders,
+    });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Furniture" }));
     expect(screen.getByRole("checkbox", { name: "Select HEMLINGBY Loveseat" })).toBeChecked();
@@ -666,13 +679,13 @@ describe("component library UI", () => {
     expect(screen.queryByLabelText("Search Library")).not.toBeInTheDocument();
   });
 
-  it("shows taxonomy folders in the tree", () => {
+  it("does not show default taxonomy folders in the tree", () => {
     renderSidebar();
     expect(screen.queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Administration" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("treeitem", { name: "Project Requirements" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Objects" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Administration" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Project Requirements" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Objects" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Furniture" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
   });
 
@@ -685,7 +698,7 @@ describe("component library UI", () => {
     expect(screen.getByRole("button", { name: /add to selected area: hemlingby loveseat/i })).toBeInTheDocument();
   });
 
-  it("uses the same database taxonomy ids as the component workspace tree", () => {
+  it("keeps database taxonomy folders out of the estimate sidebar default tree", () => {
     renderSidebar({
       initialLibraryItems: sharedLibraryItems,
       categoryTree: sharedCategoryTree,
@@ -693,8 +706,8 @@ describe("component library UI", () => {
       brands: sharedBrands,
     });
 
-    expect(screen.getByRole("treeitem", { name: "Database Components" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Database Components" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Fabrication" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Legacy category label" })).not.toBeInTheDocument();
   });
@@ -716,8 +729,11 @@ describe("component library UI", () => {
   });
 
   it("collapses and expands folders when clicked", () => {
-    renderSidebar();
-    const folder = screen.getByRole("treeitem", { name: "Objects" });
+    renderSidebar({
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+      libraryFolders: sidebarCustomFolders,
+    });
+    const folder = screen.getByRole("treeitem", { name: "Furniture" });
     expect(folder).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(folder);
     expect(folder).toHaveAttribute("aria-expanded", "false");
@@ -726,11 +742,14 @@ describe("component library UI", () => {
   });
 
   it("uses the shared ui Tree rows for folders and component rows", () => {
-    renderSidebar();
+    renderSidebar({
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+      libraryFolders: sidebarCustomFolders,
+    });
 
     expect(screen.getByRole("tree", { name: "Library sources" })).toBeInTheDocument();
 
-    const folder = screen.getByRole("treeitem", { name: "Administration" });
+    const folder = screen.getByRole("treeitem", { name: "Furniture" });
     expect(folder).toHaveClass("min-h-7", "text-[10px]");
     expect(folder.closest("[data-tree-row]")).toBe(folder);
     // Folders drag too now: sibling reordering is enabled in the sidebar.
@@ -745,12 +764,13 @@ describe("component library UI", () => {
 
   it("renders fixed decorative thumbnails for component rows only in the sidebar", () => {
     renderSidebar({
-      initialLibraryItems: sharedLibraryItems,
+      initialLibraryItems: [{ ...sharedLibraryItems[0], libraryFolderId: sidebarCustomFolderId }],
       categoryTree: sharedCategoryTree,
       brands: sharedBrands,
+      libraryFolders: sidebarCustomFolders,
     });
 
-    const folder = screen.getByRole("treeitem", { name: "Database Components" });
+    const folder = screen.getByRole("treeitem", { name: "Furniture" });
     expect(folder.querySelector("[data-component-library-row-thumbnail]")).toBeNull();
 
     const item = screen.getByRole("treeitem", { name: "Database Steel Frame" });
@@ -760,7 +780,7 @@ describe("component library UI", () => {
 
     const image = thumbnail?.querySelector("img");
     expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute("src", "/api/component-library/images?path=steel-frame.jpg");
+    expect(image?.getAttribute("src")).toMatch(/\/api\/component-library\/images\?path=steel-frame\.jpg$/);
     expect(image).toHaveAttribute("alt", "");
     expect(image).toHaveAttribute("loading", "lazy");
     expect(image).toHaveAttribute("decoding", "async");
@@ -865,7 +885,7 @@ describe("component library UI", () => {
     const bundledImage = screen
       .getByRole("treeitem", { name: "Bundled Thumbnail Component" })
       .querySelector("[data-component-library-row-thumbnail] img");
-    expect(bundledImage).toHaveAttribute("src", "/component-thumbnails/lib-sofa.jpg");
+    expect(bundledImage?.getAttribute("src")).toMatch(/\/component-thumbnails\/lib-sofa\.jpg$/);
 
     const supabaseImage = screen
       .getByRole("treeitem", { name: "Supabase Thumbnail Component" })
@@ -922,9 +942,15 @@ describe("component library UI", () => {
 
   it("opens right-click actions for folders and draggable component rows", async () => {
     const onInsert = vi.fn();
-    renderSidebar({ onInsertComponent: onInsert, selectedNodeKind: "area", selectedNodeName: "Kitchen" });
+    renderSidebar({
+      onInsertComponent: onInsert,
+      selectedNodeKind: "area",
+      selectedNodeName: "Kitchen",
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+      libraryFolders: sidebarCustomFolders,
+    });
 
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Administration" }), { clientX: 16, clientY: 16 });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Furniture" }), { clientX: 16, clientY: 16 });
     expect(await screen.findByRole("menuitem", { name: "Select" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Collapse" })).toBeInTheDocument();
 
@@ -937,9 +963,14 @@ describe("component library UI", () => {
   });
 
   it("exposes component CRUD through the row context menu", async () => {
-    renderSidebar({ selectedNodeKind: "area", selectedNodeName: "Kitchen" });
+    renderSidebar({
+      selectedNodeKind: "area",
+      selectedNodeName: "Kitchen",
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+      libraryFolders: sidebarCustomFolders,
+    });
 
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Administration" }), { clientX: 16, clientY: 16 });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Furniture" }), { clientX: 16, clientY: 16 });
     expect(await screen.findByRole("menuitem", { name: "New Component" })).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: "Escape" });
@@ -1000,7 +1031,7 @@ describe("component library UI", () => {
 
     // 2. Clicking the trigger opens the facet popover.
     fireEvent.click(filterBtn);
-    expect(screen.getByRole("dialog", { name: "Filter components" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Filter components" })).toBeInTheDocument();
 
     // 3. Select the "Mandaue Foam" supplier checkbox.
     const mandaueCheckbox = screen.getByRole("checkbox", { name: "Mandaue Foam" });

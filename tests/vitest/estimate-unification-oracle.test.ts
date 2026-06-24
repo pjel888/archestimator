@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 import { computeNodeTotal } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
-import { getActivityScopeKey } from "@/components/workshop/estimate-sheet/activity-history";
+import { getActivityScopeKey } from "@/components/workshop/estimate-sheet/activity-history-model";
 import { calculateProjectChartRowTotal } from "@/lib/project-charts/aggregate-project-charts";
 import { buildShareTreeFromSnapshotNodes } from "@/lib/share/reconstruct-share-tree";
 import type { EstimateTreeNode } from "@/lib/estimates/types";

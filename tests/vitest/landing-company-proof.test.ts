@@ -28,17 +28,13 @@ describe("landing page proof boundaries", () => {
     const data = readProjectFile("src/components/landing/company-proof-data.ts");
     const activePage = readProjectFile("src/app/page.tsx");
     const landingV3 = readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx");
-    const frontdoor = readProjectFile("src/components/frontdoor/FrontdoorPage.tsx");
 
     expect(data).toContain('relationship: "placeholder"');
     expect(data).toContain("permissionConfirmed: false");
     expect(data).toContain("isPlaceholder: true");
     expect(activePage).not.toContain("getRenderableCompanyProofItems");
     expect(activePage).not.toContain("placeholderCompanyProof");
-    expect(frontdoor).not.toContain("getRenderableCompanyProofItems");
-    expect(frontdoor).not.toContain("placeholderCompanyProof");
     expect(`${activePage}\n${landingV3}`).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
-    expect(frontdoor).not.toMatch(/Trusted by|Used by|Customers include|testimonial/i);
   });
 
   it("fails closed to placeholder-only data when candidate proof is unconfirmed", () => {

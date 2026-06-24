@@ -40,9 +40,9 @@ function item(name: string, id: string): ProjectListItem {
 }
 
 const renderCard = (i: ProjectListItem) => (
-  <div role="article" key={i.project.id}>
+  <article key={i.project.id}>
     {i.project.name}
-  </div>
+  </article>
 );
 
 const layout = "grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3";

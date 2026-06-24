@@ -7,6 +7,7 @@ const estimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/est
 const estimateTree = readFileSync("src/components/workshop/EstimateSheetTree.tsx", "utf8");
 const treeVisualStyle = readFileSync("src/components/workshop/tree-visual-style.ts", "utf8");
 const estimateContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
+const projectEstimatesTable = readFileSync("src/components/workshop/ProjectEstimatesTable.tsx", "utf8");
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
@@ -103,7 +104,7 @@ describe("live estimate node route", () => {
 
   it("publishes estimate sheet metadata while keeping the estimates route row removed", () => {
     const metadataStrip = readFileSync("src/components/workshop/ProjectEstimateMetadataStrip.tsx", "utf8");
-    const projectWorkspaceHeaderRow = readFileSync("src/components/workshop/ProjectWorkspaceHeaderRow.tsx", "utf8");
+    const projectLayout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8");
     const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
 
     expect(estimateNodePage).toContain("ProjectEstimateMetadataPublisher");
@@ -113,13 +114,9 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("projectBudget: estimate.project_budget");
     expect(estimateNodePage).toContain("canEditEstimate,");
     expect(estimateNodePage).toContain("const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);");
-    expect(readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8")).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
-    expect(projectWorkspaceHeaderRow).toContain("const isEstimatesRoute");
-    expect(projectWorkspaceHeaderRow).toContain("if (isEstimatesRoute) return null;");
-    expect(projectWorkspaceHeaderRow).not.toContain('centerId="project-estimate-metadata-strip"');
-    expect(projectWorkspaceHeaderRow).not.toContain('centerDataColumn="metadata-strip"');
-    expect(projectWorkspaceHeaderRow).not.toContain('scope="project-workspace-row"');
-    expect(projectWorkspaceHeaderRow).not.toContain('data-estimate-center-column={centerDataColumn}');
+    expect(projectLayout).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
+    expect(projectLayout).not.toContain("ProjectWorkspaceHeaderRow");
+    expect(projectLayout).not.toContain("projectCode={projectCode}");
     expect(metadataStrip).toContain('data-workshop-layout="project-estimate-metadata-row"');
     expect(metadataStrip).toContain("ProjectEstimateMetadataStripGrid");
     expect(metadataStrip).toContain('text-[10px] font-medium tracking-normal text-ink');
@@ -149,7 +146,7 @@ describe("live estimate node route", () => {
   });
 
   it("opens empty estimates by estimate id instead of looping back to the estimate list", () => {
-    expect(readFileSync("src/components/workshop/EstimateListCard.tsx", "utf8")).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
+    expect(projectEstimatesTable).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
     // Empty estimates still open in the estimate workspace, but without a
     // dedicated teaching card or tree placeholder copy.
     expect(estimateTree).not.toContain("This estimate is empty. Add an area to begin.");
@@ -193,7 +190,8 @@ describe("live estimate node route", () => {
     // the create + reorder server actions — any node may parent any node.
     expect(estimateActions).not.toContain("canNestEstimateNodeKind");
     expect(estimateActions).toContain('return "group"');
-    expect(estimateActions).toContain('kind: "group"');
+    expect(estimateActions).toContain("node_kind: kind");
+    expect(estimateActions).toContain("create_estimate_node_with_history");
     expect(estimateActions).toContain('.from("estimate_nodes").insert');
     expect(estimateActions).not.toContain("moveEstimateNode");
     expect(estimateActions).not.toContain("buildEstimateNodeMovePlan");

@@ -3,11 +3,11 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { estimateSurfaceClass } from "@/components/workshop/estimate-surface-variant";
+import { estimateSurfaceClass } from "@/components/workshop/estimate-surface-class";
 import {
   librarySurfaceClass,
   type LibrarySurfaceSlot,
-} from "@/components/workshop/library/library-surface-variant";
+} from "@/components/workshop/library/library-surface-class";
 
 const mirrorSlots: Array<[LibrarySurfaceSlot, Parameters<typeof estimateSurfaceClass>[1]]> = [
   ["root", "root"],

@@ -21,7 +21,7 @@ import {
   safeSetJsonStorage,
   searchComponents,
   sortComponents,
-} from "@/components/workshop/EstimateSheetContent";
+} from "@/components/workshop/component-library/helpers";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 

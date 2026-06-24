@@ -111,7 +111,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain("ProjectActivityFeedPanel");
     expect(projectDashboardClient).toContain('aria-label="Project activity feed"');
     expect(projectDashboardClient).toContain("All estimate sheets");
-    expect(projectDashboardClient).toContain("rightRail={<ProjectActivityFeedPanel page={projectActivityPage} />}");
+    expect(projectDashboardClient).toContain("const mapRightRail = useMemo(() => <ProjectActivityFeedPanel page={projectActivityPage} />");
+    expect(projectDashboardClient).toContain("rightRail={mapRightRail}");
     expect(projectDashboardClient).toContain('data-testid="project-activity-date-toggle"');
     expect(projectDashboardClient).toContain("aria-expanded={!collapsed}");
     expect(projectDashboardClient).toContain("flex h-[60px] w-full");

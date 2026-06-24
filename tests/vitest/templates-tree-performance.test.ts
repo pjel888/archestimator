@@ -5,7 +5,7 @@ import {
   filterProjectSourcesByQuery,
   getCheckedProjectSourceRowItems,
   getCheckedProjectSourceTargets,
-} from "@/components/workshop/component-library/tree/TemplatesTree";
+} from "@/components/workshop/component-library/tree/TemplatesTreeModel";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 

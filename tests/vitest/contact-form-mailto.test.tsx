@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { buildSupportMailto, ContactForm } from "@/components/landing/ContactForm";
+import { ContactForm } from "@/components/landing/ContactForm";
+import { buildSupportMailto } from "@/components/landing/contact-mailto";
 
 describe("contact form support mailto", () => {
   it("builds a support email draft with beta feedback context", () => {

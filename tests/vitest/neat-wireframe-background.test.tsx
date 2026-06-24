@@ -1,6 +1,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NeatWireframeBackground, shouldUseStaticNeatFallback } from "@/components/landing/NeatWireframeBackground";
+import { NeatWireframeBackground } from "@/components/landing/NeatWireframeBackground";
+import { shouldUseStaticNeatFallback } from "@/components/landing/neat-wireframe-utils";
 
 const neatDestroy = vi.fn();
 const neatConstructor = vi.fn();

@@ -628,7 +628,7 @@ describe("component library manager UI", () => {
     expect(contextStrip).toHaveTextContent("Sorted by folder order");
 
     fireEvent.click(within(sheet).getByRole("button", { name: "Filter components" }));
-    const filterDialog = within(sheet).getByRole("dialog");
+    const filterDialog = within(sheet).getByRole("region", { name: "Filter components" });
     expect(within(filterDialog).getByText("Filter components")).toBeInTheDocument();
     expect(within(filterDialog).getByRole("button", { name: "Reset filters" })).toBeDisabled();
 

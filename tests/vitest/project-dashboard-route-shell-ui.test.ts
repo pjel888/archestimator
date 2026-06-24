@@ -10,6 +10,7 @@ import {
   projectDashboardLayout,
   projectDashboardLoading,
   projectTotalHeader,
+  projectTotalEvents,
   projectEstimateMetadataStrip,
   projectDashboardClient,
   projectRouteContentFallback,
@@ -59,7 +60,8 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectTotalHeader).toContain("pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)");
     expect(projectTotalHeader).toContain("if (!isEstimateSheetRoute) return null;");
     expect(projectTotalHeader).toContain("PROJECT_BUDGET_CHANGE_EVENT");
-    expect(projectTotalHeader).toContain("dispatchProjectBudgetChange");
+    expect(projectTotalHeader).toContain("window.addEventListener(PROJECT_BUDGET_CHANGE_EVENT");
+    expect(projectTotalEvents).toContain("dispatchProjectBudgetChange");
     expect(projectTotalHeader).toContain("formatPeso(budget)");
     expect(projectEstimateMetadataStrip).toContain("dispatchProjectBudgetChange(projectBudget ?? 0)");
     expect(projectDashboardClient).not.toContain("dispatchProjectBudgetChange");
@@ -93,7 +95,8 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardClient).toContain("ProjectEstimateSummaryPanel");
     expect(projectDashboardClient).toContain("ProjectActivityFeedPanel");
     expect(projectDashboardClient).toContain("All estimate sheets");
-    expect(projectDashboardClient).toContain("rightRail={<ProjectActivityFeedPanel page={projectActivityPage} />}");
+    expect(projectDashboardClient).toContain("const mapRightRail = useMemo(() => <ProjectActivityFeedPanel page={projectActivityPage} />");
+    expect(projectDashboardClient).toContain("rightRail={mapRightRail}");
     expect(projectDashboardClient).toContain('data-testid="project-activity-date-toggle"');
     expect(projectDashboardClient).toContain("aria-expanded={!collapsed}");
     expect(projectDashboardClient).not.toContain("{page.items.length}");

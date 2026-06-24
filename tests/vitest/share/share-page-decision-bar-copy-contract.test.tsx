@@ -1,7 +1,8 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   useSharedLinkSession: vi.fn(),
@@ -13,14 +14,29 @@ vi.mock("@/hooks/use-shared-link-session", () => ({
 
 import SharePageDecision from "@/components/share/SharePageDecision";
 
+function renderWithQueryClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 describe("share page decision bar copy contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ decision: null }) }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("renders a full-width decision bar with the three client response actions", () => {
-    render(<SharePageDecision token="client-token" viewToken="view-token" />);
+    renderWithQueryClient(<SharePageDecision token="client-token" viewToken="view-token" />);
 
     const decisionBar = screen.getByRole("group", { name: /your response|decision/i });
     expect(decisionBar).toHaveAttribute("data-share-decision-bar", "true");
@@ -31,7 +47,7 @@ describe("share page decision bar copy contract", () => {
 
   it("uses client-friendly finality copy that still allows comments after a decision", async () => {
     const user = userEvent.setup();
-    render(<SharePageDecision token="client-token" viewToken="view-token" />);
+    renderWithQueryClient(<SharePageDecision token="client-token" viewToken="view-token" />);
 
     await user.click(screen.getByRole("button", { name: /approve proposal/i }));
 

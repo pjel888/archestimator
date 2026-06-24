@@ -3,10 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   TabStrip,
-  getTabStripPanelId,
-  getTabStripTabId,
   type TabStripItem,
 } from "@/components/ui/tab-strip";
+import { getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip-utils";
 
 // Mock next/link so the link-variant renders a plain anchor with the href in jsdom.
 vi.mock("next/link", () => ({

@@ -6,9 +6,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectPublicationHeader,
   SheetPickerList,
+} from "@/components/workshop/ProjectPublicationHeader";
+import {
   readPublicationServerSignature,
   shouldUseOptimisticPublicationResult,
-} from "@/components/workshop/ProjectPublicationHeader";
+} from "@/components/workshop/publication/publication-optimistic";
 import type { ProjectEstimateSheet, ProjectPublicationSummary } from "@/lib/publication/types";
 
 const workspaceRepositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
@@ -156,7 +158,7 @@ describe("ProjectPublicationHeader publication control", () => {
     const headerSource = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
 
     expect(headerSource).toContain('className="max-w-[760px]"');
-    expect(headerSource).toContain("footer={renderPublicationFooter()}");
+    expect(headerSource).toContain("footer={publicationFooter}");
     expect(headerSource).toContain("location={modalLocation}");
     expect(headerSource).toContain('variant="modal"');
     expect(headerSource).not.toContain("WorkshopTreeTabs");

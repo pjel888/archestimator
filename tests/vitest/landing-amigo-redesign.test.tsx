@@ -43,7 +43,7 @@ describe("landing-v3 homepage contract", () => {
         name: /The estimate that keeps working after you send it\./i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Construction estimating, proposals, and approvals/i)).toBeInTheDocument();
+    expect(screen.getByText(/AEC construction cost estimating & proposal platform/i)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Book a walkthrough/i })[0]).toHaveAttribute("href", "/contact?intent=walkthrough");
     expect(screen.getByRole("link", { name: "Explore the workflow" })).toHaveAttribute("href", "#workflow");
     expect(screen.getByRole("heading", { name: /From first cost to final decision/i })).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe("landing-v3 homepage contract", () => {
     expect(page).not.toContain(deletedNamespace);
   });
 
-  it("keeps the active public copy on connected commercial record positioning", () => {
+  it("keeps the active public copy on winning bids workflow positioning", () => {
     const activeCopy = readActiveHomepageSource();
 
     expect(activeCopy).not.toMatch(/early access/i);
@@ -98,7 +98,8 @@ describe("landing-v3 homepage contract", () => {
     expect(activeCopy).not.toMatch(new RegExp("for " + "contractors", "i"));
     expect(activeCopy).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
     expect(activeCopy).toMatch(/The estimate that keeps working after you send it\./);
-    expect(activeCopy).toMatch(/one connected commercial record/);
+    expect(activeCopy).toMatch(/archestimator is the premier tool for winning bids\./);
+    expect(activeCopy).toMatch(/one workflow from cost estimating to client approval\./);
     expect(activeCopy).toMatch(/Reusable cost intelligence/);
     expect(activeCopy).toMatch(/Recorded decisions/);
   });

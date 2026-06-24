@@ -223,7 +223,7 @@ describe("MainSidebar favorites", () => {
     const alertRegion = container.querySelector("[data-sidebar-favorites-alert]");
 
     expect(politeRegion).not.toBeNull();
-    expect(politeRegion).toHaveAttribute("role", "status");
+    expect(politeRegion?.tagName.toLowerCase()).toBe("output");
     expect(politeRegion).toHaveAttribute("aria-live", "polite");
     expect(politeRegion).toHaveAttribute("aria-atomic", "true");
     expect(politeRegion).toHaveClass("sr-only");

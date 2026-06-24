@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
-import { ProposalExportPreviewDialog, clampRate } from "@/components/workshop/ProposalExportPreviewDialog";
+import { ProposalExportPreviewDialog } from "@/components/workshop/ProposalExportPreviewDialog";
+import { clampRate } from "@/components/workshop/proposal-export-preview-utils";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { setEstimateProposalPreviewSignatureProbe } from "@/components/workshop/estimate-sheet-render-probe";
 // Req 1 / D2: the "Preview Excel Export" opener moved to the project chrome
@@ -93,7 +94,7 @@ describe("ProposalExportPreviewDialog", () => {
       <ProposalExportPreviewDialog
         open
         model={model}
-        isStale
+        status={{ freshness: "stale", download: { kind: "ready" } }}
         onDownload={onDownload}
         scopeControls={{
           selectedScope: "all-tabs",
@@ -107,7 +108,12 @@ describe("ProposalExportPreviewDialog", () => {
     );
 
     expect(screen.getByRole("dialog", { name: "Excel export preview" })).toBeInTheDocument();
-    expect(screen.getByTestId("proposal-preview-overlay")).toHaveClass("z-[1000]", "p-2", "backdrop-blur-md");
+    expect(screen.getByTestId("proposal-preview-overlay")).toHaveClass(
+      "z-[1000]",
+      "p-0",
+      "backdrop:bg-black/25",
+      "backdrop:backdrop-blur-md",
+    );
     expect(screen.getByRole("dialog", { name: "Excel export preview" })).toHaveClass(
       "h-[min(900px,94vh)]",
       "w-[min(1360px,98vw)]",
@@ -156,7 +162,14 @@ describe("ProposalExportPreviewDialog", () => {
     const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const { rerender } = render(
-      <ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} isDownloading onRefresh={vi.fn()} onClose={vi.fn()} />,
+      <ProposalExportPreviewDialog
+        open
+        model={model}
+        onDownload={vi.fn()}
+        status={{ freshness: "current", download: { kind: "preparing" } }}
+        onRefresh={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
 
     const downloadingButton = screen.getByRole("button", { name: /Preparing/i });
@@ -167,7 +180,11 @@ describe("ProposalExportPreviewDialog", () => {
         open
         model={model}
         onDownload={vi.fn()}
-        downloadError="Estimate is too large to export as XLSX right now."
+        status={{
+          freshness: "current",
+          download: { kind: "ready" },
+          downloadError: "Estimate is too large to export as XLSX right now.",
+        }}
         onRefresh={vi.fn()}
         onClose={vi.fn()}
       />,

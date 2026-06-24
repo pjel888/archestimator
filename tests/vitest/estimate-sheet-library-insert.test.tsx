@@ -516,7 +516,7 @@ describe("estimate sheet library insertion persistence", () => {
     expect(await within(kitchenSection).findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
     await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Project Component" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText(/authored directly in the estimate row/i).length).toBeGreaterThan(0);
     expect(within(dialog).getByText("No image yet")).toBeInTheDocument();
@@ -940,7 +940,7 @@ describe("estimate sheet library insertion persistence", () => {
     const kitchenSection = screen.getByLabelText("Kitchen");
     await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Kitchen Cabinet" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("This row is linked to the library, but one or more estimate values have project-level overrides.").length).toBeGreaterThan(0);
     expect(within(dialog).getByText("Source library id")).toBeInTheDocument();

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   estimateCenterColumnBoundary,
+  estimateCenterColumnBoundaryVars,
   workshopPageShell,
   sidePanelWidths,
   resizableSidePanel,
@@ -16,9 +17,12 @@ describe("project dashboard center-column UI governance", () => {
   it("uses one estimate center-column width contract for the totals footer and estimate metadata strip", () => {
     expect(estimateCenterColumnBoundary).toContain('"workshop-title"');
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
-    expect(estimateCenterColumnBoundary).toContain('"--estimate-tree-panel-width": "376px"');
-    expect(estimateCenterColumnBoundary).toContain('"--estimate-library-panel-width": "560px"');
-    expect(estimateCenterColumnBoundary).toContain('"--project-mini-sidebar-width": "104px"');
+    expect(estimateCenterColumnBoundary).toContain("var(--estimate-tree-panel-width)");
+    expect(estimateCenterColumnBoundary).toContain("var(--estimate-library-panel-width)");
+    expect(estimateCenterColumnBoundary).toContain("var(--project-mini-sidebar-width)");
+    expect(estimateCenterColumnBoundaryVars).toContain('"--estimate-tree-panel-width": "376px"');
+    expect(estimateCenterColumnBoundaryVars).toContain('"--estimate-library-panel-width": "560px"');
+    expect(estimateCenterColumnBoundaryVars).toContain('"--project-mini-sidebar-width": "104px"');
     expect(workshopPageShell).toContain("getSidePanelWidthCssVariables");
     expect(sidePanelWidths).toContain("estimate_component_library_width_v2");
     expect(sidePanelWidths).toContain("defaultWidth: 560");
@@ -61,7 +65,7 @@ describe("project dashboard center-column UI governance", () => {
     expect(projectTotalHeader).toContain('className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 px-2"');
     expect(projectTotalHeader).toContain("BUDGET_WARNING_THRESHOLD_PERCENT = 85");
     expect(projectTotalHeader).toContain("function BudgetHealthMeter");
-    expect(projectTotalHeader).toContain('role="meter"');
+    expect(projectTotalHeader).toContain("<meter");
     expect(projectTotalHeader).toContain("BUDGET_HEALTH_SEGMENT_COUNT = 144");
     expect(projectTotalHeader).toContain("data-budget-health-segment");
     expect(projectTotalHeader).toContain("data-budget-health-segment-tone");

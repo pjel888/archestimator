@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { Tree, moveTreeNode, type TreeNode } from "@/components/ui/tree";
+import { Tree, type TreeNode } from "@/components/ui/tree";
+import { moveTreeNode } from "@/components/ui/tree-utils";
 
 function sampleNodes(): TreeNode[] {
   return [

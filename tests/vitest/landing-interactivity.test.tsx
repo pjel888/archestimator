@@ -22,7 +22,8 @@ describe("deleted landing page implementation", () => {
     expect(page).not.toMatch(new RegExp("Redesigned" + "LandingPage"));
     expect(page).not.toMatch(new RegExp("gpt" + "-taste"));
     expect(landingV3).toMatch(/The estimate that keeps working after you send it\./);
-    expect(landingV3).toMatch(/Signal|commercial record|workflow/i);
+    expect(landingV3).toMatch(/archestimator is the premier tool for winning bids\./i);
+    expect(landingV3).toMatch(/one workflow from cost estimating to client approval\./i);
     expect(`${page}\n${landingV3}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
     expect(`${page}\n${landingV3}`).not.toMatch(/Start Winning|Close Projects Faster/i);
   });

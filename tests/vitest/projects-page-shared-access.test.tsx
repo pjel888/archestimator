@@ -278,7 +278,7 @@ describe("ProjectsPageClient shared access", () => {
     expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete project" })).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: "Close project details" })[1]);
+    await user.click(screen.getByRole("button", { name: "Close project details" }));
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: "Lewis Residence" })).not.toBeInTheDocument();
     });

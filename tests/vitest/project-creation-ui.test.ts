@@ -30,6 +30,34 @@ const liveProjectCard = readFileSync(
   "src/components/workshop/LiveProjectCard.tsx",
   "utf8",
 );
+const projectCardThumbnail = readFileSync(
+  "src/components/workshop/ProjectCardThumbnail.tsx",
+  "utf8",
+);
+const projectCardThumbnailReveal = readFileSync(
+  "src/components/workshop/ProjectCardThumbnailReveal.tsx",
+  "utf8",
+);
+const projectCardFavoriteControl = readFileSync(
+  "src/components/workshop/ProjectCardFavoriteControl.tsx",
+  "utf8",
+);
+const projectCardSetupOverlay = readFileSync(
+  "src/components/workshop/ProjectCardSetupOverlay.tsx",
+  "utf8",
+);
+const projectCardTitleBlock = readFileSync(
+  "src/components/workshop/ProjectCardTitleBlock.tsx",
+  "utf8",
+);
+const projectCardSource = [
+  liveProjectCard,
+  projectCardThumbnail,
+  projectCardThumbnailReveal,
+  projectCardFavoriteControl,
+  projectCardSetupOverlay,
+  projectCardTitleBlock,
+].join("\n");
 const projectGridLayout = readFileSync(
   "src/components/workshop/project-grid-layout.ts",
   "utf8",
@@ -80,18 +108,18 @@ describe("project creation UI governance", () => {
     expect(liveProjectCard).toContain('viewMode?: ProjectCardViewMode;');
     expect(liveProjectCard).toContain('data-project-card-view={viewMode}');
     expect(liveProjectCard).toContain('const thumbnailAspectClass = "aspect-[4/3]"');
-    expect(liveProjectCard).toContain("data-project-card-thumbnail");
-    expect(liveProjectCard).toContain('"relative shrink-0 overflow-hidden bg-surfaceMuted"');
-    expect(liveProjectCard).not.toContain("aspect-square");
-    expect(liveProjectCard).not.toContain("aspect-[3/2]");
-    expect(liveProjectCard).toContain('"size-12 shrink-0 rounded-xs border border-hairline"');
-    expect(liveProjectCard).toContain("line-clamp-2");
-    expect(liveProjectCard).toContain("data-project-card-hover-reveal");
-    expect(liveProjectCard).toContain("aria-pressed={isFavorite}");
-    expect(liveProjectCard).toContain('weight="regular"');
-    expect(liveProjectCard).toContain("aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink");
-    expect(liveProjectCard).not.toContain("h-32");
-    expect(liveProjectCard).not.toContain("min-h-[260px]");
+    expect(projectCardSource).toContain("data-project-card-thumbnail");
+    expect(projectCardSource).toContain('"relative shrink-0 overflow-hidden bg-surfaceMuted"');
+    expect(projectCardSource).not.toContain("aspect-square");
+    expect(projectCardSource).not.toContain("aspect-[3/2]");
+    expect(projectCardSource).toContain('"size-12 shrink-0 rounded-xs border border-hairline"');
+    expect(projectCardSource).toContain("line-clamp-2");
+    expect(projectCardSource).toContain("data-project-card-hover-reveal");
+    expect(projectCardSource).toContain("aria-pressed={isFavorite}");
+    expect(projectCardSource).toContain('weight="regular"');
+    expect(projectCardSource).toContain("aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink");
+    expect(projectCardSource).not.toContain("h-32");
+    expect(projectCardSource).not.toContain("min-h-[260px]");
     expect(projectsPageClient).toContain("getProjectGridClassName(projectViewMode)");
     expect(projectGridLayout).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");
   });
@@ -116,7 +144,7 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).not.toContain('snapshot.setupStatus?.state === "error") continue');
     expect(projectsPageClient).toContain('onOptimisticProjectChange={handleOptimisticProjectChange}');
     expect(liveProjectCard).toContain("export type ProjectCardSetupStatus");
-    expect(liveProjectCard).toContain("data-project-card-setup-overlay");
+    expect(projectCardSource).toContain("data-project-card-setup-overlay");
     expect(liveProjectCard).toContain("data-project-card-setup-state={setupStatus?.state}");
     expect(liveProjectCard).toContain("aria-busy={setupBusy || undefined}");
     expect(liveProjectCard).toContain("setupNavigationDisabled");
@@ -139,7 +167,7 @@ describe("project creation UI governance", () => {
     expect(newProjectModal).toContain('aria-label="Close create project"');
     expect(newProjectModal).toContain("max-w-5xl");
     expect(newProjectModal).toContain("rounded-xs");
-    expect(newProjectModal).toContain("bg-black/25 p-2");
+    expect(newProjectModal).toContain("backdrop:bg-black/25");
     expect(newProjectModal).toContain("absolute right-2 top-2");
     expect(newProjectForm).toContain("grid min-h-[560px] grid-rows-[auto_1fr]");
     expect(newProjectFormSections).toContain("Projects");
@@ -236,17 +264,17 @@ describe("project creation UI governance", () => {
 
   it("can auto-generate an alphanumeric project code in the details modal", () => {
     expect(projectCodeUtil).toContain(
-      'export const PROJECT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"',
+      'const PROJECT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"',
     );
     expect(projectCodeUtil).toContain("export function generateProjectCode");
     expect(projectCodeUtil).toContain("crypto.getRandomValues");
     expect(projectDetailsModal).toContain('aria-label="Generate project code"');
     expect(projectDetailsModal).toContain(
-      "setProjectCode(generateProjectCode())",
+      'dispatchDetails({ type: "generateProjectCode" })',
     );
     expect(projectDetailsModal).toContain('name="projectCode"');
     expect(projectDetailsModal).toContain(
-      "setProjectCode(event.currentTarget.value.toUpperCase())",
+      'dispatchDetails({ type: "projectCode", value: event.currentTarget.value })',
     );
   });
 

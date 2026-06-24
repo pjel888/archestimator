@@ -433,6 +433,47 @@ describe("project estimates table inline editing", () => {
     expect(actionMocks.previewBulkDeleteEstimateSheets).not.toHaveBeenCalled();
   });
 
+  it("removes selected rows from the visible bulk selection when edit permission is revoked", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const estimate = makeEstimate();
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <ProjectEstimatesTable
+          estimates={[estimate]}
+          projectId="project-1"
+          canEditEstimateById={{ "estimate-1": true }}
+        />
+      </QueryClientProvider>,
+    );
+
+    const selectInput = screen.getByRole("checkbox", { name: "Select Original Estimate" });
+    await user.click(selectInput);
+
+    expect(selectInput).toBeChecked();
+    expect(screen.getByLabelText("Bulk action toolbar")).toHaveTextContent("1 selected");
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ProjectEstimatesTable
+          estimates={[estimate]}
+          projectId="project-1"
+          canEditEstimateById={{ "estimate-1": false }}
+        />
+      </QueryClientProvider>,
+    );
+
+    const viewOnlySelectInput = screen.getByRole("checkbox", { name: "Select Original Estimate" });
+    expect(viewOnlySelectInput).toBeDisabled();
+    expect(viewOnlySelectInput).not.toBeChecked();
+    expect(screen.queryByLabelText("Bulk action toolbar")).not.toBeInTheDocument();
+  });
+
   it("does not crash when persisted column width storage is blocked", () => {
     const throwingLocalStorage: Storage = {
       get length() {
@@ -457,6 +498,36 @@ describe("project estimates table inline editing", () => {
 
     expect(() => renderTable()).not.toThrow();
     expect(screen.getByLabelText("Estimate name for Original Estimate")).toBeInTheDocument();
+  });
+
+  it("loads column widths from the current project storage key during rerender", () => {
+    window.localStorage.setItem(
+      "archestimator:project-estimates-column-widths:project-2",
+      JSON.stringify({ name: 420 }),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const estimate = makeEstimate();
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />
+      </QueryClientProvider>,
+    );
+
+    const getEstimateNameHeader = () => screen.getByRole("separator", { name: "Resize Estimate Name" }).closest("th");
+    expect(getEstimateNameHeader()).toHaveStyle({ width: "340px" });
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ProjectEstimatesTable estimates={[estimate]} projectId="project-2" />
+      </QueryClientProvider>,
+    );
+
+    expect(getEstimateNameHeader()).toHaveStyle({ width: "420px" });
   });
 
   it("flushes the latest column width preference when the table unmounts during the debounce window", () => {

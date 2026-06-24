@@ -13,7 +13,7 @@ describe("design-system enforcer — dashboard design-language exemption", () =>
   const HERO = '          <h1 className="font-display text-[34px] text-ink">Good evening</h1>';
 
   it("classifies the dashboard dir as exempt and everything else as enforced", () => {
-    expect(isDashboardPxExemptPath("src/components/workshop/dashboard/DashboardHero.tsx")).toBe(true);
+    expect(isDashboardPxExemptPath("src/components/workshop/dashboard/WorkshopDashboard.tsx")).toBe(true);
     expect(isDashboardPxExemptPath("src/components/workshop/dashboard/lib.ts")).toBe(true);
     // Not exempt: the rest of workshop, ui primitives, the homebase client itself.
     expect(isDashboardPxExemptPath("src/components/workshop/WorkshopHomebaseClient.tsx")).toBe(false);

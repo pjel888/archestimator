@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { getActivityScopeKey } from "@/components/workshop/estimate-sheet/activity-history";
+import { getActivityScopeKey } from "@/components/workshop/estimate-sheet/activity-history-model";
 import { useEstimateUiStore } from "@/stores/estimate-ui-store";
 
 // Estimate-Tree unification P3-activity: the activity scope (direct-only vs

@@ -19,7 +19,7 @@ describe("estimate component-library lazy-load boundary", () => {
     expect(estimateSheetContentSource).toContain("return loadProjectComponentLibraryLite(projectId)");
     expect(estimateSheetContentSource).toContain("enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette)");
     expect(estimateSheetContentSource).toContain(
-      "<ComponentLibrarySidebarFallback isError={libraryQuery.isError} onRetry={() => libraryQuery.refetch()} />",
+      "<ComponentLibrarySidebarFallback isError={isLazyLibraryError} onRetry={() => refetchLazyLibrary()} />",
     );
   });
 });
