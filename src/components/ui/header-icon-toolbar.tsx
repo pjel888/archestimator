@@ -2,7 +2,6 @@ import type { MouseEvent, ReactNode } from "react";
 import { CaretDoubleDown, CaretDoubleUp, FunnelSimple, ListBullets, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
-import { useEstimateSurfaceVariant } from "@/components/workshop/estimate-surface-variant";
 import { cn } from "@/lib/ui/cn";
 
 export type HeaderIconToolbarAddAction = {
@@ -64,17 +63,11 @@ export function HeaderIconToolbar({
   filterSlot,
   className,
 }: HeaderIconToolbarProps) {
-  // Glass: the hard `border-hairline` group separators read as ruled chrome and
-  // break the frosted feel; soften them to the cool translucent `--glass-border`
-  // hairline (the same token the floating panes use) so the toolbar reads as one
-  // frosted bar. Paper keeps the original hard hairline byte-for-byte.
-  const isGlass = useEstimateSurfaceVariant() === "glass";
-  const groupSeparatorRight = isGlass
-    ? "mr-1 border-r border-[color:var(--glass-border)] pr-1"
-    : "mr-1 border-r border-hairline pr-1";
-  const groupSeparatorLeft = isGlass
-    ? "ml-1 border-l border-[color:var(--glass-border)] pl-1"
-    : "ml-1 border-l border-hairline pl-1";
+  const toolbarDividerClassName = "h-4 w-px shrink-0 bg-tertiary/70";
+  const hasFilterGroup = Boolean(filterSlot || (showDefaultActions && (onFilter || onGroup)));
+  const hasExpandCollapse = Boolean(onExpandAll || onCollapseAll);
+  const hasMiddleControls = hasFilterGroup || hasExpandCollapse;
+  const hasControlsAfterStart = hasMiddleControls || leadingActions.length > 0;
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
   const toolbarAddActions: HeaderIconToolbarAddAction[] = addActions ?? [
     {
@@ -91,7 +84,7 @@ export function HeaderIconToolbar({
       {startActions.length > 0 ? (
         // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar subgroups need named ARIA groups; <address> is not a control-group element.
         <div
-          className={cn("flex items-center gap-1", groupSeparatorRight)}
+          className="flex items-center gap-1"
           role="group"
           aria-label={startActionsLabel ?? `${labelPrefix} primary actions`}
         >
@@ -112,7 +105,10 @@ export function HeaderIconToolbar({
           ))}
         </div>
       ) : null}
-      {filterSlot || (showDefaultActions && (onFilter || onGroup)) ? (
+      {startActions.length > 0 && hasControlsAfterStart ? (
+        <span aria-hidden="true" className={toolbarDividerClassName} />
+      ) : null}
+      {hasFilterGroup ? (
         // D8: Filter/Group are honest-by-construction. An explicit `filterSlot`
         // always renders (it is a deliberate injection, independent of
         // `showDefaultActions`); the built-in Filter/Group buttons stay gated
@@ -122,10 +118,7 @@ export function HeaderIconToolbar({
         // divider.
         // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar filter controls are a named ARIA group, not contact information.
         <div
-          className={cn(
-            "flex items-center gap-1",
-            (onExpandAll || onCollapseAll) && groupSeparatorRight,
-          )}
+          className="flex items-center gap-1"
           role="group"
           aria-label={`${labelPrefix} view filters`}
         >
@@ -141,6 +134,9 @@ export function HeaderIconToolbar({
           ) : null}
         </div>
       ) : null}
+      {hasFilterGroup && hasExpandCollapse ? (
+        <span aria-hidden="true" className={toolbarDividerClassName} />
+      ) : null}
       {onExpandAll ? (
         <ToolbarIconButton label={`Expand all ${labelPrefix}`} onClick={onExpandAll}>
           <CaretDoubleDown size={12} weight="regular" aria-hidden="true" />
@@ -151,10 +147,13 @@ export function HeaderIconToolbar({
           <CaretDoubleUp size={12} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       ) : null}
+      {leadingActions.length > 0 && hasMiddleControls ? (
+        <span aria-hidden="true" className={toolbarDividerClassName} />
+      ) : null}
       {leadingActions.length > 0 ? (
         // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Toolbar subgroups need named ARIA groups; <address> would be semantically wrong.
         <div
-          className={cn("flex items-center gap-1", groupSeparatorLeft)}
+          className="flex items-center gap-1"
           role="group"
           aria-label={leadingActionsLabel ?? `${labelPrefix} view actions`}
         >

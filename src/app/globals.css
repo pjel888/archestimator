@@ -177,80 +177,27 @@
     0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
   --glass-radius: 12px;
   --glass-nav-radius: 8px;
-  /* Hover: a faint top-lit neutral gradient (not a flat tint). */
-  --glass-nav-hover-bg: linear-gradient(
-    180deg,
-    rgba(38, 44, 58, 0.07),
-    rgba(38, 44, 58, 0.035)
-  );
-  /* Active pill: brand-orange glass — a soft vertical gradient (stronger at the
-     top edge where light catches), inset specular, accent hairline. */
-  --glass-nav-active-bg: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--brand-orange) 18%, transparent),
-    color-mix(in srgb, var(--brand-orange) 7%, transparent)
+  /* Hover and active nav states: flat tints inside the glass panel. */
+  --glass-nav-hover-bg: rgba(38, 44, 58, 0.055);
+  --glass-nav-active-bg: color-mix(
+    in srgb,
+    var(--brand-orange) 11%,
+    transparent
   );
   --glass-nav-active-border: color-mix(
     in srgb,
-    var(--brand-orange) 30%,
+    var(--brand-orange) 24%,
     transparent
   );
-  --glass-nav-active-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
-  /* Combined active-pill shadow: inner top specular + inset accent hairline. */
-  --glass-nav-active-shadow:
-    var(--glass-nav-active-inset),
-    inset 0 0 0 1px var(--glass-nav-active-border);
-  --glass-nav-active-collapsed-bg: linear-gradient(
-    180deg,
-    rgba(38, 44, 58, 0.11),
-    rgba(38, 44, 58, 0.055)
-  );
-  --glass-nav-active-collapsed-border: rgba(38, 44, 58, 0.16);
-  --glass-nav-active-collapsed-shadow:
-    var(--glass-nav-active-inset),
-    inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
-  /* Logo frame: frosted vivid-orange liquid-glass slab with a white mark. */
+  --glass-nav-active-shadow: inset 0 0 0 1px var(--glass-nav-active-border);
+  --glass-nav-active-collapsed-bg: rgba(38, 44, 58, 0.075);
+  --glass-nav-active-collapsed-border: rgba(38, 44, 58, 0.12);
+  --glass-nav-active-collapsed-shadow: inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
+  /* Logo frame: flat brand slab with a white mark. */
   --glass-logo-orange: #f24405;
-  --glass-logo-bg:
-    radial-gradient(
-      92% 150% at 10% 0%,
-      rgba(255, 255, 255, 0.38) 0%,
-      rgba(255, 255, 255, 0.16) 34%,
-      transparent 58%
-    ),
-    radial-gradient(
-      88% 120% at 100% 100%,
-      rgba(121, 34, 2, 0.32) 0%,
-      transparent 62%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%,
-      var(--glass-logo-orange) 44%,
-      color-mix(in srgb, var(--glass-logo-orange) 84%, #7a1e02) 100%
-    );
-  --glass-logo-collapsed-bg: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.14) 0%,
-    rgba(255, 255, 255, 0.07) 48%,
-    rgba(255, 255, 255, 0.025) 100%
-  );
-  --glass-logo-sheen:
-    radial-gradient(
-      120% 170% at 3% 0%,
-      rgba(255, 255, 255, 0.28) 0%,
-      rgba(255, 255, 255, 0.1) 32%,
-      transparent 56%
-    ),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 42%);
-  --glass-logo-border: color-mix(
-    in srgb,
-    var(--glass-logo-orange) 50%,
-    rgba(255, 255, 255, 0.56)
-  );
-  --glass-logo-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
-    inset 0 -1px 0 0 rgba(121, 34, 2, 0.16), 0 1px 2px rgba(30, 35, 50, 0.12);
+  --glass-logo-bg: var(--glass-logo-orange);
+  --glass-logo-collapsed-bg: transparent;
+  --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 88%, black);
   /* Section divider: 1px centre-faded hairline (replaces the hard gray line). */
   --glass-divider: linear-gradient(
     90deg,
@@ -619,13 +566,13 @@ body:has([data-workshop-page-shell-root]) {
   z-index: 2;
 }
 
-/* State-aware liquid-glass logo frame: neutral chip collapsed, orange slab expanded. */
+/* State-aware logo frame: neutral collapsed slot, flat orange expanded slab. */
 .sidebar-logo-frame {
   position: relative;
   isolation: isolate;
   background: var(--glass-logo-bg);
   border: 1px solid var(--glass-logo-border);
-  box-shadow: var(--glass-logo-shadow);
+  box-shadow: none;
   transition-property: width, background, border-color, box-shadow;
   transition-duration: 180ms;
   transition-timing-function: ease-out;
@@ -633,12 +580,7 @@ body:has([data-workshop-page-shell-root]) {
 
 .sidebar-logo-frame--collapsed {
   background: var(--glass-logo-collapsed-bg);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-  backdrop-filter: blur(10px) saturate(120%);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow:
-    0 6px 16px rgba(30, 35, 50, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  border-color: transparent;
 }
 
 .sidebar-logo-frame--collapsed .sidebar-logo-mark {
@@ -651,38 +593,9 @@ body:has([data-workshop-page-shell-root]) {
   color: var(--brand-orange);
 }
 
-.sidebar-logo-frame::before,
-.sidebar-logo-frame::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-}
-
-.sidebar-logo-frame::before {
-  inset: 1px;
-  z-index: 0;
-  border-radius: inherit;
-  background: var(--glass-logo-sheen);
-}
-
-.sidebar-logo-frame--collapsed::before {
-  background: transparent;
-}
-
-.sidebar-logo-frame::after {
-  inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-}
-
-.sidebar-logo-frame--collapsed::after {
-  box-shadow: none;
-}
-
 .sidebar-logo-frame > * {
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 /* Centre-faded 1px section divider — quieter than a hard gray line, suits the glass. */
@@ -1673,6 +1586,30 @@ input[type="number"] {
     0 2px 5px rgba(30, 35, 50, 0.08);
 }
 
+/* Create-project modal: one centered liquid-glass plate with paper-grade
+   content panels inside, so the form stays precise and does not stack blur. */
+.workshop-create-project-modal-glass {
+  --glass-blur-amount: 16px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(242, 248, 244, 0.76),
+      rgba(248, 248, 245, 0.58)
+    ),
+    color-mix(in srgb, var(--glass-bg) 86%, rgba(235, 247, 239, 0.5));
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
+  border-color: color-mix(
+    in srgb,
+    var(--glass-border) 64%,
+    rgba(255, 255, 255, 0.48)
+  );
+  box-shadow:
+    0 24px 58px rgba(30, 35, 50, 0.16),
+    0 8px 18px rgba(30, 35, 50, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
 .workshop-estimates-list-glass {
   position: relative;
   background:
@@ -2138,6 +2075,12 @@ input[type="number"] {
     backdrop-filter: none;
   }
 
+  .workshop-create-project-modal-glass {
+    background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   .workshop-estimates-list-glass {
     background: var(--glass-bg-fallback);
     -webkit-backdrop-filter: none;
@@ -2170,6 +2113,11 @@ input[type="number"] {
   }
   .workshop-project-card-glass {
     background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .workshop-create-project-modal-glass {
+    background: var(--glass-bg-fallback);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -2267,6 +2215,7 @@ input[type="number"] {
   :root[data-glass="ready"] .dashboard-glass-warm,
   :root[data-glass="ready"] .workshop-workspace-glass-surface,
   :root[data-glass="ready"] .dashboard-destination-card,
+  :root[data-glass="ready"] .workshop-create-project-modal-glass,
   :root[data-glass="ready"] .workshop-estimates-list-glass {
     -webkit-backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur)))
       saturate(var(--glass-saturate));
@@ -2298,6 +2247,7 @@ input[type="number"] {
     :root[data-glass="ready"] .workshop-workspace-glass-surface,
     :root[data-glass="ready"] .dashboard-destination-card,
     :root[data-glass="ready"] .workshop-project-card-glass,
+    :root[data-glass="ready"] .workshop-create-project-modal-glass,
     :root[data-glass="ready"] .workshop-estimates-list-glass,
     :root[data-glass="ready"] .sidebar-glass[data-refraction="true"],
     :root[data-glass="ready"] .workshop-liquid-button {

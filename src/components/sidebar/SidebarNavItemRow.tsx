@@ -19,10 +19,8 @@ function formatBadgeCount(count: number) {
   return String(count);
 }
 
-// Active pill — faked glass: expanded keeps the brand-orange translucent fill,
-// while the collapsed rail uses a monochrome active state so the rail stays
-// quiet until the user opens it. No per-child backdrop-filter; the one blur lives
-// on the panel.
+// Active pill: flat tint inside the glass panel. Expanded uses a quiet brand
+// tint, while the collapsed rail stays monochrome until the user opens it.
 const ACTIVE_NAV_ITEM_EXPANDED_TONE_CLASSNAME =
   "text-brand-orange-dark hover:text-brand-orange-dark before:[background:var(--glass-nav-active-bg)] before:[box-shadow:var(--glass-nav-active-shadow)] before:opacity-100";
 

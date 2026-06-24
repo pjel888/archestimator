@@ -7,8 +7,8 @@ type SidebarHeaderProps = {
   expanded: boolean;
 };
 
-// State-aware brand slab: collapsed is an orange mark on neutral frosted glass;
-// expanded becomes a single orange slab that contains the white mark + wordmark.
+// State-aware brand slab: collapsed is a neutral mark slot;
+// expanded becomes a flat orange brand bar with the white mark + wordmark.
 const LOGO_SLAB = 48;
 const MARK_SIZE = 36;
 const EXPANDED_BRAND_SLAB = SIDEBAR_WIDTH_EXPANDED - SIDEBAR_PADDING * 2;
@@ -27,15 +27,6 @@ export function SidebarHeader({ expanded }: SidebarHeaderProps) {
             ].join(" ")}
             style={{
               width: expanded ? EXPANDED_BRAND_SLAB : LOGO_SLAB,
-              ...(expanded
-                ? {}
-                : {
-                    background: "var(--glass-logo-collapsed-bg)",
-                    borderColor: "rgba(255, 255, 255, 0.22)",
-                    boxShadow: "0 6px 16px rgba(30, 35, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.28)",
-                    WebkitBackdropFilter: "blur(10px) saturate(120%)",
-                    backdropFilter: "blur(10px) saturate(120%)",
-                  }),
               transitionDuration: `${expanded ? SIDEBAR_TRANSITION.expandDuration : SIDEBAR_TRANSITION.collapseDuration}ms`,
               transitionTimingFunction: SIDEBAR_TRANSITION.easing,
             }}
