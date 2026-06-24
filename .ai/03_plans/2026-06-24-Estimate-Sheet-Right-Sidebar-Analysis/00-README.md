@@ -56,6 +56,8 @@ The Estimate Sheet Right Sidebar is a **functionally broad but persistence-disho
 
 ## Audit artifact index
 
+### Original audit (22 docs, 2026-06-24)
+
 | File | Topic |
 | --- | --- |
 | [01-SCOPE-AND-CODE-MAP.md](./01-SCOPE-AND-CODE-MAP.md) | Git state, file inventory, query-key map, Mermaid diagrams |
@@ -79,6 +81,21 @@ The Estimate Sheet Right Sidebar is a **functionally broad but persistence-disho
 | [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md) | Verification strategy |
 | [20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md](./20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md) | Product decisions with recommended defaults |
 | [21-TRACEABILITY-MATRIX.md](./21-TRACEABILITY-MATRIX.md) | Finding → decision → task → test mapping |
+
+### Improve-Plan pass additions (8 docs, 2026-06-25)
+
+Added by the `Improve-Plan-Prompt.md` audit pass to close Phase 3 gaps (risk register, rollout/rollback, observability, UX state matrix, performance budget, threat model, scorecard, audit report):
+
+| File | Topic |
+| --- | --- |
+| [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) | Per-finding owner, deadline, mitigation, residual risk |
+| [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) | Per-task rollback paths, feature flag, staged release |
+| [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) | Phase 1 telemetry events, metrics, alerts, dashboards |
+| [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md) | Per-surface loading/empty/error/success/partial/permission state spec |
+| [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md) | Concrete P50/P95/P99 latency, bundle, payload, memory ceilings |
+| [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | STRIDE per surface, assets, threat agents, controls |
+| [28-SCORECARD.md](./28-SCORECARD.md) | Before/after per-doc scoring across Strategy / Doc Quality / Impl Readiness |
+| [29-AUDIT-REPORT.md](./29-AUDIT-REPORT.md) | Narrative report: inventory, findings, revisions, traceability, readiness |
 
 ## Routing note (for /lfg pipeline consumers)
 

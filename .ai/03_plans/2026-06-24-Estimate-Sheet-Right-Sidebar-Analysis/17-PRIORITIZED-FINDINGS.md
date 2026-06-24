@@ -1,6 +1,8 @@
 # 17 — Prioritized Findings
 
 > Severity: **P0** = data loss / cross-workspace exposure / security breach. **P1** = major persistence deception / workflow failure / race condition. **P2** = noticeable inconsistency / incomplete workflow. **P3** = minor polish.
+>
+> **Improve-Plan pass (2026-06-25)**: every finding below now has a corresponding row in [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) with owner, deadline, mitigation, and residual risk. Phase 1 tasks below have explicit rollback paths in [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md).
 
 ---
 

@@ -1,5 +1,7 @@
 # 18 — Implementation Plan
 
+> **Improve-Plan pass (2026-06-25)**: Phase 1 ships as one bundle behind feature flag `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1`. Per-task rollout and rollback paths are specified in [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md). Phase 1 telemetry events needed to verify the fixes are specified in [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md).
+
 ## Phase 1: Persistence Honesty (P1 findings)
 
 ### Task 1.1: Wire component Delete to server-side archive
