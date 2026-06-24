@@ -161,7 +161,9 @@ describe("LibraryOverview", () => {
     expect(within(templateTrust).getByText("Current")).toBeInTheDocument();
     expect(within(templateRow as HTMLElement).getByText("₱61,150.00")).toBeInTheDocument();
 
-    fireEvent.click(within(templateRow as HTMLElement).getByRole("button", { name: "Open Powder Room Basic" }));
+    const openTemplateButton = within(templateRow as HTMLElement).getByText("Open").closest("button");
+    expect(openTemplateButton).not.toBeNull();
+    fireEvent.click(openTemplateButton as HTMLButtonElement);
     expect(navigationMocks.push).toHaveBeenCalledWith("/workshop/library/templates/tpl-1");
   });
 

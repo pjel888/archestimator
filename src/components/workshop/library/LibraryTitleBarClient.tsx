@@ -27,11 +27,11 @@ export function LibraryTitleBarClient() {
     return (
       <div className="flex min-w-0 flex-1 items-center gap-2" data-workshop-title-region>
         <nav aria-label="Template breadcrumb" className="flex min-w-0 items-center gap-1 text-[10px] leading-4">
-          <Link href="/workshop/library" className="shrink-0 text-tertiary transition hover:text-ink">
+          <Link href="/workshop/library" prefetch={false} className="shrink-0 text-tertiary transition hover:text-ink">
             Library
           </Link>
           <span className="text-tertiary/60" aria-hidden="true">/</span>
-          <Link href="/workshop/library/templates" className="shrink-0 text-tertiary transition hover:text-ink">
+          <Link href="/workshop/library/templates" prefetch={false} className="shrink-0 text-tertiary transition hover:text-ink">
             Templates
           </Link>
           <span className="text-tertiary/60" aria-hidden="true">/</span>

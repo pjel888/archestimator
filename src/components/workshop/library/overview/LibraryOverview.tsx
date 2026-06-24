@@ -56,6 +56,7 @@ function SectionHeader({
       </div>
       <Link
         href={linkHref}
+        prefetch={false}
         className="shrink-0 rounded-xs text-[9px] font-medium leading-3 text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         {linkLabel}
@@ -178,6 +179,7 @@ function LibraryHealthLine({ health }: { health: LibraryOverviewHealth }) {
           <Link
             key={stat.id}
             href={stat.href}
+            prefetch={false}
             data-library-overview-health-stat={stat.id}
             className="group flex flex-col gap-0.5 rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >

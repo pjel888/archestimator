@@ -11,21 +11,24 @@ const LIBRARY_TABS = [
     id: "overview" as const,
     label: "Overview",
     href: "/workshop/library",
+    prefetch: false,
     icon: <SquaresFour />,
   },
   {
     id: "components" as const,
     label: "Components",
     href: "/workshop/library/components",
+    prefetch: false,
     icon: <Package />,
   },
   {
     id: "templates" as const,
     label: "Templates",
     href: "/workshop/library/templates",
+    prefetch: false,
     icon: <Blueprint />,
   },
-] satisfies Array<{ id: LibraryTabId; label: string; href: string; icon: React.ReactNode }>;
+] satisfies Array<{ id: LibraryTabId; label: string; href: string; prefetch: false; icon: React.ReactNode }>;
 
 /**
  * Page-level tab strip for the unified Library surface. Lives in the

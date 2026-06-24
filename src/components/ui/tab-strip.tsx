@@ -10,8 +10,10 @@ import { getTabStripPanelId, getTabStripTabId, tabStripTabClassName } from "./ta
 export type TabStripItem<TTab extends string = string> = {
   id: TTab;
   label: string;
-  /** When set, the tab renders as a prefetching link instead of a button. */
+  /** When set, the tab renders as a link instead of a button. */
   href?: string;
+  /** Mirrors next/link's prefetch prop for route-heavy tabs. */
+  prefetch?: boolean | null;
   /** Optional 12px leading icon (regular-weight outline). */
   icon?: ReactNode;
   /** Optional count badge rendered after the label (8px tabular numerals). */
@@ -57,8 +59,7 @@ function TabContent({ tab }: { tab: TabStripItem<string> }) {
 /**
  * Compact file-folder tab strip for tree/panel headers: 32px tall, the
  * active tab lifts onto the white panel surface below it. Tabs render as
- * buttons by default; pass `href` per tab to render prefetching links
- * (route-backed tabs, e.g. the Library page strip).
+ * buttons by default; pass `href` per tab to render route-backed links.
  */
 export function TabStrip<TTab extends string>({
   tabs,
@@ -120,6 +121,7 @@ export function TabStrip<TTab extends string>({
               tabRefs.current[index] = node;
             }}
             href={tab.href}
+            prefetch={tab.prefetch}
             role="tab"
             id={tabId}
             aria-controls={panelId}

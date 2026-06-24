@@ -334,6 +334,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "treeRail"))}>
           <Link
             href="/workshop/library/templates"
+            prefetch={false}
             className={cn(
               "flex h-7 shrink-0 items-center gap-1 px-2 text-[10px] leading-4 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               librarySurfaceClass(surfaceVariant, "railPanelHeader"),

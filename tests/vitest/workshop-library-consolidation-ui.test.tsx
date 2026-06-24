@@ -312,6 +312,33 @@ describe("workshop library consolidation UI", () => {
     expect(libraryTemplatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
   });
 
+  it("keeps library cross-route links from eagerly prefetching sibling route payloads", () => {
+    const tabStrip = readFileSync(join(process.cwd(), "src/components/ui/tab-strip.tsx"), "utf8");
+    const libraryTabs = readFileSync(join(process.cwd(), "src/components/workshop/library/LibraryTabsLayoutClient.tsx"), "utf8");
+    const titleBar = readFileSync(join(process.cwd(), "src/components/workshop/library/LibraryTitleBarClient.tsx"), "utf8");
+    const overview = readFileSync(join(process.cwd(), "src/components/workshop/library/overview/LibraryOverview.tsx"), "utf8");
+    const recentComponentCard = readFileSync(
+      join(process.cwd(), "src/components/workshop/library/overview/RecentComponentCard.tsx"),
+      "utf8",
+    );
+    const templateEditor = readFileSync(
+      join(process.cwd(), "src/components/workshop/library/template-editor/TemplateEditorClient.tsx"),
+      "utf8",
+    );
+
+    expect(tabStrip).toContain("prefetch={tab.prefetch}");
+    expect(libraryTabs.match(/^\s+prefetch: false,$/gm)?.length).toBe(3);
+    expect(titleBar).toContain('href="/workshop/library" prefetch={false}');
+    expect(titleBar).toContain('href="/workshop/library/templates" prefetch={false}');
+    expect(overview).toContain("href={linkHref}");
+    expect(overview).toContain("href={stat.href}");
+    expect(overview.match(/prefetch=\{false\}/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(recentComponentCard).toContain("href={getComponentDetailsHref(component.id)}");
+    expect(recentComponentCard).toContain("prefetch={false}");
+    expect(templateEditor).toContain('href="/workshop/library/templates"');
+    expect(templateEditor).toContain("prefetch={false}");
+  });
+
   it("keeps Supabase upload review safeguards in place", () => {
     const attachmentRoute = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
     const addComponentModal = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");

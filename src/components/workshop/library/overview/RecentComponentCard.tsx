@@ -42,6 +42,7 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
     <li className="min-w-0">
       <Link
         href={getComponentDetailsHref(component.id)}
+        prefetch={false}
         aria-label={`Open components: ${component.name}`}
         data-library-overview-recent-component={component.id}
         className={cn(
