@@ -79,14 +79,14 @@
 
 | UX | P | Conflict group | Status | Evidence | Agent | Branch | Last updated | Notes |
 |---|---|---|---|---|---|---|---|---|
-| UX-019 | P0 | Maps | planned | not-run | — | — | — | Maps location fallback. Parallel-safe. |
+| UX-019 | P0 | Maps | planned (scope narrowed 2026-06-24) | not-run | — | — | 2026-06-24 | Map provider surfaces now in source (ProjectDetailsModal/ProjectLocationMap/ProjectAddressAutocomplete/google-maps loader); remaining work is address-only fallback path. See [02-CURRENT-STATE-ANALYSIS.md](../phase-5/UX-019-maps-location-fallback/02-CURRENT-STATE-ANALYSIS.md). |
 | UX-020 | P0 | Collaboration/access | planned | not-run | — | — | — | Invite email readiness. |
 | UX-001 | P1 | Copy/settings/feedback | planned | not-run | — | — | — | Public copy readiness. |
 | UX-021 | P1 | Collaboration/access | planned | not-run | — | — | — | Realtime presence indicators. Sequence with UX-020. |
 | UX-024 | P1 | Copy/settings/feedback | planned | not-run | — | — | — | AI disabled/quota/draft states. |
 | UX-025 | P1 | Copy/settings/feedback | planned | not-run | — | — | — | Feedback mailto payload. |
 | UX-026 | P1 | Copy/settings/feedback | planned | not-run | — | — | — | Feedback review pagination. |
-| UX-027 | P1 | Copy/settings/feedback | planned | not-run | — | — | — | Toast scoped IDs. Ship first or align all other Phase 5 transient feedback. |
+| UX-027 | P1 | Copy/settings/feedback | planned (scope shifted 2026-06-24) | not-run | — | — | 2026-06-24 | Toast primitive now supports action button (commit 1582b617); ESLint bans native prompt/confirm/alert (commit 52010190); production prior art in component-library sidebar migration (commit dc529267). Remaining work: per-caller scoped-ID adoption + acceptance criteria pinning the action-button surface. Ship first or align all other Phase 5 transient feedback. |
 
 **Phase 5 exit gate:** UX-019 + UX-020 `verified`. Toast scoped-ID pattern landed.
 
@@ -161,6 +161,7 @@ Format:
 First entry:
 
 - 2026-06-23: Ledger initialized. All 44 issues `planned`. IMPLEMENTATION folder created.
+- 2026-06-24: Planning audit pass (no code changes; no status transitions). Reconciled pack file count to 723 (was 709). Recorded post-2026-06-23 codebase drift affecting UX-019 and UX-027 scope (see [../LOOP_LEDGER.md § Audit Pass](../LOOP_LEDGER.md#audit-pass-2026-06-24) and [../04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md § Enforcement](../04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md#enforcement-verified-2026-06-24)). All 44 issues remain `planned`; none promoted to `in-progress` because no implementation work started. UX-019 and UX-027 received scope-narrowing notes (still `planned`, not `in-progress`).
 
 ---
 

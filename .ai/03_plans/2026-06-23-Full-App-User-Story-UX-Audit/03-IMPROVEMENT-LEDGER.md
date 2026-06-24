@@ -11,7 +11,8 @@ Date: 2026-06-23
 | 2a — Dimension enrichment | Added 7 dimension docs per folder (09-15) | +308 | +700 KB / +20K lines | 48/59/63 |
 | 2b — Cross-cutting docs | Dimension matrix + improvement ledger | +2 | +2 files | Honest assessment |
 | 3 — Decision application + review | Applied owner decisions, no-shift toast contract, rate-limit/analytics truth, and Wave 1 scope locks | +1 | +1 file | 100/100/100 for planning |
-| 4 — (future) Per-issue implementation | TDD: source reading, RED, GREEN, provider proof | (per issue) | (per issue) | Execution proof |
+| 4 — Audit pass | Reconciled file count against filesystem (723, not 709); recorded post-2026-06-23 codebase drift (ESLint native-prompt ban, toast action API, Google Maps surfaces, library sidebar toast migration) | +0 (edits only) | — | Verified facts captured in [LOOP_LEDGER.md § Audit Pass](LOOP_LEDGER.md#audit-pass-2026-06-24) |
+| 5 — (future) Per-issue implementation | TDD: source reading, RED, GREEN, provider proof | (per issue) | (per issue) | Execution proof |
 
 ## Gap Closure Status
 

@@ -46,6 +46,16 @@ Acceptance criteria for any touched issue must include this invariant when the
 issue changes feedback behavior: transient feedback is toast-only and layout
 position is stable before, during, and after the toast.
 
+### Enforcement (verified 2026-06-24)
+
+This contract is now **machine-enforced**, not just advisory:
+
+- `eslint.config.mjs` (commit `52010190`) bans native browser `prompt`, `confirm`, and `alert` via both `no-restricted-globals` and `no-restricted-properties` (covering `window.*`, `globalThis.*`, and `self.*`). The rule's message text redirects callers to in-app dialogs, inline editors, toasts, or status surfaces. Any new code that tries to fall back to a native prompt for transient feedback will fail lint.
+- `src/components/ui/toast.tsx` (commit `1582b617`) exposes an optional `action: { label, onClick }` on `ToastInput`, so retry/undo affordances can live inside the toast rather than requiring an inline control.
+- Production prior art: the component-library sidebar (commit `dc529267`) migrated from inline sr-only `lastActionMessage` status to `toast({...})` with `PROJECT_SOURCES_LOAD_TOAST_ID` (scoped-ID pattern) and `toast({ action: { label: 'Undo', onClick } })` (action-button undo flow). This is the canonical example for UX-027 and any other issue that needs to add scoped, action-capable transient feedback.
+
+Implementers should treat the ESLint rule as the floor: any issue that previously contemplated a native prompt fallback must now use the toast system (or an in-app dialog) instead.
+
 ## Wave 1 Scope Locks
 
 | Issue | Wave 1 status | Lock |

@@ -4,6 +4,27 @@ Started: 2026-06-23
 Owner: Sisyphus (orchestrator) + 19 IU-lane agents (parallel)
 Source of truth: [canonical audit](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/) (read-only)
 
+## Audit Pass (2026-06-24)
+
+Reconciled plan-pack claims against current `main` codebase state. Findings also recorded in [01-AUDIT-REPORT.md](01-AUDIT-REPORT.md), [02-DIMENSION-MATRIX.md](02-DIMENSION-MATRIX.md), [03-IMPROVEMENT-LEDGER.md](03-IMPROVEMENT-LEDGER.md), [04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md](04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md), [IMPLEMENTATION/03-EXECUTION-LEDGER.md](IMPLEMENTATION/03-EXECUTION-LEDGER.md), and the UX-019 / UX-027 `02-CURRENT-STATE-ANALYSIS.md` files.
+
+**Verified facts (2026-06-24):**
+
+- **Total markdown files in this pack: 723** (not 709 or 398). Breakdown: 704 per-issue (44 folders × 16 files) + 19 scaffolding (7 top-level parents + 5 IMPLEMENTATION + 7 phase READMEs incl. phase-0). Earlier summary sections below reflect pre-enrichment (398) and post-enrichment (709) snapshots; both are preserved as historical strata. The 709 figure undercounted scaffolding files by 14.
+- **Canonical audit folder unchanged since 2026-06-23.** All 13 numbered docs plus the CSV still present at [.ai/16_user-experience/2026-06-22-full-app-user-story-ux-audit/](../../16_user-experience/2026-06-22-full-app-user-story-ux-audit/). Phase 0 alignment holds.
+- **Native browser `prompt`/`confirm`/`alert` ban is now ESLint-enforced** in `eslint.config.mjs` (commit `52010190`). This makes the no-shift toast contract in [04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md](04-DECISION-APPLICATION-AND-FEEDBACK-CONTRACT.md) machine-enforceable, not just advisory.
+- **Toast primitive (`src/components/ui/toast.tsx`) gained an optional `action` button** (commit `1582b617`) — `{ label, onClick }` on `ToastInput`. UX-027 acceptance criteria can now require retry/undo actions rather than text-only toasts.
+- **Google Maps surfaces now exist in source** (commits `fc519eac`, `bfc38eed`): `src/components/workshop/ProjectDetailsModal.tsx` rebuilt on Dialog primitive, `src/components/workshop/ProjectLocationMap.tsx`, `src/components/workshop/ProjectAddressAutocomplete.tsx`, `src/lib/google-maps/loader.ts`, plus currency picker in the new-project flow. UX-019's `02-CURRENT-STATE-ANALYSIS.md` candidate-path list is updated to cite these specifically.
+- **Component-library sidebar migrated from inline sr-only status text to toast** (commit `dc529267`), with `PROJECT_SOURCES_LOAD_TOAST_ID` demonstrating the scoped-ID pattern and the action-button undo flow proving the action API in production. UX-027's `02-CURRENT-STATE-ANALYSIS.md` now cites this as prior art.
+- **Test-count keystone drift:** canonical audit's keystone cites `tests/vitest/` = 429, `tests/unit/` = 5, `e2e/` = 21. Current filesystem reality is `tests/vitest/` = 418, `tests/unit/` = 5, `e2e/` = 22. Per-folder `02-CURRENT-STATE-ANALYSIS.md` files inherit the keystone count by reference, so they do not need individual edits — re-derive live counts via `ls tests/vitest tests/unit e2e | wc -l` during Wave 0 discovery.
+
+**Issues whose scope shifted (still `planned` until owner picks them up):**
+
+- **UX-019** — Provider surfaces are now in source. The remaining UX-019 work is the *fallback* path (address-only edit when Maps/Places fails), not the primary map integration.
+- **UX-027** — Toast primitive now supports action buttons and the ESLint ban makes native prompts impossible. The scoped-ID pattern has one production caller (`PROJECT_SOURCES_LOAD_TOAST_ID`); the remaining UX-027 work is per-caller adoption and acceptance criteria that pin the action-button surface.
+
+**Issues unchanged by this audit pass:** UX-001–UX-018, UX-020–UX-026, UX-028–UX-044. Their per-issue folders are structurally sound; path specificity is implementation-time per the HonestGap section of [02-DIMENSION-MATRIX.md](02-DIMENSION-MATRIX.md).
+
 ## Loop Contract
 
 Goal: produce one comprehensive per-issue plan folder for every `UX-001..UX-044`,

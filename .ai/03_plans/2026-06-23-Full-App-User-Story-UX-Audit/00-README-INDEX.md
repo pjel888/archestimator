@@ -19,7 +19,7 @@ Read in order:
 4. [IMPLEMENTATION/03-EXECUTION-LEDGER.md](IMPLEMENTATION/03-EXECUTION-LEDGER.md) — live per-issue status tracker (update every session).
 5. [IMPLEMENTATION/04-SESSION-HANDOFF-TEMPLATE.md](IMPLEMENTATION/04-SESSION-HANDOFF-TEMPLATE.md) — template for mid-issue handoffs.
 
-The 709 files in the rest of this pack are READ-ONLY specifications. The `IMPLEMENTATION/` folder is the LIVE execution layer.
+The 723 files in the rest of this pack are READ-ONLY specifications (verified 2026-06-24; see [LOOP_LEDGER.md § Audit Pass](LOOP_LEDGER.md#audit-pass-2026-06-24)). The `IMPLEMENTATION/` folder is the LIVE execution layer.
 
 ---
 
