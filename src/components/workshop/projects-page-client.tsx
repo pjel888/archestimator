@@ -1073,7 +1073,6 @@ export function ProjectsPageClient({
     // is non-awaitable, so overrides can only be cleared once the assignment transition settles
     // AND SSR is authoritative for each id. The updater returns the SAME reference when nothing
     // changed (`changed ? next : current`), so this cannot cascade renders.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     dispatchPageState({
       type: "setGroupOverrides",
       value: (current) => {
@@ -1109,7 +1108,6 @@ export function ProjectsPageClient({
     // Intentional setState-in-effect: optimistic create rows can only be retired when
     // refreshed server props prove the project row is present. router.refresh() is
     // non-awaitable, and clearing earlier would recreate the observed empty-list lag.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     dispatchPageState({
       type: "setOptimisticProjectCreates",
       value: (current) => {

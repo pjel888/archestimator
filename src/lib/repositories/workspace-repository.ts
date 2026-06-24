@@ -132,7 +132,9 @@ const WORKSHOP_PROJECT_LIST_COLUMNS =
 // Drop the two server-only columns the access resolver consumed so they never reach the client.
 // Keeps the return type as the full projects Row (no consumer reads these fields at runtime).
 function toClientProjectRow(project: Tables<"projects">): Tables<"projects"> {
-  const { workspace_id: _workspaceId, created_by: _createdBy, ...rest } = project;
+  const rest: Partial<Tables<"projects">> = { ...project };
+  delete rest.workspace_id;
+  delete rest.created_by;
   return rest as Tables<"projects">;
 }
 
