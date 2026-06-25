@@ -257,6 +257,7 @@ function toLibraryFolderUiNodes(
       label: node.label,
       ariaLabel: node.label,
       selectable: options.enableFolderActions && !isSyntheticRoot,
+      isLeaf: false,
       icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       children: children.length ? children : undefined,
       data: {
@@ -754,6 +755,7 @@ export function LibraryFolderTree({
               onToggle={(nodeId) => handleToggle(nodeId)}
               selectable={selectable}
               selectedIds={selectedIds}
+              showSelectedBackground={false}
               onCheckboxToggle={selectable ? handleCheckboxToggle : undefined}
               currentId={currentId}
               railsPinned={contextMenuOpen || bulkSelectionCount > 0 || selectedComponentCount > 0}

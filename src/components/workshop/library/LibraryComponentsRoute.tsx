@@ -2,6 +2,8 @@ import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceComponentRowsLibrary } from "@/lib/repositories/component-library-repository";
 
+const COMPONENTS_ROUTE_INITIAL_ITEM_LIMIT = 24;
+
 /**
  * Shared server content for the Components tab. Rendered by both the
  * library index route (until the Overview home ships) and the
@@ -12,7 +14,12 @@ export async function LibraryComponentsRoute() {
   // route renders the browse/table surfaces first, so it skips the unbounded
   // audit/attachment graph and hydrates a selected row on demand in the inspector.
   const componentLibrary = await withPerfTraceRequest("workshop.library.components", () =>
-    traced("library.components.rows", () => getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false })),
+    traced("library.components.rows", () =>
+      getCurrentWorkspaceComponentRowsLibrary({
+        includeDetailGraph: false,
+        itemLimit: COMPONENTS_ROUTE_INITIAL_ITEM_LIMIT,
+      }),
+    ),
   );
 
   return <LibraryPageClient initialLibrary={componentLibrary} />;

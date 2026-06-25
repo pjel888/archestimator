@@ -101,11 +101,13 @@ export function LibraryPageClient({
     : projectId
       ? [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "project", projectId]
       : WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY;
-  const { data } = useQuery({
+  const seedIsPartial = seed?.isPartial === true;
+  const { data, isFetching, refetch } = useQuery({
     queryKey: componentRowsQueryKey,
     queryFn: () => projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary(),
     initialData: seed,
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: seedIsPartial ? false : true,
   });
   const library = data ?? seed;
 
@@ -141,6 +143,15 @@ export function LibraryPageClient({
         workspaceId={library?.workspaceId}
         projectId={projectId}
         promotionEnabled={promotionEnabled}
+        componentRowsLoadState={library ? {
+          isPartial: library.isPartial === true,
+          loadedComponentCount: library.loadedComponentCount ?? library.libraryItems.length,
+          totalComponentCount: library.totalComponentCount,
+          isLoading: isFetching,
+          onLoadAll: () => {
+            void refetch();
+          },
+        } : undefined}
         onLibraryItemsMutated={onLibraryItemsMutated}
         onLibraryFoldersMutated={onLibraryFoldersMutated}
         onProjectPromotionSucceeded={onProjectPromotionSucceeded}

@@ -46,6 +46,10 @@ describe("workspace component-library cache scoping", () => {
       "project",
       "project-a",
     ]);
+    expect(workspaceComponentLibraryLiteQueryKey("workspace-a")).toEqual([
+      ...workspacePrefix,
+      "lite",
+    ]);
   });
 
   it("partitions project component-row keys by workspace and project", () => {
@@ -73,7 +77,7 @@ describe("workspace component-library cache scoping", () => {
     }
 
     expect(source("src/components/workshop/library/template-editor/TemplateEditorClient.tsx")).toContain(
-      "workspaceComponentLibraryQueryKey(workspaceId)",
+      "workspaceComponentLibraryLiteQueryKey(workspaceId)",
     );
     expect(source("src/components/workshop/LibraryPageClient.tsx")).toContain(
       "workspaceComponentLibraryQueryKey(library.workspaceId)",

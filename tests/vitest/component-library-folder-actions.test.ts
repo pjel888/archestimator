@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
+  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -40,6 +41,74 @@ function mockEditorSupabaseClient() {
   });
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
   return { from, rpc };
+}
+
+function createAwaitableQuery<T>(result: T) {
+  return {
+    then(resolve: (value: T) => unknown, reject: (reason: unknown) => unknown) {
+      return Promise.resolve(result).then(resolve, reject);
+    },
+  };
+}
+
+function mockTopCreateSupabaseClient() {
+  const rpc = vi.fn(async (name: string) => {
+    if (name === "is_workspace_editor") return { data: true, error: null };
+    return { data: null, error: null };
+  });
+  const siblingQuery = {
+    ...createAwaitableQuery({
+      data: [
+        { id: "folder-a", sort_order: 0 },
+        { id: "folder-b", sort_order: 10 },
+      ],
+      error: null,
+    }),
+    select: vi.fn(),
+    eq: vi.fn(),
+    is: vi.fn(),
+  };
+  siblingQuery.select.mockReturnValue(siblingQuery);
+  siblingQuery.eq.mockReturnValue(siblingQuery);
+  siblingQuery.is.mockReturnValue(siblingQuery);
+
+  const updateQueries = [
+    {
+      ...createAwaitableQuery({ data: null, error: null }),
+      update: vi.fn(),
+      eq: vi.fn(),
+    },
+    {
+      ...createAwaitableQuery({ data: null, error: null }),
+      update: vi.fn(),
+      eq: vi.fn(),
+    },
+  ];
+  for (const query of updateQueries) {
+    query.update.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+  }
+
+  const insertQuery = {
+    insert: vi.fn(),
+    select: vi.fn(),
+    single: vi.fn(async () => ({
+      data: { id: "folder-new", workspace_id: "workspace-1", parent_id: null, name: "Top folder", sort_order: 0 },
+      error: null,
+    })),
+  };
+  insertQuery.insert.mockReturnValue(insertQuery);
+  insertQuery.select.mockReturnValue(insertQuery);
+
+  const queue = [siblingQuery, ...updateQueries, insertQuery];
+  const from = vi.fn((table: string) => {
+    if (table !== "library_folders") throw new Error(`unexpected table access: ${table}`);
+    const query = queue.shift();
+    if (!query) throw new Error("unexpected library_folders query");
+    return query;
+  });
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+  return { from, insertQuery, rpc, siblingQuery, updateQueries };
 }
 
 function createQueryResult(data: Record<string, unknown> | null) {
@@ -82,6 +151,7 @@ beforeEach(() => {
     userId: "user-1",
     profile: { id: "user-1" },
   });
+  authMocks.requireAuth.mockImplementation(() => authMocks.requireCurrentUserContext());
 });
 
 describe("component library folder server actions", () => {
@@ -120,6 +190,27 @@ describe("component library folder server actions", () => {
       target_folder_id: folderId,
     });
     expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("creates a top folder without violating the non-negative sort order constraint", async () => {
+    const supabase = mockTopCreateSupabaseClient();
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(actions.createLibraryFolder(null, "Top folder", { placement: "top" })).resolves.toMatchObject({
+      folder: { id: "folder-new", sort_order: 0 },
+    });
+
+    expect(supabase.siblingQuery.select).toHaveBeenCalledWith("id, sort_order");
+    expect(supabase.siblingQuery.is).toHaveBeenCalledWith("parent_id", null);
+    expect(supabase.updateQueries[0].update).toHaveBeenCalledWith({ sort_order: 20 });
+    expect(supabase.updateQueries[0].eq).toHaveBeenCalledWith("id", "folder-b");
+    expect(supabase.updateQueries[1].update).toHaveBeenCalledWith({ sort_order: 10 });
+    expect(supabase.updateQueries[1].eq).toHaveBeenCalledWith("id", "folder-a");
+    expect(supabase.insertQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Top folder",
+      sort_order: 0,
+      workspace_id: "workspace-1",
+    }));
   });
 
   it("moves a component by updating only its library folder", async () => {

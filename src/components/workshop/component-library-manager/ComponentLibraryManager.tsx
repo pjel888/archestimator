@@ -35,7 +35,6 @@ import {
   previewBulkArchiveLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
-import { ComponentInspectorDock } from "@/components/workshop/library/ComponentInspectorDock";
 import {
   buildComponentRouteStateHref,
   COMPONENT_ROUTE_PARAM,
@@ -48,7 +47,6 @@ import { SourceTrustChips } from "@/components/workshop/library/source-trust-chi
 import { getComponentSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import { promoteExpressRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
 import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
-import { EditComponentDrawer } from "@/components/workshop/library/EditComponentDrawer";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import {
   buildLibraryFolderTree,
@@ -71,7 +69,7 @@ import {
   WORKSHOP_VIRTUALIZATION_FLAGS,
 } from "@/lib/workshop/virtualization-flags";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
-import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
+import type { EstimateRowItem } from "../estimate-tree-data";
 import {
   buildLibraryTreeWithComponentRows,
   getLibraryItemsForTreeNode,
@@ -110,6 +108,20 @@ const AddComponentModal = dynamic(() =>
   },
 );
 
+const ComponentInspectorDock = dynamic(
+  () => import("@/components/workshop/library/ComponentInspectorDock").then((module) => module.ComponentInspectorDock),
+  {
+    loading: () => null,
+  },
+);
+
+const EditComponentDrawer = dynamic(
+  () => import("@/components/workshop/library/EditComponentDrawer").then((module) => module.EditComponentDrawer),
+  {
+    loading: () => null,
+  },
+);
+
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
 const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
@@ -117,6 +129,7 @@ const CATALOGUE_CARD_SHELL_CLASS =
   "flex min-h-[236px] flex-col overflow-hidden rounded-xs border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
 const CATALOGUE_CARD_BODY_HEIGHT_CLASS = "h-[132px]";
 const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode_v1";
+const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
 
 type CatalogueFolderMeta = {
   folderId: string;
@@ -262,6 +275,14 @@ type SheetStatus =
   | { state: "saving"; message: string }
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
+
+type ComponentRowsLoadState = {
+  isPartial: boolean;
+  loadedComponentCount: number;
+  totalComponentCount?: number;
+  isLoading: boolean;
+  onLoadAll: () => void;
+};
 
 type StateUpdater<T> = T | ((current: T) => T);
 type LibraryItemState = { source: EstimateRowItem[]; items: EstimateRowItem[] };
@@ -1485,6 +1506,7 @@ function ComponentLibrarySheet({
   suppliers,
   brands,
   status,
+  componentRowsLoadState,
   selectedItemIds,
   inspectorItemId,
   onAddComponent,
@@ -1507,6 +1529,7 @@ function ComponentLibrarySheet({
   suppliers: ComponentLibrarySupplierOption[];
   brands: ComponentLibraryBrand[];
   status: SheetStatus;
+  componentRowsLoadState?: ComponentRowsLoadState;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
@@ -1628,6 +1651,15 @@ function ComponentLibrarySheet({
     : activeFacetCount > 0
       ? `${facetedItems.length} shown · ${sheetItems.length} in scope`
       : resultSummary;
+  const partialTotalCount = componentRowsLoadState?.totalComponentCount;
+  const showPartialLoadAction = Boolean(
+    componentRowsLoadState?.isPartial &&
+      componentRowsLoadState.loadedComponentCount > 0 &&
+      (partialTotalCount === undefined || partialTotalCount > componentRowsLoadState.loadedComponentCount),
+  );
+  const partialLoadLabel = partialTotalCount === undefined
+    ? `Showing ${componentRowsLoadState?.loadedComponentCount ?? 0}+`
+    : `Showing ${componentRowsLoadState?.loadedComponentCount ?? 0} of ${partialTotalCount}`;
 
   return (
     <section
@@ -1688,6 +1720,20 @@ function ComponentLibrarySheet({
             {selectedLabel} · {visibleSummary}
           </p>
           <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {showPartialLoadAction ? (
+              <div className="flex shrink-0 items-center gap-1 text-[9px] leading-3 text-tertiary">
+                <span className="hidden sm:inline">{partialLoadLabel}</span>
+                <button
+                  type="button"
+                  className="inline-flex h-6 shrink-0 items-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait disabled:opacity-60"
+                  disabled={componentRowsLoadState?.isLoading}
+                  onClick={componentRowsLoadState?.onLoadAll}
+                >
+                  <Rows size={10} weight="regular" aria-hidden="true" />
+                  {componentRowsLoadState?.isLoading ? "Loading" : "Load all"}
+                </button>
+              </div>
+            ) : null}
             {denseModeEnabled ? (
               // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Display mode buttons are a named control group; <address> would be incorrect.
               <div
@@ -1864,6 +1910,7 @@ function ComponentLibrarySheetPanel({
   suppliers,
   brands,
   status,
+  componentRowsLoadState,
   selectedItemIds,
   inspectorItemId,
   onAddComponent,
@@ -1886,6 +1933,7 @@ function ComponentLibrarySheetPanel({
   suppliers: ComponentLibrarySupplierOption[];
   brands: ComponentLibraryBrand[];
   status: SheetStatus;
+  componentRowsLoadState?: ComponentRowsLoadState;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
@@ -1911,6 +1959,7 @@ function ComponentLibrarySheetPanel({
         suppliers={suppliers}
         brands={brands}
         status={status}
+        componentRowsLoadState={componentRowsLoadState}
         selectedItemIds={selectedItemIds}
         inspectorItemId={inspectorItemId}
         onAddComponent={onAddComponent}
@@ -1932,12 +1981,13 @@ export function ComponentLibraryManager({
   suppliers = [],
   brands = [],
   libraryFolders,
-  libraryItems = estimateLibraryItems,
+  libraryItems = EMPTY_LIBRARY_ITEMS,
   workspaceId = "fallback-workspace",
   onLibraryItemsMutated = () => {},
   onLibraryFoldersMutated = () => {},
   projectId,
   promotionEnabled = false,
+  componentRowsLoadState,
   onProjectPromotionSucceeded = () => {},
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
@@ -1955,6 +2005,7 @@ export function ComponentLibraryManager({
   onLibraryFoldersMutated?: (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => void;
   projectId?: string;
   promotionEnabled?: boolean;
+  componentRowsLoadState?: ComponentRowsLoadState;
   onProjectPromotionSucceeded?: () => void;
 } = {}) {
   const surfaceVariant = useLibrarySurfaceVariant();
@@ -1966,7 +2017,8 @@ export function ComponentLibraryManager({
   const quickAddSessionCounterRef = useRef(0);
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
-  const detailHydratedItemIdsRef = useRef<Set<string>>(new Set());
+  const detailHydratedItemIdsRef = useRef<Set<string> | null>(null);
+  if (detailHydratedItemIdsRef.current === null) detailHydratedItemIdsRef.current = new Set<string>();
   const normalizedPropFolders = useMemo(
     // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure prop normalization for reducer seeding, not effect-driven event logic.
     () => normalizeLibraryFolderRecords(libraryFolders ?? []),
@@ -2174,25 +2226,33 @@ export function ComponentLibraryManager({
   const routeComponentIsValid = Boolean(routeComponentId && localLibraryItems.some((entry) => entry.id === routeComponentId));
   const inspectorItemId = routeComponentIsValid ? routeComponentId : null;
   const inspectorItem = inspectorItemId ? localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null : null;
+  const inspectorItemRef = useRef<EstimateRowItem | null>(null);
+  inspectorItemRef.current = inspectorItem;
+  const updateLocalLibraryItemsRef = useRef(updateLocalLibraryItems);
+  updateLocalLibraryItemsRef.current = updateLocalLibraryItems;
+  const syncLibraryItemsCacheRef = useRef(syncLibraryItemsCache);
+  syncLibraryItemsCacheRef.current = syncLibraryItemsCache;
 
   useEffect(() => {
     const itemId = inspectorItemId;
-    if (!itemId || !inspectorItem || isProjectProjectionItem(inspectorItem)) return;
-    if (detailHydratedItemIdsRef.current.has(itemId)) return;
+    const currentInspectorItem = inspectorItemRef.current;
+    const detailHydratedItemIds = detailHydratedItemIdsRef.current;
+    if (!itemId || !currentInspectorItem || !detailHydratedItemIds || isProjectProjectionItem(currentInspectorItem)) return;
+    if (detailHydratedItemIds.has(itemId)) return;
 
     let stale = false;
-    detailHydratedItemIdsRef.current.add(itemId);
+    detailHydratedItemIds.add(itemId);
     Promise.resolve()
       .then(() => loadCostLibraryComponentRowDetail(itemId))
       .then((detail) => {
         if (stale || !detail) return;
         const mergeDetail = (items: EstimateRowItem[]) =>
           items.map((entry) => (entry.id === detail.id ? { ...entry, ...detail } : entry));
-        updateLocalLibraryItems(mergeDetail);
-        syncLibraryItemsCache(mergeDetail);
+        updateLocalLibraryItemsRef.current(mergeDetail);
+        syncLibraryItemsCacheRef.current(mergeDetail);
       })
       .catch(() => {
-        detailHydratedItemIdsRef.current.delete(itemId);
+        detailHydratedItemIds.delete(itemId);
       });
 
     return () => {
@@ -2640,6 +2700,7 @@ export function ComponentLibraryManager({
             suppliers={suppliers}
             brands={brands}
             status={sheetStatus}
+            componentRowsLoadState={componentRowsLoadState}
             selectedItemIds={selectedItemIds}
             inspectorItemId={inspectorItemId}
             onAddComponent={openAddComponentModal}

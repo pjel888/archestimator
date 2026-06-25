@@ -95,6 +95,7 @@ describe("library folder reorder planning", () => {
   it("plans created folder sort orders for top-level and child insertion", () => {
     expect(getLibraryFolderCreateSortOrder([], "top")).toBe(10);
     expect(getLibraryFolderCreateSortOrder([{ sort_order: 10 }, { sort_order: 20 }], "top")).toBe(0);
+    expect(getLibraryFolderCreateSortOrder([{ sort_order: 0 }, { sort_order: 10 }], "top")).toBe(0);
     expect(getLibraryFolderCreateSortOrder([{ sort_order: 10 }, { sort_order: 20 }], "bottom")).toBe(30);
   });
 

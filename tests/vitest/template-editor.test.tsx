@@ -15,7 +15,7 @@ const componentLibraryMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/component-library/actions", () => ({
-  loadCurrentWorkspaceComponentLibrary: vi.fn(async () => ({
+  loadCurrentWorkspaceComponentLibraryLite: vi.fn(async () => ({
     libraryItems: [],
     templates: [],
     categoryTree: [],

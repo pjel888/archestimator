@@ -139,7 +139,7 @@ export function getLibraryFolderCreateSortOrder(
 ) {
   if (siblings.length === 0) return LIBRARY_FOLDER_SORT_ORDER_STEP;
   if (placement === "top") {
-    return Math.min(...siblings.map((folder) => folder.sort_order)) - LIBRARY_FOLDER_SORT_ORDER_STEP;
+    return Math.max(0, Math.min(...siblings.map((folder) => folder.sort_order)) - LIBRARY_FOLDER_SORT_ORDER_STEP);
   }
   return Math.max(...siblings.map((folder) => folder.sort_order)) + LIBRARY_FOLDER_SORT_ORDER_STEP;
 }

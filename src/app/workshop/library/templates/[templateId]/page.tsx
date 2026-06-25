@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { TemplateEditorClient } from "@/components/workshop/library/template-editor/TemplateEditorClient";
+import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getEstimateTemplateById } from "@/lib/repositories/component-library-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 
@@ -13,7 +14,9 @@ export default async function TemplateEditorPage({ params, searchParams }: Templ
   assertRouteErrorSmoke({ routeLabel: "Template editor", searchParams: await searchParams });
 
   const { templateId } = await params;
-  const template = await getEstimateTemplateById(templateId);
+  const template = await withPerfTraceRequest("workshop.library.template-detail", () =>
+    traced("library.templateDetail.template", () => getEstimateTemplateById(templateId)),
+  );
   if (!template) notFound();
   if (!template.workspaceId) notFound();
 

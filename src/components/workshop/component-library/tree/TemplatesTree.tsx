@@ -569,6 +569,7 @@ export function TemplatesTree({
             onToggle={(nodeId) => onToggle(nodeId)}
             selectable={selectable}
             selectedIds={selectable ? (checkedIds ?? []) : []}
+            showSelectedBackground={false}
             onCheckboxToggle={
               selectable && onCheckToggle ? (nodeId, checked) => onCheckToggle(nodeId, checked) : undefined
             }

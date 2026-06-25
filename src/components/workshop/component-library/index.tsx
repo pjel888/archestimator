@@ -18,8 +18,8 @@ import {
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { createLibraryFolder, deleteEstimateTemplate, renameEstimateTemplate, renameLibraryFolder } from "@/lib/component-library/actions";
-import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
+import { createLibraryFolder, deleteEstimateTemplate, renameEstimateTemplate, renameLibraryFolder, reorderLibraryFolders } from "@/lib/component-library/actions";
+import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
   getReusableEstimateOutline,
@@ -90,6 +90,7 @@ import {
   findLibrarySiblingOrder,
   findNode,
   getAllNodeIds,
+  LIBRARY_TREE_ROOT_ORDER_KEY,
   type LibraryTreeOrder,
 } from "./tree/helpers";
 import type { LibraryTreeNode } from "./tree/types";
@@ -1921,26 +1922,30 @@ function EstimateRightSidebarBase({
         return;
       }
 
-      folderEditCommitInFlightRef.current = true;
-      try {
-        const result = await renameLibraryFolder(folderId, name);
-        const confirmedFolder = toLibraryFolderRecord(result.folder);
-        setLocalLibraryFolders((folders) =>
-          folders.map((folder) => (folder.id === confirmedFolder.id ? confirmedFolder : folder)),
-        );
-        setEditingFolderId(null);
-        setEditingFolderName("");
-        setEditingFolderMode(null);
-        onLibraryDataChanged?.();
-        setLastActionMessage(`Folder "${confirmedFolder.name}" renamed.`);
-      } catch {
-        setEditingFolderId(null);
-        setEditingFolderName("");
-        setEditingFolderMode(null);
-        setLastActionMessage("Could not rename the folder. You may not have permission to manage library folders.");
-      } finally {
-        folderEditCommitInFlightRef.current = false;
-      }
+      const optimisticFolder = { ...currentFolder, name };
+      setLocalLibraryFolders((folders) =>
+        folders.map((folder) => (folder.id === folderId ? optimisticFolder : folder)),
+      );
+      setEditingFolderId(null);
+      setEditingFolderName("");
+      setEditingFolderMode(null);
+      setLastActionMessage(`Folder "${name}" renamed.`);
+
+      void renameLibraryFolder(folderId, name)
+        .then((result) => {
+          const confirmedFolder = toLibraryFolderRecord(result.folder);
+          onLibraryDataChanged?.();
+          setLastActionMessage(`Folder "${confirmedFolder.name}" renamed.`);
+          setLocalLibraryFolders((folders) =>
+            folders.map((folder) => (folder.id === confirmedFolder.id ? confirmedFolder : folder)),
+          );
+        })
+        .catch(() => {
+          setLastActionMessage("Could not rename the folder. You may not have permission to manage library folders.");
+          setLocalLibraryFolders((folders) =>
+            folders.map((folder) => (folder.id === folderId ? currentFolder : folder)),
+          );
+        });
       return;
     }
 
@@ -2511,7 +2516,67 @@ function EstimateRightSidebarBase({
   }, [componentViewMode, isProjectTab, setExpandedNodeIdsByViewMode, setProjectExpandedNodeIds]);
 
   const handleLibraryReorder = useCallback(
-    (draggedId: string, targetId: string, position: "before" | "after") => {
+    (draggedId: string, targetId: string, position: "before" | "after" | "inside") => {
+      const draggedNode = findNode(treeNodes, draggedId);
+      const targetNode = findNode(treeNodes, targetId);
+      if (componentViewMode === "default" && draggedNode && targetNode && !draggedNode.item && !targetNode.item) {
+        const reorderableFolders = localLibraryFolders.filter(
+          (folder) => folder.folder_kind === "custom" && !isProjectComponentFolderRecord(folder),
+        );
+        const reorderableFolderIds = new Set(reorderableFolders.map((folder) => folder.id));
+        if (!reorderableFolderIds.has(draggedId) || !reorderableFolderIds.has(targetId)) return;
+
+        let targetParentId: string | null;
+        let targetIndex: number;
+        if (position === "inside") {
+          targetParentId = targetId;
+          targetIndex = reorderableFolders.filter((folder) => folder.parent_id === targetId).length;
+        } else {
+          const siblingInfo = findLibrarySiblingOrder(treeNodes, draggedId, targetId);
+          if (!siblingInfo) return;
+          const withoutDragged = siblingInfo.siblingIds.filter((id) => id !== draggedId);
+          const targetSiblingIndex = withoutDragged.indexOf(targetId);
+          if (targetSiblingIndex < 0) return;
+          targetParentId = siblingInfo.parentKey === LIBRARY_TREE_ROOT_ORDER_KEY ? null : siblingInfo.parentKey;
+          targetIndex = position === "before" ? targetSiblingIndex : targetSiblingIndex + 1;
+        }
+
+        const result = buildLibraryFolderReorderPlan({
+          folders: reorderableFolders,
+          draggedFolderId: draggedId,
+          targetParentId,
+          targetIndex,
+        });
+        if (!result.ok) return;
+
+        const previousFolders = localLibraryFolders;
+        const previousOrder = customOrderByViewMode;
+        const nextFolderById = new Map(result.plan.nextFolders.map((folder) => [folder.id, folder]));
+        setLocalLibraryFolders((folders) => folders.map((folder) => nextFolderById.get(folder.id) ?? folder));
+
+        const toOrderKey = (parentId: string | null) => parentId ?? LIBRARY_TREE_ROOT_ORDER_KEY;
+        const nextDefaultOrder = { ...customOrderByViewMode.default };
+        delete nextDefaultOrder[toOrderKey(result.plan.sourceParentId)];
+        delete nextDefaultOrder[toOrderKey(result.plan.targetParentId)];
+        const nextOrderByViewMode = { ...customOrderByViewMode, default: nextDefaultOrder };
+        setCustomOrderByViewMode(nextOrderByViewMode);
+        safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, nextOrderByViewMode);
+
+        void reorderLibraryFolders({ updates: result.plan.updates })
+          .then(() => {
+            onLibraryDataChanged?.();
+            setLastActionMessage("Folder moved.");
+          })
+          .catch(() => {
+            setLocalLibraryFolders(previousFolders);
+            setCustomOrderByViewMode(previousOrder);
+            safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, previousOrder);
+            setLastActionMessage("Could not move the folder. You may not have permission to manage library folders.");
+          });
+        return;
+      }
+
+      if (position === "inside") return;
       const siblingInfo = findLibrarySiblingOrder(treeNodes, draggedId, targetId);
       if (!siblingInfo) return;
       const withoutDragged = siblingInfo.siblingIds.filter((id) => id !== draggedId);
@@ -2526,7 +2591,16 @@ function EstimateRightSidebarBase({
       setCustomOrderByViewMode(next);
       safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, next);
     },
-    [componentViewMode, customOrderByViewMode, setCustomOrderByViewMode, treeNodes],
+    [
+      componentViewMode,
+      customOrderByViewMode,
+      localLibraryFolders,
+      onLibraryDataChanged,
+      setCustomOrderByViewMode,
+      setLastActionMessage,
+      setLocalLibraryFolders,
+      treeNodes,
+    ],
   );
 
   const handleBulkAddSelected = useCallback(() => {
@@ -3039,6 +3113,7 @@ function EstimateRightSidebarBase({
                 checkedIds={bulkSelectedIds}
                 onCheckToggle={handleBulkCheckToggle}
                 onReorder={isLibraryTab ? handleLibraryReorder : undefined}
+                folderNestingEnabled={isLibraryTab && componentViewMode === "default"}
                 reorderDisabled={searchQuery.trim().length > 0}
                 loading={libraryDataLoading}
                 loadingAriaLabel={isProjectTab ? "Loading Project tree" : "Loading Library tree"}

@@ -14,6 +14,7 @@ import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 const templateActionMocks = vi.hoisted(() => ({
   createLibraryFolder: vi.fn(),
   renameLibraryFolder: vi.fn(),
+  reorderLibraryFolders: vi.fn(),
   createEstimateTemplate: vi.fn(),
   createEstimateTemplateFromEstimateTab: vi.fn(),
   createEstimateTemplateFromEstimateNode: vi.fn(),
@@ -42,6 +43,7 @@ vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
   createLibraryFolder: templateActionMocks.createLibraryFolder,
   renameLibraryFolder: templateActionMocks.renameLibraryFolder,
+  reorderLibraryFolders: templateActionMocks.reorderLibraryFolders,
   createEstimateTemplate: templateActionMocks.createEstimateTemplate,
   createEstimateTemplateFromEstimateTab: templateActionMocks.createEstimateTemplateFromEstimateTab,
   createEstimateTemplateFromEstimateNode: templateActionMocks.createEstimateTemplateFromEstimateNode,
@@ -190,6 +192,50 @@ function openLibrarySearch(toggleLabel = "Show library search", inputLabel = "Se
   return librarySearchInput(inputLabel);
 }
 
+function createLibraryDragDataTransfer() {
+  const store = new Map<string, string>();
+  const types: string[] = [];
+  return {
+    types,
+    dropEffect: "none",
+    effectAllowed: "all",
+    setData: vi.fn((type: string, value: string) => {
+      store.set(type, value);
+      if (!types.includes(type)) types.push(type);
+    }),
+    getData: vi.fn((type: string) => store.get(type) ?? ""),
+    setDragImage: vi.fn(),
+    clearData: vi.fn(),
+  };
+}
+
+function setLibraryRowRect(element: HTMLElement, top = 0, height = 28) {
+  element.getBoundingClientRect = () => ({
+    x: 0,
+    y: top,
+    top,
+    left: 0,
+    right: 200,
+    bottom: top + height,
+    width: 200,
+    height,
+    toJSON: () => ({}),
+  });
+}
+
+function dispatchLibraryDragEvent(
+  element: HTMLElement,
+  type: "dragstart" | "dragover" | "drop" | "dragend",
+  options: { clientY?: number; dataTransfer: ReturnType<typeof createLibraryDragDataTransfer> },
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { value: options.dataTransfer });
+  if (options.clientY !== undefined) {
+    Object.defineProperty(event, "clientY", { value: options.clientY });
+  }
+  fireEvent(element, event);
+}
+
 describe("component library UI", () => {
   beforeAll(() => {
     if (!window.PointerEvent) {
@@ -206,6 +252,7 @@ describe("component library UI", () => {
     useEstimateWorkshopDragState.setState({ activeDrag: null });
     templateActionMocks.createLibraryFolder.mockReset();
     templateActionMocks.renameLibraryFolder.mockReset();
+    templateActionMocks.reorderLibraryFolders.mockReset();
     templateActionMocks.createEstimateTemplate.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
@@ -288,6 +335,56 @@ describe("component library UI", () => {
     expect(screen.queryByRole("button", { name: /new/i })).not.toBeInTheDocument();
   });
 
+  it("nests an empty library folder inside another folder from the sidebar tree", async () => {
+    templateActionMocks.reorderLibraryFolders.mockResolvedValueOnce(undefined);
+    const furnitureFolder = {
+      id: "folder-furniture",
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Furniture",
+      sort_order: 10,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    const lightingFolder = {
+      id: "folder-lighting",
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Lighting",
+      sort_order: 20,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+
+    renderSidebar({
+      initialLibraryItems: [],
+      libraryFolders: [furnitureFolder, lightingFolder],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse all library" }));
+    expect(screen.getByRole("treeitem", { name: "Lighting" })).toHaveAttribute("aria-expanded", "false");
+
+    const furnitureRow = screen.getByRole("treeitem", { name: "Furniture" });
+    const lightingRow = screen.getByRole("treeitem", { name: "Lighting" });
+    setLibraryRowRect(lightingRow, 0, 28);
+
+    const dataTransfer = createLibraryDragDataTransfer();
+    dispatchLibraryDragEvent(furnitureRow, "dragstart", { dataTransfer });
+    dispatchLibraryDragEvent(lightingRow, "dragover", { dataTransfer, clientY: 14 });
+    dispatchLibraryDragEvent(lightingRow, "drop", { dataTransfer, clientY: 14 });
+    dispatchLibraryDragEvent(furnitureRow, "dragend", { dataTransfer });
+
+    await waitFor(() =>
+      expect(templateActionMocks.reorderLibraryFolders).toHaveBeenCalledWith({
+        updates: expect.arrayContaining([
+          expect.objectContaining({ id: "folder-furniture", parentId: "folder-lighting", sortOrder: 10 }),
+        ]),
+      }),
+    );
+    expect(screen.getByRole("treeitem", { name: "Lighting" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("treeitem", { name: "Furniture" })).toHaveAttribute("aria-level", "2");
+  });
+
   it("opens and closes the search dropdown from the toolbar toggle", () => {
     renderSidebar();
     openLibrarySearch();
@@ -327,6 +424,9 @@ describe("component library UI", () => {
     });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Furniture" }));
+    const selectedFolderRow = screen.getByRole("treeitem", { name: "Furniture" });
+    expect(selectedFolderRow).toHaveAttribute("aria-selected", "true");
+    expect(selectedFolderRow).not.toHaveClass("bg-accentSoft");
     expect(screen.getByRole("checkbox", { name: "Select HEMLINGBY Loveseat" })).toBeChecked();
 
     const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
@@ -531,6 +631,50 @@ describe("component library UI", () => {
     expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: 'Folder "Seating" renamed.' });
   });
 
+  it("commits inline library folder rename before the server action resolves", async () => {
+    const user = userEvent.setup();
+    const furnitureFolder = {
+      id: sidebarCustomFolderId,
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Furniture",
+      sort_order: 10,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    let resolveRename: (value: { folder: typeof furnitureFolder }) => void = () => {};
+    templateActionMocks.renameLibraryFolder.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveRename = resolve;
+    }));
+
+    renderSidebar({
+      libraryFolders: [furnitureFolder],
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+    });
+
+    await user.pointer({ target: screen.getByRole("treeitem", { name: "Furniture" }), keys: "[MouseRight]" });
+    await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
+    await user.clear(folderNameInput);
+    await user.type(folderNameInput, "Seating{Enter}");
+
+    expect(templateActionMocks.renameLibraryFolder).toHaveBeenCalledWith(sidebarCustomFolderId, "Seating");
+    expect(screen.getByRole("treeitem", { name: "Seating" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveRename({
+        folder: {
+          ...furnitureFolder,
+          name: "Seating",
+        },
+      });
+    });
+
+    expect(screen.getByRole("treeitem", { name: "Seating" })).toBeInTheDocument();
+  });
+
   it("keeps the original folder name when inline folder rename fails", async () => {
     const user = userEvent.setup();
     const furnitureFolder = {
@@ -560,6 +704,49 @@ describe("component library UI", () => {
     expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Seating" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+    expect(toastMocks.toast).toHaveBeenCalledWith({
+      tone: "error",
+      message: "Could not rename the folder. You may not have permission to manage library folders.",
+    });
+  });
+
+  it("rolls back an optimistic inline library folder rename when persistence fails", async () => {
+    const user = userEvent.setup();
+    const furnitureFolder = {
+      id: sidebarCustomFolderId,
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Furniture",
+      sort_order: 10,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    let rejectRename: (reason: Error) => void = () => {};
+    templateActionMocks.renameLibraryFolder.mockImplementationOnce(() => new Promise((_, reject) => {
+      rejectRename = reject;
+    }));
+
+    renderSidebar({
+      libraryFolders: [furnitureFolder],
+      initialLibraryItems: sidebarSeedItemsWithCustomFolder,
+    });
+
+    await user.pointer({ target: screen.getByRole("treeitem", { name: "Furniture" }), keys: "[MouseRight]" });
+    await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
+    await user.clear(folderNameInput);
+    await user.type(folderNameInput, "Seating{Enter}");
+
+    expect(screen.getByRole("treeitem", { name: "Seating" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+
+    await act(async () => {
+      rejectRename(new Error("No access"));
+    });
+
+    expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Seating" })).not.toBeInTheDocument();
     expect(toastMocks.toast).toHaveBeenCalledWith({
       tone: "error",
       message: "Could not rename the folder. You may not have permission to manage library folders.",
@@ -708,6 +895,9 @@ describe("component library UI", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Project" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Project Vanity" }));
+    const selectedProjectRow = screen.getByRole("treeitem", { name: "Project Vanity" });
+    expect(selectedProjectRow).toHaveAttribute("aria-selected", "true");
+    expect(selectedProjectRow).not.toHaveClass("bg-accentSoft");
 
     const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
     expect(within(dock).getByRole("button", { name: "Add selected components" })).toBeInTheDocument();
@@ -2366,6 +2556,9 @@ describe("templates tree", () => {
     openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen Starter" }));
+    const selectedTemplateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    expect(selectedTemplateRow).toHaveAttribute("aria-selected", "true");
+    expect(selectedTemplateRow).not.toHaveClass("bg-accentSoft");
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
     expect(onInsertTemplate).toHaveBeenCalledTimes(1);

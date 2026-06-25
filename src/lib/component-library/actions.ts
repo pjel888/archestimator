@@ -37,6 +37,7 @@ import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
 import {
+  LIBRARY_FOLDER_SORT_ORDER_STEP,
   getLibraryFolderCreateSortOrder,
   type LibraryFolderCreatePlacement,
 } from "./library-folder-reorder";
@@ -774,13 +775,26 @@ export async function createLibraryFolder(parentId: string | null, name: string,
 
   let siblingsQuery = supabase
     .from("library_folders")
-    .select("sort_order")
+    .select("id, sort_order")
     .eq("workspace_id", workspace.id);
   siblingsQuery = parentId ? siblingsQuery.eq("parent_id", parentId) : siblingsQuery.is("parent_id", null);
   const { data: siblings, error: siblingsError } = await siblingsQuery;
   if (siblingsError) throw siblingsError;
 
-  const nextSortOrder = getLibraryFolderCreateSortOrder(siblings ?? [], options.placement ?? "bottom");
+  const placement = options.placement ?? "bottom";
+  const siblingRows = siblings ?? [];
+  const nextSortOrder = getLibraryFolderCreateSortOrder(siblingRows, placement);
+  if (placement === "top" && siblingRows.some((sibling) => sibling.sort_order === nextSortOrder)) {
+    const sortedSiblings = [...siblingRows].sort((left, right) => right.sort_order - left.sort_order);
+    for (const sibling of sortedSiblings) {
+      const { error: shiftError } = await supabase
+        .from("library_folders")
+        .update({ sort_order: sibling.sort_order + LIBRARY_FOLDER_SORT_ORDER_STEP })
+        .eq("id", sibling.id)
+        .eq("workspace_id", workspace.id);
+      if (shiftError) throw shiftError;
+    }
+  }
   const { data, error } = await supabase
     .from("library_folders")
     .insert({

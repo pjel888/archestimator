@@ -444,6 +444,7 @@ export function LibraryTree({
   checkedIds,
   onCheckToggle,
   onReorder,
+  folderNestingEnabled = false,
   reorderDisabled = false,
 }: LibraryTreeProps) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
@@ -506,21 +507,24 @@ export function LibraryTree({
     [onItemDragStart, reorderEnabled],
   );
 
-  // The taxonomy is fixed: drops only rearrange siblings under one parent.
   const handleCanReorderDrop = useCallback(
     (draggedId: string, targetId: string, position: TreeDropPosition) => {
-      if (!reorderEnabled || position === "inside") return false;
+      if (!reorderEnabled) return false;
+      const dragged = nodeById.get(draggedId);
+      const target = nodeById.get(targetId);
+      if (!dragged || !target || dragged.item || target.item) return false;
+      if (position === "inside") return folderNestingEnabled;
       return parentByNodeId.get(draggedId) === parentByNodeId.get(targetId);
     },
-    [parentByNodeId, reorderEnabled],
+    [folderNestingEnabled, nodeById, parentByNodeId, reorderEnabled],
   );
 
   const handleReorderDrop = useCallback(
     (draggedId: string, targetId: string, position: TreeDropPosition) => {
-      if (!reorderEnabled || position === "inside") return;
+      if (!reorderEnabled || (position === "inside" && !folderNestingEnabled)) return;
       onReorder?.(draggedId, targetId, position);
     },
-    [onReorder, reorderEnabled],
+    [folderNestingEnabled, onReorder, reorderEnabled],
   );
 
   const handleTreeContextMenu = useCallback((nodeId: string) => {
@@ -658,6 +662,7 @@ export function LibraryTree({
             onToggle={(nodeId) => onToggle(nodeId)}
             selectable={selectable}
             selectedIds={selectable ? (checkedIds ?? []) : selectedNodeId ? [selectedNodeId] : []}
+            showSelectedBackground={false}
             onCheckboxToggle={
               selectable && onCheckToggle ? (nodeId, checked) => onCheckToggle(nodeId, checked) : undefined
             }

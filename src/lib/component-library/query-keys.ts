@@ -19,8 +19,10 @@ export function workspaceComponentLibraryQueryKey(workspaceId: string) {
 // still invalidates this lite key without crossing workspace boundaries.
 const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT = "lite";
 
-export function workspaceComponentLibraryLiteQueryKey(workspaceId: string, projectId: string) {
-  return [...workspaceComponentLibraryQueryKey(workspaceId), WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT, "project", projectId] as const;
+export function workspaceComponentLibraryLiteQueryKey(workspaceId: string, projectId?: string) {
+  return projectId
+    ? [...workspaceComponentLibraryQueryKey(workspaceId), WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT, "project", projectId] as const
+    : [...workspaceComponentLibraryQueryKey(workspaceId), WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_SEGMENT] as const;
 }
 
 // Library Optimization Plan P0 T3 — the Components *management* tab (LibraryPageClient

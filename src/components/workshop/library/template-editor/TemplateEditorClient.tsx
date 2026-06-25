@@ -17,8 +17,8 @@ import {
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import { useStableCallback } from "@/hooks/use-stable-callback";
-import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
-import { workspaceComponentLibraryQueryKey } from "@/lib/component-library/query-keys";
+import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
+import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "../../component-library";
@@ -164,7 +164,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   // Library Optimization Plan P1 T8 (F22): replace native browser dialogs with
   // the in-DS dialog pattern (mirrors TemplatesBrowseManager). One reusable text prompt
   // for add/rename; a destructive ConfirmDialog for delete.
-  const componentLibraryQueryKey = useMemo(() => workspaceComponentLibraryQueryKey(workspaceId), [workspaceId]);
+  const componentLibraryQueryKey = useMemo(() => workspaceComponentLibraryLiteQueryKey(workspaceId), [workspaceId]);
   const openTextPrompt = useCallback((next: TemplateEditorTextPrompt) => {
     dispatchUi({ type: "openTextPrompt", prompt: next });
   }, []);
@@ -251,7 +251,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   // switching between the two surfaces reuses one fetch.
   const { data: libraryData } = useQuery({
     queryKey: componentLibraryQueryKey,
-    queryFn: () => loadCurrentWorkspaceComponentLibrary(),
+    queryFn: () => loadCurrentWorkspaceComponentLibraryLite(),
     staleTime: 5 * 60 * 1000,
   });
   const queryClient = useQueryClient();

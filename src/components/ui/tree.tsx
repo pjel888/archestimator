@@ -290,8 +290,10 @@ export interface TreeProps {
    * focus (e.g. a context menu portal), so consumers pin the rails for the
    * overlay's lifetime to stop rows shifting under it. Selection already
    * pins the rails internally.
-   */
+  */
   railsPinned?: boolean;
+  /** Shows the selected-row fill. Disable when the left rail/current marker is the intended signal. */
+  showSelectedBackground?: boolean;
   /** Custom content for the label area of the default row. */
   renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
   /** Horizontal indent applied per depth level. Defaults to `TREE_INDENT_STEP`. */
@@ -401,6 +403,7 @@ interface DefaultTreeRowProps {
   nodeDraggable: boolean;
   /** Keep the affordance rails open (e.g. while a selection exists). */
   railsPinned: boolean;
+  showSelectedBackground: boolean;
   indentStep: number;
   onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLInputElement>) => void;
   rowRenderer?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
@@ -414,6 +417,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
   expandable,
   nodeDraggable,
   railsPinned,
+  showSelectedBackground,
   indentStep,
   onCheckboxClick,
   rowRenderer,
@@ -430,7 +434,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           "group/tree-row flex min-h-7 items-center px-1 text-[10px] text-ink tracking-normal transition-colors outline-none",
           "border border-transparent",
           node.rowClassName,
-          isSelected && "bg-accentSoft",
+          showSelectedBackground && isSelected && "bg-accentSoft",
           (isCurrent || state.isFocused) && "border-l-focus",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
@@ -557,6 +561,7 @@ interface TreeFlatRowProps {
   expandable: boolean;
   nodeDraggable: boolean;
   railsPinned: boolean;
+  showSelectedBackground: boolean;
   indentStep: number;
   onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLInputElement>) => void;
   rowRenderer?: TreeProps["renderRow"];
@@ -572,6 +577,7 @@ const TreeFlatRow = memo(function TreeFlatRow({
   expandable,
   nodeDraggable,
   railsPinned,
+  showSelectedBackground,
   indentStep,
   onCheckboxClick,
   rowRenderer,
@@ -593,6 +599,7 @@ const TreeFlatRow = memo(function TreeFlatRow({
       expandable={expandable}
       nodeDraggable={nodeDraggable}
       railsPinned={railsPinned}
+      showSelectedBackground={showSelectedBackground}
       indentStep={indentStep}
       onCheckboxClick={onCheckboxClick}
       rowRenderer={rowRenderer}
@@ -632,6 +639,7 @@ export function Tree({
       className,
       emptyState,
       railsPinned = false,
+      showSelectedBackground = true,
       renderRow,
       indentStep = TREE_INDENT_STEP,
       renderItem,
@@ -1346,6 +1354,7 @@ export function Tree({
                     expandable={expandable}
                     nodeDraggable={isNodeDraggable(flat.node)}
                     railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+                    showSelectedBackground={showSelectedBackground}
                     indentStep={indentStep}
                     onCheckboxClick={handleCheckboxClick}
                     rowRenderer={renderRow}
@@ -1367,6 +1376,7 @@ export function Tree({
               expandable={expandable}
               nodeDraggable={isNodeDraggable(flat.node)}
               railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+              showSelectedBackground={showSelectedBackground}
               indentStep={indentStep}
               onCheckboxClick={handleCheckboxClick}
               rowRenderer={renderRow}

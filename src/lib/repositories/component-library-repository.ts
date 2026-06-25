@@ -26,6 +26,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import type { LibraryFolderKind } from "@/lib/component-library/library-folder-reorder";
+import { traced } from "@/lib/perf/server-timing";
 import { isMissingRelationError } from "./estimate-schema-compat";
 import { ensureDefaultWorkspace } from "./workspace-repository";
 
@@ -49,6 +50,9 @@ export type ComponentLibraryDataset = {
 
 export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templates"> & {
   workspaceId: string;
+  isPartial?: boolean;
+  loadedComponentCount?: number;
+  totalComponentCount?: number;
 };
 
 type EstimateTemplateRow = Tables<"estimate_templates">;
@@ -65,11 +69,20 @@ type ComponentLibraryChunkedResult<T> = {
   data: T[];
   error: { code?: string | null; message?: string | null } | null;
 };
+type LibraryOverviewSummaryRpcResult = {
+  data: Json | null;
+  error: unknown;
+};
 
 type BuildEstimateTemplatesInput = {
   templates: EstimateTemplateRow[];
   nodes: EstimateTemplateNodeRow[];
   rowItems: EstimateTemplateRowItemRow[];
+};
+type LibraryTemplatesSeedPayload = BuildEstimateTemplatesInput;
+type LibraryTemplatesSeedRpcResult = {
+  data: Json | null;
+  error: { code?: string | null; message?: string | null; details?: string | null } | null;
 };
 
 type ComponentLibraryRepositoryClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
@@ -459,6 +472,285 @@ async function fetchLibraryFolders(
   return sortFolders((data ?? []).map(normalizeComponentLibraryFolder));
 }
 
+type ComponentRowsLibrarySeedPayload = {
+  componentCount?: number;
+  categoryRows: ComponentLibraryCategoryRow[];
+  suppliers: ComponentLibrarySupplier[];
+  brands: ComponentLibraryBrand[];
+  libraryFolders: ComponentLibraryFolder[];
+  itemRows: CostLibraryItemRow[];
+  priceOptions: ComponentPriceOptionRow[];
+  costEntries: ComponentVariantCostEntryRow[];
+};
+
+type LibraryComponentRowsSeedRpcResult = {
+  data: Json | null;
+  error: { code?: string | null; message?: string | null; details?: string | null } | null;
+};
+
+function readLibraryComponentRowsSeedArray<T>(
+  payload: Record<string, unknown>,
+  key: keyof ComponentRowsLibrarySeedPayload,
+): T[] {
+  const value = payload[key];
+  if (!Array.isArray(value)) throw new Error(`library_component_rows_seed invalid shape: ${key} is not an array`);
+  value.forEach((item, index) => {
+    if (!isRecord(item)) throw new Error(`library_component_rows_seed invalid array element: ${key}[${index}] is not an object`);
+  });
+  return value as T[];
+}
+
+export function parseLibraryComponentRowsSeedPayload(value: unknown): ComponentRowsLibrarySeedPayload {
+  if (!isRecord(value)) throw new Error("library_component_rows_seed invalid payload");
+  const componentCount = value.componentCount === undefined
+    ? undefined
+    : assertLibraryOverviewRpcNumber(value.componentCount, "componentCount");
+  return {
+    componentCount,
+    categoryRows: readLibraryComponentRowsSeedArray<ComponentLibraryCategoryRow>(value, "categoryRows"),
+    suppliers: readLibraryComponentRowsSeedArray<ComponentLibrarySupplier>(value, "suppliers"),
+    brands: readLibraryComponentRowsSeedArray<ComponentLibraryBrand>(value, "brands"),
+    libraryFolders: readLibraryComponentRowsSeedArray<ComponentLibraryFolder>(value, "libraryFolders"),
+    itemRows: readLibraryComponentRowsSeedArray<CostLibraryItemRow>(value, "itemRows"),
+    priceOptions: readLibraryComponentRowsSeedArray<ComponentPriceOptionRow>(value, "priceOptions"),
+    costEntries: readLibraryComponentRowsSeedArray<ComponentVariantCostEntryRow>(value, "costEntries"),
+  };
+}
+
+function readLibraryTemplatesSeedArray<T>(
+  payload: Record<string, unknown>,
+  key: keyof LibraryTemplatesSeedPayload,
+  guard: (value: Record<string, unknown>, path: string) => T,
+): T[] {
+  const value = payload[key];
+  if (!Array.isArray(value)) throw new Error(`library_templates_seed invalid shape: ${key} is not an array`);
+  return value.map((item, index) => {
+    if (!isRecord(item)) throw new Error(`library_templates_seed invalid array element: ${key}[${index}] is not an object`);
+    try {
+      return guard(item, `${key}[${index}]`);
+    } catch (error) {
+      if (error instanceof Error) throw new Error(`library_templates_seed invalid row shape: ${error.message}`);
+      throw error;
+    }
+  });
+}
+
+export function parseLibraryTemplatesSeedPayload(value: unknown): LibraryTemplatesSeedPayload {
+  if (!isRecord(value)) throw new Error("library_templates_seed invalid payload");
+  return {
+    templates: readLibraryTemplatesSeedArray(value, "templates", assertLibraryOverviewTemplateRow),
+    nodes: readLibraryTemplatesSeedArray(value, "nodes", assertLibraryOverviewTemplateNodeRow),
+    rowItems: readLibraryTemplatesSeedArray(value, "rowItems", assertLibraryOverviewTemplateRowItemRow),
+  };
+}
+
+function buildComponentRowsLibraryDataset({
+  workspaceId,
+  categoryRows,
+  suppliers,
+  persistedBrands,
+  libraryFolders,
+  itemRows,
+  priceOptionRows,
+  costEntryRows,
+  includeVariantDetails = true,
+  isPartial = false,
+  totalComponentCount,
+  versionRows = [],
+  priceHistoryRows = [],
+  stateHistoryRows = [],
+  attachmentRows = [],
+}: {
+  workspaceId: string;
+  categoryRows: ComponentLibraryCategoryRow[];
+  suppliers: ComponentLibrarySupplier[];
+  persistedBrands: ComponentLibraryBrand[];
+  libraryFolders: ComponentLibraryFolder[];
+  itemRows: CostLibraryItemRow[];
+  priceOptionRows: ComponentPriceOptionRow[];
+  costEntryRows: ComponentVariantCostEntryRow[];
+  includeVariantDetails?: boolean;
+  isPartial?: boolean;
+  totalComponentCount?: number;
+  versionRows?: ComponentVersionRow[];
+  priceHistoryRows?: ComponentPriceHistoryRow[];
+  stateHistoryRows?: ComponentStateHistoryRow[];
+  attachmentRows?: ComponentVariantAttachmentRow[];
+}): ComponentRowsLibraryDataset {
+  const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
+  const fallbackBrandMap = new Map<string, ComponentLibraryBrand>();
+  for (const row of itemRows) {
+    const brandName = row.brand?.trim();
+    if (!brandName) continue;
+    const normalizedName = normalizeLibraryName(brandName);
+    if (!normalizedName || fallbackBrandMap.has(normalizedName)) continue;
+    fallbackBrandMap.set(normalizedName, {
+      id: `brand:${normalizedName}`,
+      name: brandName,
+      normalized_name: normalizedName,
+      sort_order: fallbackBrandMap.size + 1,
+    });
+  }
+  const brands = persistedBrands.length > 0
+    ? persistedBrands
+    : [...fallbackBrandMap.values()].sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name));
+
+  const costEntriesByPriceOptionId = new Map<string, ComponentVariantCostEntry[]>();
+  for (const row of costEntryRows) {
+    const entries = costEntriesByPriceOptionId.get(row.price_option_id) ?? [];
+    entries.push(normalizeCostEntry(row));
+    costEntriesByPriceOptionId.set(row.price_option_id, entries);
+  }
+
+  const attachmentsByPriceOptionId = new Map<string, ComponentVariantAttachment[]>();
+  for (const row of attachmentRows) {
+    const attachments = attachmentsByPriceOptionId.get(row.price_option_id) ?? [];
+    attachments.push(normalizeAttachment(row));
+    attachmentsByPriceOptionId.set(row.price_option_id, attachments);
+  }
+
+  const priceOptionsByItemId = new Map<string, ComponentPriceOption[]>();
+  for (const row of priceOptionRows) {
+    const options = priceOptionsByItemId.get(row.item_id) ?? [];
+    options.push(normalizePriceOption(
+      row,
+      costEntriesByPriceOptionId.get(row.id) ?? [],
+      attachmentsByPriceOptionId.get(row.id) ?? [],
+    ));
+    priceOptionsByItemId.set(row.item_id, options);
+  }
+
+  const versionsByItemId = new Map<string, ComponentVersionRow[]>();
+  for (const row of versionRows) {
+    const versions = versionsByItemId.get(row.item_id) ?? [];
+    versions.push(row);
+    versionsByItemId.set(row.item_id, versions);
+  }
+
+  const historyByItemId = new Map<string, ComponentHistoryEntry[]>();
+  function addHistory(itemId: string, entry: ComponentHistoryEntry) {
+    const entries = historyByItemId.get(itemId) ?? [];
+    entries.push(entry);
+    historyByItemId.set(itemId, entries);
+  }
+  for (const row of versionRows) {
+    addHistory(row.item_id, normalizeVersionHistory(row));
+  }
+  for (const row of priceHistoryRows) {
+    addHistory(row.item_id, normalizePriceHistory(row));
+  }
+  for (const row of stateHistoryRows) {
+    addHistory(row.item_id, normalizeStateHistory(row));
+  }
+
+  const categoryById = new Map(flattenCategoryTree(categoryTree).map((node) => [node.id, node]));
+  const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
+  const brandById = new Map(brands.map((brand) => [brand.id, brand]));
+  const libraryItems = itemRows.map((row) => {
+    const history = [...(historyByItemId.get(row.id) ?? [])].sort((left, right) => (
+      right.effectiveAt.localeCompare(left.effectiveAt) || right.createdAt.localeCompare(left.createdAt)
+    ));
+    const item = normalizeComponentLibraryItem(
+      row,
+      categoryById,
+      supplierById,
+      brandById,
+      categoryTree,
+      priceOptionsByItemId.get(row.id) ?? [],
+      history,
+      versionsByItemId.get(row.id)?.[0],
+    );
+    if (includeVariantDetails) return item;
+
+    const browseItem: EstimateRowItem = { ...item };
+    delete browseItem.componentVersionId;
+    delete browseItem.history;
+    delete browseItem.notes;
+    delete browseItem.priceOptions;
+    delete browseItem.sourceUrl;
+    return browseItem;
+  });
+
+  return {
+    workspaceId,
+    categoryTree,
+    suppliers,
+    brands,
+    libraryFolders,
+    libraryItems,
+    isPartial,
+    loadedComponentCount: libraryItems.length,
+    totalComponentCount: totalComponentCount ?? (isPartial ? undefined : libraryItems.length),
+  };
+}
+
+async function loadCurrentWorkspaceComponentRowsLibraryRpcPath({
+  supabase,
+  workspaceId,
+  includeDetailGraph,
+  itemLimit,
+  itemIds,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+  includeDetailGraph?: boolean;
+  itemLimit?: number;
+  itemIds?: string[];
+}): Promise<ComponentRowsLibraryDataset | null> {
+  const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
+  if (
+    process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED === "1" ||
+    includeDetailGraph ||
+    itemIds !== undefined
+  ) {
+    return null;
+  }
+
+  const seedResult = await traced("library.components.rpc.library_component_rows_seed", () =>
+    (supabase as unknown as {
+      rpc: (
+        functionName: "library_component_rows_seed",
+        args: { target_workspace_id: string; item_limit: number | null },
+      ) => Promise<LibraryComponentRowsSeedRpcResult>;
+    }).rpc("library_component_rows_seed", {
+      target_workspace_id: workspaceId,
+      item_limit: boundedItemLimit ?? null,
+    }),
+  );
+
+  if (seedResult.error) {
+    if (isLibraryComponentRowsSeedRolloutError(seedResult.error)) {
+      const code = isRecord(seedResult.error) && typeof seedResult.error.code === "string" ? seedResult.error.code : "unknown";
+      const message = isRecord(seedResult.error) && typeof seedResult.error.message === "string" ? seedResult.error.message : "unknown";
+      const details = isRecord(seedResult.error) && typeof seedResult.error.details === "string" ? seedResult.error.details : null;
+      console.warn(`[library_component_rows_seed] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
+      return null;
+    }
+    throw seedResult.error;
+  }
+
+  try {
+    const payload = parseLibraryComponentRowsSeedPayload(seedResult.data);
+    return buildComponentRowsLibraryDataset({
+      workspaceId,
+      categoryRows: payload.categoryRows,
+      suppliers: payload.suppliers,
+      persistedBrands: payload.brands,
+      libraryFolders: sortFolders(payload.libraryFolders.map(normalizeComponentLibraryFolder)),
+      itemRows: payload.itemRows,
+      priceOptionRows: payload.priceOptions,
+      costEntryRows: payload.costEntries,
+      includeVariantDetails: false,
+      isPartial: payload.componentCount !== undefined && payload.itemRows.length < payload.componentCount,
+      totalComponentCount: payload.componentCount,
+    });
+  } catch (error) {
+    if (!isLibraryComponentRowsSeedContractError(error)) throw error;
+    console.warn(`[library_component_rows_seed] RPC returned an incompatible payload (${error.message}); using app path`);
+    return null;
+  }
+}
+
 function getTemplateNodeKind(kind: EstimateTemplateNodeRow["kind"]): EstimateTreeNode["kind"] | null {
   if (kind === "group" || kind === "area") return kind;
   return null;
@@ -615,6 +907,37 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   itemLimit?: number;
   itemIds?: string[];
 }): Promise<ComponentRowsLibraryDataset> {
+  const rpcLibrary = await loadCurrentWorkspaceComponentRowsLibraryRpcPath({
+    supabase,
+    workspaceId,
+    includeDetailGraph,
+    itemLimit,
+    itemIds,
+  });
+  if (rpcLibrary) return rpcLibrary;
+
+  return loadCurrentWorkspaceComponentRowsLibraryAppPath({
+    supabase,
+    workspaceId,
+    includeDetailGraph,
+    itemLimit,
+    itemIds,
+  });
+}
+
+async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
+  supabase,
+  workspaceId,
+  includeDetailGraph = true,
+  itemLimit,
+  itemIds,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+  includeDetailGraph?: boolean;
+  itemLimit?: number;
+  itemIds?: string[];
+}): Promise<ComponentRowsLibraryDataset> {
   const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
   const selectedItemIds = itemIds ? [...new Set(itemIds.filter(isUuid))] : [];
   const itemSelectColumns = includeDetailGraph ? "*" : SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS;
@@ -636,7 +959,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
       supabase,
       workspaceId,
       itemLimit: boundedItemLimit,
-      itemIds: selectedItemIds,
+      itemIds: itemIds === undefined ? undefined : selectedItemIds,
       selectColumns: itemSelectColumns,
     }),
   ]);
@@ -646,26 +969,9 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   if (brandsResult.error && !isMissingRelationError(brandsResult.error, "component_brands")) throw brandsResult.error;
 
   const categoryRows = (categoriesResult.data ?? []) as ComponentLibraryCategoryRow[];
-  const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
   const libraryFolders = await fetchLibraryFolders(supabase, workspaceId);
   const suppliers = suppliersResult.data ?? [];
   const persistedBrands = (brandsResult.error ? [] : (brandsResult.data ?? [])) as ComponentLibraryBrand[];
-  const fallbackBrandMap = new Map<string, ComponentLibraryBrand>();
-  for (const row of itemRows) {
-    const brandName = row.brand?.trim();
-    if (!brandName) continue;
-    const normalizedName = normalizeLibraryName(brandName);
-    if (!normalizedName || fallbackBrandMap.has(normalizedName)) continue;
-    fallbackBrandMap.set(normalizedName, {
-      id: `brand:${normalizedName}`,
-      name: brandName,
-      normalized_name: normalizedName,
-      sort_order: fallbackBrandMap.size + 1,
-    });
-  }
-  const brands = persistedBrands.length > 0
-    ? persistedBrands
-    : [...fallbackBrandMap.values()].sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name));
   const loadedItemIds = itemRows.map((row) => row.id);
   const isBoundedItemPage = boundedItemLimit !== undefined || selectedItemIds.length > 0;
   // U18 cost fidelity: the slim EstimateRowItem cost derives from the default
@@ -813,84 +1119,68 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   if (costEntriesResult.error && !isMissingRelationError(costEntriesResult.error, "cost_library_item_variant_cost_entries")) throw costEntriesResult.error;
   if (attachmentsResult.error && !isMissingRelationError(attachmentsResult.error, "cost_library_item_variant_attachments")) throw attachmentsResult.error;
 
-  const costEntriesByPriceOptionId = new Map<string, ComponentVariantCostEntry[]>();
-  for (const row of (costEntriesResult.error ? [] : (costEntriesResult.data ?? [])) as ComponentVariantCostEntryRow[]) {
-    const entries = costEntriesByPriceOptionId.get(row.price_option_id) ?? [];
-    entries.push(normalizeCostEntry(row));
-    costEntriesByPriceOptionId.set(row.price_option_id, entries);
-  }
-
-  const attachmentsByPriceOptionId = new Map<string, ComponentVariantAttachment[]>();
-  for (const row of (attachmentsResult.error ? [] : (attachmentsResult.data ?? [])) as ComponentVariantAttachmentRow[]) {
-    const attachments = attachmentsByPriceOptionId.get(row.price_option_id) ?? [];
-    attachments.push(normalizeAttachment(row));
-    attachmentsByPriceOptionId.set(row.price_option_id, attachments);
-  }
-
-  const priceOptionsByItemId = new Map<string, ComponentPriceOption[]>();
-  for (const row of (priceOptionsResult.error ? [] : (priceOptionsResult.data ?? [])) as ComponentPriceOptionRow[]) {
-    const options = priceOptionsByItemId.get(row.item_id) ?? [];
-    options.push(normalizePriceOption(
-      row,
-      costEntriesByPriceOptionId.get(row.id) ?? [],
-      attachmentsByPriceOptionId.get(row.id) ?? [],
-    ));
-    priceOptionsByItemId.set(row.item_id, options);
-  }
-
-  const versionsByItemId = new Map<string, ComponentVersionRow[]>();
-  for (const row of (versionsResult.error ? [] : (versionsResult.data ?? [])) as ComponentVersionRow[]) {
-    const versions = versionsByItemId.get(row.item_id) ?? [];
-    versions.push(row);
-    versionsByItemId.set(row.item_id, versions);
-  }
-
-  const historyByItemId = new Map<string, ComponentHistoryEntry[]>();
-  function addHistory(itemId: string, entry: ComponentHistoryEntry) {
-    const entries = historyByItemId.get(itemId) ?? [];
-    entries.push(entry);
-    historyByItemId.set(itemId, entries);
-  }
-  for (const row of (versionsResult.error ? [] : (versionsResult.data ?? [])) as ComponentVersionRow[]) {
-    addHistory(row.item_id, normalizeVersionHistory(row));
-  }
-  for (const row of (priceHistoryResult.error ? [] : (priceHistoryResult.data ?? [])) as ComponentPriceHistoryRow[]) {
-    addHistory(row.item_id, normalizePriceHistory(row));
-  }
-  for (const row of (stateHistoryResult.error ? [] : (stateHistoryResult.data ?? [])) as ComponentStateHistoryRow[]) {
-    addHistory(row.item_id, normalizeStateHistory(row));
-  }
-
-  const categoryById = new Map(flattenCategoryTree(categoryTree).map((node) => [node.id, node]));
-  const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
-  const brandById = new Map(brands.map((brand) => [brand.id, brand]));
-  const libraryItems = itemRows.map((row) => {
-    const history = [...(historyByItemId.get(row.id) ?? [])].sort((left, right) => (
-      right.effectiveAt.localeCompare(left.effectiveAt) || right.createdAt.localeCompare(left.createdAt)
-    ));
-    return normalizeComponentLibraryItem(
-      row,
-      categoryById,
-      supplierById,
-      brandById,
-      categoryTree,
-      priceOptionsByItemId.get(row.id) ?? [],
-      history,
-      versionsByItemId.get(row.id)?.[0],
-    );
-  });
-
-  return {
+  return buildComponentRowsLibraryDataset({
     workspaceId,
-    categoryTree,
+    categoryRows,
     suppliers,
-    brands,
+    persistedBrands,
     libraryFolders,
-    libraryItems,
-  };
+    itemRows,
+    priceOptionRows: (priceOptionsResult.error ? [] : (priceOptionsResult.data ?? [])) as ComponentPriceOptionRow[],
+    costEntryRows: (costEntriesResult.error ? [] : (costEntriesResult.data ?? [])) as ComponentVariantCostEntryRow[],
+    includeVariantDetails: includeDetailGraph,
+    isPartial: boundedItemLimit !== undefined && itemRows.length >= boundedItemLimit,
+    versionRows: (versionsResult.error ? [] : (versionsResult.data ?? [])) as ComponentVersionRow[],
+    priceHistoryRows: (priceHistoryResult.error ? [] : (priceHistoryResult.data ?? [])) as ComponentPriceHistoryRow[],
+    stateHistoryRows: (stateHistoryResult.error ? [] : (stateHistoryResult.data ?? [])) as ComponentStateHistoryRow[],
+    attachmentRows: (attachmentsResult.error ? [] : (attachmentsResult.data ?? [])) as ComponentVariantAttachmentRow[],
+  });
 }
 
-async function loadCurrentWorkspaceEstimateTemplates({
+async function loadCurrentWorkspaceEstimateTemplatesRpcPath({
+  supabase,
+  workspaceId,
+  templateId = null,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+  templateId?: string | null;
+}): Promise<EstimateTemplate[] | null> {
+  if (process.env.WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED === "1") return null;
+
+  const seedResult = await traced("library.templates.rpc.library_templates_seed", () =>
+    (supabase as unknown as {
+      rpc: (
+        functionName: "library_templates_seed",
+        args: { target_workspace_id: string; target_template_id: string | null },
+      ) => Promise<LibraryTemplatesSeedRpcResult>;
+    }).rpc("library_templates_seed", {
+      target_workspace_id: workspaceId,
+      target_template_id: templateId,
+    }),
+  );
+
+  if (seedResult.error) {
+    if (isLibraryTemplatesSeedRolloutError(seedResult.error)) {
+      const code = isRecord(seedResult.error) && typeof seedResult.error.code === "string" ? seedResult.error.code : "unknown";
+      const message = isRecord(seedResult.error) && typeof seedResult.error.message === "string" ? seedResult.error.message : "unknown";
+      const details = isRecord(seedResult.error) && typeof seedResult.error.details === "string" ? seedResult.error.details : null;
+      console.warn(`[library_templates_seed] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
+      return null;
+    }
+    throw seedResult.error;
+  }
+
+  try {
+    return buildEstimateTemplatesFromRows(parseLibraryTemplatesSeedPayload(seedResult.data));
+  } catch (error) {
+    if (!isLibraryTemplatesSeedContractError(error)) throw error;
+    console.warn(`[library_templates_seed] RPC returned an incompatible payload (${error.message}); using app path`);
+    return null;
+  }
+}
+
+async function loadCurrentWorkspaceEstimateTemplatesAppPath({
   supabase,
   workspaceId,
 }: {
@@ -935,6 +1225,18 @@ async function loadCurrentWorkspaceEstimateTemplates({
   }
 
   return libraryTemplates;
+}
+
+async function loadCurrentWorkspaceEstimateTemplates({
+  supabase,
+  workspaceId,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+}): Promise<EstimateTemplate[]> {
+  const rpcTemplates = await loadCurrentWorkspaceEstimateTemplatesRpcPath({ supabase, workspaceId });
+  if (rpcTemplates) return rpcTemplates;
+  return loadCurrentWorkspaceEstimateTemplatesAppPath({ supabase, workspaceId });
 }
 
 export async function getCurrentWorkspaceComponentRowsLibrary(options: ComponentRowsLibraryLoadOptions = {}): Promise<ComponentRowsLibraryDataset> {
@@ -1087,13 +1389,298 @@ function toLibraryOverviewComponent(row: LibraryOverviewComponentRow): LibraryOv
   };
 }
 
+type LibraryOverviewSummaryPayload = {
+  componentCount: number;
+  categoryCount: number;
+  supplierCount: number;
+  brandCount: number;
+  templateCount: number;
+  templateCategories: string[];
+  recentComponents: LibraryOverviewComponentRow[];
+  recentTemplateRows: EstimateTemplateRow[];
+  recentTemplateNodes: EstimateTemplateNodeRow[];
+  recentTemplateRowItems: EstimateTemplateRowItemRow[];
+  health: LibraryOverviewHealth;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function assertLibraryOverviewRpcString(value: unknown, path: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`library overview RPC invalid shape: ${path} must be a string`);
+  }
+  return value;
+}
+
+function assertLibraryOverviewRpcOptionalString(value: unknown, path: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") {
+    throw new Error(`library overview RPC invalid shape: ${path} must be a string or null`);
+  }
+  return value;
+}
+
+function assertLibraryOverviewRpcNumber(value: unknown, path: string): number {
+  if (typeof value !== "number") {
+    throw new Error(`library overview RPC invalid shape: ${path} must be a number`);
+  }
+  return value;
+}
+
+function assertLibraryOverviewRpcJson(value: unknown, path: string): Json {
+  if (value === undefined) {
+    throw new Error(`library overview RPC invalid shape: ${path} must be JSON`);
+  }
+  return value as Json;
+}
+
+function readLibraryOverviewRpcArray<T>(
+  payload: Record<string, unknown>,
+  key: string,
+  guard: (value: Record<string, unknown>, path: string) => T,
+): T[] {
+  const value = payload[key];
+  if (!Array.isArray(value)) throw new Error(`library_overview_summary invalid shape: ${key} is not an array`);
+  return value.map((item, index) => {
+    if (!isRecord(item)) throw new Error(`library_overview_summary invalid array element: ${key}[${index}] is not an object`);
+    return guard(item, `${key}[${index}]`);
+  });
+}
+
+function assertLibraryOverviewComponentRow(value: Record<string, unknown>, path: string): LibraryOverviewComponentRow {
+  return {
+    id: assertLibraryOverviewRpcString(value.id, `${path}.id`),
+    name: assertLibraryOverviewRpcString(value.name, `${path}.name`),
+    category: assertLibraryOverviewRpcString(value.category, `${path}.category`),
+    supplier: assertLibraryOverviewRpcOptionalString(value.supplier, `${path}.supplier`),
+    unit: assertLibraryOverviewRpcString(value.unit, `${path}.unit`),
+    unit_cost: assertLibraryOverviewRpcNumber(value.unit_cost, `${path}.unit_cost`),
+    thumbnail_path: assertLibraryOverviewRpcOptionalString(value.thumbnail_path, `${path}.thumbnail_path`),
+    pricing_source: assertLibraryOverviewRpcOptionalString(value.pricing_source, `${path}.pricing_source`),
+    pricing_date: assertLibraryOverviewRpcOptionalString(value.pricing_date, `${path}.pricing_date`),
+    confidence: assertLibraryOverviewRpcOptionalString(value.confidence, `${path}.confidence`),
+    lifecycle_state: assertLibraryOverviewRpcString(value.lifecycle_state, `${path}.lifecycle_state`) as LibraryOverviewComponentRow["lifecycle_state"],
+    updated_at: assertLibraryOverviewRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertLibraryOverviewTemplateRow(value: Record<string, unknown>, path: string): EstimateTemplateRow {
+  return {
+    id: assertLibraryOverviewRpcString(value.id, `${path}.id`),
+    workspace_id: assertLibraryOverviewRpcString(value.workspace_id, `${path}.workspace_id`),
+    name: assertLibraryOverviewRpcString(value.name, `${path}.name`),
+    description: assertLibraryOverviewRpcString(value.description, `${path}.description`),
+    category: assertLibraryOverviewRpcString(value.category, `${path}.category`),
+    sort_order: assertLibraryOverviewRpcNumber(value.sort_order, `${path}.sort_order`),
+    metadata: assertLibraryOverviewRpcJson(value.metadata, `${path}.metadata`),
+    created_by: assertLibraryOverviewRpcOptionalString(value.created_by, `${path}.created_by`),
+    created_at: assertLibraryOverviewRpcString(value.created_at, `${path}.created_at`),
+    updated_at: assertLibraryOverviewRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertLibraryOverviewTemplateNodeRow(value: Record<string, unknown>, path: string): EstimateTemplateNodeRow {
+  return {
+    id: assertLibraryOverviewRpcString(value.id, `${path}.id`),
+    template_id: assertLibraryOverviewRpcString(value.template_id, `${path}.template_id`),
+    parent_id: assertLibraryOverviewRpcOptionalString(value.parent_id, `${path}.parent_id`),
+    kind: assertLibraryOverviewRpcString(value.kind, `${path}.kind`) as EstimateTemplateNodeRow["kind"],
+    name: assertLibraryOverviewRpcString(value.name, `${path}.name`),
+    sort_order: assertLibraryOverviewRpcNumber(value.sort_order, `${path}.sort_order`),
+    metadata: assertLibraryOverviewRpcJson(value.metadata, `${path}.metadata`),
+    created_at: assertLibraryOverviewRpcString(value.created_at, `${path}.created_at`),
+    updated_at: assertLibraryOverviewRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertLibraryOverviewTemplateRowItemRow(value: Record<string, unknown>, path: string): EstimateTemplateRowItemRow {
+  return {
+    id: assertLibraryOverviewRpcString(value.id, `${path}.id`),
+    template_id: assertLibraryOverviewRpcString(value.template_id, `${path}.template_id`),
+    template_node_id: assertLibraryOverviewRpcString(value.template_node_id, `${path}.template_node_id`),
+    sort_order: assertLibraryOverviewRpcNumber(value.sort_order, `${path}.sort_order`),
+    source_library_item_id: assertLibraryOverviewRpcOptionalString(value.source_library_item_id, `${path}.source_library_item_id`),
+    source_snapshot: assertLibraryOverviewRpcJson(value.source_snapshot, `${path}.source_snapshot`),
+    category_node_id: assertLibraryOverviewRpcOptionalString(value.category_node_id, `${path}.category_node_id`),
+    supplier_id: assertLibraryOverviewRpcOptionalString(value.supplier_id, `${path}.supplier_id`),
+    material: assertLibraryOverviewRpcString(value.material, `${path}.material`),
+    description: assertLibraryOverviewRpcString(value.description, `${path}.description`),
+    supplier: assertLibraryOverviewRpcString(value.supplier, `${path}.supplier`),
+    unit: assertLibraryOverviewRpcString(value.unit, `${path}.unit`),
+    quantity: assertLibraryOverviewRpcNumber(value.quantity, `${path}.quantity`),
+    unit_cost: assertLibraryOverviewRpcNumber(value.unit_cost, `${path}.unit_cost`),
+    misc_cost: assertLibraryOverviewRpcNumber(value.misc_cost, `${path}.misc_cost`),
+    contingency_percentage: assertLibraryOverviewRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
+    discipline: assertLibraryOverviewRpcString(value.discipline, `${path}.discipline`),
+    designation: assertLibraryOverviewRpcString(value.designation, `${path}.designation`),
+    link_state: assertLibraryOverviewRpcString(value.link_state, `${path}.link_state`) as EstimateTemplateRowItemRow["link_state"],
+    metadata: assertLibraryOverviewRpcJson(value.metadata, `${path}.metadata`),
+    created_at: assertLibraryOverviewRpcString(value.created_at, `${path}.created_at`),
+    updated_at: assertLibraryOverviewRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertLibraryOverviewHealth(value: unknown): LibraryOverviewHealth {
+  if (!isRecord(value)) throw new Error("library_overview_summary invalid shape: health is not an object");
+  return {
+    staleComponentCount: assertLibraryOverviewRpcNumber(value.staleComponentCount, "health.staleComponentCount"),
+    discontinuedInUseCount: assertLibraryOverviewRpcNumber(value.discontinuedInUseCount, "health.discontinuedInUseCount"),
+    missingBrandCount: assertLibraryOverviewRpcNumber(value.missingBrandCount, "health.missingBrandCount"),
+    lastLibraryUpdate: assertLibraryOverviewRpcOptionalString(value.lastLibraryUpdate, "health.lastLibraryUpdate"),
+  };
+}
+
+export function parseLibraryOverviewSummaryPayload(value: unknown): LibraryOverviewSummaryPayload {
+  if (!isRecord(value)) throw new Error("library_overview_summary invalid payload");
+  const templateCategories = value.templateCategories;
+  if (!Array.isArray(templateCategories)) {
+    throw new Error("library_overview_summary invalid shape: templateCategories is not an array");
+  }
+  return {
+    componentCount: assertLibraryOverviewRpcNumber(value.componentCount, "componentCount"),
+    categoryCount: assertLibraryOverviewRpcNumber(value.categoryCount, "categoryCount"),
+    supplierCount: assertLibraryOverviewRpcNumber(value.supplierCount, "supplierCount"),
+    brandCount: assertLibraryOverviewRpcNumber(value.brandCount, "brandCount"),
+    templateCount: assertLibraryOverviewRpcNumber(value.templateCount, "templateCount"),
+    templateCategories: templateCategories.map((category, index) =>
+      assertLibraryOverviewRpcString(category, `templateCategories[${index}]`),
+    ),
+    recentComponents: readLibraryOverviewRpcArray(value, "recentComponents", assertLibraryOverviewComponentRow),
+    recentTemplateRows: readLibraryOverviewRpcArray(value, "recentTemplateRows", assertLibraryOverviewTemplateRow),
+    recentTemplateNodes: readLibraryOverviewRpcArray(value, "recentTemplateNodes", assertLibraryOverviewTemplateNodeRow),
+    recentTemplateRowItems: readLibraryOverviewRpcArray(value, "recentTemplateRowItems", assertLibraryOverviewTemplateRowItemRow),
+    health: assertLibraryOverviewHealth(value.health),
+  };
+}
+
+function isSupabaseRpcRolloutError(error: unknown): boolean {
+  if (!isRecord(error)) return false;
+  const code = typeof error.code === "string" ? error.code : "";
+  const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return (
+    code === "PGRST202" ||
+    code === "42883" ||
+    message.includes("schema cache") ||
+    message.includes("could not find the function")
+  );
+}
+
+function isLibraryComponentRowsSeedRolloutError(error: unknown): boolean {
+  return isSupabaseRpcRolloutError(error);
+}
+
+function isLibraryComponentRowsSeedContractError(error: unknown): error is Error {
+  return error instanceof Error && error.message.startsWith("library_component_rows_seed invalid");
+}
+
+function isLibraryTemplatesSeedRolloutError(error: unknown): boolean {
+  if (isSupabaseRpcRolloutError(error)) return true;
+  if (!isRecord(error)) return false;
+  const candidate = {
+    code: typeof error.code === "string" ? error.code : null,
+    message: typeof error.message === "string" ? error.message : null,
+  };
+  return (
+    isMissingRelationError(candidate, "estimate_templates") ||
+    isMissingRelationError(candidate, "estimate_template_nodes") ||
+    isMissingRelationError(candidate, "estimate_template_row_items")
+  );
+}
+
+function isLibraryTemplatesSeedContractError(error: unknown): error is Error {
+  return error instanceof Error && error.message.startsWith("library_templates_seed invalid");
+}
+
+function isLibraryOverviewSummaryRolloutError(error: unknown): boolean {
+  return isSupabaseRpcRolloutError(error);
+}
+
+function isLibraryOverviewSummaryContractError(error: unknown): error is Error {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.startsWith("library_overview_summary invalid") ||
+    error.message.startsWith("library overview RPC invalid shape")
+  );
+}
+
+function buildLibraryOverviewFromSummaryPayload(payload: LibraryOverviewSummaryPayload): LibraryOverview {
+  const builtById = new Map(
+    buildEstimateTemplatesFromRows({
+      templates: payload.recentTemplateRows,
+      nodes: payload.recentTemplateNodes,
+      rowItems: payload.recentTemplateRowItems,
+    }).map((template) => [template.id, template]),
+  );
+  const templateCategorySet = new Set(payload.templateCategories);
+
+  return {
+    componentCount: payload.componentCount,
+    categoryCount: payload.categoryCount,
+    supplierCount: payload.supplierCount,
+    brandCount: payload.brandCount,
+    templateCount: payload.templateCount,
+    templateGroupCount: templateCategorySet.size,
+    templateCategories: [...templateCategorySet].sort((left, right) => left.localeCompare(right)),
+    recentComponents: payload.recentComponents.map(toLibraryOverviewComponent),
+    recentTemplates: payload.recentTemplateRows
+      .map((row) => builtById.get(row.id))
+      .filter((template): template is EstimateTemplate => Boolean(template))
+      .map(toLibraryOverviewTemplate),
+    health: payload.health,
+  };
+}
+
 /**
  * One lightweight payload for the Library Overview home: header counts,
  * 6 most recently updated components, 5 most recently updated templates,
  * and the health-line stats. Indexed lookups only — never the full
  * component or template datasets.
  */
+async function getLibraryOverviewRpcPath(): Promise<LibraryOverview | null> {
+  if (process.env.WORKSHOP_LIBRARY_OVERVIEW_RPC_DISABLED === "1") return null;
+
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const summaryResult = await traced("library.overview.rpc.library_overview_summary", () =>
+    (supabase as unknown as {
+      rpc: (
+        functionName: "library_overview_summary",
+        args: { target_workspace_id: string },
+      ) => Promise<LibraryOverviewSummaryRpcResult>;
+    }).rpc("library_overview_summary", {
+      target_workspace_id: workspace.id,
+    }),
+  );
+
+  if (summaryResult.error) {
+    if (isLibraryOverviewSummaryRolloutError(summaryResult.error)) {
+      const code = isRecord(summaryResult.error) && typeof summaryResult.error.code === "string" ? summaryResult.error.code : "unknown";
+      const message = isRecord(summaryResult.error) && typeof summaryResult.error.message === "string" ? summaryResult.error.message : "unknown";
+      const details = isRecord(summaryResult.error) && typeof summaryResult.error.details === "string" ? summaryResult.error.details : null;
+      console.warn(`[library_overview_summary] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
+      return null;
+    }
+    throw summaryResult.error;
+  }
+
+  try {
+    return buildLibraryOverviewFromSummaryPayload(parseLibraryOverviewSummaryPayload(summaryResult.data));
+  } catch (error) {
+    if (!isLibraryOverviewSummaryContractError(error)) throw error;
+    console.warn(`[library_overview_summary] RPC returned an incompatible payload (${error.message}); using app path`);
+    return null;
+  }
+}
+
 export async function getLibraryOverview(): Promise<LibraryOverview> {
+  const rpcOverview = await getLibraryOverviewRpcPath();
+  if (rpcOverview) return rpcOverview;
+  return getLibraryOverviewAppPath();
+}
+
+async function getLibraryOverviewAppPath(): Promise<LibraryOverview> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   const workspaceId = workspace.id;
@@ -1344,6 +1931,8 @@ export async function getEstimateTemplateById(templateId: string): Promise<Estim
   if (!isUuid(templateId)) return null;
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
+  const rpcTemplates = await loadCurrentWorkspaceEstimateTemplatesRpcPath({ supabase, workspaceId: workspace.id, templateId });
+  if (rpcTemplates !== null) return rpcTemplates[0] ?? null;
 
   const templateResult = await supabase
     .from("estimate_templates")

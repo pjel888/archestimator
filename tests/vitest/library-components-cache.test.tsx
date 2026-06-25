@@ -15,10 +15,27 @@ vi.mock("@/lib/component-library/actions", () => ({
 vi.mock("@/components/workshop/component-library-manager/ComponentLibraryManager", () => ({
   ComponentLibraryManager: (props: {
     libraryItems?: unknown[];
+    componentRowsLoadState?: {
+      isPartial: boolean;
+      loadedComponentCount: number;
+      totalComponentCount?: number;
+      isLoading: boolean;
+      onLoadAll: () => void;
+    };
     onLibraryItemsMutated?: (updater: (items: unknown[]) => unknown[]) => void;
   }) => (
     <div data-testid="manager">
       items:{props.libraryItems?.length ?? 0}
+      {props.componentRowsLoadState?.isPartial ? (
+        <>
+          <span data-testid="partial-state">
+            loaded:{props.componentRowsLoadState.loadedComponentCount}/total:{props.componentRowsLoadState.totalComponentCount ?? "unknown"}
+          </span>
+          <button type="button" data-testid="load-all" onClick={props.componentRowsLoadState.onLoadAll}>
+            load all
+          </button>
+        </>
+      ) : null}
       <button
         type="button"
         data-testid="add-via-cache"
@@ -58,6 +75,36 @@ describe("Components tab TanStack Query cache (P0 T3)", () => {
     expect(await screen.findByTestId("manager")).toHaveTextContent("items:3");
     // initialData + 5-min staleTime ⇒ fresh ⇒ no fetch.
     expect(loadRowsSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("renders a partial first-paint seed without refetching the full dataset on mount", async () => {
+    let resolveFullDataset: (value: ComponentRowsLibraryDataset) => void = () => {};
+    loadRowsSpy.mockReturnValue(new Promise<ComponentRowsLibraryDataset>((resolve) => {
+      resolveFullDataset = resolve;
+    }));
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <LibraryPageClient
+          initialLibrary={{
+            ...makeFixture(2),
+            isPartial: true,
+            loadedComponentCount: 2,
+            totalComponentCount: 5,
+          }}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByTestId("manager")).toHaveTextContent("items:2");
+    expect(screen.getByTestId("partial-state")).toHaveTextContent("loaded:2/total:5");
+    expect(loadRowsSpy).toHaveBeenCalledTimes(0);
+
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(screen.getByTestId("load-all"));
+    expect(loadRowsSpy).toHaveBeenCalledTimes(1);
+    resolveFullDataset(makeFixture(5));
+    await waitFor(() => expect(screen.getByTestId("manager")).toHaveTextContent("items:5"));
   });
 
   it("renders the second mount for the same workspace from the warm scoped cache (no refetch)", async () => {

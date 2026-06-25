@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SidebarSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ type ResizableSidePanelProps = {
   persistWidth?: boolean;
   children?: ReactNode;
 };
+
+const emptySubscribe = () => () => {};
 
 function getInitialWidth(storageKey: string, defaultWidth: number, minWidth: number, maxWidth: number) {
   if (typeof document === "undefined") return defaultWidth;
@@ -54,6 +56,20 @@ function persistPanelWidth(storageKey: string, width: number) {
   } catch {}
 }
 
+function usePanelWidthSnapshot(
+  storageKey: string,
+  defaultWidth: number,
+  minWidth: number,
+  maxWidth: number,
+  persistWidth: boolean,
+) {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => persistWidth ? getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth) : defaultWidth,
+    () => defaultWidth,
+  );
+}
+
 export function ResizableSidePanel({
   side,
   ariaLabel,
@@ -67,12 +83,13 @@ export function ResizableSidePanel({
   children,
 }: ResizableSidePanelProps) {
   const glass = useEstimateSurfaceVariant() === "glass";
+  const persistedWidth = usePanelWidthSnapshot(storageKey, defaultWidth, minWidth, maxWidth, persistWidth);
   const [collapsed, setCollapsed] = useState(false);
-  const [savedWidth, setSavedWidth] = useState(() => persistWidth ? getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth) : defaultWidth);
+  const [committedWidth, setCommittedWidth] = useState<number | null>(null);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const compactViewport = useMediaQuery("(max-width: 1023px)");
-  const width = dragWidth ?? savedWidth;
+  const width = dragWidth ?? committedWidth ?? persistedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
   const cssVariable = persistWidth ? getPanelWidthCssVariable(storageKey) : null;
@@ -128,7 +145,7 @@ export function ResizableSidePanel({
       setIsDragging(false);
       const delta = side === "left" ? upEvent.clientX - startX.current : startX.current - upEvent.clientX;
       const finalWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
-      setSavedWidth(finalWidth);
+      setCommittedWidth(finalWidth);
       setDragWidth(finalWidth);
       if (persistWidth) persistPanelWidth(storageKey, finalWidth);
       document.body.style.cursor = "";
@@ -143,7 +160,7 @@ export function ResizableSidePanel({
 
   function commitWidth(nextWidth: number) {
     const finalWidth = Math.min(maxWidth, Math.max(minWidth, nextWidth));
-    setSavedWidth(finalWidth);
+    setCommittedWidth(finalWidth);
     setDragWidth(finalWidth);
     if (persistWidth) persistPanelWidth(storageKey, finalWidth);
   }

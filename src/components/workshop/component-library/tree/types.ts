@@ -60,8 +60,10 @@ export type LibraryTreeProps = {
   selectable?: boolean;
   checkedIds?: string[];
   onCheckToggle?: (nodeId: string, checked: boolean) => void;
-  /** Same-parent sibling reordering; folders become draggable when provided. */
-  onReorder?: (draggedId: string, targetId: string, position: "before" | "after") => void;
+  /** Folder reordering; folders become draggable when provided. */
+  onReorder?: (draggedId: string, targetId: string, position: "before" | "after" | "inside") => void;
+  /** Enables folder-to-folder containment drops instead of sibling-only ordering. */
+  folderNestingEnabled?: boolean;
   /** Pauses reordering, e.g. while a search filters the visible siblings. */
   reorderDisabled?: boolean;
 };
