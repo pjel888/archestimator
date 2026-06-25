@@ -5,6 +5,7 @@ describe("/invite/[token] route contract", () => {
   const route = readFileSync("src/app/invite/[token]/page.tsx", "utf8");
   const continueRoute = readFileSync("src/app/invite/[token]/continue/route.ts", "utf8");
   const acceptRoute = readFileSync("src/app/invite/[token]/accept/route.ts", "utf8");
+  const inviteEntry = readFileSync("src/lib/collaboration/invite-entry.ts", "utf8");
   const signOutRoute = readFileSync("src/app/invite/[token]/sign-out/route.ts", "utf8");
 
   it("keeps the route public, app-owned, and backed by peppered token resolution", () => {
@@ -82,5 +83,13 @@ describe("/invite/[token] route contract", () => {
     expect(acceptRoute).toContain("supabase.auth.getUser");
     expect(acceptRoute).toContain("NextResponse.json");
     expect(acceptRoute).toContain('"Retry-After"');
+    expect(signOutRoute).toContain("isAllowedInviteOrigin");
+    expect(signOutRoute.indexOf("isAllowedInviteOrigin(request)")).toBeLessThan(signOutRoute.indexOf("supabase.auth.signOut"));
+  });
+
+  it("keeps invite rate-limit IP hashing keyed by a server-only pepper", () => {
+    expect(inviteEntry).toContain('createHmac("sha256", readInviteRateLimitHashPepper())');
+    expect(inviteEntry).toContain("ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER");
+    expect(inviteEntry).not.toContain('createHash("sha256").update(getClientIp(headers))');
   });
 });

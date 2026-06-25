@@ -1,12 +1,12 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/lib/supabase/types";
 
-const PROJECT_INVITE_ENTRY_FLAG = "PROJECT_INVITE_ENTRY_ENABLED";
 const INVITE_TOKEN_PEPPER_ENV = "ARCHESTIMATOR_INVITE_TOKEN_PEPPER";
+const INVITE_RATE_LIMIT_HASH_PEPPER_ENV = "ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER";
 const INVITE_TOKEN_HASH_VERSION = "v1";
 const INVITE_TOKEN_BYTE_LENGTH = 32;
 const INVITE_TOKEN_PEPPER_PATTERN = /^[a-f0-9]{64}$/i;
@@ -123,8 +123,21 @@ function hashRateLimitKey(scope: InviteRateLimitScope, parts: string[]) {
     .digest("base64url");
 }
 
+function readInviteRateLimitHashPepper(env: InviteEntryEnv = process.env) {
+  const pepper =
+    env[INVITE_RATE_LIMIT_HASH_PEPPER_ENV]?.trim() ||
+    env[INVITE_TOKEN_PEPPER_ENV]?.trim() ||
+    env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!pepper) {
+    throw new Error(
+      "Invite rate limiting requires ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER, ARCHESTIMATOR_INVITE_TOKEN_PEPPER, or SUPABASE_SERVICE_ROLE_KEY on the server.",
+    );
+  }
+  return pepper;
+}
+
 function hashIp(headers: HeaderReader) {
-  return createHash("sha256").update(getClientIp(headers)).digest("base64url");
+  return createHmac("sha256", readInviteRateLimitHashPepper()).update(getClientIp(headers)).digest("base64url");
 }
 
 function inviteRateLimitMessage(retryAfter: number) {

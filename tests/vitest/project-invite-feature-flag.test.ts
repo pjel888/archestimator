@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  checkInviteCreateRateLimit,
   checkInviteAcceptRateLimit,
   checkInviteResolutionRateLimit,
   createInviteToken,
@@ -148,6 +149,23 @@ describe("project invite entry feature flag", () => {
       message: "Too many attempts. Please wait 60 seconds.",
       retryAfter: 60,
     });
+  });
+
+  it("keys invite rate-limit IP hashing with a server-side pepper", async () => {
+    const headers = new Headers({ "x-forwarded-for": "203.0.113.10" });
+
+    await expect(checkInviteCreateRateLimit({ headers, projectId: "project-1", userId: "user-1" })).resolves.toEqual({ allowed: true });
+    const tokenPepperKeyHash = rateLimitEvents[0]?.key_hash;
+
+    rateLimitEvents.length = 0;
+    vi.stubEnv("ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER", "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
+
+    await expect(checkInviteCreateRateLimit({ headers, projectId: "project-1", userId: "user-1" })).resolves.toEqual({ allowed: true });
+    const dedicatedPepperKeyHash = rateLimitEvents[0]?.key_hash;
+
+    expect(tokenPepperKeyHash).toEqual(expect.any(String));
+    expect(dedicatedPepperKeyHash).toEqual(expect.any(String));
+    expect(dedicatedPepperKeyHash).not.toBe(tokenPepperKeyHash);
   });
 
   it("rate-limits the 6th rapid invite accept attempt for a user and token", async () => {

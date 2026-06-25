@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isAllowedInviteOrigin } from "@/lib/collaboration/invite-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type InviteRouteContext = {
@@ -21,6 +22,13 @@ export async function POST(request: Request, { params }: InviteRouteContext) {
 async function signOutAndReturn(request: Request, { params }: InviteRouteContext) {
   const { token } = await params;
   const rawToken = decodeInviteRouteToken(token);
+  if (!isAllowedInviteOrigin(request)) {
+    return NextResponse.json(
+      { error: "Invalid request origin." },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   return NextResponse.redirect(new URL(`/invite/${encodeURIComponent(rawToken)}`, request.url));
