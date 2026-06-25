@@ -82,9 +82,9 @@ The Estimate Sheet Right Sidebar is a **functionally broad but persistence-disho
 | [20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md](./20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md) | Product decisions with recommended defaults |
 | [21-TRACEABILITY-MATRIX.md](./21-TRACEABILITY-MATRIX.md) | Finding → decision → task → test mapping |
 
-### Improve-Plan pass additions (8 docs, 2026-06-25)
+### Improve-Plan pass additions (9 docs, 2026-06-25)
 
-Added by the `Improve-Plan-Prompt.md` audit pass to close Phase 3 gaps (risk register, rollout/rollback, observability, UX state matrix, performance budget, threat model, scorecard, audit report):
+Added by the `Improve-Plan-Prompt.md` audit pass to close Phase 3 gaps (risk register, rollout/rollback, observability, UX state matrix, performance budget, threat model, scorecard, audit report) and hand off open verification work:
 
 | File | Topic |
 | --- | --- |
@@ -96,6 +96,7 @@ Added by the `Improve-Plan-Prompt.md` audit pass to close Phase 3 gaps (risk reg
 | [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | STRIDE per surface, assets, threat agents, controls |
 | [28-SCORECARD.md](./28-SCORECARD.md) | Before/after per-doc scoring across Strategy / Doc Quality / Impl Readiness |
 | [29-AUDIT-REPORT.md](./29-AUDIT-REPORT.md) | Narrative report: inventory, findings, revisions, traceability, readiness |
+| [30-HANDOFF.md](./30-HANDOFF.md) | Open work + verification gaps for a future agent (6 tracks: independent verification, RLS check, upload-route hardening, perf-budget CI, observability wiring, UX gap closure) |
 
 ## Routing note (for /lfg pipeline consumers)
 
