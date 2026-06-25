@@ -79,6 +79,11 @@ describe("magic-link auth callback", () => {
   it("requires explicit local-only flags for dev auth and admin database bypasses", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS", "1");
+
+    vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET", "too-short");
+    expect(isDevAuthBypassCredentialValid("too-short")).toBe(false);
+    expect(isDevAuthBypassRequest("localhost", "too-short")).toBe(false);
+
     vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET", "local-dev-secret-with-at-least-32-chars");
 
     expect(isLocalDevHostname("localhost")).toBe(true);
@@ -90,6 +95,8 @@ describe("magic-link auth callback", () => {
     expect(isDevAuthBypassRequest("localhost", null)).toBe(false);
     expect(isDevAuthBypassRequest("localhost", "wrong-secret")).toBe(false);
     expect(isDevAuthBypassRequest("localhost", "local-dev-secret-with-at-least-32-chars")).toBe(true);
+    expect(isDevAuthBypassRequest("localhost:3000", "local-dev-secret-with-at-least-32-chars")).toBe(true);
+    expect(isDevAuthBypassRequest("[::1]:3000", "local-dev-secret-with-at-least-32-chars")).toBe(true);
     expect(isDevAuthBypassRequest("example.com", "local-dev-secret-with-at-least-32-chars")).toBe(false);
     expect(isDevAdminDatabaseBypassEnabled()).toBe(false);
 
@@ -101,6 +108,7 @@ describe("magic-link auth callback", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(isDevAuthBypassRequest("localhost", "local-dev-secret-with-at-least-32-chars")).toBe(false);
     expect(isDevAdminDatabaseBypassEnabled()).toBe(false);
+    expect(isDevAdminDatabaseBypassRequest("localhost", "local-dev-secret-with-at-least-32-chars")).toBe(false);
     expect(DEV_AUTH_BYPASS_SECRET_HEADER).toBe("x-archestimator-dev-auth-bypass");
   });
 });

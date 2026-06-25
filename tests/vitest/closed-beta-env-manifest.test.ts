@@ -42,9 +42,25 @@ const requiredEnvVars = [
   "DATABASE_URL",
 ] as const;
 
+const optionalEnvVars = [
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "DEEPSEEK_API_KEY",
+  "NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED",
+  "GOOGLE_MAPS_API_KEY",
+  "GOOGLE_MAPS_MAP_ID",
+  "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
+  "NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID",
+] as const;
+
 describe("closed beta env manifest", () => {
   it("documents every launch-runtime env var in .env.example", () => {
     for (const envVar of requiredEnvVars) {
+      expect(envExample).toMatch(new RegExp(`^${envVar}=`, "m"));
+    }
+  });
+
+  it("documents optional provider and feature-flag env names found in local/runtime usage", () => {
+    for (const envVar of optionalEnvVars) {
       expect(envExample).toMatch(new RegExp(`^${envVar}=`, "m"));
     }
   });
