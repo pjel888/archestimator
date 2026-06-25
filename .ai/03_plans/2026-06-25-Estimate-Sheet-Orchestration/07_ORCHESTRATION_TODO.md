@@ -22,7 +22,10 @@ date: 2026-06-25
 - [x] Apply final readiness revisions from verifier pass 1.
 - [x] Verify all package files exist.
 - [x] Run `git diff --check -- .ai/03_plans/2026-06-25-Estimate-Sheet-Orchestration`.
-- [x] Confirm no intentional writes outside target folder; external dirty files were present before this planning package and remain outside this task's write scope.
+- [x] Confirm no intentional writes outside target folder; earlier dirty-state notes were historical, and current continuation recheck found no external dirty files before this reconciliation pass.
+- [x] Run continuation static checks after new edits: package file inventory, stale-claim `rg` scan, scoped `git status`, and `git diff --check`.
+- [x] Run fresh independent continuation verifier after scorecard, source-ID, performance, security, and design corrections.
+- [x] Resolve continuation code-review findings about stale verifier/checklist bookkeeping.
 
 ## Future Implementation Todo
 

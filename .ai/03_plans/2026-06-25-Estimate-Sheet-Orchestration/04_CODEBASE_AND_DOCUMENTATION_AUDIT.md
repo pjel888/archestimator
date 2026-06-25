@@ -40,7 +40,7 @@ date: 2026-06-25
 Representative existing files:
 
 - Center/grid: `estimate-sheet-row-details-crud.test.tsx`, `estimate-sheet-library-insert.test.tsx`, `estimate-sheet-bulk-row-delete-partial-failure.test.tsx`, `estimate-sheet-version-control-db.test.ts`, `estimate-sheet-actions-authz.test.ts`, `estimate-row-tree-patch.test.ts`.
-- Tree: `estimate-tree-reorder.test.ts`, `estimate-tree-dnd.test.tsx`, `estimate-tree-edit.test.ts`, `estimate-tree-bulk-selection.test.tsx`, `tree-external-drop.test.tsx`, `ui-tree.test.tsx`.
+- Tree: `estimate-tree-reorder.test.ts`, `estimate-sheet-tree-dnd.test.tsx`, `estimate-tree-edit.test.ts`, `estimate-tree-bulk-selection.test.tsx`, `tree-external-drop.test.tsx`, `ui-tree.test.tsx`.
 - Right/sidebar/library: `component-library-ui.test.tsx`, `component-library-actions-revalidation.test.ts`, `library-source-trust.test.ts`, `library-telemetry-emit.test.ts`, `library-tab-a11y.test.tsx`, `library-template-insert-picker.test.tsx`.
 - Share/security: `share-no-store-invariants.test.ts`, `next-config-workshop-headers.test.ts`, `shared-link-header-smoke-script.test.ts`.
 - Performance: `perf/estimate-sheet-render-baseline.test.tsx`, `perf/estimate-sheet-render-relief.test.tsx`, `estimate-sheet-large-data-budgets.test.ts`, `estimate-tree-drag-over-perf.test.ts`, `templates-tree-performance.test.ts`.
@@ -60,10 +60,10 @@ The later implementation should extend and invert existing tests where they curr
 
 ## Active Worktree Compatibility
 
-Before this package wrote planning files, the worktree already had:
+Earlier package-creation evidence recorded the following external dirty state:
 
 - Modified files in the right-sidebar source plan folder.
 - Untracked implementation plans/coordination ledgers in center and tree source plan folders.
 - Modified unrelated landing files under `src/components/landing-v3`.
 
-Future implementation should start from a clean branch or explicitly isolate these existing changes. This package does not revert or edit them.
+Current continuation recheck before this reconciliation pass ran `git status --porcelain=v1` and returned no output. Treat the dirty-state bullets above as historical context for why the original package avoided normalizing source folders, not as a current worktree claim. Future implementation should still start from a clean branch/worktree or explicitly isolate any active source-plan edits present at that time.

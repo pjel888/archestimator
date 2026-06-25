@@ -10,9 +10,9 @@ date: 2026-06-25
 
 | Source Plan Folder | Files | Approx Lines | Canonical Implementation Doc | Planning Status |
 |---|---:|---:|---|---|
-| `2026-06-24-Estimate-Sheet-Center-Content-Analysis` | 25 | 5,800 | `IMPLEMENTATION_PLAN.md` over older `16-IMPLEMENTATION-PLAN.md` when different | Static-analysis implementation plan with source-plan modifications present in current worktree. |
-| `2026-06-24-Estimate-Sheet-Right-Sidebar-Analysis` | 35 | 7,645 | `IMPLEMENTATION_PLAN.md` over historical `18-IMPLEMENTATION-PLAN.md` when different | Most mature package; several files modified in current worktree. |
-| `2026-06-24-Estimate-Sheet-Tree-Sidebar-Analysis` | 21 | 6,394 | `IMPLEMENTATION_PLAN.md` over historical `10-IMPLEMENTATION-PLAN.md` when different | Implementation plan and coordination ledger are untracked in current worktree. |
+| `2026-06-24-Estimate-Sheet-Center-Content-Analysis` | 25 | 5,800 | `IMPLEMENTATION_PLAN.md` over older `16-IMPLEMENTATION-PLAN.md` when different | Static-analysis implementation plan; file count and line total rechecked in this continuation. |
+| `2026-06-24-Estimate-Sheet-Right-Sidebar-Analysis` | 35 | 7,645 | `IMPLEMENTATION_PLAN.md` over historical `18-IMPLEMENTATION-PLAN.md` when different | Most mature package; file count and line total rechecked in this continuation. |
+| `2026-06-24-Estimate-Sheet-Tree-Sidebar-Analysis` | 21 | 6,394 | `IMPLEMENTATION_PLAN.md` over historical `10-IMPLEMENTATION-PLAN.md` when different | Tree package; file count and line total rechecked in this continuation. |
 
 The source plan folders are inputs only. This orchestration package does not normalize, rewrite, or commit them.
 
@@ -104,4 +104,4 @@ Master interpretation:
 
 - Source audits are primarily static/source-level.
 - Runtime browser, screen-reader, live provider, linked Supabase, and production proof are not present.
-- Some source folders are currently modified/untracked. This package treats that as the current evidence baseline and does not correct it.
+- Earlier package-creation notes recorded source-folder modified/untracked state, but the continuation recheck before this reconciliation pass found a clean worktree. Source folders still remain inputs only and are not rewritten by this package.

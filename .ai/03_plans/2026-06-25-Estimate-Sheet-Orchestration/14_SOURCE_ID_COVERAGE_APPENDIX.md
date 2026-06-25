@@ -80,6 +80,22 @@ These rows cover the task IDs from the center source plan implementation file `1
 | `M-27` | Deferred with guard | MOP-6 | Product owner | Proposal dirty-state banner is product enhancement unless proposal/export code is touched earlier. |
 | `M-28` | Deferred | MOP-6 | Product owner | Editable-total cost sort is lower-priority product behavior after integrity gates. |
 
+## Center Decision Ledger
+
+These rows cover the center source plan decision IDs from `18-OPEN-QUESTIONS-AND-DECISION-LEDGER.md`.
+
+| Source IDs | Disposition | MOP Phase | Owner | Validation / Reason |
+|---|---|---|---|---|
+| `Q1-Q2` | Incorporated | MOP-5 | UX/a11y | Clear/delete language and undo expectations are handled as destructive-action clarity; full undo policy is deferred unless selected for bulk-delete recovery. |
+| `Q3-Q5` | Incorporated | MOP-2 | Data + center | Bulk delete and move semantics are launch-integrity gates: all-or-nothing bulk delete, atomic move, and target-value preservation. |
+| `Q6-Q8` | Incorporated | MOP-2/MOP-5 | Center + UX | Editable unsaved rows, uncertain failure recovery, and numeric-input handling are covered by mutation-state and row-status tests. |
+| `Q9-Q13` | Incorporated/deferred by accepted defaults | MOP-5/MOP-6 | UX/product | Spreadsheet navigation and drop/confirmation defaults are honored; row reorder and broad undo remain deferred product scope. |
+| `Q14` | Incorporated | MOP-4/MOP-5 | Contracts + UX/a11y | Keyboard equivalent is the selected picker/dialog model in `05_MASTER_ORCHESTRATION_IMPLEMENTATION_PLAN.md`. |
+| `Q15-Q18` | Incorporated | MOP-1/MOP-2/MOP-4 | Right + center + contracts | Inline edit/snapshot/trust/success semantics are tied to right-sidebar persistence honesty and center trust gates. |
+| `Q19-Q23` | Incorporated or accepted defer | MOP-5/MOP-6 | UX/product | Selection pruning, terminology, search/collapse persistence, and column-width scope are covered by UX/a11y or deferred preference policy. |
+| `Q24-Q31` | Incorporated or accepted defer | MOP-0/MOP-5/MOP-6 | Ops + UX/product | Proposal/export/save-pending/read-only/truncation/project-source/undo/save-chip/collaboration decisions are represented in requirements and risk gates. |
+| `Q32-Q37` | Incorporated | MOP-0/MOP-5 | UX/a11y + ops | Focus, mobile fallback, WCAG target, peso/i18n default, save-chip states, and beta rollback guard are explicit implementation contracts. |
+
 ## Right Sidebar Findings, Risks, and Tasks
 
 | Source ID | Disposition | MOP Phase | Owner | Validation / Reason |
@@ -143,6 +159,21 @@ These rows cover the task IDs from the center source plan implementation file `1
 | `Task 3.6` | Incorporated | MOP-5 | UX/a11y | Remaining a11y polish. |
 | `Task 4.1` | Deferred | MOP-6 | UX/product | Mobile drawer separate scope. |
 
+## Right Sidebar Decision Ledger
+
+These rows cover the right-sidebar decision IDs from `20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md`.
+
+| Source IDs | Disposition | MOP Phase | Owner | Validation / Reason |
+|---|---|---|---|---|
+| `Q1-Q3` | Incorporated | MOP-1/MOP-5 | Right + UX | Tab naming and reusable-source placement are resolved through Project Components/snapshot-copy copy and right-sidebar honesty. |
+| `Q4-Q7` | Incorporated | MOP-1 | Right | Edit, duplicate, archive/delete, and local-only action policy are launch trust gates. |
+| `Q8-Q10` | Deferred or incorporated by accepted defaults | MOP-1/MOP-6 | Product/right | Favorites/recents and custom ordering stay browser-local; folder delete/reparent is either implemented or given an honest fallback. |
+| `Q11-Q14` | Incorporated | MOP-1/MOP-5 | Right + UX | Folder creation/rename validation and local-only template group creation are cleaned up or removed. |
+| `Q15-Q17` | Incorporated | MOP-1/MOP-2 | Right + center | Project sources are snapshot copies; hover/search refresh behavior is bounded and latest-wins. |
+| `Q18-Q22` | Incorporated | MOP-5/MOP-6 | UX/product | Search persistence, preview behavior, insertion quantity, double-click policy, and drag handle behavior are UX/a11y or product-default work. |
+| `Q23-Q24` | Incorporated | MOP-5 | UX/a11y | Canonical target term is Area; below-1024 access is honest fallback unless a drawer is separately browser-proved. |
+| `Q25-Q30` | Incorporated or accepted defer | MOP-1/MOP-5/MOP-6 | Right + product | Collapse state, transactional bulk insert, undo, read-only availability, shortcut behavior, and legacy `NewComponentForm` removal are scoped into right honesty, UX, or deferred product work. |
+
 ## Tree Findings, Migrations, and Threats
 
 | Source ID | Disposition | MOP Phase | Owner | Validation / Reason |
@@ -192,3 +223,38 @@ These rows cover the task IDs from the center source plan implementation file `1
 | `T-13` | Incorporated | MOP-3 | Security | No-referrer/no-store route proof. |
 | `T-14` | Incorporated | MOP-3 | Data/tree | Max-depth 100 client/server/DB enforcement. |
 | `T-15` | Incorporated | MOP-5 | Ops/security | Rollout monitoring and rollback. |
+
+## Tree Decision Ledger
+
+These rows cover the tree decision IDs from `12-OPEN-QUESTIONS-AND-DECISIONS.md`.
+
+| Source IDs | Disposition | MOP Phase | Owner | Validation / Reason |
+|---|---|---|---|---|
+| `Q-01-Q-05` | Incorporated | MOP-0.5/MOP-3/MOP-5 | Tree + UX | Create/rename selection and cancel behavior are current or quick-win/tree-race validation. |
+| `Q-06` | Incorporated | MOP-3 | Tree | Escape on unsaved optimistic node rolls back; covered by create/race tests. |
+| `Q-07-Q-10` | Incorporated | MOP-3 | Tree + data | Name validation, delete fallback, and cascade behavior are tree mutation proof. |
+| `Q-11` | Deferred | MOP-6 | Product owner | Delete undo is post-launch unless selected as part of a destructive-operation recovery path. |
+| `Q-12-Q-16` | Incorporated | MOP-3/MOP-5 | Tree + UX | Hover expand, move selection, expansion persistence, URL selection, and per-row pending states are implementation/test gates. |
+| `Q-17-Q-18` | Incorporated / accepted limitation | MOP-3/MOP-5 | Tree + perf | Last-write-wins and large-tree virtualization/lazy-load boundaries are documented and budgeted. |
+| `Q-19-Q-20` | Incorporated | MOP-3/MOP-5 | Security + data/tree | Public/share CRUD hiding and max depth 100 are security/data gates. |
+| `Q-21-Q-25` | Incorporated or accepted defer | MOP-4/MOP-5/MOP-6 | Contracts + UX/product | Multi-node drag, character count, external drops, presence, and two-tab behavior are scoped into v1 contracts or deferred product scope. |
+
+## Tree Edge-Case Matrix
+
+These rows cover `EC-001` through `EC-060` from `08-EDGE-CASE-AND-TEST-MATRIX.md`. Ranges are grouped by interaction family so implementation owners can test by behavior without losing ID coverage.
+
+| Source IDs | Disposition | MOP Phase | Owner | Validation / Reason |
+|---|---|---|---|---|
+| `EC-001-EC-009` | Incorporated | MOP-3 | Tree | Create, optimistic remap, selection preservation, parent chaining, IME, and server echo behavior. `EC-006` is P1 create/selection race proof. |
+| `EC-010-EC-016` | Incorporated | MOP-3/MOP-5 | Tree + UX | Rename validation, failure, escape, concurrent rename, and delete-during-rename handling. |
+| `EC-017-EC-025` | Incorporated | MOP-3 | Data/tree | Delete, cascade, fallback selection, bulk dedupe, and all-or-nothing/authoritative server return. `EC-022` is P1 delete-cascade proof. |
+| `EC-026-EC-035` | Incorporated | MOP-3/MOP-5 | Tree + perf | Same-parent/cross-parent reorder, invalid drops, mutation blocking, hover expand, and auto-scroll/perf behavior. |
+| `EC-036-EC-037` | Incorporated | MOP-4 | Contracts | Template and project-source external drops use shared event/payload contracts. |
+| `EC-038-EC-041` | Incorporated | MOP-4/MOP-5 | UX/a11y + contracts | F2, context menu, keyboard move, and typeahead support; v1 uses explicit Move dialog/picker rather than hidden keyboard DnD. |
+| `EC-042-EC-046` | Incorporated | MOP-3/MOP-5 | Tree + UX | Selection, tab-switch stale selection, expand/collapse, and expansion persistence. |
+| `EC-047-EC-048` | Incorporated/deferred by fallback | MOP-5/MOP-6 | UX/product | Resize persistence and mobile/sidebar fallback; drawer requires separate proof if implemented. |
+| `EC-049-EC-051` | Incorporated | MOP-5 | UX/tree | Search, hide-empty filter, and bulk selection behavior. |
+| `EC-052` | Incorporated | MOP-3/MOP-5 | Security/tree | Read-only permission denial and no optimistic mutation. P1 permission proof. |
+| `EC-053-EC-055` | Incorporated as accepted risk/test scope | MOP-3 | Tree + data | Concurrent create/rename/bulk delete behavior; last-write-wins or server dedupe boundaries documented. |
+| `EC-056-EC-059` | Incorporated | MOP-3/MOP-5 | Tree + reliability | Cancel/unmount/offline/slow-network recovery and persistent feedback. |
+| `EC-060` | Incorporated | MOP-5 | Perf/tree | Large-tree virtualization and payload budget proof. |

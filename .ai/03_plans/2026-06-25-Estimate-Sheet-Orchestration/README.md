@@ -19,7 +19,7 @@ The target is not three independent implementation streams. The target is one es
 
 ## Current Verdict
 
-Planning package status: final-verified implementation-ready package. Specialist adversarial review is complete, independent verifier pass 1 and pass 2 blockers were corrected, and the final narrow verifier rerun returned PASS with no blocking findings.
+Planning package status: final-verified after continuation review. The original package had a final verifier PASS; this continuation then corrected stale bookkeeping, added prompt-required scorecards, expanded decision/edge-case coverage, and tightened security, responsive, keyboard, and performance gates. A fresh independent continuation verifier PASS confirmed the updated package.
 
 Feature status: not implemented by this package. No app, test, schema, migration, provider, config, or source-plan files are intentionally changed.
 
@@ -69,8 +69,9 @@ Primary execution rule for the future implementation pass: establish the shared 
 | `10_RISK_DECISION_AND_ROLLBACK_REGISTER.md` | Decisions, risks, rollback/fix-forward register. |
 | `11_TEST_VALIDATION_AND_QA_STRATEGY.md` | RED->GREEN gates and release evidence strategy. |
 | `12_ADVERSARIAL_REVIEW.md` | Critique cycle findings and resolutions. |
-| `13_FINAL_READINESS_REVIEW.md` | Independent final verification and readiness score. |
+| `13_FINAL_READINESS_REVIEW.md` | Independent final verification and readiness determination. |
 | `14_SOURCE_ID_COVERAGE_APPENDIX.md` | Source finding/task/threat coverage proof by ID. |
+| `15_SCORECARD_AND_COMPLETION_AUDIT.md` | Prompt-required document scorecards, before/after comparison, residual score reasons, and completion audit. |
 | `LOOP_LEDGER.md` | Append-only orchestration loop log. |
 
 ## Evidence Boundaries
