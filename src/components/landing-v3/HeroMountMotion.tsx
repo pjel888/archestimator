@@ -27,6 +27,9 @@ export function HeroMountMotion({ children, className }: HeroMountMotionProps) {
       const illustration = root.querySelector("[data-hero-motion='illustration']");
       const cards = gsap.utils.toArray<HTMLElement>("[data-hero-motion='metric-card']", root);
       const mockup = root.querySelector("[data-hero-motion='mockup']");
+      const stackedHero = window.matchMedia("(max-width: 1439px)").matches;
+      const mobileHero = window.matchMedia("(max-width: 820px)").matches;
+      const showStackedMockup = stackedHero && !mobileHero;
       const motionTargets = [eyebrow, title, intro, illustration, mockup, ...ctas, ...cards].filter(Boolean);
 
       if (prefersReducedMotion) {
@@ -68,21 +71,11 @@ export function HeroMountMotion({ children, className }: HeroMountMotionProps) {
           { opacity: 0, y: 10, scale: 0.985 },
           { opacity: 1, y: 0, scale: 1, duration: 0.42, stagger: 0.06 },
           "-=0.34",
-        )
-        .fromTo(
-          illustration,
-          { opacity: 0, y: 28, "--hero-image-mount-scale": 1.035 },
-          { opacity: 1, y: 0, "--hero-image-mount-scale": 1, duration: 0.86 },
-          "-=0.52",
-        )
-        .fromTo(
-          cards,
-          { opacity: 0, y: 22, scale: 0.985 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.58, stagger: 0.075 },
-          "-=0.42",
         );
 
-      if (mockup) {
+      const revealMockup = (position?: gsap.Position) => {
+        if (!mockup) return;
+
         timeline.fromTo(
           mockup,
           {
@@ -103,8 +96,30 @@ export function HeroMountMotion({ children, className }: HeroMountMotionProps) {
             duration: 1.04,
             ease: "expo.out",
           },
-          "+=0.1",
+          position,
         );
+      };
+
+      if (showStackedMockup) {
+        revealMockup("-=0.18");
+      }
+
+      timeline
+        .fromTo(
+          illustration,
+          { opacity: 0, y: 28, "--hero-image-mount-scale": 1.035 },
+          { opacity: 1, y: 0, "--hero-image-mount-scale": 1, duration: 0.86 },
+          showStackedMockup ? "-=0.68" : "-=0.52",
+        )
+        .fromTo(
+          cards,
+          { opacity: 0, y: 22, scale: 0.985 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.58, stagger: 0.075 },
+          "-=0.42",
+        );
+
+      if (!stackedHero) {
+        revealMockup("+=0.1");
       }
     },
     { scope: ref },
