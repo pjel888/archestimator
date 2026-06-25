@@ -177,6 +177,29 @@ describe("sensitive API auth boundaries", () => {
     expect(request.formData).not.toHaveBeenCalled();
   });
 
+  it("does not expose component attachment storage errors to clients", async () => {
+    const storage = mockStorageClient();
+    storage.upload.mockResolvedValueOnce({ error: { message: "storage bucket internals leaked" } });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const formData = new FormData();
+    formData.set("file", new File([Buffer.from("%PDF-1.7\n%test")], "spec.pdf", { type: "application/pdf" }));
+    const { POST } = await import("@/app/api/component-library/attachments/route");
+
+    try {
+      const response = await POST(createFormRequest(formData));
+
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({ error: "Could not store attachment." });
+      expect(storage.upload).toHaveBeenCalledOnce();
+      expect(consoleError).toHaveBeenCalledWith(
+        "Component attachment upload failed",
+        expect.objectContaining({ message: "storage bucket internals leaked" }),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("rejects project image uploads before parsing bodies when auth fails", async () => {
     authMocks.requireCurrentUserContext.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
     const request = createUnparsedFormRequest();

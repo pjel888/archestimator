@@ -172,7 +172,8 @@ export async function POST(request: Request) {
       sizeBytes: file.size,
     });
   } catch (error) {
-    return jsonError(error instanceof Error ? `Could not store attachment: ${error.message}` : "Could not store attachment.", 500);
+    console.error("Component attachment upload failed", error);
+    return jsonError("Could not store attachment.", 500);
   }
 }
 

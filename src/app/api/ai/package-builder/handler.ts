@@ -335,12 +335,13 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
           draftHash: applyRequest.draftHash,
           signal: "accepted",
         });
-      }
-      return NextResponse.json({ mode: "apply", result });
-    } catch (error) {
-      return jsonError(error instanceof Error ? error.message : "Package Apply failed.", 400);
     }
+    return NextResponse.json({ mode: "apply", result });
+  } catch (error) {
+    console.error("AI package Apply failed", error);
+    return jsonError("Package Apply failed.", 400);
   }
+}
 
   if (!flags.draft) return jsonError("AI package Draft is disabled.", 403);
 

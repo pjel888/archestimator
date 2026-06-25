@@ -1606,6 +1606,64 @@ describe("AI package-builder route", () => {
     });
   });
 
+  it("does not expose internal Apply failures in the API response", async () => {
+    const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
+      getUserContext: async () => ({
+        userId: "44444444-4444-4444-8444-444444444444",
+        email: "user@example.com",
+        workspaceId: "55555555-5555-4555-8555-555555555555",
+        authMode: "supabase",
+      }),
+      readTools: async () => readData,
+      provider: {
+        name: "deepseek",
+        model: "mock-model",
+        hasApiKey: () => true,
+        createDraftSuggestion: vi.fn(async () => null),
+      },
+      recordAudit: vi.fn(),
+    });
+    const { draft, draftHash, draftToken } = await draftResponse.json();
+    const applyPackage = vi.fn(async () => {
+      throw new Error("Package Apply failed: relation workspace_members does not exist");
+    });
+    const authorizeApply = vi.fn();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await handlePackageBuilderRequest(
+      makeRequest({
+        mode: "apply",
+        draft,
+        draftHash,
+        draftToken,
+        confirmation: { confirmed: true },
+        idempotencyKey: "idem-error-redaction",
+      }),
+      {
+        getUserContext: async () => ({
+          userId: "44444444-4444-4444-8444-444444444444",
+          email: "user@example.com",
+          workspaceId: "55555555-5555-4555-8555-555555555555",
+          authMode: "supabase",
+        }),
+        applyPackage,
+        authorizeApply,
+        recordAudit: vi.fn(),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(authorizeApply).toHaveBeenCalledTimes(1);
+    expect(applyPackage).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      "AI package Apply failed",
+      expect.objectContaining({ message: expect.stringContaining("workspace_members") }),
+    );
+    const body = await response.json();
+    expect(body).toEqual({ error: "Package Apply failed." });
+    expect(JSON.stringify(body)).not.toContain("workspace_members");
+  });
+
   it("authorizes component-library create Apply and returns idempotent replay results", async () => {
     const userContext = {
       userId: "44444444-4444-4444-8444-444444444444",
