@@ -4,7 +4,10 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { ReleaseAnnouncementModal } from "@/features/notifications/components/ReleaseAnnouncementModal";
-import { useReleaseAnnouncementQuery } from "@/features/notifications/hooks/useNotificationsQuery";
+import {
+  useDeferredNotificationQueryEnabled,
+  useReleaseAnnouncementQuery,
+} from "@/features/notifications/hooks/useNotificationsQuery";
 
 type NotificationProviderProps = {
   children: ReactNode;
@@ -15,7 +18,8 @@ function shouldEnableNotifications(pathname: string | null) {
 }
 
 function NotificationProviderSurface({ children }: NotificationProviderProps) {
-  const releaseAnnouncementQuery = useReleaseAnnouncementQuery();
+  const releaseQueryEnabled = useDeferredNotificationQueryEnabled();
+  const releaseAnnouncementQuery = useReleaseAnnouncementQuery({ enabled: releaseQueryEnabled });
 
   return (
     <>

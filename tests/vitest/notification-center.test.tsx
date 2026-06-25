@@ -6,6 +6,9 @@ import { NotificationCenter } from "@/features/notifications/components/Notifica
 import { notificationFeedResult, notificationFixtureIds } from "../fixtures/notifications";
 
 const hookState = vi.hoisted(() => ({
+  deferredEnabled: true,
+  feedCalls: [] as unknown[][],
+  unreadCalls: [] as unknown[][],
   feed: {
     data: null as typeof notificationFeedResult | null,
     isError: false,
@@ -28,8 +31,15 @@ const hookState = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/notifications/hooks/useNotificationsQuery", () => ({
-  useNotificationsQuery: () => hookState.feed,
-  useUnreadNotificationCountQuery: () => hookState.unread,
+  useDeferredNotificationQueryEnabled: (force?: boolean) => force === true || hookState.deferredEnabled,
+  useNotificationsQuery: (...args: unknown[]) => {
+    hookState.feedCalls.push(args);
+    return hookState.feed;
+  },
+  useUnreadNotificationCountQuery: (...args: unknown[]) => {
+    hookState.unreadCalls.push(args);
+    return hookState.unread;
+  },
   useMarkNotificationReadMutation: () => hookState.markRead,
   useDismissNotificationMutation: () => hookState.dismiss,
 }));
@@ -40,12 +50,27 @@ beforeEach(() => {
   hookState.feed.isError = false;
   hookState.feed.isLoading = false;
   hookState.feed.refetch = vi.fn();
+  hookState.feedCalls = [];
+  hookState.unreadCalls = [];
+  hookState.deferredEnabled = true;
   hookState.unread.data = 1;
   hookState.markRead.mutate = vi.fn();
   hookState.dismiss.mutate = vi.fn();
 });
 
 describe("NotificationCenter", () => {
+  it("keeps the notification feed disabled until the bell opens", async () => {
+    const user = userEvent.setup();
+    render(<NotificationCenter />);
+
+    expect(hookState.feedCalls.at(-1)?.[1]).toEqual({ enabled: false });
+    expect(hookState.unreadCalls.at(-1)?.[0]).toEqual({ enabled: true });
+
+    await user.click(screen.getByRole("button", { name: "Notifications, 1 unread" }));
+
+    expect(hookState.feedCalls.at(-1)?.[1]).toEqual({ enabled: true });
+  });
+
   it("labels the bell with unread count and closes with focus return on Escape", async () => {
     const user = userEvent.setup();
     render(<NotificationCenter />);

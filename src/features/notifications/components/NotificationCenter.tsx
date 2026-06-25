@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { NotificationBellButton } from "@/features/notifications/components/NotificationBellButton";
 import { NotificationListItem } from "@/features/notifications/components/NotificationListItem";
 import {
+  useDeferredNotificationQueryEnabled,
   useDismissNotificationMutation,
   useMarkNotificationReadMutation,
   useNotificationsQuery,
@@ -16,8 +17,9 @@ export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const feedQuery = useNotificationsQuery();
-  const unreadQuery = useUnreadNotificationCountQuery();
+  const unreadQueryEnabled = useDeferredNotificationQueryEnabled(open);
+  const feedQuery = useNotificationsQuery(undefined, { enabled: open });
+  const unreadQuery = useUnreadNotificationCountQuery({ enabled: unreadQueryEnabled });
   const markReadMutation = useMarkNotificationReadMutation();
   const dismissMutation = useDismissNotificationMutation();
   const unreadCount = unreadQuery.data ?? 0;

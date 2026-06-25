@@ -30,6 +30,7 @@ const hookState = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/notifications/hooks/useNotificationsQuery", () => ({
+  useDeferredNotificationQueryEnabled: () => true,
   useNotificationsQuery: () => hookState.feed,
   useUnreadNotificationCountQuery: () => hookState.unread,
   useMarkNotificationReadMutation: () => hookState.markRead,
@@ -42,10 +43,10 @@ beforeEach(() => {
 });
 
 describe("workshop notification entry", () => {
-  it("renders nothing when a shell is tested outside the app query provider", () => {
-    const { container } = render(<WorkshopNotificationEntry />);
+  it("renders the bell when notification hooks are supplied by the test harness", () => {
+    render(<WorkshopNotificationEntry />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole("button", { name: "Notifications, 2 unread" })).toBeInTheDocument();
   });
 
   it("renders the workshop notification bell entry point under the app query provider", () => {

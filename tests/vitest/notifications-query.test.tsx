@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -59,6 +59,7 @@ describe("notification query hooks", () => {
     expect(hooks.NOTIFICATION_UNREAD_STALE_TIME_MS).toBe(30_000);
     expect(hooks.NOTIFICATION_RELEASE_MODAL_STALE_TIME_MS).toBe(30_000);
     expect(hooks.NOTIFICATION_FEED_STALE_TIME_MS).toBe(60_000);
+    expect(hooks.NOTIFICATION_BACKGROUND_QUERY_DELAY_MS).toBe(5_000);
   });
 
   it("calls server actions for feed, unread count, and release modal queries", async () => {
@@ -75,6 +76,37 @@ describe("notification query hooks", () => {
     expect(actionMocks.loadCurrentUserNotifications).toHaveBeenCalledWith({ limit: 10 });
     expect(actionMocks.loadCurrentUserUnreadNotificationCount).toHaveBeenCalledTimes(1);
     expect(actionMocks.loadCurrentUserReleaseAnnouncement).toHaveBeenCalledTimes(1);
+  });
+
+  it("can keep notification queries disabled for non-critical first paint", async () => {
+    const queryClient = makeQueryClient();
+    const hooks = await import("@/features/notifications/hooks/useNotificationsQuery");
+
+    renderHook(() => hooks.useNotificationsQuery({ limit: 10 }, { enabled: false }), { wrapper: makeWrapper(queryClient) });
+    renderHook(() => hooks.useUnreadNotificationCountQuery({ enabled: false }), { wrapper: makeWrapper(queryClient) });
+    renderHook(() => hooks.useReleaseAnnouncementQuery({ enabled: false }), { wrapper: makeWrapper(queryClient) });
+
+    expect(actionMocks.loadCurrentUserNotifications).not.toHaveBeenCalled();
+    expect(actionMocks.loadCurrentUserUnreadNotificationCount).not.toHaveBeenCalled();
+    expect(actionMocks.loadCurrentUserReleaseAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("enables background notification hydration after the first-paint delay", async () => {
+    vi.useFakeTimers();
+    const hooks = await import("@/features/notifications/hooks/useNotificationsQuery");
+
+    try {
+      const { result } = renderHook(() => hooks.useDeferredNotificationQueryEnabled());
+      expect(result.current).toBe(false);
+
+      act(() => {
+        vi.advanceTimersByTime(hooks.NOTIFICATION_BACKGROUND_QUERY_DELAY_MS);
+      });
+
+      expect(result.current).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("updates cached feed/count/modal state after release acknowledgement", async () => {

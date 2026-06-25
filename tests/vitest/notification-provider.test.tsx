@@ -11,6 +11,7 @@ const navigationMocks = vi.hoisted(() => ({
 const hookMocks = vi.hoisted(() => ({
   acknowledgeMutate: vi.fn(),
   useReleaseAnnouncementQuery: vi.fn(),
+  deferredEnabled: true,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -21,12 +22,14 @@ vi.mock("@/features/notifications/hooks/useNotificationsQuery", () => ({
   useAcknowledgeReleaseAnnouncementMutation: () => ({
     mutate: hookMocks.acknowledgeMutate,
   }),
-  useReleaseAnnouncementQuery: () => hookMocks.useReleaseAnnouncementQuery(),
+  useDeferredNotificationQueryEnabled: () => hookMocks.deferredEnabled,
+  useReleaseAnnouncementQuery: (...args: unknown[]) => hookMocks.useReleaseAnnouncementQuery(...args),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   navigationMocks.pathname = "/workshop";
+  hookMocks.deferredEnabled = true;
   hookMocks.useReleaseAnnouncementQuery.mockReturnValue({ data: releaseAnnouncementView });
 });
 
@@ -53,7 +56,7 @@ describe("NotificationProvider", () => {
     );
 
     expect(screen.getByText("Workshop app")).toBeInTheDocument();
-    expect(hookMocks.useReleaseAnnouncementQuery).toHaveBeenCalledTimes(1);
+    expect(hookMocks.useReleaseAnnouncementQuery).toHaveBeenCalledWith({ enabled: true });
     expect(screen.getByRole("dialog", { name: "New release" })).toBeInTheDocument();
   });
 

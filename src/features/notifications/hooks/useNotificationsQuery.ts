@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 import {
   acknowledgeReleaseAnnouncementAction,
@@ -15,6 +16,11 @@ import type { NotificationDeliveryView, NotificationFeedResult, ReleaseAnnouncem
 export const NOTIFICATION_UNREAD_STALE_TIME_MS = 30_000;
 export const NOTIFICATION_RELEASE_MODAL_STALE_TIME_MS = 30_000;
 export const NOTIFICATION_FEED_STALE_TIME_MS = 60_000;
+export const NOTIFICATION_BACKGROUND_QUERY_DELAY_MS = 5_000;
+
+type NotificationQueryOptions = {
+  enabled?: boolean;
+};
 
 export const notificationQueryKeys = {
   all: ["notifications"] as const,
@@ -53,28 +59,64 @@ function invalidateNotificationQueries(queryClient: ReturnType<typeof useQueryCl
   void queryClient.invalidateQueries({ queryKey: notificationQueryKeys.all, refetchType: "none" });
 }
 
-export function useNotificationsQuery(input: { limit?: number; cursor?: string | null } = {}) {
+export function useDeferredNotificationQueryEnabled(force = false) {
+  const [enabled, setEnabled] = useState(force);
+
+  useEffect(() => {
+    if (enabled) return undefined;
+    if (force) {
+      setEnabled(true);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let idleId: number | null = null;
+    const activate = () => {
+      if (!cancelled) setEnabled(true);
+    };
+    const timerId = window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(activate, { timeout: 1_500 });
+        return;
+      }
+      activate();
+    }, NOTIFICATION_BACKGROUND_QUERY_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
+    };
+  }, [enabled, force]);
+
+  return enabled || force;
+}
+
+export function useNotificationsQuery(input: { limit?: number; cursor?: string | null } = {}, options: NotificationQueryOptions = {}) {
   return useQuery({
     queryKey: notificationQueryKeys.feed(input.cursor),
     queryFn: () => loadCurrentUserNotifications(input),
+    enabled: options.enabled ?? true,
     staleTime: NOTIFICATION_FEED_STALE_TIME_MS,
     retry: 1,
   });
 }
 
-export function useUnreadNotificationCountQuery() {
+export function useUnreadNotificationCountQuery(options: NotificationQueryOptions = {}) {
   return useQuery({
     queryKey: notificationQueryKeys.unreadCount(),
     queryFn: loadCurrentUserUnreadNotificationCount,
+    enabled: options.enabled ?? true,
     staleTime: NOTIFICATION_UNREAD_STALE_TIME_MS,
     retry: 1,
   });
 }
 
-export function useReleaseAnnouncementQuery() {
+export function useReleaseAnnouncementQuery(options: NotificationQueryOptions = {}) {
   return useQuery({
     queryKey: notificationQueryKeys.releaseModal(),
     queryFn: loadCurrentUserReleaseAnnouncement,
+    enabled: options.enabled ?? true,
     staleTime: NOTIFICATION_RELEASE_MODAL_STALE_TIME_MS,
     retry: 1,
   });
