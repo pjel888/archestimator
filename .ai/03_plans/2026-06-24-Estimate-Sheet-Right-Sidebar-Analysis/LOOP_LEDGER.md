@@ -196,3 +196,88 @@ System reminder confirmed all six Wave-1 lanes ended in error:
 - [00-README.md](./00-README.md) — updated artifact index
 
 **No retries needed.** The lead-fallback outputs are the authoritative deliverables. The 6 lane failures confirm the systemic infrastructure queue pattern (same as the prior `Improve-Plan-Prompt` pass) and validate the fallback decision made at each lane's timeout.
+
+### 2026-06-25 — Native subagent continuation review — STARTED
+
+The later Codex session resumed the goal under the same AGENTS.md / OMX
+contract and launched six bounded read-only review lanes against the canonical
+plan pack:
+
+| Lane | Native agent | Role | Verdict |
+|---|---|---|---|
+| L1 Source/Requirements | `019efd8a-726a-73c0-aedb-de084b0eb757` | analyst | WATCH |
+| L2 Architecture | `019efd8a-73ba-7431-bc2b-4fce99dabe46` | architect | capacity error |
+| L3 UX/UI/A11y | `019efd8a-74cb-7020-aae1-a71882090cc9` | designer | WATCH |
+| L4 Backend/DB/Security | `019efd8a-762d-7e11-b26c-48ab9fb213dd` | architect | WATCH |
+| L5 Perf/Test/Deploy | `019efd8a-7767-7c82-a4d5-3f491ed4fe16` | test-engineer | WATCH |
+| L6 Planner | `019efd8a-78ad-7fe2-a451-b52cba7c2d60` | planner | capacity error |
+
+Key WATCH findings integrated into [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md):
+
+- Repaired section numbering: §20 is Requirements Traceability and §21 is
+  Definition of Done. Historical ledger entries above preserve the
+  pre-reconciliation numbering.
+- Added prompt contract to source references and fixed the broken
+  `current-state.md` link.
+- Added Task 1.0 for telemetry schema/allow-list/dashboard/bundle-budget
+  prerequisite proof.
+- Added UX/read-only/mobile/a11y tasks for touched-surface `N/S` gaps,
+  below-1024 fallback messaging, read-only affordances, target-size proof,
+  contrast, landmarks, tab `aria-controls`, Escape behavior, and IME handling.
+- Normalized alert thresholds to doc 24 production gates: archive/edit
+  failure >5% for 10 minutes, restore success <90%, telemetry lag; optional
+  preview warning >1% does not replace production thresholds.
+- Reconciled backend/security drift: repo migrations/routes already contain
+  the expected RLS/storage/upload controls; remaining launch gates are live RLS
+  proof, upload-route deploy verification, telemetry-table proof, and
+  external-image referrer suppression.
+
+### 2026-06-25 — Lead reconciliation patch — COMPLETE
+
+- Updated current-facing docs: [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md),
+  [GOAL.md](./GOAL.md), [00-README.md](./00-README.md), and
+  [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md).
+- Preserved unrelated worktree state, including the untracked center-content
+  plan artifact outside this right-sidebar folder.
+- Next: run fresh adversarial reviewer + independent verifier against the
+  reconciled pack, then record mechanical validation evidence.
+
+### 2026-06-25 — Fresh R1/R2 review — WATCH
+
+| Lane | Native agent | Verdict | Notes |
+|---|---|---|---|
+| R1 adversarial document reviewer | `019efda1-460f-7a90-8f62-50d76bfb211a` | WATCH | Flag rollback needed redeploy wording; README tense conflict; §21.7 needed all 14 telemetry events; explainer copy needed task/DoD ownership |
+| R2 independent verifier | `019efda1-46ca-7a92-97d4-ca64f48021bb` | WATCH, 91/100 | 22-section contract, §20/§21 order, links, and scoped docs checks passed; global worktree includes unrelated app-code diff outside this plan pack |
+
+### 2026-06-25 — R1/R2 WATCH reconciliation — COMPLETE
+
+- Updated [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) to treat
+  `NEXT_PUBLIC_*` rollback as flag OFF + redeploy unless a runtime flag
+  source is introduced.
+- Added Task 1.7 for honesty-transition explainer copy, plus traceability,
+  file-map, test, UX DoD, and Phase 1 exit-gate coverage.
+- Expanded §21.7 to list all 14 Phase 1 telemetry events from
+  [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md).
+- Updated [00-README.md](./00-README.md) and
+  [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md) so
+  status reflects scoped WATCH after fresh review rather than pending or
+  clean approval.
+- Isolation note: `src/components/landing-v3/landing-v3.module.css` is a
+  global worktree diff outside this plan pack; this docs-only continuation
+  did not edit it and did not revert it.
+
+### 2026-06-25 — Scoped final verifier recheck — APPROVE
+
+- Native verifier `019efdaa-4634-7c72-8f2a-cf3d8312dce7` returned
+  **APPROVE** for the scoped plan-pack recheck.
+- Approval scope: docs-plan pack only; no implementation/runtime/provider
+  approval claimed.
+- Evidence accepted by verifier:
+  - `NEXT_PUBLIC_*` rollback now says flag OFF plus rebuild/redeploy.
+  - README no longer claims clean fresh verifier completion.
+  - §21.7 lists all 14 telemetry events from doc 24.
+  - Task 1.7 owns in-app explainer copy with traceability and DoD coverage.
+  - Heading check returned 22 sections in correct order.
+  - Relative-link check returned 374 checked links, 0 missing.
+- Residual global-worktree risk: unrelated `src/components/landing-v3/*`
+  app-code diffs remain outside this plan pack and were not touched.

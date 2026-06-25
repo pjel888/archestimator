@@ -9,25 +9,25 @@
 > **Lead**: Sisyphus orchestrator
 > **Master goal**: [GOAL.md](./GOAL.md)
 > **Coordination log**: [LOOP_LEDGER.md](./LOOP_LEDGER.md)
-> **Source documents**: 31 docs in this pack (00-README through 30-HANDOFF)
+> **Source documents**: 31 audit docs in this pack (00-README through
+> 30-HANDOFF), plus the prompt contract and pass artifacts.
 >
 > ## Production notes
 >
-> Six Wave-1 specialist planning agents (L1-L6) were dispatched in
-> parallel. **Five lanes (L1, L2, L3, L4, L6) exceeded the 30-minute
-> infrastructure queue limit** — the same systemic pattern documented in
-> [30-HANDOFF.md](./30-HANDOFF.md) Track 1 from the prior
-> `Improve-Plan-Prompt` pass. Lane L5 was still running at time of
-> writing; its sections (§10, §14, §15, §16) were also lead-authored to
-> unblock synthesis.
+> The original Wave-1 specialist planning agents (L1-L6) were dispatched
+> in parallel and later confirmed failed or timed out. The lead used the
+> prompt's fallback clause to author the missing sections directly from
+> source documents. A later native-subagent continuation reviewed the
+> canonical plan and this revision integrates its WATCH findings; see
+> [LOOP_LEDGER.md](./LOOP_LEDGER.md).
 >
 > Per template line 70: *"If native subagents are unavailable, execute
 > the same workstreams separately and preserve independent review."*
 > Each section marked **Lead-authored fallback** was produced by the
 > lead directly from the source docs the corresponding lane was
-> assigned. Wave 3 (adversarial reviewer R1 + independent verifier R2)
-> provides the independent-review guarantee required by template
-> lines 314-344.
+> assigned. Independent review findings are recorded as a continuation
+> in [LOOP_LEDGER.md](./LOOP_LEDGER.md) and
+> [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md).
 >
 > ## Relationship to existing [18-IMPLEMENTATION-PLAN.md](./18-IMPLEMENTATION-PLAN.md)
 >
@@ -46,7 +46,7 @@
 >   blast-radius.
 > - **§12-§17**: Phased implementation (most-detailed), testing,
 >   deployment, observability, risk register.
-> - **§18-§22**: Pros/cons, SWOT, definition of done, traceability,
+> - **§18-§22**: Pros/cons, SWOT, traceability, definition of done,
 >   open decisions.
 >
 > Each section ends with a `---` separator. Every factual claim cites
@@ -78,8 +78,11 @@ finding in Phase 3.
 
 After this plan ships:
 
-- Every sidebar CRUD action **persists server-side or honestly labels
-  itself as local-only.** User trust no longer erodes on refresh.
+- Every visible CRUD/destructive library-data action **persists
+  server-side or honestly labels itself as local-only.** Accepted
+  preferences such as favorites, recents, and custom ordering remain
+  browser-local and are labeled as such. User trust no longer erodes on
+  refresh.
 - Every Delete is **reversible** via Restore (archive, not hard delete).
 - Every Duplicate creates a real DB row with a real UUID, not a
   `custom-${Date.now()}` placeholder.
@@ -109,11 +112,13 @@ have verified auth guards
 ([15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md)
 § Authorization).
 
-Phase 1 is six tasks of S/M complexity (~1-2 engineering weeks,
+Phase 1 is six product tasks plus one operational prerequisite of S/M
+complexity (~1-2 engineering weeks,
 [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) deadlines T0+1w to
-T0+2w). Phase 2 is four tasks (S complexity). Phase 3 is five tasks
-(one L refactor, four S/M). Phase 4 (mobile drawer) is future work,
-deferred per RR-12.
+T0+2w). Phase 2 is six tasks (S complexity, including review-added UX
+state and mobile fallback closure). Phase 3 is six tasks (one L
+refactor, five S/M). Phase 4 (mobile drawer) is future work, deferred
+per RR-12.
 
 The plan uses the project's established discipline: Vitest jsdom for
 unit/DOM tests, Playwright for E2E, axe for a11y, TanStack Query for
@@ -124,7 +129,7 @@ create/edit surface.
 
 ### Expected outcome
 
-- All 5 P1 findings closed (F-01, F-03, F-04, F-05, F-06, F-10, F-11).
+- All P1 findings closed (F-01, F-03, F-04, F-05, F-06, F-10, F-11).
 - All in-scope P2 findings closed (F-02, F-09, F-12 partial, F-13,
   F-14).
 - The lone P3 finding closed (F-15).
@@ -134,23 +139,20 @@ create/edit surface.
   per RR-12).
 - Plan-pack score (per [28-SCORECARD.md](./28-SCORECARD.md) baseline
   83.2) rises to ≥90 weighted overall after implementation; launch
-  readiness explicitly conditional on closing RR-18 (RLS verification)
-  before public launch.
+  readiness explicitly conditional on a live RLS probe, external-image
+  referrer suppression, and alerting/dashboard readiness before public
+  launch.
 
 ### Pass notes
 
 This canonical plan was produced by the Sisyphus lead orchestrator
 running the `Create-Implementation-Prompt.md` template against this
-pack. Five of six Wave-1 specialist lanes (L1 Source/Requirements, L2
-Architecture/Tech, L3 UX/A11y, L4 Backend/DB/Security, L6 Risk/Phased)
-exceeded the 30-minute infrastructure queue limit — the same
-systemic pattern documented in [30-HANDOFF.md](./30-HANDOFF.md) Track
-1 from the prior `Improve-Plan-Prompt` pass. Template line 70
-authorizes lead-authored fallback: *"If native subagents are
-unavailable, execute the same workstreams separately and preserve
-independent review."* Wave 3 (adversarial reviewer R1 + independent
-verifier R2) is dispatched after synthesis to provide the
-independent-review guarantee.
+pack. The original six Wave-1 specialist lanes failed or timed out, so
+the lead used the prompt's fallback clause to author the sections
+directly from source documents. A continuation with native subagents
+then identified template-order, UX-state, a11y, telemetry, rollout, and
+threshold gaps. This revision integrates those findings while preserving
+the original fallback disclosure.
 
 ---
 
@@ -165,12 +167,14 @@ independent-review guarantee.
 
 ### Documents reviewed
 
-This plan is built from all 31 documents in this plan pack plus the
-project-level `AGENTS.md`. Every doc is in
+This plan is built from all 31 audit documents in this plan pack, the
+prompt contract, the pass artifacts, and project-level `AGENTS.md`.
+Every numbered audit doc is in
 `.ai/03_plans/2026-06-24-Estimate-Sheet-Right-Sidebar-Analysis/`.
 
 | Doc | Purpose | Authority | Conflicts | Key requirements contributed |
 |---|---|---|---|---|
+| [Create-Implementation-Prompt.md](../../08_prompts/000_Planning%20Prompts/Create-Implementation-Prompt.md) | Governing 22-section implementation-plan contract | Primary — template contract | None | Section order, source audit, codebase analysis, review/scoring requirements |
 | [00-README.md](./00-README.md) | Executive summary, finding count, recommended Phase 1 | Primary — pack orientation | None | Phase 1 scope, top 5 findings |
 | [01-SCOPE-AND-CODE-MAP.md](./01-SCOPE-AND-CODE-MAP.md) | File inventory, query-key map, Mermaid diagrams | Primary — code map | None | All file paths in §13 |
 | [02-TERMINOLOGY-AND-DOMAIN-CONTRACT.md](./02-TERMINOLOGY-AND-DOMAIN-CONTRACT.md) | Domain glossary, tab-naming gate | Primary — domain | None | F-02 disambiguation |
@@ -186,24 +190,24 @@ project-level `AGENTS.md`. Every doc is in
 | [12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) | IA, typography, keyboard, screen reader | Primary — a11y | None | §6.6 a11y requirements |
 | [13-STATE-NETWORK-CACHE-AND-DATA-AUDIT.md](./13-STATE-NETWORK-CACHE-AND-DATA-AUDIT.md) | State machine, query/mutation inventory, races | Primary — state | None | §7 tech architecture; F-04 |
 | [14-PERFORMANCE-AUDIT.md](./14-PERFORMANCE-AUDIT.md) | Bundle, render, complexity | Primary — perf | None | §10 perf; F-13, F-15 |
-| [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md) | Auth, RLS, uploads, drag payload validation | Primary — security | ⏳ RLS verification pending (RR-18) | §9 security plan |
+| [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md) | Auth, RLS, uploads, drag payload validation | Primary — security | Audit-era RLS/upload open items were later spot-checked against current migrations/routes; live provider probe still required before public launch | §9 security plan |
 | [16-EDGE-CASE-AND-TEST-MATRIX.md](./16-EDGE-CASE-AND-TEST-MATRIX.md) | State transitions, concurrency, test gaps | Primary — testing | None | §14 testing strategy |
 | [17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md) | All 13 findings with severity, evidence, corrections | Primary — findings | None | All sections; §17 risk register |
 | [18-IMPLEMENTATION-PLAN.md](./18-IMPLEMENTATION-PLAN.md) | Existing 96-line stub (Phase 1-4 task list) | Primary — task list | None — this canonical plan EXPANDS doc 18; it does NOT replace it | §12 phased implementation |
-| [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md) | Verification strategy | Primary — validation | None | §14, §20 testing/DoD |
+| [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md) | Verification strategy | Primary — validation | None | §14, §21 testing/DoD |
 | [20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md](./20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md) | 30 product decisions with recommended defaults | Primary — decisions | None | §22 open decisions |
-| [21-TRACEABILITY-MATRIX.md](./21-TRACEABILITY-MATRIX.md) | Finding → decision → task → test mapping | Primary — traceability | None | §21 requirements traceability |
+| [21-TRACEABILITY-MATRIX.md](./21-TRACEABILITY-MATRIX.md) | Finding → decision → task → test mapping | Primary — traceability | None | §20 requirements traceability |
 | [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) | 22 risks (15 finding-derived + 7 cross-cutting) | Primary — risks | None | §17 risk register |
-| [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) | Per-task rollback paths, feature flag, staged release | Primary — rollout | None | §15 deployment |
+| [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) | Per-task rollback paths, feature flag, staged release | Primary — rollout | Its "no redeploy" rollback assumption is superseded here because `NEXT_PUBLIC_*` flags are client-bundled unless a runtime flag source is added | §15 deployment |
 | [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) | Phase 1 telemetry events, metrics, alerts, dashboards | Primary — observability | None | §16 ops; RR-21 |
 | [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md) | Per-surface loading/empty/error/success/partial/permission states | Primary — UX states | None | §6.4 state coverage |
-| [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md) | P50/P95/P99 latency, bundle, payload, memory ceilings | Primary — perf budget | None | §10 perf; §20 DoD |
-| [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | STRIDE per surface, assets, threat agents, controls | Primary — threat model | Depends on RR-18 close | §9 security; §11 blast-radius |
+| [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md) | P50/P95/P99 latency, bundle, payload, memory ceilings | Primary — perf budget | None | §10 perf; §21 DoD |
+| [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | STRIDE per surface, assets, threat agents, controls | Primary — threat model | Some open-threat wording is stale versus current migrations/routes; external-image referrer leakage remains live | §9 security; §11 blast-radius |
 | [28-SCORECARD.md](./28-SCORECARD.md) | Quality scoring 80.9 → 83.2 baseline | Secondary — meta-audit | None | §1 executive summary |
 | [29-AUDIT-REPORT.md](./29-AUDIT-REPORT.md) | Narrative audit report | Secondary — synthesis | None | §1 executive summary |
-| [30-HANDOFF.md](./30-HANDOFF.md) | Open work + verification gaps (6 tracks) | Primary — handoff | None | §22 open decisions; §20 DoD |
+| [30-HANDOFF.md](./30-HANDOFF.md) | Open work + verification gaps (6 tracks) | Primary — handoff | None | §22 open decisions; §21 DoD |
 | [GOAL.md](./GOAL.md) | This pass's master goal | Primary — pass charter | None | All sections |
-| [LOOP_LEDGER.md](./LOOP_LEDGER.md) | Lane coordination log for this pass | Primary — pass log | None | §20.8 documentation |
+| [LOOP_LEDGER.md](./LOOP_LEDGER.md) | Lane coordination log for this pass | Primary — pass log | None | §21.8 documentation |
 | `AGENTS.md` (repo root) | Project entry point, DB-autonomy mandate, validation policy | Primary — repo rules | None | All sections |
 | `.ai/10_state/current-state.md` (FAST PATH block) | Current stage, stack, DB-autonomy, known reds | Primary — state | None | §1, §3 scope |
 
@@ -216,14 +220,32 @@ project-level `AGENTS.md`. Every doc is in
 ### Assumptions
 
 - `> Assumption:` the RPCs listed in [01-SCOPE-AND-CODE-MAP.md](./01-SCOPE-AND-CODE-MAP.md) line 83 (`executeBulkArchiveLibraryComponents`, `changeCostLibraryComponentLifecycleState`, `createCostLibraryComponent`, `updateCostLibraryComponent`) behave as documented in their migration files and have the auth guards doc 15 verifies. This is not re-verified at runtime in this planning pass.
-- `> Assumption:` Phase 1 ships behind `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1` per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md). The flag default (ON) is an open decision for Philip (item 1 in [30-HANDOFF.md](./30-HANDOFF.md) "Open decisions that need Philip").
+- `> Assumption:` Phase 1 ships behind `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1` per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md). The flag default (ON) is an open decision for Philip (item 1 in [30-HANDOFF.md](./30-HANDOFF.md) "Open decisions that need Philip"). Because `NEXT_PUBLIC_*` values are bundled into the client, a flag rollback requires changing the env value and redeploying unless implementation adds a runtime flag source.
 - `> Assumption:` the worktree's 30+ unrelated file modifications (see `git status` row in [01-SCOPE-AND-CODE-MAP.md](./01-SCOPE-AND-CODE-MAP.md) audit window) remain stable through Phase 1 execution. Re-check before each merge.
 - `> Assumption:` vitest full-DOM suite may hang per `.ai/10_state/current-state.md` FAST PATH; Phase 1 uses targeted matrices.
+- `> Assumption:` `library_telemetry_events` storage is not yet proven in
+  source. Phase 1 starts by verifying the table/schema, the
+  `recordLibraryEvent` allow-list, dashboard destination, and alerting
+  fallback before wiring production telemetry.
 
 ### Conflicts and resolutions
 
-- **No source conflicts identified.** All 31 docs are internally consistent. The Improve-Plan pass (see [30-HANDOFF.md](./30-HANDOFF.md) "What this audit completed") cross-linked finding → risk → rollout → observability so every claim has a durable reference.
-- The only open verification is RR-18 (RLS on 8 tables) which is Track 2 in [30-HANDOFF.md](./30-HANDOFF.md). It is not a conflict; it is an open work item.
+- **No unresolved source conflicts identified after continuation review.** The Improve-Plan pass
+  (see [30-HANDOFF.md](./30-HANDOFF.md) "What this audit completed")
+  cross-linked finding → risk → rollout → observability so every claim
+  has a durable reference. One earlier RR-16 / doc-24 alert-threshold
+  inconsistency was resolved in favor of
+  [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md)'s 5% failure
+  threshold and 90% restore-success threshold.
+- The audit-era RR-18 and upload-route open items are partially stale:
+  continuation review found migration-file RLS/storage policies and
+  server-side upload validation already present in the repo. The remaining
+  security work is a live provider RLS probe before public launch plus
+  the external-image referrer-leak patch tracked below.
+- [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md)
+  says a `NEXT_PUBLIC_*` flag can roll back without redeploy. This
+  canonical plan overrides that assumption: use flag OFF + redeploy unless
+  a runtime flag source is deliberately implemented.
 
 ---
 
@@ -284,10 +306,18 @@ project-level `AGENTS.md`. Every doc is in
 ### Deferred work
 
 - **Phase 4 mobile drawer** — deferred per RR-12 until user feedback warrants.
-- **RR-18 RLS verification** — Track 2 in [30-HANDOFF.md](./30-HANDOFF.md); separate work session; not blocking Phase 1 implementation but blocks public launch.
+- **RR-18 live RLS probe** — Track 2 in [30-HANDOFF.md](./30-HANDOFF.md);
+  continuation review found repo migrations/policies for the relevant
+  tables and storage buckets, but public launch still needs a live
+  provider probe against `pg_class.relrowsecurity` / policies.
 - **Performance-budget CI enforcement script** — Track 4 in [30-HANDOFF.md](./30-HANDOFF.md); separate work session.
-- **Server-side MIME / size enforcement on upload routes** — Track 3 in [30-HANDOFF.md](./30-HANDOFF.md); separate work session.
-- **External image Referer leakage (`referrerPolicy="no-referrer"`)** — Track 3 in [30-HANDOFF.md](./30-HANDOFF.md).
+- **Upload-route enforcement deploy check** — Track 3 in
+  [30-HANDOFF.md](./30-HANDOFF.md); continuation review found server-side
+  size, MIME, magic-byte, extension, and dimension checks in current routes.
+  Keep a deploy-time verification item, not a presumed implementation gap.
+- **External image referrer leakage (`referrerPolicy="no-referrer"`)** —
+  Track 3 in [30-HANDOFF.md](./30-HANDOFF.md); add the policy to sidebar
+  image renderers or a shared image wrapper before public launch.
 - **Independent verification of this plan's scorecard** — Track 1 in [30-HANDOFF.md](./30-HANDOFF.md); the prior `Improve-Plan-Prompt` pass had 7 subagent timeouts that prevented independent verification; this canonical plan will receive independent verification in Wave 3 of this pass (R2 lane).
 
 ---
@@ -432,17 +462,19 @@ browse + snapshot insert. Each of these enforces server-side auth via the
 ## 5. Target-State Design
 
 > Lead-authored synthesis from L2 architecture work + L3 UX work + L4
-> backend work. Lane L5 (Perf/Test/Deploy) was still running at time
-> of writing; if it returns, its outputs replace any conflicting
-> statements in §10/§14/§15/§16.
+> backend work. Native-subagent continuation findings are integrated in
+> this revision; if future reviewers find conflicts, update the source
+> documents first and then this synthesized plan.
 
 ### Target user experience
 
 After Phase 1+2 ship:
 
 - The sidebar's three tabs (Library / **Project Components** /
-  Templates) work as users already expect — every visible action
-  persists.
+  Templates) work as users already expect — every visible
+  CRUD/destructive library-data action persists server-side. Accepted
+  preferences (favorites, recents, ordering) remain browser-local and
+  must be labeled as device-local where they surface.
 - Component **Edit** opens the same `AddComponentModal` used for
   Create, pre-filled with the component's current fields. Variants,
   attachments, and price history are preserved. Save calls
@@ -726,6 +758,17 @@ layer ([15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md
 | **Viewer / Commenter** (`is_workspace_editor = false`) | Browse-only (CRUD affordances hidden client-side; server rejects if bypassed) | Browse-only | Browse-only | Blocked server-side |
 | **Non-member** (no project membership) | Sidebar route unreachable (auth gate) | — | — | — |
 
+**Read-only UI affordance matrix.** Executors should not guess whether a
+viewer/commenter sees a disabled button, a hidden button, or an allowed
+action that later errors:
+
+| Surface/action | Viewer/commenter UI | Server behavior if bypassed |
+|---|---|---|
+| Add Component / Add folder / Edit / Duplicate / Delete / bulk Delete | Hide CRUD affordances entirely. Do not render active buttons that can never succeed. | `is_workspace_editor` guard rejects with 403. |
+| Bulk Add / drag insert into an estimate | Disable or omit when `can_edit_estimate` is false; show non-interactive browse/preview state. | `can_edit_estimate` guard rejects with 403 and a generic permission toast. |
+| Preview / search / filter / expand tree | Allowed. | Read RPCs remain workspace/project scoped. |
+| Project-source snapshot insert | Allowed only for estimate editors. Viewers can preview but cannot insert by click, bulk action, or drag. | Estimate mutation RPC rejects if bypassed. |
+
 The "Permission denied" row of every surface in
 [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md)
 documents the silent-degrade pattern: viewers see the library without CRUD
@@ -774,7 +817,9 @@ with Restore action (no modal) — the undo affordance IS the confirmation.
 
 [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md)
 specifies these for nine surfaces. Phase 1 implementation must close the
-`N/S — gap` items in the surfaces it touches.
+`N/S — gap` items in the surfaces it touches. Phase 2 Task 2.5 is the
+explicit owner for any touched-surface UX-state gaps not closed by a
+Phase 1 work package.
 
 | Surface | Key states (post-Phase-1) | Gap to close in Phase 1 |
 |---|---|---|
@@ -814,9 +859,10 @@ responsive sidebar drawer for below-1024px viewports
 Currently accepted as **desktop-first** per
 [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md) "Panel shell" row.
 
-A minimum responsive Phase 1 concession is to add a fallback message below
-1024px (the "Hidden (mobile) N/S — gap" row) so users on tablets know the
-feature exists.
+A minimum responsive Phase 2 concession is Task 2.6: add a fallback
+message below 1024px (the "Hidden (mobile) N/S — gap" row) so users on
+tablets know the feature exists. That message does not implement the
+drawer and does not remove RR-12's accepted mobile limitation.
 
 ### 6.6 Accessibility requirements
 
@@ -852,18 +898,18 @@ is the canonical reference. Verified-correct items and known gaps:
   hand-off explicitly.
 - **Small text below WCAG legibility** ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Typography"): 8px
   source-trust chips and 9px supplier/unit/price labels are below the 10px
-  practical minimum. **P3 — Phase 3 future "comfortable density" toggle.**
+  practical minimum. **P3 — Phase 3 Task 3.6.**
 - **Escape does not close the preview panel** ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Escape hierarchy" item 4).
-  **P3.**
+  **P3 — Phase 3 Task 3.6.**
 - **`aria-controls` missing on tabs** ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Tablist"). **P3.**
-- **Nested `<aside>` may produce redundant landmarks** ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Landmarks"). **P3.**
+- **Nested `<aside>` may produce redundant landmarks** ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Landmarks"). **P3 — Phase 3 Task 3.6.**
 - **Enter during IME composition commits prematurely** ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Enter during IME composition"). **P3 — low risk for English-first product.**
 - **`text-tertiary` contrast on 9px labels may fail WCAG AA 4.5:1**
   ([12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Contrast"). **Not measured** — flag
-  for visual QA. High-contrast mode untested.
+  for visual QA. High-contrast mode untested. **Phase 3 Task 3.6.**
 - **Mobile fallback message** — sidebar disappears silently below 1024px
-  with no announcement. Add a `<details>` disclosure or similar on the
-  estimate route at mobile widths.
+  with no announcement. **Phase 2 Task 2.6** adds a minimal disclosure;
+  Phase 4 remains the drawer.
 
 ### 6.7 UX acceptance criteria
 
@@ -1051,12 +1097,14 @@ Server-side components:
 
 ## 8. Data and Database Plan
 
-> Lane L4 was dispatched to produce this section but exceeded the 30-minute
-> infrastructure queue limit (see [LOOP_LEDGER.md](./LOOP_LEDGER.md) Wave 1
-> L4 entry). Lead-authored fallback per template line 70, using
+> Originally lead-authored from
 > [04-PERSISTENCE-TRUTH-TABLE.md](./04-PERSISTENCE-TRUTH-TABLE.md),
 > [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md),
-> and [27-THREAT-MODEL.md](./27-THREAT-MODEL.md).
+> and [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) after the Wave-1 L4 lane
+> exceeded the queue window. A 2026-06-25 native-subagent continuation later
+> returned WATCH and confirmed the existing backend/RLS/upload controls in
+> current repo files; remaining work is telemetry-table proof and
+> public-launch live probes.
 
 ### Schema changes
 
@@ -1104,11 +1152,15 @@ Source: [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) § Assets.
   before insert; see [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md) § Quotas).
 - **`updateCostLibraryComponent`**: requires `targetItemId`, fields. RPC
   internally re-validates workspace membership.
-- **Upload MIME** (existing, unchanged in this plan):
+- **Upload MIME and size** (existing, unchanged in this plan):
   `ALLOWED_UPLOAD_TYPES = Set(["image/jpeg", "image/png", "image/webp", "image/avif"])`
   and `MAX_CLIENT_SOURCE_IMAGE_BYTES = 20MB`; attachments limited to
   PDF/XLS/XLSX with `MAX_CLIENT_ATTACHMENT_BYTES = 20MB`
   ([15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md) § File uploads).
+  Continuation review also found server-side content-length, MIME,
+  magic-byte, extension, and dimension/pixel checks in the image and
+  attachment upload routes. Track 3 should verify those controls at
+  deploy time; it is not a known missing implementation item.
 
 ### Indexing
 
@@ -1126,12 +1178,12 @@ Source: [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) § Assets.
 
 ### Migration sequencing
 
-- **Phase 1: NO migrations.** Existing RPCs + existing tables + existing
-  indexes cover the work.
+- **Phase 1 business logic: NO migrations.** Existing RPCs + existing
+  tables + existing indexes cover archive/edit/duplicate/delete wiring.
 - **If `library_telemetry_events` is missing**: a single migration
   creates it (under DB-autonomy mandate). This is a Phase 1 operational
-  dependency, not a Phase 1 code dependency — Phase 1 ships behind the
-  feature flag regardless; telemetry wiring tracks separately.
+  dependency; do it before production telemetry wiring so Phase 1 does
+  not silently ship without observability.
 - **Phase 2: NO migrations.** Phase 2 tasks are wiring + copy changes.
 - **Phase 3: NO migrations.** Pure refactor + perf.
 
@@ -1182,9 +1234,12 @@ columns, no data migration. Existing components stay in
 
 ## 9. Security and Privacy
 
-> Lead-authored fallback (L4 timed out). Source:
-> [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md),
-> [27-THREAT-MODEL.md](./27-THREAT-MODEL.md).
+> Originally lead-authored fallback from
+> [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md)
+> and [27-THREAT-MODEL.md](./27-THREAT-MODEL.md). Continuation review
+> downgraded stale RR-18/upload wording: repo migrations and routes already
+> contain the expected RLS/storage/upload controls. The live security gap
+> that still needs implementation is external-image referrer suppression.
 
 ### Authentication
 
@@ -1230,11 +1285,15 @@ columns, no data migration. Existing components stay in
   malformed data silently
   ([15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md)
   § Drag payload validation).
-- **Upload MIME** (existing, unchanged):
+- **Upload MIME / size / content checks** (existing, unchanged):
   `ALLOWED_UPLOAD_TYPES = Set(["image/jpeg", "image/png", "image/webp", "image/avif"])`
   and `MAX_CLIENT_SOURCE_IMAGE_BYTES = 20MB`; attachments limited to
   PDF/XLS/XLSX with `MAX_CLIENT_ATTACHMENT_BYTES = 20MB`
   ([15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md) § File uploads).
+  Current routes also enforce server-side content length, MIME, file
+  signature/extension consistency, and image dimensions/pixels; Track 3
+  should verify these controls at deploy time instead of treating them as
+  missing implementation.
 
 ### Sensitive data
 
@@ -1249,21 +1308,38 @@ columns, no data migration. Existing components stay in
 
 ### Threat model summary
 
-Per [27-THREAT-MODEL.md](./27-THREAT-MODEL.md), the highest-priority open threats:
+Per [27-THREAT-MODEL.md](./27-THREAT-MODEL.md), updated against current
+repo files, the highest-priority carried-forward security items are:
 
-1. **RR-18: RLS not verified on 8 sidebar tables** — every "Information
-   disclosure" row in the STRIDE table depends on RLS being enabled.
-   Mitigation: Track 2 in [30-HANDOFF.md](./30-HANDOFF.md) (separate
-   work session, not in this plan's scope).
-2. **Server-side MIME / size enforcement on upload routes** — client-side
-   checks are bypassable. Mitigation: Track 3 in [30-HANDOFF.md](./30-HANDOFF.md).
-3. **Storage bucket RLS for images and attachments** — verify bucket
-   policies require workspace membership. Mitigation: Track 3.
-4. **External image Referer leakage** — add `referrerPolicy="no-referrer"`
-   to external `<img>` tags. Mitigation: Track 3.
+1. **RR-18 live RLS probe before public launch** — continuation review
+   found repo migrations/policies enabling RLS and storage policies for
+   the relevant table families and buckets. Public launch still needs a
+   live provider probe (`pg_class.relrowsecurity` / policy check) so the
+   launch decision is based on deployed reality, not only migration files.
+2. **Upload-route enforcement deploy check** — continuation review found
+   server-side image/attachment size, MIME, signature/extension, and image
+   bounds checks in current routes. Track 3 should verify these at deploy
+   time; no new upload-route hardening is planned unless that check fails.
+3. **External image referrer leakage** — add `referrerPolicy="no-referrer"`
+   (or a shared safe-image wrapper that enforces the same policy) to
+   sidebar image render paths before public launch.
 
 Phase 1 does not introduce new threats above these. Phase 1's archive
 wiring uses the same auth chain as the existing create flow.
+
+### External image privacy task
+
+- **Files to inspect/patch**:
+  `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`,
+  `src/components/workshop/library/ComponentInspectorDock.tsx`, and any
+  sidebar preview image renderer that displays remote `imageUrl` values.
+- **Acceptance**: every external image load from sidebar/library preview
+  surfaces suppresses referrer data; source-preview links keep
+  `rel="noreferrer"`.
+- **Tests**: static/component check for the wrapper/prop and a focused DOM
+  rendering test if the renderer is easily isolated.
+- **Timing**: not a Phase 1 persistence prerequisite, but a public-launch
+  security gate.
 
 ### Abuse cases
 
@@ -1290,22 +1366,24 @@ wiring uses the same auth chain as the existing create flow.
 - `ai_action_runs`, `ai_tool_calls`, `ai_data_access_events` capture AI
   tool usage (out of sidebar scope but exist for AI-deferred features).
 - `collaboration_audit_events` capture collaboration actions.
-- Phase 1 adds 7 telemetry events per [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md)
+- Phase 1 adds 14 telemetry events per [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md)
   (RR-21) — these become the audit trail for persistence-honesty
   adoption.
 
 ### Security acceptance criteria
 
-- RR-18 Closed (RLS verified on all 8 sidebar tables) OR explicitly
-  waived with documented reason (blocks public launch; does NOT block
-  Phase 1 preview ship per item 14 in §22).
+- RR-18 live provider probe is Closed OR explicitly waived with documented
+  reason (blocks public launch; does NOT block Phase 1 preview ship per
+  item 14 in §22).
 - Every Phase 1 task uses an existing server action with verified auth
   guards (no new client-trust surface).
 - No new env vars, secrets, or credentials introduced.
 - [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) "Highest-priority open
   threats" reviewed; closed or carried forward with explicit owner.
-- Upload routes unchanged (Track 3 in [30-HANDOFF.md](./30-HANDOFF.md)
-  is separate work).
+- Upload routes unchanged unless the deploy-time verification finds a
+  missing server-side control.
+- External-image referrer leakage patched or explicitly waived before
+  public launch.
 - Drag-payload validation paths unchanged.
 
 ---
@@ -1314,12 +1392,14 @@ wiring uses the same auth chain as the existing create flow.
 
 ## 10. Performance and Reliability
 
-> Lane L5 was still running at time of writing. Lead-authored fallback
-> per template line 70, using
+> Originally lead-authored fallback per template line 70, using
 > [13-STATE-NETWORK-CACHE-AND-DATA-AUDIT.md](./13-STATE-NETWORK-CACHE-AND-DATA-AUDIT.md),
 > [14-PERFORMANCE-AUDIT.md](./14-PERFORMANCE-AUDIT.md),
 > [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md), and
-> [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md).
+> [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). A
+> 2026-06-25 native-subagent continuation later returned WATCH and drove
+> the Task 1.0 prerequisite, focused validation, bundle-budget, and alert
+> threshold corrections now integrated into this plan.
 
 ### Performance budgets
 
@@ -1513,8 +1593,8 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 
 ## 11. Blast-Radius Analysis
 
-> Lead-authored fallback (L4 timed out). Format per template lines
-> 200-206.
+> Originally lead-authored fallback, then reconciled with the 2026-06-25
+> backend/security continuation review. Format per template lines 200-206.
 
 ### Affected users
 
@@ -1551,7 +1631,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **`cost_library_items.lifecycle_state`** transitions from `'available'`
   to `'archived'` on every Delete, and back to `'available'` on Restore.
 - Reversible — no data loss.
-- No schema changes.
+- No business-schema changes for archive/edit/duplicate/delete wiring.
 - Existing index `cost_library_items_workspace_browse_active_idx`
   automatically reflects the lifecycle_state change (archived rows drop
   from the partial index).
@@ -1645,15 +1725,17 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 > existing doc 18 is **preserved as historical context**; this section is
 > the authoritative phased plan for the executing codebase AI.
 >
-> Every task identifier (`1.1`, `1.2`, …) matches the existing doc 18
-> numbering. Phase boundaries match doc 18. No new phases invented.
+> Task identifiers from doc 18 (`1.1`, `1.2`, …, `4.1`) are preserved.
+> This revision adds review-driven prerequisite and patch tasks (`1.0`,
+> `2.5`, `2.6`, `3.6`) where native-subagent review found executor
+> ambiguity. Phase boundaries still match doc 18.
 
 ### Common provisions (apply to every phase)
 
 - **Feature flag**: `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1` gates every
   Phase 1 task. Default ON per
   [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md).
-  Rollback = set flag OFF; legacy local-only behavior is restored.
+  Rollback = set flag OFF + redeploy; legacy local-only behavior is restored.
 - **Stack discipline**: Next.js 16 App Router, React 19, Bun, Vitest (jsdom)
   for unit/DOM, Playwright for E2E. Strict TypeScript — no `as any`, no
   `@ts-ignore`.
@@ -1669,31 +1751,69 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
     matrices; full suite can hang per `.ai/10_state/current-state.md` FAST
     PATH block
   - `bun run build` — Next.js production build (release gate)
+  - Do **not** use broad `bun run validate` or full `bun run test:dom` as
+    the local/preview proof while known repo reds/hangs remain. Use the
+    focused sidebar matrix locally; reserve broad validation for CI/release
+    once known reds are resolved or explicitly waived.
 - **Concurrent-repository safety**: the worktree has 30+ unrelated file
   modifications from other agents. Re-check `git status` before each commit;
   touch only files in this plan's scope.
 - **DB-autonomy**: per `AGENTS.md`, the standing Supabase/Postgres
-  authorization covers project `ebxxqidacheyapmmzavr`. Phase 1 should not
-  need migrations — the RPCs exist. If a missing migration is discovered,
-  label it `> Inference:` and do not block.
+  authorization covers project `ebxxqidacheyapmmzavr`. The business RPCs
+  for Phase 1 should not need migrations. Telemetry may need a scoped
+  migration if `library_telemetry_events` is missing or incompatible; verify
+  first, then add a reviewable migration under the standing mandate.
 
 ---
 
 ### Phase 1 — Persistence Honesty (P1 findings)
 
 - **Objective**: close every P1 finding (F-01, F-03, F-04, F-05, F-06, F-10,
-  F-11). After Phase 1, every sidebar CRUD action persists server-side or
-  honestly labels itself as local-only.
+  F-11). After Phase 1, every visible CRUD/destructive library-data action
+  persists server-side or honestly labels itself as local-only.
 - **Requirements addressed**: F-01, F-03, F-04, F-05, F-06, F-10, F-11
   ([17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md) P1 row).
 - **Inputs**: the existing RPCs (`executeBulkArchiveLibraryComponents`,
   `changeCostLibraryComponentLifecycleState`,
   `createCostLibraryComponent`, `updateCostLibraryComponent`) are
   implemented in `src/lib/component-library/actions.ts` and have RLS
-  guards. The current `AddComponentModal` already supports create mode
-  end-to-end. The legacy `NewComponentForm` exists and has test coverage
-  that will need updating.
-- **Work packages** (6 tasks, S/M complexity):
+  guards. The current `AddComponentModal` supports create mode
+  end-to-end; Task 1.2 must characterize variant, attachment, and
+  price-history identity semantics before adding edit mode. The legacy
+  `NewComponentForm` exists and has test coverage that will need updating.
+- **Work packages** (1 prerequisite + 7 product/comms tasks, S/M complexity):
+
+#### Task 1.0 — Verify telemetry and bundle-budget prerequisites
+
+- **Files**: `src/lib/component-library/library-telemetry.ts`,
+  `supabase/migrations/**`, `package.json`, optional
+  `scripts/check-bundle-budget.mjs`.
+- **Work**: before wiring Phase 1 events, verify
+  `library_telemetry_events` exists with the expected columns/retention
+  posture or create the minimal migration under DB-autonomy. Confirm
+  `recordLibraryEvent` allows only the privacy-safe Phase 1 fields. Define
+  the dashboard destination and alerting fallback. Either add a bundle
+  budget script wired into `validate`, or explicitly mark bundle-budget CI
+  as Track 4 and keep Phase 1 performance readiness at WATCH until it
+  lands.
+- **Dependencies**: none; this is first in Phase 1.
+- **Parallelizable?** NO — event wiring depends on this proof.
+- **Expected outputs**: telemetry schema decision recorded, allow-list
+  updated if needed, dashboard/review destination named, bundle-budget
+  enforcement path decided.
+- **Validation**: migration/file audit; focused unit tests for
+  `recordLibraryEvent` sanitization; `bun run type-check && bun run lint`.
+- **Tests**: `tests/vitest/sidebar-telemetry.spec.tsx` covers event
+  allow-list, no raw query/name leakage, failure events, and dropped-search
+  events.
+- **Exit criteria**: §21.7 operational completion can be evaluated without
+  guessing; Track 4 is either implemented or explicitly remains a
+  release-readiness WATCH item.
+- **Risks**: telemetry storage may not exist today; do not silently skip
+  instrumentation.
+- **Rollback**: remove/disable telemetry sink wiring; schema migration is
+  additive and can remain inert.
+- **Complexity**: S/M depending on table existence.
 
 #### Task 1.1 — Wire component Delete to server-side archive
 
@@ -1758,7 +1878,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
   marked Closed.
 - **Risks**: `NewComponentForm` test coverage must be migrated or removed
   — flag in PR description.
-- **Rollback**: feature flag OFF.
+- **Rollback**: feature flag OFF + redeploy.
 - **Complexity**: M.
 
 #### Task 1.3 — Wire Duplicate to server-side create
@@ -1782,7 +1902,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **Exit criteria**: F-03 acceptance proof in §6.7 passes; RR-03 marked
   Closed.
 - **Risks**: low — RPC exists; modal pre-fill already designed for this.
-- **Rollback**: feature flag OFF.
+- **Rollback**: feature flag OFF + redeploy.
 - **Complexity**: S.
 
 #### Task 1.4 — Replace "Live source" / "Read-through source" chips
@@ -1806,7 +1926,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **Exit criteria**: F-11 acceptance proof in §6.7 passes; RR-06 marked
   Closed.
 - **Risks**: none.
-- **Rollback**: feature flag OFF (or string revert).
+- **Rollback**: feature flag OFF + redeploy (or string revert).
 - **Complexity**: S.
 
 #### Task 1.5 — Remove "New Template Group" affordance
@@ -1831,7 +1951,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
   Closed.
 - **Risks**: existing local-only groups vanish — communicate in release
   notes if any user has them (RR-17).
-- **Rollback**: feature flag OFF (state field can be re-added if needed).
+- **Rollback**: feature flag OFF + redeploy (state field can be re-added if needed).
 - **Complexity**: S.
 
 #### Task 1.6 — Add request-identity guard to project-source search
@@ -1855,20 +1975,50 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **Exit criteria**: F-04 acceptance proof in §6.7 passes; RR-04 marked
   Closed.
 - **Risks**: low — well-understood pattern.
-- **Rollback**: feature flag OFF.
+- **Rollback**: feature flag OFF + redeploy.
+- **Complexity**: S.
+
+#### Task 1.7 — Draft and ship honesty-transition explainer copy
+
+- **Files**: sidebar toast/explainer component or helper in
+  `src/components/workshop/component-library/index.tsx`,
+  `tests/vitest/sidebar-honesty-explainer.spec.tsx`, and release-note draft
+  file referenced by the implementation PR.
+- **Work**: add the first-interaction Phase 1 explainer toast/copy required
+  by RR-17. Recommended copy: "Sidebar library actions now save to your
+  workspace. Archived components stay hidden after refresh; use Restore if
+  you archived one by mistake." If Philip changes the wording, preserve the
+  same two claims: server persistence and restore/reversibility.
+- **Dependencies**: Task 1.1 for restore semantics; Task 1.4 for snapshot-copy
+  copy alignment.
+- **Parallelizable?** YES with implementation tasks after copy owner is set.
+- **Expected outputs**: in-app explainer copy, release-note draft, and
+  product/engineering comms snippet.
+- **Validation**: vitest text assertion; manual copy review by Philip.
+- **Tests**:
+  - Vitest jsdom: `tests/vitest/sidebar-honesty-explainer.spec.tsx`
+- **Exit criteria**: RR-17 has executable copy, test coverage, and release
+  notes before Phase 1 ships.
+- **Risks**: copy could overpromise if it says device-local preferences sync;
+  keep the message scoped to library CRUD/destructive actions.
+- **Rollback**: string revert or feature flag OFF + redeploy.
 - **Complexity**: S.
 
 #### Phase 1 exit gate
 
-- All 6 tasks merged behind `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1`.
+- Task 1.0 telemetry and bundle-budget prerequisite decision complete.
+- All 7 product/comms tasks merged behind `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1`.
 - All P1 acceptance proofs in §6.7 captured (test artifact + real-surface
   artifact).
 - RR-01..RR-06 marked Closed in
   [22-RISK-REGISTER.md](./22-RISK-REGISTER.md).
-- Focused vitest matrix green; `bun run type-check`, `bun run lint`,
-  `bun run lint:design-system`, `bun run build` all green.
+- Focused sidebar vitest matrix green; `bun run type-check`,
+  `bun run lint`, `bun run lint:design-system`, `bun run lint:design`,
+  `bun run test`, and `bun run build` all green or broad-known-red waivers
+  are documented.
 - Phase 1 telemetry events from
   [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) wired.
+- Honesty-transition explainer copy from Task 1.7 approved and tested.
 - 48-hour hold per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md).
 
 ---
@@ -1876,13 +2026,15 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 ### Phase 2 — Terminology + UX Corrections (P2 findings)
 
 - **Objective**: close the P2 findings that are pure UX/copy/label
-  changes (F-02, F-09, F-12-partial). After Phase 2, terminology is
-  honest and the sidebar offers the missing folder Delete affordance.
+  changes (F-02, F-09, F-12-partial) and the review-found UX state
+  ambiguity. After Phase 2, terminology is honest, the sidebar offers the
+  missing folder Delete affordance, touched surfaces have explicit states,
+  and below-1024px users get an honest fallback message.
 - **Requirements addressed**: F-02, F-09, F-12 (persistence-of-collapse
   portion only).
 - **Inputs**: existing RPC `deleteLibraryFolder` already exists for
   Task 2.2. Tab label is a string in `LIBRARY_TREE_TABS`.
-- **Work packages** (4 tasks, all S complexity):
+- **Work packages** (6 tasks, all S complexity):
 
 #### Task 2.1 — Rename Project tab to "Project Components"
 
@@ -1954,9 +2106,48 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **Rollback**: state field revert.
 - **Complexity**: S.
 
+#### Task 2.5 — Close UX state matrix gaps for touched surfaces
+
+- **Files**: `src/components/workshop/component-library/index.tsx`,
+  `src/components/workshop/component-library/tree/LibraryTree.tsx`,
+  `src/components/workshop/component-library/PreviewPanel.tsx`, and any
+  touched modal/toast components.
+- **Work**: implement or explicitly defer every `N/S — gap` row in
+  [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md) for surfaces touched by
+  Phase 1/2: empty library/project/templates/source copy, stale preview
+  clear + empty state, no-facet-options handling, folder-name empty and
+  maxlength=120 validation, bulk partial-success copy, template delete
+  dependent-count copy, and permission-denied copy for read-only users.
+- **Dependencies**: Phase 1/2 touched surface inventory.
+- **Parallelizable?** YES after each owning surface patch lands; final pass
+  should be serial to avoid copy drift.
+- **Validation**: vitest state-matrix spec plus manual copy review.
+- **Tests**: `tests/vitest/sidebar-ux-states.spec.tsx`.
+- **Exit criteria**: no `N/S — gap` remains for Phase 1/2 touched
+  surfaces without an explicit owner/defer row.
+- **Rollback**: copy/state branch revert; no data impact.
+- **Complexity**: S.
+
+#### Task 2.6 — Add below-1024px fallback message
+
+- **Files**: estimate route shell that owns the sidebar visibility and/or
+  `src/components/workshop/component-library/index.tsx`.
+- **Work**: below `lg`, render a compact, non-blocking message explaining
+  that the component sidebar is available on desktop-width layouts. Do not
+  implement the full drawer here; Phase 4 owns that.
+- **Dependencies**: none.
+- **Parallelizable?** YES with 2.1-2.5.
+- **Validation**: responsive DOM test or Playwright mobile viewport check.
+- **Tests**: `tests/vitest/sidebar-mobile-fallback.spec.tsx` or
+  `e2e/sidebar-mobile-fallback.spec.ts`.
+- **Exit criteria**: below-1024px users no longer get a silent disappearance;
+  RR-12 remains accepted until Phase 4 drawer ships.
+- **Rollback**: copy/component removal.
+- **Complexity**: S.
+
 #### Phase 2 exit gate
 
-- Tasks 2.1, 2.2 OR 2.3, 2.4 merged.
+- Tasks 2.1, 2.2 OR 2.3, 2.4, 2.5, and 2.6 merged.
 - Applicable acceptance proofs captured.
 - Focused vitest matrix green; type-check + lint + build green.
 
@@ -1969,12 +2160,13 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
   targets, the giant reducer is split, and hover prefetch is deduped.
 - **Requirements addressed**: F-13, F-14, F-15, plus the a11y gaps
   documented in [12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md)
-  (hit targets, focus race).
+  (hit targets, focus race, contrast/high-contrast, Escape preview close,
+  tab `aria-controls`, landmark cleanup, and IME composition).
 - **Inputs**: the `EstimateSheetTree` has a robust `onCloseAutoFocus`
   pattern (lines 593-639) that Task 3.5 can port. React Doctor warning
   cleanup is tracked separately in
   `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md`.
-- **Work packages** (5 tasks, mixed complexity):
+- **Work packages** (6 tasks, mixed complexity):
 
 #### Task 3.1 — Increase hit target sizes to WCAG minimum
 
@@ -2022,7 +2214,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **Dependencies**: this is a large refactor. Tracks against
   `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md`. Sequence
   AFTER Phase 1 + Phase 2 to avoid merge conflicts.
-- **Parallelizable?** NO — refactor of the same component Tasks 1.1-1.6
+- **Parallelizable?** NO — refactor of the same component Tasks 1.1-1.7
   touch. Must serialize after Phase 1.
 - **Validation**: React DevTools profiler shows re-renders scoped to
   active tab only; bundle size unchanged or smaller.
@@ -2044,7 +2236,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
   `onPrefetchNode` if the id is in the set. Clear on tab switch or route
   change.
 - **Dependencies**: none.
-- **Parallelizable?** YES with 3.1, 3.2, 3.5.
+- **Parallelizable?** YES with 3.1, 3.2, 3.5, 3.6.
 - **Validation**: Network panel in Playwright shows at most 1 prefetch
   per project id across N hovers.
 - **Tests**: Playwright: `e2e/sidebar-hover-prefetch-dedup.spec.ts`.
@@ -2061,7 +2253,7 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
   `onCloseAutoFocus` + `event.preventDefault()` pattern ported from
   `src/app/workshop/projects/[projectId]/estimates/[nodeId]/_components/estimate-sheet-tree/EstimateSheetTree.tsx:593-639`.
 - **Dependencies**: none.
-- **Parallelizable?** YES with 3.1, 3.2, 3.4.
+- **Parallelizable?** YES with 3.1, 3.2, 3.4, 3.6.
 - **Validation**: Playwright spec for right-click → Rename → input has
   focus within 1 animation frame.
 - **Tests**: Playwright: `e2e/sidebar-rename-focus.spec.ts`.
@@ -2069,9 +2261,32 @@ Concrete ceilings per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Al
 - **Rollback**: setTimeout pattern revert.
 - **Complexity**: M.
 
+#### Task 3.6 — Close remaining P3 a11y gaps
+
+- **Files**: sidebar tablist, preview panel, tree row labels, sidebar
+  shell/landmarks, inline rename input.
+- **Work**: address the remaining
+  [12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md)
+  findings that are not covered by Tasks 3.1 and 3.5: verify/fix
+  `text-tertiary` contrast at small label sizes and high-contrast mode,
+  add Escape-to-close behavior for the preview panel, add `aria-controls`
+  from tabs to panels, remove redundant nested `aside` landmarks or give
+  them precise labels, and ignore Enter commits while IME composition is
+  active.
+- **Dependencies**: design review for density/contrast tradeoffs.
+- **Parallelizable?** YES with 3.2-3.4; coordinate with Task 3.1 on sizing
+  classes.
+- **Validation**: Playwright keyboard/a11y spec plus computed-style or
+  contrast assertion; manual VoiceOver smoke.
+- **Tests**: `e2e/sidebar-a11y-misc.spec.ts`.
+- **Exit criteria**: every P3 a11y gap in §6.6 is closed or explicitly
+  deferred with owner/risk; no broad "visual QA later" ambiguity remains.
+- **Rollback**: UI behavior/class revert.
+- **Complexity**: M.
+
 #### Phase 3 exit gate
 
-- All 5 tasks merged.
+- All 6 tasks merged.
 - WCAG 2.2 hit-target axe scan clean for the sidebar.
 - React Doctor report clean for the sidebar (or remaining warnings
   documented and accepted).
@@ -2114,7 +2329,7 @@ Phase 1 (6 tasks, mostly parallel)  ──┐
 Phase 4 (future, mobile)  ──► gated on user feedback
 ```
 
-- **Phase 1**: Tasks 1.1, 1.4, 1.5, 1.6 are fully independent. Tasks 1.2
+- **Phase 1**: Tasks 1.1, 1.4, 1.5, 1.6, 1.7 are fully independent. Tasks 1.2
   and 1.3 share `AddComponentModal` mechanics — single author
   recommended.
 - **Phase 2**: Tasks 2.1, 2.4 are independent. Task 2.2 and 2.3 are
@@ -2144,7 +2359,7 @@ Phase 4 (future, mobile)  ──► gated on user feedback
 
 | File (existing/new) | Responsibility | Changes in this plan | Dependencies | Edit-conflict risk |
 |---|---|---|---|---|
-| `src/components/workshop/component-library/index.tsx` (existing) | Sidebar orchestrator + giant reducer + all context-menu/preview handlers | Tasks 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 all touch this file | All Phase 1 RPCs | **HIGH** — touched by every Phase 1 task; coordinate single-author per Phase |
+| `src/components/workshop/component-library/index.tsx` (existing) | Sidebar orchestrator + giant reducer + all context-menu/preview handlers | Tasks 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 all touch this file | All Phase 1 RPCs + explainer copy | **HIGH** — touched by every Phase 1 task; coordinate single-author per Phase |
 | `src/components/workshop/component-library/helpers.ts` (existing) | `createComponent()` local-only helper (the F-03/F-05 culprit) | Task 1.2: remove `createComponent()` usage from Edit/Duplicate paths; consider deleting the helper outright once all call sites are migrated | None | LOW |
 | `src/components/workshop/component-library/NewComponentForm.tsx` (existing) | Legacy lightweight create form | Task 1.2: **delete or repurpose** — `AddComponentModal` becomes the only create surface | Test suite must be migrated | LOW |
 | `src/components/workshop/component-library-manager/AddComponentModal.tsx` (existing) | Canonical persisted create modal | Task 1.2: add **edit mode** (read by id, pre-fill, switch submit handler to `updateCostLibraryComponent`); Task 1.3: support pre-fill from existing component for Duplicate | Variant + attachment + price history preservation | **MEDIUM** — worktree shows this file is actively modified by other agents |
@@ -2156,6 +2371,8 @@ Phase 4 (future, mobile)  ──► gated on user feedback
 | `tests/vitest/sidebar-snapshot-chip.spec.tsx` (NEW) | Vitest jsdom spec for chip text + toast text | Task 1.4 | None | LOW |
 | `tests/vitest/sidebar-template-groups.spec.tsx` (NEW) | Vitest jsdom spec verifying "New Template Group" button removed | Task 1.5 | None | LOW |
 | `tests/vitest/sidebar-search-race.spec.tsx` (NEW) | Vitest jsdom spec for deferred-resolution-in-reverse-order | Task 1.6 | None | LOW |
+| `tests/vitest/sidebar-honesty-explainer.spec.tsx` (NEW) | Vitest jsdom spec for first-interaction honesty-transition explainer copy | Task 1.7 | Philip copy review | LOW |
+| `tests/vitest/sidebar-telemetry.spec.tsx` (NEW) | Vitest jsdom/unit spec for telemetry allow-list, failure events, dropped-search events, and no raw query/name leakage | Task 1.0 + Tasks 1.1/1.6 | Telemetry table/schema decision | LOW |
 | `tests/vitest/rpc-archive.spec.tsx` (NEW) | RPC contract test for `executeBulkArchiveLibraryComponents` | Task 1.1 | None | LOW |
 | `e2e/sidebar-archive-restore.spec.ts` (NEW) | Playwright E2E for archive → refresh → not visible; undo → refresh → visible | Task 1.1 | Authenticated Supabase session (env constraint per [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md)) | LOW |
 | `e2e/sidebar-edit-persists.spec.ts` (NEW) | Playwright E2E for edit + refresh persistence | Task 1.2 | Same | LOW |
@@ -2169,11 +2386,15 @@ Phase 4 (future, mobile)  ──► gated on user feedback
 |---|---|---|---|---|
 | `src/components/workshop/component-library/index.tsx` (existing) | `LIBRARY_TREE_TABS` constant + collapse state | Task 2.1 (string change), Task 2.4 (collapse persistence) | None | HIGH (same as Phase 1) |
 | `src/components/workshop/component-library/tree/LibraryTree.tsx` (existing) | Library tree + folder context menu | Task 2.2 (add Delete menu item) or Task 2.3 (add Manage in Library deep link) | `deleteLibraryFolder` RPC exists | LOW |
+| `src/components/workshop/component-library/PreviewPanel.tsx` (existing) | Preview state and stale-selection handling | Task 2.5: stale preview clear + empty state | Phase 1 preview changes | LOW |
+| Estimate route/sidebar shell | Mobile-width fallback message | Task 2.6 | None | LOW |
 | `src/lib/component-library/actions.ts` (existing) | `deleteLibraryFolder` server action | No change — RPC already exists | None | LOW |
 | `src/components/workshop/ResizableSidePanel.tsx` (existing) | Panel shell with collapse + resize | Task 2.4: persist collapse state via cookie or `user_preferences` | None | LOW |
 | `tests/vitest/sidebar-tab-label.spec.tsx` (NEW) | Vitest asserts tab label = "Project Components" | Task 2.1 | None | LOW |
 | `tests/vitest/sidebar-folder-delete.spec.tsx` (NEW) | Vitest for folder delete via sidebar context menu | Task 2.2 | None | LOW |
 | `tests/vitest/sidebar-collapse-persist.spec.tsx` (NEW) | Vitest for collapse persistence | Task 2.4 | None | LOW |
+| `tests/vitest/sidebar-ux-states.spec.tsx` (NEW) | Vitest state-matrix assertions for touched surfaces | Task 2.5 | None | LOW |
+| `tests/vitest/sidebar-mobile-fallback.spec.tsx` or `e2e/sidebar-mobile-fallback.spec.ts` (NEW) | Responsive fallback proof below 1024px | Task 2.6 | None | LOW |
 
 ### Phase 3 files (A11y + Perf)
 
@@ -2182,12 +2403,13 @@ Phase 4 (future, mobile)  ──► gated on user feedback
 | `src/components/workshop/component-library/index.tsx` (existing) | Giant reducer | Task 3.3: extract `useLibraryTabState`, `useProjectTabState`, `useTemplatesTabState` hooks | None — refactor of working code | HIGH (Phase 1+2 must merge first) |
 | `src/components/workshop/component-library/tree/LibraryTree.tsx` (existing) | Folder rename input | Task 3.5: replace `setTimeout(0)` with Radix `onCloseAutoFocus` pattern from `EstimateSheetTree` | None | LOW |
 | `src/components/workshop/component-library/tree/TemplatesTree.tsx` (existing) | Hover prefetch handler | Task 3.4: add `Set<string>` of prefetched project ids | None | LOW |
-| `src/components/workshop/component-library/PreviewPanel.tsx` (existing) | Image rendering | Task 3.2: prefer `thumbnailPath` over `imagePath` | Verify upload pipeline generates thumbnails | LOW |
-| Various sidebar files | Hit target sizes | Task 3.1: bump 20×20 / 14×14 elements to ≥24×24 | Design review (Philip) | LOW |
+| `src/components/workshop/component-library/PreviewPanel.tsx` (existing) | Image rendering + preview keyboard behavior | Task 3.2: prefer `thumbnailPath`; Task 3.6: Escape closes preview | Verify upload pipeline generates thumbnails | LOW |
+| Various sidebar files | Hit target sizes, contrast, tabs, landmarks, IME handling | Task 3.1: bump 20×20 / 14×14 elements to ≥24×24; Task 3.6: remaining P3 a11y gaps | Design review (Philip) | LOW |
 | `e2e/sidebar-a11y-hit-targets.spec.ts` (NEW) | Playwright + axe scan | Task 3.1 | None | LOW |
 | `e2e/sidebar-thumbnail-usage.spec.ts` (NEW) | Playwright network panel spec | Task 3.2 | None | LOW |
 | `e2e/sidebar-hover-prefetch-dedup.spec.ts` (NEW) | Playwright network count spec | Task 3.4 | None | LOW |
 | `e2e/sidebar-rename-focus.spec.ts` (NEW) | Playwright focus spec | Task 3.5 | None | LOW |
+| `e2e/sidebar-a11y-misc.spec.ts` (NEW) | Escape close, `aria-controls`, landmark, contrast/high-contrast, IME behavior | Task 3.6 | None | LOW |
 
 ### Files NOT changed (intentional)
 
@@ -2195,7 +2417,9 @@ Phase 4 (future, mobile)  ──► gated on user feedback
   client-side request guard, not the server action.
 - `src/lib/repositories/*` — no repository changes for Phase 1-3.
 - `src/lib/supabase/types.ts` — no schema changes for Phase 1-3.
-- `supabase/migrations/*` — no migrations for Phase 1-3.
+- `supabase/migrations/*` — no business-schema migrations for Phase 1-3;
+  Task 1.0 may add a scoped telemetry migration if
+  `library_telemetry_events` is missing or incompatible.
 - Any file under `src/app/api/*` — upload routes are explicitly out of
   scope (Track 3 in [30-HANDOFF.md](./30-HANDOFF.md) is separate work).
 
@@ -2230,7 +2454,8 @@ files in this plan's scope.
 
 ### Integration tests (Vitest jsdom, `tests/vitest/`)
 
-Phase 1 adds 7 new vitest specs (one per task) per
+Phase 1 adds 9 new vitest specs (one per product/comms task plus telemetry)
+per
 [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md) Phase 1 table:
 
 | Spec | Coverage |
@@ -2241,15 +2466,19 @@ Phase 1 adds 7 new vitest specs (one per task) per
 | `tests/vitest/sidebar-snapshot-chip.spec.tsx` | Task 1.4 — chip text + toast text |
 | `tests/vitest/sidebar-template-groups.spec.tsx` | Task 1.5 — button removed, categories from templates |
 | `tests/vitest/sidebar-search-race.spec.tsx` | Task 1.6 — deferred-resolution-in-reverse-order |
+| `tests/vitest/sidebar-honesty-explainer.spec.tsx` | Task 1.7 — first-interaction honesty-transition explainer copy |
+| `tests/vitest/sidebar-telemetry.spec.tsx` | Task 1.0/1.1/1.6 — telemetry allow-list, failed events, dropped-search event, no raw query/name leakage |
 | `tests/vitest/rpc-archive.spec.ts` | Task 1.1 — RPC contract for `executeBulkArchiveLibraryComponents` |
 
-Phase 2 adds 3 vitest specs:
+Phase 2 adds 5 vitest specs:
 
 | Spec | Coverage |
 |---|---|
 | `tests/vitest/sidebar-tab-label.spec.tsx` | Task 2.1 — tab label = "Project Components" |
 | `tests/vitest/sidebar-folder-delete.spec.tsx` | Task 2.2 — folder delete via sidebar |
 | `tests/vitest/sidebar-collapse-persist.spec.tsx` | Task 2.4 — collapse persistence |
+| `tests/vitest/sidebar-ux-states.spec.tsx` | Task 2.5 — touched-surface state matrix gaps |
+| `tests/vitest/sidebar-mobile-fallback.spec.tsx` | Task 2.6 — below-1024px fallback message |
 
 Phase 3 adds characterization tests BEFORE Task 3.3 refactor (pin
 behavior of the giant reducer) + verify they stay green throughout the
@@ -2287,6 +2516,7 @@ Phase 3 adds:
 | `e2e/sidebar-thumbnail-usage.spec.ts` | Task 3.2 — Network panel shows thumbnail-sized responses |
 | `e2e/sidebar-hover-prefetch-dedup.spec.ts` | Task 3.4 — ≤1 prefetch RPC per project id |
 | `e2e/sidebar-rename-focus.spec.ts` | Task 3.5 — focus within 1 animation frame |
+| `e2e/sidebar-a11y-misc.spec.ts` | Task 3.6 — Escape closes preview, tabs control panels, landmarks are not redundant, IME Enter does not commit |
 
 **Env constraint**: Playwright mutating specs require authenticated
 Supabase session against project `ebxxqidacheyapmmzavr` and the
@@ -2294,7 +2524,12 @@ env flags above per `.ai/10_state/current-state.md` FAST PATH.
 
 ### Accessibility tests
 
-- **axe scan** in Playwright for Phase 3 Task 3.1 (hit targets).
+- **axe scan** in Playwright for Phase 3 Task 3.1 (hit targets) plus
+  bounding-box assertions that each target is at least 24x24px; axe alone
+  is not sufficient target-size proof.
+- **Computed-style / contrast checks** for Task 3.6 small labels and
+  high-contrast mode, with manual visual review when automated contrast
+  checks are insufficient.
 - **Manual VoiceOver pass** for tree role announcements (per
   [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md) item 15).
 - **Keyboard navigation**: Tab/Shift+Tab, Arrow keys, Home/End, Enter,
@@ -2314,9 +2549,9 @@ env flags above per `.ai/10_state/current-state.md` FAST PATH.
   - Malformed drag payload: silently ignored.
   - Invalid image URL: `javascript:` blocked.
   - Cross-workspace ID injection: server re-validates under RLS client.
-- **RR-18 RLS verification** (Track 2 in
-  [30-HANDOFF.md](./30-HANDOFF.md)) is separate work — out of this
-  plan's scope.
+- **RR-18 live RLS proof** (Track 2 in
+  [30-HANDOFF.md](./30-HANDOFF.md)) is separate public-launch proof. Repo
+  migration/policy evidence exists; deployed-state SQL proof remains open.
 
 ### Migration tests
 
@@ -2327,23 +2562,26 @@ env flags above per `.ai/10_state/current-state.md` FAST PATH.
 
 ### Performance tests
 
-- **Bundle size CI check** (Track 4 in [30-HANDOFF.md](./30-HANDOFF.md)
-  — separate work session): parse `.next/static/chunks/*.js` sizes
-  after `bun run build`, compare to budget table in
-  [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md). Eng adds to
-  `scripts/` + `validate` script.
+- **Bundle size CI check**: Task 1.0 must either add
+  `scripts/check-bundle-budget.mjs` plus a `bun run check-bundle-budget`
+  script wired into `validate`, or explicitly keep Track 4 in
+  [30-HANDOFF.md](./30-HANDOFF.md) as a release-readiness WATCH item.
+  The check parses `.next/static/chunks/*.js` after `bun run build` and
+  compares to [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md).
 - **Latency budgets**: measured via Phase 1 telemetry events
   ([24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md)) once
-  production traffic exists. Pre-launch: manual verification via
-  Chrome DevTools.
+  production traffic exists. Pre-launch: add automated duration
+  assertions where practical for archive/edit/duplicate harnesses and use
+  manual DevTools only as supporting evidence.
 - **Hover prefetch dedup** (Phase 3 Task 3.4): Playwright Network
   panel assertion.
 
 ### Regression tests
 
-- **Full vitest suite** (115 files) — must stay green. Note: full
-  suite can hang per FAST PATH in current-state.md; use targeted
-  matrices.
+- **Focused vitest matrix** for changed sidebar surfaces is required for
+  local/preview proof. The full vitest suite is a CI/release gate only
+  when known reds/hangs from current-state.md are resolved or explicitly
+  waived.
 - **Full Playwright E2E suite** (7 specs) — must stay green. Mutating
   specs gated behind env flags.
 - **Phase 3 Task 3.3 characterization tests** — pin giant reducer
@@ -2410,8 +2648,10 @@ NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1 = "true" | "false"  (default: "true")
 
 - **True**: Phase 1 wiring active.
 - **False**: Phase 1 wiring bypassed; legacy behavior restored.
-- Read once at sidebar module load and cached. Toggling requires hard
-  refresh (acceptable for pre-first-users).
+- Read once at sidebar module load and cached. Because this is a
+  `NEXT_PUBLIC_*` client-bundled flag, toggling the env var requires a
+  rebuild/redeploy plus hard refresh unless implementation deliberately
+  adds a runtime flag provider.
 - Gates: Delete handler, Edit handler, Duplicate handler, chips
   render, "New Template Group" render, search effect.
 - Default ON per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md);
@@ -2428,7 +2668,7 @@ Per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md)
 
 | Stage | Activity | Owner | Gate |
 |---|---|---|---|
-| 1. Local verification | `bun run validate` + targeted vitest + manual acceptance | Eng | All gates green |
+| 1. Local verification | `bun run type-check`, `bun run lint`, `bun run lint:design-system`, `bun run lint:design`, `bun run test`, focused sidebar vitest matrix, and manual acceptance | Eng | All focused gates green; broad known-red waivers documented |
 | 2. Preview branch | Push `feat/sidebar-persistence-honesty-v1`; Vercel preview deploy; smoke-test on non-prod workspace | Eng | Eng signs off in PR |
 | 3. Main | PR review (≥1 reviewer); CI green; squash-merge | Eng + Reviewer | CI green |
 | 4. Production | Vercel auto-deploys main; monitor error rate + archive RPC failure rate; 48-hour hold | Eng + Philip | No regression in 48h |
@@ -2451,14 +2691,19 @@ Per [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) § Alerts:
 
 | Alert | Trigger | Severity | Action |
 |---|---|---|---|
-| Archive RPC failing | `archive_failure_rate > 5%` for 10 min | Page Eng | Diagnose; consider flag flip |
-| Edit modal failing | `edit_via_modal_failure_rate > 5%` | Page Eng | Diagnose; consider flag flip |
+| Archive RPC failing | `archive_failure_rate > 5%` for 10 min | Page Eng | Diagnose; consider flag OFF + redeploy |
+| Edit modal failing | `edit_via_modal_failure_rate > 5%` for 10 min | Page Eng | Diagnose; consider flag OFF + redeploy |
 | Restore failing | `restore_success_rate < 90%` | Warn Eng | Diagnose; Undo broken |
 | Telemetry pipeline lag | No `*_invoked` events for >24h while session traffic normal | Warn Eng | Diagnose telemetry ingestion |
 
 **Open dependency**: if Vercel/Supabase has no alerting at launch,
 fall back to daily dashboard review during the 48-hour hold (item 2
 in §22).
+
+Threshold convention: doc 24's production rollback/page threshold is
+5% failure for 10 minutes (or restore success below 90%). Optional
+1% warning-level thresholds may exist during preview, but they do not
+replace the doc-24 production thresholds.
 
 ### Rollback triggers
 
@@ -2467,17 +2712,19 @@ Per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md)
 
 | Signal | Action |
 |---|---|
-| Archive RPC error rate > 5% on dashboard | Flip flag OFF; diagnose |
-| User report: "I edited a component and lost variants" | Flip flag OFF; investigate `updateCostLibraryComponent` field preservation |
-| Search returns blank unexpectedly | Diagnose; flip flag OFF if correlated with deploy |
+| Archive RPC error rate > 5% on dashboard | Set flag OFF, redeploy, diagnose |
+| User report: "I edited a component and lost variants" | Set flag OFF, redeploy, investigate `updateCostLibraryComponent` field preservation |
+| Search returns blank unexpectedly | Diagnose; set flag OFF + redeploy if correlated with deploy |
 | Build/lint failures post-merge | Revert merge commit; redeploy |
 
 ### Rollback procedure
 
 Per task, per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md):
 
-1. **Flip `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1=false`** (no
-   redeploy — Vercel env var flip + hard refresh).
+1. **Set `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1=false` and redeploy.**
+   The [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md)
+   "no redeploy" shortcut is superseded by this canonical plan because
+   `NEXT_PUBLIC_*` values are bundled into the client.
 2. **Revert the wiring commit** (`git revert <sha>`).
 3. **DB state is preserved**:
    - Archive rows created before rollback remain archived (RR-20 — no
@@ -2582,7 +2829,11 @@ Panels:
 
 Owner: Eng builds; Philip has read access.
 
-**Phase 1 telemetry events to wire** (per Task 1.1-1.6):
+Task 1.0 must verify this dashboard has a concrete destination (managed
+alerting, dashboard URL, or documented daily-review fallback) before
+Phase 1 event wiring is considered operationally complete.
+
+**Phase 1 telemetry events to wire** (per Task 1.0-1.7):
 
 | Event | Task | Trigger |
 |---|---|---|
@@ -2600,6 +2851,12 @@ Owner: Eng builds; Philip has read access.
 | `sidebar_persistence_honesty_v1_search_response_applied` | 1.6 | Response passes request-id guard |
 | `sidebar_persistence_honesty_v1_search_response_dropped` | 1.6 | Response rejected by guard |
 | `sidebar_persistence_honesty_v1_template_group_affordance_removed` | 1.5 | Mount under V1 flag (deployment verification) |
+
+Failure-path instrumentation must be tested, not inferred: archive failure,
+edit failure, restore failure (or a documented omission if restore is handled
+only through the lifecycle RPC), and dropped search responses must emit safe
+events without raw search queries, component names, filenames, URLs, or
+free-text notes.
 
 **Buckets (privacy-preserving):**
 
@@ -2619,9 +2876,9 @@ Per [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) risk owners:
 
 | Risk | Runbook |
 |---|---|
-| RR-01 (Delete honest) | If archive RPC error rate > 5%: flip flag OFF, diagnose RPC failure mode, consider one-shot un-archive SQL scoped by workspace + time window |
-| RR-02/03 (Edit/Duplicate honest) | If edit/duplicate RPC error rate > 5%: flip flag OFF, investigate `updateCostLibraryComponent` / `createCostLibraryComponent` field preservation |
-| RR-04 (Search race) | If search returns blank unexpectedly: flip flag OFF, diagnose (likely unrelated), restore legacy race-prone behavior temporarily |
+| RR-01 (Delete honest) | If archive RPC error rate > 5%: set flag OFF + redeploy, diagnose RPC failure mode, consider one-shot un-archive SQL scoped by workspace + time window |
+| RR-02/03 (Edit/Duplicate honest) | If edit/duplicate RPC error rate > 5%: set flag OFF + redeploy, investigate `updateCostLibraryComponent` / `createCostLibraryComponent` field preservation |
+| RR-04 (Search race) | If search returns blank unexpectedly: set flag OFF + redeploy, diagnose (likely unrelated), restore legacy race-prone behavior temporarily |
 | RR-16 (Archive silent failure) | If user reports "deleted but still there": verify toast surfaced error; verify alert triggered; integrate test in `sidebar-archive.spec.tsx` covers the failure path |
 | RR-17 (Honesty transition confusion) | If user reports "lost edits": clarify in support response that local-only items were never persisted; release notes already explain |
 | RR-18 (RLS verification) | See Track 2 in [30-HANDOFF.md](./30-HANDOFF.md) — separate work session |
@@ -2632,7 +2889,7 @@ Per [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) risk owners:
 - **Phase 1 user comms** (per RR-17):
   - Pre-deploy: post in #engineering with Phase 1 scope + flag name + rollback path.
   - Post-deploy: post in #product with user-visible changes (more honest persistence, accurate labels).
-  - Rollback: post in #engineering with signal that triggered rollback + the flag flip.
+  - Rollback: post in #engineering with signal that triggered rollback + the flag OFF redeploy.
 - **In-app explainer**: first interaction after Phase 1 ship shows a toast explaining the persistence change (1-2 sentences).
 - **Release notes**: drafted per item 5 in §20.8.
 
@@ -2680,15 +2937,15 @@ Per [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) risk owners:
 
 | ID | Risk | Probability | Impact | Severity | Mitigation | Owner | Detection method | Contingency |
 |---|---|---|---|---|---|---|---|---|
-| RR-01 | Component Delete appears to work but item reappears on refresh (false invalidation signal from `onLibraryDataChanged()`) | High | User data-trust erosion; duplicated work | P1 | Wire Delete to `executeBulkArchiveLibraryComponents`; remove false invalidation; toast says "archived" | Eng | Vitest integration spec (delete → refresh → not visible); Playwright archive-restore spec; alert on archive-RPC error rate > 1% | Rollback flag OFF; legacy local-only Delete returns; archive actions already in DB are preserved |
-| RR-02 | Component Edit disappears on refresh (uses local-only `createComponent()` helper) | High | User data-trust erosion; lost edits | P1 | Remove `NewComponentForm`; route Edit through `AddComponentModal` edit mode via `updateCostLibraryComponent`; preserves variants/audit data | Eng | Vitest spec for edit-and-refresh; Playwright edit-persists spec | Rollback flag OFF; legacy form returns |
-| RR-03 | Component Duplicate creates local-only items with `custom-${Date.now()}` IDs | High | Duplicate lost on refresh; orphaned local state | P1 | Wire Duplicate to `AddComponentModal` pre-filled + "(copy)" suffix → `createCostLibraryComponent` | Eng | Vitest spec for duplicate-and-refresh | Rollback flag OFF |
-| RR-04 | Project-source search race: stale response overwrites newer result | Medium | Wrong source inserted into estimate; user confusion | P1 | Monotonic request-id guard (or `AbortController`) | Eng | Vitest deferred-resolution-in-reverse-order spec; Playwright rapid-search spec | Rollback flag OFF |
-| RR-05 | Template Groups vanish on refresh (local-only state) | High | User-template-grouping work lost | P1 | Remove "New Template Group" affordance; delete `customTemplateGroups` state; document categories as derived | Eng | Vitest spec verifies toolbar button removed | Rollback flag OFF; communicate in release notes (RR-17) |
-| RR-06 | "Live source" / "Read-through source" chips imply sync that does not exist | High | User believes source will stay synchronized; it does not | P1 | Replace chips with "Snapshot copy"; insert toast states copy semantics | Eng | Vitest snapshot test for chip text; Playwright toast-text spec | Rollback flag OFF or string revert |
+| RR-01 | Component Delete appears to work but item reappears on refresh (false invalidation signal from `onLibraryDataChanged()`) | High | User data-trust erosion; duplicated work | P1 | Wire Delete to `executeBulkArchiveLibraryComponents`; remove false invalidation; toast says "archived" | Eng | Vitest integration spec (delete → refresh → not visible); Playwright archive-restore spec; page alert on archive-RPC error rate > 5% for 10 min; optional preview warn at >1% | Rollback flag OFF + redeploy; legacy local-only Delete returns; archive actions already in DB are preserved |
+| RR-02 | Component Edit disappears on refresh (uses local-only `createComponent()` helper) | High | User data-trust erosion; lost edits | P1 | Remove `NewComponentForm`; route Edit through `AddComponentModal` edit mode via `updateCostLibraryComponent`; preserves variants/audit data | Eng | Vitest spec for edit-and-refresh; Playwright edit-persists spec | Rollback flag OFF + redeploy; legacy form returns |
+| RR-03 | Component Duplicate creates local-only items with `custom-${Date.now()}` IDs | High | Duplicate lost on refresh; orphaned local state | P1 | Wire Duplicate to `AddComponentModal` pre-filled + "(copy)" suffix → `createCostLibraryComponent` | Eng | Vitest spec for duplicate-and-refresh | Rollback flag OFF + redeploy |
+| RR-04 | Project-source search race: stale response overwrites newer result | Medium | Wrong source inserted into estimate; user confusion | P1 | Monotonic request-id guard (or `AbortController`) | Eng | Vitest deferred-resolution-in-reverse-order spec; Playwright rapid-search spec | Rollback flag OFF + redeploy |
+| RR-05 | Template Groups vanish on refresh (local-only state) | High | User-template-grouping work lost | P1 | Remove "New Template Group" affordance; delete `customTemplateGroups` state; document categories as derived | Eng | Vitest spec verifies toolbar button removed | Rollback flag OFF + redeploy; communicate in release notes (RR-17) |
+| RR-06 | "Live source" / "Read-through source" chips imply sync that does not exist | High | User believes source will stay synchronized; it does not | P1 | Replace chips with "Snapshot copy"; insert toast states copy semantics | Eng | Vitest snapshot test for chip text; Playwright toast-text spec | Rollback flag OFF + redeploy or string revert |
 | RR-07 | Phase 1 integration blind spot: tests verify UI but not DB row state | Medium | Regression slips through to release | P1 | Run integration suite that exercises every persisted mutation end-to-end against local Supabase; verify DB row state | QA | Focused integration matrix; DB-row assertions via Supabase client | Block release until matrix passes; documented env constraint per [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md) |
-| RR-16 | Phase 1 regression: archive RPC fails silently, item appears deleted but is not | Medium | User confusion; data-integrity perception | P1 | Toasts surface RPC failure; integration test covers "archive fails → item visible after refresh"; alert on archive-RPC error rate > 1% | Eng + QA | Alert on RPC error rate; integration test | Rollback flag OFF; investigate RPC failure mode |
-| RR-18 | RLS not verified on all 8 sidebar tables (background agent never closed per [30-HANDOFF.md](./30-HANDOFF.md) Track 2) | Low | Cross-workspace data leakage if any table lacks RLS | P1 | Run `rg "ENABLE ROW LEVEL SECURITY" supabase/migrations/` against each of the 8 tables; remediate any missing; document in [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | Backend | Migration file audit; SQL probe of `pg_class.relrowsecurity` | Block public launch until Closed; remediation migration under DB-autonomy mandate |
+| RR-16 | Phase 1 regression: archive RPC fails silently, item appears deleted but is not | Medium | User confusion; data-integrity perception | P1 | Toasts surface RPC failure; integration test covers "archive fails → item visible after refresh"; page alert on archive-RPC error rate > 5% for 10 min; optional preview warn at >1% | Eng + QA | Alert on RPC error rate; integration test | Rollback flag OFF + redeploy; investigate RPC failure mode |
+| RR-18 | Live RLS proof not yet captured for all sidebar tables/policies (repo migrations were verified in continuation review; deployed reality still needs a probe) | Low | Cross-workspace data leakage if deployed RLS/policies diverge from migrations | P1 | Run `rg "ENABLE ROW LEVEL SECURITY" supabase/migrations/` plus a live `pg_class.relrowsecurity` / policy probe; remediate any missing; document in [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | Backend | Migration file audit; live SQL probe of `pg_class.relrowsecurity` and policies | Block public launch until Closed; remediation migration under DB-autonomy mandate |
 
 ### P2 risks (noticeable inconsistency or incomplete workflow)
 
@@ -2698,13 +2955,13 @@ Per [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) risk owners:
 | RR-09 | Favorites and Recents are device-local, not account-persisted | Low | Multi-device users have inconsistent favorites | P2 | Document as device-local; deferred multi-device sync tracked in [20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md](./20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md) Q8 | Philip | User feedback | Revisit on multi-device feedback; add `user_preferences` table |
 | RR-10 | Custom tree ordering is browser-local | Low | Reordered folders on one device don't persist to another | P2 | Document as device-local; same defer rationale as RR-09 | Philip | User feedback | Revisit; persist `sort_order` at component level |
 | RR-11 | Folder delete / reparent / nesting absent in sidebar | Medium | User must navigate to Library page for folder management | P2 | Add Delete to sidebar context menu via existing `deleteLibraryFolder`; defer reparent/move | Eng | Vitest spec for new menu item | Add "Manage in Library" deep link as fallback (Task 2.3) |
-| RR-12 | Sidebar hidden below 1024px with no mobile fallback | Low | Tablet/mobile users lose feature access | P2 | Document below-1024px as out-of-scope for v1; revisit if mobile feedback warrants (Phase 4) | Philip | User feedback | Phase 4 mobile drawer work |
+| RR-12 | Sidebar hidden below 1024px without a drawer; users need an honest fallback | Low | Tablet/mobile users cannot use the full sidebar workflow | P2 | Phase 2 adds a below-1024 fallback message; responsive drawer remains Phase 4 if feedback warrants | Philip | User feedback; fallback-message test | Phase 4 mobile drawer work |
 | RR-13 | Giant reducer component (~2,000+ lines) causes broad re-renders; maintainability risk | Medium | Performance degradation; future-feature velocity cost | P2 | Extract tab-scoped hooks (`useLibraryTabState`, etc.); tracks against `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` | Eng | React DevTools profiler; React Doctor report | Git revert refactor commits |
 | RR-14 | Folder-rename focus race (Radix menu close vs `setTimeout(0)`) | Medium | A11y defect; rename sometimes requires second click | P2 | Replace `setTimeout(0)` with Radix `onCloseAutoFocus` + `event.preventDefault()` pattern from `EstimateSheetTree` | Eng | Playwright rename-focus spec | Pattern revert |
 | RR-17 | Phase 1 transition confusion: users accustomed to local-only behavior report "lost edits" | Medium | Support load; perceived regression | P2 | Release-notes copy explains the fix; in-app toast on first interaction explains persistence change | Philip | User feedback; support tickets | Improve comms; ship in-app explainer |
 | RR-19 | Phase 1 ships without feature flag → cannot selectively disable if regression | Medium | Uncontrolled rollout; rollback requires redeploy | P2 | Wrap each Phase 1 task behind `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1` flag (default on); see [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) | Eng | Code review; env-var audit | Add flag in hotfix |
 | RR-20 | Phase 1 rollback loses user-archive actions performed before rollback | Low | User confusion if archives vanish after rollback | P2 | Rollback procedure preserves archive state (no un-archive); only the wiring reverts | Eng | Rollback dry-run | Document in release notes; no un-archive |
-| RR-21 | Telemetry blind spot: cannot measure if Phase 1 fix improved persistence-honesty perception | Medium | Cannot validate fix shipped successfully | P2 | Add `persistence_honesty_*` events (`archive_invoked`, `archive_succeeded`, `archive_failed`, `edit_via_modal_opened`, `duplicate_via_modal_opened`); see [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) | Eng | Dashboard review | Post-release retro |
+| RR-21 | Telemetry blind spot: cannot measure if Phase 1 fix improved persistence-honesty perception | Medium | Cannot validate fix shipped successfully | P2 | Task 1.0 verifies `library_telemetry_events`, safe allow-list keys, dashboard destination, and alerting fallback; Phase 1 tasks add `persistence_honesty_*` events; see [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) | Eng | Dashboard review; telemetry unit tests | Post-release retro |
 
 ### P3 risks (minor polish)
 
@@ -2723,7 +2980,7 @@ Per [22-RISK-REGISTER.md](./22-RISK-REGISTER.md) risk owners:
 ### Open dependencies
 
 - **RR-07** (integration suite) requires authenticated local Supabase session — environmental constraint per [19-VALIDATION-PLAN.md](./19-VALIDATION-PLAN.md).
-- **RR-18** (RLS verification) requires migration-file access — already in repo at `supabase/migrations/`. This is the highest-risk open item per [30-HANDOFF.md](./30-HANDOFF.md) Track 2.
+- **RR-18** live RLS proof requires migration-file audit plus a provider SQL probe. Continuation review found the relevant migration/policy files in repo; the open item is deployed-state proof before public launch.
 - **RR-13** (giant reducer extraction) tracks against a separate plan pack; not blocking Phase 1.
 
 ---
@@ -2736,16 +2993,18 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
 
 ### Benefits
 
-- **Honesty.** Every sidebar CRUD action persists or honestly labels itself. User trust no longer erodes on refresh.
+- **Honesty.** Every visible CRUD/destructive library-data action persists or honestly labels itself. User trust no longer erodes on refresh.
 - **Minimal new code.** All RPCs exist ([01-SCOPE-AND-CODE-MAP.md](./01-SCOPE-AND-CODE-MAP.md) line 83). Phase 1 is wiring + copy changes, not new infrastructure.
 - **Reversibility.** Archive (not hard delete) means every Delete has a Restore path. Feature flag means every change has a kill switch.
 - **Test coverage maps cleanly.** Each finding F-XX has a known acceptance proof (§6.7) and a known test (§14). The trace is bijective.
 - **Observability ships with the fix.** Per RR-21, every Phase 1 task wires its telemetry events in the same PR, so we measure adoption and catch regressions.
-- **No schema changes.** Phase 1 needs no migrations — the RPCs and tables are in place. DB-autonomy mandate is not invoked.
+- **Minimal schema risk.** Business mutations need no migrations — the
+  RPCs and tables are in place. Telemetry storage is verified first and may
+  require an additive migration under the existing DB-autonomy mandate.
 
 ### Costs
 
-- **Phase 1 is 6 tasks of M/S complexity** = ~1-2 engineering weeks ([22-RISK-REGISTER.md](./22-RISK-REGISTER.md) deadlines T0+1w to T0+2w).
+- **Phase 1 is 1 prerequisite + 7 product/comms tasks of M/S complexity** = ~1-2 engineering weeks ([22-RISK-REGISTER.md](./22-RISK-REGISTER.md) deadlines T0+1w to T0+2w).
 - **Test suite migration.** Removing `NewComponentForm` (Task 1.2) requires migrating its test coverage to the `AddComponentModal` edit-mode suite.
 - **Honesty transition comms.** Users accustomed to local-only Delete may report "lost edits" when server-truth replaces local-truth on refresh (RR-17). Requires release notes + in-app explainer.
 - **Giant reducer lingers.** Task 3.3 (extract reducer) is the largest single piece and serializes after Phase 1. The reducer stays in place through Phase 1+2.
@@ -2775,7 +3034,7 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
 - 31 prior audit docs provide exhaustive diagnosis; this canonical plan inherits the strongest evidence base in the repo.
 - All required RPCs (`executeBulkArchiveLibraryComponents`, `changeCostLibraryComponentLifecycleState`, `createCostLibraryComponent`, `updateCostLibraryComponent`) already exist and have verified auth guards ([15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md) § Authorization).
 - Server-side defense-in-depth is strong: every mutating server action enforces `is_workspace_editor` or `can_edit_estimate` RPC + RLS.
-- Existing `AddComponentModal` is shared with the Components page and already supports create mode — edit mode is a small extension.
+- Existing `AddComponentModal` is shared with the Components page and already supports create mode; edit mode has a strong foundation but must first characterize variant, attachment, and price-history identity semantics.
 - Feature flag (`NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1`) is a clean kill switch; rollback is flag-OFF + redeploy.
 - Archive (not hard delete) means reversibility is built in.
 - Test discipline is established: vitest jsdom + Playwright + axe + Bun test migration guard already exist.
@@ -2784,8 +3043,8 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
 
 - Giant reducer component (~2,000+ lines, F-13) is a maintainability debt that Phase 1 does not address; Phase 3 Task 3.3 is the cleanup but serializes after Phase 1.
 - Several Wave-1 specialist lanes in this pass timed out (see [LOOP_LEDGER.md](./LOOP_LEDGER.md)); lead-authored fallback was used. Independent verification (R2 lane, Wave 3) is therefore especially important.
-- Below 1024px the sidebar disappears silently. No fallback. (RR-12, Phase 4.)
-- Several P3 a11y gaps remain (text-tertiary contrast, IME composition on Enter, nested aside landmarks, missing aria-controls on tabs).
+- Below 1024px the sidebar still lacks a drawer. Phase 2 now adds a fallback message; Phase 4 remains the drawer. (RR-12.)
+- Several P3 a11y gaps remain until Phase 3 Task 3.6 (text-tertiary contrast, IME composition on Enter, nested aside landmarks, missing aria-controls on tabs).
 - Bundle budget enforcement is not yet in CI (Track 4 in [30-HANDOFF.md](./30-HANDOFF.md)).
 - The vitest full-DOM suite can hang; targeted matrices are required per `.ai/10_state/current-state.md` FAST PATH.
 
@@ -2798,33 +3057,74 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
 
 ### Threats
 
-- **RR-18 RLS verification** remains open. If any of the 8 sidebar tables lacks RLS, the cross-workspace data-leakage risk is real. This is the single highest-impact open item (Track 2 in [30-HANDOFF.md](./30-HANDOFF.md)).
+- **RR-18 live RLS proof** remains open. Migration-file review found the expected RLS/storage controls, but public launch still needs a deployed-state probe so cross-workspace policy drift is not assumed away.
+- **External image referrer leakage** remains open until sidebar image renderers suppress referrer data on remote image loads.
 - **Honesty transition confusion (RR-17).** Users who relied on local-only Delete (treating it as a "hide this from my view" feature) may perceive the change as a regression. Comms must be precise.
 - **Phase 1 regression (RR-16).** If the archive RPC fails silently, items appear deleted but are not. Toasts + alerting + integration test mitigate, but the failure mode is real.
 - **Concurrent-repository risk.** The worktree has 30+ unrelated modified files from other agents. Phase 1 must use strict file ownership and re-check `git status` before each merge.
-- **Subagent infrastructure queue limits** (this pass: 4 of 6 lanes timed out at 30m). If Wave 3 (R1 + R2) also times out, this plan ships without independent adversarial verification — a known weakness the lead will flag in the final report.
+- **Subagent infrastructure/capacity limits.** The original Wave-1 lanes
+  failed or timed out; later native subagent continuation produced WATCH
+  findings that this revision integrates. Any future clean approval should
+  cite the continuation evidence, not the original lead-emulated score alone.
 
 ---
 
 ---
 
-## 20. Definition of Done
+## 20. Requirements Traceability Matrix
+
+> One row per P1 / P2 / P3 finding plus the cross-cutting RR-18 row. Format per template lines 288-294.
+
+| Requirement | Source | Implementation phase | Work package | Acceptance criterion | Test coverage | Status |
+|---|---|---|---|---|---|---|
+| Component Delete persists server-side (archive) | F-01, F-06 ([17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md)); decision Q6 | Phase 1 | Task 1.1 | Delete → refresh → not visible; Restore → refresh → visible | Vitest `sidebar-archive.spec.tsx`; Playwright `e2e/sidebar-archive-restore.spec.ts`; RPC contract `rpc-archive.spec.ts` | Open |
+| Component Edit persists server-side | F-03, F-05; decision Q4 | Phase 1 | Task 1.2 | Edit price → refresh → new price persists; variants preserved | Vitest `sidebar-edit-modal.spec.tsx`; Playwright `e2e/sidebar-edit-persists.spec.ts` | Open |
+| Component Duplicate persists server-side | F-03; decision Q5 | Phase 1 | Task 1.3 | Duplicate → modal pre-fill + "(copy)" → save → new row persists | Vitest `sidebar-duplicate.spec.tsx`; Playwright `e2e/sidebar-duplicate-persists.spec.ts` | Open |
+| Project-source search race guarded | F-04; decision Q16 | Phase 1 | Task 1.6 | Stale responses dropped silently; latest query wins | Vitest `sidebar-search-race.spec.tsx`; Playwright `e2e/sidebar-search-race.spec.ts` | Open |
+| Template Groups affordance removed | F-10; decision Q14 | Phase 1 | Task 1.5 | "New Template Group" button gone; existing local-only groups removed without data loss | Vitest `sidebar-template-groups.spec.tsx` | Open |
+| "Live source" / "Read-through source" chips replaced | F-11; decision Q15 | Phase 1 | Task 1.4 | Chips say "Snapshot copy"; insert toast matches new copy | Vitest `sidebar-snapshot-chip.spec.tsx`; Playwright `e2e/sidebar-snapshot-toast.spec.ts` | Open |
+| Telemetry and bundle-budget prerequisites verified | RR-21; Track 4/5 in [30-HANDOFF.md](./30-HANDOFF.md) | Phase 1 | Task 1.0 | Telemetry table/schema, allow-list, dashboard destination, alerting fallback, and bundle-budget enforcement path are decided before event wiring | Vitest `sidebar-telemetry.spec.tsx`; migration/file audit; optional `check-bundle-budget` script | Open |
+| Project tab renamed to "Project Components" | F-02; decision Q2 | Phase 2 | Task 2.1 | Tab label reads "Project Components"; no internal id change | Vitest `sidebar-tab-label.spec.tsx` | Open |
+| Folder Delete available in sidebar | F-09; decision Q10 | Phase 2 | Task 2.2 | Delete folder via sidebar context menu; refresh confirms | Vitest `sidebar-folder-delete.spec.tsx` | Open |
+| Panel collapse state persists | F-12 (partial); decision Q25 | Phase 2 | Task 2.4 | Collapse → refresh → still collapsed | Vitest `sidebar-collapse-persist.spec.tsx` | Open |
+| UX state matrix gaps closed for touched surfaces | [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md) | Phase 2 | Task 2.5 | Empty/error/permission/partial-success/stale-preview states are implemented or explicitly deferred with owner | Vitest `sidebar-ux-states.spec.tsx`; manual copy review | Open |
+| Below-1024px fallback message present | F-12 mobile; RR-12 | Phase 2 | Task 2.6 | At <1024px the sidebar does not disappear silently; users see a desktop-width fallback message | Vitest `sidebar-mobile-fallback.spec.tsx` or Playwright mobile viewport spec | Open |
+| WCAG 2.2 hit targets met on sidebar | [12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Hit targets" | Phase 3 | Task 3.1 | All interactive elements ≥24×24px; axe scan = 0 violations | Playwright + axe `e2e/sidebar-a11y-hit-targets.spec.ts` | Open |
+| Sidebar images use `thumbnailPath` | [14-PERFORMANCE-AUDIT.md](./14-PERFORMANCE-AUDIT.md); F-15-related | Phase 3 | Task 3.2 | Network panel shows thumbnail-sized responses | Playwright `e2e/sidebar-thumbnail-usage.spec.ts` | Open |
+| Giant reducer extracted into tab-scoped hooks | F-13 | Phase 3 | Task 3.3 | React DevTools profiler shows tab-scoped re-renders; React Doctor clean | Characterization vitest suite remains green throughout | Open |
+| Hover prefetch deduped | F-15; decision Q16 | Phase 3 | Task 3.4 | Hovering same source N times → ≤1 prefetch RPC | Playwright `e2e/sidebar-hover-prefetch-dedup.spec.ts` | Open |
+| Folder-rename focus race fixed | F-14 | Phase 3 | Task 3.5 | Right-click → Rename → input focused within 1 frame | Playwright `e2e/sidebar-rename-focus.spec.ts` | Open |
+| Remaining P3 a11y gaps closed | [12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) | Phase 3 | Task 3.6 | Contrast/high-contrast, Escape preview close, `aria-controls`, landmark cleanup, and IME Enter handling verified | Playwright `e2e/sidebar-a11y-misc.spec.ts`; manual VoiceOver smoke | Open |
+| Mobile sidebar drawer (below 1024px) | F-12 (mobile); decision Q24 | Phase 4 (future) | Task 4.1 | Drawer opens at <lg viewport | Playwright mobile-viewport spec | Deferred (RR-12) |
+| Favorites / recents multi-device sync | F-07; decision Q8 | Deferred | (none) | (none) | (none) | Accepted (RR-09) |
+| Custom tree ordering multi-device sync | F-08; decision Q9 | Deferred | (none) | (none) | (none) | Accepted (RR-10) |
+| RLS live proof captured for sidebar tables/policies | RR-18 ([22-RISK-REGISTER.md](./22-RISK-REGISTER.md)); [27-THREAT-MODEL.md](./27-THREAT-MODEL.md); continuation backend review | Cross-cutting | Track 2 in [30-HANDOFF.md](./30-HANDOFF.md) | Migration-file review covers the relevant table families and buckets; live `pg_class.relrowsecurity` / policy probe confirms deployed state | Migration audit; live SQL probe | Repo evidence found; live provider proof Open — blocks public launch |
+| External image referrer suppressed on sidebar image loads | [27-THREAT-MODEL.md](./27-THREAT-MODEL.md); continuation backend review | Cross-cutting security | Track 3 in [30-HANDOFF.md](./30-HANDOFF.md) | Remote sidebar/library preview images load with `referrerPolicy="no-referrer"` or equivalent wrapper; source-preview links keep `rel="noreferrer"` | Static/component check; focused DOM render test if isolated | Open — public-launch security gate |
+| Phase 1 telemetry wired | RR-21; [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) | Cross-cutting (with Phase 1) | Task 1.0 + per Task 1.1-1.7 | All 14 safe events emitted at the right lifecycle points, including failure and dropped-search paths | Dashboard review post-deploy; telemetry tests | Open |
+| Honesty-transition explainer copy shipped | RR-17; [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md); AC-1 in [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md) | Phase 1 | Task 1.7 | First interaction after Phase 1 shows copy that states server persistence and restore/reversibility without implying preference sync | Vitest `sidebar-honesty-explainer.spec.tsx`; Philip copy sign-off | Open |
+| Phase 1 feature flag wired | RR-19; [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) | Cross-cutting (with Phase 1) | All Phase 1 tasks | Flag OFF + redeploy → legacy behavior returns; flag ON → new behavior | Code review; env-var audit | Open |
+
+---
+
+---
+
+## 21. Definition of Done
 
 > Eight sub-sections per template lines 297-305. Each criterion is binary
 > and maps to a source doc (findings, risks, or acceptance proofs). The
 > plan is "done" when every criterion in every sub-section is satisfied
 > or explicitly waived with a documented reason.
 
-### 20.1 Functional completion
+### 21.1 Functional completion
 
 - [ ] All P1 findings closed: F-01, F-03, F-04, F-05, F-06, F-10, F-11 (per [17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md) summary table)
 - [ ] All P2 findings in scope for Phase 2 / 3 closed: F-02, F-09, F-12 (persistence portion), F-13, F-14 (per [17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md))
 - [ ] All P3 findings closed: F-15 (per [17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md))
 - [ ] F-07, F-08 (device-local favorites / ordering) explicitly accepted per RR-09 / RR-10 — documented in release notes
-- [ ] F-12 mobile portion explicitly deferred to Phase 4 per RR-12
+- [ ] F-12 mobile drawer explicitly deferred to Phase 4 per RR-12; below-1024 fallback message shipped in Phase 2 Task 2.6
 - [ ] All 12 UX acceptance proofs in §6.7 captured with both test artifact AND real-surface artifact
 
-### 20.2 Technical completion
+### 21.2 Technical completion
 
 - [ ] `bun run type-check` exits 0
 - [ ] `bun run lint` exits 0
@@ -2836,7 +3136,7 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
 - [ ] Feature flag `NEXT_PUBLIC_SIDEBAR_PERSISTENCE_HONESTY_V1` is wired and toggleable
 - [ ] `git diff --check` clean (no whitespace errors)
 
-### 20.3 UX completion
+### 21.3 UX completion
 
 - [ ] Delete → refresh → item not visible; Restore → refresh → item visible (F-01/F-06, Phase 1 Task 1.1)
 - [ ] Edit via modal persists; refresh confirms (F-03/F-05, Phase 1 Tasks 1.2)
@@ -2848,40 +3148,49 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
 - [ ] Folder delete available in sidebar context menu (F-09, Phase 2 Task 2.2)
 - [ ] Panel collapse state persists across refresh (F-12 partial, Phase 2 Task 2.4)
 - [ ] All `N/S — gap` items in [25-UX-STATE-MATRIX.md](./25-UX-STATE-MATRIX.md) for surfaces touched by Phase 1/2 are closed
+- [ ] Read-only role affordance matrix is implemented: viewers/commenters can browse/preview/search but cannot see or execute CRUD/insert controls without `can_edit_estimate`
+- [ ] Below-1024 fallback message is present and tested; no blank hidden-sidebar state
+- [ ] Honesty-transition explainer copy from Task 1.7 is implemented, reviewed, and tested
 - [ ] Copy review by Philip sign-off on toast text and chip text
 
-### 20.4 Security completion
+### 21.4 Security completion
 
-- [ ] RR-18 (RLS verification) is Closed OR explicitly waived with documented reason
+- [ ] RR-18 live provider probe is Closed OR explicitly waived with documented reason
 - [ ] Every server action in Phase 1 task scope enforces `is_workspace_editor` or `can_edit_estimate` RPC guard (per [15-SECURITY-AND-INTEGRITY-AUDIT.md](./15-SECURITY-AND-INTEGRITY-AUDIT.md))
 - [ ] No new client-trust assumptions (e.g., server re-validates every workspace_id / item_id)
-- [ ] Upload routes unchanged unless Phase 1 explicitly touches them (it should not)
+- [ ] Upload routes unchanged unless deploy-time verification finds a missing server-side control
+- [ ] External-image referrer leakage patched or explicitly waived before public launch
 - [ ] No new secrets, env vars, or credentials introduced
 - [ ] [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) "Highest-priority open threats" reviewed and either closed or carried forward with explicit owner
 
-### 20.5 Performance completion
+### 21.5 Performance completion
 
 - [ ] Sidebar bundle size within budget: ≤60 KB sidebar chunk per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md)
 - [ ] AddComponentModal chunk ≤30 KB per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md)
+- [ ] Bundle-budget enforcement is either automated by a `check-bundle-budget` path or Track 4 remains an explicit release-readiness WATCH item
 - [ ] Archive RPC P95 latency within budget per [26-PERFORMANCE-BUDGET.md](./26-PERFORMANCE-BUDGET.md)
 - [ ] Search response identity guard (Phase 1 Task 1.6) does not introduce measurable overhead
 - [ ] Hover prefetch dedup (Phase 3 Task 3.4) reduces prefetch RPC count by ≥90% on rapid hover
 - [ ] Phase 3 Task 3.3 (reducer extraction) shows no render-count regression in React DevTools profiler
 - [ ] No new network waterfalls on sidebar first-load (per current-state.md library-perf baseline)
 
-### 20.6 Testing completion
+### 21.6 Testing completion
 
-- [ ] Vitest jsdom specs added for every Phase 1 task (1.1-1.6) — listed in §12 work packages
+- [ ] Vitest jsdom specs added for every Phase 1 task (1.1-1.7) — listed in §12 work packages
 - [ ] Playwright E2E specs added for: archive-restore, edit-persists, duplicate-persists, snapshot-toast, search-race (Phase 1)
 - [ ] axe scan in Playwright returns zero target-size violations on the sidebar (Phase 3 Task 3.1)
+- [ ] Bounding-box assertions prove interactive targets are at least 24x24; axe alone is not sufficient for this claim
+- [ ] `e2e/sidebar-a11y-misc.spec.ts` or equivalent covers Escape-to-close preview, tab `aria-controls`, landmark cleanup, contrast/high-contrast, and IME Enter behavior
 - [ ] RPC contract tests cover every server action invoked by Phase 1 (archive, lifecycle, create, update)
 - [ ] Characterization tests (vitest) pin behavior of the giant reducer BEFORE Phase 3 Task 3.3 refactor; remain green throughout
-- [ ] Focused vitest matrix green (full suite may hang per FAST PATH note in [current-state.md](../../.ai/10_state/current-state.md); use targeted matrices)
+- [ ] Focused vitest matrix green (full suite may hang per FAST PATH note in [current-state.md](../../10_state/current-state.md); use targeted matrices)
 - [ ] Playwright E2E suite green for sidebar specs
 - [ ] All test artifacts captured and stored in the plan pack or referenced from the implementation PR
 
-### 20.7 Operational completion
+### 21.7 Operational completion
 
+- [ ] Task 1.0 complete: telemetry schema/storage verified or migration created; `recordLibraryEvent` allow-list checked; dashboard destination or fallback named; bundle-budget path decided
+- [ ] Failure-path telemetry verified for archive/edit/restore/dropped-search without raw query/name/path leakage
 - [ ] Phase 1 telemetry events from [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) wired:
   - [ ] `sidebar_persistence_honesty_v1_archive_invoked`
   - [ ] `sidebar_persistence_honesty_v1_archive_succeeded`
@@ -2889,18 +3198,25 @@ Wire every local-only CRUD action to its existing RPC; route Edit through `AddCo
   - [ ] `sidebar_persistence_honesty_v1_restore_invoked`
   - [ ] `sidebar_persistence_honesty_v1_restore_succeeded`
   - [ ] `sidebar_persistence_honesty_v1_edit_via_modal_opened`
+  - [ ] `sidebar_persistence_honesty_v1_edit_via_modal_saved`
+  - [ ] `sidebar_persistence_honesty_v1_edit_via_modal_failed`
   - [ ] `sidebar_persistence_honesty_v1_duplicate_via_modal_opened`
+  - [ ] `sidebar_persistence_honesty_v1_duplicate_via_modal_saved`
+  - [ ] `sidebar_persistence_honesty_v1_search_request`
+  - [ ] `sidebar_persistence_honesty_v1_search_response_applied`
+  - [ ] `sidebar_persistence_honesty_v1_search_response_dropped`
+  - [ ] `sidebar_persistence_honesty_v1_template_group_affordance_removed`
 - [ ] `library_telemetry_events` table exists (migration check per [30-HANDOFF.md](./30-HANDOFF.md) Track 5) — create under DB-autonomy mandate if missing
 - [ ] Dashboard panels from [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) § Dashboards built
 - [ ] Alerts from [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) configured:
-  - [ ] Archive RPC error rate > 1%
-  - [ ] Restore RPC error rate > 1%
-  - [ ] Edit-via-modal open rate drops > 50% from baseline (regression signal)
-  - [ ] Phase 1 feature flag rollout stalls (stuck at < 10% of sessions)
+  - [ ] Archive RPC failure rate > 5% for 10 minutes (optional preview warning >1%)
+  - [ ] Edit RPC failure rate > 5% for 10 minutes
+  - [ ] Restore success rate < 90%
+  - [ ] Telemetry ingestion lag or missing events beyond the agreed dashboard cadence
 - [ ] Rollback procedure from [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) rehearsed once on a preview environment
 - [ ] 48-hour post-deploy hold observed per [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md)
 
-### 20.8 Documentation completion
+### 21.8 Documentation completion
 
 - [ ] [00-README.md](./00-README.md) artifact index updated to reference this canonical IMPLEMENTATION_PLAN.md
 - [ ] [17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md) finding rows updated with Phase / Task / Status once each closes
@@ -2920,37 +3236,6 @@ The plan is **not done** if any P1 criterion is unchecked without waiver.
 
 ---
 
-## 21. Requirements Traceability Matrix
-
-> One row per P1 / P2 / P3 finding plus the cross-cutting RR-18 row. Format per template lines 288-294.
-
-| Requirement | Source | Implementation phase | Work package | Acceptance criterion | Test coverage | Status |
-|---|---|---|---|---|---|---|
-| Component Delete persists server-side (archive) | F-01, F-06 ([17-PRIORITIZED-FINDINGS.md](./17-PRIORITIZED-FINDINGS.md)); decision Q6 | Phase 1 | Task 1.1 | Delete → refresh → not visible; Restore → refresh → visible | Vitest `sidebar-archive.spec.tsx`; Playwright `e2e/sidebar-archive-restore.spec.ts`; RPC contract `rpc-archive.spec.ts` | Open |
-| Component Edit persists server-side | F-03, F-05; decision Q4 | Phase 1 | Task 1.2 | Edit price → refresh → new price persists; variants preserved | Vitest `sidebar-edit-modal.spec.tsx`; Playwright `e2e/sidebar-edit-persists.spec.ts` | Open |
-| Component Duplicate persists server-side | F-03; decision Q5 | Phase 1 | Task 1.3 | Duplicate → modal pre-fill + "(copy)" → save → new row persists | Vitest `sidebar-duplicate.spec.tsx`; Playwright `e2e/sidebar-duplicate-persists.spec.ts` | Open |
-| Project-source search race guarded | F-04; decision Q16 | Phase 1 | Task 1.6 | Stale responses dropped silently; latest query wins | Vitest `sidebar-search-race.spec.tsx`; Playwright `e2e/sidebar-search-race.spec.ts` | Open |
-| Template Groups affordance removed | F-10; decision Q14 | Phase 1 | Task 1.5 | "New Template Group" button gone; existing local-only groups removed without data loss | Vitest `sidebar-template-groups.spec.tsx` | Open |
-| "Live source" / "Read-through source" chips replaced | F-11; decision Q15 | Phase 1 | Task 1.4 | Chips say "Snapshot copy"; insert toast matches new copy | Vitest `sidebar-snapshot-chip.spec.tsx`; Playwright `e2e/sidebar-snapshot-toast.spec.ts` | Open |
-| Project tab renamed to "Project Components" | F-02; decision Q2 | Phase 2 | Task 2.1 | Tab label reads "Project Components"; no internal id change | Vitest `sidebar-tab-label.spec.tsx` | Open |
-| Folder Delete available in sidebar | F-09; decision Q10 | Phase 2 | Task 2.2 | Delete folder via sidebar context menu; refresh confirms | Vitest `sidebar-folder-delete.spec.tsx` | Open |
-| Panel collapse state persists | F-12 (partial); decision Q25 | Phase 2 | Task 2.4 | Collapse → refresh → still collapsed | Vitest `sidebar-collapse-persist.spec.tsx` | Open |
-| WCAG 2.2 hit targets met on sidebar | [12-UX-UI-ACCESSIBILITY-AUDIT.md](./12-UX-UI-ACCESSIBILITY-AUDIT.md) "Hit targets" | Phase 3 | Task 3.1 | All interactive elements ≥24×24px; axe scan = 0 violations | Playwright + axe `e2e/sidebar-a11y-hit-targets.spec.ts` | Open |
-| Sidebar images use `thumbnailPath` | [14-PERFORMANCE-AUDIT.md](./14-PERFORMANCE-AUDIT.md); F-15-related | Phase 3 | Task 3.2 | Network panel shows thumbnail-sized responses | Playwright `e2e/sidebar-thumbnail-usage.spec.ts` | Open |
-| Giant reducer extracted into tab-scoped hooks | F-13 | Phase 3 | Task 3.3 | React DevTools profiler shows tab-scoped re-renders; React Doctor clean | Characterization vitest suite remains green throughout | Open |
-| Hover prefetch deduped | F-15; decision Q16 | Phase 3 | Task 3.4 | Hovering same source N times → ≤1 prefetch RPC | Playwright `e2e/sidebar-hover-prefetch-dedup.spec.ts` | Open |
-| Folder-rename focus race fixed | F-14 | Phase 3 | Task 3.5 | Right-click → Rename → input focused within 1 frame | Playwright `e2e/sidebar-rename-focus.spec.ts` | Open |
-| Mobile sidebar drawer (below 1024px) | F-12 (mobile); decision Q24 | Phase 4 (future) | Task 4.1 | Drawer opens at <lg viewport | Playwright mobile-viewport spec | Deferred (RR-12) |
-| Favorites / recents multi-device sync | F-07; decision Q8 | Deferred | (none) | (none) | (none) | Accepted (RR-09) |
-| Custom tree ordering multi-device sync | F-08; decision Q9 | Deferred | (none) | (none) | (none) | Accepted (RR-10) |
-| RLS verified on 8 sidebar tables | RR-18 ([22-RISK-REGISTER.md](./22-RISK-REGISTER.md)); [27-THREAT-MODEL.md](./27-THREAT-MODEL.md) | Cross-cutting | Track 2 in [30-HANDOFF.md](./30-HANDOFF.md) | `rg "ENABLE ROW LEVEL SECURITY" supabase/migrations/` covers all 8 tables; `pg_class.relrowsecurity` probe confirms | Migration audit; SQL probe | Open — blocks public launch |
-| Phase 1 telemetry wired | RR-21; [24-OBSERVABILITY-PLAN.md](./24-OBSERVABILITY-PLAN.md) | Cross-cutting (with Phase 1) | Per Task 1.1-1.6 | All 7 events emitted at the right lifecycle points | Dashboard review post-deploy | Open |
-| Phase 1 feature flag wired | RR-19; [23-ROLLOUT-AND-ROLLBACK-PLAN.md](./23-ROLLOUT-AND-ROLLBACK-PLAN.md) | Cross-cutting (with Phase 1) | All Phase 1 tasks | Flag OFF → legacy behavior returns; flag ON → new behavior | Code review; env-var audit | Open |
-
----
-
----
-
 ## 22. Open Decisions
 
 > Pull from [20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md](./20-OPEN-QUESTIONS-AND-DECISION-LEDGER.md) and [30-HANDOFF.md](./30-HANDOFF.md) "Open decisions that need Philip". Format per template lines 307-312.
@@ -2967,10 +3252,9 @@ The plan is **not done** if any P1 criterion is unchecked without waiver.
 | Q9: Custom tree ordering browser-local vs workspace-persisted | (a) Browser-local (current); (b) persist `sort_order` at component level | **(a) Browser-local for now** | Reorders don't sync across devices | Philip | NO — accepted per RR-10 |
 | Q15: Project sources snapshot vs live links | (a) Snapshots (current RPC); (b) realtime sync | **(a) Snapshots** | Live sync requires realtime infra out of scope | Philip | NO — current is correct |
 | Q23: Area vs Group canonical term | (a) Area (current P6 model); (b) Group (legacy); (c) Node | **(a) Area** | Legacy "group" copy remains until migrated | Philip | NO — UX cleanup is future |
-| Q24: Sidebar access below 1024px | (a) Not now (current); (b) Phase 4 drawer | **(a) Not now** | Tablet/mobile unsupported | Philip | NO — accepted per RR-12 |
+| Q24: Sidebar access below 1024px | (a) Not now (current); (b) Phase 4 drawer | **(a) Not now for a drawer; Phase 2 adds fallback message** | Tablet/mobile unsupported beyond fallback | Philip | NO for drawer; YES for fallback copy |
 | Q30: Legacy `NewComponentForm` delete vs keep | (a) Delete (Phase 1 Task 1.2); (b) Keep as fallback | **(a) Delete** | Local-only F-03/F-05 stays if kept | Eng | YES — Phase 1 dependency |
 | Telemetry table migration (`library_telemetry_events`) | (a) Create under DB-autonomy mandate if missing; (b) Verify exists first | **(a) Verify, then create if missing** | Phase 1 telemetry cannot ship without the table | Eng | YES — Phase 1 operational dependency |
-| RR-18 RLS verification timing | (a) Before Phase 1 ship; (b) Before public launch | **(b) Before public launch** per [30-HANDOFF.md](./30-HANDOFF.md) Track 2 | Cross-workspace leakage risk until verified | Backend | YES for public launch; NO for Phase 1 preview ship |
+| RR-18 live RLS proof timing | (a) Before Phase 1 ship; (b) Before public launch | **(b) Before public launch** per [30-HANDOFF.md](./30-HANDOFF.md) Track 2 | Cross-workspace leakage risk if deployed policies drift from migrations | Backend | YES for public launch; NO for Phase 1 preview ship |
 
 ---
-

@@ -98,7 +98,7 @@ Added by the `Improve-Plan-Prompt.md` audit pass to close Phase 3 gaps (risk reg
 | [29-AUDIT-REPORT.md](./29-AUDIT-REPORT.md) | Narrative report: inventory, findings, revisions, traceability, readiness |
 | [30-HANDOFF.md](./30-HANDOFF.md) | Open work + verification gaps for a future agent (6 tracks: independent verification, RLS check, upload-route hardening, perf-budget CI, observability wiring, UX gap closure) |
 
-### Create-Implementation-Prompt pass additions (3 docs, 2026-06-25)
+### Create-Implementation-Prompt pass additions (4 artifacts, 2026-06-25)
 
 Added by the `Create-Implementation-Prompt.md` pass to produce the canonical 22-section plan the template mandates and verify it:
 
@@ -106,8 +106,8 @@ Added by the `Create-Implementation-Prompt.md` pass to produce the canonical 22-
 | --- | --- |
 | [GOAL.md](./GOAL.md) | Master `/goal` for the pass: outcome, scope, workstreams, acceptance, deliverables |
 | [LOOP_LEDGER.md](./LOOP_LEDGER.md) | Append-only lane coordination log for the multi-agent pass |
-| **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** | **Canonical 22-section implementation plan** (template-mandated filename per template line 113-115). Expands the existing `18-IMPLEMENTATION-PLAN.md` stub; doc 18 is preserved as historical artifact. 175KB / 2,976 lines / 22 sections. |
-| [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md) | Lead-authored Pass 2 (adversarial) + Pass 3 (verifier) + 8-dimension scorecard. Score: **90.5/100** (prior pass: 83.2). Closes Track 1 of `30-HANDOFF.md` via lead-emulation per template line 70 fallback; a fresh-session agent should run Track 1 again for truly independent verification. |
+| **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** | **Canonical 22-section implementation plan** (template-mandated filename per template line 113-115). Expands the existing `18-IMPLEMENTATION-PLAN.md` stub; doc 18 is preserved as historical artifact. 22 sections. |
+| [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md) | Original lead-authored Pass 2 (adversarial) + Pass 3 (verifier) + later native-subagent continuation findings. The original score was **90.5/100**; continuation review downgraded several areas to WATCH, and fresh adversarial/verifier passes also returned WATCH with concrete patch items. |
 
 ## Routing note (for /lfg pipeline consumers)
 
@@ -123,9 +123,12 @@ The implementation plan (doc 18) defines the phased code work that a future sess
 The [Create-Implementation-Prompt pass](./IMPLEMENTATION_PLAN.md) produced
 the canonical 22-section plan that template
 `.ai/08_prompts/000_Planning Prompts/Create-Implementation-Prompt.md`
-mandates. It expands doc 18 (the 96-line stub) into a 175KB / 2,976-line
-/ 22-section authoritative plan a codebase AI can execute without
+mandates. It expands doc 18 (the 96-line stub) into a 22-section
+authoritative plan a codebase AI can execute without
 reinterpreting feature intent. Score: **90.5 / 100** per
-[31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md).
-Implementation-ready: **YES, conditional on 7 items** listed in that
-doc's Verdict section.
+[31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md) before
+the continuation fixes. Current status: **WATCH after fresh adversarial
+and verifier review**; the R1/R2 patch items have been reconciled in the
+canonical plan and ledger, but clean APPROVE was not re-run in this pass and
+the global worktree still contains unrelated app-code diffs outside this
+plan pack.

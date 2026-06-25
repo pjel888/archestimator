@@ -48,12 +48,12 @@ an adversarial reviewer, and an independent verifier. Lane assignments:
 
 | Lane | Specialist | Template sections owned |
 |---|---|---|
-| L1 | Source & Requirements Analyst | §2 Source References, §3 Scope, §18 Pros/Cons, §19 SWOT, §21 Requirements Traceability, §22 Open Decisions |
+| L1 | Source & Requirements Analyst | §2 Source References, §3 Scope, §18 Pros/Cons, §19 SWOT, §20 Requirements Traceability, §22 Open Decisions |
 | L2 | Architecture & Tech Lead | §4 Current-State Analysis, §7 Technical Architecture, §13 File-Level Change Map |
 | L3 | UX/UI/A11y Designer | §6 UX and Interface Plan |
 | L4 | Backend + DB + Security Lead | §8 Data and Database Plan, §9 Security and Privacy, §11 Blast-Radius Analysis |
 | L5 | Performance + Testing + Deployment Lead | §10 Performance and Reliability, §14 Testing Strategy, §15 Deployment and Rollout, §16 Observability and Operations |
-| L6 | Risk & Phased Implementation Lead | §12 Phased Implementation, §17 Risk Register, §20 Definition of Done |
+| L6 | Risk & Phased Implementation Lead | §12 Phased Implementation, §17 Risk Register, §21 Definition of Done |
 | Lead | Sisyphus (this orchestrator) | §1 Executive Summary, §5 Target-State Design (synthesis) |
 | R1 | Adversarial Reviewer | Challenge plan completeness, traceability, technical/operational risks |
 | R2 | Independent Verifier | Implementation-readiness verification pass |
