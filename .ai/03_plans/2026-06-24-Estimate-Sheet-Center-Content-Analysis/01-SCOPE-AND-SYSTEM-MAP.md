@@ -3,7 +3,7 @@
 ## Branch / commit / status
 
 - **Branch:** `main`
-- **Commit:** `9daa70d4f1ddfd2500bc28357cb8e6a07839d194`
+- **Commit:** `1166b16f6bda9a5ff0d01defd2f8fe922fc8ed79`
 - **Working tree:** 7 unrelated modified files (landing/dashboard/projects page UI — none touching the audited surfaces); one untracked sibling audit dir `2026-06-24-Estimate-Sheet-Right-Sidebar-Analysis/`. Clean audit boundary.
 - **Package manager:** `bun`
 - **Scripts:** `bun run test` (tests/unit), `bun run test:dom` (tests/vitest), `bun run type-check`, `bun run lint`, `bun run build`, `bun run validate` (full gate), `bun run dev`.

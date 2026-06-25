@@ -86,7 +86,7 @@
 
 **ESC-P3-20:** `/` requires sheet focus; Cmd/Ctrl+K does not. Inconsistent.
 
-**ESC hypothesis H22:** Cmd/Ctrl+K may open while typing in an input. Code at l. 2663: `if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !hasBlockingDialog)` — does NOT check `isTypingTarget`. **CONFIRMED** — Cmd+K opens even mid-input. This is intentional (Cmd+K is a global shortcut in most apps) but the `/` shortcut's typing-guard creates an inconsistency.
+**ESC hypothesis H22:** Cmd/Ctrl+K may open while typing in an input. Re-read on 2026-06-25: the handler around l. 2655-2679 checks both `isTypingTarget` and `hasBlockingDialog` before handling Cmd/Ctrl+K and `/`. **REFUTED** — shortcut handling is guarded while typing.
 
 ## Screen reader semantics
 

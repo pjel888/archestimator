@@ -16,11 +16,11 @@
 
 | Mutation | Hook (`use-estimate-row-mutations.ts`) | Server action | RPC | Optimistic onMutate | Cache patch onSuccess | Rollback onError | Idempotent (mutationId) | Atomic |
 |----------|----------------------------------------|---------------|-----|---------------------|----------------------|------------------|------------------------|--------|
-| Insert row | `insertMutation` (l. 303-341) | `insertEstimateRowItemFromLibrary` | `insert_estimate_row_item_from_library` | None (optimistic done by caller's setEstimateTree) | `patchEstimateRowItemInTree` with canonical result | caller's rollback | YES (mutationId passed) | YES |
-| Replace row | `replaceMutation` (l. 343-362) | `replaceEstimateRowItemWithLibrary` | `replace_estimate_row_item_with_library` | None (caller's setEstimateTree) | same | same | YES | YES |
-| Delete row | `deleteMutation` (l. 364-367) | `deleteEstimateRowItem` | `delete_estimate_row_item` | None (caller's setEstimateTree) | none (caller already removed) | caller's rollback | YES | YES |
-| Update row | `updateMutation` (l. 450-507) | `updateEstimateRowItem` | `update_estimate_row_item` | YES — optimistic patch via `patchEstimateRowItemInTree` + operation-id tracking | `toServerRowPatch(result, input)` | `previousPatch` from onMutate | YES | YES |
-| Detach row | `detachMutation` (l. 369-418) | `detachEstimateRowItemFromLibrary` | `detach_estimate_row_item_from_library` | YES — optimistic `source: 'project', sourceLibraryItemId: null, linkState: 'detached'` | `toDetachedRowPatch(result)` | `previousPatch` | YES | YES |
+| Insert row | `insertMutation` (l. 303-341) | `insertEstimateRowItemFromLibrary` | `insert_estimate_row_item_with_history` | None (optimistic done by caller's setEstimateTree) | `patchEstimateRowItemInTree` with canonical result | caller's rollback | YES (mutationId passed) | YES |
+| Replace row | `replaceMutation` (l. 343-362) | `replaceEstimateRowItemWithLibrary` | `replace_estimate_row_item_with_history` | None (caller's setEstimateTree) | same | same | YES | YES |
+| Delete row | `deleteMutation` (l. 364-367) | `deleteEstimateRowItem` | `delete_estimate_row_item_with_history` | None (caller's setEstimateTree) | none (caller already removed) | caller's rollback | YES | YES |
+| Update row | `updateMutation` (l. 450-507) | `updateEstimateRowItem` | `update_estimate_row_item_with_history` | YES — optimistic patch via `patchEstimateRowItemInTree` + operation-id tracking | `toServerRowPatch(result, input)` | `previousPatch` from onMutate | YES | YES |
+| Detach row | `detachMutation` (l. 369-418) | `detachEstimateRowItemFromLibrary` | `unlink_estimate_row_item_from_library_with_history` | YES — optimistic `source: 'project', sourceLibraryItemId: null, linkState: 'detached'` | `toDetachedRowPatch(result)` | `previousPatch` | YES | YES |
 | Promote row | `promoteMutation` (l. 420-448) | `promoteEstimateRowToLibraryComponent` | `promote_estimate_row_to_library_component` | None (caller's setEstimateTree) | `toPromotedRowPatch(result)` | caller's rollback | YES | YES |
 
 **Server action authz (all in `src/lib/estimates/actions.ts`):**
@@ -30,7 +30,7 @@
 - `getCurrentWorkspaceProject(projectId)` (l. 747-749) — RLS check that project belongs to caller's workspace.
 
 **Transaction boundaries:**
-- Each row-level RPC (`update_estimate_row_item`, etc.) is a single Postgres function that updates the row + writes the `estimate_sheet_events` entry in one transaction. **Atomic at the row level.**
+- Each row-level RPC (`update_estimate_row_item_with_history`, etc.) is a single Postgres function that updates the row + writes the `estimate_sheet_events` entry in one transaction. **Atomic at the row level.**
 - Template insert RPCs return the full refreshed tree.
 - Project source insert: `insert_estimate_subtree_into_estimate_with_history` is one RPC = one transaction for the whole subtree.
 

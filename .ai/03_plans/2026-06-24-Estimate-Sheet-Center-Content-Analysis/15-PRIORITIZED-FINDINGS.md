@@ -1,6 +1,6 @@
 # 15 — Prioritized Findings
 
-Branch `main` @ `9daa70d4f1ddfd2500bc28357cb8e6a07839d194`. Every claim cites a real file:line read during this audit (audit-only pass — no production code modified).
+Branch `main` @ `1166b16f6bda9a5ff0d01defd2f8fe922fc8ed79`. Every claim cites a real file:line read during this audit (audit-only pass — no production code modified).
 
 Severity rubric (from §15 of the spec):
 - **P0** — data loss, cross-scope mutation, structural corruption, security breach, critical workflow unusable
@@ -43,12 +43,12 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
 - **Actual behavior:** Partial persistence; one row's replace persists while the other's rollback fires (or doesn't, if its call succeeded).
 - **Expected behavior:** Move is atomic — either both rows reflect the move in the DB, or neither does.
 - **Root cause:** No atomic server-side "move component" RPC; client orchestrates two independent mutations with two independent rollbacks.
-- **Recommended correction:** Introduce one server RPC `move_estimate_row_component(p_target_row_id, p_source_row_id, p_library_item, p_expected_target_revision, p_expected_source_revision, p_mutation_id, p_correlation_id)` that, in a single Postgres transaction, (a) updates the target row's component snapshot, (b) clears the source row's component, (c) writes one `estimate_sheet_events` entry of type `row_moved`, and returns both canonical rows. The client replaces both rows from the single response. Rollback is one tree revision restore. See `16-IMPLEMENTATION-PLAN.md` Phase 1 task M-1.
+- **Recommended correction:** Introduce one server RPC `move_estimate_row_component(p_target_row_id, p_source_row_id, p_target_replacement_item, p_expected_target_revision, p_expected_source_revision, p_mutation_id, p_correlation_id)` that, in a single Postgres transaction, (a) updates the target row from a fully constructed replacement item that preserves target-row editable values, (b) clears the source row's component, (c) writes one `estimate_sheet_events` entry of type `row_moved`, and returns both canonical rows. Both expected revisions must match or the RPC aborts atomically. The client replaces both rows from the single response. Rollback is one tree revision restore. See `16-IMPLEMENTATION-PLAN.md` Phase 1 task M-1.
 - **Alternatives considered:**
   - Client-side compensating transaction (on target-success-while-source-fails, fire a "restore source" update). Rejected: requires reasoning about whether the source's failure was retryable, and the user may have already edited the row.
   - Disabling the move affordance entirely. Rejected: removes a useful workflow.
 - **Dependencies:** Requires one new RPC + migration + client rewrite of `moveRowComponent`. Server-action `moveEstimateRowItem` already exists in `src/lib/domain/estimate-mutations.ts` (referenced by `useMoveEstimateRowItem` in `use-estimate-query.ts:173-189`) but the center sheet does not call it; either repurpose that path or add a new combined replace+clear RPC.
-- **Migration requirements:** New RPC, optional new event type `row_moved` (or reuse `row_replaced` twice with a shared `correlation_id`).
+- **Migration requirements:** New RPC and `row_moved` event consumer support. `estimate_sheet_events.event_type` is `text`, so no enum migration is required; update activity-history filters, labels, and component-detail rendering.
 - **Regression risks:** Existing drag-replace tests in `tests/vitest/estimate-sheet-cost-inputs.test.tsx:722-741, 743-757, 759-776` must be updated to assert atomicity.
 - **Required tests:**
   - `tests/vitest/estimate-sheet-move-component-atomicity.test.tsx` — four scenarios: both succeed, target fails, source fails, both fail. Assert DB-equivalent state (tree) after each.
@@ -57,12 +57,14 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
 
 ---
 
+## P1 findings
+
 ### ESC-P0-02 — Project Source insertion replaces the entire visible tree with a server response that can silently overwrite newer optimistic structural changes
 
 - **Feature area:** Templates & Project Source insertion
 - **Classification:** DATA-INTEGRITY RISK / RACE-CONDITION RISK
-- **Severity:** **P0**
-- **Confidence:** High
+- **Severity:** **P1** (re-rated 2026-06-25; historical ID retained)
+- **Confidence:** Medium-High
 - **Verification status:** HIGH-RISK IMPLEMENTATION
 - **User journey:** Drop a reusable project tab/area onto the center sheet; immediately (within the RPC round-trip) add a blank row, rename a node, or drop a template.
 - **User impact:** The newer edit can be silently overwritten in the visible tree when the project-source RPC resolves. The newer edit is still in flight to the server (its own mutation queue), so when it resolves it patches a row that is no longer in the tree → `patchEstimateRowItemInTree` silently no-ops (returns `tree` unchanged) and the edit is lost from the UI. A refresh resurrects the canonical DB state, but the user's *visible* state diverges from what they typed.
@@ -107,9 +109,7 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
   - Existing test `estimate-sheet-cost-inputs.test.tsx` should be extended to cover project-source insertion paths (currently no coverage).
 - **complexity:** S (one file, ~15 LOC + 1 test).
 
----
-
-## P1 findings
+> **Severity decision (2026-06-25):** Downgraded from P0 to P1 because the described failure is a visible-tree divergence while the database can remain correct and self-heal on refetch. It still blocks launch because it can make users believe work disappeared.
 
 ### ESC-P1-03 — Bulk row delete is non-transactional; partial failure leaves the user in an unrecoverable state
 
@@ -135,14 +135,14 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
   - `src/hooks/use-estimate-row-mutations.ts:364-367, 530-539, 559` — `deleteMutation` runs in a per-row queue; no batching.
 - **Reproduction:** trivial — mock `deleteEstimateRowItem` to fail once out of 3 calls and run the bulk delete path.
 - **Actual behavior:** N independent deletes; first failure does not stop the others.
-- **Expected behavior:** Either all-or-nothing (one RPC `delete_estimate_rows_bulk`) or partial-with-clear-UI ("2 of 5 deleted; 3 failed: [row names]").
+- **Expected behavior:** All-or-nothing (one RPC `delete_estimate_row_items_bulk`) with a structured atomic failure that states nothing was deleted.
 - **Root cause:** Bulk delete reuses the single-row path; no batched RPC.
-- **Recommended correction:** Add `deleteEstimateRowItemsBulk(projectId, estimateId, rowIds[], expectedRevisions[], correlationId)` server action that calls a single `delete_estimate_row_items_bulk` RPC inside a Postgres transaction. Client: on success, reconcile from the returned tree; on partial, return `{ deletedIds, failedIds, failures: [{rowId, code, message}] }` and render a post-toast showing which rows failed. See Phase 1 task M-3.
+- **Recommended correction:** Add `deleteEstimateRowItemsBulk(projectId, estimateId, rowIds[], expectedRevisions[], correlationId)` server action that calls a single `delete_estimate_row_items_bulk` RPC inside a Postgres transaction. Client: on success, reconcile from the returned tree; on failure, restore the previous tree and show "Couldn't delete selected rows. Nothing was deleted." with the failed row/revision where available. See Phase 1 task M-3.
 - **Alternatives considered:**
   - Client-side "stop on first failure". Rejected: slow for large selections and still not atomic.
 - **Required tests:**
-  - `tests/vitest/estimate-sheet-bulk-delete-atomicity.test.tsx` — 3 rows, one fails with 409; assert tree state and toast content.
-  - `tests/vitest/estimate-sheet-bulk-delete-mixed-revisions.test.tsx` — one row was edited elsewhere; assert the rest still delete.
+  - `tests/vitest/estimate-sheet-bulk-delete-atomicity.test.tsx` — 3 rows, one fails with 409; assert no rows are deleted and toast content states all-or-nothing behavior.
+  - `tests/vitest/estimate-sheet-bulk-delete-mixed-revisions.test.tsx` — one row was edited elsewhere; assert the whole batch aborts and selection/error copy remains recoverable.
 - **complexity:** L (RPC + migration + client rewrite + tests).
 
 ---
@@ -248,10 +248,57 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
   - Server actions reject via `assertCanEditEstimate` (`src/lib/estimates/actions.ts:414-418`), so the DB is safe.
 - **Actual behavior:** Optimistic mutation succeeds visually, server rejects, rollback fires, toast appears. Confusing.
 - **Expected behavior:** Read-only users see either no mutation affordances OR visibly-disabled ones with a tooltip explaining why.
-- **Recommended correction:** Wrap each row action button in a `disabled={!canEditEstimate}` prop, and gate the drop handlers (`handleDrop` in row-table.tsx l. 650-656; `handleReplacementDrop` in cells.tsx l. 413-430; drop zones in drop-zones.tsx) on `canEditEstimate`. Add an `aria-disabled` pattern. See Phase 4 task M-5.
+- **Recommended correction:** Wrap each row action button in a `disabled={!canEditEstimate}` prop, gate drag source creation (`cells.tsx:432-436`), and gate the drop handlers (`handleDrop` in row-table.tsx l. 650-656; `handleReplacementDrop` in cells.tsx l. 413-430; drop zones in drop-zones.tsx) on `canEditEstimate`. Add an `aria-disabled` pattern. See Phase 1 task M-5.
 - **Required tests:**
   - `tests/vitest/estimate-sheet-readonly-mode.test.tsx` — render with `canEditEstimate=false`; assert no row-mutation control is clickable.
 - **complexity:** M.
+
+---
+
+### ESC-P1-08 — Virtualized table accessibility gaps are not formalized as a WCAG 2.2 AA work package
+
+- **Feature area:** Accessibility / Virtualized table
+- **Classification:** ACCESSIBILITY DEFECT / VALIDATION GAP
+- **Severity:** **P1**
+- **Confidence:** Medium
+- **Verification status:** STATIC RISK; runtime screen-reader proof pending.
+- **User journey:** Keyboard or screen-reader user navigates the center sheet while virtualization, row save status, errors, and inserted-row focus are active.
+- **User impact:** Header associations, row position, save/error announcements, and focus restoration can be unclear or absent.
+- **Exact evidence:** `10-UX-UI-ACCESSIBILITY-AUDIT.md:110-119` lists missing `aria-rowindex`, `aria-colindex`, `<th scope="col">`, per-row live status, and per-row error `role="alert"` coverage. `17-VALIDATION-PLAN.md` calls for a11y validation but no single finding carried that work package.
+- **Recommended correction:** Treat M-15/M-16/M-17/M-10 as one WCAG 2.2 AA acceptance bundle: semantic headers/indexes, per-row save/error live regions, reduced motion, and deterministic focus after CRUD/rollback.
+- **Required tests:** `tests/vitest/estimate-sheet-a11y-row-semantics.test.tsx`, `tests/vitest/estimate-sheet-row-save-status-a11y.test.tsx`, plus manual NVDA/VoiceOver checklist before release.
+- **complexity:** M.
+
+---
+
+### ESC-P1-09 — Direct `archestimator:add-library-item` custom event accepts unvalidated client detail
+
+- **Feature area:** Sidebar bridge / Client event validation
+- **Classification:** INPUT-VALIDATION GAP
+- **Severity:** **P1**
+- **Confidence:** Medium
+- **Verification status:** STATIC RISK; server authz/source checks still protect persistence.
+- **User journey:** Any in-page script dispatches `new CustomEvent("archestimator:add-library-item", { detail })` with malformed or oversized row detail.
+- **User impact:** Invalid detail can trigger failed insert attempts, confusing user feedback, or telemetry blind spots. The server rejects unsafe persistence, but the center sheet should reject malformed client detail before starting the workflow.
+- **Exact evidence:** H39 reads `EstimateSheetContent.tsx:2681-2688` as taking `event.detail` as `EstimateRowItem` without runtime validation; the drag/drop paths had the same shape-validation gap.
+- **Recommended correction:** Route the custom-event detail through the same `readLibraryItemDragPayload`/shape validator from M-6, reject invalid payloads before opening trust gates or mutating local state, and emit `custom_library_item_event_rejected` telemetry without logging raw payloads.
+- **Required tests:** `tests/vitest/estimate-sheet-custom-library-event-validation.test.tsx` — malformed detail, missing source id, oversized payload, and valid item.
+- **complexity:** S.
+
+---
+
+### ESC-P2-26 — Raw JSON.parse on library-item drag MIME in three call sites
+
+- **Feature area:** Drag/drop payload validation
+- **Classification:** RELIABILITY / INPUT-VALIDATION GAP
+- **Severity:** **P1** (re-rated 2026-06-25; historical ID retained from `13`)
+- **Confidence:** High
+- **Verification status:** VERIFIED DEFECT
+- **Exact evidence:** `13-SECURITY-AND-DATA-INTEGRITY-AUDIT.md:87-93`; `drop-zones.tsx:117`, `row-table.tsx:654`, `cells.tsx:429`.
+- **User impact:** Malformed payloads can throw during a drag interaction; tampered payloads force validation deeper in the workflow instead of being rejected at the boundary.
+- **Recommended correction:** Introduce `readLibraryItemDragPayload(raw)` with try/catch, payload size cap, and shape validation; share it across all drag and custom-event insertion paths; record malformed attempts through the Phase 0 telemetry sink.
+- **Required tests:** `tests/vitest/estimate-sheet-library-drag-payload-reader.test.tsx` — malformed JSON, oversized payload, wrong source scope, and valid library row.
+- **complexity:** S.
 
 ---
 
@@ -433,8 +480,11 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
 - Evidence: l. 1644-1651.
 - Complexity: M to memoize per-node-id.
 
-### ESC-P3-22 — `recordExpressComponentEvent` and `recordLibraryEvent` `console.warn` in non-test environments (l. 30 of `express-components-telemetry.ts`); this is noisy in production console and has no sampling.
-- Complexity: S to wire to a real sink (Sentry/Clarity).
+### ESC-P3-22 — Center-sheet telemetry is console-only for beta workflows; no production decision/error sink
+- **Severity:** **P2** (re-rated 2026-06-25; historical ID retained).
+- Evidence: `recordExpressComponentEvent` and `recordLibraryEvent` `console.warn` in non-test environments (l. 30 of `express-components-telemetry.ts`); Phase 0 success signals need a real sink for M-1/M-2/M-3/M-4/M-6 outcomes.
+- Fix: wire center-sheet integrity, malformed-payload, and beta workflow events to the chosen production telemetry sink with payload redaction and sampling.
+- Complexity: S/M depending on sink.
 
 ### ESC-P3-23 — Activity history fetch fires on every scope/filter change without debouncing; rapid clicks spam the server.
 - Evidence: `EstimateSheetContent.tsx:2033-2071` — effect deps include `activityFilterKey` and `inspectorScopeKey`.
@@ -453,12 +503,15 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
 | ID | Severity | Title | Confidence | Complexity |
 |----|----------|-------|------------|------------|
 | ESC-P0-01 | P0 | Move component = two non-atomic writes | High | L |
-| ESC-P0-02 | P0 | Project-source insert overwrites newer optimistic changes | High | S |
+| ESC-P0-02 | P1 | Project-source insert overwrites newer optimistic changes | Medium-High | S |
 | ESC-P1-03 | P1 | Bulk delete non-transactional | High | L |
 | ESC-P1-04 | P1 | Global save toast hides per-row failures | High | M |
-| ESC-P1-05 | P1 | Trust-gate modal holds stale target | Med-High | M |
+| ESC-P1-05 | P1 | Trust-gate modal holds stale target | Medium-High | M |
 | ESC-P1-06 | P1 | Virtualization cliff when express editor active | High | M |
 | ESC-P1-07 | P1 | Read-only users see mutation controls | High | M |
+| ESC-P1-08 | P1 | Virtualized-table a11y work package missing | Medium | M |
+| ESC-P1-09 | P1 | Custom library-item event accepts unvalidated detail | Medium | S |
+| ESC-P2-26 | P1 | Library-item drag payload validation gap | High | S |
 | ESC-P2-08 | P2 | Clear vs Delete row icons indistinct | High | S |
 | ESC-P2-09 | P2 | Material-cell drop stopPropagation fragile | Medium | S |
 | ESC-P2-10 | P2 | dragCount underflow on cancelled drags | High | S |
@@ -467,23 +520,24 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
 | ESC-P2-13 | P2 | "Group" label over-promises (no headers) | High | S |
 | ESC-P2-14 | P2 | 3,550-line orchestrator | High | XL |
 | ESC-P2-15 | P2 | Inserted-row focus 5-frame budget | High | M |
-| ESC-P3-16..25 | P3 | (10 minor polish items) | High | S/M each |
+| ESC-P3-22 | P2 | Center-sheet telemetry has no production sink | Medium | S/M |
+| ESC-P3-16..25 except 22 | P3 | (9 minor polish items) | High | S/M each |
 
-**Counts: P0=2, P1=5, P2=8, P3=10. Total findings: 25.**
+**Counts: P0=1, P1=9, P2=9, P3=9. Total findings: 28.** Historical IDs are retained when severity was re-rated.
 
 ---
 
 ## Ten most consequential risks (ordered)
 
 1. **ESC-P0-01** — move-component partial failure (silent data corruption).
-2. **ESC-P0-02** — project-source insert can silently drop newer optimistic edits.
+2. **ESC-P0-02** — project-source insert can silently drop newer optimistic edits from the visible tree (P1).
 3. **ESC-P1-03** — bulk delete non-atomic; partial persistence without recovery UX.
 4. **ESC-P1-04** — save toast misleads; users miss failures and re-edit.
 5. **ESC-P1-07** — read-only UX is hostile (controls look enabled, fail at server).
 6. **ESC-P1-05** — trust-gate modal commits to stale target.
-7. **ESC-P2-08** — clear-vs-delete confusion (adjacent identical icons).
-8. **ESC-P2-14** — 3,550-line orchestrator blocks future maintenance.
-9. **ESC-P1-06** — virtualization cliff for large areas + inline editor.
+7. **ESC-P2-26** — malformed/tampered library-item drag payloads are not rejected at the boundary.
+8. **ESC-P1-06** — virtualization cliff for large areas + inline editor.
+9. **ESC-P2-08** — clear-vs-delete confusion (adjacent identical icons).
 10. **ESC-P2-12** — silent bulk-selection pruning on search.
 
 ## Highest-risk partial-failure scenario
@@ -508,11 +562,71 @@ Complexity: **S** ≤ 1 file / < 50 LOC, **M** 1–3 files / 50–250 LOC, **L**
 
 ## Recommended first implementation phase
 
-**Phase 1 — Data-integrity and partial-failure corrections** (see `16-IMPLEMENTATION-PLAN.md`):
+**Phase 0/1 — Decision contracts, telemetry, and data-integrity corrections** (see `16-IMPLEMENTATION-PLAN.md`):
+- M-0: lock decision contracts and telemetry sink before Phase 1 code.
 - M-1: atomic move-component RPC (ESC-P0-01).
-- M-2: revision-gate project-source insert (ESC-P0-02).
-- M-3: transactional bulk-delete RPC + partial-failure UX (ESC-P1-03).
+- M-2: revision-gate project-source insert (ESC-P0-02, severity P1).
+- M-3: transactional all-or-nothing bulk-delete RPC + atomic-failure UX (ESC-P1-03).
 - M-4: trust-gate stale-target guard (ESC-P1-05).
 - M-5: read-only UX gating across every row control (ESC-P1-07).
 
-This phase closes every P0 and the two highest-impact P1s without touching UI styling or decomposition.
+This sequence closes the true P0 and the highest-impact P1s without touching broad UI styling or post-launch decomposition.
+
+---
+
+## Appendix — Audit Hypotheses (spec §28)
+
+The 40 hypotheses are classified VERIFIED / REFUTED / PARTIALLY TRUE / UNABLE TO VERIFY per the spec. Each cites the ESC-Pn-XX finding where the substance is proven, or the file:line where the verdict is read directly from code.
+
+| # | Hypothesis (abbreviated) | Verdict | Evidence |
+|---|---|---|---|
+| H1 | Library-item drop handlers parse JSON without sufficient malformed-payload protection. | **VERIFIED** | `drop-zones.tsx:117`, `row-table.tsx:654`, `cells.tsx:429` — all three call `JSON.parse(payload) as EstimateRowItem` with **no try/catch**. The component/template/project-source readers (`readEstimateComponentDragPayload`, `readEstimateTemplateDragPayload`, `readProjectSourceDragPayload`) DO wrap in try/catch. |
+| H2 | A malformed drop can throw inside a user interaction. | **VERIFIED** | Consequence of H1 — an uncaught `JSON.parse` throw inside `handleDrop` propagates up to React's event boundary. No production error boundary is wrapped around the sheet. |
+| H3 | Table-level append and material-cell replacement drop targets can compete. | **PARTIALLY TRUE** | `cells.tsx handleReplacementDrop` (l. 413-430) calls `event.stopPropagation()` only inside its handled branches (library-item, estimate-component). A drop with an UNRECOGNIZED MIME does NOT stopPropagation → bubbles to the row-table root `handleDrop` (row-table.tsx:650) → triggers an append. For recognized payloads the two targets are isolated; for future payload kinds the contract is fragile. |
+| H4 | Right-sidebar success feedback can occur when only a trust-review modal has opened. | **VERIFIED** | `insertLibraryItem` (EstimateSheetContent.tsx:2395-2415) returns `true` synchronously after `setPendingLibraryCommitGate(...)` at l. 2407. The right-sidebar consumer treats this return as success and updates recents. See Q18 in `18-OPEN-QUESTIONS-AND-DECISION-LEDGER.md`. |
+| H5 | Recents can update before insertion is confirmed. | **VERIFIED** | Consequence of H4 — recents are updated by the sidebar on the `true` return, before the modal is confirmed or the server persists. |
+| H6 | Component movement between rows uses two independent persisted mutations. | **VERIFIED** | `moveRowComponent` (l. 2967-3039) calls `replaceRow(...)` twice (l. 3020, 3029). Queues are per-row (`enqueueRowMutation` keyed by `rowId`). See **ESC-P0-01**. |
+| H7 | Component movement can partially succeed. | **VERIFIED** | Each `replaceRow` rolls back ONLY its own row on error. See **ESC-P0-01**. |
+| H8 | Bulk row deletion is not transactional. | **VERIFIED** | `deleteSelectedRows` (l. 3067-3070) is a `forEach` over `bulkSelectedRowIds` calling `deleteRowItem` N times. No batch RPC. Confirmed by `tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx`. See **ESC-P1-03**. |
+| H9 | Bulk selection clears before all deletes settle. | **VERIFIED** | `setBulkSelectedRowIds(new Set())` (l. 3069) runs synchronously after the `forEach` fires (but before the async deletes resolve). |
+| H10 | A global save toast can obscure which row failed. | **VERIFIED** | `toast({ id: "estimate-row-save", ... })` (l. 1312) uses one fixed id; overlapping transitions replace each other. See **ESC-P1-04**. |
+| H11 | A "Saved" state can be misleading during overlapping row mutations. | **VERIFIED** | `markSaved` decrements `activeMutationCount`; the "Saved" toast fires only when count reaches 0. But the toast text is generic ("Saved.") regardless of which row succeeded. See **ESC-P1-04**. |
+| H12 | Local tree, editable rows, query cache, and server data can diverge. | **PARTIALLY TRUE** | Three guards (revision counter, `skipEditableRowsSyncRef`, per-row `operationId`) largely prevent divergence for single-row ops. But project-source insert (ESC-P0-02) and bulk delete can cause UI↔DB divergence. |
+| H13 | A Project Source insertion can replace the full visible tree. | **VERIFIED** | `setEstimateTree(() => result.tree)` (l. 2553). See **ESC-P0-02**. |
+| H14 | Applying a full server tree can overwrite newer local edits. | **VERIFIED** | The `skipEditableRowsSyncRef` bump (l. 2549, INS-4) only blocks the editable-rows collection effect — it does NOT block newer optimistic `setEstimateTree` calls from being overwritten by the wholesale tree replacement. See **ESC-P0-02**. |
+| H15 | Template insertion responses can be ignored when a later revision exists. | **REFUTED (working)** | Template insertion is revision-gated intentionally: `if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree)` (l. 2453, 2496, 2606). Dropping stale responses is the desired behavior. |
+| H16 | Ignored Template responses can leave optimistic IDs unreconciled. | **REFUTED (working)** | The same gate prevents stale template responses from overwriting newer local state; unresolved project-source behavior is covered by H13/H14 and ESC-P0-02. |
+| H17 | Newly inserted-row focus can fail under virtualization or slow rendering. | **PARTIALLY TRUE** | `requestPendingRowFocus` (l. 2149-2181) has a 5-frame budget. Under heavy React work or smooth-scroll latency the row may not mount in time; focus silently falls to body. |
+| H18 | Row virtualization disables completely while an inline editor is active. | **VERIFIED** | row-table.tsx l. 545: `hasActiveExpressEditor = activeExpressRowId !== null && items.some(item => item.id === activeExpressRowId)`; l. 546: `virtualEnabled = Boolean(!hasActiveExpressEditor && ...)`. See **ESC-P1-06**. |
+| H19 | Branch virtualization can mismeasure changing drag/drop layouts. | **UNABLE TO VERIFY** | The `branchVirtualizer.measureElement` pattern (virtual-branch-list.tsx:143) is correct in principle. Runtime measurement under mid-drag drop-zone appearance was not benchmarked. |
+| H20 | Search and facets silently remove hidden rows from bulk selection. | **VERIFIED** | The effect at l. 1716-1729 prunes `bulkSelectedRowIds` against `visibleSheetRowIds` without an aria-live announcement. See **ESC-P2-12**. |
+| H21 | "Group" currently reorders rows without visible group headers. | **VERIFIED** | `reorderEstimateSheetNodeRows` (l. 1029-1052) only reorders `estimateRowItems`; it does not insert group-header rows. See **ESC-P2-13**. |
+| H22 | Ctrl/Cmd+K may open while typing in an input. | **REFUTED** | The handler at l. 2655-2679 explicitly checks `isTypingTarget` (INPUT/TEXTAREA/SELECT/contentEditable) AND `hasBlockingDialog`. Both Ctrl/Cmd+K and `/` are blocked while typing. |
+| H23 | Read-only users may still see row mutation controls. | **VERIFIED** | `cells.tsx` (delete, replace, promote, make-Project buttons), `row-table.tsx` (delete-row, open-details, open-activity buttons), and the inline express editor are NOT gated on `canEditEstimate`. Only tab lifecycle actions and the "New tab" button check it. See **ESC-P1-07**. |
+| H24 | Delete Component and Delete Row are too easy to confuse. | **VERIFIED** | Both buttons use `Trash` Phosphor icon + `text-tertiary hover:bg-red-50 hover:text-red-700`. Only the aria-label differs. See **ESC-P2-08**. |
+| H25 | Clearing a Component may retain or discard row-level values inconsistently. | **PARTIALLY TRUE** | `clearRowComponent` (l. 2832-2881): for express components, calls `updateRow` zeroing material/description/supplier/unit/unitCost and clearing `sourceSnapshot` + `metadata.expressComponent` (the row's identity is reset). For non-express (linked Library) rows, calls `replaceRowItem` with `createBlankEstimateRowTemplate()` BUT preserves `applyEditableValuesToLibraryItem(blank, previousEditableRow)` — so quantity/adjustment/misc survive. Behavior is intentional but the user-facing label ("Delete component") doesn't communicate the difference. |
+| H26 | Express insert retry is idempotent only if mutation identity is preserved correctly. | **VERIFIED** | `retryExpressDraft` (l. 2300-2328) reuses `draft.mutationId` (l. 2323). Server-side dedup must honor `mutationId`/`correlation_id`. The retry path passes the SAME `mutationId` to `insertRow` (l. 2322). Server dedup behavior verified in `lib/estimates/actions.ts:342-344 getMutationCorrelationId`. |
+| H27 | Deleting a failed draft cannot guarantee the server did not eventually create it. | **VERIFIED** | `deleteExpressDraft` (l. 2330-2343) only mutates local state (`setEstimateTree`, `setEditableRows`, `setExpressInsertDrafts`). If the original `insertRow` is still in flight server-side and eventually succeeds, an orphan row will exist in the DB that the UI knows nothing about. No server-side cancellation. |
+| H28 | Project Component projection refresh can trigger avoidable Library refetching. | **PARTIALLY TRUE** | `refetchProjectComponentProjection` (l. 1571-1578) invalidates `workspaceComponentLibraryQueryKey` + `workspaceComponentRowsLibraryQueryKey` with `refetchType: "active"`. This is correct after promote/detach (which change library state) but is also called after every `commitRowItemUpdate` success (l. 2242) — even for plain row edits that don't change projection. |
+| H29 | Totals are recomputed more frequently than necessary. | **PARTIALLY TRUE** | `computeNodeTotals(estimateTree, editableRows)` (l. 1759) recurses the entire tree on every `editableRows` change (a per-keystroke event). `computeNodeTotal` is called recursively inside the memo. Per-node memoization could reduce this to O(log N) per keystroke. |
+| H30 | Screen-reader table semantics degrade when virtualization is active. | **UNABLE TO VERIFY at runtime** | Static DOM analysis shows risk (`<tbody>` becomes `position: relative; block` with absolutely-positioned `<tr>` at row-table.tsx:732-733), but no NVDA/VoiceOver/axe runtime proof was executed. Covered by ESC-P1-08. |
+| H31 | HTML5 drag-and-drop lacks an equivalent keyboard workflow for replacement and movement. | **VERIFIED** | The Command Palette (`Ctrl/Cmd+K`) only handles insertion (`insertIntoSelectedNode`); there is no keyboard path for replace or move. See Q14 in `18-OPEN-QUESTIONS-AND-DECISION-LEDGER.md`. |
+| H32 | Column-width persistence is browser-local and may carry last-used widths between estimates. | **VERIFIED** | `estimate-column-widths-store.ts:65-78` `hydrateEstimateColumnWidths`: when no per-estimate widths are stored, falls back to `lastUsedWidths`. So user's last-used widths bleed into a fresh estimate's initial render. See **ESC-P2-11**. |
+| H33 | Search/filter/group state is lost on tab change or remount without a clear policy. | **PARTIALLY TRUE** | `sheetSearchQuery`, `sheetFacets`, `sheetGroupMode` are component reducer state — lost on unmount, NOT scoped per tab. `collapsedNodeIdsByScope` IS per-tab (Zustand). Collapse state survives remount but not refresh. See Q21, Q22 in `18-OPEN-QUESTIONS-AND-DECISION-LEDGER.md`. |
+| H34 | Initial tree truncation can hide data while still allowing mutations and totals that appear complete. | **PARTIALLY TRUE** | A truncation warning banner IS shown (l. 3394-3398): "This sheet view loaded the first N nodes and M rows. Proposal exports use separate full-data limits." But totals are still computed from the truncated tree and presented without a "partial" qualifier. Mutations work on the visible (truncated) subset. |
+| H35 | Proposal preview can contain local editable values that are not yet persisted. | **VERIFIED** | `buildProposalPreview` (l. 1946-1959) calls `materializeEditableEstimateTree(estimateTree, editableRows)` — local drafts flow into the preview. The downloaded workbook uses server-persisted rows, so preview and download can disagree. See **ESC-P3-18**. |
+| H36 | Collaboration cursors provide awareness but no conflict protection. | **VERIFIED** | `useEstimateCursorCollaboration` only renders markers; no edit lock, no presence-flag block. Two users can edit the same row; the second save hits `EstimateRowRevisionConflictError`. See `12-ACTIVITY-DETAILS-EXPORT-AND-COLLABORATION-AUDIT.md`. |
+| H37 | Row reorder is intentionally absent, but users may still expect it. | **VERIFIED** | Material cell `draggable` only fires `ESTIMATE_COMPONENT_DRAG_MIME_TYPE` (cells.tsx:432-436) — there is no row-position-reorder drag. The selection-checkbox column comment (row-table.tsx:286) explicitly says "row reorder isn't implemented". See Q11 in decisions. |
+| H38 | Non-default-tab mutation coverage is incomplete. | **UNABLE TO VERIFY** | Tests use single-tab fixtures; no test asserts that a mutation on Tab B patches Tab B's cache (not Tab A's). The query-key scoping (`estimateQueryKeys.tabTree(estimateId, tabId)`) is correct by inspection, but no integration test verifies cross-tab cache isolation. |
+| H39 | Direct event-based insertion accepts insufficiently validated client details. | **PARTIALLY TRUE** | `archestimator:add-library-item` handler (l. 2681-2688) takes `event.detail` as `EstimateRowItem` without runtime validation. `cloneLibraryItemForEstimate` (l. 470-487) trusts the payload. Server-side `insertEstimateRowItemFromLibrary` does validate via `getCurrentWorkspaceProject` + `assertCanEditEstimate` + `assertCurrentLibrarySourceForEstimateCommit`, so the worst case is a denial (not corruption). |
+| H40 | Success feedback is not consistently tied to server-confirmed persistence. | **VERIFIED** | Three paths confirm this: (a) `insertLibraryItem` returns `true` before server persists (H4); (b) toast `id: "estimate-row-save"` fires "Saved" on mutation-hook success but the user-perceived "saved" can be overwritten by a later failure (ESC-P1-04); (c) recents update on the synchronous `true` return (H5). |
+
+**Summary:**
+- **VERIFIED:** 25 (H1, H2, H4-H14, H18, H20-H21, H23-H24, H26-H27, H31-H32, H35-H37, H40)
+- **PARTIALLY TRUE:** 9 (H3, H12, H17, H25, H28, H29, H33, H34, H39)
+- **REFUTED:** 3 (H15, H16, H22)
+- **UNABLE TO VERIFY:** 3 (H19, H30, H38)
+
+**Notable refutation:** H22 (Ctrl/Cmd+K opening while typing) is correctly guarded by both `isTypingTarget` and `hasBlockingDialog` checks at l. 2655-2679. The shortcut only fires when the sheet has focus and no input is active.
+
+**Notable "PARTIALLY TRUE" nuance:** H34 (truncation) — a warning IS shown, contradicting "can hide data while still allowing mutations and totals that appear complete" in the strict sense. Totals are partial but the banner communicates this. Marked PARTIALLY TRUE because the totals themselves don't carry a "(partial)" qualifier in their display.

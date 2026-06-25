@@ -6,7 +6,7 @@
 
 | Field | Type | Purpose | Canonical source |
 |-------|------|---------|------------------|
-| `id` | string | Row identity. Client-generated UUID for optimistic inserts (l. 453-468 `EstimateSheetContent.tsx`); server preserves via `insert_estimate_row_item_from_library` RPC. | Server `estimate_row_items.id` |
+| `id` | string | Row identity. Client-generated UUID for optimistic inserts (l. 453-468 `EstimateSheetContent.tsx`); server preserves via `insert_estimate_row_item_with_history` RPC. | Server `estimate_row_items.id` |
 | `material` | string | Component name shown in card. Edited inline for express/blank rows only. | `estimate_row_items.material` |
 | `source` | `"project" \| "supplier" \| "library"` | Coarse provenance. | `estimate_row_items.source` |
 | `sourceLibraryItemId` | string \| null | Library link id. Null = unlinked/detached. | `estimate_row_items.source_library_item_id` |
@@ -103,17 +103,17 @@ Strings (not numbers) so the user can type intermediate states (empty, leading z
 
 | Action | Optimistic UI change | `editableRows` change | Tree cache change | Server action | RPC | History event | Rollback | Atomic | Survives refresh |
 |--------|----------------------|----------------------|-------------------|---------------|-----|---------------|----------|--------|------------------|
-| Add blank row | Row appended (l. 2351-2377) | New entry from `getInitialEditableRow` | Optimistic insert via `setEstimateTree` | `insertEstimateRowItemFromLibrary` | `insert_estimate_row_item_from_library` | `row_blank_added` or `row_added` | `restoreEstimateState` (full tree) | YES (single RPC) | YES |
+| Add blank row | Row appended (l. 2351-2377) | New entry from `getInitialEditableRow` | Optimistic insert via `setEstimateTree` | `insertEstimateRowItemFromLibrary` | `insert_estimate_row_item_with_history` | `row_blank_added` or `row_added` | `restoreEstimateState` (full tree) | YES (single RPC) | YES |
 | Add library component | Same as blank | Same | Same | Same | Same | `row_added` | Same | YES | YES |
 | Drop library onto Area strip | Same | Same | Same | Same | Same | `row_added` | Same | YES | YES |
-| Drop library onto material cell | Replace row inline (l. 2724-2762) | Reset to initial (l. 2745-2750) | Patched via `setEstimateTree` | `replaceEstimateRowItemWithLibrary` | `replace_estimate_row_item_with_library` | `row_replaced` | `restoreEstimateState` | YES | YES |
-| Edit quantity | Cell text updates | `setEditableRows` | None until blur | `updateEstimateRowItem` (on blur) | `update_estimate_row_item` | `row_updated` | `restoreEstimateState` (full tree) | YES (single field) | YES (after blur) |
+| Drop library onto material cell | Replace row inline (l. 2724-2762) | Reset to initial (l. 2745-2750) | Patched via `setEstimateTree` | `replaceEstimateRowItemWithLibrary` | `replace_estimate_row_item_with_history` | `row_replaced` | `restoreEstimateState` | YES | YES |
+| Edit quantity | Cell text updates | `setEditableRows` | None until blur | `updateEstimateRowItem` (on blur) | `update_estimate_row_item_with_history` | `row_updated` | `restoreEstimateState` (full tree) | YES (single field) | YES (after blur) |
 | Edit express name inline | Cell text updates | `setEditableRows` | None until blur | `updateEstimateRowItem` | Same | `row_updated` | Same | YES | YES |
-| **Move component between rows** | **Both rows replaced (l. 2987-2992)** | **Both rows reset** | **Patch via `replaceEstimateRowItemsInTree`** | **2× `replaceEstimateRowItemWithLibrary`** | **2× `replace_estimate_row_item_with_library`** | **2× `row_replaced` (separate `correlation_id`s)** | **Per-row only — NOT atomic** | **NO (ESC-P0-01)** | **Partial on failure** |
-| Clear component (linked) | Row blanked | Reset to initial | Patched | `updateEstimateRowItem` (material cleared, sourceLibraryItemId null) | `update_estimate_row_item` | `row_updated` | `restoreEstimateState` | YES | YES |
-| Delete single row | Row removed | Entry deleted | Tree minus row | `deleteEstimateRowItem` | `delete_estimate_row_item` | `row_deleted` | `restoreEstimateRowItemAtLocation` | YES | YES |
-| **Bulk delete** | **All selected removed (l. 3067-3070)** | **All entries deleted** | **N independent tree patches** | **N× `deleteEstimateRowItem`** | **N× `delete_estimate_row_item`** | **N× `row_deleted`** | **Per-row only — NOT atomic** | **NO (ESC-P1-03)** | **Partial on failure** |
-| Make Project Component (detach) | Row source/linkState changed | Reset | Patched | `detachEstimateRowItemFromLibrary` | `detach_estimate_row_item_from_library` | `row_updated` (linkState) | `restoreEstimateState` | YES | YES |
+| **Move component between rows** | **Both rows replaced (l. 2987-2992)** | **Both rows reset** | **Patch via `replaceEstimateRowItemsInTree`** | **2× `replaceEstimateRowItemWithLibrary`** | **2× `replace_estimate_row_item_with_history`** | **2× `row_replaced` (separate `correlation_id`s)** | **Per-row only — NOT atomic** | **NO (ESC-P0-01)** | **Partial on failure** |
+| Clear component (linked) | Row blanked | Reset to initial | Patched | `updateEstimateRowItem` (material cleared, sourceLibraryItemId null) | `update_estimate_row_item_with_history` | `row_updated` | `restoreEstimateState` | YES | YES |
+| Delete single row | Row removed | Entry deleted | Tree minus row | `deleteEstimateRowItem` | `delete_estimate_row_item_with_history` | `row_deleted` | `restoreEstimateRowItemAtLocation` | YES | YES |
+| **Bulk delete** | **All selected removed (l. 3067-3070)** | **All entries deleted** | **N independent tree patches** | **N× `deleteEstimateRowItem`** | **N× `delete_estimate_row_item_with_history`** | **N× `row_deleted`** | **Per-row only — NOT atomic** | **NO (ESC-P1-03)** | **Partial on failure** |
+| Make Project Component (detach) | Row source/linkState changed | Reset | Patched | `detachEstimateRowItemFromLibrary` | `unlink_estimate_row_item_from_library_with_history` | `row_updated` (linkState) | `restoreEstimateState` | YES | YES |
 | Promote to library | Row source=library, linkState=linked-clean | Reset | Patched | `promoteEstimateRowToLibraryComponent` | `promote_estimate_row_to_library_component` | `row_updated` + library events | `restoreEstimateState` | YES | YES |
 | Insert template | Tree appended | New entries from template | Optimistic append | `insertEstimateTemplateIntoEstimate` | RPC returns full tree | `template_inserted` (with `correlation_id`) | `restoreEstimateState` | YES (single RPC) | YES |
 | Insert template node | Same | Same | Same | `insertEstimateTemplateNodeIntoEstimate` | Same | Same | Same | YES | YES |

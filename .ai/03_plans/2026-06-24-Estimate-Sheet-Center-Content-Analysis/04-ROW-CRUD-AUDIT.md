@@ -17,7 +17,7 @@ Each operation traced from first pointer/keyboard event through DB mutation and 
 5. `requestPendingRowFocus(newItem.id)` (l. 2354) — 5-frame budget.
 6. `insertRow({ ..., rollback, onSuccess, onError })` (l. 2380-2390).
 7. `useEstimateRowMutations.insertRow` → `insertMutation.mutate(withInsertMutationIdentity(input))` (l. 552). Mutation idempotent via `mutationId`.
-8. Server `insertEstimateRowItemFromLibrary` → RPC `insert_estimate_row_item_from_library`.
+8. Server `insertEstimateRowItemFromLibrary` → RPC `insert_estimate_row_item_with_history`.
 9. `onSuccess`: patches tree cache via `patchEstimateRowItemInTree` (l. 306-334) with canonical result; bumps `skipEditableRowsSyncRef`.
 10. For express: `handleExpressInsertSuccess` flushes buffered edits if any (l. 2269-2282).
 
