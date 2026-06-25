@@ -4266,6 +4266,21 @@ export type Database = {
         Args: { source_key: string; target_workspace_id: string }
         Returns: string
       }
+      library_component_rows_seed: {
+        Args: { item_limit?: number | null; target_workspace_id: string }
+        Returns: Json
+      }
+      library_templates_seed: {
+        Args: {
+          target_template_id?: string | null
+          target_workspace_id: string
+        }
+        Returns: Json
+      }
+      library_overview_summary: {
+        Args: { target_workspace_id: string }
+        Returns: Json
+      }
       execute_bulk_archive_library_components: {
         Args: {
           correlation_id?: string

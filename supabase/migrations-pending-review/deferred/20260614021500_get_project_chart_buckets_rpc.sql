@@ -147,6 +147,7 @@ as $$
   order by estimate_id, sum(total) desc, min(bucket_label);
 $$;
 
+revoke all on function public.get_project_chart_buckets(uuid[], text) from public, anon, authenticated;
 grant execute on function public.get_project_chart_buckets(uuid[], text) to authenticated;
 
 comment on function public.get_project_chart_buckets(uuid[], text) is
