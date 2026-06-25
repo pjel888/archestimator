@@ -27,11 +27,13 @@ concurrency:
 
 jobs:
   react-doctor:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      # actions/checkout v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
-      - uses: millionco/react-doctor@v2
+      # millionco/react-doctor v2
+      - uses: millionco/react-doctor@2ba03bdb569b53db728ae0731a8802291c5b6f62
         # Advisory by default: React Doctor reports findings on every PR — a
         # sticky summary comment, inline review comments, and a commit status
         # with the health score — but never fails the check, so it won't red-X
