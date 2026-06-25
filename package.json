@@ -90,7 +90,7 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "16.2.6",
+    "@next/bundle-analyzer": "16.2.9",
     "@playwright/test": "^1.60.0",
     "@storybook/addon-a11y": "10.4.6",
     "@storybook/addon-docs": "10.4.6",
@@ -104,14 +104,14 @@
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint": "^10.5.0",
+    "eslint-config-next": "16.2.9",
     "jsdom": "^29.1.1",
     "react-doctor": "^0.5.8",
     "storybook": "10.4.6",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
-    "vite": "8.0.16",
+    "vite": "8.1.0",
     "vitest": "^4.1.9"
   },
   "ignoreScripts": [
