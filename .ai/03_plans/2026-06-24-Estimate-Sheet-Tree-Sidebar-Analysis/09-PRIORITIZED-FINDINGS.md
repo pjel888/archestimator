@@ -519,8 +519,10 @@ These are **planning artifacts, not commitments**. Owners are recommended roles 
 |---|---|---|
 | P0 | 0 | — |
 | P1 | 5 | F-01, F-02, F-06, F-11, F-19 |
-| P2 | 13 | F-03, F-04, F-05, F-07, F-08, F-10, F-12, F-13, F-14, F-15, F-17, F-18, F-20, F-21 |
-| P3 | 9 | F-09, F-16, F-22, F-23, F-24, F-25, F-26, F-27 |
+| P2 | 14 | F-03, F-04, F-05, F-07, F-08, F-10, F-12, F-13, F-14, F-15, F-17, F-18, F-20, F-21 |
+| P3 | 8 | F-09, F-16, F-22, F-23, F-24, F-25, F-26, F-27 |
+
+> **Count correction (2026-06-25, Wave 3 synthesis)**: the prior revision of this table reported P2=13 and P3=9. Both were miscounts — the ID list has always enumerated 14 P2 IDs and 8 P3 IDs. Labels now match. Surfaced by `15-RISK-REGISTER.md §2`, adjudicated by `17-ADVERSARIAL-REVIEW.md (C1)` and `18-FINAL-VERIFICATION-AND-RESCORING.md`.
 
 ## Five Most Consequential Problems
 

@@ -1,6 +1,11 @@
 # 12 — Open Questions and Decisions
 
-Each open question has a recommended default with rationale. The user (Philip) should confirm or override.
+Each question now has an operative planning answer. Questions marked **Already decided** retain current behavior or the documented recommendation; dated questions use the default answer unless Philip explicitly overrides before the deadline.
+
+**Decision states**:
+- **Already decided**: the current behavior or documented recommendation is the final planning answer.
+- **Provisional planning answer**: the default is binding for implementation planning now, but Philip may still override it before the listed deadline.
+- **Final answer**: the answer after Philip explicitly decides or the override deadline passes.
 
 ## Q-01 · What node should be selected immediately after creation?
 
@@ -400,13 +405,13 @@ Each open question has a recommended default with rationale. The user (Philip) s
 | Q-24 | Presence in sidebar | NO | Current ✓ |
 | Q-25 | Same estimate in 2 tabs | Independent state | Current ✓ |
 
-**Decisions needing Philip's confirmation**: Q-06, Q-11, Q-14, Q-19, Q-20, Q-22 (any NO overrides the recommendation).
+**Decision rule applied (2026-06-25)**: Q-06, Q-11, Q-14, Q-19, Q-20, and Q-22 have provisional planning answers from the defaults in the table below unless Philip explicitly overrides by the listed deadline. These questions no longer block implementation planning.
 
 ---
 
 ## Decision Deadlines and Defaults
 
-Every open question above carries a **decision deadline** and a **default-if-no-answer**. If Philip does not confirm or override by the deadline, the default applies automatically so implementation is never blocked waiting on a single answer. Deadlines are anchored to the implementation phase each question blocks (per `10-IMPLEMENTATION-PLAN.md`); the six Philip-owned questions (Q-06, Q-11, Q-14, Q-19, Q-20, Q-22) carry defaults copied verbatim from `13-PLAN-AUDIT-AND-SCORECARD.md` §10, and the remaining questions are treated as already decided — their documented recommendation stands as the default and only continued confirmation of current behavior is needed.
+Every question above carries a **decision deadline** and a **default-if-no-answer**. The default-if-no-answer is the operative answer for implementation planning unless Philip records a different answer by the deadline; after the deadline, the provisional planning answer becomes the final answer. Deadlines are anchored to the implementation phase each question blocks (per `10-IMPLEMENTATION-PLAN.md`); the six Philip-owned questions (Q-06, Q-11, Q-14, Q-19, Q-20, Q-22) carry defaults copied verbatim from `13-PLAN-AUDIT-AND-SCORECARD.md` §10, and the remaining questions are already decided — their documented recommendation stands as the answer.
 
 | Question | Blocks phase | Deadline (YYYY-MM-DD) | Default if no answer | Rationale for default |
 |---|---|---|---|---|
@@ -428,7 +433,7 @@ Every open question above carries a **decision deadline** and a **default-if-no-
 | Q-16 | P4.1 (per-row block) | Already decided | YES, per-row pending state | Documented recommendation stands (F-15 fix scoped to Phase 4.1); not Philip-blocking. |
 | Q-17 | — (concurrency) | Already decided | Current behavior confirmed | Last-write-wins is already the behavior and matches the recommendation. |
 | Q-18 | P2 / v2 (large trees) | Already decided | Virtualize at 150+; lazy-load deferred to v2 | Documented recommendation stands; virtualization is current, lazy-load is explicitly v2. |
-| Q-19 | P6.10 (read-only mode) | 2026-07-28 | YES, hide CRUD when `canEditEstimate === false` | Verbatim from `13` §10; closes the public-share/viewer UX gap in Phase 6.10. |
+| Q-19 | P6.10 (read-only mode) | 2026-07-28 | YES, hide CRUD when `disableRouteSync === true` or `canEditEstimate === false` | Verbatim from `13` §10; closes the public-share/viewer UX gap in Phase 6.10. |
 | Q-20 | P1.5 (max depth) | 2026-06-30 | 100 | Verbatim from `13` §10; client + server validation added in Phase 1.5. |
 | Q-21 | — (v1 scope) | Already decided | Current behavior confirmed | Single-node DnD only; multi-node explicitly deferred as a v1 limitation. |
 | Q-22 | P0.7 (rename input) | 2026-06-26 | Only if max-length (200) is enforced; defer UI to post-launch | Verbatim from `13` §10; character count only ships together with a max length. |

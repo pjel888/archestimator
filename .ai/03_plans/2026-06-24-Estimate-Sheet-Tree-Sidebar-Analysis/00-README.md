@@ -8,7 +8,7 @@
 
 The Estimate Sheet Tree Sidebar is a **production-quality feature with strong foundations** in optimistic UI, TanStack Query cache management, Zustand store isolation, ARIA tree semantics, and P6 unified-node data model. It is **functionally correct for the happy path** and most failure paths.
 
-However, it carries **5 P1-severity issues** that should be resolved before launch, plus **13 P2 issues** that materially affect UX, accessibility, and data integrity. The audit identifies **27 distinct findings** with file:line evidence, reproduction steps, and concrete corrections.
+However, it carries **5 P1-severity issues** that should be resolved before launch, plus **14 P2 issues** that materially affect UX, accessibility, and data integrity. The audit identifies **27 distinct findings** with file:line evidence, reproduction steps, and concrete corrections.
 
 The most consequential risk is **F-02** (`getEstimateTreeContentSignature` over-eager reconciliation): ANY edit to ANY row item field anywhere in the tree triggers a sidebar-wide `setLocalNodes` replacement, which can clobber optimistic state mid-rename, mid-drag, or mid-create. This will surface as flaky-feeling UX once row-level editing becomes heavy.
 
@@ -45,8 +45,8 @@ The second-most-consequential risk is **F-11**: no keyboard alternative to drag-
 |---|---|---|
 | P0 (data loss / security) | 0 | — |
 | P1 (major workflow / race / a11y / security) | 5 | F-01, F-02, F-06, F-11, F-19 |
-| P2 (noticeable defect / inconsistency) | 13 | F-03, F-04, F-05, F-07, F-08, F-10, F-12, F-13, F-14, F-15, F-17, F-18, F-20, F-21 |
-| P3 (polish / minor optimization) | 9 | F-09, F-16, F-22, F-23, F-24, F-25, F-26, F-27 |
+| P2 (noticeable defect / inconsistency) | 14 | F-03, F-04, F-05, F-07, F-08, F-10, F-12, F-13, F-14, F-15, F-17, F-18, F-20, F-21 |
+| P3 (polish / minor optimization) | 8 | F-09, F-16, F-22, F-23, F-24, F-25, F-26, F-27 |
 | **TOTAL** | **27** | — |
 
 ## 5. Five Most Consequential Problems
