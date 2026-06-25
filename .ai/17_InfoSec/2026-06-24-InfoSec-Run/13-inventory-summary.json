@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-06-24T16:56:40.064Z",
+  "branch": "main",
+  "sha": "c2bef233097b7ef5bb07e4fa262b66f4bd4ef5dc",
+  "tracked_files": 8323,
+  "class_counts": {
+    "A": 1746,
+    "B": 5945,
+    "C": 632
+  },
+  "entrypoints_inventory_rows": 792,
+  "authz_matrix_rows": 586,
+  "env_file_paths_only": [
+    ".env.example"
+  ],
+  "workflow_files": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/react-doctor.yml"
+  ],
+  "config_files": [
+    ".ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-changed-files-project-source-updated-at-metadata.log",
+    ".ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-greeting-feedback-baseline-fix.log",
+    ".ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-lint-blockers-targeted.log",
+    ".ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-server-action-type-export-fix.log",
+    ".ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-storybook-plan-matrix-archive-import-fix.log",
+    ".ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-workshop-route-error-boundaries-library-template-import-fix.log",
+    ".ai/07_design/tailwind.theme.json",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-bfcache-capture-evidence-contract.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-bfcache-diagnostics-evidence-contract.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-component-library-ui-cleanup-continuation.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-library-folder-tree-dynamic-final.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-library-folder-tree-dynamic.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-peak-load-profile-harness.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-error-smoke-20260601.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-error-smoke-after-locator-fix-20260601.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-auth-final.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-auth-sidebar-position.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-hidden-overlay.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-login-link.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-real-links.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-scenario-filter.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script-settings-final-path.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-measure-script.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-route-transition-peak-load-and-measure.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-slow-3g-link-transition-evidence-contract.txt",
+    ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/eslint-workshop-route-error-boundaries.txt",
+    "bun.lock",
+    "eslint.config.mjs",
+    "next.config.ts",
+    "package.json",
+    "postcss.config.mjs",
+    "src/proxy.ts",
+    "supabase/config.toml",
+    "tsconfig.json",
+    "vercel.json"
+  ],
+  "versions": {
+    "bun": "1.3.14",
+    "node": "v26.0.0",
+    "supabase": "2.105.0"
+  }
+}
