@@ -262,7 +262,7 @@ function Hero({ isLoggedIn }: LandingPageProps) {
             </div>
           </div>
           <div className={styles.heroStage} data-landing-v3-reveal>
-            <div className={styles.heroSoftwareMockupPlaceholder} aria-hidden="true">
+            <div className={styles.heroSoftwareMockupPlaceholder} data-hero-motion="mockup" aria-hidden="true">
               <div className={styles.heroSoftwareMockupChrome}>
                 <span />
                 <span />

@@ -26,7 +26,8 @@ export function HeroMountMotion({ children, className }: HeroMountMotionProps) {
       const ctas = gsap.utils.toArray<HTMLElement>("[data-hero-motion='cta']", root);
       const illustration = root.querySelector("[data-hero-motion='illustration']");
       const cards = gsap.utils.toArray<HTMLElement>("[data-hero-motion='metric-card']", root);
-      const motionTargets = [eyebrow, title, intro, illustration, ...ctas, ...cards].filter(Boolean);
+      const mockup = root.querySelector("[data-hero-motion='mockup']");
+      const motionTargets = [eyebrow, title, intro, illustration, mockup, ...ctas, ...cards].filter(Boolean);
 
       if (prefersReducedMotion) {
         gsap.set(motionTargets, {
@@ -80,6 +81,31 @@ export function HeroMountMotion({ children, className }: HeroMountMotionProps) {
           { opacity: 1, y: 0, scale: 1, duration: 0.58, stagger: 0.075 },
           "-=0.42",
         );
+
+      if (mockup) {
+        timeline.fromTo(
+          mockup,
+          {
+            opacity: 0,
+            y: 56,
+            scale: 0.985,
+            clipPath: "inset(12% 0% 0% 0%)",
+            filter: "blur(14px) saturate(0.92)",
+            transformOrigin: "50% 82%",
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            clipPath: "inset(0% 0% 0% 0%)",
+            filter: "blur(0px) saturate(1)",
+            clearProps: "transform,filter,clipPath,transformOrigin",
+            duration: 1.04,
+            ease: "expo.out",
+          },
+          "+=0.1",
+        );
+      }
     },
     { scope: ref },
   );

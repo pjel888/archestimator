@@ -446,9 +446,9 @@
     inset 0 1px 0 rgb(255 255 255 / 0.78),
     inset 1px 0 0 rgb(255 255 255 / 0.42),
     inset -1px 0 0 rgb(255 255 255 / 0.3);
-  transform-origin: 50% 24%;
-  animation: heroSoftwareMockupMount 1100ms cubic-bezier(0.18, 0.82, 0.2, 1) 140ms both;
-  will-change: opacity, transform, filter;
+  opacity: 0;
+  transform-origin: 50% 82%;
+  will-change: opacity, transform, filter, clip-path;
 }
 
 @media (min-width: 2049px) {
@@ -521,22 +521,18 @@
   flex: 0 0 auto;
   border-radius: 999px;
   transform-origin: center;
-  animation: heroSoftwareMockupDotMount 520ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
 }
 
 .heroSoftwareMockupChrome span:nth-child(1) {
   background: #f24405;
-  animation-delay: 420ms;
 }
 
 .heroSoftwareMockupChrome span:nth-child(2) {
   background: #f2c20d;
-  animation-delay: 500ms;
 }
 
 .heroSoftwareMockupChrome span:nth-child(3) {
   background: #b5c7b8;
-  animation-delay: 580ms;
 }
 
 .heroSoftwareMockupBody {
@@ -549,8 +545,6 @@
   border-radius: var(--landing-radius-dense);
   overflow: hidden;
   background: rgb(238 240 243 / 0.96);
-  animation: heroSoftwareMockupBodyMount 940ms cubic-bezier(0.18, 0.82, 0.2, 1) 360ms both;
-  will-change: opacity, transform, clip-path;
 }
 
 .heroActualEstimateMockupViewport {
@@ -817,56 +811,6 @@
   font-size: 0.5rem;
   font-weight: 580;
   line-height: 1.2;
-}
-
-@keyframes heroSoftwareMockupMount {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 1.15rem, 0) scale(0.985);
-    filter: blur(10px) saturate(0.9);
-  }
-
-  58% {
-    opacity: 1;
-    filter: blur(0) saturate(1.08);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0) saturate(1);
-  }
-}
-
-@keyframes heroSoftwareMockupBodyMount {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 0.6rem, 0);
-    clip-path: inset(0 0 10% 0);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes heroSoftwareMockupDotMount {
-  0% {
-    opacity: 0;
-    transform: translateY(0.22rem) scale(0.68);
-  }
-
-  72% {
-    opacity: 1;
-    transform: translateY(-0.03rem) scale(1.08);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 @keyframes heroMockupRowPulse {
@@ -2367,10 +2311,18 @@
     display: none;
   }
 
-  .heroSoftwareMockupPlaceholder,
+  .heroSoftwareMockupPlaceholder {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    clip-path: none;
+    will-change: auto;
+  }
+
   .heroSoftwareMockupBody,
   .heroSoftwareMockupChrome span {
     animation: none !important;
+    will-change: auto;
   }
 
   .root *,
