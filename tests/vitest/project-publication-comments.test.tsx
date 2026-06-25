@@ -378,6 +378,30 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       );
     });
 
+    it("does not classify raw recipient-table failures as public recipient errors", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const rawDbError = 'relation "shared_link_recipients" does not exist';
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.insertSharedLinkComment.mockRejectedValue(new Error(rawDbError));
+
+      const response = await POST(
+        makeRequest(
+          { body: "This should not leak relation names." },
+          { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+        ),
+        params(),
+      );
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body).toEqual({ error: "Something went wrong. Please try again." });
+      expect(JSON.stringify(body)).not.toContain("shared_link_recipients");
+      expect(JSON.stringify(body)).not.toContain("relation");
+
+      consoleSpy.mockRestore();
+    });
+
     it("rejects a stale signed rendered-view snapshot after content-only republish", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);

@@ -134,6 +134,15 @@ function scheduleOwnerDigest(publicationId: string, token: string, kind: "commen
 }
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
+const PUBLIC_REVIEW_TARGET_ERROR_MESSAGES = new Set([
+  "Invalid review target: selected estimate is not part of this publication.",
+  "Invalid review target: selected line item is not part of this publication.",
+  "Invalid review target: selected line item does not belong to the selected estimate.",
+]);
+const COMMENT_RECIPIENT_ERROR_MESSAGES = new Set([
+  "Publication not found for comment.",
+  "Recipient not found for comment.",
+]);
 const CANONICAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PUBLIC_REVIEW_TARGET_ID_PATTERN = /^(?:est|row)_[A-Za-z0-9_-]{8,40}$/;
 
@@ -353,22 +362,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
         { status: 409, headers: { "Cache-Control": "no-store" } },
       );
     }
-    if (/^Invalid review target:/i.test(msg)) {
+    if (PUBLIC_REVIEW_TARGET_ERROR_MESSAGES.has(msg)) {
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/comment", "INVALID_REVIEW_TARGET", ipHash);
       return Response.json({ error: msg }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
-    const status = /rate|too many/i.test(msg) ? 429 : /not found|expired|recipient/i.test(msg) ? 403 : 500;
+    if (/^Invalid review target:/i.test(msg)) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/comment", "INVALID_REVIEW_TARGET", ipHash);
+      return Response.json({ error: "Invalid review target." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    }
+    const knownRecipientFailure = COMMENT_RECIPIENT_ERROR_MESSAGES.has(msg);
+    const status = knownRecipientFailure ? 403 : 500;
     const ipHash = getIpHash(request);
     if (status === 500) {
       record5xx(Date.now());
     }
     logStructured("error", "/api/share/[token]/comment", status === 500 ? "INSERT_FAILED" : "POST_ERROR", ipHash, { status, msg: msg.slice(0, 120) });
     // SEC-15 (AC-SEC-15): never echo a raw RPC/DB error to the public client. The detailed
-    // message is logged server-side (above). Known client-facing cases (429 rate limit, 403
-    // not-found/expired/recipient) keep their app-authored message; only the unexpected 500
-    // path returns a generic envelope.
-    const clientError = status === 500 ? "Something went wrong. Please try again." : msg;
+    // message is logged server-side (above). Only exact app-authored failure strings can affect
+    // public status; provider/RPC text must never be classified with broad word regexes.
+    const clientError = knownRecipientFailure
+      ? "Comment could not be posted for this recipient."
+      : "Something went wrong. Please try again.";
     return Response.json({ error: clientError }, { status, headers: { "Cache-Control": "no-store" } });
   }
 }

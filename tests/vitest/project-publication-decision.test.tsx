@@ -436,10 +436,10 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
     });
 
-    it("maps other RPC errors (e.g. not found) to appropriate status without leaking internals", async () => {
+    it("maps known recipient lookup failures to a generic 403", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
-      mocks.submitSharedLinkDecision.mockRejectedValue(new Error("Recipient not found."));
+      mocks.submitSharedLinkDecision.mockRejectedValue(new Error("Recipient not found for decision."));
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
         { decision: "accepted", signerName: "Client Receiver" },
@@ -447,8 +447,30 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       );
       const res = await POST(req, params());
       expect(res.status).toBe(403);
-      const json = await res.json();
-      expect(json.error).toMatch(/not found|recipient/i);
+      await expect(res.json()).resolves.toEqual({ error: "Decision could not be submitted for this recipient." });
+    });
+
+    it("does not classify raw recipient-table failures as public recipient errors", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const rawDbError = 'relation "shared_link_recipients" does not exist';
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.submitSharedLinkDecision.mockRejectedValue(new Error(rawDbError));
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted", signerName: "Client Receiver" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "t" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body).toEqual({ error: "Something went wrong. Please try again." });
+      expect(JSON.stringify(body)).not.toContain("shared_link_recipients");
+      expect(JSON.stringify(body)).not.toContain("relation");
+
+      consoleSpy.mockRestore();
     });
 
     // SEC-15 (AC-SEC-15): a forced UNEXPECTED RPC/DB error (one that maps to 500) must return a

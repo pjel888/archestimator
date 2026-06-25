@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createElement, type ImgHTMLAttributes } from "react";
+import { createElement, type ImgHTMLAttributes, type ReactNode } from "react";
 
 import type { PublicationSnapshotEstimate, ProjectPublicationSnapshot } from "@/lib/publication/types";
 
@@ -79,6 +80,19 @@ const shareSessionBannerSource = readFileSync("src/components/share/SharePageSes
 const shareSessionRouteSource = existsSync("src/app/api/share/[token]/session/route.ts") ? readFileSync("src/app/api/share/[token]/session/route.ts", "utf8") : "";
 const sharePrintSource = existsSync("src/app/share/print.css") ? readFileSync("src/app/share/print.css", "utf8") : "";
 
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  });
+}
+
+function renderWithQueryClient(ui: ReactNode) {
+  return render(<QueryClientProvider client={createTestQueryClient()}>{ui}</QueryClientProvider>);
+}
+
 describe("shared link (receiver publication) page — Shared Link Overhaul V2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -151,7 +165,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   });
 
   it("renders the published snapshot outside the Workshop shell", async () => {
-    render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+    renderWithQueryClient(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
     expect(mocks.resolveProjectPublicationAccessByToken).toHaveBeenCalledWith("client-token");
     expect(mocks.resolveProjectPublicationSnapshotByToken).toHaveBeenCalledWith("client-token");
@@ -192,7 +206,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   });
 
   it("does not mount the owner activity feed on the public receiver page", async () => {
-    render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+    renderWithQueryClient(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
     expect(screen.queryByTestId("activity-feed")).not.toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalledWith(
@@ -208,7 +222,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       retryAfter: 60,
     });
 
-    render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+    renderWithQueryClient(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
     expect(screen.getByRole("main", { name: "Proposal review" })).toBeInTheDocument();
     await waitFor(() => {
@@ -229,7 +243,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(sharePrintSource).toContain(".share-print-only");
     expect(sharePrintSource).toContain(".share-print-estimate");
 
-    const { container } = render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+    const { container } = renderWithQueryClient(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
     expect(container.querySelector(".share-print-content")).toBeInTheDocument();
     expect(container.querySelectorAll(".share-print-hidden").length).toBeGreaterThanOrEqual(2);
@@ -282,7 +296,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       recipientDisplayName: "Client Receiver",
     });
 
-    render(
+    renderWithQueryClient(
       await SharePage({
         params: Promise.resolve({ token: "client-token" }),
       }),
@@ -502,6 +516,28 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(setCookieHeader).not.toContain("client-token");
   });
 
+  it("requires public CSRF before expiring recipient session cookies", async () => {
+    const { DELETE } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await DELETE(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "DELETE",
+        headers: {
+          origin: "https://evil.example",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+      }),
+      {
+        params: Promise.resolve({ token: "client-token" }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "Cross-origin publication requests are blocked." });
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
   it("lets recipient email unsubscribe links suppress follow-up recipient emails (SEC-14: read-only GET + POST)", async () => {
     mocks.unsubscribeSharedLinkRecipientByToken.mockResolvedValueOnce({
       recipientId: "recipient-1",
@@ -553,7 +589,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       credentialVersion: "cred-test",
     });
 
-    render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+    renderWithQueryClient(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
     expect(screen.getByRole("main", { name: "Proposal review password" })).toBeInTheDocument();
     expect(screen.getByText("Enter proposal password")).toBeInTheDocument();
@@ -911,7 +947,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      render(
+      renderWithQueryClient(
         <ShareReviewWorkspace
           estimates={[baseEstimate]}
           currencyCode="PHP"
@@ -970,7 +1006,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      render(
+      renderWithQueryClient(
         <ShareReviewWorkspace
           estimates={[baseEstimate]}
           currencyCode="PHP"

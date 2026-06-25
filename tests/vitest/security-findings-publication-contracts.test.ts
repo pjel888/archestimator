@@ -3,6 +3,66 @@ import { describe, expect, it } from "vitest";
 import { latestFunction, latestMigrationBySuffix, migrationText, read } from "./security-findings-test-helpers";
 
 describe("Codex publication and public-surface hardening contracts", () => {
+  it("keeps every public share mutation behind same-origin CSRF guards", () => {
+    const guardedMutations = [
+      {
+        path: "src/app/api/share/[token]/password/route.ts",
+        marker: "export async function POST",
+        guard: "assertSameOriginPublicPost(request)",
+        downstream: "checkProjectPublicationPasswordRateLimit",
+      },
+      {
+        path: "src/app/api/share/[token]/session/route.ts",
+        marker: "export async function POST",
+        guard: "assertSameOriginPublicPost(request)",
+        downstream: "createRecipientSessionResponse",
+      },
+      {
+        path: "src/app/api/share/[token]/session/route.ts",
+        marker: "export async function DELETE",
+        guard: "assertSameOriginPublicDelete(request)",
+        downstream: "createSharedLinkSessionCookieName(token)",
+      },
+      {
+        path: "src/app/api/share/[token]/comment/route.ts",
+        marker: "export async function POST",
+        guard: "assertSameOriginPublicPost(request)",
+        downstream: "checkSharedLinkCommentRateLimit",
+      },
+      {
+        path: "src/app/api/share/[token]/decision/route.ts",
+        marker: "export async function POST",
+        guard: "assertSameOriginPublicPost(request)",
+        downstream: "checkSharedLinkDecisionRateLimit",
+      },
+      {
+        path: "src/app/api/share/[token]/events/route.ts",
+        marker: "export async function POST",
+        guard: "assertSameOriginPublicPost(request)",
+        downstream: "checkProjectPublicationEventRateLimit",
+      },
+      {
+        path: "src/app/api/share/[token]/unsubscribe/route.ts",
+        marker: "export async function POST",
+        guard: "assertSameOriginPublicFormPost(request, csrfToken)",
+        downstream: "checkSharedLinkUnsubscribeRateLimit",
+      },
+    ];
+
+    for (const { path, marker, guard, downstream } of guardedMutations) {
+      const handler = read(path).slice(read(path).indexOf(marker));
+      expect(handler).toContain(guard);
+      expect(handler.indexOf(guard)).toBeLessThan(handler.indexOf(downstream));
+    }
+
+    const unsubscribeRoute = read("src/app/api/share/[token]/unsubscribe/route.ts");
+    const unsubscribeGet = unsubscribeRoute.slice(
+      unsubscribeRoute.indexOf("export async function GET"),
+      unsubscribeRoute.indexOf("export async function POST"),
+    );
+    expect(unsubscribeGet).not.toContain("unsubscribeSharedLinkRecipientByToken");
+  });
+
   it("enforces publication password access before creating recipient sessions", () => {
     const sessionRoute = read("src/app/api/share/[token]/session/route.ts");
     const sessionHelper = sessionRoute.slice(

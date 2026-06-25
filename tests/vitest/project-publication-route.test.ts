@@ -301,6 +301,89 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     });
   });
 
+  it("records only allowlisted bounded public event metadata", async () => {
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/events", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({
+          eventType: "download_attempt_blocked",
+          metadata: {
+            reason: "password_required",
+            source: "share_page",
+            success: false,
+          },
+        }),
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(204);
+    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+      token: "client-token",
+      eventType: "download_attempt_blocked",
+      request: expect.any(Request),
+      metadata: {
+        reason: "password_required",
+        source: "share_page",
+        success: false,
+      },
+    });
+  });
+
+  it("rejects arbitrary nested public event metadata before rate limiting", async () => {
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/events", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({
+          eventType: "open",
+          metadata: {
+            source: "share_page",
+            nested: { debug: "raw client object" },
+          },
+        }),
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Publication event metadata is invalid." });
+    expect(mocks.checkProjectPublicationEventRateLimit).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized public event metadata before rate limiting", async () => {
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/events", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({
+          eventType: "open",
+          metadata: { source: "x".repeat(161) },
+        }),
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Publication event metadata is invalid." });
+    expect(mocks.checkProjectPublicationEventRateLimit).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+  });
+
   it("rate limits public event writes before recording the event", async () => {
     mocks.checkProjectPublicationEventRateLimit.mockResolvedValueOnce({
       allowed: false,

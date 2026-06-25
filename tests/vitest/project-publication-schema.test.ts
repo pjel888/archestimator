@@ -7,7 +7,7 @@ const eventContextRepairMigration = readFileSync("supabase/migrations/2026062105
 const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 
 describe("project client publication schema (Shared Link V2)", () => {
-  it("adds token-hashed immutable client publications with snapshots, events, and manager-only RLS", () => {
+  it("adds token-hashed immutable client publications with snapshots, manager RLS, and service-role event writes", () => {
     expect(migration).toContain("create type public.project_publication_status");
     expect(migration).toContain("create type public.project_publication_event_type");
     expect(migration).toContain("create table if not exists public.project_publications");
@@ -27,7 +27,6 @@ describe("project client publication schema (Shared Link V2)", () => {
     expect(migration).toContain('create policy "project publication managers can read publication rows"');
     expect(migration).toContain('create policy "project publication managers can insert publication rows"');
     expect(migration).toContain('create policy "project publication managers can update publication rows"');
-    expect(migration).toContain('create policy "project publication service role can insert events"');
     expect(migration).toContain("revoke all on table public.project_publications from public, anon, authenticated");
     expect(migration).toContain("revoke all on table public.project_publication_events from public, anon, authenticated");
     expect(migration).toContain(
@@ -38,6 +37,9 @@ describe("project client publication schema (Shared Link V2)", () => {
       "revoke all on function public.increment_project_publication_open(uuid) from public, anon, authenticated",
     );
     expect(migration).toContain("grant execute on function public.increment_project_publication_open(uuid) to service_role");
+    expect(migration).toContain("grant insert on table public.project_publication_events to service_role");
+    expect(migration).not.toContain('create policy "project publication service role can insert events"');
+    expect(migration).not.toMatch(/force\s+row\s+level\s+security/i);
   });
 
   it("keeps generated Supabase types aligned with the publication tables", () => {
