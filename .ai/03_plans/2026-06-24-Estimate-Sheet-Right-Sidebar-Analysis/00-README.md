@@ -98,6 +98,17 @@ Added by the `Improve-Plan-Prompt.md` audit pass to close Phase 3 gaps (risk reg
 | [29-AUDIT-REPORT.md](./29-AUDIT-REPORT.md) | Narrative report: inventory, findings, revisions, traceability, readiness |
 | [30-HANDOFF.md](./30-HANDOFF.md) | Open work + verification gaps for a future agent (6 tracks: independent verification, RLS check, upload-route hardening, perf-budget CI, observability wiring, UX gap closure) |
 
+### Create-Implementation-Prompt pass additions (3 docs, 2026-06-25)
+
+Added by the `Create-Implementation-Prompt.md` pass to produce the canonical 22-section plan the template mandates and verify it:
+
+| File | Topic |
+| --- | --- |
+| [GOAL.md](./GOAL.md) | Master `/goal` for the pass: outcome, scope, workstreams, acceptance, deliverables |
+| [LOOP_LEDGER.md](./LOOP_LEDGER.md) | Append-only lane coordination log for the multi-agent pass |
+| **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** | **Canonical 22-section implementation plan** (template-mandated filename per template line 113-115). Expands the existing `18-IMPLEMENTATION-PLAN.md` stub; doc 18 is preserved as historical artifact. 175KB / 2,976 lines / 22 sections. |
+| [31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md) | Lead-authored Pass 2 (adversarial) + Pass 3 (verifier) + 8-dimension scorecard. Score: **90.5/100** (prior pass: 83.2). Closes Track 1 of `30-HANDOFF.md` via lead-emulation per template line 70 fallback; a fresh-session agent should run Track 1 again for truly independent verification. |
+
 ## Routing note (for /lfg pipeline consumers)
 
 This audit is a **documentation-only** deliverable. The `/lfg` pipeline's ce-work → ce-simplify → ce-commit-push-pr → CI-watch steps were **intentionally skipped** because:
@@ -106,3 +117,15 @@ This audit is a **documentation-only** deliverable. The `/lfg` pipeline's ce-wor
 3. No build, test, or CI validation applies to documentation-only changes.
 
 The implementation plan (doc 18) defines the phased code work that a future session should execute.
+
+## Canonical implementation plan (2026-06-25)
+
+The [Create-Implementation-Prompt pass](./IMPLEMENTATION_PLAN.md) produced
+the canonical 22-section plan that template
+`.ai/08_prompts/000_Planning Prompts/Create-Implementation-Prompt.md`
+mandates. It expands doc 18 (the 96-line stub) into a 175KB / 2,976-line
+/ 22-section authoritative plan a codebase AI can execute without
+reinterpreting feature intent. Score: **90.5 / 100** per
+[31-INDEPENDENT-VERIFICATION.md](./31-INDEPENDENT-VERIFICATION.md).
+Implementation-ready: **YES, conditional on 7 items** listed in that
+doc's Verdict section.
