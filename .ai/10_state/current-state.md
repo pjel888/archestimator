@@ -42,6 +42,210 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**InfoSec planning-package checkpoint (2026-06-25):**
+
+- The InfoSec run folder
+  `.ai/17_InfoSec/2026-06-24-InfoSec-Run/` now includes planning-package
+  scorecard and gate-traceability artifacts:
+  `17-plan-package-audit-and-scorecard.md` and
+  `18-release-gates-traceability.md`.
+- The package is explicitly an interim blocker/remediation/planning package,
+  not final release proof. Package score after the planning pass is Strategy
+  71, document quality 76, implementation readiness 41, weighted overall 62;
+  release readiness remains 20/100.
+- Current evidence still blocks release: baseline `c2bef233097b7ef5bb07e4fa262b66f4bd4ef5dc`
+  is stale against current local `HEAD`/`origin/main`
+  `12fef73cd385ce4b9e9ef341f9fed2be10c30c3e`, Class A/B review remains
+  0 complete, entrypoint/authz ledgers remain unreviewed, DB SECURITY
+  DEFINER/FORCE RLS posture remains open, GitHub/Vercel hosted controls are
+  failing or unproven, and runtime/provider evidence is incomplete.
+- This continuation intentionally edited `.ai` documentation/state artifacts
+  only. The wider worktree still contains app/test/config/provider-adjacent
+  diffs from earlier InfoSec remediation and unrelated active work, so global
+  worktree cleanliness is not claimed. No provider settings, deployments,
+  secrets, or production systems were touched in this planning continuation.
+  Independent verifier rerun passed closure for only this docs-planning
+  continuation. A follow-up prompt-compliance pass added explicit source and
+  requirements maps, before/after scores, traceability coverage, and final
+  deliverable checklist to `17-plan-package-audit-and-scorecard.md`; a final
+  verifier passed that follow-up for docs-planning closure only. Final
+  code-review and architecture lanes then approved closing the docs-planning
+  branch only after two documentation-quality fixes were applied. Release
+  remains NOT APPROVED.
+
+**InfoSec hosted external-control checkpoint (2026-06-25):**
+
+- Read-only GitHub API checks for `pjel888/archestimator` promoted
+  `INFOSEC-SC-006`: hosted GitHub security/release controls are not release
+  ready. Evidence recorded under
+  `.ai/17_InfoSec/2026-06-24-InfoSec-Run/`: `main` is unprotected, hosted `CI`
+  is `disabled_manually`, code scanning is not enabled, Dependabot alert state
+  is disabled or not provable with the current token scope, secret scanning is
+  disabled, `Preview` and `Production` environments have empty protection
+  rules, and no security policy file is enabled. Local CodeQL/Dependabot/workflow
+  config remains useful but is not hosted proof until pushed and enabled.
+- Read-only Vercel API and live header checks promoted `INFOSEC-SC-007`:
+  production/domain state is not release ready. Production is not aligned to
+  current `main`, the apex `https://archestimator.com` timed out from this
+  environment, live `/` responses still use report-only CSP, and latest preview
+  deployment access redirects to Vercel SSO rather than serving as production
+  proof.
+- The InfoSec audit scaffold baseline is stale relative to the current checkout:
+  baseline `c2bef233097b7ef5bb07e4fa262b66f4bd4ef5dc`, current local
+  `HEAD`/`origin/main` `12fef73cd385ce4b9e9ef341f9fed2be10c30c3e`.
+- Release remains NOT APPROVED. Remaining blockers include DB SECURITY DEFINER
+  per-function review, FORCE RLS/service-role posture, CSP enforcement proof,
+  provider control proof, and complete Class A/B review.
+
+**Workshop library route performance third pass: notification tail removal + browse index (2026-06-25):**
+
+- Workshop notification data is no longer mount-eager on `/workshop/*`: the
+  notification feed loads only when the bell opens, while unread count and
+  release-announcement checks hydrate after a 5s background delay unless the
+  user opens notifications first. This removed three global Next server-action
+  POSTs from the library route first-load/network-idle path.
+- Added and applied linked Supabase migration
+  `20260625024500_library_component_rows_seed_browse_index.sql` for
+  `cost_library_items_workspace_browse_active_idx` on
+  `(workspace_id, category, name, id) where lifecycle_state <> 'archived'`.
+  Remote readback confirmed the index, and `EXPLAIN (ANALYZE, BUFFERS)` for the
+  ordered 24-row seed query used an index-only scan on that index (24 rows,
+  execution ~0.15 ms on the 500-component probe workspace).
+- Final 500-component/1-template production browser artifact:
+  `.ai/99_scratch/library-perf/library-route-measure-after-20260624T194620Z.json`.
+  Warm route results: overview 1.08s ready / 1.19s app-quiet / 1.63s settled
+  with 0 fetches; components 1.08s / 1.20s / 1.82s with 0 fetches; templates
+  1.14s / 1.26s / 1.59s with 0 fetches; template detail 1.15s / 1.26s /
+  3.07s with 1 fetch (the bounded 50-row lite sidebar dataset). Compared with
+  the prior retained artifact, settled time improved by ~1.35-2.33s on
+  overview/components/templates and by ~4.96s cold / ~1.76s warm on template
+  detail; each route dropped three first-load responses/fetches.
+- Verification evidence: focused notification/library/template/perf Vitest
+  matrix (7 files / 55 tests), `bun run type-check`, `bun run build`, React
+  Doctor changed-scope `ok: true` with 0 diagnostics, `git diff --check`,
+  linked migration repair/list/readback, DB plan read, production browser
+  route artifact, and temporary probe cleanup verified 0 rows in sampled
+  component/template tables.
+- Remaining performance risks: template detail still has one client-side
+  server-action fetch for the bounded lite component/template sidebar dataset;
+  making that substantially faster likely needs a broader search/paged sidebar
+  interaction or a smaller above-the-fold dock contract rather than another
+  mount-time full-panel preload.
+
+**Workshop library route performance second pass: 24-row first paint + RPC browse projection (2026-06-25):**
+
+- `/workshop/library/components` now SSR-seeds 24 rows for first paint (was 48),
+  keeps mount refetch disabled for partial seeds, and preserves the explicit
+  `Load all` action for the full dataset. `ComponentLibraryManager` no longer
+  imports the static demo `estimateLibraryItems` fixture as its default, and
+  inspector/edit surfaces are lazy chunks because they are only needed after a
+  selected component.
+- Linked Supabase RPC `library_component_rows_seed(target_workspace_id,
+  item_limit)` now has a forward migration
+  `20260625023000_library_component_rows_seed_browse_projection.sql` that
+  returns explicit browse columns instead of serializing full table rows.
+  Applied to Archestimator project `ebxxqidacheyapmmzavr`; migration history
+  was repaired for version `20260625023000`. Remote readback: `provolatile =
+  's'`, `prosecdef = false`, item projection present, full `cost_library_items`
+  row select absent.
+- Final 500-component/1-template browser artifact:
+  `.ai/99_scratch/library-perf/library-route-measure-after-20260624T192442Z.json`.
+  Compared with the prior retained artifact, components cold improved from
+  1.43s ready / 476.9 KB document / 533.1 KB encoded resources / 41 responses
+  / 30 scripts to 1.15s ready / 337.7 KB document / 514.8 KB resources /
+  40 responses / 29 scripts. Warm components settled improved 3.77s -> 3.67s,
+  but warm ready regressed in this run (1.05s -> 1.27s), likely noise/tail work.
+  Overview and templates are roughly flat; template detail remains slow
+  (1.54s/8.15s cold, 1.19s/4.83s warm) with 45 responses, 33 scripts, and
+  4 fetches. A server-seeded template-library experiment was rejected because it
+  raised cold document size to ~595 KB and cold ready to ~2.4s.
+- Temporary provider fixture rows were cleaned and verified at 0 in
+  `cost_library_items`, `cost_library_item_price_options`,
+  `cost_library_item_variant_cost_entries`, and `estimate_templates`.
+  Verification evidence: focused library/perf/cache/template tests
+  (5 files / 72 tests before the final revert, then 3 files / 35 tests),
+  `bun run type-check`, `bun run build`, React Doctor changed-scope `ok: true`
+  with 0 diagnostics, `git diff --check`, linked migration list/readback,
+  browser network artifacts, code-review-graph context, and read-only
+  subagent/verifier reports. GitNexus CLI evidence remains unavailable because
+  the local index is stale/incomplete.
+- Remaining performance risks: `/workshop/library/templates/[templateId]` still
+  has a long network-idle tail from the immediate lite library fetch and shared
+  editor chrome. Next gains should focus on route-level client bundle splits
+  that do not preload immediately, an app-settled metric separate from
+  `networkidle`, and paged/search-backed component browsing instead of the
+  unbounded `Load all` path.
+
+**InfoSec release-gate audit remains open; eleven narrow findings fixed locally (2026-06-24):**
+
+- Active evidence root:
+  `.ai/17_InfoSec/2026-06-24-InfoSec-Run/`. The current decision is still
+  **NOT APPROVED**; the run has 100% tracked-file classification scaffolding but
+  Class A/Class B reviews, manual entrypoint validation, RLS/RPC/storage review,
+  independent passes, and final rescans are incomplete.
+- Fixed and target-tested findings so far: `INFOSEC-APP-001` attachment upload
+  backend error leakage, `INFOSEC-APP-002` invite sign-out logout CSRF,
+  `INFOSEC-APP-003` AI package-builder internal error reflection,
+  `INFOSEC-APP-004` public share comment/decision provider error reflection,
+  `INFOSEC-APP-005` public share event metadata bounds, `INFOSEC-APP-006`
+  invite rate-limit IP hash privacy, `INFOSEC-SC-001` current `bun audit`
+  dependency advisories, `INFOSEC-SC-002` local GitHub workflow pinning,
+  `INFOSEC-SC-003` local Dependabot/CodeQL security automation config,
+  `INFOSEC-SC-004` local Bun package-manager pinning, and `INFOSEC-SC-005`
+  local env-template key-name drift. `INFOSEC-APP-007` dev-auth bypass is
+  recorded as a
+  controlled false-positive/hardening item with explicit guard-test evidence;
+  hosted/preview configuration proof is still pending. `INFOSEC-APP-008`
+  public-share CSRF is also recorded as controlled with endpoint-by-endpoint
+  source contract and route-test evidence; complete attack-class and live
+  response/header proof remain pending.
+- `INFOSEC-DB-003` pending-review SQL is now partially controlled locally:
+  pending SQL remains outside `supabase/migrations/`, a static quarantine test
+  guards the destructive/deferred/superseded pending-review posture, and the
+  deferred chart RPC now explicitly revokes public/anon/authenticated execute
+  before authenticated grant. It is still provider-blocked until live zero-scan,
+  backup, and grant preflight evidence exists. `INFOSEC-DB-001` SECURITY
+  DEFINER authorization review and `INFOSEC-DB-002` FORCE RLS/service-role
+  bypass posture remain open blockers.
+- Validation evidence recorded in the run folder includes focused Vitest
+  regressions, targeted ESLint, `bun run type-check`, `bun run build`,
+  Storybook build, UUID/ExcelJS smokes, clean `bun audit --json`,
+  workflow YAML/floating-ref checks, Dependabot/CodeQL config checks, a
+  `packageManager` pin check returning `bun@1.3.14`, a key-only `.env.local`
+  versus `.env.example` drift check with no missing names, and `git diff
+  --check`.
+
+**Workshop library route performance RPC + payload pass applied locally (2026-06-25):**
+
+- Added linked Supabase RPC migrations
+  `20260625010000_library_overview_summary` and
+  `20260625013000_library_component_rows_seed` for Archestimator project
+  `ebxxqidacheyapmmzavr`; both are `security invoker`, workspace-gated, granted
+  only to `authenticated`, and present in `supabase migration list --linked`.
+  Overview route backend trips dropped to 2 (`workspaces` + summary RPC);
+  components browse trips dropped to 2 (`workspaces` + rows seed RPC).
+- Components browse now strips detail-only nested variant/history/source fields
+  from the SSR list seed while preserving current price fields, and selected-row
+  detail still hydrates on inspector open. Template editor dock now uses the
+  existing lite component-library loader/cache key instead of the full graph.
+- Populated 500-component/1-template production browser artifacts:
+  `.ai/99_scratch/library-perf/library-route-measure-after-20260624T180544Z.json`
+  (overview/components/templates) and
+  `.ai/99_scratch/library-perf/library-route-measure-after-20260624T181501Z.json`
+  (template detail). Latest ready times: overview 1.57s cold / 1.11s warm,
+  components 2.16s cold / 2.09s warm with document payload 2.86 MB, templates
+  1.44s cold / 1.71s warm, template detail 1.68s cold / 3.65s warm. No failed
+  browser requests. Temporary provider fixture rows were cleaned and verified
+  at 0 across items/options/cost entries/suppliers/brands/templates/nodes/rows.
+- Remaining performance risks: route still is not "ridiculously fast" at 500
+  rows; components still renders 500 cards into a multi-MB RSC document, and
+  route resource counts remain high (31-45 responses, 20-33 scripts). Next
+  likely gains are pagination/windowed first paint for components, template
+  browse/detail query batching, and reducing App Router/RSC fetch churn.
+- Verification passed: focused route/cache/template/perf Vitest matrix (9 files
+  / 66 tests), `bun run type-check`, `bun run build`, `git diff --check`, linked
+  migration status, and React Doctor changed-scope 100/100.
+
 **Workshop library route performance pass measured and slimmed locally (2026-06-24):**
 
 - `/workshop/library/components` now seeds the browse/table route with a

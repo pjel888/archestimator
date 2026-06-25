@@ -1,3 +1,73 @@
+## 2026-06-25 hero mount motion QA
+
+route: http://localhost:3000/
+viewport/state: 1920x1080 public landing page, no-preference motion, cookie consent pre-set to essential for unobstructed screenshots.
+
+implementation screenshot paths:
+- /tmp/archestimator-hero-motion-clean-pre-mockup.png
+- /tmp/archestimator-hero-motion-clean-emerging.png
+- /tmp/archestimator-hero-motion-clean-final.png
+- /tmp/archestimator-hero-motion-clean-reduced.png
+
+focused motion evidence:
+- At 1800ms, title opacity is 1, hero illustration opacity is 1, metric card opacities are 0.9955 / 0.9774 / 0.9284, and the product mockup is still opacity 0 with translateY 56px.
+- At 2200ms, the metric cards are fully visible and the product mockup has just started: opacity 0.0889, translateY 51.0194px, blur 12.7548px, clip-path inset 10.9327%.
+- At 2600ms, the product mockup has faded/risen into place: opacity 0.9623, translateY 2.1111px, blur 0.5278px.
+- At 3300ms, the product mockup is settled: opacity 1, transform none, filter none, clip-path none.
+- Reduced motion at 250ms shows title, illustration, metric cards, and product mockup all visible with transform none.
+
+patches verified:
+- Product mockup is registered as `data-hero-motion="mockup"` and sequenced by the existing GSAP hero mount timeline.
+- Independent CSS keyframe mount animations were removed from the mockup shell/body/dots so the mockup no longer races the hero timeline.
+- Mockup starts hidden and lower, then fades upward as the last hero beat after the title, hero image, CTAs, and metric cards.
+- Reduced-motion CSS and GSAP fallback keep the mockup visible immediately without transform/filter animation.
+
+verification:
+- `bunx eslint src/components/landing-v3/HeroMountMotion.tsx src/components/landing-v3/ArchestimatorLandingPage.tsx --max-warnings=0` passed.
+- `git diff --check -- src/components/landing-v3/HeroMountMotion.tsx src/components/landing-v3/ArchestimatorLandingPage.tsx src/components/landing-v3/landing-v3.module.css` passed.
+- `PLAYWRIGHT_PORT=3000 bun run test:e2e -- e2e/frontdoor-landing-visual.spec.ts --project=chromium` passed: 3 tests.
+
+final result: passed
+
+## 2026-06-24 responsive landing hero QA
+
+source visual truth path: /Users/philiplewis/.codex/attachments/6c5166d4-c743-4a98-8eb3-55f777b30755/image-1.png
+
+implementation screenshot paths:
+- /tmp/archestimator-product-phase-2048.png
+- /tmp/archestimator-product-phase-2560.png
+- /tmp/archestimator-intro-fix-1440.png
+- /tmp/archestimator-intro-fix-390.png
+- /tmp/archestimator-intro-fix-320.png
+
+viewport/state coverage:
+- 2048x1200 and 2560x1200, public landing page, cookie settings collapsed, hero mockup waited to `drag-fauxwood` so the estimate rows and right library sidebar are visible.
+- 1440x1200, product mockup visible with the mid-desktop left inset adjustment.
+- 1439px and below, product mockup hidden before it can collide with the copy/CTA; metric/photo surface remains visible.
+- 820px, 390px, and 320px, compact stacked metric cards with no text collision.
+
+focused evidence:
+- 2048 mockup measured at x 537, y 257, width 1467, height 439, right 2004, matching the reference composition.
+- 2560 mockup measured at x 666, y 257, width 1848, height 499, right 2514; large-screen metric cards are capped at 502px tall instead of ballooning.
+- 1440 mockup measured at x 416, y 251, width 988, height 439; no overlap with heading, intro, primary CTA, or secondary CTA.
+- 390 and 320 have no horizontal overflow and no internal metric label collisions.
+- Product-phase screenshots confirm visible faucet/ceramic estimate rows, visible `600x600 ceramic tiles`, and visible highlighted `200x1200 faux wood tiles` in the right sidebar.
+
+patches verified:
+- Capped large-screen metric grid row height with `min(var(--hero-grid-cell), 15.45rem)`.
+- Increased mockup height only above 2048px so very wide screens preserve the product surface proportion.
+- Hid the product mockup in the narrow desktop handoff range where it cannot fit without colliding.
+- Shifted the 1440-1535px mockup start inward so the product stays visible without covering CTAs.
+- Tightened hero intro measure to keep longer copy out of the mockup.
+- Added compact metric card layout below 820px so phone/tablet widths do not squeeze desktop cards into unreadable columns.
+
+verification:
+- `git diff --check -- src/components/landing-v3/landing-v3.module.css` passed.
+- `bunx eslint src/components/landing-v3/ArchestimatorLandingPage.tsx src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx e2e/frontdoor-landing-visual.spec.ts --max-warnings=0` passed.
+- `PLAYWRIGHT_PORT=3000 bun run test:e2e -- e2e/frontdoor-landing-visual.spec.ts --project=chromium` passed: 3 tests.
+
+final result: passed
+
 source visual truth path: /var/folders/xg/_lqq86w138vctk9_ll6g8h840000gn/T/codex-clipboard-7b4a9b80-646d-4cd3-9f60-a66426700d3a.png
 implementation screenshot path: /tmp/archestimator-hero-corrected-drag-faucet.png
 animation screenshots:
