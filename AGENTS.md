@@ -135,7 +135,7 @@ The repo should share durable agent/project intelligence across machines through
 - Canonical project truth: `.ai/`, especially `.ai/00_system`, `.ai/10_state`, `.ai/11_skills`, `.ai/12_agents`, and `.ai/08_prompts`.
 - Tool adapters that are safe to share: `.codex/`, `opencode.json`, intentionally authored `.opencode/` extension files, `.agents/`, `.claude/`, `.commandcode/`, and their README/config/skill/prompt/agent files.
 - Local-only state stays ignored: `.omx/`, `.omo/`, `.gitnexus/`, `.code-review-graph/`, `.chunkhound/`, `.claude/worktrees/`, `.ai/99_scratch/`, `.ai/14_code_intelligence/`, build/test outputs, env files, caches, logs, sessions, and machine-local settings.
-- After changing Codex/OpenCode adapter files, run `bun run validate:agents` plus the relevant tool resolver (`codex debug prompt-input` or `opencode debug config`) before claiming the agent surface is clean.
+- After changing `.ai/12_agents/payloads`, Codex/OpenCode adapter files, or related tool adapter files, run `bun run validate:agents` plus the relevant tool resolver (`codex debug prompt-input` or `opencode debug config`) before claiming the agent surface is clean.
 
 Never commit secrets, private keys, `.env*` values, raw provider tokens, or machine-local session state.
 

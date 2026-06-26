@@ -208,6 +208,7 @@ For `.ai/00_system`, `.ai/12_agents`, `.ai/08_prompts/templates`,
 - Verify `.ai/12_agents/payloads/_template.md` exists.
 - Verify payloads use the shared schema headings or intentionally fail closed.
 - Verify tool adapters point back to `.ai` and do not duplicate long policy.
+- Run `bun run validate:agents`.
 - Run `git diff --check`.
 - Run `bun run validate` and `bun run build` only when production source,
   package, framework, UI, route, or test behavior changes.

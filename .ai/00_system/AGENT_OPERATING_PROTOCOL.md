@@ -266,8 +266,9 @@ Default roles:
   `.agents/`, `.claude/`, `.codex/`, intentionally authored `.opencode/`
   extension files, `.gemini/`, `.commandcode/`) must stay subordinate to
   `.ai/00_system` and `.ai/12_agents`. They may point to `.ai`; they must not
-  fork policy. After Codex/OpenCode adapter changes, run
-  `bun run validate:agents` plus the relevant installed resolver.
+  fork policy. After `.ai/12_agents/payloads`, Codex/OpenCode, or related tool
+  adapter changes, run `bun run validate:agents` plus the relevant installed
+  resolver.
 
 ## UI implementation guidance
 

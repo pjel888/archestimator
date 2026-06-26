@@ -42,6 +42,25 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Agent workflow validation hardening is locally verified (2026-06-27):**
+
+- `bun run validate:agents` now enforces `.ai/12_agents/payloads/*.md`
+  metadata contracts in addition to Codex/OpenCode adapter checks: payloads must
+  keep a contiguous H1 header metadata block, allowed status values, explicit
+  fail-closed wording, shared `.ai/00_system` authority references, and the
+  `AGENTS.md` + `.ai/10_state/current-state.md` startup chain.
+- The validator fails closed for malformed payload fixtures, including bad
+  `Fail-safe:` wording and metadata labels repeated outside the header block.
+- Verification evidence from this pass: `bun run validate:agents`, `bunx eslint
+  scripts/validate-ai-workflow-adapters.mjs`, `node --check
+  scripts/validate-ai-workflow-adapters.mjs`, `git diff --check`, malformed
+  fixture probes, `codex debug prompt-input`, and `opencode debug config` with
+  `AGENTS.md`, `.ai/12_agents/payloads/opencode.md`, and
+  `code-review-graph==2.3.5` present in resolved config.
+- Reviewer evidence: project-standards review found no policy-drift issues;
+  correctness review found the initial body-text bypass, which was fixed by
+  header-block parsing plus misplaced-field failures.
+
 **Routing Page Optimization is locally complete and readiness-green (2026-06-26):**
 
 - The authenticated estimate-sheet target route now has green local

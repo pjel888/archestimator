@@ -56,10 +56,11 @@ do not restate the policy.
 Every active, conditional, deprecated, unapproved, and non-agent payload must
 follow `payloads/_template.md` or intentionally fail closed.
 
-## Adapter Validation
+## Agent And Adapter Validation
 
-Codex and OpenCode are thin adapters over this shared contract. When changing
-`.codex/`, `opencode.json`, or the Codex/OpenCode payloads, run
-`bun run validate:agents` plus the relevant tool resolver (`codex debug
-prompt-input` or `opencode debug config`) before claiming the agent surface is
-clean.
+Codex and OpenCode are thin adapters over this shared contract, and every
+payload in `payloads/` must keep the shared header schema and fail-closed
+behavior. When changing `.ai/12_agents/payloads`, `.codex/`, `opencode.json`,
+or related tool adapter files, run `bun run validate:agents` plus the relevant
+tool resolver (`codex debug prompt-input` or `opencode debug config`) before
+claiming the agent surface is clean.

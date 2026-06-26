@@ -28,4 +28,7 @@ reapproved, and future payloads must map their local capabilities back to that
 shared loop.
 
 Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent
-payloads must still state their fail-closed behavior.
+payloads must still state their fail-closed behavior. Run
+`bun run validate:agents` after payload changes to enforce the shared header
+schema, allowed status values, fail-closed wording, and `.ai/00_system`
+references.

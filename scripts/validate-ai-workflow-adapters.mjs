@@ -7,6 +7,18 @@ import { basename, join, relative } from "node:path";
 const repoRoot = process.cwd();
 const failures = [];
 const warnings = [];
+const agentPayloadRequiredFields = [
+  "Status",
+  "Primary lane",
+  "Secondary lane",
+  "Prohibited lanes",
+  "Orchestrator authority",
+  "Model/effort assignment",
+  "Loop role",
+  "Fail-safe",
+];
+const agentPayloadStatuses = new Set(["approved", "conditional", "deprecated", "unapproved", "non-agent"]);
+const failClosedStatuses = new Set(["deprecated", "unapproved", "non-agent"]);
 
 function rel(path) {
   return relative(repoRoot, path) || ".";
@@ -240,6 +252,146 @@ function parseCodexAgentToml(path) {
   return data;
 }
 
+function parseAgentPayloadFields(path) {
+  const fields = {};
+  const duplicateFields = [];
+  const invalidMetadataLines = [];
+  const misplacedFields = [];
+  const lines = readText(path).split(/\r?\n/);
+  let sawH1 = false;
+  let startedMetadata = false;
+  let endedMetadata = false;
+
+  for (const [index, line] of lines.entries()) {
+    const lineNumber = index + 1;
+    if (!sawH1) {
+      if (line.startsWith("# ")) sawH1 = true;
+      continue;
+    }
+
+    if (line.startsWith("## ")) {
+      endedMetadata = true;
+    }
+
+    const field = agentPayloadRequiredFields.find((candidate) => line.startsWith(`${candidate}:`));
+    if (endedMetadata) {
+      if (field) misplacedFields.push({ field, lineNumber });
+      continue;
+    }
+
+    if (!startedMetadata) {
+      if (!line.trim()) continue;
+      startedMetadata = true;
+    } else if (!line.trim()) {
+      endedMetadata = true;
+      continue;
+    }
+
+    if (!field) {
+      invalidMetadataLines.push(lineNumber);
+      continue;
+    }
+
+    if (Object.hasOwn(fields, field)) {
+      duplicateFields.push({ field, lineNumber });
+    }
+    const prefix = `${field}:`;
+    fields[field] = line.slice(prefix.length).trim();
+  }
+
+  return { duplicateFields, fields, invalidMetadataLines, misplacedFields, sawH1 };
+}
+
+function formatFieldLine(fieldLine) {
+  return `${fieldLine.field} at line ${fieldLine.lineNumber}`;
+}
+
+function formatLineNumbers(lineNumbers) {
+  return lineNumbers.map((lineNumber) => `line ${lineNumber}`).join(", ");
+}
+
+function normalizePayloadStatus(status) {
+  return status?.replaceAll("`", "").trim().toLowerCase() ?? "";
+}
+
+function checkAgentPayloadContracts() {
+  const dir = join(repoRoot, ".ai/12_agents/payloads");
+  const template = join(dir, "_template.md");
+  if (!existsSync(template)) {
+    fail("Missing .ai/12_agents/payloads/_template.md.");
+    return;
+  }
+
+  const payloadFiles = walkFiles(dir, (path) => path.endsWith(".md")).filter((path) => {
+    const fileName = basename(path);
+    return fileName !== "README.md" && fileName !== "_template.md";
+  });
+
+  if (payloadFiles.length === 0) {
+    fail(".ai/12_agents/payloads must contain at least one agent payload.");
+  }
+
+  for (const file of payloadFiles) {
+    const text = readText(file);
+    const { duplicateFields, fields, invalidMetadataLines, misplacedFields, sawH1 } =
+      parseAgentPayloadFields(file);
+
+    if (!sawH1) {
+      fail(`${rel(file)} must start with an H1 title before payload metadata.`);
+    }
+
+    if (invalidMetadataLines.length > 0) {
+      fail(`${rel(file)} has non-field lines in the payload metadata block: ${formatLineNumbers(invalidMetadataLines)}.`);
+    }
+
+    if (duplicateFields.length > 0) {
+      fail(`${rel(file)} has duplicate payload metadata fields: ${duplicateFields.map(formatFieldLine).join(", ")}.`);
+    }
+
+    if (misplacedFields.length > 0) {
+      fail(
+        `${rel(file)} has payload metadata fields outside the header block: ${misplacedFields
+          .map(formatFieldLine)
+          .join(", ")}.`,
+      );
+    }
+
+    for (const field of agentPayloadRequiredFields) {
+      const value = fields[field] ?? "";
+      if (!value) {
+        fail(`${rel(file)} missing required payload field: ${field}.`);
+      } else if (/[<>]/.test(value)) {
+        fail(`${rel(file)} field ${field} still contains template placeholder syntax.`);
+      }
+    }
+
+    const status = normalizePayloadStatus(fields.Status);
+    if (!agentPayloadStatuses.has(status)) {
+      fail(`${rel(file)} has unsupported Status: ${fields.Status ?? "(missing)"}.`);
+    }
+
+    const failSafe = fields["Fail-safe"]?.toLowerCase() ?? "";
+    if (!failSafe.includes("fail closed")) {
+      fail(`${rel(file)} Fail-safe must explicitly say fail closed.`);
+    }
+
+    const authority = fields["Orchestrator authority"] ?? "";
+    if (!authority.includes(".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md")) {
+      fail(`${rel(file)} Orchestrator authority must point to AGENT_FRAMEWORK_PROTOCOL.md.`);
+    }
+
+    for (const requiredReference of ["AGENTS.md", ".ai/00_system", ".ai/10_state/current-state.md"]) {
+      if (!text.includes(requiredReference)) {
+        fail(`${rel(file)} must reference ${requiredReference}.`);
+      }
+    }
+
+    if (failClosedStatuses.has(status) && !/fail[- ]closed/i.test(text)) {
+      fail(`${rel(file)} must state fail-closed behavior for ${status} payloads.`);
+    }
+  }
+}
+
 function checkOpenCodeConfig() {
   if (repoExists(".opencode.json")) {
     fail("Legacy .opencode.json exists; use documented root opencode.json instead.");
@@ -449,6 +601,7 @@ function checkNoTrackedLocalState() {
 checkOpenCodeConfig();
 checkCodexConfig();
 checkCodexAgentRoles();
+checkAgentPayloadContracts();
 checkActiveGuidanceReferences();
 checkGitignoreAdapterHygiene();
 checkNoTrackedLocalState();
@@ -464,4 +617,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log("AI workflow adapter validation passed.");
+console.log("AI workflow validation passed.");
