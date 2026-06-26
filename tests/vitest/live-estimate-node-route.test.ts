@@ -7,7 +7,10 @@ const estimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/est
 const estimateTree = readFileSync("src/components/workshop/EstimateSheetTree.tsx", "utf8");
 const treeVisualStyle = readFileSync("src/components/workshop/tree-visual-style.ts", "utf8");
 const estimateContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
+const estimateWorkspaceClient = readFileSync("src/components/workshop/EstimateWorkspaceClient.tsx", "utf8");
+const estimateRowHandlers = readFileSync("src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts", "utf8");
 const projectEstimatesTable = readFileSync("src/components/workshop/ProjectEstimatesTable.tsx", "utf8");
+const projectEstimatesTableUtils = readFileSync("src/components/workshop/project-estimates-table/utils.ts", "utf8");
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
@@ -107,12 +110,13 @@ describe("live estimate node route", () => {
     const projectLayout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8");
     const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
 
-    expect(estimateNodePage).toContain("ProjectEstimateMetadataPublisher");
-    expect(estimateNodePage).toContain("projectName: project.name");
-    expect(estimateNodePage).toContain("estimateName: estimate.name");
-    expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
-    expect(estimateNodePage).toContain("projectBudget: estimate.project_budget");
-    expect(estimateNodePage).toContain("canEditEstimate,");
+    expect(estimateNodePage).not.toContain("ProjectEstimateMetadataPublisher");
+    expect(estimateWorkspaceClient).toContain("ProjectEstimateMetadataPublisher");
+    expect(estimateNodePage).toContain("projectName={project.name}");
+    expect(estimateNodePage).toContain("estimateName={estimate.name}");
+    expect(estimateNodePage).toContain("estimateSheetCode={estimate.sheet_code}");
+    expect(estimateNodePage).toContain("projectBudget={estimate.project_budget}");
+    expect(estimateNodePage).toContain("canEditEstimate={prefetchedCanEditEstimate === true}");
     expect(estimateNodePage).toContain("const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);");
     expect(projectLayout).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
     expect(projectLayout).not.toContain("ProjectWorkspaceHeaderRow");
@@ -146,7 +150,10 @@ describe("live estimate node route", () => {
   });
 
   it("opens empty estimates by estimate id instead of looping back to the estimate list", () => {
-    expect(projectEstimatesTable).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
+    expect(projectEstimatesTable).toContain("pathname: getEstimateHref(estimate)");
+    expect(projectEstimatesTableUtils).toContain("export function getEstimateHref");
+    expect(projectEstimatesTableUtils).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.firstNodeId}`');
+    expect(projectEstimatesTableUtils).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
     // Empty estimates still open in the estimate workspace, but without a
     // dedicated teaching card or tree placeholder copy.
     expect(estimateTree).not.toContain("This estimate is empty. Add an area to begin.");
@@ -197,13 +204,13 @@ describe("live estimate node route", () => {
     expect(estimateActions).not.toContain("buildEstimateNodeMovePlan");
     expect(estimateActions).not.toContain('.rpc("move_estimate_nodes"');
     expect(estimateContent).toContain("onUpdateRowItem");
-    expect(estimateContent).toContain("replaceRow({");
-    expect(estimateContent).toContain("libraryItem: replacementLibraryItem");
-    expect(estimateContent).toContain("deleteRow({");
-    expect(estimateContent).toContain("rowId: rowItemId");
+    expect(estimateRowHandlers).toContain("replaceRow({");
+    expect(estimateRowHandlers).toContain("libraryItem: replacementLibraryItem");
+    expect(estimateRowHandlers).toContain("deleteRow({");
+    expect(estimateRowHandlers).toContain("rowId: rowItemId");
     expect(estimateContent).toContain("useEstimateAreaTreeQuery");
     expect(readFileSync("src/hooks/use-estimate-query.ts", "utf8")).toContain("estimateQueryKeys.areaTree");
-    expect(estimateContent).toContain("rollback: () => restoreEstimateState");
+    expect(estimateRowHandlers).toContain("rollback: () => restoreEstimateState");
   });
 
   it("keeps row save state out of the visible sheet while preserving passive mutation invalidation and focus reconciliation", () => {

@@ -12,6 +12,7 @@ import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/component
 import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopTitleHeader } from "@/components/workshop/WorkshopTitleHeader";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
@@ -140,34 +141,30 @@ describe("estimate shell chrome", () => {
 
   it("keeps the project title and breadcrumbs visible when an estimate sheet publishes metadata", async () => {
     renderWithQueryClient(
-      await WorkshopPageShell({
-        title: "Modern Bungalow",
-        eyebrow: "Project",
-        breadcrumbs: ["Workshop", "Projects", "Modern Bungalow"],
-        projectId: "project-1",
-        children: (
-          <>
-            <ProjectEstimateMetadataPublisher
-              metadata={{
-                projectId: "project-1",
-                estimateId: "estimate-1",
-                projectName: "Modern Bungalow",
-                estimateName: "Modern Bungalow - 001",
-                estimateSheetCode: "ES-001",
-                projectBudget: 2_000_000,
-              }}
-            />
-            <div>Estimate workspace</div>
-          </>
-        ),
-      }),
+      <>
+        <WorkshopTitleHeader
+          title="Modern Bungalow"
+          eyebrow="Project"
+          breadcrumbs={["Workshop", "Projects", "Modern Bungalow"]}
+          projectId="project-1"
+        />
+        <ProjectEstimateMetadataPublisher
+          metadata={{
+            projectId: "project-1",
+            estimateId: "estimate-1",
+            projectName: "Modern Bungalow",
+            estimateName: "Modern Bungalow - 001",
+            estimateSheetCode: "ES-001",
+            projectBudget: 2_000_000,
+          }}
+        />
+      </>,
     );
 
     expect(screen.getByRole("heading", { name: "Modern Bungalow" })).toBeVisible();
-    const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
-    expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeVisible();
-    expect(within(breadcrumbs).getByText("Estimates")).toBeVisible();
-    await waitFor(() => expect(within(breadcrumbs).getByText("Modern Bungalow - 001")).toBeVisible());
+    expect(within(screen.getByLabelText("Project breadcrumbs")).getByText("Modern Bungalow")).toBeVisible();
+    expect(within(screen.getByLabelText("Project breadcrumbs")).getByText("Estimates")).toBeVisible();
+    await waitFor(() => expect(within(screen.getByLabelText("Project breadcrumbs")).getByText("Modern Bungalow - 001")).toBeVisible());
   });
 });
 
