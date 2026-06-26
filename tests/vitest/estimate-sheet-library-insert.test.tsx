@@ -544,7 +544,7 @@ describe("estimate sheet library insertion persistence", () => {
     await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
 
     expect(await screen.findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
-    expect(screen.getByLabelText("Image URL")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add reference image for Project Component" })).toBeInTheDocument();
     const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
     expect(nameInput.value).toBe("");
     expect(screen.getByLabelText("Supplier")).toBeInTheDocument();
@@ -600,7 +600,7 @@ describe("estimate sheet library insertion persistence", () => {
       designation: "",
     });
     expect(await screen.findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
-    expect(screen.getByLabelText("Image URL")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add reference image for Project Component" })).toBeInTheDocument();
     const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
     expect(nameInput.value).toBe("");
     expect(screen.getByLabelText("Supplier")).toBeInTheDocument();
@@ -819,9 +819,11 @@ describe("estimate sheet library insertion persistence", () => {
     });
     renderPersistedEstimateSheet(nodesWithExpressRow);
 
-    const imageUrl = screen.getByLabelText("Image URL");
+    fireEvent.click(screen.getByRole("button", { name: /reference image for Express Vanity/ }));
+    const dialog = screen.getByRole("dialog", { name: "Reference image" });
+    const imageUrl = within(dialog).getByLabelText("Reference image URL");
     fireEvent.change(imageUrl, { target: { value: "https://example.com/vanity.jpg" } });
-    fireEvent.blur(imageUrl);
+    fireEvent.keyDown(imageUrl, { key: "Enter" });
 
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalled());
     expect(actionMocks.updateEstimateRowItem.mock.calls.map(([input]) => input.sourceSnapshot)).toEqual([

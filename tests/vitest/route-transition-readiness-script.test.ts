@@ -4,6 +4,7 @@ import {
   checkRouteTransitionReadiness,
   checkScenarioReadiness,
   parseInputsFromEnv,
+  parseNonNegativeInteger,
   parseNonNegativeNumber,
   parsePositiveInteger,
 } from "@/../scripts/check-route-transition-readiness";
@@ -38,9 +39,64 @@ const thresholds = {
   publicMedianBudgetMs: 15_000,
   slow3gPublicMedianBudgetMs: 30_000,
   authenticatedMedianBudgetMs: 10_000,
+  warmMedianBudgetMs: 500,
+  generalMedianBudgetMs: 1_000,
+  directMedianBudgetMs: 3_500,
+  parentFallbackMax: 0,
+  sheetSkeletonEpisodesMax: 1,
+  overlayDurationMaxMs: 200,
+  sheetContentVisibleBudgetMs: 1_000,
+  generalImprovementMin: 0.3,
   overlayVisibilityRateMax: 1,
   requireHeroScenarios: false,
 };
+
+function makeTargetScenario(overrides: Partial<Parameters<typeof checkScenarioReadiness>[0]> = {}) {
+  return makeScenario({
+    scenario: "Authenticated Target: Estimates to Target Estimate No Hover",
+    from: "/workshop/projects/{targetProjectId}/estimates",
+    expectedPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+    runs: [
+      {
+        run: 1,
+        durationMs: 900,
+        overlayVisible: true,
+        parentFallbackSeen: false,
+        sheetSkeletonEpisodes: 1,
+        overlayDurationMs: 120,
+        sheetContentVisibleAtMs: 780,
+        rscRequestCount: 1,
+        finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      },
+      {
+        run: 2,
+        durationMs: 930,
+        overlayVisible: true,
+        parentFallbackSeen: false,
+        sheetSkeletonEpisodes: 1,
+        overlayDurationMs: 140,
+        sheetContentVisibleAtMs: 790,
+        rscRequestCount: 1,
+        finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      },
+      {
+        run: 3,
+        durationMs: 870,
+        overlayVisible: false,
+        parentFallbackSeen: false,
+        sheetSkeletonEpisodes: 1,
+        overlayDurationMs: 0,
+        sheetContentVisibleAtMs: 760,
+        rscRequestCount: 1,
+        finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      },
+    ],
+    medianMs: 900,
+    overlayVisibilityRate: 2 / 3,
+    rscRequestCount: 3,
+    ...overrides,
+  });
+}
 
 describe("route transition readiness checker", () => {
   it("requires a benchmark file input from env", () => {
@@ -53,8 +109,44 @@ describe("route transition readiness checker", () => {
     expect(parsePositiveInteger("25", 3)).toBe(25);
     expect(parsePositiveInteger("0", 3)).toBe(3);
     expect(parsePositiveInteger("bad", 3)).toBe(3);
+    expect(parseNonNegativeInteger("0", 3)).toBe(0);
+    expect(parseNonNegativeInteger("-1", 3)).toBe(3);
     expect(parseNonNegativeNumber("0.25", 1)).toBe(0.25);
     expect(parseNonNegativeNumber("-1", 1)).toBe(1);
+  });
+
+  it("parses Phase 0 target threshold inputs from env", () => {
+    process.env = {
+      ROUTE_TRANSITION_BENCHMARK_FILE: "/tmp/after.json",
+      ROUTE_TRANSITION_BASELINE_FILE: "/tmp/before.json",
+      ROUTE_TRANSITION_MIN_RUNS: "5",
+      ROUTE_TRANSITION_WARM_MEDIAN_BUDGET_MS: "500",
+      ROUTE_TRANSITION_GENERAL_MEDIAN_BUDGET_MS: "1000",
+      ROUTE_TRANSITION_DIRECT_MEDIAN_BUDGET_MS: "3500",
+      ROUTE_TRANSITION_PARENT_FALLBACK_MAX: "0",
+      ROUTE_TRANSITION_SHEET_SKELETON_EPISODES_MAX: "1",
+      ROUTE_TRANSITION_OVERLAY_DURATION_MAX_MS: "200",
+      ROUTE_TRANSITION_SHEET_CONTENT_VISIBLE_BUDGET_MS: "1000",
+      ROUTE_TRANSITION_GENERAL_IMPROVEMENT_MIN: "0.3",
+      ROUTE_TRANSITION_OVERLAY_RATE_MAX: "0",
+      ROUTE_TRANSITION_REQUIRE_HERO: "1",
+    };
+
+    expect(parseInputsFromEnv()).toMatchObject({
+      benchmarkFile: "/tmp/after.json",
+      baselineFile: "/tmp/before.json",
+      minRuns: 5,
+      warmMedianBudgetMs: 500,
+      generalMedianBudgetMs: 1_000,
+      directMedianBudgetMs: 3_500,
+      parentFallbackMax: 0,
+      sheetSkeletonEpisodesMax: 1,
+      overlayDurationMaxMs: 200,
+      sheetContentVisibleBudgetMs: 1_000,
+      generalImprovementMin: 0.3,
+      overlayVisibilityRateMax: 0,
+      requireHeroScenarios: true,
+    });
   });
 
   it("passes public benchmark scenarios inside thresholds", () => {
@@ -108,6 +200,182 @@ describe("route transition readiness checker", () => {
     expect(result.passed).toBe(false);
     expect(result.maxDurationMs).toBe(16_100);
     expect(result.reasons).toContain("max duration 16100ms exceeds 15000ms budget");
+  });
+
+  it("passes Phase 0 target scenarios with clean timeline telemetry", () => {
+    const result = checkScenarioReadiness(makeTargetScenario(), thresholds);
+
+    expect(result.passed).toBe(true);
+    expect(result.budgetMs).toBe(1_000);
+    expect(result.parentFallbackCount).toBe(0);
+    expect(result.maxSheetSkeletonEpisodes).toBe(1);
+    expect(result.maxOverlayDurationMs).toBe(140);
+    expect(result.maxSheetContentVisibleAtMs).toBe(790);
+    expect(result.reasons).toEqual([]);
+  });
+
+  it("fails Phase 0 target scenarios on parent fallback, repeated sheet skeleton, overlay duration, and content timing", () => {
+    const result = checkScenarioReadiness(makeTargetScenario({
+      runs: [
+        {
+          run: 1,
+          durationMs: 1_050,
+          overlayVisible: true,
+          parentFallbackSeen: true,
+          sheetSkeletonEpisodes: 2,
+          overlayDurationMs: 275,
+          sheetContentVisibleAtMs: 1_250,
+          rscRequestCount: 1,
+          finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+        },
+        {
+          run: 2,
+          durationMs: 950,
+          overlayVisible: false,
+          parentFallbackSeen: false,
+          sheetSkeletonEpisodes: 1,
+          overlayDurationMs: 0,
+          sheetContentVisibleAtMs: 900,
+          rscRequestCount: 1,
+          finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+        },
+        {
+          run: 3,
+          durationMs: 980,
+          overlayVisible: false,
+          parentFallbackSeen: false,
+          sheetSkeletonEpisodes: 1,
+          overlayDurationMs: 0,
+          sheetContentVisibleAtMs: 940,
+          rscRequestCount: 1,
+          finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+        },
+      ],
+      medianMs: 980,
+    }), thresholds);
+
+    expect(result.passed).toBe(false);
+    expect(result.reasons).toContain("parent fallback seen in 1 run(s), exceeds 0");
+    expect(result.reasons).toContain("sheet skeleton episodes 2 exceeds 1");
+    expect(result.reasons).toContain("overlay duration 275ms exceeds 200ms budget");
+    expect(result.reasons).toContain("sheet content visible at 1250ms exceeds 1000ms budget");
+  });
+
+  it("uses Phase 0 route-specific target budgets", () => {
+    expect(checkScenarioReadiness(makeTargetScenario({
+      scenario: "Authenticated Target: Estimates to Target Estimate Hover Prefetch",
+      medianMs: 480,
+      runs: makeTargetScenario().runs.map((run) => ({ ...run, durationMs: 480, sheetContentVisibleAtMs: 450 })),
+    }), thresholds).budgetMs).toBe(500);
+
+    expect(checkScenarioReadiness(makeTargetScenario({
+      scenario: "Authenticated Target: Estimates to Target Estimate Warm Revisit",
+      medianMs: 490,
+      runs: makeTargetScenario().runs.map((run) => ({ ...run, durationMs: 490, sheetContentVisibleAtMs: 460 })),
+    }), thresholds).passed).toBe(true);
+
+    expect(checkScenarioReadiness(makeTargetScenario({
+      scenario: "Authenticated Target: Cold Direct Target Estimate",
+      medianMs: 3_400,
+      runs: makeTargetScenario().runs.map((run) => ({ ...run, durationMs: 3_400, sheetContentVisibleAtMs: 3_200 })),
+    }), thresholds).budgetMs).toBe(3_500);
+  });
+
+  it("uses median duration budgets for target scenarios while retaining hard timeline gates", () => {
+    const result = checkScenarioReadiness(makeTargetScenario({
+      scenario: "Authenticated Target: Estimates to Target Estimate Warm Revisit",
+      medianMs: 490,
+      runs: [
+        {
+          run: 1,
+          durationMs: 1_250,
+          overlayVisible: false,
+          parentFallbackSeen: false,
+          sheetSkeletonEpisodes: 1,
+          overlayDurationMs: 0,
+          sheetContentVisibleAtMs: 900,
+          rscRequestCount: 0,
+          finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+        },
+        {
+          run: 2,
+          durationMs: 490,
+          overlayVisible: false,
+          parentFallbackSeen: false,
+          sheetSkeletonEpisodes: 0,
+          overlayDurationMs: 0,
+          sheetContentVisibleAtMs: 360,
+          rscRequestCount: 0,
+          finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+        },
+        {
+          run: 3,
+          durationMs: 470,
+          overlayVisible: false,
+          parentFallbackSeen: false,
+          sheetSkeletonEpisodes: 0,
+          overlayDurationMs: 0,
+          sheetContentVisibleAtMs: 330,
+          rscRequestCount: 0,
+          finalPathname: "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+        },
+      ],
+    }), thresholds);
+
+    expect(result.passed).toBe(true);
+    expect(result.reasons).toEqual([]);
+    expect(result.maxDurationMs).toBe(1_250);
+    expect(result.sheetContentVisibleBudgetMs).toBe(1_000);
+  });
+
+  it("uses the direct-cold budget for direct target sheet-content timing", () => {
+    const result = checkScenarioReadiness(makeTargetScenario({
+      scenario: "Authenticated Target: Cold Direct Target Estimate",
+      medianMs: 2_400,
+      runs: makeTargetScenario().runs.map((run) => ({ ...run, durationMs: 2_400, sheetContentVisibleAtMs: 2_300 })),
+    }), thresholds);
+
+    expect(result.passed).toBe(true);
+    expect(result.budgetMs).toBe(3_500);
+    expect(result.sheetContentVisibleBudgetMs).toBe(3_500);
+    expect(result.maxSheetContentVisibleAtMs).toBe(2_300);
+  });
+
+  it("allows target no-hover scenarios over the absolute budget only with required baseline-relative improvement", () => {
+    const after = makeTargetScenario({
+      medianMs: 1_100,
+      runs: makeTargetScenario().runs.map((run) => ({ ...run, durationMs: 1_100, sheetContentVisibleAtMs: 950 })),
+    });
+    const baselineScenarios = new Map([
+      [after.scenario, makeTargetScenario({ scenario: after.scenario, medianMs: 1_700 })],
+    ]);
+
+    const result = checkScenarioReadiness(after, thresholds, baselineScenarios);
+
+    expect(result.passed).toBe(true);
+    expect(result.budgetMs).toBe(1_000);
+    expect(result.baselineMedianMs).toBe(1_700);
+    expect(result.improvementPassed).toBe(true);
+    expect(result.improvementRate).toBeGreaterThan(0.3);
+  });
+
+  it("fails target no-hover scenarios over budget when the baseline is missing or improvement is too small", () => {
+    const after = makeTargetScenario({
+      medianMs: 1_100,
+      runs: makeTargetScenario().runs.map((run) => ({ ...run, durationMs: 1_100, sheetContentVisibleAtMs: 950 })),
+    });
+
+    expect(checkScenarioReadiness(after, thresholds).reasons).toContain(
+      "median 1100ms exceeds 1000ms budget and ROUTE_TRANSITION_BASELINE_FILE has no matching scenario",
+    );
+
+    const insufficientBaseline = new Map([
+      [after.scenario, makeTargetScenario({ scenario: after.scenario, medianMs: 1_300 })],
+    ]);
+
+    expect(checkScenarioReadiness(after, thresholds, insufficientBaseline).reasons).toContain(
+      "median 1100ms exceeds 1000ms budget and improvement 15.4% is below 30.0%",
+    );
   });
 
   it("summarizes a benchmark artifact without writing auth material or claiming hosted proof", () => {
@@ -164,6 +432,36 @@ describe("route transition readiness checker", () => {
     ]);
     expect(result.missing).toContain("required hero scenario missing: Authenticated Hero: Projects to Target Project");
     expect(result.missing).toContain("required hero scenario skipped: Authenticated Hero: Estimates to Target Estimate");
+  });
+
+  it("requires Phase 0 target scenarios when target benchmark evidence is present", () => {
+    const result = checkRouteTransitionReadiness({
+      benchmarkFile: "/tmp/target-route-transition-benchmark.json",
+      ...thresholds,
+      requireHeroScenarios: true,
+    }, {
+      generatedAt: "2026-06-26T00:00:00.000Z",
+      baseUrl: "http://localhost:3000",
+      authMode: "dev-auth-bypass",
+      networkProfile: "No throttle",
+      runsPerScenario: 3,
+      skipAuthenticated: false,
+      skippedScenarios: ["Authenticated Target: Estimates to Target Estimate Warm Revisit"],
+      results: [
+        makeTargetScenario({ scenario: "Authenticated Target: Cold Direct Target Estimate" }),
+        makeTargetScenario({ scenario: "Authenticated Target: Estimates to Target Estimate No Hover" }),
+      ],
+    });
+
+    expect(result.routeTransitionReady).toBe(false);
+    expect(result.requiredHeroScenarios).toEqual([
+      "Authenticated Target: Cold Direct Target Estimate",
+      "Authenticated Target: Estimates to Target Estimate No Hover",
+      "Authenticated Target: Estimates to Target Estimate Hover Prefetch",
+      "Authenticated Target: Estimates to Target Estimate Warm Revisit",
+    ]);
+    expect(result.missing).toContain("required target scenario missing: Authenticated Target: Estimates to Target Estimate Hover Prefetch");
+    expect(result.missing).toContain("required target scenario skipped: Authenticated Target: Estimates to Target Estimate Warm Revisit");
   });
 
   it("fails empty benchmark artifacts", () => {

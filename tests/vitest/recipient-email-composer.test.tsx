@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -381,6 +381,31 @@ describe("RecipientEmailComposer — recipient-result merge (AC-MOD-17)", () => 
         tone: "error",
       });
     });
+  });
+
+  it("rejects more than 50 pending recipients before calling the server action", async () => {
+    publicationActions.addSharedLinkRecipients.mockResolvedValue({
+      ok: true,
+      message: "Should not be called.",
+      added: 0,
+      failedEmails: [],
+      emailResults: [],
+    });
+    const emails = Array.from({ length: 51 }, (_, index) => `client-${index}@example.com`);
+    const user = userEvent.setup();
+    renderComposer();
+
+    const emailInput = await screen.findByPlaceholderText("name@company.com, another@...");
+    await waitFor(() => expect(emailInput).not.toBeDisabled());
+    fireEvent.change(emailInput, { target: { value: emails.join(",") } });
+    fireEvent.blur(emailInput);
+    expect(await screen.findByText("client-50@example.com")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Send to 51 recipients/ }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Add up to 50 recipients per action.");
+    expect(publicationActions.addSharedLinkRecipients).not.toHaveBeenCalled();
   });
 
   it("preserves successful recipient sends and exposes retry for a per-recipient failure", async () => {

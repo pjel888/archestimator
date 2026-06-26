@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   projectDashboardPage,
   projectEstimateNodePage,
+  projectEstimatesPage,
   estimateWorkspaceClient,
   projectEstimatesLoading,
   workshopPageShell,
@@ -27,27 +28,48 @@ describe("project dashboard route shell UI governance", () => {
     expect(estimateWorkspaceClient).toContain("module.EstimateSheetContent");
   });
 
-  it("provides a nested loading fallback for project estimate list transitions", () => {
-    expect(projectEstimatesLoading).not.toBe("");
-    // P0-6: the list route uses a table-shaped skeleton matching the page, not the
-    // node-route ProjectRouteContentFallback (sidebar + 2-column grid + right rail).
-    expect(projectEstimatesLoading).toContain("ProjectEstimatesListSkeleton");
-    expect(projectEstimatesLoading).not.toContain("ProjectRouteContentFallback");
-    expect(projectEstimatesLoading).not.toContain("WorkshopPageShell");
-    expect(projectEstimatesLoading).not.toContain("cookies()");
-    expect(projectEstimatesLoading).not.toContain("getCurrentUserContext");
+  it("keeps the estimates-list fallback page-local so sheet routes do not inherit it", () => {
+    expect(projectEstimatesLoading).toBe("");
+    // Routing Page Optimization P2-T1: the estimates list still gets a
+    // table-shaped fallback, but not through a segment loading.tsx that wraps
+    // nested estimate-sheet routes and flashes the wrong skeleton.
+    expect(projectEstimatesPage).toContain('import { Suspense } from "react"');
+    expect(projectEstimatesPage).toContain("ProjectEstimatesListRouteFallback");
+    expect(projectEstimatesPage).toContain("<Suspense fallback={<ProjectEstimatesListRouteFallback />}>");
+    expect(projectEstimatesPage).toContain("<ProjectEstimatesContent params={params} />");
+    expect(projectEstimatesPage).toContain("async function ProjectEstimatesContent");
+    expect(projectEstimatesPage.indexOf("<Suspense fallback={<ProjectEstimatesListRouteFallback />}>")).toBeLessThan(
+      projectEstimatesPage.indexOf('withPerfTraceRequest("workshop.estimates-list"'),
+    );
+    expect(projectEstimatesPage).not.toContain("ProjectRouteContentFallback");
+    expect(projectEstimatesPage).not.toContain("WorkshopPageShell");
   });
 
   it("locks page-level scrolling only while the workshop shell is mounted", () => {
     expect(workshopPageShell).toContain("data-workshop-page-shell-root");
     expect(workshopPageShell).toContain("h-[100dvh] overflow-hidden");
-    expect(workshopPageShell).toContain("Promise.all([");
+    expect(workshopPageShell).toContain("const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();");
+    expect(workshopPageShell).toContain("<AuthenticatedMainSidebar status={sidebarStatus} />");
+    expect(workshopPageShell).toContain("<WorkshopSettingsEntry location={settingsModalLocation} />");
     expect(workshopPageShell).toContain("<Suspense fallback={<WorkshopShellContentFallback />}>");
     expect(workshopPageShell).toContain("function WorkshopShellContentFallback()");
     expect(workshopPageShell).not.toContain("Modern Bungalow");
     expect(globalsCss).toContain("body:has([data-workshop-page-shell-root])");
     expect(globalsCss).toContain("overflow: hidden");
     expect(globalsCss).not.toContain("body {\\n  overflow: hidden;");
+  });
+
+  it("keeps shell auth and workspace bootstrap out of the content streaming path", () => {
+    const shellFunctionStart = workshopPageShell.indexOf("export async function WorkshopPageShell");
+    const shellReturnStart = workshopPageShell.indexOf("return (", shellFunctionStart);
+    const shellPreamble = workshopPageShell.slice(shellFunctionStart, shellReturnStart);
+
+    expect(shellPreamble).not.toContain("getCurrentUserContext()");
+    expect(shellPreamble).not.toContain("ensureDefaultWorkspace()");
+    expect(workshopPageShell).toContain("async function AuthenticatedMainSidebar");
+    expect(workshopPageShell).toContain("async function WorkshopSettingsEntry");
+    expect(workshopPageShell).toContain("<Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} />}>");
+    expect(workshopPageShell).toContain("<Suspense fallback={<WorkshopSettingsEntryFallback location={settingsModalLocation} />}>");
   });
 
   it("gets the active header budget from the selected estimate sheet metadata", () => {

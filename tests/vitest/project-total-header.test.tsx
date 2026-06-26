@@ -133,7 +133,11 @@ describe("ProjectTotalHeader", () => {
     expect(within(header).getByText("No budget")).toBeInTheDocument();
     expect(meter).toHaveAttribute("aria-valuetext", "Add planned budget to track variance");
     expect(header.querySelectorAll("[data-budget-health-segment]")).toHaveLength(144);
-    expect(header.querySelectorAll('[data-budget-health-segment-active="true"]')).toHaveLength(0);
+    const activeSegments = header.querySelectorAll('[data-budget-health-segment-active="true"]');
+    const lastActiveSegment = activeSegments[activeSegments.length - 1];
+
+    expect(activeSegments).toHaveLength(144);
+    expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-tone", "missing");
   });
 
   it("does not render on non-estimate project routes", () => {

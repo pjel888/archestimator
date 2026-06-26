@@ -1,11 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
 import { favoritesQueryKeys } from "@/lib/favorites/query-keys";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
+
+const openActionCellSource = readFileSync("src/components/workshop/project-estimates-table/ProjectEstimateOpenActionCell.tsx", "utf8");
 
 const routerMock = vi.hoisted(() => ({
   prefetch: vi.fn(),
@@ -182,6 +185,7 @@ describe("project estimates table inline editing", () => {
     });
 
     expect(routerMock.prefetch).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/node-1");
+    expect(openActionCellSource).toContain("prefetch={true}");
     expect(repositoryMocks.getEstimateTree).not.toHaveBeenCalled();
     expect(actionMocks.fetchEstimateTree).not.toHaveBeenCalled();
     expect(componentLibraryActionMocks.loadProjectComponentLibraryLite).not.toHaveBeenCalled();

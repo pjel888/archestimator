@@ -1,32 +1,67 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME, HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
+import {
+  HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME,
+  HeaderIconToolbar,
+} from "@/components/ui/header-icon-toolbar";
 
 describe("HeaderIconToolbar", () => {
   // A4/D8: Filter and Group are handler-gated — they only render when a handler is provided.
   it("does NOT render filter or group buttons when no handler is provided", () => {
-    render(<HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" addActions={[]} />);
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        addActions={[]}
+      />,
+    );
 
-    expect(screen.queryByRole("button", { name: "Filter estimate" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Group estimate" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Filter estimate" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Group estimate" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders Filter button when onFilter is provided", () => {
     const onFilter = vi.fn();
-    render(<HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" onFilter={onFilter} addActions={[]} />);
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        onFilter={onFilter}
+        addActions={[]}
+      />,
+    );
 
-    expect(screen.getByRole("button", { name: "Filter estimate" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Group estimate" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Filter estimate" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Group estimate" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders Group button when onGroup is provided", () => {
     const onGroup = vi.fn();
-    render(<HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" onGroup={onGroup} addActions={[]} />);
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        onGroup={onGroup}
+        addActions={[]}
+      />,
+    );
 
-    expect(screen.queryByRole("button", { name: "Filter estimate" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Group estimate" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Filter estimate" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Group estimate" }),
+    ).toBeInTheDocument();
   });
 
   it("renders both Filter and Group buttons when both handlers are provided", () => {
@@ -42,8 +77,12 @@ describe("HeaderIconToolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Filter estimate" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Group estimate" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Filter estimate" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Group estimate" }),
+    ).toBeInTheDocument();
   });
 
   it("renders filterSlot in place of the default Filter button", () => {
@@ -56,8 +95,12 @@ describe("HeaderIconToolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Custom filter" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Filter estimate" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Custom filter" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Filter estimate" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders filterSlot alongside Group button when both filterSlot and onGroup are provided", () => {
@@ -72,14 +115,24 @@ describe("HeaderIconToolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Custom filter" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Filter estimate" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Group estimate" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Custom filter" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Filter estimate" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Group estimate" }),
+    ).toBeInTheDocument();
   });
 
   it("renders no cluster wrapper (no border-r separator) when neither filter nor group would render", () => {
     const { container } = render(
-      <HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" addActions={[]} />,
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        addActions={[]}
+      />,
     );
 
     // No role=group for the filter/group cluster should exist
@@ -107,10 +160,15 @@ describe("HeaderIconToolbar", () => {
       (g) => g.getAttribute("aria-label") === "estimate view filters",
     );
     expect(filterGroupCluster).toBeDefined();
-    const divider = Array.from(container.querySelectorAll("span[aria-hidden='true']")).find(
+    const divider = Array.from(
+      container.querySelectorAll("span[aria-hidden='true']"),
+    ).find(
       (element) => element.className === HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME,
     );
     expect(divider).toBeDefined();
+    expect(divider).toHaveClass("text-tertiary");
+    expect(divider?.className).toContain("currentColor");
+    expect(divider?.className).not.toContain("--glass-border");
   });
 
   // Req 11 / D8: a filter-only toolbar with nothing after it must NOT show an
@@ -118,12 +176,17 @@ describe("HeaderIconToolbar", () => {
   it("renders the filter cluster WITHOUT a border-r separator when no expand/collapse follows", () => {
     const onFilter = vi.fn();
     const { container } = render(
-      <HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" onFilter={onFilter} addActions={[]} />,
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        onFilter={onFilter}
+        addActions={[]}
+      />,
     );
 
-    const filterGroupCluster = Array.from(container.querySelectorAll('[role="group"]')).find(
-      (g) => g.getAttribute("aria-label") === "estimate view filters",
-    );
+    const filterGroupCluster = Array.from(
+      container.querySelectorAll('[role="group"]'),
+    ).find((g) => g.getAttribute("aria-label") === "estimate view filters");
     expect(filterGroupCluster).toBeDefined();
     expect(filterGroupCluster).not.toHaveClass("border-r");
   });
@@ -142,10 +205,16 @@ describe("HeaderIconToolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Wired filter" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Wired filter" }),
+    ).toBeInTheDocument();
     // ...but the built-in default Filter/Group buttons stay suppressed.
-    expect(screen.queryByRole("button", { name: "Filter component table" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Group component table" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Filter component table" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Group component table" }),
+    ).not.toBeInTheDocument();
   });
 
   it("can hide default actions for toolbars that provide their own controls", () => {
@@ -161,16 +230,60 @@ describe("HeaderIconToolbar", () => {
     );
 
     // showDefaultActions=false is a hard off-switch even when handlers are passed
-    expect(screen.queryByRole("button", { name: "Filter chart" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Group chart" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add chart" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add chart" })).not.toHaveTextContent("Add chart");
+    expect(
+      screen.queryByRole("button", { name: "Filter chart" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Group chart" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add chart" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add chart" }),
+    ).not.toHaveTextContent("Add chart");
+  });
+
+  it("keeps custom trailing action controls ordered with add buttons", () => {
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Project tools"
+        labelPrefix="projects"
+        addActions={[
+          {
+            id: "manage-groups",
+            label: "Manage groups",
+            element: (
+              <button type="button" aria-label="Manage groups">
+                groups
+              </button>
+            ),
+          },
+          {
+            label: "Add projects",
+            icon: <span aria-hidden="true" />,
+          },
+        ]}
+      />,
+    );
+
+    const actionLabels = within(screen.getByLabelText("Project tools"))
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"));
+    expect(actionLabels).toEqual(["Manage groups", "Add projects"]);
   });
 
   it("fires onFilter when the Filter button is clicked", async () => {
     const user = userEvent.setup();
     const onFilter = vi.fn();
-    render(<HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" onFilter={onFilter} addActions={[]} />);
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        onFilter={onFilter}
+        addActions={[]}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Filter estimate" }));
     expect(onFilter).toHaveBeenCalledTimes(1);
@@ -179,7 +292,14 @@ describe("HeaderIconToolbar", () => {
   it("fires onGroup when the Group button is clicked", async () => {
     const user = userEvent.setup();
     const onGroup = vi.fn();
-    render(<HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" onGroup={onGroup} addActions={[]} />);
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        onGroup={onGroup}
+        addActions={[]}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Group estimate" }));
     expect(onGroup).toHaveBeenCalledTimes(1);
@@ -188,10 +308,19 @@ describe("HeaderIconToolbar", () => {
   it("dismisses icon tooltips when their action is clicked", async () => {
     const user = userEvent.setup();
     const onFilter = vi.fn();
-    render(<HeaderIconToolbar ariaLabel="Estimate tools" labelPrefix="estimate" onFilter={onFilter} addActions={[]} />);
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Estimate tools"
+        labelPrefix="estimate"
+        onFilter={onFilter}
+        addActions={[]}
+      />,
+    );
 
     await user.hover(screen.getByRole("button", { name: "Filter estimate" }));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Filter estimate");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Filter estimate",
+    );
 
     await user.click(screen.getByRole("button", { name: "Filter estimate" }));
 

@@ -17,7 +17,7 @@ describe("design-system enforcer — /share px allowlist", () => {
     expect(isSharePxExemptPath("src/app/share/[token]/page.tsx")).toBe(true);
     expect(isSharePxExemptPath("src/components/share/SharePageHero.tsx")).toBe(true);
     // Not exempt: owner/workshop, ui primitives, landing, etc.
-    expect(isSharePxExemptPath("src/components/workshop/ProjectPublicationHeader.tsx")).toBe(false);
+    expect(isSharePxExemptPath("src/components/workshop/publisher/PublisherDrawer.tsx")).toBe(false);
     expect(isSharePxExemptPath("src/components/ui/button.tsx")).toBe(false);
     expect(isSharePxExemptPath("src/app/workshop/projects/page.tsx")).toBe(false);
   });

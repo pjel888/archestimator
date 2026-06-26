@@ -58,6 +58,7 @@ import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data"
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
+  fetchEstimateEditCapability: vi.fn(),
   fetchEstimateTree: vi.fn(),
   restoreDeletedEstimateRows: vi.fn(),
   fetchEstimateTabTree: vi.fn(),

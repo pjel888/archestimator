@@ -36,4 +36,21 @@ describe("project publication security headers (Shared Link V2)", () => {
     expect(shareHeaders?.headers).not.toContainEqual({ key: "Referrer-Policy", value: "no-referrer-when-downgrade" });
     expect(shareApiHeaders?.headers).not.toContainEqual({ key: "Referrer-Policy", value: "no-referrer-when-downgrade" });
   });
+
+  it("applies no-referrer hardening to workshop routes including Publisher", async () => {
+    const headers = await nextConfig.headers?.();
+    const workshopHeaders = headers?.find((entry) => entry.source === "/workshop/:path*");
+
+    expect(workshopHeaders).toBeDefined();
+    expect(workshopHeaders?.headers).toEqual(
+      expect.arrayContaining([
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+      ]),
+    );
+    expect(workshopHeaders?.headers.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value).toContain(
+      "default-src 'self'",
+    );
+  });
 });

@@ -5,26 +5,23 @@ import { readLatestPublicationActivityTimestamp } from "@/lib/repositories/works
 
 const layout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8");
 const projectChrome = readFileSync("src/components/workshop/ProjectChromeAsync.tsx", "utf8");
-const publicationHeader = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
-const teamspaceHeader = readFileSync("src/components/workshop/ProjectTeamspaceHeader.tsx", "utf8");
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
 describe("project publication integration contract (Shared Link V2)", () => {
   it("keeps publication separate from private Teamspaces membership", () => {
-    // P1-2: the publication fan-out + header moved into the streamed ProjectChromeAsync.
+    // P1-2 + Publisher Phase 4: the publication fan-out remains streamed
+    // through ProjectChromeAsync, and project chrome now deep-links directly to
+    // Publisher instead of retaining the old project-scoped modal.
     expect(layout).toContain("<ProjectChromeAsync");
     expect(projectChrome).toContain("getProjectPublicationSummary(projectId)");
-    expect(projectChrome).toContain("<ProjectPublicationHeader");
-    expect(projectChrome).toContain("summary={publicationSummary}");
-    expect(projectChrome).toContain("currentUserEmail={currentUserEmail}");
-    expect(projectChrome).toContain("projectEstimateSheets={projectEstimateSheets}");
-    expect(publicationHeader).toContain("ProjectPublicationHeader({ summary");
-    expect(publicationHeader).toContain('data-workshop-layout="project-publication-header"');
-    expect(publicationHeader).toContain('title="Shared link"');
-    expect(teamspaceHeader).toContain("Private project link");
-    expect(teamspaceHeader).toContain("Copy private link");
-    expect(teamspaceHeader).not.toContain("Share page");
-    expect(teamspaceHeader).not.toContain("Shared link");
+    expect(workspaceRepository).toContain("canReadPublisherRoster");
+    expect(projectChrome).toContain('data-publisher-project-link="publication"');
+    expect(projectChrome).toContain('data-workshop-layout="project-publication-header"');
+    expect(projectChrome).toContain("publicationSummary={publicationSummary}");
+    expect(projectChrome).not.toContain("if (!publisherEnabled)");
+    expect(projectChrome).not.toContain("<ProjectPublicationHeader");
+    expect(projectChrome).not.toContain("currentUserEmail={currentUserEmail}");
+    expect(projectChrome).not.toContain("projectEstimateSheets={projectEstimateSheets}");
   });
 });
 

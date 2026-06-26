@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME } from "@/components/ui/header-icon-toolbar";
 import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -123,6 +124,11 @@ async function selectSortField(user: ReturnType<typeof userEvent.setup>, label: 
   await user.click(screen.getByRole("option", { name: label }));
 }
 
+async function selectGroupBy(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole("combobox", { name: "Group by" }));
+  await user.click(screen.getByRole("option", { name: label }));
+}
+
 async function selectSortDirection(user: ReturnType<typeof userEvent.setup>, label: string) {
   await user.click(screen.getByRole("combobox", { name: "Sort direction" }));
   await user.click(screen.getByRole("option", { name: label }));
@@ -147,9 +153,10 @@ describe("ProjectsPageClient sort controls", () => {
     );
 
     expect(screen.getByRole("combobox", { name: "View" })).toHaveAttribute("title", "Large");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
     expect(screen.getByRole("combobox", { name: "Sort field" })).toHaveAttribute("title", "Last updated");
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Newest first");
-    for (const controlName of ["View", "Sort field", "Sort direction"]) {
+    for (const controlName of ["View", "Group by", "Sort field", "Sort direction"]) {
       const control = screen.getByRole("combobox", { name: controlName });
       expect(control).toHaveClass("border-0", "gap-1.5", "px-1.5");
       expect(control).not.toHaveClass("border-hairline");
@@ -158,9 +165,26 @@ describe("ProjectsPageClient sort controls", () => {
     const viewDivider = screen.getByRole("combobox", { name: "View" }).parentElement?.nextElementSibling;
     expect(viewDivider).toHaveAttribute("data-project-toolbar-view-divider", "");
     expect(viewDivider).toHaveAttribute("aria-hidden", "true");
-    expect(viewDivider).toHaveClass("h-4", "w-px", "shrink-0", "bg-hairline");
+    expect(viewDivider).toHaveClass(...HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME.split(" "));
+    expect(viewDivider).not.toHaveClass("bg-hairline");
     expect(screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement).toHaveClass("ml-auto");
     expect(liveProjectNames()).toEqual(["Zulu Project", "Alpha Project"]);
+    expect(projectDateGroupLabels()).toEqual([]);
+  });
+
+  it("groups projects only through the explicit Group by control", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "Zulu Project", updated_at: "2026-02-01T00:00:00.000Z" }),
+          item({ id: "p2", name: "Alpha Project", updated_at: "2026-02-01T00:00:00.000Z" }),
+        ]}
+      />,
+    );
+
+    await selectGroupBy(user, "Last updated");
+
     expect(projectDateGroupLabels()).toEqual(["2026 · February"]);
     expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
     expect(screen.getByText("2026 · February")).toHaveClass("border-x", "border-b", "text-brand-orange-dark");
@@ -189,6 +213,7 @@ describe("ProjectsPageClient sort controls", () => {
     );
 
     await selectSortField(user, "Date created");
+    await selectGroupBy(user, "Date created");
     expect(liveProjectNames()).toEqual(["Newer", "Middle", "Older"]);
     expect(projectDateGroupLabels()).toEqual([
       "2026 · March",
@@ -220,6 +245,7 @@ describe("ProjectsPageClient sort controls", () => {
     );
 
     await selectSortField(user, "Date created");
+    await selectGroupBy(user, "Date created");
 
     const marchGroup = screen.getByLabelText("2026 · March");
     expect(within(marchGroup).getAllByRole("article").map((card) => card.getAttribute("aria-label"))).toEqual([
@@ -242,6 +268,7 @@ describe("ProjectsPageClient sort controls", () => {
 
     await user.click(screen.getByRole("combobox", { name: "View" }));
     await user.click(screen.getByRole("option", { name: "List" }));
+    await selectGroupBy(user, "Last updated");
 
     expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "list");
     expect(projectDateGroupLabelWrapper("2026 · February")).toHaveClass(
@@ -257,7 +284,8 @@ describe("ProjectsPageClient sort controls", () => {
     });
   });
 
-  it("keeps default date groups contiguous even when incoming projects are shuffled", () => {
+  it("keeps explicit date groups contiguous even when incoming projects are shuffled", async () => {
+    const user = userEvent.setup();
     render(
       <ProjectsPageClient
         projects={[
@@ -267,6 +295,8 @@ describe("ProjectsPageClient sort controls", () => {
         ]}
       />,
     );
+
+    await selectGroupBy(user, "Last updated");
 
     expect(projectDateGroupLabels()).toEqual(["2026 · March", "2026 · January"]);
     expect(within(screen.getByLabelText("2026 · March")).getAllByRole("article").map((card) => card.getAttribute("aria-label"))).toEqual([
@@ -288,6 +318,7 @@ describe("ProjectsPageClient sort controls", () => {
     );
 
     await selectSortField(user, "Client");
+    await selectGroupBy(user, "Client");
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "A to Z");
     expect(liveProjectNames()).toEqual(["project 2", "Project 10", "Project 1"]);
     expect(projectDateGroupLabels()).toEqual(["alpha", "Beta", "No client yet"]);
@@ -321,6 +352,7 @@ describe("ProjectsPageClient sort controls", () => {
 
     await selectSortField(user, "Project name");
     expect(liveProjectNames()).toEqual(["Project 1", "project 2", "Project 10"]);
+    await selectGroupBy(user, "No grouping");
     expect(projectDateGroupLabels()).toEqual([]);
   });
 
@@ -335,6 +367,7 @@ describe("ProjectsPageClient sort controls", () => {
     );
 
     await selectSortField(user, "Date created");
+    await selectGroupBy(user, "Date created");
 
     expect(projectDateGroupLabels()).toEqual([currentProjectDateGroupLabel()]);
     expect(screen.queryByLabelText("Today")).not.toBeInTheDocument();
@@ -370,6 +403,7 @@ describe("ProjectsPageClient sort controls", () => {
     const { rerender } = render(<ProjectsPageClient projects={[]} />);
 
     expect(screen.getByRole("combobox", { name: "View" })).not.toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Group by" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
@@ -379,6 +413,7 @@ describe("ProjectsPageClient sort controls", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "no-match" } });
 
     expect(screen.getByRole("combobox", { name: "View" })).not.toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Group by" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);

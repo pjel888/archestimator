@@ -21,6 +21,20 @@ describe("useNavigationRouter", () => {
     expect(show).toHaveBeenCalledWith("/somewhere");
   });
 
+  it("push() still records estimate sheet navigation targets", () => {
+    show.mockClear();
+    const { result } = renderHook(() => useNavigationRouter());
+    result.current.push("/workshop/projects/project-1/estimates/estimate-1");
+    expect(show).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
+  });
+
+  it("replace() still records estimate sheet navigation targets", () => {
+    show.mockClear();
+    const { result } = renderHook(() => useNavigationRouter());
+    result.current.replace("/workshop/projects/project-1/estimates/estimate-1?tab=takeoff");
+    expect(show).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1?tab=takeoff");
+  });
+
   it("refresh() does NOT show the overlay (mutations are optimistic; Library T1)", () => {
     show.mockClear();
     refresh.mockClear();

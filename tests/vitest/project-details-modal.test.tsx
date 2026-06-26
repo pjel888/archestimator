@@ -206,6 +206,36 @@ describe("ProjectDetailsModal", () => {
     expect(updateProjectDetailsMock.mock.calls[0]?.[0].get("clientName")).toBe("New Client LLC");
   });
 
+  it("shows a Google map preview for a saved address before selecting a new place", () => {
+    const projectWithSavedAddress = {
+      ...PROJECT,
+      location: "Rockwell Dr, Makati City, Metro Manila, Philippines",
+    };
+
+    render(
+      <ProjectDetailsModal
+        project={projectWithSavedAddress}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        googleMapsApiKey="test-google-browser-key"
+      />,
+    );
+
+    const preview = screen.getByLabelText("Project location preview");
+    const mapImage = preview.querySelector("img");
+    expect(mapImage).toBeInTheDocument();
+    expect(mapImage?.getAttribute("src")).toContain(
+      "https://maps.googleapis.com/maps/api/staticmap",
+    );
+    const mapUrl = new URL(mapImage?.getAttribute("src") ?? "");
+    expect(mapUrl.searchParams.get("center")).toBe(
+      "Rockwell Dr, Makati City, Metro Manila, Philippines",
+    );
+    expect(preview).toHaveTextContent("Rockwell Dr, Makati City, Metro Manila, Philippines");
+    expect(preview).toHaveTextContent("Choose a Google suggestion to pin this project.");
+    expect(placesMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
+  });
+
   it("saves selected Google place coordinates after the details payload", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

@@ -61,27 +61,74 @@ describe("estimate tab repository compatibility wrappers", () => {
     const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
     expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
-    // U21: the resolver returns the tab list in parallel with the tree, so the
-    // page prefers it (`tabs ??`) and only falls back to a direct getEstimateTabs
-    // fetch when it wasn't provided.
-    expect(routeSource).toContain("tabs ?? (tab ? await getEstimateTabs(project.id, estimate.id) : [])");
-    // Add New Tabs U1: the edit-capability RPC resolves in parallel with that tabs
-    // read (one Promise.all, no new sequential first-paint hop) — it cannot live in
-    // the route's first Promise.all because `estimate.id` is only known after
-    // `resolveEstimateTabRouteContext` resolves.
-    expect(routeSource).toContain("Promise.all([");
-    expect(routeSource).toContain("tab ? await getEstimateTabs(project.id, estimate.id) : []");
-    expect(routeSource).toContain("resolveEstimateEditCapability(estimate.id)");
-    expect(routeSource).toContain("canEditEstimate={canEditEstimate}");
+    // U21/P26: the resolver returns the tab list on the dominant tab path; a
+    // missing tab list fails closed on first paint and hydrates from the client
+    // query instead of adding a blocking server tail.
+    expect(routeSource).toContain("const estimateTabs = tabs ?? []");
+    expect(routeSource).not.toContain("tab ? await getEstimateTabs(project.id, estimate.id) : []");
+    expect(routeSource).not.toContain("Promise.all([");
+    // Routing Page Optimization P26: selected-node route context and the page
+    // both leave edit capability to client-side hydration so first paint is not
+    // gated on the UI affordance RPC; server writes still use authoritative
+    // RLS/RPC checks.
+    expect(routeSource).not.toContain("resolveEstimateEditCapability");
+    expect(routeSource).toContain("canEditEstimate={prefetchedCanEditEstimate === true}");
     expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
     expect(repositorySource).toContain('.eq("id", routeSegment)');
     expect(repositorySource).toContain('.eq("project_id", project.id)');
     expect(repositorySource).toContain("readEstimateTabsForEstimate(supabase, resolvedEstimate.id)");
     expect(repositorySource).toContain("getEstimateTabTreeForResolvedEstimateTab(");
-    // U21: the tab-present branches resolve the tab list in parallel with the tree
-    // without re-running project/estimate validation after the project-scoped join.
-    expect(repositorySource).toContain("getEstimateTabTreeForResolvedEstimate(supabase, resolved, routeNode.estimate_tab_id, options)");
+    // U21 / Routing Page Optimization P3-T3/P25: the tab-present branch resolves
+    // the tab tree and tab list in parallel, and the selected-node query carries
+    // the active tab list through its existing project-scoped join. Edit
+    // capability stays in the named page tail instead of route context.
+    expect(repositorySource).toContain('.eq("estimates.project_id", projectId)');
+    expect(repositorySource).toContain(".is(\"estimates.estimate_tabs.archived_at\", null)");
+    expect(repositorySource).toContain('.order("sort_order", { referencedTable: "estimates.estimate_tabs", ascending: true })');
+    expect(repositorySource).toContain("const selectedTabId = routeNode?.estimate_tab_id");
+    expect(repositorySource).toContain("const selectedTabContextPromise = selectedNodeResultPromise.then");
+    // Routing Page Optimization P14: the selected-node URL path carries
+    // project/workspace through the same PostgREST embed, so the dominant route
+    // shape no longer starts a separate project lookup in parallel with the node.
+    expect(repositorySource).toContain('projects!inner(*, workspaces(*)), estimate_tabs(');
+    expect(repositorySource).toContain("splitProjectWorkspaceJoin(routeNode.estimates.projects)");
+    expect(repositorySource).toContain("stripEstimateProjectJoin(routeNode.estimates)");
+    expect(repositorySource).toContain("readEmbeddedEstimateTabs(routeNode.estimates)");
+    expect(repositorySource).toContain("readEstimateTabTreePayloadForResolvedTabId(supabase, estimate, selectedTabId, options)");
+    expect(repositorySource).toContain("const selectedTabContext = await selectedTabContextPromise");
+    expect(repositorySource).toContain('projectContext ?? await traced("estimate-route-context.project"');
+    expect(repositorySource).not.toContain("Promise.all([projectContextPromise, selectedTabContextPromise])");
+    expect(repositorySource).not.toContain('const projectContextPromise = traced("estimate-route-context.project"');
     expect(repositorySource).toContain("readEstimateTabsForEstimate(supabase, routeNode.estimate_id)");
+    expect(repositorySource).not.toContain('traced("estimate-route-context.edit-capability"');
+    expect(repositorySource).not.toContain("resolveEstimateEditCapability(routeNode.estimate_id)");
+  });
+
+  it("keeps route-context and tab-tree latency phases traceable for benchmark diagnosis", () => {
+    const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+
+    [
+      "estimate-route-context.project",
+      "estimate-route-context.supabase-client",
+      "estimate-route-context.selected-node",
+      "estimate-route-context.tab-tree",
+      "estimate-route-context.tabs-list",
+      "estimate-route-context.estimate-lookup",
+      "estimate-route-context.estimate-fallback",
+      "estimate-route-context.estimate-tabs-list",
+      "estimate-route-context.default-tab-tree",
+      "estimate-route-context.default-fallback",
+      "estimate-tab-tree.nodes-with-rows",
+      "estimate-tab-tree.build",
+      "workspace-project.ensure-default-workspace",
+      "workspace-project.project-lookup",
+    ].forEach((label) => {
+      expect(repositorySource).toContain(label);
+    });
+    expect(repositorySource).toContain('.select("*, workspaces(*)")');
+    expect(repositorySource).toContain("ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS");
+    expect(repositorySource).toContain('estimate_row_items!estimate_row_items_node_id_fkey');
+    expect(repositorySource).toContain('.eq("estimate_row_items.estimate_id", estimate.id)');
   });
 });
 

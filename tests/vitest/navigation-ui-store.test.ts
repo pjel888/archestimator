@@ -39,6 +39,15 @@ describe("navigation-ui-store delay-before-show", () => {
     expect(useNavigationUiStore.getState().isNavigating).toBe(true);
   });
 
+  it("suppresses the global overlay for estimate sheet routes with a leaf skeleton", () => {
+    vi.useFakeTimers();
+    const s = useNavigationUiStore.getState();
+    s.show("/workshop/projects/project-1/estimates/estimate-1");
+    vi.advanceTimersByTime(10_000);
+    expect(useNavigationUiStore.getState().isNavigating).toBe(false);
+    expect(useNavigationUiStore.getState().targetHref).toBe("/workshop/projects/project-1/estimates/estimate-1");
+  });
+
   it("keeps the overlay visible at least MIN_VISIBLE_MS once shown (no flicker)", () => {
     vi.useFakeTimers();
     const s = useNavigationUiStore.getState();

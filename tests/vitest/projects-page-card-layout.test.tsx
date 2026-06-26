@@ -82,6 +82,8 @@ describe("Projects page card layout", () => {
 
     let card = screen.getByLabelText("Lewis Residence project, owned access");
     let thumbnail = card.querySelector("[data-project-card-thumbnail]");
+    expect(thumbnail).toHaveClass("rounded-[var(--project-card-inner-radius)]");
+    expect(thumbnail).not.toHaveClass("rounded-t-[var(--project-card-inner-radius)]");
     expect(thumbnail?.querySelector("img")?.getAttribute("src")).toContain("/api/projects/images?path=project-images/thumb.webp");
     expect(thumbnail?.querySelector("img")?.getAttribute("src")).not.toContain("staticmap");
     expect(thumbnail?.querySelector("[data-project-card-generated-gradient]")).toBeNull();
@@ -135,29 +137,31 @@ describe("Projects page card layout", () => {
     expect(card).toHaveClass("workshop-project-card-glass");
 
     // Translucent TOP STRIP holds the hover-revealed controls (select left,
-    // star/group/kebab right) in the glass band above the inset white card.
+    // star/group/kebab right) in the glass band above the inset inner panel.
     const topStrip = card.querySelector("[data-project-card-top-strip]");
     expect(topStrip).not.toBeNull();
     expect(topStrip).toHaveClass("flex");
     expect(within(topStrip as HTMLElement).getByRole("checkbox", { name: "Select Lewis Residence for deletion" })).toBeInTheDocument();
     expect(within(topStrip as HTMLElement).getByRole("button", { name: "Expand Lewis Residence details" })).toBeInTheDocument();
 
-    // INSET WHITE inner card wraps the thumbnail + content (no second blur).
+    // INSET translucent inner panel wraps the thumbnail + content (no second blur).
     const inner = card.querySelector("[data-project-card-inner]");
     expect(inner).not.toBeNull();
     expect(inner).toHaveClass("workshop-project-card-inner");
 
     const tileContent = card.querySelector("[data-project-card-tile-content]");
     expect(tileContent).not.toBeNull();
-    expect(tileContent).toHaveClass("p-0");
+    expect(tileContent).toHaveClass("p-2");
     expect(tileContent).toHaveClass("justify-between");
+    expect(tileContent).not.toHaveClass("p-0");
     expect(tileContent).not.toHaveClass("p-3");
 
     // Title block is now text-only (client / name / location); the kebab moved
     // up to the top strip, so it is no longer inside the title block.
     const titleBlock = card.querySelector("[data-project-card-title-block]");
     expect(titleBlock).not.toBeNull();
-    expect(titleBlock).toHaveClass("p-2");
+    expect(titleBlock).toHaveClass("min-h-[70px]");
+    expect(titleBlock).not.toHaveClass("p-2");
     expect(titleBlock).not.toHaveClass("pt-2");
     expect(titleBlock).not.toHaveClass("pr-2");
     expect(within(titleBlock as HTMLElement).getByText("Quezon City, Metro Manila, Philippines")).toBeInTheDocument();
@@ -210,8 +214,12 @@ describe("Projects page card layout", () => {
     expect(dateBand).not.toHaveClass("border-b");
     const createdDateCell = dateBand?.querySelector('[data-project-card-date-cell="created"]');
     const updatedDateCell = dateBand?.querySelector('[data-project-card-date-cell="updated"]');
-    expect(createdDateCell).toHaveClass("rounded-xs", "border", "border-hairline", "bg-surfaceMuted");
-    expect(updatedDateCell).toHaveClass("rounded-xs", "border", "border-hairline", "bg-surfaceMuted");
+    expect(createdDateCell).toHaveClass("rounded-xs", "px-2", "py-1.5");
+    expect(createdDateCell).not.toHaveClass("border");
+    expect(createdDateCell).not.toHaveClass("bg-surfaceMuted");
+    expect(updatedDateCell).toHaveClass("rounded-xs", "px-2", "py-1.5");
+    expect(updatedDateCell).not.toHaveClass("border");
+    expect(updatedDateCell).not.toHaveClass("bg-surfaceMuted");
     expect(within(dateBand as HTMLElement).getByText("Created")).toHaveClass("text-[8px]");
     expect(within(dateBand as HTMLElement).getByText("Updated")).toHaveClass("text-[8px]");
     expect(within(dateBand as HTMLElement).getByText("May 20")).toHaveClass("text-ink");
@@ -229,9 +237,36 @@ describe("Projects page card layout", () => {
     const footer = card.querySelector("[data-project-card-footer]");
     expect(footer).not.toBeNull();
     expect(footer).toHaveClass("mt-0");
-    expect(footer).toHaveClass("p-2");
+    expect(footer).toHaveClass("pt-2");
     expect(footer).not.toHaveClass("mt-auto");
     expect(footer).not.toHaveClass("pt-3");
+  });
+
+  it("uses shadow-only selection instead of a black card outline", () => {
+    window.localStorage.setItem("archestimator_projects_view_mode_v1", "large");
+
+    const { unmount } = render(<ProjectsPageClient projects={[projectItem(PROJECT_FIXTURE)]} />);
+
+    let card = screen.getByLabelText("Lewis Residence project, owned access");
+    fireEvent.click(within(card).getByRole("checkbox", { name: "Select Lewis Residence for deletion" }));
+
+    expect(card).toHaveAttribute("data-project-card-selected", "true");
+    expect(card).toHaveClass("border-hairline");
+    expect(card).not.toHaveClass("border-ink");
+    expect(card).not.toHaveClass("ring-1");
+    expect(card).not.toHaveClass("ring-ink");
+
+    unmount();
+
+    window.localStorage.setItem("archestimator_projects_view_mode_v1", "list");
+    render(<ProjectsPageClient projects={[projectItem(PROJECT_FIXTURE)]} />);
+    card = screen.getByLabelText("Lewis Residence project, owned access");
+    fireEvent.click(within(card).getByRole("checkbox", { name: "Select Lewis Residence for deletion" }));
+
+    expect(card).toHaveAttribute("data-project-card-selected", "true");
+    expect(card).not.toHaveClass("ring-1");
+    expect(card).not.toHaveClass("ring-inset");
+    expect(card).not.toHaveClass("ring-ink");
   });
 
   it("places shared link details in the reference title and meta stack instead of the generic status row", () => {

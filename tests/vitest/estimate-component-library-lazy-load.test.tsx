@@ -25,11 +25,18 @@ describe("estimate component-library lazy-load boundary", () => {
   it("keeps the lite library query intent-gated and retryable", () => {
     expect(estimateSheetContentSource).toContain("workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)");
     expect(estimateSheetContentSource).toContain("return loadProjectComponentLibraryLite(projectId)");
+    expect(estimateSheetContentSource).toContain("ESTIMATE_LIBRARY_POST_PAINT_DELAY_MS");
+    expect(estimateSheetContentSource).toContain("const libraryIntentActive = showCommandPalette || rowComponentPicker?.mode === \"replace\" || sourcesDrawerOpen");
+    expect(estimateSheetContentSource).toContain("const libraryQueryCanRun = !shouldLoadLibraryLazily || librarySidebarReleased");
+    expect(estimateSheetContentSource).toContain("const librarySidebarCanHydrate = !shouldLoadLibraryLazily || librarySidebarReleased || Boolean(lazyLibrary)");
     expect(estimateSheetContentSource).toContain(
-      'enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette || rowComponentPicker?.mode === "replace")',
+      "enabled: shouldLoadLibraryLazily && (libraryQueryCanRun || libraryIntentActive)",
     );
     expect(estimateSheetContentSource).toContain(
       "<ComponentLibrarySidebarFallback isError={isLazyLibraryError} onRetry={() => refetchLazyLibrary()} />",
+    );
+    expect(estimateSheetContentSource).toContain(
+      "shouldLoadLibraryLazily && !librarySidebarCanHydrate",
     );
   });
 });

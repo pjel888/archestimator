@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const actions = readFileSync("src/lib/publication/actions.ts", "utf8");
 const emailLinks = readFileSync("src/lib/publication/email-links.ts", "utf8");
-const header = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
+const publisherDrawer = readFileSync("src/components/workshop/publisher/PublisherDrawer.tsx", "utf8");
+const publisherDrawerHook = readFileSync("src/components/workshop/publisher/usePublisherDrawer.ts", "utf8");
+const recipientLimits = readFileSync("src/lib/publication/recipient-limits.ts", "utf8");
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
@@ -12,6 +14,7 @@ const PUBLICATION_ID = "44444444-4444-4444-8444-444444444444";
 const ESTIMATE_ID = "55555555-5555-4555-8555-555555555555";
 
 type PublicationHarnessState = {
+  auditEvents: Array<Record<string, unknown>>;
   estimates: Array<{ id: string; name: string; sheet_code: string; updated_at: string }>;
   latest: {
     encrypted_token: string;
@@ -33,7 +36,7 @@ type PublicationHarnessState = {
   publicationUpdates: Array<{ filters: Record<string, unknown>; payload: Record<string, unknown>; table: string }>;
   revalidatedPaths: string[];
   rpcCalls: Array<{ args: Record<string, unknown>; functionName: string }>;
-  rpcData: number | null;
+  rpcData: unknown;
   currentUserRole: string | null;
   projectRole: string | null;
   snapshot: {
@@ -47,7 +50,7 @@ type PublicationHarnessState = {
 type FakeQuery = {
   filters: Record<string, unknown>;
   op: "insert" | "select" | "update";
-  payload?: Record<string, unknown>;
+  payload?: Record<string, unknown> | Record<string, unknown>[];
   selectValue?: string;
 };
 
@@ -99,9 +102,13 @@ function resolveMaybeSingle(table: string, query: FakeQuery, state: PublicationH
 
 function resolveQuery(table: string, query: FakeQuery, state: PublicationHarnessState) {
   if (query.op === "update" || query.op === "insert") {
+    if (query.op === "insert" && table === "account_security_events") {
+      const rows = Array.isArray(query.payload) ? query.payload : query.payload ? [query.payload] : [];
+      state.auditEvents.push(...rows);
+    }
     state.publicationUpdates.push({
       filters: { ...query.filters },
-      payload: { ...(query.payload ?? {}) },
+      payload: Array.isArray(query.payload) ? { rows: query.payload } : { ...(query.payload ?? {}) },
       table,
     });
     return { data: null, error: null };
@@ -134,7 +141,7 @@ function createQuery(table: string, state: PublicationHarnessState) {
       query.filters[key] = value;
       return builder;
     },
-    insert(payload: Record<string, unknown>) {
+    insert(payload: Record<string, unknown> | Record<string, unknown>[]) {
       query.op = "insert";
       query.payload = payload;
       return builder;
@@ -176,6 +183,7 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
   vi.resetModules();
 
   const state: PublicationHarnessState = {
+    auditEvents: [],
     estimates: [{ id: ESTIMATE_ID, name: "Base Estimate", sheet_code: "E-1", updated_at: "2026-06-21T00:00:00.000Z" }],
     latest: {
       encrypted_token: "encrypted-old-token",
@@ -227,6 +235,13 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
   }));
   vi.doMock("next/headers", () => ({ headers: vi.fn(async () => ({ get: () => null })) }));
   vi.doMock("@/lib/auth/session", () => ({
+    requireAuth: vi.fn(async () => {
+      if (!state.currentUserRole) throw new Error("NEXT_REDIRECT:/login");
+      return {
+        email: "philip@example.com",
+        id: USER_ID,
+      };
+    }),
     requireCurrentUserContext: vi.fn(async () => {
       if (!state.currentUserRole) throw new Error("NEXT_REDIRECT:/login");
       return {
@@ -416,18 +431,33 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
       message: "Shared page updated.",
       ok: true,
     });
-    expect(state.publicationUpdates).toHaveLength(1);
-    expect(state.publicationUpdates[0]).toMatchObject({
+    const publicationWrites = state.publicationUpdates.filter((update) => update.table === "project_publications");
+    expect(publicationWrites).toHaveLength(1);
+    expect(publicationWrites[0]).toMatchObject({
       filters: { id: PUBLICATION_ID },
       table: "project_publications",
     });
-    expect(state.publicationUpdates[0]?.payload).toMatchObject({
+    expect(publicationWrites[0]?.payload).toMatchObject({
       expires_at: null,
       password_hash: null,
       selected_estimate_ids: [ESTIMATE_ID],
       snapshot_json: state.snapshot,
       snapshot_version: 3,
     });
+    expect(state.auditEvents).toEqual([
+      expect.objectContaining({
+        event_type: "publisher_publication_republished",
+        user_id: USER_ID,
+        workspace_id: WORKSPACE_ID,
+        metadata_json: expect.objectContaining({
+          expires_at_changed: true,
+          password_cleared: true,
+          project_id: PROJECT_ID,
+          publication_id: PUBLICATION_ID,
+          selected_estimate_count: 1,
+        }),
+      }),
+    ]);
     expect(state.revalidatedPaths).toEqual([`/workshop/projects/${PROJECT_ID}`, "/share/old-token"]);
   });
 
@@ -459,6 +489,20 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
       "/share/old-token",
       "/share/new-token",
     ]);
+    expect(successHarness.state.auditEvents).toEqual([
+      expect.objectContaining({
+        event_type: "publisher_publication_rotated",
+        user_id: USER_ID,
+        workspace_id: WORKSPACE_ID,
+        metadata_json: expect.objectContaining({
+          invalidated_recipient_count: 3,
+          password_cleared: false,
+          project_id: PROJECT_ID,
+          publication_id: PUBLICATION_ID,
+          selected_estimate_count: 1,
+        }),
+      }),
+    ]);
 
     const conflictHarness = await loadPublicationActionsWithHarness({ rpcData: -1 });
 
@@ -469,7 +513,28 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
       ok: false,
     });
     expect(conflictHarness.state.rpcCalls).toHaveLength(1);
+    expect(conflictHarness.state.auditEvents).toEqual([]);
     expect(conflictHarness.state.revalidatedPaths).toEqual([]);
+  });
+
+  it("rejects link rotation when previously selected estimates no longer resolve", async () => {
+    const harness = await loadPublicationActionsWithHarness({
+      snapshot: {
+        estimates: [],
+        project: { id: PROJECT_ID, name: "Kitchen Renovation" },
+        schemaVersion: 1.3,
+      },
+    });
+
+    const result = await harness.publicationActions.rotateProjectPublicationLink({ projectId: PROJECT_ID });
+
+    expect(result).toEqual({
+      message: "Select at least one estimate to publish.",
+      ok: false,
+    });
+    expect(harness.state.rpcCalls).toEqual([]);
+    expect(harness.state.auditEvents).toEqual([]);
+    expect(harness.state.revalidatedPaths).toEqual([]);
   });
 
   it("asserts behavioral return contracts for owner activity load and inactive tokens", async () => {
@@ -496,18 +561,19 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     );
   });
 
-  it("wires the publication modal controls to server actions", () => {
-    expect(header).toContain("createProjectPublication");
-    expect(header).toContain("republishProjectPublication");
-    expect(header).toContain("rotateProjectPublicationLink");
-    expect(header).toContain("revokeProjectPublication");
-    expect(header).toContain("runPublicationAction");
+  it("wires Publisher drawer controls to server actions", () => {
+    expect(publisherDrawerHook).toContain("republishProjectPublication");
+    expect(publisherDrawerHook).toContain("rotateProjectPublicationLink");
+    expect(publisherDrawerHook).toContain("revokeProjectPublication");
+    expect(publisherDrawerHook).toContain("republishMutation");
+    expect(publisherDrawerHook).toContain("rotateMutation");
+    expect(publisherDrawerHook).toContain("revokeMutation");
     // P13 final terminology consistency pass for "Shared link" (P0-P1 complete; all publication tests updated)
-    expect(header).toContain("Generate shared link");
-    expect(header).toContain("Update shared page");
-    expect(header).toContain("New link");
-    expect(header).toContain("Turn off link");
-    expect(header).toContain("Require password");
+    expect(publisherDrawer).toContain("Generate shared link");
+    expect(publisherDrawer).toContain("Update shared page");
+    expect(publisherDrawer).toContain("New link");
+    expect(publisherDrawer).toContain("Turn off link");
+    expect(publisherDrawer).toContain("Require password");
   });
 
   // RED TEST (P0): Sheet selection filter support already exists in action; test will pass for backend but UI wiring is red until P1
@@ -535,8 +601,45 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
 
   it("processes recipient invitation sends with bounded concurrency", () => {
     expect(actions).toContain("SHARED_LINK_RECIPIENT_ADD_CONCURRENCY");
+    expect(recipientLimits).toContain("SHARED_LINK_RECIPIENT_ACTION_LIMIT = 50");
+    expect(actions).toContain("inputs.length > SHARED_LINK_RECIPIENT_ACTION_LIMIT");
     expect(actions).toContain("mapWithBoundedConcurrency(allowedRecipients");
     expect(actions).toContain("sendSharedLinkRecipientInvitationEmail");
+
+    const addActionStart = actions.indexOf("export async function addSharedLinkRecipients");
+    const managerGate = actions.indexOf("assertProjectPublicationManager(pubCtx.projectId)", addActionStart);
+    const limitCheck = actions.indexOf("inputs.length > SHARED_LINK_RECIPIENT_ACTION_LIMIT", addActionStart);
+    const emailWork = actions.indexOf("mapWithBoundedConcurrency(allowedRecipients", addActionStart);
+    expect(managerGate).toBeGreaterThan(addActionStart);
+    expect(limitCheck).toBeGreaterThan(managerGate);
+    expect(limitCheck).toBeLessThan(emailWork);
+  });
+
+  it("rejects recipient batches above the per-action cap before inserts or email work", async () => {
+    const { publicationActions, state } = await loadPublicationActionsWithHarness();
+    const recipients = Array.from({ length: 51 }, (_, index) => ({
+      email: `client-${index}@example.com`,
+    }));
+
+    const result = await publicationActions.addSharedLinkRecipients({
+      baseClientLink: "/share/client-token",
+      publicationId: PUBLICATION_ID,
+      recipients,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Add up to 50 recipients per action.",
+      added: 0,
+      failedEmails: recipients.map((recipient) => recipient.email),
+      emailResults: recipients.map((recipient) => ({
+        email: recipient.email,
+        ok: false,
+        error: "Add up to 50 recipients per action.",
+        status: "failed",
+      })),
+    });
+    expect(state.publicationUpdates.filter((update) => update.table === "shared_link_recipients")).toEqual([]);
   });
 
   it("builds publication snapshots from estimate tabs as well as nodes and rows", () => {

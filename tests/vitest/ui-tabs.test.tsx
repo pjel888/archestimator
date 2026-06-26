@@ -36,4 +36,18 @@ describe("shared Tabs primitive", () => {
     expect(action).toBeInTheDocument();
     expect(tablist.contains(action)).toBe(false);
   });
+
+  it("can omit aria-controls for tabsets with one dynamic panel", () => {
+    render(
+      <Tabs
+        tabs={tabs}
+        activeId="scope"
+        onChange={vi.fn()}
+        controlsPanels={false}
+        idBase="dynamic"
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Scope" })).not.toHaveAttribute("aria-controls");
+  });
 });

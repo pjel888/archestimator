@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const nextNavigationMocks = vi.hoisted(() => ({
@@ -56,9 +57,24 @@ describe("auth session closed beta gate", () => {
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { getCurrentUserContext } = await import("@/lib/auth/session");
 
-    await expect(getCurrentUserContext()).rejects.toThrow("NEXT_REDIRECT:/beta/access-required?status=revoked");
+    await expect(getCurrentUserContext()).rejects.toThrow("NEXT_REDIRECT:/access-required?status=revoked");
 
     expect(supabase.rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "revoked@example.com" });
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it("keeps current-user auth phases traceable with safe fixed labels", () => {
+    const sessionSource = readFileSync("src/lib/auth/session.ts", "utf8");
+
+    [
+      'traced("current-user.dev-auth-context"',
+      'traced("current-user.supabase-client"',
+      'traced("current-user.get-user"',
+      'traced("current-user.closed-beta-access"',
+      'traced("current-user.profile-lookup"',
+      'traced("current-user.ensure-profile-rpc"',
+    ].forEach((label) => {
+      expect(sessionSource).toContain(label);
+    });
   });
 });

@@ -7,6 +7,7 @@ import { estimateQueryKeys, useEstimateTabsQuery } from "@/hooks/use-estimate-qu
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
+  fetchEstimateEditCapability: vi.fn(),
   fetchEstimateTabs: vi.fn(),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),

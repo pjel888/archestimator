@@ -19,11 +19,15 @@ describe("project collaboration summary contract", () => {
     expect(workspaceRepository).toContain("readOptionalEstimateSheetMembers");
     expect(workspaceRepository).toContain('projectChannel: `project:${projectId}`');
     expect(workspaceRepository).toContain('estimateChannelPrefix: "estimate:"');
-    // P1-2: the collaboration fan-out + teamspace header moved into the streamed
-    // ProjectChromeAsync; the layout streams it behind Suspense in the actions slot.
+    // P1-2 + Publisher Phase 4: project access now uses the Publisher Access
+    // drawer link from streamed chrome instead of the legacy Teamspace modal.
     expect(projectLayout).toContain("actions={");
     expect(projectLayout).toContain("<ProjectChromeAsync");
     expect(projectChrome).toContain("getProjectCollaborationSummary(projectId)");
-    expect(projectChrome).toContain("<ProjectTeamspaceHeader summary={collaborationSummary} />");
+    expect(projectChrome).toContain('data-publisher-project-link="access"');
+    expect(projectChrome).toContain("publicationSummary?.canReadPublisherRoster");
+    expect(projectChrome).toContain('data-workshop-layout="project-teamspace-header"');
+    expect(projectChrome).toContain('getPublisherProjectHref(projectId, "access")');
+    expect(projectChrome).not.toContain("<ProjectTeamspaceHeader");
   });
 });

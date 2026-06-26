@@ -14,6 +14,10 @@ const projectDetailsModal = readFileSync(
   "src/components/workshop/ProjectDetailsModal.tsx",
   "utf8",
 );
+const manageGroupsPopover = readFileSync(
+  "src/components/workshop/ManageGroupsPopover.tsx",
+  "utf8",
+);
 const newProjectForm = readFileSync(
   "src/components/workshop/NewProjectForm.tsx",
   "utf8",
@@ -95,70 +99,120 @@ describe("project creation UI governance", () => {
     expect(projectsPage).toContain("googleMapsMapId={googleMapsMapId}");
     expect(projectsPageClient).toContain("LiveProjectCard");
     expect(projectsPageClient).toContain("NewProjectModal");
-    expect(projectsPageClient).toContain('from "@/hooks/use-toggle-project-favorite"');
-    expect(projectsPageClient).toContain("toggleProjectFavoriteMutation.toggle(");
+    expect(projectsPageClient).toContain(
+      'from "@/hooks/use-toggle-project-favorite"',
+    );
+    expect(projectsPageClient).toContain(
+      "toggleProjectFavoriteMutation.toggle(",
+    );
     expect(projectsPageClient).toContain("router.refresh()");
     expect(projectsPageClient).toContain("favoriteIds.has(item.project.id)");
     expect(projectsPageClient).toContain("PROJECT_VIEW_MODE_STORAGE_KEY");
     expect(projectsPageClient).toContain('label: "Small"');
-    expect(projectsPageClient).toContain("const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = PROJECT_VIEW_MODE_OPTIONS.map");
-    expect(projectsPageClient).toContain('icon: <Icon size={12} weight="regular" aria-hidden="true" />');
+    expect(projectsPageClient).toContain(
+      "const VIEW_SELECT_OPTIONS: DropdownSelectOption[]",
+    );
+    expect(projectsPageClient).toContain("PROJECT_VIEW_MODE_OPTIONS.map");
+    expect(projectsPageClient).toContain(
+      'icon: <Icon size={12} weight="regular" aria-hidden="true" />',
+    );
     expect(projectsPageClient).toContain('triggerDisplay="icon"');
     expect(projectsPageClient).toContain('aria-label="View"');
-    expect(projectsPageClient).toContain("data-project-view-mode={projectViewMode}");
+    expect(projectsPageClient).toContain(
+      "data-project-view-mode={projectViewMode}",
+    );
     expect(projectsPageClient).toContain("viewMode={projectViewMode}");
     expect(liveProjectCard).toContain('project: Tables<"projects">');
-    expect(liveProjectCard).toContain('viewMode?: ProjectCardViewMode;');
-    expect(liveProjectCard).toContain('data-project-card-view={viewMode}');
-    expect(liveProjectCard).toContain('const thumbnailAspectClass = "aspect-[4/3]"');
+    expect(liveProjectCard).toContain("viewMode?: ProjectCardViewMode;");
+    expect(liveProjectCard).toContain("data-project-card-view={viewMode}");
+    expect(liveProjectCard).toContain(
+      'const thumbnailAspectClass = "aspect-[4/3]"',
+    );
     expect(projectCardSource).toContain("data-project-card-thumbnail");
-    expect(projectCardSource).toContain('"relative shrink-0 overflow-hidden bg-surfaceMuted"');
+    expect(projectCardSource).toContain(
+      '"relative shrink-0 overflow-hidden bg-surfaceMuted"',
+    );
     expect(liveProjectCard).toContain("getProjectMapThumbnailUrl");
-    expect(liveProjectCard).toContain("https://maps.googleapis.com/maps/api/staticmap");
-    expect(liveProjectCard).toContain("const mapImageUrl = imageUrl ? null : getProjectMapThumbnailUrl(project, googleMapsApiKey)");
+    expect(liveProjectCard).toContain(
+      "https://maps.googleapis.com/maps/api/staticmap",
+    );
+    expect(liveProjectCard).toContain("const mapImageUrl = imageUrl");
+    expect(liveProjectCard).toContain(
+      "getProjectMapThumbnailUrl(project, googleMapsApiKey)",
+    );
     expect(projectCardThumbnail).toContain("PROJECT_THUMBNAIL_GRADIENTS");
-    expect(projectCardThumbnail).toContain("data-project-card-generated-gradient");
-    expect(projectCardThumbnail).toContain("setFailedMapImageUrl(mapImageUrl ?? null)");
+    expect(projectCardThumbnail).toContain(
+      "data-project-card-generated-gradient",
+    );
+    expect(projectCardThumbnail).toContain(
+      "setFailedMapImageUrl(mapImageUrl ?? null)",
+    );
     expect(projectCardThumbnail).toContain("mapImageUrl");
     expect(projectCardThumbnail).toContain('loading="lazy"');
     expect(projectCardSource).not.toContain("aspect-square");
     expect(projectCardSource).not.toContain("aspect-[3/2]");
-    expect(projectCardSource).toContain('"size-12 shrink-0 rounded-xs border border-hairline"');
+    expect(projectCardSource).toContain(
+      '"size-12 shrink-0 rounded-xs border border-hairline"',
+    );
     expect(projectCardSource).toContain("line-clamp-2");
     expect(projectCardSource).toContain("data-project-card-hover-reveal");
     expect(projectCardSource).toContain("aria-pressed={isFavorite}");
     expect(projectCardSource).toContain('weight="regular"');
-    expect(projectCardSource).toContain("aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink");
+    expect(projectCardSource).toContain(
+      "aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink",
+    );
     expect(projectCardSource).not.toContain("h-32");
     expect(projectCardSource).not.toContain("min-h-[260px]");
-    expect(projectsPageClient).toContain("getProjectGridClassName(projectViewMode)");
-    expect(projectGridLayout).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");
+    expect(projectsPageClient).toContain(
+      "getProjectGridClassName(projectViewMode)",
+    );
+    expect(projectGridLayout).toContain(
+      "grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3",
+    );
   });
 
   it("keeps newly created projects visible while create/setup work settles", () => {
     expect(projectActions).toContain("return project");
     expect(newProjectModal).toContain("onOptimisticProjectChange");
-    expect(newProjectForm).toContain("export type NewProjectOptimisticSnapshot");
+    expect(newProjectForm).toContain(
+      "export type NewProjectOptimisticSnapshot",
+    );
     expect(newProjectForm).toContain("createOptimisticProject");
-    expect(newProjectForm).toContain('reportOptimisticProject({ state: "creating", message: "Creating project..." }, true)');
-    expect(newProjectForm).toContain('reportOptimisticProject({ state: "preparing", message: "Creating default estimate..." }, true)');
+    expect(newProjectForm).toContain(
+      'reportOptimisticProject({ state: "creating", message: "Creating project..." }, true)',
+    );
+    expect(newProjectForm).toContain(
+      'reportOptimisticProject({ state: "preparing", message: "Creating default estimate..." }, true)',
+    );
     expect(newProjectForm).toContain("remove: true");
     expect(newProjectForm).toContain("errorMessage: message");
-    expect(newProjectForm).toContain("reportOptimisticProject({ state: \"error\", message: setupErrorMessage }, false, setupErrorMessage)");
-    expect(newProjectForm).toContain('"Project was created, but setup needs attention."');
+    expect(newProjectForm).toContain(
+      'reportOptimisticProject({ state: "error", message: setupErrorMessage }, false, setupErrorMessage)',
+    );
+    expect(newProjectForm).toContain(
+      '"Project was created, but setup needs attention."',
+    );
     expect(projectsPageClient).toContain("optimisticProjectCreates");
     expect(projectsPageClient).toContain("optimisticProjectSnapshotToListItem");
     expect(projectsPageClient).toContain("isOptimisticCreate: true");
-    expect(projectsPageClient).toContain("optimisticProjectItemIds.has(item.project.id)");
+    expect(projectsPageClient).toContain(
+      "optimisticProjectItemIds.has(item.project.id)",
+    );
     expect(projectsPageClient).toContain("if (snapshot.remove)");
     expect(projectsPageClient).toContain("isProjectSetupBlocking");
-    expect(projectsPageClient).not.toContain('snapshot.setupStatus?.state === "error") continue');
-    expect(projectsPageClient).toContain('onOptimisticProjectChange={handleOptimisticProjectChange}');
+    expect(projectsPageClient).not.toContain(
+      'snapshot.setupStatus?.state === "error") continue',
+    );
+    expect(projectsPageClient).toContain(
+      "onOptimisticProjectChange={handleOptimisticProjectChange}",
+    );
     expect(projectsPageClient).toContain("googleMapsApiKey={googleMapsApiKey}");
     expect(projectsPageClient).toContain("googleMapsMapId={googleMapsMapId}");
     expect(liveProjectCard).toContain("export type ProjectCardSetupStatus");
     expect(projectCardSource).toContain("data-project-card-setup-overlay");
-    expect(liveProjectCard).toContain("data-project-card-setup-state={setupStatus?.state}");
+    expect(liveProjectCard).toContain(
+      "data-project-card-setup-state={setupStatus?.state}",
+    );
     expect(liveProjectCard).toContain("aria-busy={setupBusy || undefined}");
     expect(liveProjectCard).toContain("setupNavigationDisabled");
   });
@@ -166,13 +220,33 @@ describe("project creation UI governance", () => {
   it("keeps the project create action icon-only", () => {
     expect(projectsPageClient).toContain('toolbarPrefix="projects"');
     expect(projectsPageClient).toContain('label: "Add projects"');
-    expect(projectsPageClient).toContain('onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true })');
+    expect(projectsPageClient).toContain(
+      'icon: <Cards size={12} weight="regular" aria-hidden="true" />',
+    );
+    expect(projectsPageClient).toContain(
+      'onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true })',
+    );
     expect(projectsPageClient).not.toContain("addVisibleLabel");
   });
 
+  it("keeps project group management beside project creation with semantic icons", () => {
+    expect(projectsPageClient).toContain('id: "manage-groups"');
+    expect(projectsPageClient).toContain('label: "Manage groups"');
+    expect(projectsPageClient.indexOf('label: "Manage groups"')).toBeLessThan(
+      projectsPageClient.indexOf('label: "Add projects"'),
+    );
+    expect(manageGroupsPopover).toContain("FolderPlus");
+    expect(manageGroupsPopover).toContain("Palette");
+    expect(manageGroupsPopover).not.toContain("GearSix");
+  });
+
   it("keeps project deletion copy aligned with active shared-link revocation", () => {
-    expect(projectsPageClient).toContain("Active shared links will be revoked when deleted.");
-    expect(projectsPageClient).not.toContain("Projects with active shared links cannot be deleted.");
+    expect(projectsPageClient).toContain(
+      "Active shared links will be revoked when deleted.",
+    );
+    expect(projectsPageClient).not.toContain(
+      "Projects with active shared links cannot be deleted.",
+    );
   });
 
   it("keeps the create project modal product-facing and composed", () => {
@@ -185,7 +259,9 @@ describe("project creation UI governance", () => {
     expect(newProjectModal).toContain("data-create-project-modal");
     expect(newProjectModal).toContain("data-create-project-modal-root");
     expect(newProjectModal).toContain("data-create-project-modal-tray");
-    expect(newProjectModal).toContain("fixed inset-0 z-[1000] flex items-center justify-center");
+    expect(newProjectModal).toContain(
+      "fixed inset-0 z-[1000] flex items-center justify-center",
+    );
     expect(newProjectModal).toContain("max-h-[calc(100dvh-2rem)]");
     expect(newProjectModal).toContain("w-[min(1380px,calc(100vw-2rem))]");
     expect(newProjectModal).toContain("workshop-create-project-modal-glass");
@@ -209,29 +285,45 @@ describe("project creation UI governance", () => {
     expect(newProjectForm).not.toContain("Capture the essentials now");
     expect(newProjectFormSections).toContain("ProjectAddressAutocomplete");
     expect(newProjectFormSections).toContain("ProjectLocationMap");
-    expect(newProjectFormSections).toContain("data-create-project-location-preview");
-    expect(newProjectFormSections).toMatch(/Project name[\s\S]*Client[\s\S]*<ProjectCodeField[\s\S]*Location/);
+    expect(newProjectFormSections).toContain(
+      "data-create-project-location-preview",
+    );
+    expect(newProjectFormSections).toMatch(
+      /Project name[\s\S]*Client[\s\S]*<ProjectCodeField[\s\S]*Location/,
+    );
     expect(newProjectForm).toContain("saveProjectLocation");
     expect(newProjectForm).toContain("locationFormData");
     expect(newProjectForm).toContain('formData.set("geocoderName", "google")');
     expect(projectDetailsModal).toContain("ProjectAddressAutocomplete");
     expect(projectDetailsModal).toContain("saveProjectLocation");
-    expect(projectDetailsModal).toContain("locationFormData(project.id, selectedPlace)");
-    expect(projectDetailsModal).toContain('formData.set("syncProjectAddress", "1")');
-    expect(projectDetailsModal).toContain('pin={locationPin}');
-    expect(newProjectForm).toContain('"Project location can be refined later."');
+    expect(projectDetailsModal).toContain(
+      "locationFormData(project.id, selectedPlace)",
+    );
+    expect(projectDetailsModal).toContain(
+      'formData.set("syncProjectAddress", "1")',
+    );
+    expect(projectDetailsModal).toContain("pin={locationPin}");
+    expect(newProjectForm).toContain(
+      '"Project location can be refined later."',
+    );
     expect(newProjectFormSections).toContain("Project Code");
     expect(newProjectFormSections).toContain("projectCode?: string | null");
-    expect(newProjectFormSections).toContain("const codeValue = projectCode ?? \"\"");
+    expect(newProjectFormSections).toContain(
+      'const codeValue = projectCode ?? ""',
+    );
     expect(newProjectFormSections).toContain("value={codeValue}");
     expect(newProjectFormSections).toContain(
       'className="group/code-field w-full space-y-1"',
     );
-    expect(newProjectFormSections).toContain("CREATE_PROJECT_FIELD_LABEL_CLASS");
+    expect(newProjectFormSections).toContain(
+      "CREATE_PROJECT_FIELD_LABEL_CLASS",
+    );
     expect(newProjectFormSections).toContain(
       'className={cn(CREATE_PROJECT_INPUT_CLASS, "w-full pr-9 font-medium text-secondary")}',
     );
-    expect(newProjectFormSections).toContain("opacity-0 transition-opacity group-hover/code-field:opacity-100 group-focus-within/code-field:opacity-100");
+    expect(newProjectFormSections).toContain(
+      "opacity-0 transition-opacity group-hover/code-field:opacity-100 group-focus-within/code-field:opacity-100",
+    );
     expect(newProjectForm).toContain("grid min-h-0 gap-2 overflow-auto p-2");
     expect(newProjectForm).toContain("lg:overflow-hidden");
     expect(newProjectForm).toContain("lg:items-start");
@@ -243,7 +335,9 @@ describe("project creation UI governance", () => {
       "lg:grid-cols-[minmax(360px,460px)_minmax(300px,1fr)_minmax(360px,460px)]",
     );
     expect(newProjectForm).toContain('className="aspect-[4/3] h-auto"');
-    expect(newProjectForm).toMatch(new RegExp("</div>\\s*<CreateProjectFooter"));
+    expect(newProjectForm).toMatch(
+      new RegExp("</div>\\s*<CreateProjectFooter"),
+    );
     expect(newProjectImagePanel).toContain("data-project-image-panel");
     expect(newProjectImagePanel).toContain("aspect-[4/3]");
     expect(newProjectImagePanel).not.toContain("lg:min-h-[512px]");
@@ -255,14 +349,18 @@ describe("project creation UI governance", () => {
       "text-[12px] font-medium leading-4",
     );
     expect(newProjectFormSections).not.toContain("text-[22px]");
-    expect(newProjectFormSections).toContain("h-8 bg-white/92 px-2 !text-[10px]");
+    expect(newProjectFormSections).toContain(
+      "h-8 bg-white/92 px-2 !text-[10px]",
+    );
     expect(newProjectFormSections).not.toContain("text-right !text-[8px]");
     expect(newProjectFormSections).not.toContain(
       "bg-surfaceMuted px-2 !text-[8px]",
     );
     expect(newProjectFormSections).not.toContain('id="new-project-location"');
     expect(newProjectFormSections).toContain('variant="brand"');
-    expect(newProjectFormSections).toContain("h-8 min-w-[124px] gap-2 rounded-xs px-2");
+    expect(newProjectFormSections).toContain(
+      "h-8 min-w-[124px] gap-2 rounded-xs px-2",
+    );
     expect(newProjectFormSections).toContain('placeholder="A7K9M2Q4"');
     expect(newProjectForm).toContain('from "@/lib/projects/project-code"');
     expect(newProjectFormSections).toContain(
@@ -371,7 +469,9 @@ describe("project creation UI governance", () => {
     expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
     expect(projectImageRoute).toContain('formData.get("projectId"');
     expect(projectImageRoute).toContain('eq("workspace_id", workspace.id)');
-    expect(projectImageRoute).toContain("${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}");
+    expect(projectImageRoute).toContain(
+      "${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}",
+    );
     expect(projectImageRoute).toContain("sharp(sourceBuffer");
   });
 });

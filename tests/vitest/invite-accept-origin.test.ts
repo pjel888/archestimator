@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAllowedInviteOrigin } from "@/app/invite/[token]/accept/route";
+import { isAllowedInviteOrigin } from "@/lib/collaboration/invite-origin";
 
 // T1.6 / finding (5 §6 LOW) / gap G5: the invite-accept POST has no CSRF
 // protection, so it relies on an Origin/same-site guard. These tests pin the

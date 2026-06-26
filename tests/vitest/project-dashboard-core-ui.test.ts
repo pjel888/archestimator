@@ -29,12 +29,18 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardLayout).toContain('contentClassName="pt-0 pb-0 pr-0 pl-0"');
     expect(projectDashboardLayout).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
     expect(projectDashboardLayout).toContain("actions={");
-    // P1-2: the publication/teamspace header chrome is streamed via ProjectChromeAsync
-    // (in the layout's actions slot behind Suspense), not rendered inline in the layout.
-    expect(projectChromeAsync).toContain("<ProjectPublicationHeader");
-    expect(projectChromeAsync).toContain("<ProjectTeamspaceHeader");
-    expect(projectChromeAsync).toContain("summary={publicationSummary}");
-    expect(projectChromeAsync).toContain("summary={collaborationSummary}");
+    // P1-2 + Publisher Phase 4: the async chrome stays streamed, and
+    // project-scoped publication/access actions now deep-link to Publisher.
+    expect(projectChromeAsync).toContain("<ProjectPublisherHeaderActions");
+    expect(projectChromeAsync).toContain("getPublisherProjectHref(projectId)");
+    expect(projectChromeAsync).toContain('data-publisher-project-link="publication"');
+    expect(projectChromeAsync).toContain('data-publisher-project-link="access"');
+    expect(projectChromeAsync).toContain("publicationSummary={publicationSummary}");
+    expect(projectChromeAsync).toContain("canOpenPublisherDrawer");
+    expect(projectChromeAsync).not.toContain("isPublisherEnabled()");
+    expect(projectChromeAsync).not.toContain("if (!publisherEnabled)");
+    expect(projectChromeAsync).not.toContain("<ProjectPublicationHeader");
+    expect(projectChromeAsync).not.toContain("<ProjectTeamspaceHeader");
   });
 
   it("removes the project mini-sidebar only inside estimate sheet detail routes", () => {

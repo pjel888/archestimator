@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const actions = readFileSync("src/lib/collaboration/actions.ts", "utf8");
-const header = readFileSync("src/components/workshop/ProjectTeamspaceHeader.tsx", "utf8");
+const publisherMembersPanel = readFileSync("src/components/workshop/publisher/PublisherProjectMembersPanel.tsx", "utf8");
 
 describe("project collaboration management actions", () => {
   it("sends real Supabase Auth invitations and persists pending collaboration invites", () => {
@@ -38,10 +38,7 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("copyProjectInviteLink");
     expect(actions).toContain("record_collaboration_invitation_delivery");
     expect(actions).toContain("Invite links are disabled.");
-    expect(header).toContain("if (!result.ok) throw new Error(result.message)");
     expect(actions).toContain("Copy invite link");
-    expect(header).toContain("Copy private link");
-    expect(header).toContain("Copy invite link");
   });
 
   it("resends pending invite emails through the app-owned invite token route with rate limiting", () => {
@@ -49,8 +46,6 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("sendSupabaseInviteEmail");
     expect(actions).toContain("checkInviteResendRateLimit");
     expect(actions).toContain('deliveryMethod: "email"');
-    expect(header).toContain("resendProjectInviteEmail");
-    expect(header).toContain("Resend invite");
   });
 
   it("records invite email delivery only after Supabase Auth accepts the send", () => {
@@ -64,8 +59,6 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("Teamspace invite delivery is disabled until project invite entry and token settings are configured.");
     expect(actions).toContain("Teamspace invite delivery is disabled until email delivery is explicitly enabled.");
     expect(actions).toContain("readEmailDeliveryConfig");
-    expect(header).toContain("readProjectInviteDeliveryReadiness");
-    expect(header).toContain("inviteControlsDisabled");
     expect(actions).toContain("Invitation created. Share the invite link manually.");
     expect(actions).toContain("[collaboration] invite email delivery failed");
     expect(actions).toContain("User added directly. They can access the project now.");
@@ -106,16 +99,17 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("sendCollaboratorRemovalNotification");
     expect(actions).toContain("setEstimateSheetAccessMode");
     expect(actions).toContain("upsertSheetOwnerBeforeRestricting");
-    expect(actions).toContain("roleRank");
+    expect(actions).toContain("collaborationRoleRank");
     expect(actions).toContain("Cannot assign a role above your own access level.");
   });
 
-  it("wires the modal to invite, role, share-link, and per-estimate access controls", () => {
-    expect(header).toContain("inviteProjectCollaborator");
-    expect(header).toContain("updateProjectCollaboratorRole");
-    expect(header).toContain("setEstimateSheetAccessMode");
-    expect(header).toContain("Invite by email");
-    expect(header).toContain("Copy private link");
-    expect(header).toContain("Access mode for");
+  it("wires Publisher access panel to sheet invite and per-estimate access controls", () => {
+    expect(publisherMembersPanel).toContain("inviteEstimateSheetCollaborator");
+    expect(publisherMembersPanel).toContain("setEstimateSheetAccessMode");
+    expect(publisherMembersPanel).toContain("removeEstimateSheetCollaborator");
+    expect(publisherMembersPanel).toContain("Project members");
+    expect(publisherMembersPanel).toContain("Estimate access");
+    expect(publisherMembersPanel).toContain("Access mode for");
+    expect(publisherMembersPanel).toContain("Invite to");
   });
 });

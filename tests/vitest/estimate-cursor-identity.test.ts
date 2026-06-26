@@ -20,6 +20,7 @@ type FakeCursorChannel = CursorChannelLike & {
 function createFakeCursorClient() {
   let broadcastHandler: ((message: { payload: unknown }) => void) | null = null;
   let subscribeCallback: ((status: string) => void) | null = null;
+  const sentPayloads: EstimateCursorBroadcastPayload[] = [];
   const channel: FakeCursorChannel = {
     on(_type, _filter, callback) {
       broadcastHandler = callback;
@@ -29,7 +30,8 @@ function createFakeCursorClient() {
       subscribeCallback = callback ?? null;
       return channel;
     },
-    send() {
+    send(message) {
+      sentPayloads.push(message.payload);
       return Promise.resolve("ok");
     },
     __emitStatus(status) {
@@ -39,7 +41,7 @@ function createFakeCursorClient() {
       broadcastHandler?.({ payload });
     },
   };
-  return { client: { channel: () => channel, removeChannel: () => undefined }, channel };
+  return { client: { channel: () => channel, removeChannel: () => undefined }, channel, sentPayloads };
 }
 
 const ESTIMATE_ID = "11111111-1111-1111-1111-111111111111";
@@ -92,5 +94,50 @@ describe("estimate cursor identity gate", () => {
     act(() => channel.__emitBroadcast(basePayload({ userId: "other", envelope: otherEnvelope })));
     await waitFor(() => expect(result.current.remoteCursors).toHaveLength(1));
     expect(result.current.remoteCursors[0]?.userId).toBe("other");
+  });
+
+  it("uses the server-issued identity for outbound cursors when route props omit the user", async () => {
+    const receiver = await issueRealtimeIdentityEnvelope({ sub: "me", topic: TOPIC, role: "member" });
+
+    const { client, channel, sentPayloads } = createFakeCursorClient();
+    const { result } = renderHook(() =>
+      useEstimateCursorCollaboration({
+        estimateId: ESTIMATE_ID,
+        userId: null,
+        displayName: null,
+        enabled: true,
+        throttleMs: 0,
+        clientFactory: () => client,
+        identityIssuer: async () => ({
+          envelope: receiver.envelope,
+          publicKey: receiver.publicKey,
+          userId: "me",
+          displayName: "Me",
+        }),
+      }),
+    );
+
+    act(() => channel.__emitStatus("SUBSCRIBED"));
+
+    await waitFor(() => expect(result.current.channelStatus).toBe("subscribed"));
+    act(() =>
+      result.current.broadcastCursor({
+        x: 10,
+        y: 20,
+        rowId: "row-1",
+        columnId: "2",
+      }),
+    );
+
+    await waitFor(() => expect(sentPayloads).toHaveLength(1));
+    expect(sentPayloads[0]).toMatchObject({
+      userId: "me",
+      displayName: "Me",
+      x: 10,
+      y: 20,
+      rowId: "row-1",
+      columnId: "2",
+    });
+    expect(sentPayloads[0]?.envelope?.sub).toBe("me");
   });
 });

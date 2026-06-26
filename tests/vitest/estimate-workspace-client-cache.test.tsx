@@ -12,6 +12,7 @@ import type { EstimateTabSummary } from "@/lib/estimates/types";
 // directly without rendering the whole editor.
 const captured: { onEstimateTabsChange?: (tabs: EstimateTabSummary[]) => void } = {};
 const fetchEstimateTabs = vi.fn();
+const fetchEstimateEditCapability = vi.fn();
 
 vi.mock("@/components/workshop/EstimateSheetTree", () => ({ EstimateSheetTree: () => null }));
 vi.mock("@/components/workshop/EstimateSheetContent", () => ({
@@ -21,6 +22,7 @@ vi.mock("@/components/workshop/EstimateSheetContent", () => ({
   },
 }));
 vi.mock("@/lib/estimates/actions", () => ({
+  fetchEstimateEditCapability: (...args: unknown[]) => fetchEstimateEditCapability(...args),
   fetchEstimateTabs: (...args: unknown[]) => fetchEstimateTabs(...args),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
@@ -50,6 +52,8 @@ describe("EstimateWorkspaceClient tab-cache reconciliation", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     captured.onEstimateTabsChange = undefined;
+    fetchEstimateEditCapability.mockReset();
+    fetchEstimateEditCapability.mockResolvedValue(true);
     fetchEstimateTabs.mockReset();
     fetchEstimateTabs.mockResolvedValue(INITIAL_TABS);
   });

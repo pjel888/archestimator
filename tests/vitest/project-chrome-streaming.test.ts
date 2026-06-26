@@ -15,20 +15,42 @@ const chrome = readFileSync(
 describe("project header chrome streaming (F5 / P1-2)", () => {
   it("streams ProjectChromeAsync behind Suspense in the actions slot", () => {
     expect(layout).toContain("<Suspense fallback={<ProjectHeaderChromeSkeleton />}>");
-    expect(layout).toContain("<ProjectChromeAsync projectId={projectId} liveProject={liveProject} />");
+    expect(layout).toContain("<ProjectChromeAsync projectId={projectId} />");
   });
 
-  it("moves the collaboration/publication/sheets fan-out out of the layout critical path", () => {
+  it("moves the collaboration/publication fan-out out of the layout critical path", () => {
+    expect(layout).toContain("<ProjectTitleAsync projectId={projectId} />");
+    expect(layout).toContain('withPerfTraceRequest("workshop.project-layout-title"');
+    expect(layout).toContain('traced("project-layout.title"');
+    expect(layout).not.toContain('traced("project-layout.project"');
     expect(layout).not.toContain("getProjectCollaborationSummary");
     expect(layout).not.toContain("getProjectPublicationSummary");
-    expect(chrome).toContain("getProjectCollaborationSummary(projectId)");
+    expect(chrome).toContain("ProjectChromeAsync.project");
+    expect(chrome).toContain("getCurrentWorkspaceProject(projectId)");
     expect(chrome).toContain("getProjectPublicationSummary(projectId)");
-    expect(chrome).toContain("listProjectEstimateSheets(projectId)");
+    expect(chrome).not.toContain("listProjectEstimateSheets(projectId)");
   });
 
-  it("renders both header components and the project cursor layer from the streamed chrome", () => {
-    expect(chrome).toContain("<ProjectPublicationHeader");
-    expect(chrome).toContain("<ProjectTeamspaceHeader");
+  it("renders Publisher deep-link actions from the streamed chrome", () => {
+    expect(chrome).not.toContain("isPublisherEnabled()");
+    expect(chrome).not.toContain("if (!publisherEnabled)");
+    expect(chrome).toContain("getPublisherProjectHref(projectId)");
+    expect(chrome).toContain("/workshop/publisher");
+    expect(chrome).toContain("drawer: projectId");
+    expect(chrome).toContain('params.set("tab", tab)');
+    expect(chrome).toContain('getPublisherProjectHref(projectId, "access")');
+    expect(chrome).toContain("canOpenPublisherDrawer");
+    expect(chrome).toContain("publicationSummary?.canReadPublisherRoster");
+    expect(chrome).toContain('publicationSummary.status !== "unpublished"');
+    expect(chrome).toContain('data-publisher-project-link="publication"');
+    expect(chrome).toContain('data-publisher-project-link="access"');
+    expect(chrome).toContain('data-workshop-layout="project-publication-header"');
+    expect(chrome).toContain('data-workshop-layout="project-teamspace-header"');
+    expect(chrome).not.toContain("<ProjectPublicationHeader");
+    expect(chrome).not.toContain("<ProjectTeamspaceHeader");
+  });
+
+  it("keeps the project cursor layer from the streamed chrome", () => {
     // Teamspace cursor layer moved into the streamed chrome so it reuses the
     // resolved collaboration identity without blocking shell paint.
     expect(chrome).toContain("<ProjectCursorLayer");

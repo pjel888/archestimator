@@ -182,8 +182,9 @@ describe("ProjectsPageClient access tabs", () => {
     expect(tabsRoot).toHaveClass(
       "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))]",
       "[&_[role=tablist]]:gap-3",
+      "[&_[role=tablist]]:border-0",
     );
-    expect(tablist).toHaveClass("border-b");
+    expect(tabsRoot?.closest(".workshop-collection-tabs-chrome")).toHaveClass("bg-transparent");
     expect(ownedTab).toHaveAccessibleName("Projects");
     expect(ownedTab).toHaveClass("!min-h-[41px]", "w-full", "border-brand-orange");
     expect(ownedTab).toBeInTheDocument();

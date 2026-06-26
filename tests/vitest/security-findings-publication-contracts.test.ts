@@ -166,6 +166,52 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(rotationMigration).toContain("v_next_snapshot_version := coalesce(v_snapshot_version, 0) + 1");
   });
 
+  it("writes account security audit rows for successful Publisher manager mutations", () => {
+    const actions = read("src/lib/publication/actions.ts");
+    const helperStart = actions.indexOf("async function recordPublisherAuditEvent");
+    const helperEnd = actions.indexOf("\nexport async function createProjectPublication", helperStart);
+    const helper = actions.slice(helperStart, helperEnd);
+    const mutationAuditEvents = [
+      { name: "createProjectPublication", eventType: "publisher_publication_created" },
+      { name: "republishProjectPublication", eventType: "publisher_publication_republished" },
+      { name: "rotateProjectPublicationLink", eventType: "publisher_publication_rotated" },
+      { name: "revokeProjectPublication", eventType: "publisher_publication_revoked" },
+      { name: "addSharedLinkRecipients", eventType: "publisher_recipient_added" },
+      { name: "resendSharedLinkRecipientEmail", eventType: "publisher_recipient_resend" },
+      { name: "removeSharedLinkRecipient", eventType: "publisher_recipient_removed" },
+    ];
+
+    expect(helper).toContain('from("account_security_events").insert');
+    expect(helper).toContain("event_type: eventType");
+    expect(helper).toContain("user_id: context.currentUserId");
+    expect(helper).toContain("workspace_id: context.project.workspace_id");
+    expect(helper).toContain("metadata_json");
+    expect(helper).toContain("project_id: context.project.id");
+
+    for (const { name, eventType } of mutationAuditEvents) {
+      const start = actions.indexOf(`export async function ${name}`);
+      expect(start, `${name} export missing`).toBeGreaterThanOrEqual(0);
+      const next = actions.indexOf("\nexport async function ", start + 1);
+      const source = actions.slice(start, next === -1 ? actions.length : next);
+      expect(source, `${name} must record a Publisher audit event`).toContain("recordPublisherAuditEvent({");
+      expect(source, `${name} must use the ${eventType} event type`).toContain(`eventType: "${eventType}"`);
+    }
+
+    expect(actions).toContain("removed_by_email_identifier");
+    expect(actions).not.toContain("recipient_email:");
+  });
+
+  it("keeps recipient email delivery failure warnings free of raw email PII", () => {
+    const actions = read("src/lib/publication/actions.ts");
+    const warningCalls = actions.match(/console\.warn\([\s\S]*?\);/g) ?? [];
+    const recipientDeliveryWarnings = warningCalls.filter((call) => call.includes("recipient email"));
+
+    expect(recipientDeliveryWarnings).toHaveLength(2);
+    expect(recipientDeliveryWarnings.join("\n")).not.toMatch(/\bemail:/);
+    expect(recipientDeliveryWarnings.join("\n")).toContain("recipientId");
+    expect(recipientDeliveryWarnings.join("\n")).toContain("publicationId");
+  });
+
   it("keeps public share metadata generic without resolving the proposal snapshot", () => {
     const sharePage = read("src/app/share/[token]/page.tsx");
     const metadataFn = sharePage.slice(sharePage.indexOf("export async function generateMetadata"));

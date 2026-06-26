@@ -191,6 +191,7 @@ describe("component library lazy load (U4)", () => {
     const queryClient = makeQueryClient();
     const view = renderSheet(queryClient);
 
+    expect(loadProjectLibraryMock).not.toHaveBeenCalled();
     expect(await screen.findByRole("tab", { name: "Library" }, { timeout: DYNAMIC_IMPORT_TIMEOUT })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Project" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Templates" })).toBeInTheDocument();
@@ -250,7 +251,8 @@ describe("component library lazy load (U4)", () => {
     const queryClient = makeQueryClient();
     const view = renderSheet(queryClient);
 
-    const retryButton = await screen.findByRole("button", { name: /retry/i });
+    expect(loadProjectLibraryMock).not.toHaveBeenCalled();
+    const retryButton = await screen.findByRole("button", { name: /retry/i }, { timeout: DYNAMIC_IMPORT_TIMEOUT });
     expect(screen.getByText(/couldn.t load|failed to load/i)).toBeInTheDocument();
 
     // Sheet stays editable while the sidebar errors: the empty estimate

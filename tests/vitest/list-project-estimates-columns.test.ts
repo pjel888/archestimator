@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
@@ -88,6 +89,15 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     expect(estimateSelect?.columns).not.toContain("metadata");
     expect(estimateSelect?.columns).not.toContain("created_by");
     expect(estimateSelect?.columns).not.toContain("*");
+  });
+
+  it("starts the project lookup and estimates list in the same request wave", () => {
+    const source = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+
+    expect(source).toContain("const projectContextPromise = getCurrentWorkspaceProject(projectId)");
+    expect(source).toContain("const estimatesPromise = traced(\"listProjectEstimates.estimates\"");
+    expect(source).toContain('.eq("project_id", projectId)');
+    expect(source).toContain("await Promise.all([projectContextPromise, estimatesPromise])");
   });
 
   it("builds count/total maps from the aggregation RPC and drops the all-rows JS fold (F8)", async () => {

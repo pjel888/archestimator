@@ -688,7 +688,27 @@ describe("estimate sheet cost inputs", () => {
 
     const activeRow = quantityInput.closest("tr");
     expect(activeRow).toHaveAttribute("data-estimate-row-active", "true");
-    expect(quantityInput.closest("td")).toHaveAttribute("data-estimate-cell-active", "true");
+    const activeCell = quantityInput.closest("td");
+    expect(activeCell).toHaveAttribute("data-estimate-cell-active", "true");
+    expect(activeCell).not.toHaveClass("bg-accent/10");
+  });
+
+  it("shows real tooltips for icon-only row actions on keyboard focus", async () => {
+    renderEstimateSheet("living-area");
+
+    const rowDetailsAction = screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" });
+    fireEvent.focus(rowDetailsAction);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Row details");
+    fireEvent.blur(rowDetailsAction);
+
+    const rowActivityAction = screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" });
+    fireEvent.focus(rowActivityAction);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Row activity");
+    fireEvent.blur(rowActivityAction);
+
+    const rowDeleteAction = screen.getByRole("button", { name: "Delete row Hardwood Oak Flooring" });
+    fireEvent.focus(rowDeleteAction);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Delete row. Undo after saving can restore it.");
   });
 
   it("opens the row component tab from the in-card component action", async () => {

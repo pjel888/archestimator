@@ -1012,7 +1012,11 @@ describe("component library UI", () => {
     expect(librarySearchInput("Search Project Components")).toHaveAttribute("placeholder", "Search Project Components");
     expect(screen.getByRole("treeitem", { name: "Casa Miguel" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Main Estimate" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Project Vanity" })).toBeInTheDocument();
+    const projectComponentRow = screen.getByRole("treeitem", { name: "Project Vanity" });
+    expect(projectComponentRow).toBeInTheDocument();
+    expect(within(projectComponentRow).getByText("Project · Project")).toBeInTheDocument();
+    expect(within(projectComponentRow).queryByText("Current")).not.toBeInTheDocument();
+    expect(within(projectComponentRow).queryByText("No confidence")).not.toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Database Steel Frame" })).not.toBeInTheDocument();
 
     const toolsRow = screen.getByRole("toolbar", { name: "Project tools" });
