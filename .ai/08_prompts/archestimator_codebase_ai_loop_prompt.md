@@ -79,7 +79,8 @@ Then inventory every existing agent/tool adapter file you can find, including bu
 - `.claude/**`
 - `.agents/**`
 - `.commandcode/**`
-- `.opencode/**`, if present
+- `opencode.json`, if present
+- intentionally authored `.opencode/**` extension files, if present
 - `.gemini/**`, if present
 - `.cursor/**`, if present
 - any README, prompt, skill, payload, hook, or config file that tells an AI agent how to work in this repo.
