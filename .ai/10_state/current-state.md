@@ -42,6 +42,256 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Routing Page Optimization P31 is locally readiness-green (2026-06-26):**
+
+- The authenticated estimate-sheet target route now has green local
+  production-like readiness evidence: `routeTransitionReady: true` in
+  `.ai/05_logs/2026-06-26-routing-page-optimization/after-p31-route-context-process-cache-existing-fixture-readiness.json`.
+- P31 benchmark medians across 7 storage-state authenticated runs per target
+  scenario: Cold Direct 2404ms, No Hover 365ms, Hover Prefetch 237ms, Warm
+  Revisit 349ms. Fallback gates stayed clean: zero overlay rate, zero parent
+  fallback, and max one sheet skeleton episode.
+- Key implementation facts: additive authorized `estimate_node_route_context`
+  Supabase RPC is applied for project `ebxxqidacheyapmmzavr`; repository route
+  context tries the RPC before legacy PostgREST; successful route contexts are
+  stored in a private short-lived process cache keyed by hashed auth material
+  and cleared on estimate mutations/revalidation; estimate workspace tree/content
+  modules are dynamically imported.
+- Validation evidence: `bun run type-check`, focused Vitest route/RPC/shell
+  suite (6 files / 46 tests), `bun run build`, authenticated Playwright
+  storage-state smoke, P31 benchmark, and P31 readiness checker passed locally.
+  The evidence is local-only and does not claim hosted production proof.
+
+**Publisher follow-up hardening and blocker closure are locally verified (2026-06-26):**
+
+- Publisher Phases 1-4 remain locally implemented. A follow-up hardening pass
+  fixed read-only bearer-link exposure, raw recipient-email warning logs, stale
+  URL drawer reopen intent, rotate-into-empty-snapshot persistence, project
+  chrome links to nonexistent drawer rows, and the stale doc-07 viewer-minimum
+  note.
+- Latest local blocker-closure evidence: WP-4.3 rollback deletion completed
+  under owner authority; the legacy project publication/teamspace headers and
+  tests are deleted; source scan found no runtime/source/e2e/env references;
+  focused rollback suite passed 8 files / 68 tests; shared activity
+  accessibility regression passed 1 file / 34 tests; full Publisher/security/
+  project DOM matrix passed 19 files / 174 tests; Publisher Playwright browser
+  proof passed 4 Chromium specs in 53.9s; `bun run type-check` and
+  `git diff --check` passed; scoped ESLint returned 0 errors with 2 unrelated
+  pre-existing warnings in `workspace-repository.ts`. Final reviewer lanes then
+  caught that the activity feed `tabIndex={0}` fix was absent from the active
+  workspace; it was re-applied, and the activity test, 19-file Publisher matrix,
+  type-check, scoped lint, and diff-check all passed again. The code-reviewer
+  recheck returned `APPROVE`; the independent verifier recheck returned `PASS`.
+- Manual screen-reader/owner signoff was re-scoped under owner authority to
+  automated axe, keyboard, DOM, and focus evidence for this local readiness run.
+  This is explicitly not VoiceOver/NVDA/human screen-reader proof.
+- Security-scanner proof was collected with Nuclei v3.9.0 after ZAP 2.17.0
+  installed but its bundled Java runtime hung before CLI execution. Authenticated
+  bounded Nuclei scan of `/workshop/publisher` found 6 informational header/CSP
+  findings; severe-only scan found 0 medium/high/critical findings.
+- The Publisher plan pack is archived at
+  `.ai/09_archive/2026-06-25-Publisher-Page/`; `24_EXTERNAL_GATE_RUNBOOK_2026-06-26.md`
+  is now a superseded procedural reference, not an open-blocker artifact. Git
+  commit/publish remains intentionally unperformed because the worktree is broad
+  and dirty; use a separate scoped Lore commit/publish step if desired.
+
+**Publisher direct route no longer needs rollout env flag (2026-06-26):**
+
+- `/workshop/publisher` now renders the Publisher roster route for authenticated
+  users without requiring `ARCHESTIMATOR_PUBLISHER_ENABLED=true`. That flag is
+  still used by `ProjectChromeAsync` to choose Publisher deep links versus the
+  legacy project-scoped publication/teamspace controls.
+- Publisher e2e specs no longer skip solely because
+  `ARCHESTIMATOR_PUBLISHER_ENABLED` is unset; they still require the explicit
+  e2e opt-in and authenticated/dev-auth fixture prerequisites.
+- A local unauthenticated probe of the currently running `localhost:3000`
+  server still redirects to `/login?next=%2Fworkshop%2Fpublisher`; that is an
+  auth-state/server-env issue, not a route-level Publisher gate.
+
+**Routing Page Optimization P20 evidence captured; latency still red (2026-06-26):**
+
+- The authenticated estimate-sheet target route now has clean fallback behavior
+  in the latest local benchmark: P20 shows zero benchmark failures, zero global
+  overlay, zero parent fallback, and at most one sheet skeleton episode across
+  all 28 authenticated target runs.
+- Route benchmark artifacts live in
+  `.ai/05_logs/2026-06-26-routing-page-optimization/`. Use
+  `after-p20-complete-warm-revisit-warmup-existing-fixture-route-transition.json`,
+  `after-p20-complete-warm-revisit-warmup-existing-fixture-readiness.json`, and
+  `after-p20-complete-warm-revisit-warmup-existing-fixture-shared-trace-summary.json`
+  as the current evidence set.
+- Implemented since the earlier P6 note: route-context concurrency, selected-node
+  embedded project/workspace data, embedded tab-list data, streamed project
+  layout title/chrome, sheet client import reduction, server-safe route skeleton,
+  default publisher-path project cursor summary skip, and a warm-revisit harness
+  fix that waits for real sheet content before measuring the return transition.
+- Latest P20 medians: Cold Direct 1648ms, No Hover 1062ms, Hover Prefetch 231ms,
+  Warm Revisit 1099ms. Hover median and cold median pass, but readiness is still
+  false because max duration, content-visible, and warm 500ms budgets remain red.
+- Current likely owners are Supabase/data-path outliers in
+  `estimate-sheet.route-context` and `estimates-list.project-estimates`, plus
+  legacy project chrome fan-out when Publisher is off. Do not claim routing
+  optimization complete yet; next useful work should reduce route-context round
+  trips, source-route background competition, or legacy project chrome fan-out.
+
+**Projects toolbar/group controls adjusted (2026-06-26):**
+
+- `/workshop/projects` now keeps project group management in the right-aligned
+  action cluster immediately before `Add projects` when group mode is active,
+  rather than mixing it into the view/group/sort filter cluster.
+- The project create action uses the project-card icon (`Cards`) instead of a
+  generic plus, and the group manager trigger uses `FolderPlus`; group recolor
+  uses `Palette` instead of a settings/gear icon.
+- Per-card `Move <project> to a group` menus now inherit the same hover/focus
+  reveal treatment as the sibling card controls, so the resting card chrome
+  stays visually quiet until hover, focus, or touch-device fallback.
+- Focused evidence: `bunx vitest run tests/vitest/projects-page-group-mode.test.tsx
+  tests/vitest/header-icon-toolbar-ui.test.tsx tests/vitest/project-creation-ui.test.ts
+  --maxWorkers=1` passed; `git diff --check` passed. Full `bun run type-check`
+  is still blocked by pre-existing Supabase/Postgrest typing errors in
+  `src/lib/auth/session.ts` and `src/lib/repositories/workspace-repository.ts`.
+
+**Routing Page Optimization P1/P2 visual fixes landed; timing still red (2026-06-26):**
+
+- Estimate sheet route `projects/[projectId]/estimates/[nodeId]` now returns the
+  leaf `<Suspense fallback={<EstimateSheetRouteSkeleton />}>` before awaiting
+  route params/search params, auth, route-context data, or notFound validation.
+  Protected sheet metadata/client rendering remains inside the async child after
+  auth/project/estimate validation.
+- The estimates-list segment `loading.tsx` was removed. The list page now owns a
+  page-local Suspense fallback via `ProjectEstimatesListRouteFallback`, which
+  suppresses the list skeleton when navigation target is an estimate sheet.
+- The global route overlay store now suppresses overlay display for estimate
+  sheet routes while still recording the target href; this lets the sheet route's
+  privacy-safe skeleton own the loading surface and prevents overlay masking.
+- Evidence in `.ai/05_logs/2026-06-26-routing-page-optimization/` shows the
+  successful target transition runs after P2 have `overlayVisibilityRate: 0`,
+  `parentFallbackCount: 0`, and at most one sheet skeleton episode. Readiness is
+  still red because sheet content remains multi-second and one later 3-run P3
+  rerun saw auth storage redirect warm-revisit attempts to `/login`.
+- Low-risk P3 diagnostic work also added `workshop.project-layout` /
+  `project-layout.project` PERF_TRACE spans and removed a duplicate selected-tab
+  lookup from the tab-present route context path. It did not prove readiness.
+- Do not claim routing optimization complete yet. Next useful step is a clean
+  authenticated PERF_TRACE run with fresh storage state and a server launched
+  with `PERF_TRACE=1`, then a project-layout streaming/auth/RSC latency decision.
+
+**Publisher implementation completion audit captured (2026-06-26):**
+
+- Publisher Phases 1-4 remain locally implemented and verified, with the newest
+  evidence in `.ai/09_archive/2026-06-25-Publisher-Page/22_EXECUTION_LEDGER_2026-06-26.md`.
+- The goal should not be marked fully complete yet: env-gated Publisher
+  browser proof now covers roster/drawer/access plus automated critical-axe and
+  keyboard drawer behavior, but manual screen-reader/signoff/security-scanner
+  proof has not run, WP-4.3 legacy component removal is still deferred for the
+  verification window, and git commit/archive steps were not requested.
+- A local e2e feasibility precheck found the Publisher e2e flag, Publisher
+  feature flag, and Playwright storage state unset in this shell, so running the
+  scaffold now would only prove skip behavior.
+- A follow-up browser attempt supplied session-only Publisher/dev-auth env. The
+  isolated run was blocked by the existing Next dev server for this repo on port
+  3000; reusing that server reached the Sign in page, proving it was not started
+  with the needed dev-auth bypass. Browser proof now needs that server restarted
+  with Publisher/dev-auth env or a valid `PLAYWRIGHT_STORAGE_STATE`.
+- A non-disruptive isolated temp-copy proof then ran the env-gated Publisher e2e
+  suite on port 3027 with `next dev --webpack`. The final targeted Chromium run
+  passed 3 tests in 39.4s for roster `?status=stale` URL persistence, drawer tab
+  availability, shared-link rotation with persisted DB/audit evidence and
+  old-link rejection, and Access-tab restrict/restore feedback. The service-role
+  fixture cleanup check reported `publisher-e2e-projects=0`.
+- A follow-up isolated webpack proof on port 3028 added
+  `e2e/publisher-accessibility.spec.ts` and passed 1 Chromium test in 22.5s. It
+  proves zero critical axe violations on the Publisher roster and open drawer,
+  Enter opens the drawer from the Manage trigger, Escape closes it, and focus
+  returns to the trigger. The test found and fixed invalid Publisher tab
+  `aria-controls` plus missing manual-drawer focus return. Cleanup checks showed
+  `publisher-e2e-projects=0`, no 3028 listener, no throwaway secret match, and
+  `git diff --check` clean.
+- Docs `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` and
+  `17_FINAL_READINESS_REVIEW.md` now carry post-implementation overlays so their
+  pre-code `PENDING` / "zero source files modified" language is not mistaken for
+  current state.
+
+**Routing Page Optimization Phase 0 harness + current-state baseline captured (2026-06-26):**
+
+- `scripts/measure-route-transitions.ts` now includes the `Authenticated Target` cold direct, no-hover, hover-prefetch, and warm-revisit estimate-route scenarios plus selector timeline telemetry for parent fallbacks, sheet skeleton episodes, overlay duration, sheet content visible timing, shell presence, and sanitized path-class output.
+- `scripts/check-route-transition-readiness.ts` now enforces the Phase 0 target scenario set, route-specific budgets, parent fallback/sheet episode/overlay/content thresholds, and optional baseline-relative improvement checks.
+- Evidence was captured under `.ai/05_logs/2026-06-26-routing-page-optimization/`: `before-route-transition.json`, `before-readiness.json`, and a README caveat. The readiness result is intentionally red in current state (`routeTransitionReady=false`, 20 missing/failure reasons), with slow sheet content timing, parent fallback flashes, long overlays, and one warm-revisit run failure.
+- Caveat: this is an enhanced same-harness current-state baseline for the dirty local branch, not a pristine pre-app-optimization baseline; estimate-sheet component/test edits already existed before this capture. No app optimization code was changed in this harness slice.
+- Fresh local evidence passed for the harness itself: focused route-transition Vitest (`2 files / 19 tests`), touched-file ESLint, `bun run type-check`, `git diff --check`, and an evidence-folder scan for raw entity identifiers/account addresses/credential artifacts.
+
+**Publisher Phase 4 project chrome consolidation locally verified (2026-06-26):**
+
+- When `ARCHESTIMATOR_PUBLISHER_ENABLED=true`, `ProjectChromeAsync` keeps the same compact action slot but renders Publisher project-filter drawer links for publication and access management. Publication links use `/workshop/publisher?project=<id>&drawer=<id>`; Access links add `tab=access` and the Publisher roster opens the matching drawer tab from URL intent.
+- When Publisher is disabled, the project header keeps the legacy project-scoped `ProjectPublicationHeader` / `ProjectTeamspaceHeader` modal controls for rollback safety. Those old component files remain until the Phase 4 verification-window removal step.
+- Fresh local evidence passed after review fixes: Phase 4 project chrome/source/client suite (`7 files / 39 tests`), broader Publisher/project regression (`15 files / 140 tests`), touched-file ESLint, `bun run type-check`, `git diff --check`, and touched-source UI-rule scan. Browser proof was skipped because this slice proves source/DOM route handoff and query preservation, not real browser navigation or visual placement.
+
+**Project card selected state uses depth, not a black outline (2026-06-26):**
+
+- `/workshop/projects` selected project cards and list rows keep the normal subtle hairline/ring-free JSX state; selection is communicated by the `.workshop-project-card-glass[data-project-card-selected="true"]` shell shadow.
+- `DESIGN.md` now records the selected-card rule: deeper shell shadow, no black border/ring. This preserves the liquid-glass card language while keeping selected cards visually clear.
+
+**Publisher Phase 3 access/member slice locally verified (2026-06-26):**
+
+- Added the Publisher drawer Access tab and `PublisherProjectMembersPanel`, seeded from `readPublisherPublicationDrawerData` with the shared `ProjectCollaborationSummary`. The panel shows project collaborators, per-estimate inherited/override/restricted modes, sheet-specific members, sheet invite controls, restrict confirmation, and sheet-member removal confirmation.
+- Extended `getProjectCollaborationSummary` / `EstimateSheetAccessSummary` to include `members: EstimateSheetMemberSummary[]` from the already-read `estimate_sheet_members` rows. Added `removeEstimateSheetCollaborator` to the shared collaboration action surface; it uses `assertEstimateAccessManager`, records a `member_removed` collaboration audit row, revalidates collaboration routes, and refuses to remove the last owner/admin from a restricted estimate. Sheet adds continue through existing `inviteEstimateSheetCollaborator` because the plan's `addSheetMember` action name does not exist in source.
+- Fresh local evidence passed: focused Phase 3 suite (`4 files / 22 tests`), broader Publisher regression suite (`12 files / 121 tests`), touched-file ESLint, `bun run type-check`, `git diff --check`, and touched Publisher UI source scan. Broad `lint:design-system` still fails on pre-existing global/landing/shared Workshop findings and did not list the touched Publisher access files.
+
+**Projects bulk group move lives in the selection dock (2026-06-26):**
+
+- `/workshop/projects` no longer renders the standalone full-width bulk "Move to group" row above grouped project sections.
+- Bulk project group assignment remains gated to Your Projects + Group by + assignment-eligible owned projects, but its dropdown trigger now lives inside the bottom floating bulk-selection dock as the non-destructive action before the delete affordance.
+- Fresh local evidence passed: `tests/vitest/projects-page-group-mode.test.tsx`, `tests/vitest/projects-page-access-tabs.test.tsx`, `bun run type-check`, and `git diff --check`.
+
+**Publisher Phase 2 workspace activity feed locally verified (2026-06-26):**
+
+- Added `readPublisherWorkspaceActivity` and `loadPublisherWorkspaceActivity`: a normal-RLS server-client activity union over `shared_link_events`, `shared_link_comments`, `shared_link_responses`, `collaboration_audit_events`, and `estimate_sheet_events`, scoped through `listCurrentWorkspaceProjects` plus `canReadPublisherRosterProject`, with cursor pagination and partial-source reporting.
+- Extended `SharedLinkActivityFeed` to accept a custom loader while preserving existing shared-link owner/public behavior, added partial activity status, and preserved keyboard focusability for activity articles. Added `PublisherActivityFeed` and wired the Publisher drawer Activity tab to project-scoped Publisher activity.
+- Fresh local evidence passed: Publisher activity/source group (`4 files / 13 tests`), shared activity regression (`1 file / 34 tests`), expanded Phase 2 drawer/action/activity/audit suite (`9 files / 104 tests`), focused activity ESLint, `bun run type-check`, `git diff --check`, and touched-source UI-rule scan. No service-role read path was added for Publisher activity. Browser proof remains skipped because this slice is covered by DOM/source/type validation.
+
+**Publisher Phase 2 audit/security contract locally verified (2026-06-26):**
+
+- Added `recordPublisherAuditEvent` to the existing publication manager action surface. Successful publish, republish, rotate, revoke, recipient add, recipient resend, and recipient removal paths now write `account_security_events` rows with `publisher_*` `event_type` values and non-secret metadata.
+- Extended the publication action harness to track audit inserts and added a source contract in `tests/vitest/security-findings-publication-contracts.test.ts` so every Publisher manager mutation entry point is covered.
+- Fresh local evidence passed: focused audit suite (`2 files / 38 tests`), expanded Phase 2 drawer/action/audit suite (`7 files / 68 tests`), touched-file ESLint, `bun run type-check`, `git diff --check`, and the touched-source UI-rule scan.
+
+**Publisher Phase 2 drawer/action slice locally verified (2026-06-26):**
+
+- Added the initial Publisher drawer shell and data/action wiring: `PublisherDrawer`, `usePublisherDrawer`, `readPublisherPublicationDrawerData`, shared Publisher permissions, roster row manage entry point, reused `RecipientEmailComposer`, reused `SheetPickerList`, reused `SharedLinkActivityFeed`, and existing republish/rotate/revoke actions.
+- Fixed review findings in this slice: drawer mutations now have a synchronous per-drawer latch, successful drawer mutations call `router.refresh()` so RSC roster rows do not expose stale copy/open links after rotate/revoke/republish, and drawer hydration enforces the same viewer-exclusion policy as the Publisher roster before loading publication details.
+- Fresh local evidence passed: focused Phase 2 suite (`6 files / 56 tests`), touched-file ESLint, `bun run type-check`, `git diff --check`, and a touched-source UI-rule scan. `bun run lint:design-system` remains red on pre-existing global/landing/shared Workshop findings (`globals.css`, landing-v3, shared controls, project cards/modals/details, `ProjectPublicationHeader`, `ResizableSidePanel`) and does not list the touched Publisher drawer/composer files.
+
+**Publisher Phase 2 recipient action cap locally verified (2026-06-26):**
+
+- Added the D-ARCH-07 server-side cap to `addSharedLinkRecipients`: managers may submit at most 50 recipient inputs per action, with over-cap batches rejected after manager RBAC and before normalization, token generation, recipient inserts, or email dispatch work.
+- Updated `tests/vitest/project-publication-actions.test.ts` to prove source ordering (`assertProjectPublicationManager` before cap check, cap check before bounded email work), behavior for 51 inputs, and the current `requireAuth` harness contract.
+- Fresh local evidence passed: `bun run test:dom -- tests/vitest/project-publication-actions.test.ts` (`1 file / 26 tests`), `bun run lint -- src/lib/publication/actions.ts tests/vitest/project-publication-actions.test.ts`, `bun run type-check`, and `git diff --check`. No browser proof was needed because this slice is server-action validation and test-harness behavior.
+
+**Publisher Phase 1 roster slice locally verified (2026-06-26):**
+
+- Branch/worktree: `feat/publisher-page` at `/Users/philiplewis/Documents/archestimator`; scope was the first Publisher implementation slice from `.ai/09_archive/2026-06-25-Publisher-Page/11_IMPLEMENTATION_PLAN.md`.
+- Added strict `ARCHESTIMATOR_PUBLISHER_ENABLED=true` gating, roster query parsing, and a bounded workspace publication roster helper under `src/lib/publisher/`; the helper uses the normal RLS server client, no new service-role path, caps Phase 1 publication scans at 100 rows, caps child rollup scans, separates read visibility from management, carries full visible project filter options outside the paginated row slice, validates requested workspace/user scope against the current request context, suppresses synthetic drafts when capped, and surfaces corrupt publication-token rows as `token-unavailable` without masking missing production crypto config.
+- Replaced the `/workshop/publisher` placeholder with a feature-flagged `WorkshopPageShell` route, route-local `WorkshopRouteErrorState`, streamed roster skeleton, disabled/empty states, compact six-column roster, status/search/project URL filters, and local copy-link action. Added the named RBAC contract test and an env-gated `e2e/publisher-roster.spec.ts` scaffold; the existing sidebar item and `/workshop/:path*` `Referrer-Policy: no-referrer` header remain the navigation/security path.
+- Fresh local evidence passed: focused Publisher/security suite (`7 files / 27 tests`), touched-file ESLint including the e2e scaffold, `bun run type-check`, `git diff --check`, and a static UI-rule scan. A read-only code-review follow-up found one broad crypto-fallback issue; it was fixed by reading the encryption secret before the per-row decrypt catch. A read-only architecture pass then found page-slice project options, missing route error boundary, and ignored scope args; all three were fixed and rechecked as passing. No Playwright/browser proof was claimed because the e2e file is gated and the validated local claims were covered by DOM/source tests and static checks.
+
+**Workshop project card content pane softened into translucent glass (2026-06-26):**
+
+- `/workshop/projects` project cards keep a single deferred backdrop blur on `.workshop-project-card-glass`, while the inset inner panel and selected content pane now use lower-opacity cool-white/glass tints so the northwest navy canvas can read through the card body.
+- The card contract remains performance-safe: no new child `backdrop-filter`, no extra blur on the selected content block, and date cells stay flat without their old background/border pills.
+
+**Workshop route canvas wash map codified (2026-06-26):**
+
+- Workshop shell gradients are route-level backmost canvas washes owned by `WorkshopGlassBackdrop` / `WorkshopPageShell`, while the workspace surface uses neutral frost and headers, tabs, content, and footer remain transparent/translucent rows above it.
+- `DESIGN.md` now records the route map: `/workshop` uses southeast peach (`--grad-canvas-wash`), `/workshop/projects` uses northwest desaturated navy (`.projects-canvas-wash`), `/workshop/library` uses northeast desaturated yellow/white (`.library-canvas-wash`), and `/workshop/publisher` uses southwest desaturated olive (`.publisher-canvas-wash`).
+- Workshop collection header rows now follow the parent-most-surface rule: icon toolbars, tabs, and footers stay transparent over `workshop-workspace-glass-surface`; they should not carry independent white/gradient fills, route-gradient overlays, or full-width tab rail baselines that visually split the title/header stack.
+- Local verification for the canvas/chrome updates passed: `git diff --check`, token/route assertions, transparent-row source assertions, `bun run type-check`, and the focused projects access/sort suites. A fresh unauthenticated route probe redirects to `/login`, so no separate browser screenshot proof is claimed.
+
+**Publisher Page plan pack pass-3 owner decisions resolved (2026-06-26):**
+
+- Updated `.ai/09_archive/2026-06-25-Publisher-Page/` after reviewing the supplied publisher analysis and pass-2 audit. The pack now resolves D-ARCH-05..08, D-SEC-05, and D-OPS-01 in doc 15 and propagates them through requirements, architecture, data/API, security, performance/reliability, implementation, testing, operations, risk, traceability, readiness, and README.
+- Owner-decision outcomes: rotate-token races require DB-level per-publication serialization/locking; same-publication concurrent mutations are rejected with disabled controls plus wait toast; recipient add/remove caps at 50 recipient inputs per action; sheet-scope saves bump `snapshot_version` without invalidating publication access cookies while receiver view-token state refreshes; DPoP is Phase 5+ incident/scale-triggered research only; `/workshop/:path*` uses `Referrer-Policy: no-referrer`.
+- Added `20_PHASE_5_FUTURE_BACKLOG_2026-06-26.md` as the explicit non-AI Phase 5 backlog. No AI features are in Publisher scope now. Requirement count is now 95 (83 PENDING, 12 IN-PLAN). No application code, tests, migrations, config, browser automation, or provider state changed.
+
 **Estimate sheet June 24/25 plan folders archived after implementation closeout (2026-06-26):**
 
 - Archived these folders from `.ai/03_plans/` to `.ai/09_archive/`: `2026-06-24-Estimate-Sheet-Center-Content-Analysis`, `2026-06-24-Estimate-Sheet-Right-Sidebar-Analysis`, `2026-06-24-Estimate-Sheet-Tree-Sidebar-Analysis`, and `2026-06-25-Estimate-Sheet-Orchestration`.
@@ -115,19 +365,19 @@ grep, don't linear-read).
 
 **Publisher Page UX/UI research addendum added (2026-06-25):**
 
-- Added `.ai/03_plans/2026-06-25-Publisher-Page/19_UX_UI_RESEARCH_AND_REFINEMENT_2026-06-25.md` and updated the Publisher plan pack with source-backed UX/UI refinements. The pack now has 20 numbered docs (00-19) plus README.
+- Added `.ai/09_archive/2026-06-25-Publisher-Page/19_UX_UI_RESEARCH_AND_REFINEMENT_2026-06-25.md` and updated the Publisher plan pack with source-backed UX/UI refinements. The pack now has 20 numbered docs (00-19) plus README.
 - New traced requirements: UX-09 at-a-glance roster split, UX-10 permission-change impact preview, UX-11 768px tablet support, UX-12 copy-link privacy, A11Y-08 WCAG 2.2 AA target, A11Y-09 error summary + inline errors, TEST-07 UX task-model validation, TEST-08 UX/accessibility/privacy edge validation.
 - Updated docs: 00, 04, 05, 11, 12, 15, 16, 17, README, plus new 19. Requirement count is now 94 (81 PENDING, 13 IN-PLAN). No application code, tests, migrations, config, browser automation, or provider state changed.
 - Implementation agents must read docs 18 and 19 before Phase 1. Doc 18 remains authoritative for factual code corrections; doc 19 is authoritative for the new UX/UI planning refinements.
 
 **Publisher Page plan pack pass-2 audit complete (2026-06-25):**
 
-- Sisyphus (Claude Opus 4.7) ran a second-pass adversarial audit on the 19-document pack at `.ai/03_plans/2026-06-25-Publisher-Page/` and produced a new authoritative errata doc `18_AUDIT_FINDINGS_AND_CORRECTIONS_2026-06-25.md` with 47 findings (8 CRITICAL, 17 HIGH, 15 MEDIUM, 7 LOW). Per-document audit banners applied to README + 04/05/06/07/08/09/10/11/12/13/14/15. Overall readiness lifts 82 → 88.
+- Sisyphus (Claude Opus 4.7) ran a second-pass adversarial audit on the 19-document pack at `.ai/09_archive/2026-06-25-Publisher-Page/` and produced a new authoritative errata doc `18_AUDIT_FINDINGS_AND_CORRECTIONS_2026-06-25.md` with 47 findings (8 CRITICAL, 17 HIGH, 15 MEDIUM, 7 LOW). Per-document audit banners applied to README + 04/05/06/07/08/09/10/11/12/13/14/15. Overall readiness lifts 82 → 88.
 - CRITICAL headlines: server-action surface names in §06/§07 were FABRICATED (use `createProjectPublication`/`rotateProjectPublicationLink`/`revokeProjectPublication`/`republishProjectPublication`/`addSharedLinkRecipients` plural/`removeSharedLinkRecipient`/`setEstimateSheetAccessMode` — full list in 18_); RPC name `atomic_publish_and_digest_slot` corrected to `shared_link_atomic_publish_and_digest_slot` (`20260621133000`); lock migration timestamp `20260601151500` → `20260601145000`; helper `isBeforeSharedLinkActivityCursor` does NOT exist (use `parseSharedLinkActivityCursor` + `encodeSharedLinkActivityCursor` at activity-helpers.ts:256/246); service-role claim "never used in app code" is FALSE (used in 10 src/lib files — Publisher must not add new paths); 8 share/[token] endpoints not 7 (missing `route.ts`); `feat/sidebar-redesign` branch does NOT exist locally or on remote (plan coordination risk was fabricated); current branch is `codex/estimate-sheet-orchestration` not `main` (Phase 0 must switch).
 - HIGH headlines: workspace-repository.ts is 3,267 lines not 2,300 (Ponytail T2.3 split target #1 — roster function MUST live in new `src/lib/publisher/roster-repository.ts`); `ProjectPublicationListSummary` too narrow (roster needs new `ProjectPublicationRosterRow` type); MainSidebar risk MED not LOW (8 test files import it); 15+ test files import workspace-repository; rotate-token race incorrectly dismissed (requires `pg_advisory_xact_lock` or bulk re-notify); FR-07 needs per-action recipient cap (recommend 50); FR-09 snapshot_version behavior on sheet change unspecified; SEC-02 needs fallback path if Next.js 16 lacks redaction config; Philippines DPA NPC 4-element + GDPR Art 33/34 missing (primary market is PH); CWE-639/863 mapping missing; Referrer-Policy missing for Copy Link; ARCH-DEFECT-01/02/04/06/08/12/13/14/15 architectural defects.
 - New decisions required from Philip: D-ARCH-05 (rotate race handling), D-ARCH-06 (optimistic queueing), D-ARCH-07 (FR-07 cap value), D-ARCH-08 (FR-09 snapshot_version), D-SEC-05 (DPoP Phase 5+ eval), D-OPS-01 (Referrer-Policy).
 - Audit trail: 7 parallel specialist reviewers dispatched (3 explore + 2 librarian + 1 oracle); 6 timed out at 30 min with zero output (same systemic infrastructure issue as pass 1). Lead emulated all failed lanes via direct Bash + Read on live repo per OMX MULTI-AGENT EXECUTION DIRECTIVE FALLBACK clause. One librarian (Next.js 16 + Supabase SSR) was still in-flight at audit finalization; output (if any) folded into future pass-3 refinement.
-- Scope confirmation: zero code/migration/config/provider mutations; zero git ops. All writes confined to `.ai/03_plans/2026-06-25-Publisher-Page/*` (1 new doc 18_ + 13 audit-banner edits + scorecard rewrite + README index add) plus this single announcement line.
+- Scope confirmation: zero code/migration/config/provider mutations; zero git ops. All writes confined to `.ai/09_archive/2026-06-25-Publisher-Page/*` (1 new doc 18_ + 13 audit-banner edits + scorecard rewrite + README index add) plus this single announcement line.
 
 **Estimate sheet orchestration MOP-6 continuation checkpoint (2026-06-25):**
 

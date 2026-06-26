@@ -6,6 +6,7 @@ Archive is for preserved historical material, not a deletion bin. Put archived c
 
 | Path | Date | Reason |
 |---|---:|---|
+| `.ai/09_archive/2026-06-25-Publisher-Page/` | 2026-06-26 | Implemented and archive-closed Publisher page plan: Phases 1-4, follow-up hardening, rollback deletion, local DOM/type/lint/diff/browser proof, Nuclei severe-only scan, and final reviewer approve/pass are recorded. Git commit/publish and manual screen-reader/owner proof remain separate. |
 | `.ai/09_archive/08_prompts/` | 2026-06-15 | Plans-folder cleanup: moved the entire former `.ai/08_prompts/` (reusable prompts, plan-creation/refinement/implementation prompt templates, EMC/cleanup/optimization/UI prompts, and `templates/`) into the archive to declutter `.ai/`. Preserved for history. |
 | `.ai/09_archive/2026-06-20-Shared-Link-Feature/` | 2026-06-22 | Implemented and archive-closed shared-link feature plan: D1-D11 source/provider hardening, QA/perf evidence, current-preview §6 smoke, owner signoff, and scoped owner/DBA drift/advisor waiver are recorded. Production deploy and GA live-scale/legal/realtime work remain separate. |
 | `.ai/09_archive/2026-06-21-Estimate-Sheet-Audit-And-Improvement/` | 2026-06-21 | Implemented and verified estimate-sheet audit/improvement plan: final build/type/diff gates passed, focused Vitest sweeps passed, and independent code-reviewer/architect gates cleared. Supabase local lint/reset remained environment-blocked, not an unfinished implementation item. |
