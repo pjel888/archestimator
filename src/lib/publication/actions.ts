@@ -24,6 +24,10 @@ import {
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import {
+  readSharedLinkRecipientActionLimitMessage,
+  SHARED_LINK_RECIPIENT_ACTION_LIMIT,
+} from "@/lib/publication/recipient-limits";
 import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
 import {
   compareSharedLinkActivityDesc,
@@ -114,6 +118,15 @@ type PublicationEmailIdentity = {
 type HeaderReader = {
   get(name: string): string | null;
 };
+type PublisherAuditEventType =
+  | "publisher_publication_created"
+  | "publisher_publication_republished"
+  | "publisher_publication_rotated"
+  | "publisher_publication_revoked"
+  | "publisher_recipient_added"
+  | "publisher_recipient_resend"
+  | "publisher_recipient_removed";
+type PublisherAuditMetadata = Record<string, string | number | boolean | null>;
 type PublicationRpcResult<T> = Promise<{ data: T | null; error: { message?: string } | null }>;
 type PublicationRpcClient = {
   rpc(functionName: string, args: Record<string, unknown>): PublicationRpcResult<unknown>;
@@ -530,6 +543,27 @@ function readClientLinkPath(publication: Pick<LatestPublication, "encrypted_toke
   return `/share/${decryptPublicationToken(publication.encrypted_token, readPublicationTokenEncryptionSecret())}`;
 }
 
+async function recordPublisherAuditEvent({
+  context,
+  eventType,
+  metadata,
+}: {
+  context: PublicationManagerContext;
+  eventType: PublisherAuditEventType;
+  metadata: PublisherAuditMetadata;
+}) {
+  const { error } = await context.admin.from("account_security_events").insert({
+    event_type: eventType,
+    user_id: context.currentUserId,
+    workspace_id: context.project.workspace_id,
+    metadata_json: {
+      ...metadata,
+      project_id: context.project.id,
+    } as Json,
+  });
+  if (error) throw error;
+}
+
 export async function createProjectPublication({
   projectId,
   selectedEstimateIds,
@@ -570,7 +604,7 @@ export async function createProjectPublication({
   const token = createPublicationToken();
   const clientLinkPath = `/share/${token}`;
 
-  const { error } = await callPublicationRpc<string>(context.admin, "replace_project_publication", {
+  const { data: publicationId, error } = await callPublicationRpc<string>(context.admin, "replace_project_publication", {
     target_workspace_id: context.project.workspace_id,
     target_project_id: context.project.id,
     p_token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
@@ -585,6 +619,17 @@ export async function createProjectPublication({
   });
 
   if (error) throw error;
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_publication_created",
+    metadata: {
+      expires_at_changed: expiresAt !== undefined,
+      has_password: Boolean(password),
+      location_visibility: normalizedLocationVisibility,
+      publication_id: publicationId ?? null,
+      selected_estimate_count: resolvedEstimateIds.length,
+    },
+  });
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
   return { ok: true, message: "Shared link ready.", clientLinkPath };
 }
@@ -666,6 +711,18 @@ export async function republishProjectPublication({
     .eq("id", latest.id);
 
   if (error) throw error;
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_publication_republished",
+    metadata: {
+      expires_at_changed: expiresAt !== undefined,
+      location_visibility: normalizedLocationVisibility,
+      password_changed: Boolean(password),
+      password_cleared: clearPassword,
+      publication_id: latest.id,
+      selected_estimate_count: resolvedEstimateIds.length,
+    },
+  });
   revalidatePublicationRoutes(context.project.id, clientLinkPath);
   return { ok: true, message: "Shared page updated.", clientLinkPath };
 }
@@ -695,8 +752,11 @@ export async function rotateProjectPublicationLink({
   const snapshot = await buildSnapshotForProject(context, latest.selected_estimate_ids, normalizedLocationVisibility);
   // MOD-SHEET-06: re-persist the RESOLVED ids present in the freshly rebuilt snapshot so a sheet
   // deleted since the last publish no longer inflates the stored count. Rotation re-publishes the
-  // existing selection (no new picker input), so no zero-resolution guard is needed here.
+  // existing selection (no new picker input), but it must still reject a now-empty snapshot.
   const resolvedEstimateIds = (snapshot.estimates ?? []).map((estimate) => estimate.id);
+  if (resolvedEstimateIds.length === 0) {
+    return { ok: false, message: "Select at least one estimate to publish." };
+  }
   const previousClientLinkPath = readClientLinkPath(latest);
   const token = createPublicationToken();
   const clientLinkPath = `/share/${token}`;
@@ -726,6 +786,17 @@ export async function rotateProjectPublicationLink({
   if (invalidatedCount === null || invalidatedCount < 0) {
     return { ok: false, message: "Shared link changed while rotating. Refresh and try again." };
   }
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_publication_rotated",
+    metadata: {
+      invalidated_recipient_count: invalidatedCount,
+      password_changed: Boolean(password),
+      password_cleared: clearPassword,
+      publication_id: latest.id,
+      selected_estimate_count: resolvedEstimateIds.length,
+    },
+  });
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
   return { ok: true, message: "New shared link ready.", clientLinkPath };
 }
@@ -746,6 +817,14 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
     .eq("status", "published");
 
   if (error) throw error;
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_publication_revoked",
+    metadata: {
+      had_active_publication: Boolean(latest),
+      publication_id: latest?.id ?? null,
+    },
+  });
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath);
   return { ok: true, message: "Shared link turned off.", clientLinkPath: null };
 }
@@ -1079,6 +1158,22 @@ export async function addSharedLinkRecipients({
   const pubCtx = await getPublicationProjectId(admin, publicationId);
   const context = await assertProjectPublicationManager(pubCtx.projectId); // enforces manager RBAC + gets currentUserId
 
+  if (inputs.length > SHARED_LINK_RECIPIENT_ACTION_LIMIT) {
+    const limitMessage = readSharedLinkRecipientActionLimitMessage();
+    return {
+      ok: false,
+      message: limitMessage,
+      added: 0,
+      failedEmails: inputs.map((input) => input.email),
+      emailResults: inputs.map((input) => ({
+        email: input.email,
+        ok: false,
+        error: limitMessage,
+        status: "failed",
+      })),
+    };
+  }
+
   const normalized = filterMap(inputs, (r) => {
     const email = normalizeEmail(r.email);
     return email && isValidEmail(email) ? { email, displayName: r.displayName?.trim() || null } : null;
@@ -1201,7 +1296,7 @@ export async function addSharedLinkRecipients({
         return { added: 1, emailResult: { email: r.email, ok: true, id: recipientId, status: "sent" as const } };
       } else {
         // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
-        console.warn("[P4] recipient email send non-fatal failure", { email: r.email, error: sendResult.error });
+        console.warn("[P4] recipient email send non-fatal failure", { error: sendResult.error, publicationId, recipientId });
         return {
           added: 1,
           emailResult: { email: r.email, ok: false, error: sendResult.error, id: recipientId, status: "pending" as const },
@@ -1228,6 +1323,20 @@ export async function addSharedLinkRecipients({
   const message = blockedSelfEmails.length > 0
     ? `${baseMessage} ${selfInviteMessage}`
     : baseMessage;
+
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_recipient_added",
+    metadata: {
+      added_count: added,
+      attempted_count: inputs.length,
+      blocked_self_count: blockedSelfEmails.length,
+      email_success_count: successCount,
+      failed_count: failedEmails.length,
+      normalized_count: normalized.length,
+      publication_id: publicationId,
+    },
+  });
 
   return { ok: added > 0 || successCount > 0, message, added, failedEmails, emailResults };
 }
@@ -1300,7 +1409,7 @@ export async function resendSharedLinkRecipientEmail({
   });
 
   if (!sendResult.ok) {
-    console.warn("[P4] recipient email resend non-fatal failure", { email: recipient.email, error: sendResult.error });
+    console.warn("[P4] recipient email resend non-fatal failure", { error: sendResult.error, publicationId, recipientId });
     // No DB write happened: the prior recipient_token_hash and delivery_status are untouched and
     // the previously-emailed link still works.
     return { ok: false, message: "Recipient email resend failed. The previous link is still active." };
@@ -1319,6 +1428,14 @@ export async function resendSharedLinkRecipientEmail({
     return { ok: false, message: "Shared link changed while resending. Send the recipient email again from the current link." };
   }
 
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_recipient_resend",
+    metadata: {
+      publication_id: publicationId,
+      recipient_id: recipient.id,
+    },
+  });
   revalidatePublicationRoutes(pubCtx.projectId, linkBase);
   return { ok: true, message: "Recipient email resent." };
 }
@@ -1339,7 +1456,7 @@ export async function removeSharedLinkRecipient({
 
   const admin = createPublicationAdminClient();
   const pubCtx = await getPublicationProjectId(admin, publicationId);
-  await assertProjectPublicationManager(pubCtx.projectId); // RBAC
+  const context = await assertProjectPublicationManager(pubCtx.projectId); // RBAC
 
   let query = admin.from("shared_link_recipients").delete().eq("publication_id", publicationId);
   if (recipientId) {
@@ -1350,6 +1467,16 @@ export async function removeSharedLinkRecipient({
 
   const { error } = await query;
   if (error) throw error;
+
+  await recordPublisherAuditEvent({
+    context,
+    eventType: "publisher_recipient_removed",
+    metadata: {
+      publication_id: publicationId,
+      recipient_id: recipientId ?? null,
+      removed_by_email_identifier: Boolean(email && !recipientId),
+    },
+  });
 
   return { ok: true, message: "Recipient removed." };
 }

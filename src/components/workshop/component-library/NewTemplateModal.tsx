@@ -26,7 +26,7 @@ function Field({ label, children, required }: { label: string; children: ReactNo
   );
 }
 
-const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:bg-accentSoft";
+const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition placeholder:text-tertiary hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40";
 
 // U14: count line should read "1 group", not "1 groups".
 function pluralize(count: number, noun: string) {
@@ -273,7 +273,7 @@ export function NewTemplateModal({
         <Field label="Description">
           <ControlTextarea
             aria-label="Template description"
-            className="min-h-14 border border-hairline bg-white px-2 py-1 !text-[10px] font-medium text-ink outline-none transition focus:bg-accentSoft"
+            className="min-h-14 border border-hairline bg-white px-2 py-1 !text-[10px] font-medium text-ink outline-none transition placeholder:text-tertiary hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
             value={description}
             onChange={(event) => dispatchForm({ type: "description", value: event.target.value })}
           />

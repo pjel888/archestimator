@@ -79,6 +79,10 @@ const BUDGET_HEALTH_SEGMENT_COUNT = 144;
 const BUDGET_HEALTH_SEGMENT_CLASSES = {
   inactive: "bg-[#E7E9EC]",
 } as const;
+const BUDGET_HEALTH_MISSING_SEGMENT = {
+  color: "#A8C2DD",
+  tone: "missing",
+} as const;
 
 function getBudgetHealthState(usagePercent: number, hasBudget: boolean, total: number): BudgetHealthState {
   if (!hasBudget) return "missing";
@@ -126,13 +130,20 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
   const textClassName = budgetHealthTextClass(state);
   const meterValue = Math.round(usagePercent);
   const meterMax = Math.max(100, meterValue);
+  const hasUnbudgetedCost = !hasBudget && safeTotal > 0;
   const activeSegmentCount =
-    hasBudget && safeTotal > 0
+    hasUnbudgetedCost
+      ? BUDGET_HEALTH_SEGMENT_COUNT
+      : hasBudget && safeTotal > 0
       ? Math.min(BUDGET_HEALTH_SEGMENT_COUNT, Math.ceil((usagePercent / 100) * BUDGET_HEALTH_SEGMENT_COUNT))
       : 0;
   const segments = Array.from({ length: BUDGET_HEALTH_SEGMENT_COUNT }, (_, index) => {
     const isActive = index < activeSegmentCount;
-    const gradientStop = isActive ? getBudgetHealthGradientStop((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT) : null;
+    const gradientStop = isActive
+      ? hasUnbudgetedCost
+        ? BUDGET_HEALTH_MISSING_SEGMENT
+        : getBudgetHealthGradientStop((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT)
+      : null;
     return { index, isActive, color: gradientStop?.color, tone: gradientStop?.tone ?? "inactive" };
   });
 

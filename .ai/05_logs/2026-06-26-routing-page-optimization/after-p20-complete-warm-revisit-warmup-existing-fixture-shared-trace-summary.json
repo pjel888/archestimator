@@ -1,0 +1,300 @@
+{
+  "generatedAt": "2026-06-26T11:25:49.580Z",
+  "input": ".ai/05_logs/2026-06-26-routing-page-optimization/after-p19-skip-default-project-cursor-summary-existing-fixture-server-perf.log",
+  "caveat": "Shared continuous server log: includes P19, P20, and subsequent timing probes because the same PERF_TRACE server stayed up.",
+  "perfJsonRecords": 533,
+  "scopes": {
+    "workshop.estimates-list": {
+      "count": 81,
+      "medianMs": 514.1,
+      "p90Ms": 1396.4,
+      "maxMs": 2256.6
+    },
+    "workshop.estimate-sheet": {
+      "count": 126,
+      "medianMs": 475.1,
+      "p90Ms": 1512.1,
+      "maxMs": 3361.5
+    },
+    "workshop.estimates-list-tail": {
+      "count": 81,
+      "medianMs": 212.9,
+      "p90Ms": 1003.4,
+      "maxMs": 1377
+    },
+    "workshop.project-layout-title": {
+      "count": 121,
+      "medianMs": 0.1,
+      "p90Ms": 169.2,
+      "maxMs": 1397.6
+    },
+    "workshop.estimate-sheet-tail": {
+      "count": 124,
+      "medianMs": 0,
+      "p90Ms": 0.1,
+      "maxMs": 0.9
+    }
+  },
+  "labels": {
+    "estimates-list.project-estimates": {
+      "count": 81,
+      "medianMs": 514.1,
+      "p90Ms": 1396.4,
+      "maxMs": 2256.6
+    },
+    "estimate-sheet.route-context": {
+      "count": 126,
+      "medianMs": 475.1,
+      "p90Ms": 1512.1,
+      "maxMs": 3361.5
+    },
+    "estimate-route-context.project": {
+      "count": 2,
+      "medianMs": 342.2,
+      "p90Ms": 342.2,
+      "maxMs": 342.2
+    },
+    "workspace-project.project-lookup": {
+      "count": 121,
+      "medianMs": 312.2,
+      "p90Ms": 1028.9,
+      "maxMs": 1397.3
+    },
+    "estimates-list.favorites": {
+      "count": 81,
+      "medianMs": 207.7,
+      "p90Ms": 974.9,
+      "maxMs": 1288.9
+    },
+    "estimates-list.edit-capabilities": {
+      "count": 81,
+      "medianMs": 197.8,
+      "p90Ms": 791.3,
+      "maxMs": 1377
+    },
+    "supabase.select.estimate_favorites": {
+      "count": 81,
+      "medianMs": 197.2,
+      "p90Ms": 955.9,
+      "maxMs": 1286.8
+    },
+    "estimates-list.sidebar-favorites": {
+      "count": 81,
+      "medianMs": 192.2,
+      "p90Ms": 835.9,
+      "maxMs": 1268.2
+    },
+    "supabase.rpc.can_edit_project": {
+      "count": 81,
+      "medianMs": 190,
+      "p90Ms": 749,
+      "maxMs": 1301.6
+    },
+    "supabase.select.estimate_sheet_access_settings": {
+      "count": 81,
+      "medianMs": 189.6,
+      "p90Ms": 768.8,
+      "maxMs": 1315.5
+    },
+    "listProjectEstimates.summaries": {
+      "count": 81,
+      "medianMs": 189.5,
+      "p90Ms": 488.2,
+      "maxMs": 1216.1
+    },
+    "supabase.rpc.project_estimate_list_summaries": {
+      "count": 81,
+      "medianMs": 188,
+      "p90Ms": 487.5,
+      "maxMs": 1215.1
+    },
+    "supabase.select.estimate_sheet_members": {
+      "count": 81,
+      "medianMs": 186.1,
+      "p90Ms": 735.4,
+      "maxMs": 1375.9
+    },
+    "supabase.select.project_favorites": {
+      "count": 81,
+      "medianMs": 185.6,
+      "p90Ms": 802.3,
+      "maxMs": 1267.1
+    },
+    "estimate-route-context.selected-node": {
+      "count": 126,
+      "medianMs": 183.3,
+      "p90Ms": 956,
+      "maxMs": 2157
+    },
+    "estimate-route-context.tab-tree": {
+      "count": 124,
+      "medianMs": 164.7,
+      "p90Ms": 507.5,
+      "maxMs": 2891.5
+    },
+    "estimate-tab-tree.nodes-with-rows": {
+      "count": 124,
+      "medianMs": 164,
+      "p90Ms": 507,
+      "maxMs": 2890.9
+    },
+    "workspace-project.ensure-default-workspace": {
+      "count": 2,
+      "medianMs": 164,
+      "p90Ms": 164,
+      "maxMs": 164
+    },
+    "supabase.select.estimate_nodes": {
+      "count": 331,
+      "medianMs": 161.3,
+      "p90Ms": 603.8,
+      "maxMs": 2888.7
+    },
+    "estimate-route-context.edit-capability": {
+      "count": 124,
+      "medianMs": 160,
+      "p90Ms": 431.4,
+      "maxMs": 1341
+    },
+    "supabase.rpc.can_edit_estimate": {
+      "count": 124,
+      "medianMs": 159.6,
+      "p90Ms": 430.7,
+      "maxMs": 1340.5
+    },
+    "listProjectEstimates.estimates": {
+      "count": 81,
+      "medianMs": 158.2,
+      "p90Ms": 724.1,
+      "maxMs": 1131.9
+    },
+    "supabase.select.estimates": {
+      "count": 81,
+      "medianMs": 157.6,
+      "p90Ms": 721.1,
+      "maxMs": 1131.1
+    },
+    "supabase.select.projects": {
+      "count": 121,
+      "medianMs": 154.9,
+      "p90Ms": 511.2,
+      "maxMs": 1396.3
+    },
+    "listProjectEstimates.firstNodes": {
+      "count": 81,
+      "medianMs": 154.5,
+      "p90Ms": 517,
+      "maxMs": 1206.2
+    },
+    "estimate-tab-tree.build": {
+      "count": 124,
+      "medianMs": 0.4,
+      "p90Ms": 1.1,
+      "maxMs": 2.1
+    },
+    "workspace-project.supabase-client": {
+      "count": 121,
+      "medianMs": 0.3,
+      "p90Ms": 0.7,
+      "maxMs": 1.2
+    },
+    "estimate-route-context.supabase-client": {
+      "count": 126,
+      "medianMs": 0.2,
+      "p90Ms": 0.5,
+      "maxMs": 4.5
+    },
+    "project-layout.title": {
+      "count": 121,
+      "medianMs": 0.1,
+      "p90Ms": 169.2,
+      "maxMs": 1397.6
+    },
+    "estimate-sheet.tabs": {
+      "count": 124,
+      "medianMs": 0,
+      "p90Ms": 0.1,
+      "maxMs": 0.9
+    },
+    "estimate-sheet.edit-capability": {
+      "count": 124,
+      "medianMs": 0,
+      "p90Ms": 0.1,
+      "maxMs": 0.9
+    },
+    "estimates-list.workspace": {
+      "count": 81,
+      "medianMs": 0,
+      "p90Ms": 26.3,
+      "maxMs": 661
+    },
+    "estimates-list.current-user": {
+      "count": 81,
+      "medianMs": 0,
+      "p90Ms": 0.1,
+      "maxMs": 0.2
+    }
+  },
+  "supabase": {
+    "select.estimate_favorites": {
+      "count": 81,
+      "medianMs": 197.2,
+      "p90Ms": 955.9,
+      "maxMs": 1286.8
+    },
+    "rpc.can_edit_project": {
+      "count": 81,
+      "medianMs": 190,
+      "p90Ms": 749,
+      "maxMs": 1301.6
+    },
+    "select.estimate_sheet_access_settings": {
+      "count": 81,
+      "medianMs": 189.6,
+      "p90Ms": 768.8,
+      "maxMs": 1315.5
+    },
+    "rpc.project_estimate_list_summaries": {
+      "count": 81,
+      "medianMs": 188,
+      "p90Ms": 487.5,
+      "maxMs": 1215.1
+    },
+    "select.estimate_sheet_members": {
+      "count": 81,
+      "medianMs": 186.1,
+      "p90Ms": 735.4,
+      "maxMs": 1375.9
+    },
+    "select.project_favorites": {
+      "count": 81,
+      "medianMs": 185.6,
+      "p90Ms": 802.3,
+      "maxMs": 1267.1
+    },
+    "select.estimate_nodes": {
+      "count": 331,
+      "medianMs": 161.3,
+      "p90Ms": 603.8,
+      "maxMs": 2888.7
+    },
+    "rpc.can_edit_estimate": {
+      "count": 124,
+      "medianMs": 159.6,
+      "p90Ms": 430.7,
+      "maxMs": 1340.5
+    },
+    "select.estimates": {
+      "count": 81,
+      "medianMs": 157.6,
+      "p90Ms": 721.1,
+      "maxMs": 1131.1
+    },
+    "select.projects": {
+      "count": 121,
+      "medianMs": 154.9,
+      "p90Ms": 511.2,
+      "maxMs": 1396.3
+    }
+  }
+}

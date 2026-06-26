@@ -12,6 +12,10 @@ export type ProjectCollaboratorSummary = {
   online: boolean;
 };
 
+export type EstimateSheetMemberSummary = ProjectCollaboratorSummary & {
+  estimateId: string;
+};
+
 export type EstimateSheetAccessMode = "inherits-project" | "sheet-overrides" | "restricted";
 
 export type EstimateSheetAccessSummary = {
@@ -21,6 +25,7 @@ export type EstimateSheetAccessSummary = {
   accessMode: EstimateSheetAccessMode;
   overrideCount: number;
   canManageAccess: boolean;
+  members: EstimateSheetMemberSummary[];
 };
 
 export type CollaborationInvitationSummary = {

@@ -31,7 +31,7 @@ export function ProjectEstimateOpenActionCell({
       ) : (
         <Link
           href={estimateHref}
-          prefetch={false}
+          prefetch={true}
           onBlur={() => onPrefetchCancel(estimateHref)}
           onFocus={() => onPrefetchStart(estimateHref)}
           onMouseEnter={() => onPrefetchStart(estimateHref)}

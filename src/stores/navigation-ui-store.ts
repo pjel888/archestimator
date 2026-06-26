@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { shouldSuppressGlobalRouteOverlay } from "@/lib/navigation/route-overlay-policy";
 
 type NavigationUiState = {
   isNavigating: boolean;
@@ -40,6 +41,10 @@ export const useNavigationUiStore = create<NavigationUiState>((set, get) => ({
     const navId = activeNavId + 1;
     activeNavId = navId;
     clearTimers();
+    if (shouldSuppressGlobalRouteOverlay(targetHref)) {
+      set({ isNavigating: false, targetHref, startTime: Date.now() });
+      return navId;
+    }
     set({ targetHref, startTime: Date.now() });
     showTimer = setTimeout(() => {
       if (activeNavId !== navId) return;

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
 import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
+import { traced } from "@/lib/perf/server-timing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -29,29 +30,45 @@ function hasSupabaseServerEnv(env: NodeJS.ProcessEnv = process.env) {
 }
 
 export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext | null> => {
-  const devContext = await getDevCurrentUserContext();
+  const devContext = await traced("current-user.dev-auth-context", () => getDevCurrentUserContext());
   if (devContext) return devContext;
 
   if (!hasSupabaseServerEnv()) return null;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await traced("current-user.supabase-client", () => createSupabaseServerClient());
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await traced("current-user.get-user", () => supabase.auth.getUser());
 
   if (!user) return null;
 
   const email = user.email?.toLowerCase() ?? "";
-  const access = await getClosedBetaAccessForEmail({
-    email,
-    supabase,
-  });
+  const access = await traced("current-user.closed-beta-access", () =>
+    getClosedBetaAccessForEmail({
+      email,
+      supabase,
+    }),
+  );
   if (!access.allowed) redirect(buildClosedBetaAccessPath(access.status));
 
   const metadata = user.user_metadata ?? {};
-  const metadataName = typeof metadata.display_name === "string" ? metadata.display_name : typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
-  const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : typeof metadata.picture === "string" ? metadata.picture : null;
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  const metadataName =
+    typeof metadata.display_name === "string"
+      ? metadata.display_name
+      : typeof metadata.full_name === "string"
+        ? metadata.full_name
+        : typeof metadata.name === "string"
+          ? metadata.name
+          : null;
+  const avatarUrl =
+    typeof metadata.avatar_url === "string"
+      ? metadata.avatar_url
+      : typeof metadata.picture === "string"
+        ? metadata.picture
+        : null;
+  const { data: profile } = await traced("current-user.profile-lookup", async () =>
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+  );
 
   if (profile) {
     return {
@@ -64,12 +81,14 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
     };
   }
 
-  const { data: createdProfile, error } = await (supabase as EnsureCurrentUserProfileRpcClient).rpc(
-    "ensure_current_user_profile",
-    {
-      profile_avatar_url: avatarUrl,
-      profile_display_name: metadataName,
-    },
+  const { data: createdProfile, error } = await traced("current-user.ensure-profile-rpc", async () =>
+    (supabase as EnsureCurrentUserProfileRpcClient).rpc(
+      "ensure_current_user_profile",
+      {
+        profile_avatar_url: avatarUrl,
+        profile_display_name: metadataName,
+      },
+    ),
   );
 
   if (error) throw error;

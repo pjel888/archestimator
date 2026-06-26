@@ -66,6 +66,10 @@ const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
   }
 })();
 
+const googleMapsImageRemotePatterns: ImageRemotePattern[] = [
+  { protocol: "https", hostname: "maps.googleapis.com", pathname: "/maps/api/staticmap" },
+];
+
 const localImagePatterns: ImageLocalPattern[] = [
   // Next 16 requires an explicit local pattern for queried same-origin images.
   // The `path` query is intentionally dynamic; access control and storage-path
@@ -94,7 +98,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     localPatterns: localImagePatterns,
-    remotePatterns: supabaseImageRemotePatterns,
+    remotePatterns: [
+      ...supabaseImageRemotePatterns,
+      ...googleMapsImageRemotePatterns,
+    ],
   },
   async redirects() {
     return [

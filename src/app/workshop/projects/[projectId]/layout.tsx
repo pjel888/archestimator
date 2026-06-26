@@ -4,8 +4,10 @@ import { ProjectChromeAsync, ProjectHeaderChromeSkeleton } from "@/components/wo
 import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
 import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
+import { WorkshopBreadcrumbs } from "@/components/workshop/WorkshopBreadcrumbs";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 
 type ProjectLayoutProps = {
@@ -13,34 +15,61 @@ type ProjectLayoutProps = {
   params: Promise<{ projectId: string }>;
 };
 
+function ProjectTitleBlock({ projectId, title }: { projectId: string; title: string }) {
+  return (
+    <div
+      className="flex min-w-0 shrink-0 translate-y-1 flex-col justify-center gap-0 pt-1"
+      data-workshop-title-region
+    >
+      <div className="min-w-0" data-workshop-title-block>
+        <h1 className="truncate text-[12px] font-medium leading-4 tracking-normal text-ink">{title}</h1>
+      </div>
+      <WorkshopBreadcrumbs
+        breadcrumbs={[
+          { label: "Workshop", href: "/workshop" },
+          { label: "Projects", href: "/workshop/projects" },
+          { label: title, href: `/workshop/projects/${projectId}` },
+        ]}
+        projectId={projectId}
+      />
+    </div>
+  );
+}
+
+async function ProjectTitleAsync({ projectId }: { projectId: string }) {
+  const { project: liveProject } = await withPerfTraceRequest("workshop.project-layout-title", () =>
+    traced("project-layout.title", () => getCurrentWorkspaceProject(projectId)),
+  );
+  const sampleProject = sampleProjects.find((item) => item.id === projectId);
+  const title = liveProject?.name ?? sampleProject?.name ?? "Project";
+
+  return <ProjectTitleBlock projectId={projectId} title={title} />;
+}
+
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
-  // Resolve only what the shell needs to paint (title / notFound). The
-  // collaboration + publication + sheets fan-out — and the Teamspace project
-  // cursor layer that needs collaboration identity — move into ProjectChromeAsync
-  // behind Suspense so they no longer block first paint (F5 / P1-2).
-  const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
-  const sampleProject = sampleProjects.find((item) => item.id === projectId);
-  const project = liveProject ?? sampleProject;
-  const title = project?.name ?? "Project";
-  const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
 
   return (
     <WorkshopPageShell
-      title={title}
-      eyebrow={projectClient}
+      title="Project"
+      eyebrow="Projects"
       breadcrumbs={[
         { label: "Workshop", href: "/workshop" },
         { label: "Projects", href: "/workshop/projects" },
-        { label: title, href: `/workshop/projects/${projectId}` },
+        { label: "Project", href: `/workshop/projects/${projectId}` },
       ]}
+      titleSlot={
+        <Suspense fallback={<ProjectTitleBlock projectId={projectId} title="Project" />}>
+          <ProjectTitleAsync projectId={projectId} />
+        </Suspense>
+      }
       alignChromeToProjectSidebar
       contentClassName="pt-0 pb-0 pr-0 pl-0"
       centerHeader={<ProjectEstimateMetadataStrip />}
       projectId={projectId}
       actions={
         <Suspense fallback={<ProjectHeaderChromeSkeleton />}>
-          <ProjectChromeAsync projectId={projectId} liveProject={liveProject} />
+          <ProjectChromeAsync projectId={projectId} />
         </Suspense>
       }
     >

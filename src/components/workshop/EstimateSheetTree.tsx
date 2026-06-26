@@ -1778,6 +1778,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           aria-busy={renameSavePending ? "true" : undefined}
           disabled={renameSavePending}
           draggable={false}
+          placeholder="Area name"
           onChange={(event) => {
             if (renameSavePending) return;
             renameDraftDirtyRef.current = true;
@@ -1811,8 +1812,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             }
           }}
           className={cn(
-            "h-5 min-h-0 flex-1 rounded-xs border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:bg-accentSoft",
-            editingNodeError ? "border-danger focus:bg-dangerSoft/30" : "",
+            "h-5 min-h-0 flex-1 rounded-xs border-focus bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(61,61,61,0.08)] hover:border-focus focus:border-focus focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50",
+            editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger/40" : "",
           )}
         />
         <button

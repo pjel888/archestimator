@@ -81,6 +81,41 @@
     ),
     linear-gradient(155deg, #eceeef 0%, #e6e7e7 48%, #dedbd8 100%);
   --grad-canvas-wash-fallback: #e6e7e7;
+  --workshop-glass-backdrop-wash:
+    radial-gradient(560px circle at 0% 1%, rgba(70, 82, 104, 0.05), transparent 460px),
+    radial-gradient(840px circle at 100% 100%, rgba(242, 68, 5, 0.022), transparent 700px),
+    #eef0f3;
+  /* Projects wash — cooler upper-left cue for the project index without
+     changing the warm workshop dashboard/homebase canvas. */
+  --grad-projects-canvas-wash:
+    radial-gradient(
+      92% 74% at 0% 0%,
+      rgba(42, 64, 101, 0.16) 0%,
+      rgba(82, 111, 152, 0.09) 30%,
+      transparent 64%
+    ),
+    linear-gradient(155deg, #eef2f5 0%, #e8ecef 52%, #e2e5e8 100%);
+  --grad-projects-canvas-wash-fallback: #e8ecef;
+  /* Library wash — desaturated yellow-white from the northeast. */
+  --grad-library-canvas-wash:
+    radial-gradient(
+      90% 72% at 100% 0%,
+      rgba(178, 158, 74, 0.14) 0%,
+      rgba(236, 229, 187, 0.1) 30%,
+      transparent 64%
+    ),
+    linear-gradient(155deg, #f1f2ef 0%, #eceeea 52%, #e5e8e3 100%);
+  --grad-library-canvas-wash-fallback: #eceeea;
+  /* Publisher wash — desaturated olive from the southwest. */
+  --grad-publisher-canvas-wash:
+    radial-gradient(
+      90% 72% at 0% 100%,
+      rgba(82, 103, 68, 0.16) 0%,
+      rgba(126, 142, 100, 0.09) 30%,
+      transparent 64%
+    ),
+    linear-gradient(155deg, #eef1ec 0%, #e8ebe6 52%, #e1e5df 100%);
+  --grad-publisher-canvas-wash-fallback: #e8ebe6;
   /* Horizontally uniform (top-lit) so the collapsed 64px rail and the full
      expanded panel read the same tone — every vertical slice is identical.
      A left-anchored white radial or an angled base would make the narrow rail
@@ -99,23 +134,7 @@
       rgba(221, 224, 226, 0.3) 100%
     );
   --sidebar-glass-wash-fallback: #edf0f1;
-  --workshop-shell-chrome-bg:
-    radial-gradient(
-      100% 82% at 94% 100%,
-      rgba(242, 68, 5, 0.12) 0%,
-      transparent 54%
-    ),
-    radial-gradient(
-      72% 58% at 6% 14%,
-      rgba(70, 82, 104, 0.1) 0%,
-      transparent 58%
-    ),
-    linear-gradient(
-      155deg,
-      rgba(248, 250, 251, 0.54) 0%,
-      rgba(232, 234, 235, 0.44) 48%,
-      rgba(221, 217, 213, 0.5) 100%
-    );
+  --workshop-shell-chrome-bg: rgba(248, 250, 252, 0.48);
   --workshop-shell-chrome-bg-fallback: #e6e7e7;
   --glass-shadow-hover:
     0 10px 24px rgba(30, 35, 50, 0.13), 0 3px 8px rgba(30, 35, 50, 0.08);
@@ -178,9 +197,9 @@
     0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
   --glass-radius: 12px;
   --glass-nav-radius: 8px;
-  /* Two-layer project tile: the frosted glass BASE wraps an inset white inner
-     card. The base radius is larger than the inner radius so a thin band of the
-     translucent glass shows around all four edges of the inner white card.
+  /* Two-layer project tile: the frosted glass BASE wraps an inset translucent
+     inner panel. The base radius is larger than the inner radius so a thin band
+     of the translucent glass shows around all four edges of the inner panel.
      radius nests as base − padding (10 − 4 = 6px). */
   --project-card-base-radius: 10px;
   --project-card-inner-radius: 6px;
@@ -1585,11 +1604,17 @@ input[type="number"] {
 }
 
 .workshop-project-card-glass[data-project-card-selected="true"] {
-  border-color: color-mix(in srgb, var(--ink) 68%, var(--glass-border));
+  border-color: color-mix(
+    in srgb,
+    var(--glass-border) 62%,
+    rgba(30, 35, 50, 0.28)
+  );
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--ink) 54%, transparent),
-    0 10px 18px rgba(30, 35, 50, 0.115),
+    0 22px 42px rgba(16, 22, 34, 0.2),
+    0 8px 18px rgba(16, 22, 34, 0.14),
+    0 2px 5px rgba(16, 22, 34, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.38),
     var(--glass-inset-hi);
 }
 
@@ -1654,36 +1679,48 @@ input[type="number"] {
   background: color-mix(in srgb, var(--warning) 9%, rgba(255, 255, 255, 0.54));
 }
 
-/* Inset cool-white inner card — floats inside the frosted glass base with a
-   clearer liquid edge than plain white. No backdrop-filter of its own (the base
-   already carries the one armed blur; stacking a second blur would double the
-   GPU cost and blur the crisp content). A hairline border + soft specular
-   highlights give it the inset, slightly-raised glass-panel read. */
+/* Inset cool-white inner glass panel — floats inside the frosted glass base
+   with a clearer liquid edge than plain white. No backdrop-filter of its own
+   (the base already carries the one armed blur; stacking a second blur would
+   double the GPU cost and blur the crisp content). A hairline border + soft
+   specular highlights give it the inset, slightly-raised glass-panel read. */
 .workshop-project-card-inner {
   position: relative;
   overflow: hidden;
   border-radius: var(--project-card-inner-radius);
-  background: rgba(255, 255, 255, 0.54);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.46),
+      rgba(244, 248, 252, 0.32)
+    ),
+    rgba(106, 123, 148, 0.08);
   border: 1px solid
     color-mix(in srgb, var(--glass-border) 68%, rgba(255, 255, 255, 0.46));
   border-top-color: rgba(255, 255, 255, 0.76);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.26),
     0 2px 5px rgba(30, 35, 50, 0.06),
     0 10px 24px rgba(30, 35, 50, 0.075);
 }
 
-/* Reduced transparency: the inner card reads as opaque cool glass, so no
+/* Reduced transparency: the inner panel reads as opaque cool glass, so no
    fallback override is needed. The rule is here only to document that intent. */
 
 /* On hover the inner panel lifts a hair so the card reads as a tappable,
    floating surface inside the frosted frame. */
 .workshop-project-card-glass:hover .workshop-project-card-inner {
-  background: rgba(255, 255, 255, 0.62);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.54),
+      rgba(244, 248, 252, 0.4)
+    ),
+    rgba(106, 123, 148, 0.1);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.32),
     0 3px 8px rgba(30, 35, 50, 0.08),
     0 14px 28px rgba(30, 35, 50, 0.1);
 }
@@ -1704,23 +1741,33 @@ input[type="number"] {
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.68),
-      rgba(248, 250, 252, 0.5)
+      rgba(255, 255, 255, 0.42),
+      rgba(243, 247, 251, 0.24)
     ),
-    rgba(255, 255, 255, 0.34);
+    linear-gradient(
+      145deg,
+      rgba(72, 94, 124, 0.1),
+      transparent 58%
+    ),
+    rgba(255, 255, 255, 0.18);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .workshop-project-card-glass:hover .workshop-project-card-content {
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.76),
-      rgba(248, 250, 252, 0.58)
+      rgba(255, 255, 255, 0.5),
+      rgba(243, 247, 251, 0.32)
     ),
-    rgba(255, 255, 255, 0.42);
+    linear-gradient(
+      145deg,
+      rgba(72, 94, 124, 0.11),
+      transparent 58%
+    ),
+    rgba(255, 255, 255, 0.24);
 }
 
 /* Create-project modal: one centered liquid-glass plate with paper-grade
@@ -2294,8 +2341,43 @@ input[type="number"] {
 
 /* Quiet warm canvas wash behind the whole dashboard (replaces the loud bloom). */
 .dashboard-canvas-wash {
-  background: var(--grad-canvas-wash);
+  background: var(--workshop-page-canvas-wash, var(--grad-canvas-wash));
   background-attachment: local;
+}
+
+.projects-canvas-wash {
+  --workshop-page-canvas-wash: var(--grad-projects-canvas-wash);
+  --workshop-page-canvas-wash-fallback: var(--grad-projects-canvas-wash-fallback);
+}
+
+.library-canvas-wash {
+  --workshop-page-canvas-wash: var(--grad-library-canvas-wash);
+  --workshop-page-canvas-wash-fallback: var(--grad-library-canvas-wash-fallback);
+}
+
+.publisher-canvas-wash {
+  --workshop-page-canvas-wash: var(--grad-publisher-canvas-wash);
+  --workshop-page-canvas-wash-fallback: var(--grad-publisher-canvas-wash-fallback);
+}
+
+.workshop-collection-chrome {
+  background: transparent;
+  border-color: rgba(30, 35, 50, 0.045);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.workshop-collection-tabs-chrome {
+  background: transparent;
+  border-bottom: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.workshop-collection-tabs-chrome [role="tablist"] {
+  border-bottom-width: 0;
 }
 
 /* ── Destination tiles (owner correction 2026-06-18) ────────────────────────
@@ -2779,14 +2861,14 @@ input[type="number"] {
     display: none;
   }
   .dashboard-canvas-wash {
-    background: var(--grad-canvas-wash-fallback);
+    background: var(--workshop-page-canvas-wash-fallback, var(--grad-canvas-wash-fallback));
   }
 }
 @supports not (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
   .dashboard-canvas-wash {
-    background: var(--grad-canvas-wash-fallback);
+    background: var(--workshop-page-canvas-wash-fallback, var(--grad-canvas-wash-fallback));
   }
 }
 

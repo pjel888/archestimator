@@ -11,6 +11,12 @@ export type ProjectEstimateSheet = {
 export type ProjectPublicationSummary = {
   projectId: string;
   workspaceId: string;
+  /**
+   * True when the current user can open the Publisher roster/drawer for this
+   * project. Managers may open unpublished draft rows; readers require an
+   * existing publication row.
+   */
+  canReadPublisherRoster?: boolean;
   canManagePublication: boolean;
   status: ProjectPublicationStatus;
   publicationId: string | null;

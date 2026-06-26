@@ -3,13 +3,14 @@ import { useCallback, useMemo } from "react";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { moveEstimateRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
 import type { EstimateTree } from "@/lib/domain/estimate-tree";
-import { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } from "@/lib/estimates/actions";
+import { fetchEstimateEditCapability, fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } from "@/lib/estimates/actions";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { estimateRepository } from "@/lib/repositories/estimate-repository";
 
 export const estimateQueryKeys = {
   detail: (estimateId: string) => ["estimate", estimateId] as const,
   tabs: (estimateId: string) => ["estimate", estimateId, "tabs"] as const,
+  editCapability: (estimateId: string) => ["estimate", estimateId, "edit-capability"] as const,
   tabTree: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "area-tree"] as const,
   // legacy areaTree key kept for compatibility; see plan 2026-06-12 §01-17
   areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const,
@@ -168,6 +169,29 @@ export function useEstimateTabsQuery({
   });
 
   return { ...query, data, tabs: data ?? initialTabs };
+}
+
+export function useEstimateEditCapabilityQuery({
+  projectId,
+  estimateId,
+  initialCanEdit,
+  enabled = true,
+}: {
+  projectId?: string;
+  estimateId?: string;
+  initialCanEdit?: boolean;
+  enabled?: boolean;
+}) {
+  const { data, ...query } = useQuery({
+    queryKey: estimateQueryKeys.editCapability(estimateId ?? "local-estimate"),
+    queryFn: () => (projectId && estimateId ? fetchEstimateEditCapability({ projectId, estimateId }) : Promise.resolve(initialCanEdit === true)),
+    initialData: initialCanEdit === true ? true : undefined,
+    enabled: enabled && Boolean(projectId && estimateId),
+    refetchOnMount: false,
+    staleTime: 5 * 60_000,
+  });
+
+  return { ...query, data, canEditEstimate: data === true };
 }
 
 function useMoveEstimateRowItem(estimateId: string) {

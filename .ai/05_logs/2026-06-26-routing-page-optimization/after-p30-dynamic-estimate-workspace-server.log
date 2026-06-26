@@ -1,0 +1,1653 @@
+$ next start
+▲ Next.js 16.2.6
+- Local:         http://localhost:3020
+- Network:       http://192.168.0.17:3020
+✓ Ready in 107ms
+[perf] current-user.dev-auth-context 0.7ms
+[perf] estimate-route-context.supabase-client 2.6ms
+[perf] current-user.supabase-client 2.2ms
+[perf] workspace-project.supabase-client 0.7ms
+[perf] current-user.get-user 775.3ms
+[perf] current-user.closed-beta-access 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.9ms
+[perf] current-user.get-user 641.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 1463.4ms
+[perf] estimate-route-context.rpc-build 0.7ms
+[perf] estimate-sheet.route-context 1468.5ms
+[perf-json] {"requestId":"wsh_mquyllu4iiugvt","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":2.6},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":686.3},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":1463.4},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.7},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":1468.5}],"supabaseRoundTrips":1}
+[perf] current-user.profile-lookup 788.0ms
+[perf] workspace-project.project-lookup 2479.0ms
+[perf] project-layout.title 2480.3ms
+[perf-json] {"requestId":"wsh_mquyllu7oolhkr","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":1701.4},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":2479},{"label":"project-layout.title","kind":"timing","elapsedMs":2480.3}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 2480.0ms
+[perf] current-user.profile-lookup 1948.9ms
+[perf] ProjectChromeAsync.summaries 995.5ms
+[perf] ProjectChromeAsync.estimate-sheets 154.3ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.4ms
+[perf] current-user.get-user 172.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 173.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 160.1ms
+[perf] current-user.profile-lookup 162.5ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] estimate-route-context.supabase-client 0.7ms
+[perf] current-user.supabase-client 0.4ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.get-user 158.8ms
+[perf] current-user.closed-beta-access 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.profile-lookup 154.4ms
+[perf] estimate-route-context.rpc 323.4ms
+[perf] estimate-route-context.rpc-build 0.5ms
+[perf] estimate-sheet.route-context 325.1ms
+[perf-json] {"requestId":"wsh_mquylp008wfneb","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.7},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":163.6},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":323.4},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.5},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":325.1}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 348.9ms
+[perf] project-layout.title 349.3ms
+[perf-json] {"requestId":"wsh_mquylp01i7sfli","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":188.8},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":348.9},{"label":"project-layout.title","kind":"timing","elapsedMs":349.3}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 349.3ms
+[perf] current-user.get-user 188.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 153.0ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.5ms
+[perf] current-user.get-user 424.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 442.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 154.4ms
+[perf] ProjectChromeAsync.summaries 965.8ms
+[perf] current-user.profile-lookup 190.7ms
+[perf] ProjectChromeAsync.estimate-sheets 159.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 3.4ms
+[perf] current-user.get-user 151.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 156.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 310.2ms
+[perf] estimate-route-context.rpc-build 0.5ms
+[perf] estimate-sheet.route-context 311.5ms
+[perf-json] {"requestId":"wsh_mquylqijjnw736","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":156.8},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":310.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.5},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":311.5}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 349.0ms
+[perf] project-layout.title 349.3ms
+[perf-json] {"requestId":"wsh_mquylqikb6rc9x","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":195.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":349},{"label":"project-layout.title","kind":"timing","elapsedMs":349.3}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 349.4ms
+[perf] current-user.profile-lookup 197.9ms
+[perf] current-user.profile-lookup 152.7ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 156.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 196.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.summaries 688.3ms
+[perf] current-user.profile-lookup 152.6ms
+[perf] ProjectChromeAsync.estimate-sheets 158.3ms
+[perf] current-user.profile-lookup 431.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.get-user 930.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.0ms
+[perf] current-user.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 1097.0ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 1098.3ms
+[perf-json] {"requestId":"wsh_mquylsb0mggeiq","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":165.8},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":1097},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":1098.3}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 1121.2ms
+[perf] project-layout.title 1121.5ms
+[perf-json] {"requestId":"wsh_mquylsb1rwurj6","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":189.6},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1121.2},{"label":"project-layout.title","kind":"timing","elapsedMs":1121.5}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 1121.5ms
+[perf] current-user.get-user 224.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 260.6ms
+[perf] current-user.profile-lookup 157.4ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 173.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 197.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 159.6ms
+[perf] ProjectChromeAsync.summaries 1208.8ms
+[perf] current-user.profile-lookup 197.6ms
+[perf] ProjectChromeAsync.estimate-sheets 238.3ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.0ms
+[perf] current-user.supabase-client 0.4ms
+[perf] current-user.get-user 157.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 152.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 320.8ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 321.9ms
+[perf-json] {"requestId":"wsh_mquyluo34u2l8h","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":162.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":320.8},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":321.9}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 346.8ms
+[perf] project-layout.title 347.2ms
+[perf-json] {"requestId":"wsh_mquyluo4p5az6w","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":187.8},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":346.8},{"label":"project-layout.title","kind":"timing","elapsedMs":347.2}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 347.2ms
+[perf] current-user.profile-lookup 193.4ms
+[perf] current-user.profile-lookup 166.9ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 167.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 196.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.summaries 722.4ms
+[perf] current-user.profile-lookup 155.1ms
+[perf] current-user.profile-lookup 186.6ms
+[perf] ProjectChromeAsync.estimate-sheets 154.6ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 1.8ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 188.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 155.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 351.5ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 354.1ms
+[perf-json] {"requestId":"wsh_mquylvytpel25i","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":1.8},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":162.3},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":351.5},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":354.1}],"supabaseRoundTrips":1}
+[perf] current-user.profile-lookup 199.4ms
+[perf] workspace-project.project-lookup 395.7ms
+[perf] project-layout.title 396.0ms
+[perf-json] {"requestId":"wsh_mquylvyvets4yn","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":206.1},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":395.7},{"label":"project-layout.title","kind":"timing","elapsedMs":396}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 396.0ms
+[perf] current-user.profile-lookup 154.4ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 291.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 316.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 256.9ms
+[perf] ProjectChromeAsync.summaries 977.9ms
+[perf] current-user.profile-lookup 882.1ms
+[perf] ProjectChromeAsync.estimate-sheets 647.8ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.0ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 157.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 151.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 319.3ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 320.4ms
+[perf-json] {"requestId":"wsh_mquylxvkkyv52y","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":161.4},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":319.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":320.4}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 352.1ms
+[perf] project-layout.title 352.4ms
+[perf-json] {"requestId":"wsh_mquylxvkplmf2k","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":194},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":352.1},{"label":"project-layout.title","kind":"timing","elapsedMs":352.4}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 352.4ms
+[perf] current-user.profile-lookup 195.6ms
+[perf] current-user.profile-lookup 152.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 531.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 548.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 844.6ms
+[perf] current-user.profile-lookup 829.2ms
+[perf] ProjectChromeAsync.summaries 2225.1ms
+[perf] ProjectChromeAsync.estimate-sheets 223.2ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 166.7ms
+[perf] current-user.get-user 204.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 973.6ms
+[perf] workspace-project.project-lookup 1179.2ms
+[perf] project-layout.title 1179.1ms
+[perf-json] {"requestId":"wsh_mquym0vst5hka2","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1179.1}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1179.2ms
+[perf] listProjectEstimates.firstNodes 167.8ms
+[perf] listProjectEstimates.summaries 479.6ms
+[perf] estimates-list.project-estimates 1660.7ms
+[perf-json] {"requestId":"wsh_mquym0vrgck0a4","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":165.7},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":166.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":974.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1179.2},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":167.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":167.8},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":478.2},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":479.6},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1660.7}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.1ms
+[perf] estimates-list.current-user 0.2ms
+[perf] estimates-list.favorites 547.5ms
+[perf] estimates-list.sidebar-favorites 570.6ms
+[perf] estimates-list.edit-capabilities 573.7ms
+[perf-json] {"requestId":"wsh_mquym25wq39ye4","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0.1},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.2},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":543},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":543.5},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":547.5},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":555.1},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":569.8},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":570.6},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":572.1},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":573.7}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 1339.0ms
+[perf] estimate-route-context.supabase-client 0.6ms
+[perf] ProjectChromeAsync.estimate-sheets 199.5ms
+[perf] estimate-route-context.rpc 440.1ms
+[perf] estimate-route-context.rpc-build 0.9ms
+[perf] estimate-sheet.route-context 442.3ms
+[perf-json] {"requestId":"wsh_mquym2ywvhxp82","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.6},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":435.5},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":440.1},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.9},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":442.3}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 157.6ms
+[perf] current-user.closed-beta-access 0.1ms
+[perf] listProjectEstimates.estimates 170.8ms
+[perf] workspace-project.project-lookup 466.2ms
+[perf] project-layout.title 466.2ms
+[perf-json] {"requestId":"wsh_mquym3lwqzxoo9","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":466.2}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 466.3ms
+[perf] current-user.profile-lookup 343.7ms
+[perf] listProjectEstimates.firstNodes 1353.7ms
+[perf] listProjectEstimates.summaries 1370.0ms
+[perf] estimates-list.project-estimates 1837.0ms
+[perf-json] {"requestId":"wsh_mquym3lvj8x4xn","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":169.6},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":170.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":307.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":466.2},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":1352.4},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":1353.7},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":1368.5},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":1370},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1837}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 26.1ms
+[perf] estimates-list.favorites 335.6ms
+[perf] estimates-list.edit-capabilities 347.7ms
+[perf] estimates-list.sidebar-favorites 361.5ms
+[perf-json] {"requestId":"wsh_mquym50w5d102f","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":26.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":329.5},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":305},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":332},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":335.6},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":345.2},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":347.7},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":334.6},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":361.5}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 3041.0ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] ProjectChromeAsync.estimate-sheets 370.7ms
+[perf] estimate-route-context.rpc 406.2ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 407.1ms
+[perf-json] {"requestId":"wsh_mquym6lkzthqi7","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":404.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":406.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":407.1}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] workspace-project.supabase-client 0.6ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 547.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 568.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 557.1ms
+[perf] current-user.profile-lookup 553.6ms
+[perf] current-user.profile-lookup 556.9ms
+[perf] current-user.get-user 613.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 1157.2ms
+[perf] project-layout.title 1157.1ms
+[perf-json] {"requestId":"wsh_mquym7q77lydjb","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1157.1}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1157.2ms
+[perf] current-user.profile-lookup 574.4ms
+[perf] listProjectEstimates.firstNodes 832.0ms
+[perf] listProjectEstimates.summaries 850.5ms
+[perf] estimates-list.project-estimates 2008.6ms
+[perf-json] {"requestId":"wsh_mquym7q6bl6tio","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.6},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":556},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":557.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":542.4},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1157.2},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":831.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":832},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":849.6},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":850.5},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":2008.6}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 21.5ms
+[perf] estimates-list.edit-capabilities 754.8ms
+[perf] estimates-list.sidebar-favorites 763.9ms
+[perf] estimates-list.favorites 948.0ms
+[perf-json] {"requestId":"wsh_mquym99zdhmmde","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":21.5},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":725.8},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":746.7},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":753.7},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":754.8},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":741.1},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":763.9},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":922.6},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":948}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2576.8ms
+[perf] ProjectChromeAsync.estimate-sheets 163.1ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 657.3ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 658.3ms
+[perf-json] {"requestId":"wsh_mquymbcf4m81zd","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":654.8},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":657.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":658.3}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] listProjectEstimates.estimates 893.2ms
+[perf] current-user.get-user 888.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 924.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 927.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 441.6ms
+[perf] workspace-project.project-lookup 1361.5ms
+[perf] project-layout.title 1361.5ms
+[perf-json] {"requestId":"wsh_mquymc8akd91u2","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1361.5}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1361.5ms
+[perf] current-user.profile-lookup 435.6ms
+[perf] current-user.profile-lookup 454.5ms
+[perf] listProjectEstimates.firstNodes 454.5ms
+[perf] listProjectEstimates.summaries 461.7ms
+[perf] estimates-list.project-estimates 1824.1ms
+[perf-json] {"requestId":"wsh_mquymc8apc5oc4","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":891.9},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":893.2},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":436.8},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1361.5},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":453.8},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":454.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":460.6},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":461.7},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1824.1}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 20.4ms
+[perf] estimates-list.favorites 506.1ms
+[perf] estimates-list.edit-capabilities 507.6ms
+[perf] estimates-list.sidebar-favorites 529.6ms
+[perf-json] {"requestId":"wsh_mquymdmymdg2ih","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":20.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":482.5},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":492.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":481.8},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":506.1},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":507},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":507.6},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":508.5},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":529.6}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2289.2ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] ProjectChromeAsync.estimate-sheets 418.4ms
+[perf] estimate-route-context.rpc 403.1ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 403.9ms
+[perf-json] {"requestId":"wsh_mquymf2f610kfy","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":401.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":403.1},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":403.9}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 751.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 758.8ms
+[perf] current-user.get-user 780.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 772.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 763.6ms
+[perf] current-user.profile-lookup 793.2ms
+[perf] current-user.profile-lookup 799.2ms
+[perf] workspace-project.project-lookup 1573.1ms
+[perf] project-layout.title 1573.1ms
+[perf-json] {"requestId":"wsh_mquymfyi3gu19l","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1573.1}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1573.2ms
+[perf] listProjectEstimates.summaries 359.2ms
+[perf] listProjectEstimates.firstNodes 375.8ms
+[perf] estimates-list.project-estimates 1949.6ms
+[perf-json] {"requestId":"wsh_mquymfyi8jt22c","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":757.9},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":758.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":800.4},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1573.1},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":358.3},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":359.2},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":374},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":375.8},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1949.6}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] estimates-list.sidebar-favorites 631.7ms
+[perf] estimates-list.favorites 632.7ms
+[perf] estimates-list.edit-capabilities 638.9ms
+[perf-json] {"requestId":"wsh_mquymhgnc11ngq","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":615.5},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":617.1},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":631.1},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":631.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":630.2},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":632.7},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":638},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":638.9}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 1746.6ms
+[perf] ProjectChromeAsync.estimate-sheets 304.0ms
+[perf] estimate-route-context.supabase-client 0.5ms
+[perf] estimate-route-context.rpc 164.5ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 165.6ms
+[perf-json] {"requestId":"wsh_mquymis1q79paw","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":162.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":164.5},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":165.6}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.4ms
+[perf] current-user.dev-auth-context 0.4ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.get-user 597.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 634.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 156.9ms
+[perf] listProjectEstimates.estimates 159.8ms
+[perf] current-user.get-user 193.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 189.2ms
+[perf] workspace-project.project-lookup 614.5ms
+[perf] project-layout.title 614.5ms
+[perf-json] {"requestId":"wsh_mquymjqokccuis","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":614.5}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 614.6ms
+[perf] current-user.profile-lookup 457.5ms
+[perf] listProjectEstimates.firstNodes 363.9ms
+[perf] listProjectEstimates.summaries 400.3ms
+[perf] estimates-list.project-estimates 1015.6ms
+[perf-json] {"requestId":"wsh_mquymjqo7ar7n2","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":158.6},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":159.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":419.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":614.5},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":362.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":363.9},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":399.3},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":400.3},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1015.6}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.edit-capabilities 631.0ms
+[perf] estimates-list.workspace 1017.2ms
+[perf] estimates-list.favorites 1383.5ms
+[perf] estimates-list.sidebar-favorites 1402.7ms
+[perf-json] {"requestId":"wsh_mquymkivtslhdk","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":595.7},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":606},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":620.5},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":631},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":1017.2},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":359.3},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":1383.5},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":384.6},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":1402.7}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2728.3ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 318.0ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 318.9ms
+[perf-json] {"requestId":"wsh_mquymmce4qmafa","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":316.7},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":318},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":318.9}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.estimate-sheets 374.2ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 1153.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 1155.6ms
+[perf] current-user.get-user 1181.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 1193.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 152.2ms
+[perf] current-user.profile-lookup 796.1ms
+[perf] workspace-project.project-lookup 2316.7ms
+[perf] project-layout.title 2316.7ms
+[perf-json] {"requestId":"wsh_mquymn686bsaqm","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":2316.7}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 2316.7ms
+[perf] current-user.profile-lookup 1163.0ms
+[perf] listProjectEstimates.firstNodes 935.3ms
+[perf] listProjectEstimates.summaries 1913.2ms
+[perf] estimates-list.project-estimates 4230.8ms
+[perf-json] {"requestId":"wsh_mquymn67o0e3e0","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":1154.5},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":1155.6},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":1134.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":2316.7},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":934.6},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":935.3},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":1912.2},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":1913.2},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":4230.8}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] ProjectChromeAsync.summaries 2435.2ms
+[perf] estimates-list.sidebar-favorites 524.2ms
+[perf] estimates-list.favorites 534.0ms
+[perf] estimates-list.edit-capabilities 558.6ms
+[perf-json] {"requestId":"wsh_mquymqfuokxm62","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":0.2},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":523.6},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":524.2},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":532.4},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":534},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":557.4},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":557.4},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":558.6}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.estimate-sheets 154.8ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 157.2ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 158.1ms
+[perf-json] {"requestId":"wsh_mquymr6zmqpeat","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":155.4},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":157.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":158.1}],"supabaseRoundTrips":1}
+[perf] estimate-route-context.rpc 160.6ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 161.4ms
+[perf-json] {"requestId":"wsh_mquymr8vinlu55","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":159.4},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":160.6},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":161.4}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 155.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 187.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 152.7ms
+[perf] current-user.get-user 196.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 151.3ms
+[perf] current-user.profile-lookup 184.3ms
+[perf] workspace-project.project-lookup 373.2ms
+[perf] project-layout.title 373.2ms
+[perf-json] {"requestId":"wsh_mquymrnnkwm19w","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":373.2}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 373.4ms
+[perf] current-user.profile-lookup 195.9ms
+[perf] listProjectEstimates.firstNodes 157.0ms
+[perf] listProjectEstimates.summaries 189.9ms
+[perf] estimates-list.project-estimates 563.8ms
+[perf-json] {"requestId":"wsh_mquymrnmso9s3t","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":151.7},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":152.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":175.7},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":373.2},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":156.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":157},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":188.8},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":189.9},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":563.8}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 19.7ms
+[perf] estimates-list.edit-capabilities 327.9ms
+[perf] estimates-list.favorites 755.1ms
+[perf] estimates-list.sidebar-favorites 899.3ms
+[perf-json] {"requestId":"wsh_mquyms3b5l54ah","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":19.7},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":153.9},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":186.7},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":326.7},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":327.9},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":730.1},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":755.1},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":878.6},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":899.3}],"supabaseRoundTrips":5}
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 163.3ms
+[perf] estimate-route-context.rpc-build 0.5ms
+[perf] estimate-sheet.route-context 164.3ms
+[perf-json] {"requestId":"wsh_mquymt44w88vmz","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":161.5},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":163.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.5},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":164.3}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.summaries 3346.5ms
+[perf] ProjectChromeAsync.estimate-sheets 190.7ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 153.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 154.1ms
+[perf] workspace-project.project-lookup 306.5ms
+[perf] project-layout.title 306.5ms
+[perf-json] {"requestId":"wsh_mquymv3f9gb32i","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":306.5}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 306.5ms
+[perf] current-user.profile-lookup 204.7ms
+[perf] listProjectEstimates.summaries 161.7ms
+[perf] listProjectEstimates.firstNodes 162.1ms
+[perf] estimates-list.project-estimates 469.3ms
+[perf-json] {"requestId":"wsh_mquymv3ec10odh","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":153.3},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":154.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":152.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":306.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":160.8},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":161.7},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":161.6},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":162.1},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":469.3}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 74.2ms
+[perf] estimates-list.edit-capabilities 179.5ms
+[perf] estimates-list.favorites 249.9ms
+[perf] estimates-list.sidebar-favorites 262.2ms
+[perf-json] {"requestId":"wsh_mquymvggrqppdg","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":74.2},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":153.5},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":170.4},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":178.5},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":179.5},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":173.8},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":249.9},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":187.4},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":262.2}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 807.6ms
+[perf] ProjectChromeAsync.estimate-sheets 154.2ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 159.9ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 160.9ms
+[perf-json] {"requestId":"wsh_mquymw6tpgx73f","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":158.1},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":159.9},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":160.9}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 151.9ms
+[perf] current-user.get-user 155.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 154.7ms
+[perf] workspace-project.project-lookup 314.3ms
+[perf] project-layout.title 314.3ms
+[perf-json] {"requestId":"wsh_mquymwy17vzt6j","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":314.3}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 314.4ms
+[perf] listProjectEstimates.firstNodes 159.7ms
+[perf] listProjectEstimates.summaries 193.9ms
+[perf] estimates-list.project-estimates 509.1ms
+[perf-json] {"requestId":"wsh_mquymwy1ngkqc0","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":151},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":151.9},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":158.2},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":314.3},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":159.1},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":159.7},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":192.3},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":193.9},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":509.1}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] estimates-list.favorites 165.5ms
+[perf] estimates-list.sidebar-favorites 167.7ms
+[perf] estimates-list.edit-capabilities 202.8ms
+[perf-json] {"requestId":"wsh_mquymxc6dcdgxv","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":159.8},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":162.6},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":165.5},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":166.8},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":167.7},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":193.3},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":201.5},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":202.8}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 619.8ms
+[perf] ProjectChromeAsync.estimate-sheets 158.6ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 508.7ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 509.5ms
+[perf-json] {"requestId":"wsh_mquymygd2ssl3d","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":507.3},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":508.7},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":509.5}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.3ms
+[perf] listProjectEstimates.estimates 152.7ms
+[perf] current-user.get-user 154.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 202.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 207.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 174.4ms
+[perf] current-user.profile-lookup 560.0ms
+[perf] current-user.profile-lookup 594.4ms
+[perf] workspace-project.project-lookup 1308.4ms
+[perf] project-layout.title 1308.4ms
+[perf-json] {"requestId":"wsh_mquymzb6arh6xz","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1308.4}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1308.5ms
+[perf] listProjectEstimates.firstNodes 1331.1ms
+[perf] listProjectEstimates.summaries 1356.4ms
+[perf] estimates-list.project-estimates 2665.5ms
+[perf-json] {"requestId":"wsh_mquymzb5ptc6mz","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":151.8},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":152.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":1105.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1308.4},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":1330.4},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":1331.1},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":1355.6},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":1356.4},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":2665.5}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] estimates-list.favorites 506.3ms
+[perf] estimates-list.sidebar-favorites 518.6ms
+[perf] estimates-list.edit-capabilities 519.0ms
+[perf-json] {"requestId":"wsh_mquyn1d9apdn2b","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":504.8},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":506.3},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":507.5},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":508.6},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":518.1},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":518.6},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":517.9},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":519}],"supabaseRoundTrips":5}
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 510.6ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 511.7ms
+[perf-json] {"requestId":"wsh_mquyn2t13gkqba","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":509.3},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":510.6},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":511.7}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.summaries 3750.9ms
+[perf] ProjectChromeAsync.estimate-sheets 620.6ms
+[perf] current-user.dev-auth-context 0.4ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 629.5ms
+[perf] current-user.get-user 684.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 712.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 701.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 486.4ms
+[perf] current-user.profile-lookup 485.4ms
+[perf] workspace-project.project-lookup 1188.0ms
+[perf] project-layout.title 1188.0ms
+[perf-json] {"requestId":"wsh_mquyn4czvi2ncu","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1188}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1188.0ms
+[perf] current-user.profile-lookup 986.0ms
+[perf] listProjectEstimates.firstNodes 688.6ms
+[perf] listProjectEstimates.summaries 846.7ms
+[perf] estimates-list.project-estimates 2035.6ms
+[perf-json] {"requestId":"wsh_mquyn4czps2olf","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":628.3},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":629.5},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":484.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1188},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":687.9},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":688.6},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":845.5},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":846.7},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":2035.6}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 74.6ms
+[perf] estimates-list.edit-capabilities 197.5ms
+[perf] estimates-list.sidebar-favorites 260.1ms
+[perf] estimates-list.favorites 269.8ms
+[perf-json] {"requestId":"wsh_mquyn5xjsdtecb","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":74.6},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":162.5},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":196.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":196.3},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":197.5},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":184.8},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":260.1},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":192.9},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":269.8}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2811.5ms
+[perf] ProjectChromeAsync.estimate-sheets 499.9ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 632.9ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 633.7ms
+[perf-json] {"requestId":"wsh_mquyn7v2xgvjzz","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":631.5},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":632.9},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":633.7}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 441.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 469.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 570.4ms
+[perf] current-user.profile-lookup 550.3ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 341.8ms
+[perf] current-user.get-user 382.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 678.6ms
+[perf] project-layout.title 678.6ms
+[perf-json] {"requestId":"wsh_mquyn9fmzstyct","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":678.6}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 678.6ms
+[perf] current-user.profile-lookup 321.3ms
+[perf] listProjectEstimates.firstNodes 555.5ms
+[perf] listProjectEstimates.summaries 635.0ms
+[perf] estimates-list.project-estimates 1314.4ms
+[perf-json] {"requestId":"wsh_mquyn9fl7vmudy","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":340.8},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":341.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":295.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":678.6},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":554.8},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":555.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":619.1},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":635},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1314.4}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.2ms
+[perf] estimates-list.favorites 1241.9ms
+[perf] estimates-list.sidebar-favorites 1252.2ms
+[perf] estimates-list.edit-capabilities 1289.1ms
+[perf-json] {"requestId":"wsh_mquynag4yea3sp","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":1234.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":1235.7},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":1241.9},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":1249.2},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":1252.2},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":1252.2},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":1283.1},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":1289.1}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2084.9ms
+[perf] ProjectChromeAsync.estimate-sheets 607.6ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 423.5ms
+[perf] estimate-route-context.rpc-build 0.6ms
+[perf] estimate-sheet.route-context 424.7ms
+[perf-json] {"requestId":"wsh_mquync27wfflwq","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":422.1},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":423.5},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.6},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":424.7}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 499.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 499.8ms
+[perf] current-user.get-user 507.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 546.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 397.2ms
+[perf] current-user.profile-lookup 381.5ms
+[perf] current-user.profile-lookup 401.6ms
+[perf] workspace-project.project-lookup 919.0ms
+[perf] project-layout.title 919.0ms
+[perf-json] {"requestId":"wsh_mquynczz32tv9t","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":919}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 919.0ms
+[perf] listProjectEstimates.firstNodes 501.5ms
+[perf] listProjectEstimates.summaries 506.6ms
+[perf] estimates-list.project-estimates 1426.3ms
+[perf-json] {"requestId":"wsh_mquynczyboalmr","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":498.8},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":499.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":411.5},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":919},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":500.9},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":501.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":505.8},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":506.6},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1426.3}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 17.8ms
+[perf] estimates-list.favorites 450.4ms
+[perf] estimates-list.sidebar-favorites 471.9ms
+[perf] estimates-list.edit-capabilities 1452.2ms
+[perf-json] {"requestId":"wsh_mquyne3luudrug","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":17.8},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":444.5},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":429.8},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":450.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":458},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":453.4},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":471.9},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":1451.7},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":1452.2}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2743.9ms
+[perf] ProjectChromeAsync.estimate-sheets 512.3ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 505.7ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 506.5ms
+[perf-json] {"requestId":"wsh_mquyng8y5hg334","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":504.1},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":505.7},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":506.5}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.dev-auth-context 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 154.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 187.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 153.7ms
+[perf] current-user.profile-lookup 154.8ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] workspace-project.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 155.9ms
+[perf] current-user.get-user 192.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 346.9ms
+[perf] project-layout.title 346.9ms
+[perf-json] {"requestId":"wsh_mquynhoa182da0","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":346.9}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 347.0ms
+[perf] current-user.profile-lookup 187.3ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.2ms
+[perf] listProjectEstimates.firstNodes 157.2ms
+[perf] listProjectEstimates.summaries 229.0ms
+[perf] estimates-list.project-estimates 576.5ms
+[perf-json] {"requestId":"wsh_mquynhoacwhr6b","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":155},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":155.9},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":154.1},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":346.9},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":156.6},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":157.2},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":227.3},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":229},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":576.5}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] current-user.get-user 183.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 160.7ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] estimates-list.favorites 192.0ms
+[perf] estimates-list.edit-capabilities 192.3ms
+[perf] estimates-list.sidebar-favorites 195.7ms
+[perf-json] {"requestId":"wsh_mquyni4atj6o23","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":183.3},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":182.6},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":188.2},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":192},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":189.5},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":192.3},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":195},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":195.7}],"supabaseRoundTrips":5}
+[perf] workspace-project.project-lookup 154.0ms
+[perf] ProjectChromeAsync.summaries 975.6ms
+[perf] ProjectChromeAsync.estimate-sheets 577.9ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 629.1ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 630.2ms
+[perf-json] {"requestId":"wsh_mquynjoe3igvku","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":626.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":629.1},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":630.2}],"supabaseRoundTrips":1}
+[perf] estimate-route-context.rpc 639.4ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 640.3ms
+[perf-json] {"requestId":"wsh_mquynjo8iz2yfk","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":636.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":639.4},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":640.3}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 155.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 156.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.profile-lookup 155.7ms
+[perf] current-user.profile-lookup 159.7ms
+[perf] listProjectEstimates.estimates 188.6ms
+[perf] current-user.get-user 197.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 349.6ms
+[perf] project-layout.title 349.5ms
+[perf-json] {"requestId":"wsh_mquynkie90jv12","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":349.5}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 349.5ms
+[perf] current-user.profile-lookup 185.7ms
+[perf] listProjectEstimates.firstNodes 167.2ms
+[perf] listProjectEstimates.summaries 195.2ms
+[perf] estimates-list.project-estimates 545.5ms
+[perf-json] {"requestId":"wsh_mquynkidjao1zh","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":187.4},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":188.6},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":151.5},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":349.6},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":166},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":167.2},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":194.2},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":195.2},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":545.5}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 24.3ms
+[perf] estimates-list.favorites 193.2ms
+[perf] estimates-list.edit-capabilities 200.7ms
+[perf] estimates-list.sidebar-favorites 219.7ms
+[perf-json] {"requestId":"wsh_mquynkxj4hy554","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":24.3},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":187.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":166.7},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":193.2},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":194.2},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":199.8},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":200.7},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":194.6},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":219.7}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 967.4ms
+[perf] ProjectChromeAsync.estimate-sheets 168.1ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 200.4ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 201.3ms
+[perf-json] {"requestId":"wsh_mquynlphvxzjke","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":198.7},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":200.4},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":201.3}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 758.9ms
+[perf] current-user.get-user 784.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 1263.7ms
+[perf] project-layout.title 1263.7ms
+[perf-json] {"requestId":"wsh_mquynmc9s76f7s","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1263.7}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1263.7ms
+[perf] current-user.profile-lookup 482.5ms
+[perf] listProjectEstimates.firstNodes 161.2ms
+[perf] listProjectEstimates.summaries 188.5ms
+[perf] estimates-list.project-estimates 1453.0ms
+[perf-json] {"requestId":"wsh_mquynmc973puap","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":757.9},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":758.9},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":478.5},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1263.7},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":160.5},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":161.2},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":187.6},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":188.5},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1453}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] estimates-list.sidebar-favorites 499.7ms
+[perf] estimates-list.edit-capabilities 527.0ms
+[perf] estimates-list.favorites 551.9ms
+[perf-json] {"requestId":"wsh_mquynngm8m5cvu","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":499.1},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":499.7},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":518.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":519.3},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":526.1},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":527},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":550.1},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":551.9}],"supabaseRoundTrips":5}
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 572.7ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 573.4ms
+[perf-json] {"requestId":"wsh_mquynopfhonlpk","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":571.5},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":572.7},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":573.4}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.summaries 2407.6ms
+[perf] ProjectChromeAsync.estimate-sheets 160.9ms
+[perf] current-user.dev-auth-context 0.5ms
+[perf] estimate-route-context.supabase-client 0.8ms
+[perf] current-user.supabase-client 0.5ms
+[perf] workspace-project.supabase-client 1.5ms
+[perf] current-user.get-user 490.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 967.2ms
+[perf] estimate-route-context.rpc-build 0.6ms
+[perf] estimate-sheet.route-context 970.8ms
+[perf-json] {"requestId":"wsh_mquynprmryocz9","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.8},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":476.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":967.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.6},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":970.8}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 997.3ms
+[perf] project-layout.title 999.3ms
+[perf-json] {"requestId":"wsh_mquynprop5kwhm","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":1.5},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":506.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":997.3},{"label":"project-layout.title","kind":"timing","elapsedMs":999.3}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 997.9ms
+[perf] current-user.profile-lookup 534.9ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 757.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 788.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 445.3ms
+[perf] current-user.profile-lookup 418.5ms
+[perf] ProjectChromeAsync.summaries 3460.6ms
+[perf] ProjectChromeAsync.estimate-sheets 552.0ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 637.7ms
+[perf] current-user.get-user 663.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 1013.1ms
+[perf] project-layout.title 1013.1ms
+[perf-json] {"requestId":"wsh_mquynu8ql1rvz1","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1013.1}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1013.1ms
+[perf] current-user.get-user 395.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 380.4ms
+[perf] listProjectEstimates.firstNodes 686.5ms
+[perf] listProjectEstimates.summaries 693.5ms
+[perf] estimates-list.project-estimates 1707.3ms
+[perf-json] {"requestId":"wsh_mquynu8pv9bkpr","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":636.3},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":637.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":348.6},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1013.1},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":685.8},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":686.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":691.5},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":693.5},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1707.3}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 20.7ms
+[perf] current-user.profile-lookup 744.5ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] estimates-list.edit-capabilities 440.3ms
+[perf] estimates-list.sidebar-favorites 471.7ms
+[perf] estimates-list.favorites 1090.5ms
+[perf-json] {"requestId":"wsh_mquynvk5q0ve91","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":20.7},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":430.6},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":435},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":435.1},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":440.3},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":450.3},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":471.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":1064.4},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":1090.5}],"supabaseRoundTrips":5}
+[perf] workspace-project.project-lookup 1046.9ms
+[perf] ProjectChromeAsync.summaries 2117.3ms
+[perf] ProjectChromeAsync.estimate-sheets 1291.7ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 202.3ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 203.4ms
+[perf-json] {"requestId":"wsh_mquyny6buckd6i","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":200},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":202.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":203.4}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 319.9ms
+[perf] current-user.get-user 319.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 923.6ms
+[perf] project-layout.title 923.6ms
+[perf-json] {"requestId":"wsh_mquynys10fyiyk","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":923.6}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 923.7ms
+[perf] current-user.profile-lookup 605.6ms
+[perf] listProjectEstimates.summaries 335.3ms
+[perf] listProjectEstimates.firstNodes 336.3ms
+[perf] estimates-list.project-estimates 1260.8ms
+[perf-json] {"requestId":"wsh_mquynys0089krd","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":317.3},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":319.9},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":602},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":923.6},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":333.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":335.3},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":335.3},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":336.3},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1260.8}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 32.4ms
+[perf] estimates-list.edit-capabilities 503.6ms
+[perf] estimates-list.favorites 521.9ms
+[perf] estimates-list.sidebar-favorites 536.3ms
+[perf-json] {"requestId":"wsh_mquynzr1qd5t9v","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":32.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":498.6},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":498.9},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":502.9},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":503.6},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":487.2},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":521.9},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":503.3},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":536.3}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 3198.6ms
+[perf] ProjectChromeAsync.estimate-sheets 808.1ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] estimate-route-context.rpc 525.5ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 526.4ms
+[perf-json] {"requestId":"wsh_mquyo2lsl90uds","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":524.3},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":525.5},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":526.4}],"supabaseRoundTrips":1}
+[perf] current-user.get-user 441.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 603.7ms
+[perf] project-layout.title 604.1ms
+[perf-json] {"requestId":"wsh_mquyo309evhfcf","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":160.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":603.7},{"label":"project-layout.title","kind":"timing","elapsedMs":604.1}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 604.1ms
+[perf] estimate-route-context.rpc 604.2ms
+[perf] estimate-route-context.rpc-build 0.7ms
+[perf] estimate-sheet.route-context 605.7ms
+[perf-json] {"requestId":"wsh_mquyo309tjf98e","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":161.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":604.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.7},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":605.7}],"supabaseRoundTrips":1}
+[perf] current-user.profile-lookup 222.7ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.get-user 367.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 375.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 158.3ms
+[perf] ProjectChromeAsync.summaries 2101.3ms
+[perf] current-user.profile-lookup 201.2ms
+[perf] ProjectChromeAsync.estimate-sheets 326.9ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 392.1ms
+[perf] current-user.get-user 423.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 716.6ms
+[perf] project-layout.title 716.5ms
+[perf-json] {"requestId":"wsh_mquyo5o2g07zfp","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":716.5}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 716.5ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.profile-lookup 326.7ms
+[perf] current-user.get-user 380.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.firstNodes 402.9ms
+[perf] listProjectEstimates.summaries 412.4ms
+[perf] estimates-list.project-estimates 1129.8ms
+[perf-json] {"requestId":"wsh_mquyo5o1ku1trm","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":390.9},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":392.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":292.4},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":716.6},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":401.6},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":402.9},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":411.5},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":412.4},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1129.8}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] current-user.profile-lookup 527.9ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] estimates-list.edit-capabilities 503.2ms
+[perf] estimates-list.favorites 511.9ms
+[perf] estimates-list.sidebar-favorites 525.9ms
+[perf-json] {"requestId":"wsh_mquyo6jfpbio1p","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":489.5},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":490.7},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":501.3},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":503.2},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":508.3},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":511.9},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":525.4},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":525.9}],"supabaseRoundTrips":5}
+[perf] workspace-project.project-lookup 540.7ms
+[perf] ProjectChromeAsync.summaries 2223.7ms
+[perf] ProjectChromeAsync.estimate-sheets 841.1ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 176.6ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 177.4ms
+[perf-json] {"requestId":"wsh_mquyo8mb3kw6k3","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":175.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":176.6},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":177.4}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.3ms
+[perf] workspace-project.supabase-client 0.6ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.supabase-client 0.2ms
+[perf] listProjectEstimates.estimates 383.3ms
+[perf] current-user.get-user 337.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 417.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 363.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 208.6ms
+[perf] workspace-project.project-lookup 618.1ms
+[perf] project-layout.title 617.8ms
+[perf-json] {"requestId":"wsh_mquyo99zkfw43g","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":617.8}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 617.8ms
+[perf] current-user.profile-lookup 230.0ms
+[perf] listProjectEstimates.firstNodes 654.1ms
+[perf] listProjectEstimates.summaries 683.5ms
+[perf] estimates-list.project-estimates 1302.5ms
+[perf-json] {"requestId":"wsh_mquyo99yqtvyky","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.6},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":381},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":383.3},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":199.7},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":618.1},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":653.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":654.1},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":682.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":683.5},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1302.5}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.favorites 632.4ms
+[perf] estimates-list.sidebar-favorites 642.2ms
+[perf] estimates-list.edit-capabilities 668.8ms
+[perf-json] {"requestId":"wsh_mquyoaa55l8b7b","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":627.9},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":630.8},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":632.4},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":637.8},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":641.7},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":642.2},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":668},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":668.8}],"supabaseRoundTrips":5}
+[perf] current-user.profile-lookup 1541.0ms
+[perf] ProjectChromeAsync.summaries 3068.3ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] ProjectChromeAsync.estimate-sheets 188.7ms
+[perf] estimate-route-context.rpc 173.7ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 174.6ms
+[perf-json] {"requestId":"wsh_mquyoc8dunkllu","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":172.4},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":173.7},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":174.6}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.get-user 165.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 329.8ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 331.0ms
+[perf-json] {"requestId":"wsh_mquyocegyzqqcg","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":163.7},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":329.8},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":331}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 332.7ms
+[perf] project-layout.title 333.0ms
+[perf-json] {"requestId":"wsh_mquyocehy9wf21","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":166.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":332.7},{"label":"project-layout.title","kind":"timing","elapsedMs":333}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 333.0ms
+[perf] current-user.profile-lookup 203.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 153.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 185.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.summaries 724.5ms
+[perf] current-user.profile-lookup 153.8ms
+[perf] current-user.profile-lookup 189.5ms
+[perf] ProjectChromeAsync.estimate-sheets 157.5ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 162.9ms
+[perf] current-user.get-user 187.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] workspace-project.project-lookup 348.6ms
+[perf] project-layout.title 348.5ms
+[perf-json] {"requestId":"wsh_mquyodh2impxyn","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":348.5}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 348.5ms
+[perf] current-user.profile-lookup 190.4ms
+[perf] current-user.get-user 158.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.firstNodes 154.5ms
+[perf] listProjectEstimates.summaries 211.6ms
+[perf] estimates-list.project-estimates 561.0ms
+[perf-json] {"requestId":"wsh_mquyodh17ms73u","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":161.5},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":162.9},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":160.5},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":348.6},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":153.9},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":154.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":210.4},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":211.6},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":561}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] current-user.profile-lookup 532.4ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] estimates-list.workspace 499.4ms
+[perf] estimates-list.edit-capabilities 501.6ms
+[perf] workspace-project.project-lookup 155.9ms
+[perf] estimates-list.favorites 667.6ms
+[perf] estimates-list.sidebar-favorites 706.4ms
+[perf-json] {"requestId":"wsh_mquyodwm35xwt3","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":472.4},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":472.2},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":499.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":500.6},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":501.6},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":166.2},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":667.6},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":206.3},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":706.4}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2113.3ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] ProjectChromeAsync.estimate-sheets 193.7ms
+[perf] estimate-route-context.rpc 171.3ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 172.1ms
+[perf-json] {"requestId":"wsh_mquyofh5mifen4","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":169.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":171.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":172.1}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] workspace-project.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 168.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 193.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 160.8ms
+[perf] current-user.get-user 191.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 585.2ms
+[perf] project-layout.title 585.2ms
+[perf-json] {"requestId":"wsh_mquyofwykwmm4v","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":585.2}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 585.2ms
+[perf] current-user.profile-lookup 562.0ms
+[perf] current-user.profile-lookup 543.7ms
+[perf] current-user.profile-lookup 425.1ms
+[perf] listProjectEstimates.summaries 157.7ms
+[perf] listProjectEstimates.firstNodes 165.0ms
+[perf] estimates-list.project-estimates 750.8ms
+[perf-json] {"requestId":"wsh_mquyofwy705paz","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":159.9},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":160.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":392.8},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":585.2},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":156.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":157.7},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":164.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":165},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":750.8}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.edit-capabilities 361.6ms
+[perf] estimates-list.workspace 507.2ms
+[perf] estimates-list.sidebar-favorites 1080.9ms
+[perf] estimates-list.favorites 1114.9ms
+[perf-json] {"requestId":"wsh_mquyoghteap9yg","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":356.2},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":359.9},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":360.6},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":361.6},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":507.2},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":572.5},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":1080.9},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":604},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":1114.9}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 1803.4ms
+[perf] ProjectChromeAsync.estimate-sheets 158.9ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] estimate-route-context.rpc 301.4ms
+[perf] estimate-route-context.rpc-build 0.6ms
+[perf] estimate-sheet.route-context 302.8ms
+[perf-json] {"requestId":"wsh_mquyoi0lu4unco","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":299.5},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":301.4},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.6},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":302.8}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.get-user 159.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 1022.0ms
+[perf] project-layout.title 1022.2ms
+[perf-json] {"requestId":"wsh_mquyoi9bbo2w9d","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":860.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1022},{"label":"project-layout.title","kind":"timing","elapsedMs":1022.2}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 1022.3ms
+[perf] estimate-route-context.rpc 1047.2ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 1048.2ms
+[perf-json] {"requestId":"wsh_mquyoi9a9pzz9f","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":886.4},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":1047.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":1048.2}],"supabaseRoundTrips":1}
+[perf] current-user.profile-lookup 902.9ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 572.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.summaries 1809.8ms
+[perf] current-user.get-user 618.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.estimate-sheets 378.7ms
+[perf] current-user.profile-lookup 402.8ms
+[perf] current-user.profile-lookup 395.4ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 713.0ms
+[perf] current-user.get-user 746.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] workspace-project.project-lookup 1061.1ms
+[perf] project-layout.title 1061.1ms
+[perf-json] {"requestId":"wsh_mquyokzu0w95mz","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1061.1}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1061.1ms
+[perf] current-user.profile-lookup 335.3ms
+[perf] listProjectEstimates.firstNodes 832.5ms
+[perf] current-user.get-user 851.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.summaries 885.6ms
+[perf] estimates-list.project-estimates 1947.5ms
+[perf-json] {"requestId":"wsh_mquyokztw2n6r9","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":711.9},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":713},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":313.7},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1061.1},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":831.7},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":832.5},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":884.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":885.6},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1947.5}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] estimates-list.favorites 595.3ms
+[perf] estimates-list.edit-capabilities 599.0ms
+[perf] current-user.profile-lookup 1383.4ms
+[perf] workspace-project.supabase-client 0.6ms
+[perf] workspace-project.project-lookup 702.2ms
+[perf] estimates-list.sidebar-favorites 2083.4ms
+[perf-json] {"requestId":"wsh_mquyomhxheypx7","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":584.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":593.1},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":595.3},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":594.8},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":598.1},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":599},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":2082.8},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":2083.4}],"supabaseRoundTrips":5}
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 542.3ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 543.5ms
+[perf-json] {"requestId":"wsh_mquyooy97se1om","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":540.7},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":542.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":543.5}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.2ms
+[perf] ProjectChromeAsync.summaries 6046.9ms
+[perf] current-user.get-user 592.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.estimate-sheets 590.6ms
+[perf] current-user.profile-lookup 686.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.7ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 152.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 187.7ms
+[perf] current-user.get-user 201.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.profile-lookup 157.3ms
+[perf] current-user.profile-lookup 189.7ms
+[perf] workspace-project.project-lookup 397.7ms
+[perf] project-layout.title 397.7ms
+[perf-json] {"requestId":"wsh_mquyorhnuuv9uf","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":397.7}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 397.7ms
+[perf] current-user.get-user 160.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 169.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 155.9ms
+[perf] current-user.profile-lookup 154.6ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.summaries 249.1ms
+[perf] listProjectEstimates.firstNodes 249.6ms
+[perf] estimates-list.project-estimates 648.3ms
+[perf-json] {"requestId":"wsh_mquyorhmcq5gvc","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.7},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":186.7},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":187.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":195.8},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":397.7},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":248.2},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":249.1},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":249.1},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":249.6},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":648.3}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 1.8ms
+[perf] current-user.get-user 875.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimates-list.sidebar-favorites 882.3ms
+[perf] estimates-list.favorites 1492.1ms
+[perf] current-user.profile-lookup 1655.0ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] estimates-list.edit-capabilities 2850.5ms
+[perf-json] {"requestId":"wsh_mquyorzmcff3zj","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":1.8},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":879.3},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":882.3},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":891},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":1471.9},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":1485.7},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":1492.1},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":2849.4},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":2850.5}],"supabaseRoundTrips":5}
+[perf] workspace-project.project-lookup 615.2ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] ProjectChromeAsync.summaries 3663.2ms
+[perf] estimate-route-context.rpc 723.8ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 724.7ms
+[perf-json] {"requestId":"wsh_mquyouled1hj8k","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":722.6},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":723.8},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":724.7}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.estimate-sheets 1489.4ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.1ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.get-user 361.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 361.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 399.6ms
+[perf] estimate-route-context.rpc 768.7ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 769.7ms
+[perf-json] {"requestId":"wsh_mquyow9xtqu1nm","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":406.1},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":768.7},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":769.7}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 794.3ms
+[perf] project-layout.title 794.6ms
+[perf-json] {"requestId":"wsh_mquyow9xhytiaj","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":431.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":794.3},{"label":"project-layout.title","kind":"timing","elapsedMs":794.6}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 794.7ms
+[perf] current-user.profile-lookup 434.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 642.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 651.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 391.7ms
+[perf] current-user.profile-lookup 406.9ms
+[perf] ProjectChromeAsync.summaries 2940.4ms
+[perf] ProjectChromeAsync.estimate-sheets 330.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 408.1ms
+[perf] current-user.get-user 417.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 813.8ms
+[perf] project-layout.title 813.8ms
+[perf-json] {"requestId":"wsh_mquyozwax1xqcp","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":813.8}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 813.8ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.profile-lookup 426.3ms
+[perf] listProjectEstimates.summaries 467.4ms
+[perf] listProjectEstimates.firstNodes 1221.1ms
+[perf] estimates-list.project-estimates 2035.7ms
+[perf-json] {"requestId":"wsh_mquyozw9lz4tu3","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":407.1},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":408.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":395.7},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":813.8},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":466.4},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":467.4},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":1220.5},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":1221.1},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":2035.7}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] current-user.get-user 1262.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimates-list.sidebar-favorites 401.4ms
+[perf] estimates-list.edit-capabilities 401.8ms
+[perf] current-user.profile-lookup 369.0ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] ProjectChromeAsync.summaries 1639.9ms
+[perf] estimates-list.favorites 439.7ms
+[perf-json] {"requestId":"wsh_mquyp1gtadu28o","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":0.5},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":381.9},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":400.8},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":401.4},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":400.4},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":401.8},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":437.4},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":439.7}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.estimate-sheets 184.5ms
+[perf] workspace-project.project-lookup 190.5ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 164.6ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 165.5ms
+[perf-json] {"requestId":"wsh_mquyp2trq81230","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":163.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":164.6},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":165.5}],"supabaseRoundTrips":1}
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 498.3ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 499.3ms
+[perf-json] {"requestId":"wsh_mquyp2zbp3pjbe","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":496.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":498.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":499.3}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.5ms
+[perf] current-user.dev-auth-context 0.5ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.get-user 896.8ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 908.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.6ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.profile-lookup 847.5ms
+[perf] current-user.profile-lookup 868.6ms
+[perf] current-user.get-user 856.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 865.8ms
+[perf] workspace-project.project-lookup 1632.3ms
+[perf] project-layout.title 1632.2ms
+[perf-json] {"requestId":"wsh_mquyp43e6vvmpd","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1632.2}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1632.3ms
+[perf] current-user.profile-lookup 831.2ms
+[perf] listProjectEstimates.firstNodes 705.4ms
+[perf] listProjectEstimates.summaries 751.7ms
+[perf] estimates-list.project-estimates 2385.0ms
+[perf-json] {"requestId":"wsh_mquyp43d094vmx","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.6},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":864.5},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":865.8},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":775.7},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1632.3},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":704},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":705.4},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":750.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":751.7},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":2385}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 567.1ms
+[perf] estimates-list.edit-capabilities 572.8ms
+[perf] estimates-list.sidebar-favorites 1241.5ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] estimates-list.favorites 1264.5ms
+[perf-json] {"requestId":"wsh_mquyp5xmjomzyo","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":552.1},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":567.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":571.8},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":571.9},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":572.8},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":673.3},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":1241.5},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":695.1},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":1264.5}],"supabaseRoundTrips":5}
+[perf] current-user.get-user 702.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 174.7ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] ProjectChromeAsync.summaries 2943.4ms
+[perf] workspace-project.project-lookup 154.2ms
+[perf] ProjectChromeAsync.estimate-sheets 167.8ms
+[perf] estimate-route-context.supabase-client 0.5ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] estimate-route-context.rpc 195.1ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 196.3ms
+[perf-json] {"requestId":"wsh_mquyp7uvcrtxjr","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":193.8},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":195.1},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":196.3}],"supabaseRoundTrips":1}
+[perf] current-user.get-user 189.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimate-route-context.rpc 348.2ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 349.4ms
+[perf-json] {"requestId":"wsh_mquyp7w2icz23m","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":157.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":348.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":349.4}],"supabaseRoundTrips":1}
+[perf] workspace-project.project-lookup 353.4ms
+[perf] project-layout.title 353.7ms
+[perf-json] {"requestId":"wsh_mquyp7w308urki","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":162.1},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":353.4},{"label":"project-layout.title","kind":"timing","elapsedMs":353.7}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 353.7ms
+[perf] current-user.profile-lookup 192.4ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 160.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 184.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.summaries 678.5ms
+[perf] current-user.profile-lookup 179.9ms
+[perf] ProjectChromeAsync.estimate-sheets 163.3ms
+[perf] current-user.profile-lookup 195.5ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 157.7ms
+[perf] current-user.get-user 191.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 698.7ms
+[perf] project-layout.title 698.6ms
+[perf-json] {"requestId":"wsh_mquyp8yblyl7y9","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":698.6}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 698.7ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.profile-lookup 545.0ms
+[perf] listProjectEstimates.firstNodes 159.3ms
+[perf] current-user.get-user 163.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.summaries 212.3ms
+[perf] estimates-list.project-estimates 911.6ms
+[perf-json] {"requestId":"wsh_mquyp8ybziny5u","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.4},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":155.6},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":157.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":507},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":698.7},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":158.7},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":159.3},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":210.5},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":212.3},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":911.6}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 11.1ms
+[perf] current-user.profile-lookup 152.1ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] estimates-list.edit-capabilities 192.9ms
+[perf] estimates-list.favorites 205.3ms
+[perf] estimates-list.sidebar-favorites 224.2ms
+[perf-json] {"requestId":"wsh_mquyp9nmlhfteg","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":11.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":159.4},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":162.6},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":191.4},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":192.9},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":191.2},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":205.3},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":211.9},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":224.2}],"supabaseRoundTrips":5}
+[perf] workspace-project.project-lookup 161.3ms
+[perf] estimate-route-context.supabase-client 0.2ms
+[perf] estimate-route-context.rpc 168.4ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 169.2ms
+[perf-json] {"requestId":"wsh_mquypa9um9a0bo","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.2},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":167.2},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":168.4},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":169.2}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.summaries 1250.2ms
+[perf] ProjectChromeAsync.estimate-sheets 152.9ms
+[perf] current-user.dev-auth-context 0.6ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] current-user.get-user 153.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 190.1ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.estimates 159.5ms
+[perf] current-user.get-user 191.9ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 161.8ms
+[perf] current-user.profile-lookup 194.2ms
+[perf] workspace-project.project-lookup 354.2ms
+[perf] project-layout.title 354.2ms
+[perf-json] {"requestId":"wsh_mquypb18kl3swv","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":354.2}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 354.2ms
+[perf] current-user.profile-lookup 193.8ms
+[perf] listProjectEstimates.firstNodes 165.7ms
+[perf] listProjectEstimates.summaries 193.2ms
+[perf] estimates-list.project-estimates 548.2ms
+[perf-json] {"requestId":"wsh_mquypb17ptmsa9","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":158.3},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":159.5},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":161.6},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":354.2},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":164.8},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":165.7},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":192},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":193.2},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":548.2}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 29.0ms
+[perf] estimates-list.favorites 192.4ms
+[perf] estimates-list.edit-capabilities 198.5ms
+[perf] estimates-list.sidebar-favorites 221.4ms
+[perf-json] {"requestId":"wsh_mquypbggnktacd","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":29},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":159},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":175.2},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":160.2},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":192.4},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":197.1},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":198.5},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":190.7},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":221.4}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 1203.7ms
+[perf] ProjectChromeAsync.estimate-sheets 158.9ms
+[perf] estimate-route-context.supabase-client 0.5ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] estimate-route-context.rpc 170.8ms
+[perf] estimate-route-context.rpc-build 0.5ms
+[perf] estimate-sheet.route-context 172.2ms
+[perf-json] {"requestId":"wsh_mquypcdp2awjdf","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":167.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":170.8},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.5},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":172.2}],"supabaseRoundTrips":1}
+[perf] current-user.get-user 156.7ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 687.5ms
+[perf] project-layout.title 687.7ms
+[perf-json] {"requestId":"wsh_mquypcicku7qmg","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":529.3},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":687.5},{"label":"project-layout.title","kind":"timing","elapsedMs":687.7}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 687.7ms
+[perf] estimate-route-context.rpc 695.5ms
+[perf] estimate-route-context.rpc-build 0.4ms
+[perf] estimate-sheet.route-context 696.5ms
+[perf-json] {"requestId":"wsh_mquypcicksp3lw","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":538},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":695.5},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.4},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":696.5}],"supabaseRoundTrips":1}
+[perf] current-user.profile-lookup 560.8ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.get-user 186.5ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 203.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] ProjectChromeAsync.summaries 693.7ms
+[perf] current-user.profile-lookup 164.4ms
+[perf] ProjectChromeAsync.estimate-sheets 162.1ms
+[perf] current-user.profile-lookup 215.1ms
+[perf] current-user.dev-auth-context 0.9ms
+[perf] workspace-project.supabase-client 1.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] listProjectEstimates.estimates 158.4ms
+[perf] current-user.get-user 194.6ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 355.9ms
+[perf] project-layout.title 355.8ms
+[perf-json] {"requestId":"wsh_mquypdw74ah8h4","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":355.8}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 355.9ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] current-user.profile-lookup 207.9ms
+[perf] listProjectEstimates.firstNodes 160.0ms
+[perf] current-user.get-user 157.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] listProjectEstimates.summaries 192.0ms
+[perf] estimates-list.project-estimates 549.8ms
+[perf-json] {"requestId":"wsh_mquypdw5zg4e5j","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":1.3},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":156.4},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":158.4},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":160.6},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":355.9},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":159.2},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":160},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":190.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":192},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":549.8}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 43.4ms
+[perf] current-user.profile-lookup 152.7ms
+[perf] workspace-project.supabase-client 0.2ms
+[perf] estimates-list.edit-capabilities 188.4ms
+[perf] workspace-project.project-lookup 760.6ms
+[perf] estimates-list.sidebar-favorites 934.7ms
+[perf] estimates-list.favorites 955.9ms
+[perf-json] {"requestId":"wsh_mquypebf40brrv","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":43.4},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":154.5},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":157.9},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":187.2},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":188.4},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":890.3},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":934.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":905.7},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":955.9}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 2459.9ms
+[perf] ProjectChromeAsync.estimate-sheets 1221.3ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] estimate-route-context.rpc 497.2ms
+[perf] estimate-route-context.rpc-build 0.5ms
+[perf] estimate-sheet.route-context 498.3ms
+[perf-json] {"requestId":"wsh_mquyph1reg52z2","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":494.4},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":497.2},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.5},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":498.3}],"supabaseRoundTrips":1}
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.dev-auth-context 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.3ms
+[perf] current-user.get-user 155.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 157.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 153.7ms
+[perf] current-user.profile-lookup 163.9ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] workspace-project.supabase-client 0.5ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.estimates 310.0ms
+[perf] current-user.get-user 355.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 1151.5ms
+[perf] project-layout.title 1151.4ms
+[perf-json] {"requestId":"wsh_mquyphz6k53hgc","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":1151.4}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 1151.5ms
+[perf] current-user.profile-lookup 841.2ms
+[perf] listProjectEstimates.firstNodes 162.0ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] current-user.supabase-client 0.1ms
+[perf] listProjectEstimates.summaries 202.3ms
+[perf] estimates-list.project-estimates 1354.6ms
+[perf-json] {"requestId":"wsh_mquyphz599opjv","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.5},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":309},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":310},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":795.5},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1151.5},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":161.3},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":162},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":201.4},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":202.3},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1354.6}],"supabaseRoundTrips":4}
+[perf] estimates-list.current-user 0.0ms
+[perf] estimates-list.workspace 319.4ms
+[perf] current-user.get-user 700.3ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] estimates-list.favorites 705.1ms
+[perf] estimates-list.sidebar-favorites 709.7ms
+[perf] estimates-list.edit-capabilities 711.1ms
+[perf-json] {"requestId":"wsh_mquypj0shw9ovs","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0},{"label":"supabase.query.unknown","kind":"supabase","operation":"query","relation":"unknown","elapsedMs":300},{"label":"estimates-list.workspace","kind":"timing","elapsedMs":319.4},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":370.7},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":383},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":705.1},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":389.7},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":709.7},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":407.7},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":408.5},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":711.1}],"supabaseRoundTrips":6}
+[perf] current-user.profile-lookup 576.0ms
+[perf] workspace-project.supabase-client 0.4ms
+[perf] ProjectChromeAsync.summaries 1575.2ms
+[perf] workspace-project.project-lookup 156.8ms
+[perf] estimate-route-context.supabase-client 0.8ms
+[perf] ProjectChromeAsync.estimate-sheets 733.1ms
+[perf] current-user.dev-auth-context 0.2ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.2ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] current-user.dev-auth-context 0.1ms
+[perf] estimate-route-context.supabase-client 0.3ms
+[perf] current-user.supabase-client 0.1ms
+[perf] workspace-project.supabase-client 0.1ms
+[perf] estimate-route-context.rpc 396.3ms
+[perf] estimate-route-context.rpc-build 0.5ms
+[perf] estimate-sheet.route-context 397.9ms
+[perf-json] {"requestId":"wsh_mquypkn1bgyhct","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.8},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":394.6},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":396.3},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.5},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":397.9}],"supabaseRoundTrips":1}
+[perf] current-user.get-user 488.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.get-user 488.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 1070.9ms
+[perf] workspace-project.project-lookup 1568.2ms
+[perf] project-layout.title 1568.5ms
+[perf-json] {"requestId":"wsh_mquypkxvl83ygu","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":1068.9},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":1568.2},{"label":"project-layout.title","kind":"timing","elapsedMs":1568.5}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 1568.6ms
+[perf] estimate-route-context.rpc 1568.9ms
+[perf] estimate-route-context.rpc-build 1.1ms
+[perf] estimate-sheet.route-context 1570.7ms
+[perf-json] {"requestId":"wsh_mquypkxvlwn93n","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":1072.9},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":1568.9},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":1.1},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":1570.7}],"supabaseRoundTrips":1}
+[perf] estimate-route-context.rpc 1564.9ms
+[perf] estimate-route-context.rpc-build 0.3ms
+[perf] estimate-sheet.route-context 1565.7ms
+[perf-json] {"requestId":"wsh_mquypky0ip8s7c","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.3},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":1068.8},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":1564.9},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":0.3},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":1565.7}],"supabaseRoundTrips":1}
+[perf] current-user.profile-lookup 1082.3ms
+[perf] workspace-project.project-lookup 2406.2ms
+[perf] project-layout.title 2406.5ms
+[perf-json] {"requestId":"wsh_mquypky15nxx93","scope":"workshop.project-layout-title","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":1917.1},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":2406.2},{"label":"project-layout.title","kind":"timing","elapsedMs":2406.5}],"supabaseRoundTrips":1}
+[perf] ProjectChromeAsync.project 2406.5ms
+[perf] current-user.dev-auth-context 0.8ms
+[perf] current-user.dev-auth-context 0.8ms
+[perf] current-user.supabase-client 1.0ms
+[perf] current-user.supabase-client 1.0ms
+[perf] current-user.get-user 767.8ms
+[perf] current-user.closed-beta-access 0.2ms
+[perf] ProjectChromeAsync.summaries 2081.7ms
+[perf] current-user.get-user 1341.4ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 576.1ms
+[perf] ProjectChromeAsync.summaries 2953.5ms
+[perf] ProjectChromeAsync.estimate-sheets 196.7ms
+[perf] current-user.profile-lookup 184.7ms
+[perf] ProjectChromeAsync.estimate-sheets 188.0ms
+[perf] current-user.dev-auth-context 1.6ms
+[perf] workspace-project.supabase-client 1.7ms
+[perf] current-user.supabase-client 0.4ms
+[perf] listProjectEstimates.estimates 451.7ms
+[perf] current-user.dev-auth-context 0.5ms
+[perf] current-user.supabase-client 0.6ms
+[perf] current-user.get-user 484.2ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] workspace-project.project-lookup 876.9ms
+[perf] project-layout.title 876.7ms
+[perf-json] {"requestId":"wsh_mquyppb0d3cgn7","scope":"workshop.project-layout-title","timings":[{"label":"project-layout.title","kind":"timing","elapsedMs":876.7}],"supabaseRoundTrips":0}
+[perf] ProjectChromeAsync.project 876.7ms
+[perf] current-user.get-user 422.0ms
+[perf] current-user.closed-beta-access 0.0ms
+[perf] current-user.profile-lookup 438.9ms
+[perf] current-user.profile-lookup 892.8ms
+[perf] workspace-project.supabase-client 1.3ms
+[perf] listProjectEstimates.firstNodes 917.9ms
+[perf] listProjectEstimates.summaries 921.7ms
+[perf] estimates-list.project-estimates 1802.4ms
+[perf-json] {"requestId":"wsh_mquyppax5lotb6","scope":"workshop.estimates-list","timings":[{"label":"workspace-project.supabase-client","kind":"timing","elapsedMs":1.7},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":447.6},{"label":"listProjectEstimates.estimates","kind":"timing","elapsedMs":451.7},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":389.5},{"label":"workspace-project.project-lookup","kind":"timing","elapsedMs":876.9},{"label":"supabase.select.estimate_nodes","kind":"supabase","operation":"select","relation":"estimate_nodes","elapsedMs":916.3},{"label":"listProjectEstimates.firstNodes","kind":"timing","elapsedMs":917.9},{"label":"supabase.rpc.project_estimate_list_summaries","kind":"supabase","operation":"rpc","relation":"project_estimate_list_summaries","elapsedMs":919.7},{"label":"listProjectEstimates.summaries","kind":"timing","elapsedMs":921.7},{"label":"estimates-list.project-estimates","kind":"timing","elapsedMs":1802.4}],"supabaseRoundTrips":4}
+[perf] estimates-list.workspace 0.0ms
+[perf] estimates-list.current-user 0.1ms
+[perf] estimates-list.sidebar-favorites 368.8ms
+[perf] workspace-project.project-lookup 399.1ms
+[perf] estimates-list.favorites 379.3ms
+[perf] estimates-list.edit-capabilities 401.0ms
+[perf-json] {"requestId":"wsh_mquypqp02itnbx","scope":"workshop.estimates-list-tail","timings":[{"label":"estimates-list.workspace","kind":"timing","elapsedMs":0},{"label":"estimates-list.current-user","kind":"timing","elapsedMs":0.1},{"label":"supabase.select.estimate_sheet_access_settings","kind":"supabase","operation":"select","relation":"estimate_sheet_access_settings","elapsedMs":364.1},{"label":"supabase.select.project_favorites","kind":"supabase","operation":"select","relation":"project_favorites","elapsedMs":367.8},{"label":"estimates-list.sidebar-favorites","kind":"timing","elapsedMs":368.8},{"label":"supabase.select.estimate_favorites","kind":"supabase","operation":"select","relation":"estimate_favorites","elapsedMs":376.4},{"label":"estimates-list.favorites","kind":"timing","elapsedMs":379.3},{"label":"supabase.select.estimate_sheet_members","kind":"supabase","operation":"select","relation":"estimate_sheet_members","elapsedMs":385.2},{"label":"supabase.rpc.can_edit_project","kind":"supabase","operation":"rpc","relation":"can_edit_project","elapsedMs":399.5},{"label":"estimates-list.edit-capabilities","kind":"timing","elapsedMs":401}],"supabaseRoundTrips":5}
+[perf] ProjectChromeAsync.summaries 1902.0ms
+[perf] ProjectChromeAsync.estimate-sheets 1032.3ms
+[perf] estimate-route-context.supabase-client 0.6ms
+[perf] estimate-route-context.rpc 1065.1ms
+[perf] estimate-route-context.rpc-build 8.1ms
+[perf] estimate-sheet.route-context 1074.5ms
+[perf-json] {"requestId":"wsh_mquypse4zs72gp","scope":"workshop.estimate-sheet","timings":[{"label":"estimate-route-context.supabase-client","kind":"timing","elapsedMs":0.6},{"label":"supabase.rpc.estimate_node_route_context","kind":"supabase","operation":"rpc","relation":"estimate_node_route_context","elapsedMs":1051.6},{"label":"estimate-route-context.rpc","kind":"timing","elapsedMs":1065.1},{"label":"estimate-route-context.rpc-build","kind":"timing","elapsedMs":8.1},{"label":"estimate-sheet.route-context","kind":"timing","elapsedMs":1074.5}],"supabaseRoundTrips":1}
+error: script "start" exited with code 130

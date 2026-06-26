@@ -12,6 +12,7 @@ export default function LibraryLayout({ children }: { children: ReactNode }) {
       eyebrow="Library"
       showEyebrow={false}
       breadcrumbs={["Library"]}
+      canvasClassName="library-canvas-wash"
       contentClassName=""
       titleSlot={<LibraryTitleBarClient />}
       subHeader={<LibraryTabsLayoutClient />}

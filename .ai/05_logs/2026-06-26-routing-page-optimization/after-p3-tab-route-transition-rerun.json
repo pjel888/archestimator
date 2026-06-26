@@ -1,0 +1,857 @@
+{
+  "generatedAt": "2026-06-26T07:26:45.200Z",
+  "baseUrl": "http://localhost:3000",
+  "authMode": "storage-state",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "waitForNetworkIdle": false,
+  "warmRoutesBeforeMeasure": true,
+  "scenarioFilter": "authenticated target",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "targetPathClasses": {
+    "project": "targetProject",
+    "estimateNode": "targetEstimateNode",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/{targetProjectId}",
+      "/workshop/projects/{targetProjectId}/estimates",
+      "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "Authenticated Target: Cold Direct Target Estimate",
+      "from": "/",
+      "expectedPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 9881,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 0,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 4890,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 4890,
+              "firstVisibleAtMs": 4890,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 4890,
+              "firstVisibleAtMs": 4890,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 0,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        },
+        {
+          "run": 2,
+          "durationMs": 5707,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 0,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 2628,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 2628,
+              "firstVisibleAtMs": 2628,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 2628,
+              "firstVisibleAtMs": 2628,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 0,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        },
+        {
+          "run": 3,
+          "durationMs": 6786,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 0,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 3949,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 3949,
+              "firstVisibleAtMs": 3949,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 3949,
+              "firstVisibleAtMs": 3949,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 0,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        }
+      ],
+      "failures": [],
+      "medianMs": 6786,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    },
+    {
+      "scenario": "Authenticated Target: Estimates to Target Estimate No Hover",
+      "from": "/workshop/projects/{targetProjectId}/estimates",
+      "expectedPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 3,
+          "durationMs": 7847,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 1,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 7589,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": 769,
+              "firstVisibleAtMs": 769,
+              "hiddenAtMs": 7587,
+              "detachedAtMs": 7587,
+              "durationMs": 6818,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 7589,
+              "firstVisibleAtMs": 7589,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 252,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 0,
+              "firstVisibleAtMs": 0,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 7841,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        }
+      ],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n============================================================; finalPathname=/workshop/projects/{targetProjectId}/estimates"
+        },
+        {
+          "run": 2,
+          "message": "waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n============================================================; finalPathname=/workshop/projects/{targetProjectId}/estimates"
+        }
+      ],
+      "medianMs": 7847,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 1
+    },
+    {
+      "scenario": "Authenticated Target: Estimates to Target Estimate Hover Prefetch",
+      "from": "/workshop/projects/{targetProjectId}/estimates",
+      "expectedPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 5992,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 1,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 5699,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": 1011,
+              "firstVisibleAtMs": 1011,
+              "hiddenAtMs": 5698,
+              "detachedAtMs": 5698,
+              "durationMs": 4687,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 5699,
+              "firstVisibleAtMs": 5699,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 293,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 0,
+              "firstVisibleAtMs": 0,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 5992,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        },
+        {
+          "run": 2,
+          "durationMs": 5377,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 1,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 4841,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": 528,
+              "firstVisibleAtMs": 528,
+              "hiddenAtMs": 4837,
+              "detachedAtMs": 4837,
+              "durationMs": 4309,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 4841,
+              "firstVisibleAtMs": 4841,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 533,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 0,
+              "firstVisibleAtMs": 0,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 5374,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        },
+        {
+          "run": 3,
+          "durationMs": 5247,
+          "overlayVisible": false,
+          "parentFallbackSeen": false,
+          "sheetSkeletonEpisodes": 1,
+          "overlayDurationMs": 0,
+          "sheetContentVisibleAtMs": 4848,
+          "skeletonTimeline": [
+            {
+              "key": "estimateSheetRouteSkeleton",
+              "selector": "[data-testid='estimate-sheet-route-skeleton']",
+              "role": "sheet-skeleton",
+              "firstAttachedAtMs": 1264,
+              "firstVisibleAtMs": 1264,
+              "hiddenAtMs": 4846,
+              "detachedAtMs": 4846,
+              "durationMs": 3582,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "projectEstimatesListSkeleton",
+              "selector": "[data-testid='project-estimates-list-skeleton']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectWorkspaceFallback",
+              "selector": "[aria-label='Loading project workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "projectDashboardFallback",
+              "selector": "[aria-label='Loading project dashboard']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "workshopFallback",
+              "selector": "[aria-label='Loading workspace']",
+              "role": "parent-fallback",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "routeOverlay",
+              "selector": "[data-route-overlay]",
+              "role": "overlay",
+              "firstAttachedAtMs": null,
+              "firstVisibleAtMs": null,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 0,
+              "episodeCount": 0,
+              "appearedAfterNavigationStart": false
+            },
+            {
+              "key": "sheetContent",
+              "selector": "[data-estimate-center-column='sheet']",
+              "role": "sheet-content",
+              "firstAttachedAtMs": 4848,
+              "firstVisibleAtMs": 4848,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 401,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            },
+            {
+              "key": "workshopShell",
+              "selector": "[data-workshop-page-shell-root]",
+              "role": "shell",
+              "firstAttachedAtMs": 1,
+              "firstVisibleAtMs": 1,
+              "hiddenAtMs": null,
+              "detachedAtMs": null,
+              "durationMs": 5248,
+              "episodeCount": 1,
+              "appearedAfterNavigationStart": true
+            }
+          ],
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}"
+        }
+      ],
+      "failures": [],
+      "medianMs": 5377,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 3
+    },
+    {
+      "scenario": "Authenticated Target: Estimates to Target Estimate Warm Revisit",
+      "from": "/workshop/projects/{targetProjectId}/estimates",
+      "expectedPathname": "/workshop/projects/{targetProjectId}/estimates/{targetEstimateNodeId}",
+      "networkProfile": "No throttle",
+      "runs": [],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"http://localhost:3000/login?next=%2Fworkshop%2Fprojects%2F{targetProjectId}%2Festimates\"\n============================================================"
+        },
+        {
+          "run": 2,
+          "message": "waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"http://localhost:3000/login?next=%2Fworkshop%2Fprojects%2F{targetProjectId}%2Festimates\"\n============================================================"
+        },
+        {
+          "run": 3,
+          "message": "waitForURL: Timeout 15000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"http://localhost:3000/login?next=%2Fworkshop%2Fprojects%2F{targetProjectId}%2Festimates\"\n============================================================"
+        }
+      ],
+      "medianMs": null,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    }
+  ]
+}

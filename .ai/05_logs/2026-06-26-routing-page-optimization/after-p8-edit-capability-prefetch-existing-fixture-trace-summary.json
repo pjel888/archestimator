@@ -1,0 +1,370 @@
+{
+  "generatedAt": "2026-06-26T09:10:59.121Z",
+  "input": ".ai/05_logs/2026-06-26-routing-page-optimization/after-p8-edit-capability-prefetch-existing-fixture-server-perf.log",
+  "snapshotCount": 189,
+  "scopes": {
+    "workshop.estimate-sheet": 39,
+    "workshop.estimate-sheet-tail": 39,
+    "workshop.estimates-list": 32,
+    "workshop.estimates-list-tail": 32,
+    "workshop.project-layout": 47
+  },
+  "topByMedian": [
+    {
+      "label": "estimates-list.project-estimates",
+      "count": 32,
+      "min": 605.9,
+      "median": 635.5,
+      "p90": 1089.7,
+      "max": 1432.5,
+      "avg": 761.1
+    },
+    {
+      "label": "estimate-sheet.route-context",
+      "count": 39,
+      "min": 467.2,
+      "median": 628.3,
+      "p90": 1846.3,
+      "max": 2057.7,
+      "avg": 818.3
+    },
+    {
+      "label": "estimate-route-context.tab-tree",
+      "count": 39,
+      "min": 310.1,
+      "median": 336,
+      "p90": 1043.9,
+      "max": 1743.2,
+      "avg": 501.4
+    },
+    {
+      "label": "estimate-sheet.current-user",
+      "count": 39,
+      "min": 293.5,
+      "median": 316.9,
+      "p90": 820.8,
+      "max": 1691.5,
+      "avg": 437.6
+    },
+    {
+      "label": "project-layout.project",
+      "count": 47,
+      "min": 291.5,
+      "median": 311,
+      "p90": 338.9,
+      "max": 929.6,
+      "avg": 333.6
+    },
+    {
+      "label": "workspace-project.project-lookup",
+      "count": 71,
+      "min": 153.2,
+      "median": 303.2,
+      "p90": 336.1,
+      "max": 1529.8,
+      "avg": 314.5
+    },
+    {
+      "label": "estimate-route-context.project",
+      "count": 39,
+      "min": 153.5,
+      "median": 204.2,
+      "p90": 713.4,
+      "max": 1530.1,
+      "avg": 304.7
+    },
+    {
+      "label": "estimate-route-context.selected-node",
+      "count": 39,
+      "min": 148.6,
+      "median": 196.3,
+      "p90": 666.3,
+      "max": 1496.9,
+      "avg": 305.3
+    },
+    {
+      "label": "estimates-list.edit-capabilities",
+      "count": 32,
+      "min": 155,
+      "median": 179.1,
+      "p90": 620.4,
+      "max": 1227.7,
+      "avg": 291.7
+    },
+    {
+      "label": "estimates-list.favorites",
+      "count": 32,
+      "min": 150.9,
+      "median": 176.7,
+      "p90": 569.5,
+      "max": 1206.7,
+      "avg": 276.5
+    },
+    {
+      "label": "supabase.select.estimate_favorites",
+      "count": 32,
+      "min": 149.1,
+      "median": 174.4,
+      "p90": 564.9,
+      "max": 1205.2,
+      "avg": 274.1
+    },
+    {
+      "label": "supabase.select.estimate_sheet_access_settings",
+      "count": 32,
+      "min": 23.9,
+      "median": 170.9,
+      "p90": 618.9,
+      "max": 1219.7,
+      "avg": 279.4
+    },
+    {
+      "label": "estimate-tab-tree.nodes",
+      "count": 39,
+      "min": 150.4,
+      "median": 167,
+      "p90": 831.4,
+      "max": 1335.2,
+      "avg": 271.6
+    },
+    {
+      "label": "estimate-route-context.tabs-list",
+      "count": 39,
+      "min": 150.8,
+      "median": 165.9,
+      "p90": 832.6,
+      "max": 1352.6,
+      "avg": 258.8
+    },
+    {
+      "label": "supabase.select.estimate_sheet_members",
+      "count": 32,
+      "min": 146.7,
+      "median": 164.5,
+      "p90": 565.5,
+      "max": 1226.6,
+      "avg": 260.9
+    },
+    {
+      "label": "estimates-list.sidebar-favorites",
+      "count": 32,
+      "min": 151.1,
+      "median": 164,
+      "p90": 587.8,
+      "max": 1213.9,
+      "avg": 260.6
+    },
+    {
+      "label": "supabase.select.project_favorites",
+      "count": 32,
+      "min": 150.3,
+      "median": 163.5,
+      "p90": 587.2,
+      "max": 1213.5,
+      "avg": 259.8
+    },
+    {
+      "label": "estimate-tab-tree.rows",
+      "count": 39,
+      "min": 153.1,
+      "median": 163.4,
+      "p90": 642.4,
+      "max": 919.8,
+      "avg": 229.1
+    },
+    {
+      "label": "supabase.select.estimate_row_items",
+      "count": 39,
+      "min": 152.6,
+      "median": 162.9,
+      "p90": 640.7,
+      "max": 919.1,
+      "avg": 228.3
+    },
+    {
+      "label": "supabase.select.estimate_tabs",
+      "count": 39,
+      "min": 149.5,
+      "median": 162.1,
+      "p90": 832,
+      "max": 1351.7,
+      "avg": 256.3
+    }
+  ],
+  "supabaseTopByMedian": [
+    {
+      "relation": "select.estimate_favorites",
+      "count": 32,
+      "min": 149.1,
+      "median": 174.4,
+      "p90": 564.9,
+      "max": 1205.2,
+      "avg": 274.1
+    },
+    {
+      "relation": "select.estimate_sheet_access_settings",
+      "count": 32,
+      "min": 23.9,
+      "median": 170.9,
+      "p90": 618.9,
+      "max": 1219.7,
+      "avg": 279.4
+    },
+    {
+      "relation": "select.estimate_sheet_members",
+      "count": 32,
+      "min": 146.7,
+      "median": 164.5,
+      "p90": 565.5,
+      "max": 1226.6,
+      "avg": 260.9
+    },
+    {
+      "relation": "select.project_favorites",
+      "count": 32,
+      "min": 150.3,
+      "median": 163.5,
+      "p90": 587.2,
+      "max": 1213.5,
+      "avg": 259.8
+    },
+    {
+      "relation": "select.estimate_row_items",
+      "count": 39,
+      "min": 152.6,
+      "median": 162.9,
+      "p90": 640.7,
+      "max": 919.1,
+      "avg": 228.3
+    },
+    {
+      "relation": "select.estimate_tabs",
+      "count": 39,
+      "min": 149.5,
+      "median": 162.1,
+      "p90": 832,
+      "max": 1351.7,
+      "avg": 256.3
+    },
+    {
+      "relation": "rpc.project_estimate_list_summaries",
+      "count": 32,
+      "min": 148.5,
+      "median": 160.8,
+      "p90": 563.2,
+      "max": 802,
+      "avg": 241.2
+    },
+    {
+      "relation": "select.estimate_nodes",
+      "count": 110,
+      "min": 146.4,
+      "median": 158.4,
+      "p90": 582.3,
+      "max": 1493.9,
+      "avg": 248.1
+    },
+    {
+      "relation": "rpc.can_edit_project",
+      "count": 32,
+      "min": 147.7,
+      "median": 157.5,
+      "p90": 551.1,
+      "max": 1220.9,
+      "avg": 255.6
+    },
+    {
+      "relation": "select.projects",
+      "count": 71,
+      "min": 144.6,
+      "median": 156.4,
+      "p90": 176.1,
+      "max": 1511.5,
+      "avg": 196.1
+    },
+    {
+      "relation": "query.unknown",
+      "count": 24,
+      "min": 146.6,
+      "median": 156.2,
+      "p90": 670.9,
+      "max": 1493,
+      "avg": 264.9
+    },
+    {
+      "relation": "rpc.can_edit_estimate",
+      "count": 39,
+      "min": 147.3,
+      "median": 154.6,
+      "p90": 826.5,
+      "max": 1332,
+      "avg": 243.8
+    },
+    {
+      "relation": "select.estimates",
+      "count": 32,
+      "min": 143.2,
+      "median": 152,
+      "p90": 168.2,
+      "max": 971.3,
+      "avg": 179.8
+    },
+    {
+      "relation": "select.profiles",
+      "count": 24,
+      "min": 143.9,
+      "median": 147.4,
+      "p90": 264.8,
+      "max": 847.4,
+      "avg": 213.4
+    }
+  ],
+  "roundTripsByScope": [
+    {
+      "scope": "workshop.estimate-sheet",
+      "count": 39,
+      "min": 5,
+      "median": 8,
+      "p90": 8,
+      "max": 8,
+      "avg": 6.8
+    },
+    {
+      "scope": "workshop.estimates-list-tail",
+      "count": 32,
+      "min": 5,
+      "median": 5,
+      "p90": 5,
+      "max": 5,
+      "avg": 5
+    },
+    {
+      "scope": "workshop.estimates-list",
+      "count": 32,
+      "min": 3,
+      "median": 3,
+      "p90": 3,
+      "max": 3,
+      "avg": 3
+    },
+    {
+      "scope": "workshop.project-layout",
+      "count": 47,
+      "min": 1,
+      "median": 1,
+      "p90": 1,
+      "max": 1,
+      "avg": 1
+    },
+    {
+      "scope": "workshop.estimate-sheet-tail",
+      "count": 39,
+      "min": 0,
+      "median": 0,
+      "p90": 0,
+      "max": 0,
+      "avg": 0
+    }
+  ],
+  "note": "Sanitized summary of [perf-json] timing labels. It contains labels, aggregate timing stats, scope counts, and relation names only; no raw URLs, auth material, or entity identifiers."
+}

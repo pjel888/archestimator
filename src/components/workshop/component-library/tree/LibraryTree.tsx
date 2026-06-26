@@ -326,6 +326,7 @@ function FolderRenameInput({
       onMouseDown={(event) => event.stopPropagation()}
       onChange={(event) => onChange(event.currentTarget.value)}
       onBlur={(event) => onCommit(event.currentTarget.value)}
+      placeholder="Folder name"
       onKeyDown={(event) => {
         event.stopPropagation();
         if (event.key === "Enter") {
@@ -338,7 +339,7 @@ function FolderRenameInput({
           onCancel();
         }
       }}
-      className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none focus:bg-accentSoft"
+      className="h-5 min-w-0 flex-1 rounded-xs border border-divider bg-surface px-1.5 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
     />
   );
 }

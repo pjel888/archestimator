@@ -19,7 +19,7 @@ export function SearchInput({ className, wrapperClassName, shortcutKey, onClear,
   return (
     <div
       className={cn(
-        "box-border flex h-[38px] min-h-[38px] items-center gap-1.5 bg-transparent px-2 transition hover:bg-surfaceMuted/60 focus-within:bg-surfaceMuted/60 [&:has(input:not(:placeholder-shown))]:bg-surfaceMuted/60",
+        "box-border flex h-[38px] min-h-[38px] items-center gap-1.5 bg-transparent px-2 transition focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus/40",
         wrapperClassName,
       )}
     >

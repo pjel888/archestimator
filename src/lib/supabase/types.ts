@@ -3890,6 +3890,15 @@ export type Database = {
         Args: { target_project_id: string }
         Returns: boolean
       }
+      estimate_node_route_context: {
+        Args: {
+          max_node_count?: number | null
+          max_row_item_count?: number | null
+          target_node_id: string
+          target_project_id: string
+        }
+        Returns: Json
+      }
       can_manage_collaboration_invitation: {
         Args: {
           target_estimate_id: string

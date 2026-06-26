@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function ProjectsListSkeleton() {
   return (
-    <div className="dashboard-canvas-wash flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <Skeleton className="h-[38px] w-full rounded-xs" />
       <Skeleton className="h-[34px] w-full shrink-0 rounded-xs" />
       <div className="min-h-0 flex-1 overflow-auto p-2">

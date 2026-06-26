@@ -26,6 +26,10 @@ export type IssueRealtimeIdentityResult = {
   envelope: RealtimeIdentityEnvelope;
   /** Raw base64url public key for the client to cache and verify with. */
   publicKey: string;
+  /** Authenticated sender id, returned so cursor layers do not need route-time profile props. */
+  userId: string;
+  /** Escaped by React at render sites; used only as a best-effort collaboration label. */
+  displayName: string | null;
 };
 
 /**
@@ -58,5 +62,5 @@ export async function issueRealtimeIdentity({
     role: "member",
   });
 
-  return { envelope, publicKey };
+  return { envelope, publicKey, userId: user.userId, displayName: user.displayName ?? null };
 }

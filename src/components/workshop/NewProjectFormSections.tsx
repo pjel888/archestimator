@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useId } from "react";
 import { MagicWand, MapPin, Plus } from "@phosphor-icons/react/dist/ssr";
 
@@ -15,6 +16,7 @@ import {
   ProjectLocationMap,
   type ProjectLocationPin,
 } from "@/components/workshop/ProjectLocationMap";
+import { getProjectLocationStaticMapStyleParams } from "@/lib/google-maps/project-location-map-style";
 import { CREATE_PROJECT_CURRENCY_OPTIONS } from "./new-project-form-currency-options";
 import { createProjectClientOptions } from "./project-client-options";
 
@@ -252,7 +254,12 @@ export function ProjectLocationPreview({
   readonly pin: ProjectLocationPin | null;
   readonly className?: string;
 }) {
-  const canShowGoogleMap = Boolean(apiKey.trim() && pin);
+  const key = apiKey.trim();
+  const address = addressLabel.trim();
+  const canShowGoogleMap = Boolean(key && pin);
+  const staticMapUrl = key && address && !pin
+    ? getProjectLocationStaticMapPreviewUrl({ apiKey: key, address })
+    : null;
 
   return (
     <div
@@ -271,6 +278,35 @@ export function ProjectLocationPreview({
           addressLabel={addressLabel}
           minHeightClassName="min-h-full"
         />
+      ) : staticMapUrl ? (
+        <div className="relative h-full overflow-hidden bg-surfaceMuted text-tertiary">
+          <Image
+            src={staticMapUrl}
+            alt=""
+            aria-hidden="true"
+            className="object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 420px"
+            unoptimized
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.18)_0%,rgba(255,255,255,0)_42%,rgba(255,255,255,0.84)_100%)]" />
+          <span className="absolute left-2 top-2 flex items-center gap-2 text-tertiary">
+            <span className="grid size-8 shrink-0 place-items-center rounded-xs border border-white/80 bg-white/78 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+              <MapPin size={15} weight="regular" aria-hidden="true" />
+            </span>
+            <span className="block text-[9px] font-medium uppercase leading-3 tracking-normal">
+              Map preview
+            </span>
+          </span>
+          <span className="absolute inset-x-2 bottom-2 min-w-0 rounded-xs border border-white/72 bg-white/86 px-2 py-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.10)]">
+            <span className="block truncate text-[11px] font-medium leading-4 text-secondary">
+              {address}
+            </span>
+            <span className="mt-0.5 block text-[10px] leading-4 text-tertiary">
+              Choose a Google suggestion to pin this project.
+            </span>
+          </span>
+        </div>
       ) : (
         <div className="flex h-full flex-col justify-between bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(245,245,245,0.76)),radial-gradient(circle_at_80%_18%,rgba(242,68,5,0.12),transparent_28%)] p-2 text-tertiary">
           <span className="flex items-center gap-2">
@@ -295,6 +331,28 @@ export function ProjectLocationPreview({
       )}
     </div>
   );
+}
+
+function getProjectLocationStaticMapPreviewUrl({
+  apiKey,
+  address,
+}: {
+  readonly apiKey: string;
+  readonly address: string;
+}) {
+  const params = new URLSearchParams({
+    center: address,
+    zoom: "14",
+    size: "640x480",
+    scale: "2",
+    maptype: "roadmap",
+    key: apiKey,
+  });
+  params.append("markers", `color:0xF24405|${address}`);
+  for (const style of getProjectLocationStaticMapStyleParams()) {
+    params.append("style", style);
+  }
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
 
 export function CreateProjectFooter({

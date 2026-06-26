@@ -51,9 +51,9 @@ export function WorkshopCollectionLayout({
   children,
 }: WorkshopCollectionLayoutProps) {
   return (
-    <div className="dashboard-canvas-wash flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <TreePanelHeader
-        className="bg-transparent"
+        className="workshop-collection-chrome bg-transparent"
         toolbarClassName="bg-transparent"
         ariaLabel={toolbarLabel}
         labelPrefix={toolbarPrefix}
@@ -76,7 +76,7 @@ export function WorkshopCollectionLayout({
         showToolbarBottomBorder={toolbarPanel ? false : undefined}
       />
 
-      {toolbarPanel}
+      {toolbarPanel ? <div className="workshop-collection-tabs-chrome bg-transparent">{toolbarPanel}</div> : null}
 
       <div className={`min-h-0 flex-1 bg-transparent p-2 ${contentScroll ? "overflow-auto" : "overflow-hidden"}`}>{children}</div>
     </div>

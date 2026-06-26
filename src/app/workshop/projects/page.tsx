@@ -45,6 +45,7 @@ export default function ProjectsPage() {
       eyebrow="Workspace"
       showEyebrow={false}
       breadcrumbs={["Projects"]}
+      canvasClassName="projects-canvas-wash"
       contentClassName=""
     >
       <Suspense fallback={<ProjectsListSkeleton />}>

@@ -7,6 +7,7 @@ export default function Loading() {
       title="Projects"
       eyebrow="Workspace"
       showEyebrow={false}
+      canvasClassName="projects-canvas-wash"
     >
       <ProjectsListSkeleton />
     </StaticWorkshopLoadingShell>

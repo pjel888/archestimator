@@ -9,8 +9,8 @@ import {
 } from "./project-header-action-styles";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
 
-// Mirror the "Share" trigger in ProjectPublicationHeader so the header actions
-// read as one compact icon-button cluster.
+// Mirror the Publisher header-link controls so the header actions read as one
+// compact icon-button cluster.
 
 /**
  * The relocated estimate-sheet "Activity" + "Preview Excel Export" triggers,

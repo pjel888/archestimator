@@ -2,14 +2,30 @@
 
 import type { Ref } from "react";
 import { useState } from "react";
-import { Check, GearSix, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import {
+  Check,
+  FolderPlus,
+  Palette,
+  Plus,
+  Trash,
+  X,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { DropdownPopupPanel, useDropdownPopup } from "@/components/ui/dropdown-popup";
+import {
+  DropdownPopupPanel,
+  useDropdownPopup,
+} from "@/components/ui/dropdown-popup";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { cn } from "@/lib/ui/cn";
-import { GROUP_ACCENT_SWATCHES, type GroupAccentId } from "@/lib/workshop/group-accent";
-import { MAX_PROJECT_GROUPS, MAX_PROJECT_GROUP_NAME_LENGTH } from "@/lib/workshop/group-constants";
+import {
+  GROUP_ACCENT_SWATCHES,
+  type GroupAccentId,
+} from "@/lib/workshop/group-accent";
+import {
+  MAX_PROJECT_GROUPS,
+  MAX_PROJECT_GROUP_NAME_LENGTH,
+} from "@/lib/workshop/group-constants";
 import type { ProjectGroupSummary } from "@/lib/repositories/workspace-repository";
 
 // Caps are imported from the shared constants module (Phase 2 §2.0 — group-constants.ts),
@@ -38,18 +54,21 @@ export function ManageGroupsPopover({
 }: ManageGroupsPopoverProps) {
   const [draftName, setDraftName] = useState("");
   const [draftAccent, setDraftAccent] = useState<GroupAccentId | null>(null);
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null,
+  );
   const [recolorOpenId, setRecolorOpenId] = useState<string | null>(null);
 
   // useDropdownPopup gives Escape, outside-pointer dismissal, ancestor-scroll/resize
   // close, focus return to the trigger, and a positioned panel — the focus-trap and
   // a11y contract a hand-rolled <div role="dialog"> lacked (LD-10).
-  const { open, position, rootRef, triggerRef, panelRef, openPopup, close } = useDropdownPopup({
-    align: "end",
-    side: "bottom",
-    open: controlledOpen,
-    onOpenChange,
-  });
+  const { open, position, rootRef, triggerRef, panelRef, openPopup, close } =
+    useDropdownPopup({
+      align: "end",
+      side: "bottom",
+      open: controlledOpen,
+      onOpenChange,
+    });
 
   const setOpen = (next: boolean) => {
     if (next) openPopup();
@@ -81,7 +100,7 @@ export function ManageGroupsPopover({
           label="Manage groups"
           onClick={() => setOpen(!open)}
         >
-          <GearSix size={14} weight="regular" aria-hidden="true" />
+          <FolderPlus size={14} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       </span>
       <DropdownPopupPanel
@@ -93,7 +112,10 @@ export function ManageGroupsPopover({
         className="w-64 rounded-xs border border-hairline bg-white p-2 shadow-[0_22px_54px_-30px_rgba(17,17,17,0.6)]"
       >
         <div className="space-y-1.5">
-          <label className="block text-[9px] font-medium uppercase leading-3 text-tertiary" htmlFor="manage-groups-name">
+          <label
+            className="block text-[9px] font-medium uppercase leading-3 text-tertiary"
+            htmlFor="manage-groups-name"
+          >
             New group
           </label>
           <input
@@ -111,7 +133,11 @@ export function ManageGroupsPopover({
               }
             }}
           />
-          <div className="flex items-center gap-1" role="radiogroup" aria-label="New group accent">
+          <div
+            className="flex items-center gap-1"
+            role="radiogroup"
+            aria-label="New group accent"
+          >
             {GROUP_ACCENT_SWATCHES.map((swatch) => (
               <button
                 key={swatch.id}
@@ -126,18 +152,28 @@ export function ManageGroupsPopover({
                   draftAccent === swatch.id ? "border-ink" : "border-hairline",
                 )}
                 style={{ backgroundColor: swatch.dotColor }}
-                onClick={() => setDraftAccent((current) => (current === swatch.id ? null : (swatch.id as GroupAccentId)))}
+                onClick={() =>
+                  setDraftAccent((current) =>
+                    current === swatch.id ? null : (swatch.id as GroupAccentId),
+                  )
+                }
               />
             ))}
           </div>
           {nameTooLong ? (
             <p className="text-[9px] leading-3 text-danger" role="alert">
-              Group names are limited to {MAX_PROJECT_GROUP_NAME_LENGTH} characters.
+              Group names are limited to {MAX_PROJECT_GROUP_NAME_LENGTH}{" "}
+              characters.
             </p>
           ) : null}
           {atLimit ? (
-            <p className="text-[9px] leading-3 text-danger" role="alert" data-manage-groups-at-limit="">
-              You have reached the {MAX_PROJECT_GROUPS}-group limit. Delete a group to add another.
+            <p
+              className="text-[9px] leading-3 text-danger"
+              role="alert"
+              data-manage-groups-at-limit=""
+            >
+              You have reached the {MAX_PROJECT_GROUPS}-group limit. Delete a
+              group to add another.
             </p>
           ) : null}
           <Button
@@ -154,7 +190,10 @@ export function ManageGroupsPopover({
         </div>
 
         {groups.length > 0 ? (
-          <ul className="mt-2 space-y-0.5 border-t border-hairline pt-2" aria-label="Existing groups">
+          <ul
+            className="mt-2 space-y-0.5 border-t border-hairline pt-2"
+            aria-label="Existing groups"
+          >
             {groups.map((group) => (
               <li key={group.id} className="flex items-center gap-1">
                 <input
@@ -164,7 +203,11 @@ export function ManageGroupsPopover({
                   className="h-6 min-w-0 flex-1 rounded-xs border border-transparent px-1 text-[10px] text-ink hover:border-hairline focus-visible:bg-accentSoft focus-visible:outline-none"
                   onBlur={(event) => {
                     const next = event.target.value.trim();
-                    if (next.length > 0 && next.length <= MAX_PROJECT_GROUP_NAME_LENGTH && next !== group.name) {
+                    if (
+                      next.length > 0 &&
+                      next.length <= MAX_PROJECT_GROUP_NAME_LENGTH &&
+                      next !== group.name
+                    ) {
                       onRename(group.id, next);
                     }
                   }}
@@ -185,7 +228,9 @@ export function ManageGroupsPopover({
                         title={swatch.label}
                         className={cn(
                           "relative size-4 cursor-pointer rounded-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
-                          group.accentId === swatch.id ? "border-ink" : "border-hairline",
+                          group.accentId === swatch.id
+                            ? "border-ink"
+                            : "border-hairline",
                         )}
                         style={{ backgroundColor: swatch.dotColor }}
                         onClick={() => {
@@ -198,7 +243,11 @@ export function ManageGroupsPopover({
                             data-action-menu-item-check="true"
                             className="absolute inset-0 flex items-center justify-center text-white"
                           >
-                            <Check size={10} weight="regular" aria-hidden="true" />
+                            <Check
+                              size={10}
+                              weight="regular"
+                              aria-hidden="true"
+                            />
                           </span>
                         ) : null}
                       </button>
@@ -224,7 +273,7 @@ export function ManageGroupsPopover({
                     aria-label={`Recolor ${group.name}`}
                     onClick={() => setRecolorOpenId(group.id)}
                   >
-                    <GearSix size={12} weight="regular" aria-hidden="true" />
+                    <Palette size={12} weight="regular" aria-hidden="true" />
                   </Button>
                 )}
                 {confirmingDeleteId === group.id ? (

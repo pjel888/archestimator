@@ -177,6 +177,7 @@ export function TreePanelHeader({
   const toolbarStartActions: HeaderIconToolbarAddAction[] = searchEnabled
     ? [
         {
+          id: "tree-panel-search",
           label: open ? `Hide ${labelPrefix} search` : `Show ${labelPrefix} search`,
           icon: <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />,
           onClick: () => setOpen(!open),

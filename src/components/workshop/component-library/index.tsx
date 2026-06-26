@@ -2879,7 +2879,7 @@ function useEstimateRightSidebarContent({
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
                 showThumbnails
-                showSourceTrustChips={showSourceTrustChips}
+                showSourceTrustChips={isProjectTab ? false : showSourceTrustChips}
                 editingNodeId={editingFolderId}
                 editingNodeValue={editingFolderName}
                 onEditingNodeValueChange={setEditingFolderName}
@@ -3110,7 +3110,8 @@ function useEstimateRightSidebarContent({
               aria-label="Template name"
               aria-invalid={renameTemplateError ? "true" : undefined}
               autoFocus
-              className="mt-2 h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent"
+              placeholder="Template name"
+              className="mt-2 h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition placeholder:text-tertiary hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
               onChange={(event) => {
                 setRenameTemplateName(event.currentTarget.value);
                 if (renameTemplateError) setRenameTemplateError("");

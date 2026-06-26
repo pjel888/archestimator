@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { isExpressComponentPromotionEnabled } from "@/lib/estimates/express-components";
-import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
 
@@ -76,6 +76,7 @@ export async function promoteEstimateRowToLibraryComponent({
   const result = readPromotionResult(data);
   recordExpressComponentEvent("promotion_succeeded", { projectId: project.id, estimateId, rowId, itemId: result.itemId });
 
+  clearEstimateRouteContextProcessCache(project.id);
   revalidatePath("/workshop/library");
   revalidatePath("/workshop/library/components");
   revalidatePath(`/workshop/projects/${project.id}/estimates`);

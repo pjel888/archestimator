@@ -1,21 +1,87 @@
+import Link from "next/link";
+import { LinkSimple, UsersThree } from "@phosphor-icons/react/dist/ssr";
+
 import { ProjectCursorLayer } from "@/components/workshop/ProjectCursorLayer";
 import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
-import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
-import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PROJECT_HEADER_ACTION_SKELETON_CLASS } from "@/components/workshop/project-header-action-styles";
 import {
+  PROJECT_HEADER_ACTION_BUTTON_CLASS,
+  PROJECT_HEADER_ACTION_DOT_CLASS,
+  PROJECT_HEADER_ACTION_ICON_SIZE,
+  PROJECT_HEADER_ACTION_SKELETON_CLASS,
+} from "@/components/workshop/project-header-action-styles";
+import {
+  getCurrentWorkspaceProject,
   getProjectCollaborationSummary,
   getProjectPublicationSummary,
-  listProjectEstimateSheets,
 } from "@/lib/repositories/workspace-repository";
 import { traced } from "@/lib/perf/server-timing";
+import { isProjectPageCursorsEnabled } from "@/lib/collaboration/feature-flags";
+import type { PublisherDrawerTabId } from "@/components/workshop/publisher/PublisherDrawer";
+import type { ProjectPublicationSummary } from "@/lib/publication/types";
 import type { Tables } from "@/lib/supabase/types";
 
 type ProjectChromeAsyncProps = {
   projectId: string;
-  liveProject: Tables<"projects"> | null;
+  liveProject?: Tables<"projects"> | null;
 };
+
+type ProjectPublisherHeaderActionsProps = {
+  projectId: string;
+  publicationSummary: ProjectPublicationSummary | null;
+};
+
+function getPublisherProjectHref(projectId: string, tab?: PublisherDrawerTabId) {
+  const params = new URLSearchParams({ project: projectId, drawer: projectId });
+  if (tab && tab !== "overview") params.set("tab", tab);
+  return `/workshop/publisher?${params.toString()}`;
+}
+
+function ProjectPublisherHeaderActions({ projectId, publicationSummary }: ProjectPublisherHeaderActionsProps) {
+  const publicationHref = getPublisherProjectHref(projectId);
+  const accessHref = getPublisherProjectHref(projectId, "access");
+  const hasPublishedLink = publicationSummary?.status === "published";
+  const canOpenPublisherDrawer = Boolean(
+    publicationSummary?.canManagePublication ||
+    (publicationSummary?.canReadPublisherRoster && publicationSummary.status !== "unpublished"),
+  );
+
+  if (!canOpenPublisherDrawer) return null;
+
+  return (
+    <span className="contents" data-publisher-project-actions="true">
+      <Link
+        href={publicationHref}
+        prefetch={false}
+        className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
+        aria-label="Open shared link in Publisher"
+        title="Open shared link in Publisher"
+        data-workshop-layout="project-publication-header"
+        data-publisher-project-link="publication"
+      >
+        <LinkSimple size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+        {hasPublishedLink ? (
+          <span
+            aria-hidden="true"
+            data-shared-link-active-dot="true"
+            className={PROJECT_HEADER_ACTION_DOT_CLASS}
+          />
+        ) : null}
+      </Link>
+      <Link
+        href={accessHref}
+        prefetch={false}
+        className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
+        aria-label="Open project access in Publisher"
+        title="Open project access in Publisher"
+        data-workshop-layout="project-teamspace-header"
+        data-publisher-project-link="access"
+      >
+        <UsersThree size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+      </Link>
+    </span>
+  );
+}
 
 /**
  * The publication + teamspace header chrome, fetched in its own async server
@@ -25,22 +91,23 @@ type ProjectChromeAsyncProps = {
  * summary fns skip a redundant projects re-query (F7 / P1-3).
  */
 export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChromeAsyncProps) {
-  const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
-    ? await traced("ProjectChromeAsync.summaries", async () =>
-        Promise.all([
-          // The summaries reuse the request-cached getCurrentWorkspaceProject /
-          // project_members internally (no redundant projects re-query, F7).
-          getProjectCollaborationSummary(projectId),
-          getProjectPublicationSummary(projectId),
-          listProjectEstimateSheets(projectId),
-        ]),
-      )
-    : [null, null, []];
+  const projectPageCursorsEnabled = isProjectPageCursorsEnabled();
+  const resolvedLiveProject = liveProject === undefined
+    ? await traced("ProjectChromeAsync.project", async () => {
+        const { project } = await getCurrentWorkspaceProject(projectId);
+        return project;
+      })
+    : liveProject;
 
+  const publicationSummary = resolvedLiveProject
+    ? await traced("ProjectChromeAsync.publication-summary", () => getProjectPublicationSummary(projectId))
+    : null;
+  const collaborationSummary = resolvedLiveProject && projectPageCursorsEnabled
+    ? await traced("ProjectChromeAsync.collaboration-summary", () => getProjectCollaborationSummary(projectId))
+    : null;
   const currentCollaborator = collaborationSummary?.collaborators.find(
     (collaborator) => collaborator.id === collaborationSummary.currentUserId,
   );
-  const currentUserEmail = currentCollaborator?.email ?? null;
 
   // Render inside a SINGLE wrapper element that mirrors `ProjectHeaderChromeSkeleton`
   // exactly. The fallback and the resolved chrome must occupy the *same* number of
@@ -52,12 +119,7 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
   // cursor overlay) from the toolbar siblings.
   return (
     <div className="flex items-center gap-1">
-      <ProjectPublicationHeader
-        summary={publicationSummary}
-        currentUserEmail={currentUserEmail}
-        projectEstimateSheets={projectEstimateSheets}
-      />
-      <ProjectTeamspaceHeader summary={collaborationSummary} />
+      <ProjectPublisherHeaderActions projectId={projectId} publicationSummary={publicationSummary} />
       {/* Req 1 / D2: the estimate page's "Activity" + "Preview Excel Export"
           triggers, relocated here beside Share. A client component that renders
           nothing until an estimate page mounts and registers into the shared
@@ -70,11 +132,13 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
           unless the OFF-by-default flag is on. Rendered here (not the layout) so
           it reuses the collaboration identity this streamed chrome already
           resolves, keeping the shell paint unblocked (P1-2). */}
-      <ProjectCursorLayer
-        projectId={projectId}
-        userId={collaborationSummary?.currentUserId ?? null}
-        displayName={currentCollaborator?.displayName ?? null}
-      />
+      {projectPageCursorsEnabled ? (
+        <ProjectCursorLayer
+          projectId={projectId}
+          userId={collaborationSummary?.currentUserId ?? null}
+          displayName={currentCollaborator?.displayName ?? null}
+        />
+      ) : null}
     </div>
   );
 }
@@ -91,11 +155,11 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
 export function ProjectHeaderChromeSkeleton() {
   return (
     <div className="flex items-center gap-1" aria-hidden="true" data-testid="project-header-chrome-skeleton">
-      {/* Four size-8 placeholders approximate the resolved cluster — Share,
-          Teamspace, and (on the estimate route) the relocated Activity + Preview
-          Excel Export buttons (Req 1) — so the streamed swap minimizes layout
-          shift (CLS). Off-route the two action buttons resolve to nothing, a
-          minor over-estimate that errs toward stability. */}
+      {/* Four size-8 placeholders approximate the resolved cluster — Publisher
+          shared-link/access actions plus, on estimate routes, the relocated
+          Activity and Preview Excel Export buttons (Req 1). Off-route the two
+          estimate actions resolve to nothing, an over-estimate that errs toward
+          stability. */}
       <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />
       <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />
       <Skeleton className={PROJECT_HEADER_ACTION_SKELETON_CLASS} />

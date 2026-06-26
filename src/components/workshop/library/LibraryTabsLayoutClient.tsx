@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { Blueprint, MagnifyingGlass, Package, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
-import { useCallback, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
@@ -34,6 +34,8 @@ const LIBRARY_TABS = [
 
 type RouterPrefetchOptions = NonNullable<Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]>;
 const ROUTER_PREFETCH_KIND_AUTO = "auto" as RouterPrefetchOptions["kind"];
+type LibraryRouteRouter = ReturnType<typeof useRouter>;
+type LibraryNavigationRouter = ReturnType<typeof useNavigationRouter>;
 
 /**
  * Page-level tab strip for the unified Library surface. Lives in the
@@ -45,13 +47,36 @@ export function LibraryTabsLayoutClient() {
   const navigationRouter = useNavigationRouter();
   const pathname = usePathname();
   const segments = useSelectedLayoutSegments();
+  const isTemplateEditorRoute = segments[0] === "templates" && segments.length > 1;
+
+  if (isTemplateEditorRoute) return null;
+
+  return (
+    <LibraryTabsLayoutContent
+      routeRouter={routeRouter}
+      navigationRouter={navigationRouter}
+      pathname={pathname}
+    />
+  );
+}
+
+function LibraryTabsLayoutContent({
+  routeRouter,
+  navigationRouter,
+  pathname,
+}: {
+  routeRouter: LibraryRouteRouter;
+  navigationRouter: LibraryNavigationRouter;
+  pathname: string;
+}) {
   const searchPanelId = useId();
+  const searchRootRef = useRef<HTMLDivElement | null>(null);
   const prefetchedHrefsRef = useRef<Set<string> | null>(null);
   const tabRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const [searchOpen, setSearchOpen] = useState(false);
+  const searchHasQueryRef = useRef(false);
   if (prefetchedHrefsRef.current === null) prefetchedHrefsRef.current = new Set();
 
-  const isTemplateEditorRoute = segments[0] === "templates" && segments.length > 1;
   const activeTab = getLibraryActiveTab(pathname);
   const prefetchLibraryRoute = useCallback(
     (href: string) => {
@@ -92,14 +117,45 @@ export function LibraryTabsLayoutClient() {
   }, [searchPanelId]);
 
   const closeSearchPanel = useCallback(() => {
+    searchHasQueryRef.current = false;
     setSearchOpen(false);
     focusSearchToggle();
   }, [focusSearchToggle]);
 
-  if (isTemplateEditorRoute) return null;
+  const handleSearchQueryPresenceChange = useCallback((hasQuery: boolean) => {
+    searchHasQueryRef.current = hasQuery;
+  }, []);
+
+  useEffect(() => {
+    function handleSearchShortcut(event: globalThis.KeyboardEvent) {
+      if (event.defaultPrevented) return;
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+      if (document.querySelector("[role='dialog'], [role='alertdialog']")) return;
+      event.preventDefault();
+      setSearchOpen(true);
+    }
+
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    function handleDocumentPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && searchRootRef.current?.contains(target)) return;
+      if (searchHasQueryRef.current) return;
+      setSearchOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown, true);
+    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown, true);
+  }, [searchOpen]);
 
   const startActions: HeaderIconToolbarAddAction[] = [
     {
+      id: "library-header-search",
       label: searchOpen ? "Hide library search" : "Show library search",
       icon: <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />,
       onClick: () => {
@@ -126,7 +182,7 @@ export function LibraryTabsLayoutClient() {
 
   return (
     <div className="shrink-0 bg-transparent">
-      <div className="relative">
+      <div ref={searchRootRef} className="relative">
         <HeaderIconToolbar
           ariaLabel="Library tools"
           labelPrefix="library"
@@ -138,10 +194,16 @@ export function LibraryTabsLayoutClient() {
         {searchOpen ? (
           <search
             id={searchPanelId}
-            className="absolute left-2 top-[38px] z-30 w-[420px] max-w-[calc(100vw-7rem)]"
+            aria-label="Library search"
+            className="absolute left-2 right-2 top-[38px] z-30 w-auto sm:right-auto sm:w-[420px]"
             data-library-header-search-panel="true"
           >
-            <LibraryOverviewSearch className="w-full" autoFocus onDismiss={closeSearchPanel} />
+            <LibraryOverviewSearch
+              className="w-full"
+              autoFocus
+              onDismiss={closeSearchPanel}
+              onQueryPresenceChange={handleSearchQueryPresenceChange}
+            />
           </search>
         ) : null}
       </div>

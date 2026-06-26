@@ -58,7 +58,7 @@ export function DatePicker({ className, invalid, disabled, value, onChange, onCl
             CONTROL_INPUT_SURFACE_CLASS,
             "pl-6",
             hasValue ? "pr-6" : "pr-2",
-            invalid ? "border-danger text-danger focus:bg-dangerSoft/30" : "",
+            invalid ? "border-danger text-danger focus:border-danger focus-visible:ring-danger/40" : "",
             disabled ? "cursor-not-allowed opacity-50" : "",
             "[&::-webkit-clear-button]:hidden [&::-webkit-inner-spin-button]:hidden",
             "[&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"

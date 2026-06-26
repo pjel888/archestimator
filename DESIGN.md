@@ -529,6 +529,32 @@ The app builds depth by **floating surfaces on a calm grey canvas** (`#eef0f3` i
 - **Paper** — solid white panels (the workspace card, content tiles, modals, inspectors): thin `--hairline` border + one soft floating shadow + a canvas gutter.
 - **Liquid glass** — frosted translucent *chrome* (navigation rails, overlays that sit over content): see [Surfaces & liquid glass](#surfaces--liquid-glass).
 
+### Workshop area canvas map
+
+The workshop shell uses one route-level backmost canvas wash. The wash belongs to
+`WorkshopGlassBackdrop` / `WorkshopPageShell` through `--workshop-page-canvas-wash`
+while `--workshop-shell-chrome-bg` stays a neutral frosted surface tint. Inner
+components, tabs, cards, toolbars, and footers stay translucent above it instead
+of carrying their own page gradients or route-specific background washes.
+
+- `/workshop` — default dashboard/homebase wash: southeast peach, via
+  `--grad-canvas-wash`.
+- `/workshop/projects` — northwest desaturated navy blue, via
+  `.projects-canvas-wash`.
+- `/workshop/library` — northeast desaturated yellow/white, via
+  `.library-canvas-wash`.
+- `/workshop/publisher` — southwest desaturated olive green, via
+  `.publisher-canvas-wash`.
+
+These washes are orientation cues only: low-chroma, page-scale, and subordinate
+to the dark-ink/frosted-white product shell. Do not add page-specific gradients
+to inner content wrappers, sticky headers, tabs, or footers.
+
+Collection headers, icon toolbars, tabs, and footers inside the workshop shell
+must align as transparent rows over the parent-most glass surface. Do not add
+independent row background fills; use spacing and a single soft divider only
+where the content plane needs an edge.
+
 Depth belongs to the **surface edge** (one soft shadow + a hairline), never to elements *inside* it. Inside a surface stay flat: thin borders, whitespace, selection/focus backgrounds, warm bands — no nested shadows, no glossy or neon depth, no stacked cards. One surface, one shadow.
 
 ## Shapes
@@ -547,7 +573,7 @@ Archestimator has **two surface materials** floating on the grey canvas. Reach f
 
 - **Paper (solid white)** — anything that *holds content*: the workspace card, project/estimate tiles, tables, modals, proposal surfaces. White fill, `--hairline` border, soft floating shadow, `12px` radius for the panel itself (`3px` for dense things inside it).
 - **Liquid glass (frosted)** — *chrome* that frames or floats over content: the navigation rail today; later, command palette, floating inspectors, and over-content overlays. Frosted translucency that reads brighter than the canvas, so it floats.
-- **Workshop project index cards (2026-06-19)** are the first content-card rollout into liquid glass. Keep the existing compact card structure and `3px` radius, but use a frosted card shell (`.workshop-project-card-glass`) with one soft shadow, one deferred backdrop blur on the shell only, and child controls that fake glass with translucent fills/inset highlights rather than their own blur.
+- **Workshop project index cards (2026-06-19)** are the first content-card rollout into liquid glass. Keep the existing compact card structure and `3px` radius, but use a frosted card shell (`.workshop-project-card-glass`) with one soft shadow, one deferred backdrop blur on the shell only. The inset panel and content pane may use translucent cool-white fills and inset highlights so the route canvas lightly shows through; child controls still fake glass with translucent fills/inset highlights rather than their own blur. Selected project cards use a deeper shell shadow, not a black border/ring.
 
 Glass is a **skin, never a behaviour change**. The reference implementation is the workshop navigation rail (`MainSidebar`), authorized 2026-06-17. Rules for any glass surface:
 

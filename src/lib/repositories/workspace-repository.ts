@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { createHash } from "node:crypto";
 import { cookies, headers } from "next/headers";
 
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
@@ -18,6 +19,7 @@ import { listProjectEstimateSheetsForProject, type ProjectEstimateSheetSummary }
 import type {
   CollaborationInvitationSummary,
   CollaborationRole,
+  EstimateSheetMemberSummary,
   EstimateSheetAccessMode,
   ProjectCollaborationSummary,
   ProjectCollaboratorSummary,
@@ -46,6 +48,10 @@ type ProjectEstimatesListResult = {
   project: Tables<"projects"> | null;
   estimates: Tables<"estimates">[];
 } & ProjectEstimateSummaryMaps;
+
+type ProjectWithWorkspace = Tables<"projects"> & {
+  workspaces: Tables<"workspaces"> | null;
+};
 
 export type WorkshopProjectSummary = Pick<
   Tables<"projects">,
@@ -160,6 +166,8 @@ const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
 const WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT = 50;
 const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
+const ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS = 30_000;
+const ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_MAX_ENTRIES = 100;
 const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
   "assembly",
   "lot",
@@ -202,6 +210,15 @@ type WorkshopHomebaseSummaryRpcResult = {
 type WorkshopProjectsSummaryRpcResult = {
   data: Json | null;
   error: unknown;
+};
+type EstimateNodeRouteContextRpcResult = {
+  data: Json | null;
+  error: unknown;
+};
+type EstimateRouteContextProcessCacheEntry = {
+  projectId: string;
+  expiresAt: number;
+  value: Promise<EstimateTabRouteContext | null>;
 };
 type WorkshopHomebaseFavoriteProjectRef = Pick<Tables<"project_favorites">, "project_id" | "created_at">;
 type WorkshopHomebaseFavoriteEstimateRef = Pick<Tables<"estimate_favorites">, "estimate_id" | "project_id" | "created_at">;
@@ -1257,6 +1274,21 @@ function assertRpcNumber(value: unknown, path: string): number {
   return value;
 }
 
+function assertRpcOptionalNumber(value: unknown, path: string): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number") {
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be a number or null`);
+  }
+  return value;
+}
+
+function assertRpcBoolean(value: unknown, path: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`workspace summary RPC invalid shape: ${path} must be a boolean`);
+  }
+  return value;
+}
+
 function assertRpcJson(value: unknown, path: string): Json {
   if (value === undefined) {
     throw new Error(`workspace summary RPC invalid shape: ${path} must be JSON`);
@@ -1304,6 +1336,17 @@ function assertProjectListRecord(value: Record<string, unknown>, path: string): 
     project_code: assertRpcOptionalString(value.project_code, `${path}.project_code`),
     currency_code: assertRpcString(value.currency_code, `${path}.currency_code`),
     metadata: assertRpcJson(value.metadata, `${path}.metadata`),
+    created_at: assertRpcString(value.created_at, `${path}.created_at`),
+    updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertWorkspaceRecord(value: Record<string, unknown>, path: string): Tables<"workspaces"> {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
+    name: assertRpcString(value.name, `${path}.name`),
+    slug: assertRpcOptionalString(value.slug, `${path}.slug`),
     created_at: assertRpcString(value.created_at, `${path}.created_at`),
     updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
   };
@@ -1409,6 +1452,22 @@ function assertEstimateRecord(value: Record<string, unknown>, path: string): Wor
     project_id: assertRpcString(value.project_id, `${path}.project_id`),
     name: assertRpcString(value.name, `${path}.name`),
     sheet_code: assertRpcString(value.sheet_code, `${path}.sheet_code`),
+    updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertRouteEstimateRecord(value: Record<string, unknown>, path: string): EstimateRecordWithLegacy {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    name: assertRpcString(value.name, `${path}.name`),
+    sheet_code: assertRpcOptionalString(value.sheet_code, `${path}.sheet_code`),
+    notes: assertRpcOptionalString(value.notes, `${path}.notes`),
+    project_budget: assertRpcOptionalNumber(value.project_budget, `${path}.project_budget`),
+    currency_code: assertRpcString(value.currency_code, `${path}.currency_code`),
+    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
+    created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
+    created_at: assertRpcString(value.created_at, `${path}.created_at`),
     updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
   };
 }
@@ -2073,31 +2132,33 @@ export const listMainSidebarFavoriteProjects = cache(async function listMainSide
 });
 
 export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspaceProject(projectId: string) {
-  const { workspace: defaultWorkspace } = await ensureDefaultWorkspace();
+  if (!isUuid(projectId)) {
+    const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
+    return { workspace: defaultWorkspace, project: null };
+  }
 
-  if (!isUuid(projectId)) return { workspace: defaultWorkspace, project: null };
+  const supabase = await traced("workspace-project.supabase-client", () => createSupabaseServerClient());
 
-  const supabase = await createSupabaseServerClient();
-
-  const { data: project, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("id", projectId)
-    .maybeSingle();
+  const { data: project, error } = await traced("workspace-project.project-lookup", async () =>
+    supabase
+      .from("projects")
+      .select("*, workspaces(*)")
+      .eq("id", projectId)
+      .maybeSingle(),
+  );
 
   if (error) throw error;
-  if (!project) return { workspace: defaultWorkspace, project: null };
+  const resolvedProject = project as ProjectWithWorkspace | null;
+  if (!resolvedProject) {
+    const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
+    return { workspace: defaultWorkspace, project: null };
+  }
 
-  if (project.workspace_id === defaultWorkspace.id) return { workspace: defaultWorkspace, project };
+  const { workspaces: projectWorkspace, ...projectRow } = resolvedProject;
+  if (projectWorkspace) return { workspace: projectWorkspace, project: projectRow };
 
-  const { data: projectWorkspace, error: workspaceError } = await supabase
-    .from("workspaces")
-    .select("*")
-    .eq("id", project.workspace_id)
-    .maybeSingle();
-
-  if (workspaceError) throw workspaceError;
-  return { workspace: projectWorkspace ?? defaultWorkspace, project };
+  const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
+  return { workspace: defaultWorkspace, project: projectRow };
 });
 
 // Request-scoped dedupe of project_members (Teamspace plan T2.2 / F-P8 / F10).
@@ -2208,11 +2269,26 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
 
   const sheetMemberCountByEstimateId = new Map<string, number>();
   const currentUserSheetRoleByEstimateId = new Map<string, CollaborationRole>();
+  const sheetMembersByEstimateId = new Map<string, EstimateSheetMemberSummary[]>();
   for (const member of sheetMembers) {
     sheetMemberCountByEstimateId.set(member.estimate_id, (sheetMemberCountByEstimateId.get(member.estimate_id) ?? 0) + 1);
     if (member.user_id === profile.id) {
       currentUserSheetRoleByEstimateId.set(member.estimate_id, member.role);
     }
+    const collaboratorProfile = profiles.get(member.user_id);
+    const summary: EstimateSheetMemberSummary = {
+      id: member.user_id,
+      displayName: readProfileDisplayName(collaboratorProfile, member.user_id),
+      email: collaboratorProfile?.email ?? null,
+      avatarUrl: collaboratorProfile?.avatar_url ?? null,
+      role: member.role,
+      source: "sheet",
+      online: member.user_id === profile.id,
+      estimateId: member.estimate_id,
+    };
+    const existing = sheetMembersByEstimateId.get(member.estimate_id) ?? [];
+    existing.push(summary);
+    sheetMembersByEstimateId.set(member.estimate_id, existing);
   }
 
   const sheetInheritanceByEstimateId = new Map(sheetSettings.map((settings) => [settings.estimate_id, settings.inherit_project_access]));
@@ -2234,6 +2310,7 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       accessMode,
       overrideCount,
       canManageAccess: canManageAccess || canManageCollaborationRole(currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer"),
+      members: sheetMembersByEstimateId.get(estimate.id) ?? [],
     };
   });
   const pendingInvitations: CollaborationInvitationSummary[] = pendingInvitationRows
@@ -2299,6 +2376,7 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
     workspaceRole ? mapWorkspaceRoleToCollaborationRole(workspaceRole) : undefined,
     projectRole ?? "viewer",
   );
+  const canReadPublisherRoster = currentUserRole !== "viewer";
   const canManagePublication = profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(currentUserRole);
   const publicationStatus = readPublicationStatus(publication);
   const clientLinkPath = publicationStatus === "published" ? readPublicationClientLinkPath(publication) : null;
@@ -2323,6 +2401,7 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
   return {
     projectId: project.id,
     workspaceId: project.workspace_id,
+    canReadPublisherRoster,
     canManagePublication,
     status: publicationStatus,
     publicationId: publication?.id ?? null,
@@ -2349,8 +2428,9 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
 const ESTIMATE_LIST_COLUMNS = "id, project_id, name, sheet_code, currency_code, notes, project_budget, created_at, updated_at";
 
 export async function listProjectEstimates(projectId: string): Promise<ProjectEstimatesListResult> {
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) {
+  const projectContextPromise = getCurrentWorkspaceProject(projectId);
+  if (!isUuid(projectId)) {
+    const { workspace, project } = await projectContextPromise;
     return {
       workspace,
       project,
@@ -2360,13 +2440,26 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data: estimates, error } = await traced("listProjectEstimates.estimates", async () =>
+  const estimatesPromise = traced("listProjectEstimates.estimates", async () =>
     supabase
       .from("estimates")
       .select(ESTIMATE_LIST_COLUMNS)
-      .eq("project_id", project.id)
+      .eq("project_id", projectId)
       .order("updated_at", { ascending: false }),
   );
+  const [
+    { workspace, project },
+    { data: estimates, error },
+  ] = await Promise.all([projectContextPromise, estimatesPromise]);
+
+  if (!project) {
+    return {
+      workspace,
+      project,
+      estimates: [],
+      ...createEmptyProjectEstimateSummaryMaps(),
+    };
+  }
 
   if (error) throw error;
 
@@ -2415,7 +2508,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
 
 /**
  * Lightweight list of estimates for a project (id, name, sheetCode, updatedAt).
- * Used by ProjectPublicationHeader (Estimates tab picker) for selection without loading heavy node/row aggregates.
+ * Used by Publisher drawer sheet pickers without loading heavy node/row aggregates.
  * Additive for Shared Link Overhaul V2 (P1).
  */
 export async function listProjectEstimateSheets(projectId: string, options: { limit?: number } = {}): Promise<ProjectEstimateSheetSummary[]> {
@@ -2464,6 +2557,8 @@ type EstimateTabsReadClient = {
 const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id, sort_order";
 const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
   "id, node_id, material, description, supplier, supplier_id, unit, unit_cost, quantity, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
+const ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS =
+  `${ESTIMATE_TREE_NODE_COLUMNS}, estimate_row_items!estimate_row_items_node_id_fkey(${ESTIMATE_TREE_ROW_ITEM_COLUMNS})` as const;
 
 export type EstimateTreeNodeQueryRow = Pick<EstimateNodeRow, "id" | "kind" | "name" | "parent_id" | "sort_order">;
 export type EstimateTreeRowItemQueryRow = Pick<
@@ -2489,6 +2584,9 @@ export type EstimateTreeRowItemQueryRow = Pick<
   | "metadata"
   | "created_at"
 >;
+type EstimateTreeNodeWithRowItemsQueryRow = EstimateTreeNodeQueryRow & {
+  estimate_row_items?: EstimateTreeRowItemQueryRow[] | null;
+};
 
 type LiveEstimateTreeResult = {
   workspace: Tables<"workspaces">;
@@ -2524,6 +2622,7 @@ type LiveEstimateTreeLoadLimitState = {
 type LiveEstimateTabTreeResult = LiveEstimateTreeResult & {
   tab: EstimateTabSummary | null;
 };
+type EstimateTabTreePayload = Pick<LiveEstimateTabTreeResult, "estimate" | "selectedNodeId" | "tree" | "loadLimitState">;
 
 type LiveEstimateNodeSubtreeResult = LiveEstimateTreeResult & {
   tab: EstimateTabSummary | null;
@@ -2535,12 +2634,35 @@ type EstimateTabRouteContext = LiveEstimateTabTreeResult & {
   // U21: the full tab list, resolved in parallel with the tree on the tab-present
   // paths, so the node-route page avoids a second serial getEstimateTabs round-trip.
   tabs?: EstimateTabSummary[];
+  // Route-page optimization: the selected-node branch may omit this so first
+  // paint is not gated on a UI affordance RPC. The page tail resolves it with
+  // the same authoritative helper before enabling edit controls.
+  canEditEstimate?: boolean;
+};
+type EstimateNodeRouteContextRpcPayload = {
+  workspace: Tables<"workspaces">;
+  project: Tables<"projects">;
+  estimate: EstimateRecordWithLegacy;
+  selectedNodeId: string;
+  selectedTabId: string;
+  tabs: EstimateTabSummary[];
+  nodes: EstimateTreeNodeQueryRow[];
+  rows: EstimateTreeRowItemQueryRow[];
+  loadLimitState?: LiveEstimateTreeLoadLimitState;
+};
+type EstimateRouteProjectContext = {
+  workspace: Tables<"workspaces">;
+  project: Tables<"projects">;
+};
+type EstimateRecordWithProject = EstimateRecordWithLegacy & {
+  projects?: ProjectWithWorkspace | null;
+  estimate_tabs?: EstimateTabQueryRow[] | null;
 };
 type EstimateNodeRouteRow = {
   id: string;
   estimate_id: string;
   estimate_tab_id?: string | null;
-  estimates: EstimateRecordWithLegacy;
+  estimates: EstimateRecordWithProject;
 };
 type ResolvedProjectEstimateInput = {
   workspace: Tables<"workspaces">;
@@ -2559,6 +2681,25 @@ function formatPeso(value: number) {
 function readJsonRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
+}
+
+function splitProjectWorkspaceJoin(projectWithWorkspace: ProjectWithWorkspace | null | undefined): EstimateRouteProjectContext | null {
+  if (!projectWithWorkspace?.workspaces) return null;
+  const { workspaces: workspace, ...project } = projectWithWorkspace;
+  return { workspace, project };
+}
+
+function stripEstimateProjectJoin(estimate: EstimateRecordWithProject): EstimateRecordWithLegacy {
+  const { projects: _project, estimate_tabs: _tabs, ...estimateRow } = estimate;
+  return estimateRow;
+}
+
+function readEmbeddedEstimateTabs(estimate: EstimateRecordWithProject): EstimateTabSummary[] | null {
+  if (!Array.isArray(estimate.estimate_tabs)) return null;
+  return [...estimate.estimate_tabs]
+    .filter((tab) => tab.archived_at === null)
+    .sort((left, right) => left.sort_order - right.sort_order)
+    .map(toEstimateTabSummary);
 }
 
 function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
@@ -2645,6 +2786,109 @@ function toEstimateTabSummary(row: EstimateTabQueryRow): EstimateTabSummary {
     sortOrder: row.sort_order,
     isDefault: row.is_default,
   };
+}
+
+function readRouteRpcObject(value: unknown, path: string, source: string): Record<string, unknown> {
+  if (!isRecord(value)) throw new Error(`${source} invalid shape: ${path} is not an object`);
+  return value;
+}
+
+function readRouteRpcArray<T>(
+  value: unknown,
+  path: string,
+  source: string,
+  guard: (item: Record<string, unknown>, itemPath: string) => T,
+): T[] {
+  if (!Array.isArray(value)) throw new Error(`${source} invalid shape: ${path} is not an array`);
+  return value.map((item, index) => guard(readRouteRpcObject(item, `${path}[${index}]`, source), `${path}[${index}]`));
+}
+
+function assertRouteEstimateTabRow(value: Record<string, unknown>, path: string): EstimateTabQueryRow {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    estimate_id: assertRpcString(value.estimate_id, `${path}.estimate_id`),
+    name: assertRpcString(value.name, `${path}.name`),
+    sort_order: assertRpcNumber(value.sort_order, `${path}.sort_order`),
+    is_default: assertRpcBoolean(value.is_default, `${path}.is_default`),
+    archived_at: assertRpcOptionalString(value.archived_at, `${path}.archived_at`),
+    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
+    created_at: assertRpcString(value.created_at, `${path}.created_at`),
+    updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
+  };
+}
+
+function assertRouteEstimateTreeNodeRow(value: Record<string, unknown>, path: string): EstimateTreeNodeQueryRow {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    kind: assertEstimateNodeKind(value.kind, `${path}.kind`),
+    name: assertRpcString(value.name, `${path}.name`),
+    parent_id: assertRpcOptionalString(value.parent_id, `${path}.parent_id`),
+    sort_order: assertRpcNumber(value.sort_order, `${path}.sort_order`),
+  };
+}
+
+function assertRouteEstimateRowItemRow(value: Record<string, unknown>, path: string): EstimateTreeRowItemQueryRow {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    node_id: assertRpcString(value.node_id, `${path}.node_id`),
+    material: assertRpcString(value.material, `${path}.material`),
+    description: assertRpcString(value.description, `${path}.description`),
+    supplier: assertRpcString(value.supplier, `${path}.supplier`),
+    supplier_id: assertRpcOptionalString(value.supplier_id, `${path}.supplier_id`),
+    unit: assertRpcString(value.unit, `${path}.unit`),
+    unit_cost: assertRpcNumber(value.unit_cost, `${path}.unit_cost`),
+    quantity: assertRpcNumber(value.quantity, `${path}.quantity`),
+    contingency_percentage: assertRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
+    misc_cost: assertRpcNumber(value.misc_cost, `${path}.misc_cost`),
+    row_revision: assertRpcNumber(value.row_revision, `${path}.row_revision`),
+    category_node_id: assertRpcOptionalString(value.category_node_id, `${path}.category_node_id`),
+    discipline: assertRpcString(value.discipline, `${path}.discipline`),
+    designation: assertRpcString(value.designation, `${path}.designation`),
+    source_library_item_id: assertRpcOptionalString(value.source_library_item_id, `${path}.source_library_item_id`),
+    link_state: assertRpcString(value.link_state, `${path}.link_state`) as EstimateTreeRowItemQueryRow["link_state"],
+    source_snapshot: (value.source_snapshot ?? null) as Json | null,
+    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
+    created_at: assertRpcString(value.created_at, `${path}.created_at`),
+  };
+}
+
+function readRouteLoadLimitState(value: unknown): LiveEstimateTreeLoadLimitState | undefined {
+  if (value === null || value === undefined) return undefined;
+  const payload = readRouteRpcObject(value, "loadLimitState", "estimate_node_route_context");
+  return {
+    maxNodeCount: assertRpcOptionalNumber(payload.maxNodeCount, "loadLimitState.maxNodeCount"),
+    maxRowItemCount: assertRpcOptionalNumber(payload.maxRowItemCount, "loadLimitState.maxRowItemCount"),
+    fetchedNodeCount: assertRpcNumber(payload.fetchedNodeCount, "loadLimitState.fetchedNodeCount"),
+    fetchedRowItemCount: assertRpcNumber(payload.fetchedRowItemCount, "loadLimitState.fetchedRowItemCount"),
+    didExceedNodeLimit: assertRpcBoolean(payload.didExceedNodeLimit, "loadLimitState.didExceedNodeLimit"),
+    didExceedRowItemLimit: assertRpcBoolean(payload.didExceedRowItemLimit, "loadLimitState.didExceedRowItemLimit"),
+  };
+}
+
+export function parseEstimateNodeRouteContextRpcPayload(value: unknown): EstimateNodeRouteContextRpcPayload | null {
+  const source = "estimate_node_route_context";
+  if (value === null || value === undefined) return null;
+  const payload = readRouteRpcObject(value, source, source);
+  const selectedTabId = assertRpcOptionalString(payload.selectedTabId, "selectedTabId");
+  if (!selectedTabId) return null;
+  return {
+    workspace: assertWorkspaceRecord(readRouteRpcObject(payload.workspace, "workspace", source), "workspace"),
+    project: assertProjectListRecord(readRouteRpcObject(payload.project, "project", source), "project"),
+    estimate: assertRouteEstimateRecord(readRouteRpcObject(payload.estimate, "estimate", source), "estimate"),
+    selectedNodeId: assertRpcString(payload.selectedNodeId, "selectedNodeId"),
+    selectedTabId,
+    tabs: readRouteRpcArray(payload.tabs, "tabs", source, assertRouteEstimateTabRow).map(toEstimateTabSummary),
+    nodes: readRouteRpcArray(payload.nodes, "nodes", source, assertRouteEstimateTreeNodeRow),
+    rows: readRouteRpcArray(payload.rows, "rows", source, assertRouteEstimateRowItemRow),
+    loadLimitState: readRouteLoadLimitState(payload.loadLimitState),
+  };
+}
+
+function isEstimateNodeRouteContextContractError(error: unknown): error is Error {
+  return error instanceof Error && (
+    error.message.startsWith("estimate_node_route_context invalid") ||
+    error.message.includes("RPC invalid shape")
+  );
 }
 
 /**
@@ -3091,35 +3335,54 @@ async function getEstimateTabTreeForResolvedEstimateTab(
   tab: EstimateTabSummary,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<LiveEstimateTabTreeResult> {
+  const result = await getEstimateTabTreeForResolvedTabId(supabase, resolved, tab.id, options);
+  return { ...result, tab };
+}
+
+async function getEstimateTabTreeForResolvedTabId(
+  supabase: WorkspaceSupabaseClient,
+  resolved: ResolvedProjectEstimateInput,
+  tabId: string,
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<Omit<LiveEstimateTabTreeResult, "tab">> {
   const { workspace, project, estimate } = resolved;
+  const payload = await readEstimateTabTreePayloadForResolvedTabId(supabase, estimate, tabId, options);
+  return {
+    workspace,
+    project,
+    ...payload,
+  };
+}
+
+async function readEstimateTabTreePayloadForResolvedTabId(
+  supabase: WorkspaceSupabaseClient,
+  estimate: EstimateRecordWithLegacy,
+  tabId: string,
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<EstimateTabTreePayload> {
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+  // Route-page hot path: use PostgREST resource embedding to read tab nodes and
+  // their row items in one request. Row order remains scoped to the embedded
+  // relation; buildEstimateTree only needs stable per-node row ordering.
   const nodesQuery = supabase
     .from("estimate_nodes")
-    .select(ESTIMATE_TREE_NODE_COLUMNS)
-    .eq("estimate_id", estimate.id);
+    .select(ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS)
+    .eq("estimate_id", estimate.id)
+    .eq("estimate_row_items.estimate_id", estimate.id);
   const tabScopedNodesQuery = (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
-    .eq("estimate_tab_id", tab.id)
-    .order("sort_order", { ascending: true });
-  const nodesResult = maxNodeCount ? await tabScopedNodesQuery.limit(maxNodeCount + 1) : await tabScopedNodesQuery;
+    .eq("estimate_tab_id", tabId)
+    .order("sort_order", { ascending: true })
+    .order("sort_order", { referencedTable: "estimate_row_items", ascending: true });
+  const nodesResult = await traced("estimate-tab-tree.nodes-with-rows", async () =>
+    maxNodeCount ? tabScopedNodesQuery.limit(maxNodeCount + 1) : tabScopedNodesQuery,
+  );
 
   if (nodesResult.error) throw nodesResult.error;
 
-  const rawNodes = (nodesResult.data ?? []) as EstimateTreeNodeQueryRow[];
+  const rawNodes = (nodesResult.data ?? []) as EstimateTreeNodeWithRowItemsQueryRow[];
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const nodeIds = limitedNodes.rows.map((node) => node.id);
-  let rawRows: EstimateTreeRowItemQueryRow[] = [];
-  if (nodeIds.length > 0) {
-    const rowsQuery = supabase
-      .from("estimate_row_items")
-      .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
-      .eq("estimate_id", estimate.id)
-      .in("node_id", nodeIds)
-      .order("sort_order", { ascending: true });
-    const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
-    if (rowsResult.error) throw rowsResult.error;
-    rawRows = rowsResult.data ?? [];
-  }
+  const rawRows = limitedNodes.rows.flatMap((node) => node.estimate_row_items ?? []);
 
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
@@ -3132,16 +3395,210 @@ async function getEstimateTabTreeForResolvedEstimateTab(
       didExceedRowItemLimit: limitedRows.didExceedLimit,
     }
     : undefined;
-  const tree = buildEstimateTree(limitedNodes.rows, limitedRows.rows);
+  const tree = await traced("estimate-tab-tree.build", async () =>
+    buildEstimateTree(limitedNodes.rows, limitedRows.rows),
+  );
   return {
-    workspace,
-    project,
-    estimate: normalizeEstimateRecord(estimate),
-    tab,
+    estimate: normalizeEstimateRecord(stripEstimateProjectJoin(estimate)),
     selectedNodeId: tree[0]?.id ?? null,
     tree,
     loadLimitState,
   };
+}
+
+const estimateRouteContextProcessCache = new Map<string, EstimateRouteContextProcessCacheEntry>();
+
+function readEstimateRouteContextProcessCacheTtlMs() {
+  const raw = process.env.ESTIMATE_NODE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS;
+  if (raw === undefined) return ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.min(parsed, 60_000);
+}
+
+function readSupabaseAuthStorageKey() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+  try {
+    return `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
+  } catch {
+    return null;
+  }
+}
+
+async function readEstimateRouteContextProcessCacheKey(
+  projectId: string,
+  routeSegment: string,
+  maxNodeCount: number | null,
+  maxRowItemCount: number | null,
+) {
+  const cookieStore = await cookies();
+  const authStorageKey = readSupabaseAuthStorageKey();
+  const authCookieValues = new Map<string, string>();
+  if (authStorageKey) {
+    for (const cookie of cookieStore.getAll()) {
+      if (cookie.name === authStorageKey || cookie.name.startsWith(`${authStorageKey}.`)) {
+        authCookieValues.set(cookie.name, cookie.value);
+      }
+    }
+  }
+
+  const authMaterial = authCookieValues.size > 0
+    ? Array.from(authCookieValues.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([name, value]) => `${name}=${value}`)
+        .join(";")
+    : getDevAuthBypassCredentialFromRequestParts(await headers(), cookieStore);
+
+  if (!authMaterial) return null;
+
+  const sessionDigest = createHash("sha256").update(authMaterial).digest("base64url");
+  return [
+    sessionDigest,
+    projectId,
+    routeSegment,
+    maxNodeCount ?? "",
+    maxRowItemCount ?? "",
+  ].join(":");
+}
+
+function cloneEstimateRouteContext(value: EstimateTabRouteContext): EstimateTabRouteContext {
+  return structuredClone(value);
+}
+
+async function readCachedEstimateRouteContext(cacheKey: string | null) {
+  if (!cacheKey) return null;
+  const entry = estimateRouteContextProcessCache.get(cacheKey);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    estimateRouteContextProcessCache.delete(cacheKey);
+    return null;
+  }
+
+  const value = await traced("estimate-route-context.cache-hit", () => entry.value);
+  return value ? cloneEstimateRouteContext(value) : null;
+}
+
+function writeEstimateRouteContextProcessCache(
+  cacheKey: string | null,
+  projectId: string,
+  value: Promise<EstimateTabRouteContext | null>,
+) {
+  const ttlMs = readEstimateRouteContextProcessCacheTtlMs();
+  if (!cacheKey || ttlMs <= 0) return;
+  if (estimateRouteContextProcessCache.size >= ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_MAX_ENTRIES) {
+    const oldestKey = estimateRouteContextProcessCache.keys().next().value;
+    if (oldestKey) estimateRouteContextProcessCache.delete(oldestKey);
+  }
+  estimateRouteContextProcessCache.set(cacheKey, {
+    projectId,
+    expiresAt: Date.now() + ttlMs,
+    value,
+  });
+}
+
+export function clearEstimateRouteContextProcessCache(projectId?: string) {
+  if (!projectId) {
+    estimateRouteContextProcessCache.clear();
+    return;
+  }
+  for (const [cacheKey, entry] of estimateRouteContextProcessCache.entries()) {
+    if (entry.projectId === projectId) estimateRouteContextProcessCache.delete(cacheKey);
+  }
+}
+
+async function loadEstimateNodeRouteContextRpcPath(
+  supabase: WorkspaceSupabaseClient,
+  projectId: string,
+  routeSegment: string,
+  options: LiveEstimateTreeLoadOptions,
+): Promise<EstimateTabRouteContext | null> {
+  if (process.env.ESTIMATE_NODE_ROUTE_CONTEXT_RPC_DISABLED === "1") return null;
+
+  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
+  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+  const rpcResult = await traced("estimate-route-context.rpc", () =>
+    (supabase as unknown as {
+      rpc: (
+        functionName: "estimate_node_route_context",
+        args: {
+          target_project_id: string;
+          target_node_id: string;
+          max_node_count: number | null;
+          max_row_item_count: number | null;
+        },
+      ) => Promise<EstimateNodeRouteContextRpcResult>;
+    }).rpc("estimate_node_route_context", {
+      target_project_id: projectId,
+      target_node_id: routeSegment,
+      max_node_count: maxNodeCount,
+      max_row_item_count: maxRowItemCount,
+    }),
+  );
+
+  if (rpcResult.error) {
+    if (isWorkspaceHomebaseSummaryRolloutError(rpcResult.error)) {
+      const code = isRecord(rpcResult.error) && typeof rpcResult.error.code === "string" ? rpcResult.error.code : "unknown";
+      const message = isRecord(rpcResult.error) && typeof rpcResult.error.message === "string" ? rpcResult.error.message : "unknown";
+      console.warn(`[estimate_node_route_context] RPC unavailable (code=${code}, message=${message}); using app path`);
+      return null;
+    }
+    throw rpcResult.error;
+  }
+
+  try {
+    const payload = parseEstimateNodeRouteContextRpcPayload(rpcResult.data);
+    if (!payload) return null;
+
+    const tree = await traced("estimate-route-context.rpc-build", async () =>
+      buildEstimateTree(payload.nodes, payload.rows),
+    );
+    const selectedTab = payload.tabs.find((candidate) => candidate.id === payload.selectedTabId) ?? null;
+    return {
+      workspace: payload.workspace,
+      project: payload.project,
+      estimate: normalizeEstimateRecord(payload.estimate),
+      tab: selectedTab,
+      selectedNodeId: selectedTab ? payload.selectedNodeId : null,
+      tree: selectedTab ? tree : [],
+      tabs: payload.tabs,
+      loadLimitState: payload.loadLimitState,
+    };
+  } catch (error) {
+    if (!isEstimateNodeRouteContextContractError(error)) throw error;
+    console.warn(`[estimate_node_route_context] RPC returned an incompatible payload (${error.message}); using app path`);
+    return null;
+  }
+}
+
+async function readEstimateNodeRouteContextRpcPath(
+  supabase: WorkspaceSupabaseClient,
+  projectId: string,
+  routeSegment: string,
+  options: LiveEstimateTreeLoadOptions,
+): Promise<EstimateTabRouteContext | null> {
+  if (process.env.ESTIMATE_NODE_ROUTE_CONTEXT_RPC_DISABLED === "1") return null;
+
+  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
+  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+  const cacheKey = await readEstimateRouteContextProcessCacheKey(projectId, routeSegment, maxNodeCount, maxRowItemCount);
+  const cached = await readCachedEstimateRouteContext(cacheKey);
+  if (cached) return cached;
+
+  const loadPromise = loadEstimateNodeRouteContextRpcPath(supabase, projectId, routeSegment, options);
+  writeEstimateRouteContextProcessCache(cacheKey, projectId, loadPromise);
+
+  try {
+    const routeContext = await loadPromise;
+    if (!routeContext) {
+      if (cacheKey) estimateRouteContextProcessCache.delete(cacheKey);
+      return null;
+    }
+    return cloneEstimateRouteContext(routeContext);
+  } catch (error) {
+    if (cacheKey) estimateRouteContextProcessCache.delete(cacheKey);
+    throw error;
+  }
 }
 
 export type LiveEstimateTabTree = { tab: EstimateTabSummary; tree: EstimateTreeNode[] };
@@ -3288,64 +3745,124 @@ export async function resolveEstimateTabRouteContext(
   routeSegment: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<EstimateTabRouteContext> {
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
-
-  const supabase = await createSupabaseServerClient();
-  const { data: selectedNode, error: selectedNodeError } = await supabase
-    .from("estimate_nodes")
-    .select("id, estimate_id, estimate_tab_id, estimates!inner(*)")
-    .eq("id", routeSegment)
-    .eq("estimates.project_id", project.id)
-    .maybeSingle();
-
-  if (selectedNodeError) {
-    if (isEstimateTabsSchemaMissing(selectedNodeError)) {
-      const legacyResult = await getProjectEstimateTreeByNode(projectId, routeSegment);
-      return { ...legacyResult, tab: null };
-    }
-    throw selectedNodeError;
+  if (!isUuid(projectId)) {
+    const { workspace, project } = await traced("estimate-route-context.project", () =>
+      getCurrentWorkspaceProject(projectId),
+    );
+    return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
   }
 
-  const routeNode = selectedNode as unknown as EstimateNodeRouteRow | null;
-  if (routeNode?.estimate_tab_id) {
-    // U21: resolve the tab tree and the tab list in parallel so the page needn't
-    // issue a second serial getEstimateTabs round-trip after this resolver.
-    const resolved = { workspace, project, estimate: routeNode.estimates };
-    const [result, tabs] = await Promise.all([
-      getEstimateTabTreeForResolvedEstimate(supabase, resolved, routeNode.estimate_tab_id, options),
-      readEstimateTabsForEstimate(supabase, routeNode.estimate_id),
+  const supabase = await traced("estimate-route-context.supabase-client", () => createSupabaseServerClient());
+  const rpcRouteContext = await readEstimateNodeRouteContextRpcPath(supabase, projectId, routeSegment, options);
+  if (rpcRouteContext) return rpcRouteContext;
+
+  const selectedNodeResultPromise = traced("estimate-route-context.selected-node", async () =>
+    supabase
+      .from("estimate_nodes")
+      .select("id, estimate_id, estimate_tab_id, estimates!inner(*, projects!inner(*, workspaces(*)), estimate_tabs(id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at))")
+      .eq("id", routeSegment)
+      .eq("estimates.project_id", projectId)
+      .is("estimates.estimate_tabs.archived_at", null)
+      .order("sort_order", { referencedTable: "estimates.estimate_tabs", ascending: true })
+      .maybeSingle(),
+  );
+  const selectedTabContextPromise = selectedNodeResultPromise.then(async ({ data: selectedNode, error: selectedNodeError }) => {
+    if (selectedNodeError) return { kind: "selected-node-error" as const, error: selectedNodeError };
+
+    const routeNode = selectedNode as unknown as EstimateNodeRouteRow | null;
+    const selectedTabId = routeNode?.estimate_tab_id;
+    if (!selectedTabId) return { kind: "no-selected-tab" as const, routeNode };
+    const projectContext = splitProjectWorkspaceJoin(routeNode.estimates.projects);
+    const embeddedTabs = readEmbeddedEstimateTabs(routeNode.estimates);
+    const estimate = stripEstimateProjectJoin(routeNode.estimates);
+
+    // P13: the tab-present branch only needs the selected node's estimate/tab ids,
+    // so start this second wave while the project authorization lookup is still
+    // resolving. The final response below still returns only after project
+    // context confirms the request is allowed.
+    // P14: the selected-node query embeds project/workspace too, so the dominant
+    // node-route path avoids an additional project lookup round-trip.
+    const [treePayload, tabs] = await Promise.all([
+      traced("estimate-route-context.tab-tree", () =>
+        readEstimateTabTreePayloadForResolvedTabId(supabase, estimate, selectedTabId, options),
+      ),
+      embeddedTabs ?? traced("estimate-route-context.tabs-list", () => readEstimateTabsForEstimate(supabase, routeNode.estimate_id)),
     ]);
+
+    return { kind: "selected-tab" as const, routeNode, selectedTabId, treePayload, tabs, projectContext };
+  });
+  const selectedTabContext = await selectedTabContextPromise;
+
+  if (selectedTabContext.kind === "selected-node-error") {
+    if (isEstimateTabsSchemaMissing(selectedTabContext.error)) {
+      const legacyResult = await traced("estimate-route-context.legacy-node-fallback", () =>
+        getProjectEstimateTreeByNode(projectId, routeSegment),
+      );
+      return { ...legacyResult, tab: null };
+    }
+    throw selectedTabContext.error;
+  }
+
+  if (selectedTabContext.kind === "selected-tab") {
+    // U21 / Routing Page Optimization P3-T3: resolve the tab tree and tab list in
+    // parallel without a duplicate selected-tab lookup. The route node's
+    // project-scoped join proves the estimate; the tab list remains the archived
+    // / active-tab authority before we expose the tree to the page.
+    const { routeNode, selectedTabId, treePayload, tabs, projectContext } = selectedTabContext;
+    const { workspace, project } = projectContext ?? await traced("estimate-route-context.project", () =>
+      getCurrentWorkspaceProject(projectId),
+    );
+    if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+    const selectedTab = tabs.find((candidate) => candidate.id === selectedTabId) ?? null;
     return {
-      ...result,
-      selectedNodeId: routeNode.id,
+      workspace,
+      project,
+      ...treePayload,
+      tab: selectedTab,
+      selectedNodeId: selectedTab ? routeNode.id : null,
+      tree: selectedTab ? treePayload.tree : [],
       tabs,
     };
   }
 
+  const { workspace, project } = await traced("estimate-route-context.project", () =>
+    getCurrentWorkspaceProject(projectId),
+  );
+  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+
   try {
-    const { data: estimate, error: estimateError } = await supabase
-      .from("estimates")
-      .select("*")
-      .eq("id", routeSegment)
-      .eq("project_id", project.id)
-      .maybeSingle();
+    const { data: estimate, error: estimateError } = await traced("estimate-route-context.estimate-lookup", async () =>
+      supabase
+        .from("estimates")
+        .select("*")
+        .eq("id", routeSegment)
+        .eq("project_id", project.id)
+        .maybeSingle(),
+    );
 
     if (estimateError) throw estimateError;
     const resolvedEstimate = estimate as EstimateRecordWithLegacy | null;
     if (!resolvedEstimate) {
-      const fallbackResult = await getProjectEstimateTreeByEstimate(projectId, routeSegment, options);
+      const fallbackResult = await traced("estimate-route-context.estimate-fallback", () =>
+        getProjectEstimateTreeByEstimate(projectId, routeSegment, options),
+      );
       return { ...fallbackResult, tab: null };
     }
 
-    const tabs = await readEstimateTabsForEstimate(supabase, resolvedEstimate.id);
+    const tabs = await traced("estimate-route-context.estimate-tabs-list", () =>
+      readEstimateTabsForEstimate(supabase, resolvedEstimate.id),
+    );
     const defaultTab = tabs.find((candidate) => candidate.isDefault) ?? null;
     if (defaultTab) {
-      const result = await getEstimateTabTreeForResolvedEstimateTab(
-        supabase,
-        { workspace, project, estimate: resolvedEstimate },
-        defaultTab,
-        options,
+      const result = await traced(
+        "estimate-route-context.default-tab-tree",
+        () =>
+          getEstimateTabTreeForResolvedEstimateTab(
+            supabase,
+            { workspace, project, estimate: resolvedEstimate },
+            defaultTab,
+            options,
+          ),
       );
       return { ...result, tabs };
     }
@@ -3353,7 +3870,9 @@ export async function resolveEstimateTabRouteContext(
     if (!isEstimateTabsSchemaMissing(error)) throw error;
   }
 
-  const defaultResult = await getProjectEstimateTreeByEstimate(projectId, routeSegment, options);
+  const defaultResult = await traced("estimate-route-context.default-fallback", () =>
+    getProjectEstimateTreeByEstimate(projectId, routeSegment, options),
+  );
   return { ...defaultResult, tab: null };
 }
 

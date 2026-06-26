@@ -12,6 +12,10 @@ import {
   readSharedLinkEmailDeliveryReadiness,
   resendSharedLinkRecipientEmail,
 } from "@/lib/publication/actions";
+import {
+  readSharedLinkRecipientActionLimitMessage,
+  SHARED_LINK_RECIPIENT_ACTION_LIMIT,
+} from "@/lib/publication/recipient-limits";
 import { filterMapBy } from "@/lib/util/array";
 
 /* P4: RecipientEmailComposer — compact, design-system compliant email recipient manager.
@@ -405,6 +409,11 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         dispatch({ type: "sendingChanged", isSending: false });
         return;
       }
+      if (payload.length > SHARED_LINK_RECIPIENT_ACTION_LIMIT) {
+        setRecipientMessage(readSharedLinkRecipientActionLimitMessage(), "error");
+        dispatch({ type: "sendingChanged", isSending: false });
+        return;
+      }
 
       const result = await addSharedLinkRecipients({
         publicationId,
@@ -502,7 +511,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
 
   return (
     <div className="text-[10px]">
-      <h3 className="text-[10px] font-medium uppercase leading-3 tracking-normal text-secondary">Email recipients</h3>
+      <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">Email recipients</h3>
       <p className="text-[10px] leading-3 text-secondary mb-2">
         {isPublicationBusy
           ? "Publication updates are in progress. Recipient sending is paused until the link state is settled."

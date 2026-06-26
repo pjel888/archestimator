@@ -1,0 +1,294 @@
+{
+  "generatedAt": "2026-06-26T11:01:18.602Z",
+  "input": ".ai/05_logs/2026-06-26-routing-page-optimization/after-p18-server-safe-loading-skeleton-existing-fixture-server-perf.log",
+  "snapshotCount": 212,
+  "scopes": {
+    "workshop.estimate-sheet": 51,
+    "workshop.estimate-sheet-tail": 50,
+    "workshop.project-layout-title": 47,
+    "workshop.estimates-list": 32,
+    "workshop.estimates-list-tail": 32
+  },
+  "estimateSheetCurrentUserSpanCount": 0,
+  "topByMedian": [
+    {
+      "label": "estimates-list.project-estimates",
+      "count": 32,
+      "min": 454.1,
+      "median": 567,
+      "p90": 1194.1,
+      "max": 1276,
+      "avg": 691.1
+    },
+    {
+      "label": "estimate-sheet.route-context",
+      "count": 51,
+      "min": 313.8,
+      "median": 359.2,
+      "p90": 991.7,
+      "max": 1938.1,
+      "avg": 559.7
+    },
+    {
+      "label": "workspace-project.project-lookup",
+      "count": 47,
+      "min": 149,
+      "median": 330.7,
+      "p90": 831.5,
+      "max": 1267.9,
+      "avg": 375.5
+    },
+    {
+      "label": "estimates-list.favorites",
+      "count": 32,
+      "min": 158.2,
+      "median": 228.4,
+      "p90": 988.3,
+      "max": 1395.2,
+      "avg": 402.8
+    },
+    {
+      "label": "estimates-list.sidebar-favorites",
+      "count": 32,
+      "min": 153.9,
+      "median": 219,
+      "p90": 1027.8,
+      "max": 1384.3,
+      "avg": 393.1
+    },
+    {
+      "label": "estimates-list.edit-capabilities",
+      "count": 32,
+      "min": 190.1,
+      "median": 205.5,
+      "p90": 987.7,
+      "max": 1195.4,
+      "avg": 390.3
+    },
+    {
+      "label": "listProjectEstimates.summaries",
+      "count": 32,
+      "min": 150.6,
+      "median": 202.8,
+      "p90": 307.9,
+      "max": 874.3,
+      "avg": 239.1
+    },
+    {
+      "label": "supabase.select.project_favorites",
+      "count": 32,
+      "min": 153.4,
+      "median": 202.3,
+      "p90": 1000.1,
+      "max": 1383.8,
+      "avg": 346.7
+    },
+    {
+      "label": "supabase.rpc.can_edit_project",
+      "count": 32,
+      "min": 180,
+      "median": 202.1,
+      "p90": 967.5,
+      "max": 1043.2,
+      "avg": 376.7
+    },
+    {
+      "label": "supabase.rpc.project_estimate_list_summaries",
+      "count": 32,
+      "min": 149.8,
+      "median": 201.4,
+      "p90": 306.6,
+      "max": 872.6,
+      "avg": 237.6
+    },
+    {
+      "label": "supabase.select.estimate_favorites",
+      "count": 32,
+      "min": 156.7,
+      "median": 196.4,
+      "p90": 964.7,
+      "max": 1389.5,
+      "avg": 354.9
+    },
+    {
+      "label": "supabase.select.estimate_sheet_members",
+      "count": 32,
+      "min": 150.7,
+      "median": 192.8,
+      "p90": 971.5,
+      "max": 1193.7,
+      "avg": 340.1
+    },
+    {
+      "label": "supabase.select.estimate_sheet_access_settings",
+      "count": 32,
+      "min": 140.4,
+      "median": 188.7,
+      "p90": 962.5,
+      "max": 1018.8,
+      "avg": 336.5
+    },
+    {
+      "label": "estimate-route-context.selected-node",
+      "count": 51,
+      "min": 155.2,
+      "median": 175.8,
+      "p90": 378.7,
+      "max": 1666.1,
+      "avg": 277.7
+    },
+    {
+      "label": "estimate-route-context.tab-tree",
+      "count": 51,
+      "min": 154.4,
+      "median": 174.2,
+      "p90": 351.6,
+      "max": 1746.1,
+      "avg": 273.5
+    },
+    {
+      "label": "estimate-tab-tree.nodes-with-rows",
+      "count": 51,
+      "min": 153.9,
+      "median": 173.2,
+      "p90": 351.2,
+      "max": 1745.4,
+      "avg": 272.9
+    },
+    {
+      "label": "supabase.select.estimate_nodes",
+      "count": 134,
+      "min": 147.9,
+      "median": 161.7,
+      "p90": 350.3,
+      "max": 1744.5,
+      "avg": 232.7
+    },
+    {
+      "label": "estimate-route-context.edit-capability",
+      "count": 51,
+      "min": 146.5,
+      "median": 156.8,
+      "p90": 348.7,
+      "max": 972.3,
+      "avg": 224.4
+    },
+    {
+      "label": "supabase.rpc.can_edit_estimate",
+      "count": 51,
+      "min": 146,
+      "median": 156.2,
+      "p90": 348.3,
+      "max": 971.9,
+      "avg": 223.5
+    },
+    {
+      "label": "supabase.select.projects",
+      "count": 47,
+      "min": 147.2,
+      "median": 154.8,
+      "p90": 183.8,
+      "max": 1267.1,
+      "avg": 209.9
+    },
+    {
+      "label": "listProjectEstimates.firstNodes",
+      "count": 32,
+      "min": 148.5,
+      "median": 154.1,
+      "p90": 256.5,
+      "max": 874.4,
+      "avg": 204.5
+    },
+    {
+      "label": "listProjectEstimates.estimates",
+      "count": 32,
+      "min": 148.4,
+      "median": 153.8,
+      "p90": 393.4,
+      "max": 799.3,
+      "avg": 213
+    },
+    {
+      "label": "supabase.select.estimates",
+      "count": 32,
+      "min": 147.7,
+      "median": 153.1,
+      "p90": 390.9,
+      "max": 798.4,
+      "avg": 212.1
+    },
+    {
+      "label": "estimate-tab-tree.build",
+      "count": 51,
+      "min": 0.3,
+      "median": 0.4,
+      "p90": 0.7,
+      "max": 1.2,
+      "avg": 0.4
+    },
+    {
+      "label": "workspace-project.supabase-client",
+      "count": 47,
+      "min": 0.1,
+      "median": 0.4,
+      "p90": 0.5,
+      "max": 0.9,
+      "avg": 0.3
+    },
+    {
+      "label": "estimate-route-context.supabase-client",
+      "count": 51,
+      "min": 0.2,
+      "median": 0.2,
+      "p90": 0.4,
+      "max": 2.4,
+      "avg": 0.3
+    },
+    {
+      "label": "project-layout.title",
+      "count": 47,
+      "min": 0.1,
+      "median": 0.1,
+      "p90": 163.5,
+      "max": 1268.1,
+      "avg": 74.4
+    },
+    {
+      "label": "estimate-sheet.tabs",
+      "count": 50,
+      "min": 0,
+      "median": 0,
+      "p90": 0,
+      "max": 0.1,
+      "avg": 0
+    },
+    {
+      "label": "estimate-sheet.edit-capability",
+      "count": 50,
+      "min": 0,
+      "median": 0,
+      "p90": 0,
+      "max": 0.1,
+      "avg": 0
+    },
+    {
+      "label": "estimates-list.workspace",
+      "count": 32,
+      "min": 0,
+      "median": 0,
+      "p90": 74.3,
+      "max": 917.9,
+      "avg": 45.4
+    },
+    {
+      "label": "estimates-list.current-user",
+      "count": 32,
+      "min": 0,
+      "median": 0,
+      "p90": 0.1,
+      "max": 0.4,
+      "avg": 0.1
+    }
+  ]
+}

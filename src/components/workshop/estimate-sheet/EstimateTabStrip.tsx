@@ -673,6 +673,7 @@ export function EstimateTabStrip({
                   size={Math.max(editingName.length, 3)}
                   className="min-w-0 max-w-[150px] bg-transparent text-[10px] font-medium leading-none text-ink outline-none"
                   aria-label={`Rename ${displayName} tab`}
+                  placeholder="Tab name"
                   value={editingName}
                   disabled={pendingAction === "rename"}
                   onChange={(event) => dispatch({ type: "renameNameChanged", name: event.target.value })}

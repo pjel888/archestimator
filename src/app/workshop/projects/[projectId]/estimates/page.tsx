@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
+import { ProjectEstimatesListRouteFallback } from "@/components/workshop/ProjectEstimatesListRouteFallback";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { listCurrentUserEstimateFavoriteCreatedAtById } from "@/lib/repositories/estimate-favorites-repository";
@@ -11,7 +13,15 @@ type ProjectEstimatesPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
-export default async function ProjectEstimatesPage({ params }: ProjectEstimatesPageProps) {
+export default function ProjectEstimatesPage({ params }: ProjectEstimatesPageProps) {
+  return (
+    <Suspense fallback={<ProjectEstimatesListRouteFallback />}>
+      <ProjectEstimatesContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ProjectEstimatesContent({ params }: ProjectEstimatesPageProps) {
   const { projectId } = await params;
   const { project, estimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId } =
     await withPerfTraceRequest("workshop.estimates-list", () =>

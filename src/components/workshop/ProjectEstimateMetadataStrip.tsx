@@ -45,14 +45,14 @@ function getProjectEstimateMetadataSnapshot() {
   return typeof window === "undefined" ? null : window.__archestimatorProjectEstimateMetadata ?? null;
 }
 
+export function useProjectEstimateMetadata() {
+  return useSyncExternalStore(subscribeToProjectEstimateMetadata, getProjectEstimateMetadataSnapshot, () => null);
+}
+
 function subscribeToProjectEstimateMetadata(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {};
   window.addEventListener(PROJECT_ESTIMATE_METADATA_CHANGE_EVENT, onStoreChange);
   return () => window.removeEventListener(PROJECT_ESTIMATE_METADATA_CHANGE_EVENT, onStoreChange);
-}
-
-export function useProjectEstimateMetadata() {
-  return useSyncExternalStore(subscribeToProjectEstimateMetadata, getProjectEstimateMetadataSnapshot, () => null);
 }
 
 export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMetadataPublisherProps) {
@@ -205,10 +205,10 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
         aria-label="Estimate name"
         className={cn(
           // Req 14: grow with content (field-sizing-content), no width clip, and no
-          // resting/hover/focus border. The border stays `transparent` (not removed)
+          // resting/hover border. The border stays `transparent` (not removed)
           // so the error state below can recolor it to danger without a layout shift;
-          // focus shows only the soft-accent background as the edit affordance.
-          "h-7 min-w-0 max-w-full field-sizing-content rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:bg-accentSoft disabled:opacity-60",
+          // focus uses a neutral border/ring instead of changing the input fill.
+          "h-7 min-w-0 max-w-full field-sizing-content rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:border-hairline focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40 disabled:opacity-60",
           status === "error" && "border-danger bg-dangerSoft/40",
         )}
         disabled={!metadata || !canEditEstimate || isPending}

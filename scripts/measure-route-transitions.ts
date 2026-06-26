@@ -54,13 +54,41 @@ type Scenario = {
   expectedPathname: string;
   requiresAuth?: boolean;
   clickPosition?: { x: number; y: number };
+  beforeAction?: (page: Page) => Promise<void>;
+  disableWarmup?: boolean;
   action: (page: Page) => Promise<void>;
+};
+
+type RouteTimelineSelectorRole = "parent-fallback" | "sheet-skeleton" | "overlay" | "sheet-content" | "shell";
+
+type RouteTimelineSelector = {
+  key: string;
+  selector: string;
+  role: RouteTimelineSelectorRole;
+};
+
+type RouteTimelineEntry = {
+  key: string;
+  selector: string;
+  role: RouteTimelineSelectorRole;
+  firstAttachedAtMs: number | null;
+  firstVisibleAtMs: number | null;
+  hiddenAtMs: number | null;
+  detachedAtMs: number | null;
+  durationMs: number;
+  episodeCount: number;
+  appearedAfterNavigationStart: boolean;
 };
 
 type ScenarioRun = {
   run: number;
   durationMs: number;
   overlayVisible: boolean;
+  parentFallbackSeen: boolean;
+  sheetSkeletonEpisodes: number;
+  overlayDurationMs: number;
+  sheetContentVisibleAtMs: number | null;
+  skeletonTimeline: RouteTimelineEntry[];
   rscRequestCount: number;
   finalPathname: string;
 };
@@ -78,6 +106,48 @@ type ScenarioResult = {
 };
 
 const collapsedSidebarIconPosition = { x: 24, y: 16 };
+const ROUTE_TIMELINE_SELECTORS: RouteTimelineSelector[] = [
+  {
+    key: "estimateSheetRouteSkeleton",
+    selector: "[data-testid='estimate-sheet-route-skeleton']",
+    role: "sheet-skeleton",
+  },
+  {
+    key: "projectEstimatesListSkeleton",
+    selector: "[data-testid='project-estimates-list-skeleton']",
+    role: "parent-fallback",
+  },
+  {
+    key: "projectWorkspaceFallback",
+    selector: "[aria-label='Loading project workspace']",
+    role: "parent-fallback",
+  },
+  {
+    key: "projectDashboardFallback",
+    selector: "[aria-label='Loading project dashboard']",
+    role: "parent-fallback",
+  },
+  {
+    key: "workshopFallback",
+    selector: "[aria-label='Loading workspace']",
+    role: "parent-fallback",
+  },
+  {
+    key: "routeOverlay",
+    selector: "[data-route-overlay]",
+    role: "overlay",
+  },
+  {
+    key: "sheetContent",
+    selector: "[data-estimate-center-column='sheet']",
+    role: "sheet-content",
+  },
+  {
+    key: "workshopShell",
+    selector: "[data-workshop-page-shell-root]",
+    role: "shell",
+  },
+];
 
 function getHrefSelector(href: string) {
   return `a[href="${href.replaceAll('"', '\\"')}"]`;
@@ -88,7 +158,16 @@ async function clickHref(page: Page, href: string, position?: { x: number; y: nu
   const link = page.locator(`${selector}:visible`).first();
   await link.waitFor({ state: "visible", timeout: 15_000 });
   await link.scrollIntoViewIfNeeded().catch(() => undefined);
-  await link.click(position ? { position } : undefined);
+  await link.click(position ? { position, noWaitAfter: true } : { noWaitAfter: true });
+}
+
+async function hoverHref(page: Page, href: string) {
+  const selector = getHrefSelector(href);
+  const link = page.locator(`${selector}:visible`).first();
+  await link.waitFor({ state: "visible", timeout: 15_000 });
+  await link.scrollIntoViewIfNeeded().catch(() => undefined);
+  await link.hover();
+  await page.waitForTimeout(300);
 }
 
 async function clickLibraryTab(page: Page, name: "Overview" | "Components" | "Templates") {
@@ -97,7 +176,23 @@ async function clickLibraryTab(page: Page, name: "Overview" | "Components" | "Te
     .getByRole("tab", { name, exact: true });
   await tab.waitFor({ state: "visible", timeout: 15_000 });
   await tab.scrollIntoViewIfNeeded().catch(() => undefined);
-  await tab.click();
+  await tab.click({ noWaitAfter: true });
+}
+
+async function warmRevisitTargetEstimate(page: Page) {
+  await page.goto(new URL(HERO_ESTIMATE_PATH, BASE_URL).toString(), { waitUntil: "load" });
+  await waitForRouteReady(page, HERO_ESTIMATE_PATH);
+  await waitForEstimateSheetContent(page);
+  await page.goto(new URL(HERO_ESTIMATES_PATH, BASE_URL).toString(), { waitUntil: "load" });
+  await waitForRouteReady(page, HERO_ESTIMATES_PATH);
+}
+
+function targetsEstimateSheet(scenario: Scenario) {
+  return scenario.expectedPathname === HERO_ESTIMATE_PATH;
+}
+
+async function waitForEstimateSheetContent(page: Page) {
+  await page.locator("[data-estimate-center-column='sheet']").waitFor({ state: "visible", timeout: 15_000 });
 }
 
 const SCENARIOS: Scenario[] = [
@@ -106,7 +201,7 @@ const SCENARIOS: Scenario[] = [
     from: "/",
     expectedPathname: "/login",
     action: async (page) => {
-      await page.locator('a[href="/login?next=/workshop/projects"]').first().click();
+      await page.locator('a[href="/login?next=/workshop/projects"]').first().click({ noWaitAfter: true });
     },
   },
   {
@@ -114,7 +209,7 @@ const SCENARIOS: Scenario[] = [
     from: "/about",
     expectedPathname: "/contact",
     action: async (page) => {
-      await page.locator('a[href="/contact"]').first().click();
+      await page.locator('a[href="/contact"]').first().click({ noWaitAfter: true });
     },
   },
   {
@@ -122,7 +217,7 @@ const SCENARIOS: Scenario[] = [
     from: "/pricing",
     expectedPathname: "/contact",
     action: async (page) => {
-      await page.locator('a[href="/contact"]').first().click();
+      await page.locator('a[href="/contact"]').first().click({ noWaitAfter: true });
     },
   },
   {
@@ -132,7 +227,7 @@ const SCENARIOS: Scenario[] = [
     requiresAuth: true,
     clickPosition: collapsedSidebarIconPosition,
     action: async (page) => {
-      await page.locator('a[href="/workshop/projects"]').first().click({ position: collapsedSidebarIconPosition });
+      await page.locator('a[href="/workshop/projects"]').first().click({ position: collapsedSidebarIconPosition, noWaitAfter: true });
     },
   },
   {
@@ -142,7 +237,7 @@ const SCENARIOS: Scenario[] = [
     requiresAuth: true,
     clickPosition: collapsedSidebarIconPosition,
     action: async (page) => {
-      await page.locator('a[href="/workshop/library"]').first().click({ position: collapsedSidebarIconPosition });
+      await page.locator('a[href="/workshop/library"]').first().click({ position: collapsedSidebarIconPosition, noWaitAfter: true });
     },
   },
   {
@@ -179,7 +274,7 @@ const SCENARIOS: Scenario[] = [
     requiresAuth: true,
     clickPosition: collapsedSidebarIconPosition,
     action: async (page) => {
-      await page.locator('a[href="/workshop/templates"]').first().click({ position: collapsedSidebarIconPosition });
+      await page.locator('a[href="/workshop/templates"]').first().click({ position: collapsedSidebarIconPosition, noWaitAfter: true });
     },
   },
   {
@@ -189,7 +284,7 @@ const SCENARIOS: Scenario[] = [
     requiresAuth: true,
     clickPosition: collapsedSidebarIconPosition,
     action: async (page) => {
-      await page.locator('a[href="/workshop/settings"]').first().click({ position: collapsedSidebarIconPosition });
+      await page.locator('a[href="/workshop/settings"]').first().click({ position: collapsedSidebarIconPosition, noWaitAfter: true });
     },
   },
   {
@@ -225,6 +320,49 @@ const SCENARIOS: Scenario[] = [
     from: HERO_ESTIMATES_PATH,
     expectedPathname: HERO_ESTIMATE_PATH,
     requiresAuth: true,
+    action: async (page) => {
+      await clickHref(page, HERO_ESTIMATE_PATH);
+    },
+  },
+  {
+    name: "Authenticated Target: Cold Direct Target Estimate",
+    from: "/",
+    expectedPathname: HERO_ESTIMATE_PATH,
+    requiresAuth: true,
+    disableWarmup: true,
+    action: async (page) => {
+      await page.goto(new URL(HERO_ESTIMATE_PATH, BASE_URL).toString(), { waitUntil: "domcontentloaded" });
+    },
+  },
+  {
+    name: "Authenticated Target: Estimates to Target Estimate No Hover",
+    from: HERO_ESTIMATES_PATH,
+    expectedPathname: HERO_ESTIMATE_PATH,
+    requiresAuth: true,
+    action: async (page) => {
+      await clickHref(page, HERO_ESTIMATE_PATH);
+    },
+  },
+  {
+    name: "Authenticated Target: Estimates to Target Estimate Hover Prefetch",
+    from: HERO_ESTIMATES_PATH,
+    expectedPathname: HERO_ESTIMATE_PATH,
+    requiresAuth: true,
+    beforeAction: async (page) => {
+      await hoverHref(page, HERO_ESTIMATE_PATH);
+    },
+    action: async (page) => {
+      await clickHref(page, HERO_ESTIMATE_PATH);
+    },
+  },
+  {
+    name: "Authenticated Target: Estimates to Target Estimate Warm Revisit",
+    from: HERO_ESTIMATES_PATH,
+    expectedPathname: HERO_ESTIMATE_PATH,
+    requiresAuth: true,
+    beforeAction: async (page) => {
+      await warmRevisitTargetEstimate(page);
+    },
     action: async (page) => {
       await clickHref(page, HERO_ESTIMATE_PATH);
     },
@@ -283,6 +421,233 @@ async function addDevAuthBypassCookie(context: BrowserContext) {
   ]);
 }
 
+function installRouteTransitionTimelineCapture(selectors: RouteTimelineSelector[]) {
+  type MutableTimelineEntry = RouteTimelineEntry & {
+    attachedNow: boolean;
+    visibleNow: boolean;
+    visibleStartedAtMs: number | null;
+    accumulatedVisibleMs: number;
+  };
+  type RouteTimelineController = {
+    reset: () => void;
+    read: () => RouteTimelineEntry[];
+    stop: () => void;
+  };
+  type RouteTimelineWindow = Window & {
+    __routeTransitionTimeline?: RouteTimelineController;
+  };
+
+  const routeWindow = window as RouteTimelineWindow;
+  let startedAt = performance.now();
+  let observer: MutationObserver | null = null;
+  let intervalId: number | null = null;
+  let entries = new Map<string, MutableTimelineEntry>();
+
+  const nowMs = () => performance.now() - startedAt;
+
+  const createEntry = (config: RouteTimelineSelector): MutableTimelineEntry => ({
+    key: config.key,
+    selector: config.selector,
+    role: config.role,
+    firstAttachedAtMs: null,
+    firstVisibleAtMs: null,
+    hiddenAtMs: null,
+    detachedAtMs: null,
+    durationMs: 0,
+    episodeCount: 0,
+    appearedAfterNavigationStart: false,
+    attachedNow: false,
+    visibleNow: false,
+    visibleStartedAtMs: null,
+    accumulatedVisibleMs: 0,
+  });
+
+  const isVisible = (element: Element) => {
+    const style = window.getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+
+  const toPublicEntry = (entry: MutableTimelineEntry): RouteTimelineEntry => {
+    const durationMs =
+      entry.visibleNow && entry.visibleStartedAtMs !== null
+        ? entry.accumulatedVisibleMs + nowMs() - entry.visibleStartedAtMs
+        : entry.accumulatedVisibleMs;
+    return {
+      key: entry.key,
+      selector: entry.selector,
+      role: entry.role,
+      firstAttachedAtMs: entry.firstAttachedAtMs === null ? null : Math.round(entry.firstAttachedAtMs),
+      firstVisibleAtMs: entry.firstVisibleAtMs === null ? null : Math.round(entry.firstVisibleAtMs),
+      hiddenAtMs: entry.hiddenAtMs === null ? null : Math.round(entry.hiddenAtMs),
+      detachedAtMs: entry.detachedAtMs === null ? null : Math.round(entry.detachedAtMs),
+      durationMs: Math.round(durationMs),
+      episodeCount: entry.episodeCount,
+      appearedAfterNavigationStart: entry.appearedAfterNavigationStart,
+    };
+  };
+
+  const scan = (treatCurrentDomAsBaseline = false) => {
+    for (const config of selectors) {
+      const entry = entries.get(config.key) ?? createEntry(config);
+      const matches = Array.from(document.querySelectorAll(config.selector));
+      const attachedNow = matches.length > 0;
+      const visibleNow = matches.some((element) => isVisible(element));
+      const elapsed = nowMs();
+
+      if (treatCurrentDomAsBaseline) {
+        entry.attachedNow = attachedNow;
+        entry.visibleNow = visibleNow;
+        entries.set(config.key, entry);
+        continue;
+      }
+
+      if (attachedNow && !entry.attachedNow) {
+        entry.firstAttachedAtMs ??= elapsed;
+        entry.appearedAfterNavigationStart ||= elapsed > 0;
+      }
+      if (!attachedNow && entry.attachedNow) {
+        entry.detachedAtMs = elapsed;
+      }
+      if (visibleNow && !entry.visibleNow) {
+        entry.firstVisibleAtMs ??= elapsed;
+        entry.visibleStartedAtMs = elapsed;
+        entry.episodeCount += 1;
+        entry.appearedAfterNavigationStart ||= elapsed > 0;
+      }
+      if (!visibleNow && entry.visibleNow) {
+        entry.hiddenAtMs = elapsed;
+        if (entry.visibleStartedAtMs !== null) {
+          entry.accumulatedVisibleMs += elapsed - entry.visibleStartedAtMs;
+        }
+        entry.visibleStartedAtMs = null;
+      }
+
+      entry.attachedNow = attachedNow;
+      entry.visibleNow = visibleNow;
+      entries.set(config.key, entry);
+    }
+  };
+
+  const stop = () => {
+    observer?.disconnect();
+    observer = null;
+    if (intervalId !== null) window.clearInterval(intervalId);
+    intervalId = null;
+  };
+
+  const reset = () => {
+    stop();
+    startedAt = performance.now();
+    entries = new Map(selectors.map((selector) => [selector.key, createEntry(selector)]));
+    scan(true);
+    observer = new MutationObserver(() => scan());
+    observer.observe(document.documentElement, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ["class", "style", "hidden", "aria-hidden", "aria-busy", "data-route-overlay"],
+    });
+    intervalId = window.setInterval(scan, 25);
+  };
+
+  routeWindow.__routeTransitionTimeline = {
+    reset,
+    read: () => {
+      scan();
+      return Array.from(entries.values()).map(toPublicEntry);
+    },
+    stop,
+  };
+  reset();
+}
+
+async function installRouteTransitionTimeline(context: BrowserContext) {
+  await context.addInitScript({
+    content: `(${installRouteTransitionTimelineCapture.toString()})(${JSON.stringify(ROUTE_TIMELINE_SELECTORS)});`,
+  });
+}
+
+async function resetRouteTimeline(page: Page) {
+  await page
+    .evaluate(() => {
+      const routeWindow = window as typeof window & {
+        __routeTransitionTimeline?: { reset: () => void };
+      };
+      routeWindow.__routeTransitionTimeline?.reset();
+    })
+    .catch(() => undefined);
+}
+
+async function readRouteTimeline(page: Page): Promise<RouteTimelineEntry[]> {
+  return page
+    .evaluate(() => {
+      const routeWindow = window as typeof window & {
+        __routeTransitionTimeline?: { read: () => RouteTimelineEntry[]; stop: () => void };
+      };
+      const timeline = routeWindow.__routeTransitionTimeline?.read() ?? [];
+      routeWindow.__routeTransitionTimeline?.stop();
+      return timeline;
+    })
+    .catch(() => []);
+}
+
+function summarizeTimeline(skeletonTimeline: RouteTimelineEntry[]) {
+  const parentFallbackSeen = skeletonTimeline.some(
+    (entry) => entry.role === "parent-fallback" && entry.episodeCount > 0 && entry.appearedAfterNavigationStart,
+  );
+  const sheetSkeletonEpisodes = skeletonTimeline
+    .filter((entry) => entry.role === "sheet-skeleton")
+    .reduce((sum, entry) => sum + entry.episodeCount, 0);
+  const overlayEntries = skeletonTimeline.filter((entry) => entry.role === "overlay");
+  const overlayVisible = overlayEntries.some((entry) => entry.episodeCount > 0 && entry.appearedAfterNavigationStart);
+  const overlayDurationMs = overlayEntries.reduce((sum, entry) => sum + entry.durationMs, 0);
+  const sheetContentVisibleAtMs =
+    skeletonTimeline
+      .filter((entry) => entry.role === "sheet-content" && entry.firstVisibleAtMs !== null)
+      .map((entry) => entry.firstVisibleAtMs as number)
+      .sort((left, right) => left - right)[0] ?? null;
+
+  return {
+    overlayVisible,
+    parentFallbackSeen,
+    sheetSkeletonEpisodes,
+    overlayDurationMs,
+    sheetContentVisibleAtMs,
+  };
+}
+
+export function sanitizeBenchmarkText(value: string) {
+  const sanitized = value
+    .replaceAll(HERO_PROJECT_ID, "{targetProjectId}")
+    .replaceAll(HERO_ESTIMATE_NODE_ID, "{targetEstimateNodeId}")
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, "{uuid}")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "{email}")
+    .replace(
+      /([?&](?:access_token|refresh_token|id_token|token|code|state|session|session_token|jwt|password|secret|apikey|api_key|key)=)[^&#\s)'"<>]+/gi,
+      "$1{redacted}",
+    )
+    .replace(/\b(Authorization:\s*Bearer\s+)[^\s,;]+/gi, "$1{redacted}")
+    .replace(/\b(Cookie|Set-Cookie):\s*[^;\n\r]+(?:;[^;\n\r=]+=[^;\n\r\s]+)*/gi, "$1: {redacted-cookie}")
+    .replace(
+      /\b(sb-[^=\s;]+|archestimator-dev-auth-bypass|supabase-auth-token|__Secure-[^=\s;]+|__Host-[^=\s;]+)=[^;\s]+/g,
+      "$1={redacted-cookie}",
+    )
+    .replace(/\b[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "{jwt}")
+    .replace(/\/(?:private\/)?tmp\/[^\s"')<>]+/g, "/tmp/{redacted}")
+    .replace(/\/var\/folders\/[^\s"')<>]+/g, "/var/folders/{redacted}")
+    .replace(/\/Users\/[^\s"')<>]+/g, "/Users/{redacted}");
+  return process.env.HERO_ESTIMATE_ID
+    ? sanitized.replaceAll(process.env.HERO_ESTIMATE_ID, "{targetEstimateNodeId}")
+    : sanitized;
+}
+
+function sanitizePathname(value: string) {
+  const pathname = value.startsWith("http") ? new URL(value).pathname : value;
+  return sanitizeBenchmarkText(pathname);
+}
+
 async function preflightBaseUrl() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7_500);
@@ -299,6 +664,8 @@ async function preflightBaseUrl() {
 async function measureTransition(page: Page, scenario: Scenario, run: number): Promise<ScenarioRun> {
   await page.goto(new URL(scenario.from, BASE_URL).toString(), { waitUntil: "load" });
   await waitForRouteReady(page, scenario.from);
+  await scenario.beforeAction?.(page);
+  await resetRouteTimeline(page);
 
   const rscRequests = new Set<string>();
   const onRequest = (request: { url: () => string }) => {
@@ -307,29 +674,30 @@ async function measureTransition(page: Page, scenario: Scenario, run: number): P
   };
 
   page.on("request", onRequest);
-  const overlaySeen = page
-    .locator("[data-route-overlay]")
-    .waitFor({ state: "attached", timeout: 1000 })
-    .then(() => true)
-    .catch(() => false);
 
   const startedAt = Date.now();
   try {
     const targetPathReady = waitForPathname(page, scenario.expectedPathname);
     await Promise.all([targetPathReady, scenario.action(page)]);
+    if (targetsEstimateSheet(scenario)) {
+      await waitForEstimateSheetContent(page);
+    }
     await settleAfterTransition(page);
     await page.waitForTimeout(100);
+    const skeletonTimeline = await readRouteTimeline(page);
+    const timelineSummary = summarizeTimeline(skeletonTimeline);
 
     return {
       run,
       durationMs: Date.now() - startedAt,
-      overlayVisible: await overlaySeen,
+      ...timelineSummary,
+      skeletonTimeline,
       rscRequestCount: rscRequests.size,
-      finalPathname: new URL(page.url()).pathname,
+      finalPathname: sanitizePathname(new URL(page.url()).pathname),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`${message}; finalPathname=${new URL(page.url()).pathname}`);
+    const message = sanitizeBenchmarkText(error instanceof Error ? error.message : String(error));
+    throw new Error(`${message}; finalPathname=${sanitizePathname(new URL(page.url()).pathname)}`);
   } finally {
     page.off("request", onRequest);
   }
@@ -337,7 +705,7 @@ async function measureTransition(page: Page, scenario: Scenario, run: number): P
 
 async function waitForPathname(page: Page, expectedPathname: string) {
   if (new URL(page.url()).pathname === expectedPathname) return;
-  await page.waitForURL((url) => url.pathname === expectedPathname, { timeout: 15_000 });
+  await page.waitForFunction((pathname) => window.location.pathname === pathname, expectedPathname, { timeout: 15_000 });
 }
 
 async function waitForRouteOverlayHidden(page: Page) {
@@ -369,19 +737,24 @@ function getContextOptions(): BrowserContextOptions {
 
 async function createBenchmarkContext(browser: Browser) {
   const context = await browser.newContext(getContextOptions());
+  await installRouteTransitionTimeline(context);
   await addDevAuthBypassCookie(context);
   return context;
 }
 
 async function warmScenario(browser: Browser, scenario: Scenario) {
-  if (!WARM_ROUTES_BEFORE_MEASURE) return;
+  if (!WARM_ROUTES_BEFORE_MEASURE || scenario.disableWarmup) return;
 
   const context = await createBenchmarkContext(browser);
   const page = await context.newPage();
   try {
     await page.goto(new URL(scenario.from, BASE_URL).toString(), { waitUntil: "load" });
     await waitForRouteReady(page, scenario.from);
+    await scenario.beforeAction?.(page);
     await Promise.all([waitForPathname(page, scenario.expectedPathname), scenario.action(page)]);
+    if (targetsEstimateSheet(scenario)) {
+      await waitForEstimateSheetContent(page);
+    }
     await settleAfterTransition(page);
   } finally {
     await context.close();
@@ -401,9 +774,19 @@ async function measureScenario(browser: Browser, scenario: Scenario, preset: Net
     try {
       const result = await measureTransition(page, scenario, run);
       runs.push(result);
-      console.log(`   Run ${run}: ${result.durationMs}ms, overlay=${result.overlayVisible}, rsc=${result.rscRequestCount}`);
+      console.log(
+        [
+          `   Run ${run}: ${result.durationMs}ms`,
+          `overlay=${result.overlayVisible}`,
+          `parentFallback=${result.parentFallbackSeen}`,
+          `sheetEpisodes=${result.sheetSkeletonEpisodes}`,
+          `overlayMs=${result.overlayDurationMs}`,
+          `sheetContentMs=${result.sheetContentVisibleAtMs ?? "n/a"}`,
+          `rsc=${result.rscRequestCount}`,
+        ].join(", "),
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = sanitizeBenchmarkText(error instanceof Error ? error.message : String(error));
       failures.push({ run, message });
       console.error(`   Run ${run}: FAILED - ${message}`);
     }
@@ -417,8 +800,8 @@ async function measureScenario(browser: Browser, scenario: Scenario, preset: Net
 
   return {
     scenario: scenario.name,
-    from: scenario.from,
-    expectedPathname: scenario.expectedPathname,
+    from: sanitizePathname(scenario.from),
+    expectedPathname: sanitizePathname(scenario.expectedPathname),
     networkProfile: NETWORK_PROFILE,
     runs,
     failures,
@@ -453,8 +836,8 @@ async function main() {
   if (skippedScenarios.length > 0) {
     console.log(`Skipping authenticated scenarios: ${skippedScenarios.join(", ")}`);
   }
-  if (INCLUDE_AUTHENTICATED && skippedScenarios.some((name) => name.includes("Authenticated Hero"))) {
-    console.error("Authenticated hero scenarios were skipped even though INCLUDE_AUTHENTICATED=1. Refusing misleading success.");
+  if (INCLUDE_AUTHENTICATED && skippedScenarios.some((name) => name.includes("Authenticated Hero") || name.includes("Authenticated Target"))) {
+    console.error("Authenticated hero/target scenarios were skipped even though INCLUDE_AUTHENTICATED=1. Refusing misleading success.");
     process.exit(1);
   }
   if (runnableScenarios.length === 0) {
@@ -499,10 +882,16 @@ async function main() {
     scenarioFilter: SCENARIO_FILTER ?? null,
     skipAuthenticated: SKIP_AUTHENTICATED,
     skippedScenarios,
-    heroPath: {
-      projectId: HERO_PROJECT_ID,
-      estimateNodeId: HERO_ESTIMATE_NODE_ID,
-      routes: ["/workshop", "/workshop/projects", HERO_PROJECT_PATH, HERO_ESTIMATES_PATH, HERO_ESTIMATE_PATH],
+    targetPathClasses: {
+      project: "targetProject",
+      estimateNode: "targetEstimateNode",
+      routes: [
+        "/workshop",
+        "/workshop/projects",
+        sanitizePathname(HERO_PROJECT_PATH),
+        sanitizePathname(HERO_ESTIMATES_PATH),
+        sanitizePathname(HERO_ESTIMATE_PATH),
+      ],
     },
     results,
   };
@@ -520,7 +909,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
+}

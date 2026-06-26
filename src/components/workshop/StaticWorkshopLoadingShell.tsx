@@ -11,6 +11,7 @@ type StaticWorkshopLoadingShellProps = {
   eyebrow?: string;
   showEyebrow?: boolean;
   hideTitle?: boolean;
+  canvasClassName?: string;
   contentClassName?: string;
   alignChromeToProjectSidebar?: boolean;
   children: ReactNode;
@@ -21,6 +22,7 @@ export function StaticWorkshopLoadingShell({
   eyebrow = "Workshop",
   showEyebrow = false,
   hideTitle = false,
+  canvasClassName,
   contentClassName,
   alignChromeToProjectSidebar = false,
   children,
@@ -28,7 +30,11 @@ export function StaticWorkshopLoadingShell({
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:px-2" : "p-2";
 
   return (
-    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden text-ink" aria-label={`${title} loading`}>
+    <main
+      data-workshop-page-shell-root
+      className={cn("h-[100dvh] overflow-hidden text-ink", canvasClassName)}
+      aria-label={`${title} loading`}
+    >
       <WorkshopGlassBackdrop />
       <MainSidebar />
       <section

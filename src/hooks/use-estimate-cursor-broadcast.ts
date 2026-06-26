@@ -59,6 +59,8 @@ export type CursorClientFactory = () => CursorClientLike;
 export type RealtimeIdentityIssuer = (input: { topic: string }) => Promise<{
   envelope: RealtimeIdentityEnvelope;
   publicKey: string;
+  userId?: string | null;
+  displayName?: string | null;
 } | null>;
 
 const defaultCursorClientFactory: CursorClientFactory = () =>
@@ -67,7 +69,7 @@ const defaultCursorClientFactory: CursorClientFactory = () =>
 type UseEstimateCursorBroadcastInput = {
   estimateId: string | null | undefined;
   tabId?: string | null;
-  userId: string | null | undefined;
+  userId?: string | null;
   displayName?: string | null;
   enabled?: boolean;
   throttleMs?: number;
@@ -118,6 +120,8 @@ export function useEstimateCursorCollaboration({
   // verifying everyone else's). Both come from our OWN authenticated server call.
   const envelopeRef = useRef<RealtimeIdentityEnvelope | null>(null);
   const verifyKeyRef = useRef<CryptoKey | null>(null);
+  const ownUserIdRef = useRef<string | null>(userId ?? null);
+  const ownDisplayNameRef = useRef<string | null>(displayName ?? null);
   const verifiedCacheRef = useRef<Map<string, { sig: string; exp: number }>>(null!);
   if (verifiedCacheRef.current === null) verifiedCacheRef.current = new Map();
   // Test/override seams held in refs so an inline identity changes the deps used
@@ -128,6 +132,10 @@ export function useEstimateCursorCollaboration({
     clientFactoryRef.current = clientFactory;
     identityIssuerRef.current = identityIssuer;
   });
+  useEffect(() => {
+    ownUserIdRef.current = userId ?? ownUserIdRef.current;
+    ownDisplayNameRef.current = displayName ?? ownDisplayNameRef.current;
+  }, [displayName, userId]);
 
   const [remoteCursorMap, setRemoteCursorMap] = useState<Map<string, RemoteEstimateCursor>>(() => new Map());
   const [channelStatus, setChannelStatus] = useState<EstimateCursorChannelStatus>("idle");
@@ -157,8 +165,17 @@ export function useEstimateCursorCollaboration({
       try {
         const identity = await identityIssuerRef.current({ topic });
         if (cancelled || !identity) return;
+        ownUserIdRef.current = identity.userId ?? identity.envelope.sub;
+        ownDisplayNameRef.current = identity.displayName ?? displayName ?? null;
         envelopeRef.current = identity.envelope;
         verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+        setRemoteCursorMap((current) => {
+          const ownUserId = ownUserIdRef.current;
+          if (!ownUserId || !current.has(ownUserId)) return current;
+          const next = new Map(current);
+          next.delete(ownUserId);
+          return next;
+        });
       } catch (error) {
         reportRealtimeEvent({
           type: "auth_refresh_failed",
@@ -170,7 +187,7 @@ export function useEstimateCursorCollaboration({
 
     async function acceptCursor(raw: unknown) {
       const cursor = raw as Partial<EstimateCursorBroadcastPayload> | null;
-      if (!cursor?.userId || cursor.userId === userId) return;
+      if (!cursor?.userId || cursor.userId === ownUserIdRef.current) return;
       if (typeof cursor.x !== "number" || typeof cursor.y !== "number") return;
       const envelope = cursor.envelope ?? null;
       if (!envelope || !verifyKeyRef.current) {
@@ -252,13 +269,15 @@ export function useEstimateCursorCollaboration({
       channelRef.current = null;
       envelopeRef.current = null;
       verifyKeyRef.current = null;
+      ownUserIdRef.current = userId ?? null;
+      ownDisplayNameRef.current = displayName ?? null;
       verifiedCacheRef.current = new Map();
       setChannelStatus("idle");
       setLastSendStatus("idle");
       setRemoteCursorMap(new Map());
       void client.removeChannel(channel);
     };
-  }, [channelTopic, enabled, estimateId, userId]);
+  }, [channelTopic, displayName, enabled, estimateId, userId]);
 
   useEffect(() => {
     if (!enabled || remoteCursorMap.size === 0) return;
@@ -275,7 +294,8 @@ export function useEstimateCursorCollaboration({
 
   const broadcastCursor = useCallback(
     (cursor: Omit<EstimateCursorBroadcastPayload, "displayName" | "sentAt" | "userId" | "envelope">) => {
-      if (!enabled || !userId || !channelRef.current) return;
+      const ownUserId = ownUserIdRef.current ?? userId ?? null;
+      if (!enabled || !ownUserId || !channelRef.current) return;
       if (!isCursorBroadcastEnabled()) return; // kill-switch (T0.6)
       // Until our signed identity envelope is issued, receivers would drop the
       // cursor anyway — so don't broadcast unauthenticated frames.
@@ -286,9 +306,9 @@ export function useEstimateCursorCollaboration({
       lastQueuedCursorRef.current = cursor;
       pendingPayloadRef.current = {
         ...cursor,
-        userId,
+        userId: ownUserId,
         tabId,
-        displayName,
+        displayName: ownDisplayNameRef.current ?? displayName,
         sentAt: new Date().toISOString(),
         envelope: envelopeRef.current,
       };

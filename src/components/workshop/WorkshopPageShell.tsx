@@ -46,6 +46,7 @@ type WorkshopPageShellProps = {
   hideTitle?: boolean;
   breadcrumbs?: WorkshopBreadcrumb[];
   alignChromeToProjectSidebar?: boolean;
+  canvasClassName?: string;
   contentClassName?: string;
   projectId?: string;
   sidebarStatus?: MainSidebarStatus;
@@ -77,6 +78,57 @@ function WorkshopShellContentFallback() {
   );
 }
 
+function MainSidebarShellFallback({ status }: { status?: MainSidebarStatus }) {
+  return (
+    <MainSidebar
+      favoriteProjects={[]}
+      favoriteProjectsFresh={false}
+      favoritesScope={null}
+      status={status}
+    />
+  );
+}
+
+async function AuthenticatedMainSidebar({ status }: { status?: MainSidebarStatus }) {
+  const currentUser = await getCurrentUserContext();
+  const workspaceBootstrap = currentUser ? await ensureDefaultWorkspace() : null;
+  const favoritesScope = currentUser && workspaceBootstrap
+    ? { workspaceId: workspaceBootstrap.workspace.id, userId: currentUser.userId }
+    : null;
+  const user = currentUser
+    ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
+    : undefined;
+
+  return (
+    <MainSidebar
+      favoriteProjects={[]}
+      favoriteProjectsFresh={false}
+      favoritesScope={favoritesScope}
+      status={status}
+      user={user}
+    />
+  );
+}
+
+function WorkshopSettingsEntryFallback({ location }: { location: ReactNode }) {
+  return (
+    <WorkshopSettingsModal location={location}>
+      <WorkshopSettingsModalContent canManagePlatform={false} />
+    </WorkshopSettingsModal>
+  );
+}
+
+async function WorkshopSettingsEntry({ location }: { location: ReactNode }) {
+  const currentUser = await getCurrentUserContext();
+  const canManagePlatformSettings = currentUser?.role === "ceo" || currentUser?.role === "admin";
+
+  return (
+    <WorkshopSettingsModal location={location}>
+      <WorkshopSettingsModalContent canManagePlatform={canManagePlatformSettings} />
+    </WorkshopSettingsModal>
+  );
+}
+
 export async function WorkshopPageShell({
   title,
   eyebrow = "Workshop",
@@ -89,23 +141,13 @@ export async function WorkshopPageShell({
   hideTitle = false,
   breadcrumbs,
   alignChromeToProjectSidebar = false,
+  canvasClassName,
   contentClassName,
   projectId,
   sidebarStatus,
   children,
 }: WorkshopPageShellProps) {
-  const [currentUser, sidePanelWidthCssVariables] = await Promise.all([
-    getCurrentUserContext(),
-    getSidePanelWidthCssVariables(),
-  ]);
-  const workspaceBootstrap = currentUser ? await ensureDefaultWorkspace() : null;
-  const sidebarFavoriteScope = currentUser && workspaceBootstrap
-    ? { workspaceId: workspaceBootstrap.workspace.id, userId: currentUser.userId }
-    : null;
-  const sidebarUser = currentUser
-    ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
-    : undefined;
-  const canManagePlatformSettings = currentUser?.role === "ceo" || currentUser?.role === "admin";
+  const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();
   const showAskFlip = isAskFlipUiEnabled();
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
   const settingsModalLocationParts = resolvedBreadcrumbs.map((breadcrumb) =>
@@ -118,23 +160,23 @@ export async function WorkshopPageShell({
     <div className="flex h-10 min-w-0 items-center justify-end gap-1">
       {actions}
       <WorkshopNotificationEntry />
-      <WorkshopSettingsModal location={settingsModalLocation}>
-        <WorkshopSettingsModalContent canManagePlatform={canManagePlatformSettings} />
-      </WorkshopSettingsModal>
+      <Suspense fallback={<WorkshopSettingsEntryFallback location={settingsModalLocation} />}>
+        <WorkshopSettingsEntry location={settingsModalLocation} />
+      </Suspense>
     </div>
   );
 
   return (
-    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden text-ink" aria-label={title}>
+    <main
+      data-workshop-page-shell-root
+      className={cn("h-[100dvh] overflow-hidden text-ink", canvasClassName)}
+      aria-label={title}
+    >
       <WebVitalsProbe />
       <WorkshopGlassBackdrop />
-      <MainSidebar
-        favoriteProjects={[]}
-        favoriteProjectsFresh={false}
-        favoritesScope={sidebarFavoriteScope}
-        status={sidebarStatus}
-        user={sidebarUser}
-      />
+      <Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} />}>
+        <AuthenticatedMainSidebar status={sidebarStatus} />
+      </Suspense>
       <section
         data-workshop-page-shell-canvas
         className="flex h-full min-h-0 flex-col p-2 lg:pl-[var(--sidebar-content-offset)]"

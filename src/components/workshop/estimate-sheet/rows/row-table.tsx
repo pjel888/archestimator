@@ -7,6 +7,7 @@ import { ArrowsOutSimple, DotsThreeVertical, Trash } from "@phosphor-icons/react
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import {
@@ -123,7 +124,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
 
 const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
-const ESTIMATE_ROW_DELETE_RECOVERY_TITLE = "Deletes immediately. Use Undo after saving to restore the row.";
+const ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP = "Delete row. Undo after saving can restore it.";
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
 type ScrollMarginAction = { type: "reset" } | { type: "measure"; value: number };
@@ -350,7 +351,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td
         className={cn(
           "relative flex flex-col items-center justify-center border-r border-hairline px-1 text-center",
-          activeCellIndex === 0 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+          activeCellIndex === 0 && "ring-1 ring-inset ring-accent/30",
         )}
         data-estimate-cell-active={activeCellIndex === 0 ? "true" : undefined}
       >
@@ -382,7 +383,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td
         className={cn(
           "relative flex items-center justify-center border-r border-hairline px-1 py-1 text-center",
-          activeCellIndex === 1 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+          activeCellIndex === 1 && "ring-1 ring-inset ring-accent/30",
         )}
         data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
       >
@@ -442,7 +443,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td
         className={cn(
           "flex items-center justify-center border-r border-hairline px-1",
-          activeCellIndex === 2 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+          activeCellIndex === 2 && "ring-1 ring-inset ring-accent/30",
         )}
         data-estimate-cell-active={activeCellIndex === 2 ? "true" : undefined}
       >
@@ -469,37 +470,42 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         <p className="text-[10px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
       </td>
       <td className="flex flex-col items-center justify-between py-2 text-tertiary">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label={`Open row details for ${computedItemLabel}`}
-          onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "details")}
-        >
-          <DotsThreeVertical size={14} weight="regular" aria-hidden="true" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label={`Open row activity for ${computedItemLabel}`}
-          onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "activity")}
-        >
-          <ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
-          aria-label={`Delete row ${computedItemLabel}`}
-          title={ESTIMATE_ROW_DELETE_RECOVERY_TITLE}
-          onClick={() => onDeleteRowItem(computedItem.id)}
-        >
-          <Trash size={14} weight="regular" aria-hidden="true" />
-        </Button>
+        <Tooltip label="Row details" side="left" contentClassName="z-[1200]">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+            aria-label={`Open row details for ${computedItemLabel}`}
+            onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "details")}
+          >
+            <DotsThreeVertical size={14} weight="regular" aria-hidden="true" />
+          </Button>
+        </Tooltip>
+        <Tooltip label="Row activity" side="left" contentClassName="z-[1200]">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+            aria-label={`Open row activity for ${computedItemLabel}`}
+            onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "activity")}
+          >
+            <ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />
+          </Button>
+        </Tooltip>
+        <Tooltip label={ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP} side="left" contentClassName="z-[1200]">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
+            aria-label={`Delete row ${computedItemLabel}`}
+            onClick={() => onDeleteRowItem(computedItem.id)}
+          >
+            <Trash size={14} weight="regular" aria-hidden="true" />
+          </Button>
+        </Tooltip>
       </td>
     </tr>
   );

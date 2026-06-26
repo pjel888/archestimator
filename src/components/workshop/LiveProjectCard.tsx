@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { memo, useMemo, type ReactNode } from "react";
-import { ArrowSquareOut, Clock, FileText, Globe, MapPin, Star, Users } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowSquareOut,
+  Clock,
+  FileText,
+  Globe,
+  MapPin,
+  Star,
+  Users,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -24,10 +32,15 @@ import { ProjectCardThumbnail } from "./ProjectCardThumbnail";
 import { ProjectCardThumbnailReveal } from "./ProjectCardThumbnailReveal";
 import { ProjectCardTitleBlock } from "./ProjectCardTitleBlock";
 
-const EMPTY_FAVORITE_ESTIMATE_SHEETS: ProjectFavoriteEstimateSheetSummary[] = [];
+const EMPTY_FAVORITE_ESTIMATE_SHEETS: ProjectFavoriteEstimateSheetSummary[] =
+  [];
 
 export type ProjectCardViewMode = "list" | "small" | "medium" | "large";
-export type ProjectAccessKind = "owned" | "pending-invite" | "project-member" | "sheet-member";
+export type ProjectAccessKind =
+  | "owned"
+  | "pending-invite"
+  | "project-member"
+  | "sheet-member";
 export type ProjectCardSetupStatus = {
   state: "creating" | "preparing" | "error";
   message: string;
@@ -58,8 +71,8 @@ type LiveProjectCardProps = {
    * Group-assignment menu (D8): the "Move to group" affordance rendered next to the
    * details-action control on owned cards. The card stays agnostic — the page builds
    * and supplies the node (only for owned projects in Group mode) so all group logic
-   * lives in projects-page-client. Rendered in the DETAILS-ACTION menu, NOT the C3
-   * hover overlay. Optional and additive: omitting it leaves the card unchanged.
+   * lives in projects-page-client. The card wraps it in the same hover/focus reveal
+   * treatment as the sibling top-strip controls.
    */
   groupAssignMenu?: ReactNode;
 };
@@ -79,7 +92,9 @@ const projectCardUpdatedAtFormatter = new Intl.DateTimeFormat("en", {
   month: "short",
   day: "numeric",
 });
-const projectCardFullDateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "long" });
+const projectCardFullDateFormatter = new Intl.DateTimeFormat("en", {
+  dateStyle: "long",
+});
 
 function formatUpdatedAt(value: string) {
   return projectCardUpdatedAtFormatter.format(new Date(value));
@@ -109,7 +124,10 @@ function getProjectMotif(project: Tables<"projects">) {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-function getProjectMapThumbnailUrl(project: Tables<"projects">, apiKey: string) {
+function getProjectMapThumbnailUrl(
+  project: Tables<"projects">,
+  apiKey: string,
+) {
   const location = project.location?.trim();
   const key = apiKey.trim();
   if (!location || !key) return null;
@@ -143,7 +161,9 @@ function getAccessBadgeLabel(accessKind: ProjectAccessKind) {
   return "Owned";
 }
 
-function getFavoriteEstimateSheetHref(sheet: ProjectFavoriteEstimateSheetSummary) {
+function getFavoriteEstimateSheetHref(
+  sheet: ProjectFavoriteEstimateSheetSummary,
+) {
   return `/workshop/projects/${sheet.project_id}/estimates/${sheet.id}`;
 }
 
@@ -157,8 +177,10 @@ function getAccessibleAccessLabel({
   role: CollaborationRole;
 }) {
   if (accessKind === "owned") return `${projectName} project, owned access`;
-  if (accessKind === "pending-invite") return `${projectName} project, pending invite, ${role} access`;
-  if (accessKind === "sheet-member") return `${projectName} project, estimate-only access, ${role} access`;
+  if (accessKind === "pending-invite")
+    return `${projectName} project, pending invite, ${role} access`;
+  if (accessKind === "sheet-member")
+    return `${projectName} project, estimate-only access, ${role} access`;
   return `${projectName} project, shared project, ${role} access`;
 }
 
@@ -187,20 +209,30 @@ function LiveProjectCardImpl({
   groupAssignMenu,
 }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
-  const mapImageUrl = imageUrl ? null : getProjectMapThumbnailUrl(project, googleMapsApiKey);
+  const mapImageUrl = imageUrl
+    ? null
+    : getProjectMapThumbnailUrl(project, googleMapsApiKey);
   const isListView = viewMode === "list";
   const isPendingInvite = accessKind === "pending-invite";
-  const isExpiredPendingInvite = isPendingInvite && pendingInvite?.state === "expired";
+  const isExpiredPendingInvite =
+    isPendingInvite && pendingInvite?.state === "expired";
   const isSharedAccess = accessKind !== "owned" && !isPendingInvite;
   const canToggleFavorite = Boolean(onToggleFavorite) && !isPendingInvite;
   const canShowSelect = !isPendingInvite;
   const canSelect = Boolean(onToggleSelected) && canShowSelect;
-  const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open estimate" : "Open";
+  const openLabel =
+    accessKind === "sheet-member" && sharedEstimateCount === 1
+      ? "Open estimate"
+      : "Open";
   const projectHref = `/workshop/projects/${project.id}`;
-  const prefetchRoutes = useMemo(() => [{ pathname: projectHref }], [projectHref]);
+  const prefetchRoutes = useMemo(
+    () => [{ pathname: projectHref }],
+    [projectHref],
+  );
   const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
   const motif = getProjectMotif(project);
-  const setupBusy = setupStatus?.state === "creating" || setupStatus?.state === "preparing";
+  const setupBusy =
+    setupStatus?.state === "creating" || setupStatus?.state === "preparing";
 
   // Density ladder: view modes change card width/content density, while every
   // project thumbnail keeps the same 4:3 architectural image frame.
@@ -218,7 +250,9 @@ function LiveProjectCardImpl({
       )}
     >
       <Clock size={10} weight="regular" aria-hidden="true" />
-      {isExpiredPendingInvite ? "Invite expired" : getAccessBadgeLabel(accessKind)}
+      {isExpiredPendingInvite
+        ? "Invite expired"
+        : getAccessBadgeLabel(accessKind)}
     </span>
   ) : isSharedAccess ? (
     <span
@@ -288,6 +322,14 @@ function LiveProjectCardImpl({
       onExpand={handleExpandDetails}
     />
   );
+  const revealedGroupAssignMenu = groupAssignMenu ? (
+    <span
+      data-project-card-group-assign-control=""
+      className={cn("inline-flex", REVEAL_ON_INTENT)}
+    >
+      {groupAssignMenu}
+    </span>
+  ) : null;
 
   function renderTileMeta() {
     return (
@@ -317,7 +359,8 @@ function LiveProjectCardImpl({
           <p className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary">
             <Clock size={12} aria-hidden="true" className="shrink-0" />
             <span className="truncate">
-              {isExpiredPendingInvite ? "Expired" : "Expires"} {formatUpdatedAt(pendingInvite.expiresAt)}
+              {isExpiredPendingInvite ? "Expired" : "Expires"}{" "}
+              {formatUpdatedAt(pendingInvite.expiresAt)}
             </span>
           </p>
         ) : null}
@@ -329,17 +372,25 @@ function LiveProjectCardImpl({
           >
             <div
               data-project-card-date-cell="created"
-              className="min-w-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1.5"
+              className="min-w-0 rounded-xs px-2 py-1.5"
             >
-              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Created</p>
-              <p className="mt-0.5 truncate font-medium text-ink">{formatUpdatedAt(project.created_at)}</p>
+              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">
+                Created
+              </p>
+              <p className="mt-0.5 truncate font-medium text-ink">
+                {formatUpdatedAt(project.created_at)}
+              </p>
             </div>
             <div
               data-project-card-date-cell="updated"
-              className="min-w-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1.5"
+              className="min-w-0 rounded-xs px-2 py-1.5"
             >
-              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Updated</p>
-              <p className="mt-0.5 truncate font-medium text-ink">{formatUpdatedAt(project.updated_at)}</p>
+              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">
+                Updated
+              </p>
+              <p className="mt-0.5 truncate font-medium text-ink">
+                {formatUpdatedAt(project.updated_at)}
+              </p>
             </div>
           </div>
         ) : null}
@@ -366,8 +417,11 @@ function LiveProjectCardImpl({
           <span className="workshop-project-card-vital workshop-project-card-vital--published">
             <Globe size={10} weight="regular" aria-hidden="true" />
             <span>Published</span>
-            {typeof publicationSummary?.openCount === "number" && publicationSummary.openCount > 0 ? (
-              <span className="tabular-nums">{publicationSummary.openCount} views</span>
+            {typeof publicationSummary?.openCount === "number" &&
+            publicationSummary.openCount > 0 ? (
+              <span className="tabular-nums">
+                {publicationSummary.openCount} views
+              </span>
             ) : null}
           </span>
         ) : null}
@@ -375,7 +429,8 @@ function LiveProjectCardImpl({
           <span className="workshop-project-card-vital workshop-project-card-vital--shared">
             <FileText size={10} weight="regular" aria-hidden="true" />
             <span className="tabular-nums">
-              {sharedEstimateCount} {sharedEstimateCount === 1 ? "estimate" : "estimates"}
+              {sharedEstimateCount}{" "}
+              {sharedEstimateCount === 1 ? "estimate" : "estimates"}
             </span>
           </span>
         ) : null}
@@ -427,9 +482,6 @@ function LiveProjectCardImpl({
           // Perf: skip layout/paint for off-screen list rows too (off-screen borders aren't
           // visible; the `auto` intrinsic size self-corrects to each row's real height).
           "[content-visibility:auto] [contain-intrinsic-size:auto_52px]",
-          // accentSoft and surfaceMuted are the same grey, so a selected row needs a
-          // ring to stay distinct from a merely hovered one during bulk delete.
-          selectedForDeletion ? "ring-1 ring-inset ring-ink" : null,
         )}
       >
         <ProjectCardThumbnail
@@ -464,15 +516,27 @@ function LiveProjectCardImpl({
         >
           {visibleFavoriteEstimateSheets.length > 0 ? (
             <>
-              <Star size={10} weight="regular" aria-hidden="true" className="mb-1 text-warning" />
+              <Star
+                size={10}
+                weight="regular"
+                aria-hidden="true"
+                className="mb-1 text-warning"
+              />
               <div className="relative z-20 flex min-w-0 flex-wrap gap-x-1 gap-y-0.5 text-[9px] leading-3 text-secondary">
                 {visibleFavoriteEstimateSheets.map((sheet, index) => (
-                  <span key={sheet.id} className="inline-flex min-w-0 max-w-full items-center">
+                  <span
+                    key={sheet.id}
+                    className="inline-flex min-w-0 max-w-full items-center"
+                  >
                     <Link
                       href={getFavoriteEstimateSheetHref(sheet)}
                       prefetch={false}
                       className="max-w-full truncate rounded-xs hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                      title={sheet.sheet_code ? `${sheet.name} (${sheet.sheet_code})` : sheet.name}
+                      title={
+                        sheet.sheet_code
+                          ? `${sheet.name} (${sheet.sheet_code})`
+                          : sheet.name
+                      }
                     >
                       {sheet.name}
                     </Link>
@@ -496,7 +560,9 @@ function LiveProjectCardImpl({
         </p>
         <p className="hidden w-[78px] shrink-0 items-center gap-1 text-[9px] leading-3 text-secondary md:flex">
           <Clock size={12} aria-hidden="true" className="shrink-0" />
-          <span className="sr-only">{isPendingInvite ? "Invite expires" : "Updated"}</span>
+          <span className="sr-only">
+            {isPendingInvite ? "Invite expires" : "Updated"}
+          </span>
           <span className="truncate">
             {isPendingInvite && pendingInvite?.expiresAt
               ? formatUpdatedAt(pendingInvite.expiresAt)
@@ -519,7 +585,7 @@ function LiveProjectCardImpl({
         >
           {selectControl}
           {favoriteControl}
-          {groupAssignMenu}
+          {revealedGroupAssignMenu}
           {expandControl}
           {isPendingInvite ? (
             footerAction
@@ -551,16 +617,20 @@ function LiveProjectCardImpl({
             className="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
           />
         )}
-        <ProjectCardSetupOverlay setupStatus={setupStatus} setupBusy={setupBusy} />
+        <ProjectCardSetupOverlay
+          setupStatus={setupStatus}
+          setupBusy={setupBusy}
+        />
       </article>
     );
   }
 
   // ----- TILE: small / medium / large -----
-  // Two-layer card: a translucent liquid-glass BASE wraps an inset white inner
-  // card. The base carries the single armed backdrop-filter; the inner card is
-  // crisp opaque paper (no second blur). The translucent TOP STRIP above the
-  // inner card reveals select (left) + star / group / kebab (right) on hover.
+  // Two-layer card: a translucent liquid-glass BASE wraps an inset translucent
+  // inner panel. The base carries the single armed backdrop-filter; the inner
+  // panel and content pane use plain translucent fills (no second blur). The
+  // translucent TOP STRIP above the inner panel reveals select (left) + star /
+  // group / kebab (right) on hover.
   const thumbnailAspectClass = "aspect-[4/3]";
   const motifSize = "text-[10px]";
   const contentPad = "p-2";
@@ -576,10 +646,14 @@ function LiveProjectCardImpl({
       className={cn(
         // Border-radius now comes from the .workshop-project-card-glass rule
         // (var(--project-card-base-radius)) so the glass base is larger than the
-        // inset inner card and a translucent band reads around the paper.
+        // inset inner panel and a translucent band reads around the content.
         "workshop-project-card-glass group group/card relative flex min-w-0 flex-col overflow-hidden border p-1 motion-reduce:transition-none",
-        selectedForDeletion ? "border-ink" : "border-hairline",
-        viewMode === "large" ? "min-h-[372px]" : viewMode === "medium" ? "min-h-[316px]" : "min-h-[216px]",
+        "border-hairline",
+        viewMode === "large"
+          ? "min-h-[372px]"
+          : viewMode === "medium"
+            ? "min-h-[316px]"
+            : "min-h-[216px]",
         // Perf: let the browser skip layout/paint for off-screen cards. The `auto` intrinsic
         // size remembers each card's real height after first render (no lasting scroll drift),
         // seeded with the per-mode min-height (bumped to absorb the top strip + base padding).
@@ -592,22 +666,25 @@ function LiveProjectCardImpl({
       )}
     >
       {/* Translucent TOP STRIP: hover-revealed controls sitting in the glass
-          band above the inset white card (select leftmost, star/group/kebab right). */}
+          band above the inset inner panel (select leftmost, star/group/kebab right). */}
       <div
         data-project-card-top-strip=""
         className="relative z-20 flex items-center justify-between gap-2 pb-2"
       >
         <div className="flex shrink-0 items-center gap-1">{selectControl}</div>
         <div className="flex shrink-0 items-center gap-1">
-          {groupAssignMenu}
+          {revealedGroupAssignMenu}
           {favoriteControl}
           {expandControl}
         </div>
       </div>
 
-      {/* INSET WHITE inner card: thumbnail + content. The image is its own
-          rounded, shadowed layer so the information area reads underneath it. */}
-      <div data-project-card-inner="" className="workshop-project-card-inner flex min-w-0 flex-1 flex-col">
+      {/* INSET translucent inner panel: thumbnail + content. The image is its
+          own rounded layer so the information area reads underneath it. */}
+      <div
+        data-project-card-inner=""
+        className="workshop-project-card-inner flex min-w-0 flex-1 flex-col"
+      >
         <ProjectCardThumbnail
           fallbackSeed={`${project.id}:${project.name}`}
           imageUrl={imageUrl}
@@ -616,7 +693,7 @@ function LiveProjectCardImpl({
           motif={motif}
           motifSize={motifSize}
           wrapperClass={cn(
-            "workshop-project-card-thumbnail-surface relative z-10 w-full rounded-t-[var(--project-card-inner-radius)] border-b border-hairline",
+            "workshop-project-card-thumbnail-surface relative z-10 w-full rounded-[var(--project-card-inner-radius)] border-b border-hairline",
             thumbnailAspectClass,
           )}
         >
@@ -635,7 +712,11 @@ function LiveProjectCardImpl({
             data-project-card-title-block=""
             className={cn(
               "min-w-0 space-y-1",
-              viewMode === "large" ? "min-h-[70px]" : viewMode === "medium" ? "min-h-[64px]" : "min-h-[58px]",
+              viewMode === "large"
+                ? "min-h-[70px]"
+                : viewMode === "medium"
+                  ? "min-h-[64px]"
+                  : "min-h-[58px]",
             )}
           >
             <ProjectCardTitleBlock
@@ -679,7 +760,10 @@ function LiveProjectCardImpl({
           className="absolute inset-0 z-10 rounded-[var(--project-card-base-radius)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         />
       ) : null}
-      <ProjectCardSetupOverlay setupStatus={setupStatus} setupBusy={setupBusy} />
+      <ProjectCardSetupOverlay
+        setupStatus={setupStatus}
+        setupBusy={setupBusy}
+      />
     </article>
   );
 }

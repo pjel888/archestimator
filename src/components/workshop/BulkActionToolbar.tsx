@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { SelectionAll, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ type BulkActionToolbarProps = {
   onSelectVisible?: () => void;
   placement?: "inline" | "bottom-dock";
   selectedCount: number;
+  secondaryActionSlot?: ReactNode;
   className?: string;
 };
 
@@ -27,10 +29,12 @@ export function BulkActionToolbar({
   onSelectVisible,
   placement = "inline",
   selectedCount,
+  secondaryActionSlot,
   className,
 }: BulkActionToolbarProps) {
   if (selectedCount === 0) return null;
   const isBottomDock = placement === "bottom-dock";
+  const hasSecondaryAction = Boolean(secondaryActionSlot);
 
   if (isBottomDock) {
     return (
@@ -43,7 +47,10 @@ export function BulkActionToolbar({
       >
         <div
           data-bulk-action-dock-surface
-          className="pointer-events-auto flex w-36 flex-col items-center gap-1 rounded-xs border border-hairline bg-white/95 p-1 shadow-[0_22px_54px_-30px_rgba(17,17,17,0.75)] ring-1 ring-black/[0.04] backdrop-blur-md"
+          className={cn(
+            "pointer-events-auto flex flex-col items-center gap-1 rounded-xs border border-hairline bg-white/95 p-1 shadow-[0_22px_54px_-30px_rgba(17,17,17,0.75)] ring-1 ring-black/[0.04] backdrop-blur-md",
+            hasSecondaryAction ? "w-44" : "w-36",
+          )}
         >
           <div
             data-bulk-action-count-floor
@@ -56,7 +63,10 @@ export function BulkActionToolbar({
           {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Bulk action buttons are a named control group; <address> would be incorrect. */}
           <div
             data-bulk-action-icon-floor
-            className="grid h-9 w-full grid-cols-[2rem_2rem_1px_2rem] items-center justify-center gap-1 rounded-xs border border-hairline bg-white p-0.5 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]"
+            className={cn(
+              "grid h-9 w-full items-center justify-center gap-1 rounded-xs border border-hairline bg-white p-0.5 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]",
+              hasSecondaryAction ? "grid-cols-[2rem_2rem_2rem_1px_2rem]" : "grid-cols-[2rem_2rem_1px_2rem]",
+            )}
             role="group"
             aria-label="Bulk selection actions"
           >
@@ -71,6 +81,7 @@ export function BulkActionToolbar({
             ) : (
               <span className="size-8 rounded-xs" aria-hidden="true" />
             )}
+            {secondaryActionSlot}
             <ToolbarIconButton
               label="Clear selection"
               className="size-8 rounded-xs border border-transparent text-secondary hover:-translate-y-0.5 hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-surfaceMuted focus-visible:text-ink"
@@ -121,6 +132,7 @@ export function BulkActionToolbar({
             Select visible
           </Button>
         ) : null}
+        {secondaryActionSlot}
         <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={onClear}>
           Clear
         </Button>

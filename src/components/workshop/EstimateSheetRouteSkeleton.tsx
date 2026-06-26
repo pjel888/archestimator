@@ -1,23 +1,29 @@
-"use client";
-
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/ui/cn";
 
-import {
-  EstimateSurfaceVariantProvider,
-  useEstimateSurfaceVariant,
-} from "./estimate-surface-variant";
 import { estimateSurfaceClass } from "./estimate-surface-class";
 
 const TREE_ROW_COUNT = 10;
 const SHEET_ROW_COUNT = 12;
 const LIBRARY_ROW_COUNT = 8;
+const ESTIMATE_LIBRARY_DEFAULT_WIDTH_CLASS = "w-[560px]";
+const ESTIMATE_SHEET_ROUTE_SKELETON_VARIANT = "glass";
 
-// Mirrors EstimateWorkspaceClient's glass shell so route-level loading does not
+// Mirrors the live glass shell so route-level loading does not
 // flash the project list or dashboard fallback before the estimate sheet mounts.
 export function EstimateSheetRouteSkeleton() {
   return (
-    <EstimateSurfaceVariantProvider variant="glass">
+    <>
+      <div
+        role="note"
+        aria-label="Desktop workspace notice"
+        className="shrink-0 border-b border-hairline bg-surface px-3 py-2 text-[10px] leading-4 text-secondary lg:hidden"
+      >
+        <span className="block font-medium text-ink">Estimate editing works best on a desktop-width screen.</span>
+        <span className="block text-tertiary">
+          Side panels open as compact drawers on this width; use a wider display for full three-panel editing.
+        </span>
+      </div>
       <section
         role="status"
         aria-label="Loading estimate"
@@ -26,7 +32,7 @@ export function EstimateSheetRouteSkeleton() {
         className={cn(
           "flex h-full min-h-0 overflow-hidden",
           "gap-2 p-2",
-          estimateSurfaceClass("glass", "root"),
+          estimateSurfaceClass(ESTIMATE_SHEET_ROUTE_SKELETON_VARIANT, "root"),
         )}
       >
         <span className="sr-only">Loading estimate</span>
@@ -34,12 +40,12 @@ export function EstimateSheetRouteSkeleton() {
         <EstimateContentRouteFallback />
         <EstimateLibraryRouteFallback />
       </section>
-    </EstimateSurfaceVariantProvider>
+    </>
   );
 }
 
 function EstimateTreeRouteFallback() {
-  const variant = useEstimateSurfaceVariant();
+  const variant = ESTIMATE_SHEET_ROUTE_SKELETON_VARIANT;
 
   return (
     <aside
@@ -58,7 +64,7 @@ function EstimateTreeRouteFallback() {
 }
 
 function EstimateContentRouteFallback() {
-  const variant = useEstimateSurfaceVariant();
+  const variant = ESTIMATE_SHEET_ROUTE_SKELETON_VARIANT;
 
   return (
     <div
@@ -81,12 +87,13 @@ function EstimateContentRouteFallback() {
 }
 
 function EstimateLibraryRouteFallback() {
-  const variant = useEstimateSurfaceVariant();
+  const variant = ESTIMATE_SHEET_ROUTE_SKELETON_VARIANT;
 
   return (
     <aside
       className={cn(
-        "hidden h-full min-h-0 min-w-[320px] flex-col p-2 xl:flex",
+        "hidden h-full min-h-0 flex-col p-2 lg:flex",
+        ESTIMATE_LIBRARY_DEFAULT_WIDTH_CLASS,
         estimateSurfaceClass(variant, "libraryRail"),
       )}
       aria-hidden="true"

@@ -92,10 +92,12 @@ export function LibraryOverviewSearch({
   className,
   autoFocus = false,
   onDismiss,
+  onQueryPresenceChange,
 }: {
   className?: string;
   autoFocus?: boolean;
   onDismiss?: () => void;
+  onQueryPresenceChange?: (hasQuery: boolean) => void;
 } = {}) {
   const router = useNavigationRouter();
   const surfaceVariant = useLibrarySurfaceVariant();
@@ -116,11 +118,13 @@ export function LibraryOverviewSearch({
   // server action from the first keystroke. Empty-query resets happen in the
   // change handler; the effect only owns the debounced fetch.
   const updateQuery = useCallback((value: string) => {
-    if (!value.trim()) {
+    const hasQuery = value.trim().length > 0;
+    onQueryPresenceChange?.(hasQuery);
+    if (!hasQuery) {
       requestIdRef.current += 1;
     }
     dispatchSearch({ type: "query", value });
-  }, []);
+  }, [onQueryPresenceChange]);
 
   useEffect(() => {
     if (!trimmedQuery) return;

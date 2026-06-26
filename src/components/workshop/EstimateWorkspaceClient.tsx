@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/ui/cn";
@@ -9,12 +10,11 @@ import {
   type EstimateSurfaceVariant,
 } from "./estimate-surface-variant";
 import { estimateSurfaceClass } from "./estimate-surface-class";
-import { EstimateSheetContent } from "./EstimateSheetContent";
-import { EstimateSheetTree } from "./EstimateSheetTree";
+import { ProjectEstimateMetadataPublisher } from "./ProjectEstimateMetadataStrip";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
-import { estimateQueryKeys, useEstimateTabsQuery } from "@/hooks/use-estimate-query";
+import { estimateQueryKeys, useEstimateEditCapabilityQuery, useEstimateTabsQuery } from "@/hooks/use-estimate-query";
 import { useEstimateActiveTab } from "@/hooks/use-estimate-workspace-state";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
@@ -24,11 +24,21 @@ import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
 
+const EstimateSheetTree = dynamic(() =>
+  import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
+);
+const EstimateSheetContent = dynamic(() =>
+  import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
+);
+
 type EstimateWorkspaceClientProps = {
   projectId: string;
   workspaceId?: string;
   estimateId: string;
   projectName: string;
+  estimateName?: string;
+  estimateSheetCode?: string;
+  projectBudget?: number | null;
   selectedNodeId: string | null;
   nodes: EstimateTreeNode[];
   estimateTabs?: EstimateTabSummary[];
@@ -65,6 +75,9 @@ export function EstimateWorkspaceClient({
   workspaceId,
   estimateId,
   projectName,
+  estimateName,
+  estimateSheetCode,
+  projectBudget,
   selectedNodeId,
   nodes,
   estimateTabs = EMPTY_ESTIMATE_TABS,
@@ -102,6 +115,13 @@ export function EstimateWorkspaceClient({
     () => queryTabs.length > 0 ? queryTabs : [{ id: "legacy-main", name: "Main", sortOrder: 0, isDefault: true }],
     [queryTabs],
   );
+  const editCapabilityQuery = useEstimateEditCapabilityQuery({
+    projectId,
+    estimateId,
+    initialCanEdit: canEditEstimate,
+    enabled: tabQueriesEnabled,
+  });
+  const resolvedCanEditEstimate = canEditEstimate === true || editCapabilityQuery.canEditEstimate;
   const defaultTabId = activeTabId ?? queryTabs.find((tab) => tab.isDefault)?.id ?? queryTabs[0]?.id;
   const { activeTabId: storedActiveTabId, setActiveTabId } = useEstimateActiveTab(estimateId, defaultTabId);
   const resolvedActiveTabId = tabQueriesEnabled && storedActiveTabId && queryTabs.some((tab) => tab.id === storedActiveTabId)
@@ -114,6 +134,18 @@ export function EstimateWorkspaceClient({
   const resolvedLibraryEnableReusableProjectSources = libraryEnableReusableProjectSources ?? !disableRouteSync;
 
   return (
+    <>
+    <ProjectEstimateMetadataPublisher
+      metadata={{
+        projectId,
+        estimateId,
+        projectName,
+        estimateName: estimateName ?? projectName,
+        estimateSheetCode: estimateSheetCode ?? "",
+        projectBudget: projectBudget ?? null,
+        canEditEstimate: resolvedCanEditEstimate,
+      }}
+    />
     <EstimateSurfaceVariantProvider variant={surfaceVariant}>
     <div
       role="note"
@@ -157,7 +189,7 @@ export function EstimateWorkspaceClient({
         activeTabId={displayActiveTabId}
         dataTabId={resolvedActiveTabId}
         loadLimitState={loadLimitState}
-        canEditEstimate={canEditEstimate}
+        canEditEstimate={resolvedCanEditEstimate}
         initialTabId={activeTabId ?? undefined}
         disableRouteSync={disableRouteSync}
         onActiveTabChange={setActiveTabId}
@@ -182,5 +214,6 @@ export function EstimateWorkspaceClient({
       />
     </section>
     </EstimateSurfaceVariantProvider>
+    </>
   );
 }

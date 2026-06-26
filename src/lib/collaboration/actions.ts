@@ -245,6 +245,30 @@ async function hasOtherProjectManager(context: ProjectAccessContext, targetUserI
   return Boolean(workspaceManagers.data?.length || projectManagers.data?.length);
 }
 
+async function hasOtherEstimateSheetManager(context: EstimateAccessContext, targetUserId: string) {
+  const { data, error } = await context.admin
+    .from("estimate_sheet_members")
+    .select("user_id")
+    .eq("estimate_id", context.estimate.id)
+    .in("role", ["owner", "admin"])
+    .neq("user_id", targetUserId)
+    .limit(1);
+
+  if (error) throw error;
+  return Boolean(data?.length);
+}
+
+async function estimateInheritsProjectAccess(context: EstimateAccessContext) {
+  const { data, error } = await context.admin
+    .from("estimate_sheet_access_settings")
+    .select("inherit_project_access")
+    .eq("estimate_id", context.estimate.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.inherit_project_access ?? true;
+}
+
 async function upsertInvitation({
   context,
   email,
@@ -1005,6 +1029,55 @@ export async function removeProjectCollaborator({
     return { ok: true, message: "Project-specific access removed. Notification could not be sent." };
   }
   return { ok: true, message: "Project-specific access removed." };
+}
+
+export async function removeEstimateSheetCollaborator({
+  projectId,
+  estimateId,
+  userId,
+}: {
+  projectId: string;
+  estimateId: string;
+  userId: string;
+}): Promise<CollaborationActionResult> {
+  assertUuid(userId, "User");
+  const context = await assertEstimateAccessManager(projectId, estimateId);
+
+  const { data: existingMember, error: existingError } = await context.admin
+    .from("estimate_sheet_members")
+    .select("role")
+    .eq("estimate_id", context.estimate.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existingMember) return { ok: true, message: "Estimate-specific access already removed." };
+
+  const isRemovingSheetManager = collaborationRoleRank(existingMember.role) >= managerRank;
+  if (isRemovingSheetManager && !(await estimateInheritsProjectAccess(context))) {
+    const hasOtherManager = await hasOtherEstimateSheetManager(context, userId);
+    if (!hasOtherManager) throw new Error("Every restricted estimate needs at least one owner or admin.");
+  }
+
+  const { error } = await context.admin
+    .from("estimate_sheet_members")
+    .delete()
+    .eq("estimate_id", context.estimate.id)
+    .eq("user_id", userId);
+  if (error) throw error;
+
+  await recordCollaborationAuditEvent({
+    context,
+    estimateId: context.estimate.id,
+    eventType: "member_removed",
+    metadata: {
+      previous_role: existingMember.role,
+      scope: "estimate",
+      target_user_id: userId,
+    },
+  });
+
+  revalidateCollaborationRoutes(context.project.id);
+  return { ok: true, message: "Estimate-specific access removed." };
 }
 
 async function upsertSheetOwnerBeforeRestricting(context: EstimateAccessContext) {

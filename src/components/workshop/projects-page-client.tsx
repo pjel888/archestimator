@@ -1,7 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, memo, useDeferredValue, useEffect, useMemo, useReducer, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import {
+  Suspense,
+  memo,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useReducer,
+  useSyncExternalStore,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -10,7 +20,6 @@ import {
   ClockCounterClockwise,
   FolderSimple,
   GridFour,
-  Plus,
   Rows,
   SortAscending,
   SortDescending,
@@ -23,13 +32,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { ContextActionMenuContent } from "@/components/ui/action-menu";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
+import {
+  DropdownSelect,
+  type DropdownSelectOption,
+} from "@/components/ui/dropdown-select";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
-import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
-import { executeBulkDeleteProjects, previewBulkDeleteProjects } from "@/lib/projects/actions";
-import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
+import {
+  HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME,
+  type HeaderIconToolbarAddAction,
+} from "@/components/ui/header-icon-toolbar";
+import {
+  executeBulkDeleteProjects,
+  previewBulkDeleteProjects,
+} from "@/lib/projects/actions";
+import {
+  createBulkActionCorrelationId,
+  type BulkActionPreviewResult,
+} from "@/lib/mass-deletion/bulk-action";
 import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
 import type { GroupAccentId } from "@/lib/workshop/group-accent";
 import {
@@ -51,9 +72,17 @@ import type {
   WorkshopPendingInviteSummary,
 } from "@/lib/repositories/workspace-repository";
 
-import { LiveProjectCard, type ProjectAccessKind, type ProjectCardSetupStatus, type ProjectCardViewMode } from "./LiveProjectCard";
+import {
+  LiveProjectCard,
+  type ProjectAccessKind,
+  type ProjectCardSetupStatus,
+  type ProjectCardViewMode,
+} from "./LiveProjectCard";
 import type { NewProjectOptimisticSnapshot } from "./NewProjectForm";
-import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
+import {
+  getProjectDateFlagLayoutClassName,
+  getProjectGridClassName,
+} from "./project-grid-layout";
 import { createProjectClientOptions } from "./project-client-options";
 import { ProjectGroupSection } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
@@ -90,24 +119,46 @@ export type ProjectListItem = {
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
 const EMPTY_PROJECT_GROUPS: ProjectGroupSummary[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
-const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
-const projectGroupMonthFormatter = new Intl.DateTimeFormat("en", { month: "long" });
+const PROJECT_VIEW_MODE_CHANGE_EVENT =
+  "archestimator:projects-view-mode-change";
+const projectGroupMonthFormatter = new Intl.DateTimeFormat("en", {
+  month: "long",
+});
 
-// Part 7d (Project Groups): the "Organize by" axis (None / Date / Group). Persisted
-// in localStorage with the SAME useSyncExternalStore + custom-event + storage-event
+// Part 7d (Project Groups): the "Group by" axis is independent from sorting.
+// Persisted with the SAME useSyncExternalStore + custom-event + storage-event
 // machinery as the view-mode preference, so it survives remounts and stays in sync
 // across tabs.
-type ProjectOrganizeBy = "none" | "date" | "group";
-const PROJECT_ORGANIZE_BY_STORAGE_KEY = "archestimator_projects_organize_by_v1";
-const PROJECT_ORGANIZE_BY_CHANGE_EVENT = "archestimator:projects-organize-by-change";
-const PROJECT_ORGANIZE_BY_VALUES: ProjectOrganizeBy[] = ["none", "date", "group"];
+type ProjectGroupBy =
+  | "none"
+  | "group"
+  | "updated_at"
+  | "created_at"
+  | "client_name";
+const PROJECT_GROUP_BY_STORAGE_KEY = "archestimator_projects_group_by_v1";
+const PROJECT_GROUP_BY_LEGACY_STORAGE_KEY =
+  "archestimator_projects_organize_by_v1";
+const PROJECT_GROUP_BY_CHANGE_EVENT = "archestimator:projects-group-by-change";
+const PROJECT_GROUP_BY_VALUES: ProjectGroupBy[] = [
+  "none",
+  "group",
+  "updated_at",
+  "created_at",
+  "client_name",
+];
 const UNGROUPED_GROUP_KEY = "__ungrouped__";
 const UNGROUPED_GROUP_LABEL = "Ungrouped";
 const PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS =
   "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
-const NewProjectModal = dynamic(() => import("./NewProjectModal").then((mod) => mod.NewProjectModal), { ssr: false });
-const ProjectDetailsModal = dynamic(() => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal), { ssr: false });
+const NewProjectModal = dynamic(
+  () => import("./NewProjectModal").then((mod) => mod.NewProjectModal),
+  { ssr: false },
+);
+const ProjectDetailsModal = dynamic(
+  () => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal),
+  { ssr: false },
+);
 // Interaction-only surfaces — kept out of the initial entry chunk and fetched on first use.
 // BulkDestructivePreviewModal was statically imported, which pulled the whole dialog stack
 // into the entry chunk and defeated the other modals' lazy split.
@@ -116,7 +167,10 @@ const ManageGroupsPopover = dynamic(
   { ssr: false },
 );
 const BulkDestructivePreviewModal = dynamic(
-  () => import("@/components/workshop/BulkDestructivePreviewModal").then((mod) => mod.BulkDestructivePreviewModal),
+  () =>
+    import("@/components/workshop/BulkDestructivePreviewModal").then(
+      (mod) => mod.BulkDestructivePreviewModal,
+    ),
   { ssr: false },
 );
 const PROJECT_VIEW_MODE_OPTIONS: Array<{
@@ -129,42 +183,78 @@ const PROJECT_VIEW_MODE_OPTIONS: Array<{
   { value: "medium", label: "Medium", icon: GridFour },
   { value: "large", label: "Large", icon: Cards },
 ];
-const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = PROJECT_VIEW_MODE_OPTIONS.map(({ value, label, icon: Icon }) => ({
-  value,
-  label,
-  icon: <Icon size={12} weight="regular" aria-hidden="true" />,
-}));
+const VIEW_SELECT_OPTIONS: DropdownSelectOption[] =
+  PROJECT_VIEW_MODE_OPTIONS.map(({ value, label, icon: Icon }) => ({
+    value,
+    label,
+    icon: <Icon size={12} weight="regular" aria-hidden="true" />,
+  }));
 const PROJECT_SORT_FIELD_OPTIONS = [
-  { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
-  { value: "created_at", label: "Date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
-  { value: "client_name", label: "Client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
-  { value: "name", label: "Project name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
+  {
+    value: "updated_at",
+    label: "Last updated",
+    icon: (
+      <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />
+    ),
+  },
+  {
+    value: "created_at",
+    label: "Date created",
+    icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" />,
+  },
+  {
+    value: "client_name",
+    label: "Client",
+    icon: <User size={12} weight="regular" aria-hidden="true" />,
+  },
+  {
+    value: "name",
+    label: "Project name",
+    icon: <TextAa size={12} weight="regular" aria-hidden="true" />,
+  },
 ] as const satisfies readonly DropdownSelectOption[];
-const PROJECT_ARRANGE_OPTIONS = [
-  { value: "none", label: "No grouping", icon: <StackSimple size={12} weight="regular" aria-hidden="true" /> },
-  { value: "group:group", label: "Group by project group", icon: <FolderSimple size={12} weight="regular" aria-hidden="true" /> },
-  { value: "group:updated_at", label: "Group by last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
-  { value: "group:created_at", label: "Group by date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
-  { value: "group:client_name", label: "Group by client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
-  { value: "sort:updated_at", label: "Sort by last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
-  { value: "sort:created_at", label: "Sort by date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
-  { value: "sort:client_name", label: "Sort by client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
-  { value: "sort:name", label: "Sort by project name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
+const PROJECT_GROUP_BY_OPTIONS = [
+  {
+    value: "none",
+    label: "No grouping",
+    icon: <StackSimple size={12} weight="regular" aria-hidden="true" />,
+  },
+  {
+    value: "group",
+    label: "Project group",
+    icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
+  },
+  {
+    value: "updated_at",
+    label: "Last updated",
+    icon: (
+      <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />
+    ),
+  },
+  {
+    value: "created_at",
+    label: "Date created",
+    icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" />,
+  },
+  {
+    value: "client_name",
+    label: "Client",
+    icon: <User size={12} weight="regular" aria-hidden="true" />,
+  },
 ] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_ACCESS_TABS = [
   { id: "your-projects", label: "Projects" },
   { id: "shared-to-you", label: "Shared" },
 ] as const;
-const PROJECT_ACCESS_TAB_ITEMS = PROJECT_ACCESS_TABS.map(({ id, label }) => ({ id, label })) satisfies readonly TabItem[];
+const PROJECT_ACCESS_TAB_ITEMS = PROJECT_ACCESS_TABS.map(({ id, label }) => ({
+  id,
+  label,
+})) satisfies readonly TabItem[];
 
 type ProjectAccessTab = (typeof PROJECT_ACCESS_TABS)[number]["id"];
 type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
 type ProjectSortDirection = "asc" | "desc";
-type ProjectArrangeValue =
-  | "none"
-  | "group:group"
-  | `group:${ProjectSortField}`
-  | `sort:${ProjectSortField}`;
+type ProjectScalarGroupBy = Exclude<ProjectGroupBy, "none" | "group">;
 type ProjectDeleteState = "idle" | "loading" | "ready" | "executing";
 type StateUpdater<T> = T | ((current: T) => T);
 type ProjectsPageClientState = {
@@ -194,22 +284,37 @@ type ProjectsPageClientInit = {
 };
 type ProjectsPageClientAction =
   | { type: "setIsModalOpen"; value: StateUpdater<boolean> }
-  | { type: "setExpandedProject"; value: StateUpdater<Tables<"projects"> | null> }
+  | {
+      type: "setExpandedProject";
+      value: StateUpdater<Tables<"projects"> | null>;
+    }
   | { type: "setSearchQuery"; value: string }
-  | { type: "setOptimisticProjectCreates"; value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>> }
+  | {
+      type: "setOptimisticProjectCreates";
+      value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>>;
+    }
   | { type: "setActiveTab"; value: ProjectAccessTab }
-  | { type: "setFavoriteOverrides"; value: StateUpdater<Record<string, boolean>> }
+  | {
+      type: "setFavoriteOverrides";
+      value: StateUpdater<Record<string, boolean>>;
+    }
   | { type: "setPendingFavoriteId"; value: string | null }
   | { type: "setSelectedProjectIds"; value: StateUpdater<Set<string>> }
   | { type: "setSortField"; value: ProjectSortField }
   | { type: "setSortDirection"; value: ProjectSortDirection }
   | { type: "setSortTouched"; value: boolean }
-  | { type: "setGroupOverrides"; value: StateUpdater<Record<string, string | null>> }
+  | {
+      type: "setGroupOverrides";
+      value: StateUpdater<Record<string, string | null>>;
+    }
   | { type: "setPendingGroupProjectId"; value: string | null }
   | { type: "setCollapsedGroupKeys"; value: StateUpdater<Set<string>> }
   | { type: "setManageGroupsOpen"; value: boolean }
   | { type: "setDeleteProjectTargetIds"; value: string[] }
-  | { type: "setDeleteProjectPreview"; value: StateUpdater<BulkActionPreviewResult | null> }
+  | {
+      type: "setDeleteProjectPreview";
+      value: StateUpdater<BulkActionPreviewResult | null>;
+    }
   | { type: "setDeleteProjectError"; value: string | null }
   | { type: "setDeleteProjectState"; value: ProjectDeleteState }
   | { type: "setBulkDeleteModalMounted"; value: boolean };
@@ -226,7 +331,9 @@ type ProjectAccessTabsProps = {
 };
 
 function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
-  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
+  return typeof value === "function"
+    ? (value as (current: T) => T)(current)
+    : value;
 }
 
 function createProjectsPageClientState({
@@ -262,21 +369,48 @@ function projectsPageClientReducer(
 ): ProjectsPageClientState {
   switch (action.type) {
     case "setIsModalOpen":
-      return { ...state, isModalOpen: resolveStateUpdater(state.isModalOpen, action.value) };
+      return {
+        ...state,
+        isModalOpen: resolveStateUpdater(state.isModalOpen, action.value),
+      };
     case "setExpandedProject":
-      return { ...state, expandedProject: resolveStateUpdater(state.expandedProject, action.value) };
+      return {
+        ...state,
+        expandedProject: resolveStateUpdater(
+          state.expandedProject,
+          action.value,
+        ),
+      };
     case "setSearchQuery":
       return { ...state, searchQuery: action.value };
     case "setOptimisticProjectCreates":
-      return { ...state, optimisticProjectCreates: resolveStateUpdater(state.optimisticProjectCreates, action.value) };
+      return {
+        ...state,
+        optimisticProjectCreates: resolveStateUpdater(
+          state.optimisticProjectCreates,
+          action.value,
+        ),
+      };
     case "setActiveTab":
       return { ...state, activeTab: action.value };
     case "setFavoriteOverrides":
-      return { ...state, favoriteOverrides: resolveStateUpdater(state.favoriteOverrides, action.value) };
+      return {
+        ...state,
+        favoriteOverrides: resolveStateUpdater(
+          state.favoriteOverrides,
+          action.value,
+        ),
+      };
     case "setPendingFavoriteId":
       return { ...state, pendingFavoriteId: action.value };
     case "setSelectedProjectIds":
-      return { ...state, selectedProjectIds: resolveStateUpdater(state.selectedProjectIds, action.value) };
+      return {
+        ...state,
+        selectedProjectIds: resolveStateUpdater(
+          state.selectedProjectIds,
+          action.value,
+        ),
+      };
     case "setSortField":
       return { ...state, sortField: action.value };
     case "setSortDirection":
@@ -284,17 +418,32 @@ function projectsPageClientReducer(
     case "setSortTouched":
       return { ...state, sortTouched: action.value };
     case "setGroupOverrides":
-      return { ...state, groupOverrides: resolveStateUpdater(state.groupOverrides, action.value) };
+      return {
+        ...state,
+        groupOverrides: resolveStateUpdater(state.groupOverrides, action.value),
+      };
     case "setPendingGroupProjectId":
       return { ...state, pendingGroupProjectId: action.value };
     case "setCollapsedGroupKeys":
-      return { ...state, collapsedGroupKeys: resolveStateUpdater(state.collapsedGroupKeys, action.value) };
+      return {
+        ...state,
+        collapsedGroupKeys: resolveStateUpdater(
+          state.collapsedGroupKeys,
+          action.value,
+        ),
+      };
     case "setManageGroupsOpen":
       return { ...state, manageGroupsOpen: action.value };
     case "setDeleteProjectTargetIds":
       return { ...state, deleteProjectTargetIds: action.value };
     case "setDeleteProjectPreview":
-      return { ...state, deleteProjectPreview: resolveStateUpdater(state.deleteProjectPreview, action.value) };
+      return {
+        ...state,
+        deleteProjectPreview: resolveStateUpdater(
+          state.deleteProjectPreview,
+          action.value,
+        ),
+      };
     case "setDeleteProjectError":
       return { ...state, deleteProjectError: action.value };
     case "setDeleteProjectState":
@@ -304,7 +453,9 @@ function projectsPageClientReducer(
   }
 }
 
-function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectListItem): ProjectListItem {
+function normalizeProjectListItem(
+  projectOrItem: Tables<"projects"> | ProjectListItem,
+): ProjectListItem {
   if ("project" in projectOrItem) return projectOrItem;
   return {
     project: projectOrItem,
@@ -317,7 +468,9 @@ function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectLis
   };
 }
 
-function optimisticProjectSnapshotToListItem(snapshot: NewProjectOptimisticSnapshot): ProjectListItem {
+function optimisticProjectSnapshotToListItem(
+  snapshot: NewProjectOptimisticSnapshot,
+): ProjectListItem {
   return {
     project: snapshot.project,
     accessKind: "owned",
@@ -334,14 +487,18 @@ function optimisticProjectSnapshotToListItem(snapshot: NewProjectOptimisticSnaps
 }
 
 function getProjectAccessSearchText(item: ProjectListItem) {
-  const badge = item.accessKind === "pending-invite"
-    ? "pending invite"
-    : item.accessKind === "project-member"
-      ? "shared project"
-      : item.accessKind === "sheet-member"
-        ? "estimate-only"
-        : "owned";
-  const linkStatus = item.publicationSummary?.status === "published" ? "shared link published" : null;
+  const badge =
+    item.accessKind === "pending-invite"
+      ? "pending invite"
+      : item.accessKind === "project-member"
+        ? "shared project"
+        : item.accessKind === "sheet-member"
+          ? "estimate-only"
+          : "owned";
+  const linkStatus =
+    item.publicationSummary?.status === "published"
+      ? "shared link published"
+      : null;
   return [
     badge,
     item.currentUserRole,
@@ -349,7 +506,9 @@ function getProjectAccessSearchText(item: ProjectListItem) {
     item.pendingInvite?.projectCode,
     item.pendingInvite?.inviterLabel,
     item.pendingInvite?.estimateName,
-    item.sharedEstimateCount ? `${item.sharedEstimateCount} shared estimates` : null,
+    item.sharedEstimateCount
+      ? `${item.sharedEstimateCount} shared estimates`
+      : null,
     linkStatus,
   ]
     .filter(Boolean)
@@ -365,8 +524,12 @@ function readProjectViewModePreference(): ProjectCardViewMode {
   if (typeof window === "undefined") return fallbackProjectViewMode;
 
   try {
-    const storedViewMode = window.localStorage.getItem(PROJECT_VIEW_MODE_STORAGE_KEY);
-    return isProjectViewMode(storedViewMode) ? storedViewMode : fallbackProjectViewMode;
+    const storedViewMode = window.localStorage.getItem(
+      PROJECT_VIEW_MODE_STORAGE_KEY,
+    );
+    return isProjectViewMode(storedViewMode)
+      ? storedViewMode
+      : fallbackProjectViewMode;
   } catch {
     return fallbackProjectViewMode;
   }
@@ -397,34 +560,49 @@ function getProjectViewModeServerSnapshot(): ProjectCardViewMode {
   return "large";
 }
 
-function isProjectOrganizeBy(value: string | null): value is ProjectOrganizeBy {
-  return value !== null && PROJECT_ORGANIZE_BY_VALUES.includes(value as ProjectOrganizeBy);
+function isProjectGroupBy(value: string | null): value is ProjectGroupBy {
+  return (
+    value !== null && PROJECT_GROUP_BY_VALUES.includes(value as ProjectGroupBy)
+  );
 }
 
-function readProjectOrganizeByPreference(defaultValue: ProjectOrganizeBy): ProjectOrganizeBy {
+function readProjectGroupByPreference(
+  defaultValue: ProjectGroupBy,
+): ProjectGroupBy {
   if (typeof window === "undefined") return defaultValue;
   try {
-    const stored = window.localStorage.getItem(PROJECT_ORGANIZE_BY_STORAGE_KEY);
-    if (isProjectOrganizeBy(stored)) return stored;
+    const stored = window.localStorage.getItem(PROJECT_GROUP_BY_STORAGE_KEY);
+    if (isProjectGroupBy(stored)) return stored;
+
+    const legacyStored = window.localStorage.getItem(
+      PROJECT_GROUP_BY_LEGACY_STORAGE_KEY,
+    );
+    if (legacyStored === "date") return "updated_at";
+    if (legacyStored === "group") return "group";
+    if (legacyStored === "none") return "none";
   } catch {}
   return defaultValue;
 }
 
-function writeProjectOrganizeByPreference(organizeBy: ProjectOrganizeBy) {
+function writeProjectGroupByPreference(groupBy: ProjectGroupBy) {
   try {
-    window.localStorage.setItem(PROJECT_ORGANIZE_BY_STORAGE_KEY, organizeBy);
+    window.localStorage.setItem(PROJECT_GROUP_BY_STORAGE_KEY, groupBy);
   } catch {}
-  window.dispatchEvent(new Event(PROJECT_ORGANIZE_BY_CHANGE_EVENT));
+  window.dispatchEvent(new Event(PROJECT_GROUP_BY_CHANGE_EVENT));
 }
 
-function subscribeProjectOrganizeByPreference(onStoreChange: () => void) {
+function subscribeProjectGroupByPreference(onStoreChange: () => void) {
   function handleStorage(event: StorageEvent) {
-    if (event.key === PROJECT_ORGANIZE_BY_STORAGE_KEY) onStoreChange();
+    if (
+      event.key === PROJECT_GROUP_BY_STORAGE_KEY ||
+      event.key === PROJECT_GROUP_BY_LEGACY_STORAGE_KEY
+    )
+      onStoreChange();
   }
-  window.addEventListener(PROJECT_ORGANIZE_BY_CHANGE_EVENT, onStoreChange);
+  window.addEventListener(PROJECT_GROUP_BY_CHANGE_EVENT, onStoreChange);
   window.addEventListener("storage", handleStorage);
   return () => {
-    window.removeEventListener(PROJECT_ORGANIZE_BY_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener(PROJECT_GROUP_BY_CHANGE_EVENT, onStoreChange);
     window.removeEventListener("storage", handleStorage);
   };
 }
@@ -438,23 +616,6 @@ function getProjectAccessTabsLayoutClassName(viewMode: ProjectCardViewMode) {
   return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))] [&_[role=tablist]]:gap-3";
 }
 
-function getProjectArrangeValue({
-  organizeBy,
-  sortField,
-  sortTouched,
-}: {
-  organizeBy: ProjectOrganizeBy;
-  sortField: ProjectSortField;
-  sortTouched: boolean;
-}): ProjectArrangeValue {
-  if (organizeBy === "group") return "group:group";
-  if (organizeBy === "date" && (isDateSortField(sortField) || sortField === "client_name")) {
-    return `group:${sortField}`;
-  }
-  if (!sortTouched && sortField === "updated_at") return "none";
-  return `sort:${sortField}`;
-}
-
 function getProjectAccessTabId(tab: ProjectAccessTab) {
   return `tab-${tab}`;
 }
@@ -463,25 +624,38 @@ function getProjectAccessPanelId(tab: ProjectAccessTab) {
   return `panel-${tab}`;
 }
 
-const projectNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const projectNameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
 
 function isDateSortField(field: ProjectSortField) {
   return field === "updated_at" || field === "created_at";
 }
 
-function defaultSortDirectionForField(field: ProjectSortField): ProjectSortDirection {
+function defaultSortDirectionForField(
+  field: ProjectSortField,
+): ProjectSortDirection {
   return isDateSortField(field) ? "desc" : "asc";
 }
 
-function getProjectSortDirectionLabel(field: ProjectSortField, direction: ProjectSortDirection) {
-  if (isDateSortField(field)) return direction === "desc" ? "Newest first" : "Oldest first";
+function getProjectSortDirectionLabel(
+  field: ProjectSortField,
+  direction: ProjectSortDirection,
+) {
+  if (isDateSortField(field))
+    return direction === "desc" ? "Newest first" : "Oldest first";
   return direction === "asc" ? "A to Z" : "Z to A";
 }
 
-function getProjectSortValue(item: ProjectListItem, field: ProjectSortField): string | number | null {
+function getProjectSortValue(
+  item: ProjectListItem,
+  field: ProjectSortField,
+): string | number | null {
   const value = item.project[field];
   if (field === "updated_at" || field === "created_at") {
-    const time = typeof value === "string" ? new Date(value).getTime() : Number.NaN;
+    const time =
+      typeof value === "string" ? new Date(value).getTime() : Number.NaN;
     return Number.isFinite(time) ? time : null;
   }
   if (typeof value !== "string") return null;
@@ -490,10 +664,18 @@ function getProjectSortValue(item: ProjectListItem, field: ProjectSortField): st
 }
 
 function compareProjectsByName(a: ProjectListItem, b: ProjectListItem) {
-  return projectNameCollator.compare(a.project.name ?? "", b.project.name ?? "");
+  return projectNameCollator.compare(
+    a.project.name ?? "",
+    b.project.name ?? "",
+  );
 }
 
-function compareProjectsBySort(a: ProjectListItem, b: ProjectListItem, field: ProjectSortField, direction: ProjectSortDirection) {
+function compareProjectsBySort(
+  a: ProjectListItem,
+  b: ProjectListItem,
+  field: ProjectSortField,
+  direction: ProjectSortDirection,
+) {
   const aValue = getProjectSortValue(a, field);
   const bValue = getProjectSortValue(b, field);
   if (aValue === null && bValue === null) return compareProjectsByName(a, b);
@@ -501,14 +683,20 @@ function compareProjectsBySort(a: ProjectListItem, b: ProjectListItem, field: Pr
   if (bValue === null) return -1;
 
   const order = direction === "asc" ? 1 : -1;
-  const primary = typeof aValue === "number" && typeof bValue === "number"
-    ? aValue - bValue
-    : projectNameCollator.compare(String(aValue), String(bValue));
+  const primary =
+    typeof aValue === "number" && typeof bValue === "number"
+      ? aValue - bValue
+      : projectNameCollator.compare(String(aValue), String(bValue));
   if (primary !== 0) return primary * order;
   return compareProjectsByName(a, b);
 }
 
-function compareProjectsByDateOnly(a: ProjectListItem, b: ProjectListItem, field: ProjectSortField, direction: ProjectSortDirection) {
+function compareProjectsByDateOnly(
+  a: ProjectListItem,
+  b: ProjectListItem,
+  field: ProjectSortField,
+  direction: ProjectSortDirection,
+) {
   const aValue = getProjectSortValue(a, field);
   const bValue = getProjectSortValue(b, field);
   if (aValue === null && bValue === null) return 0;
@@ -531,7 +719,10 @@ function getProjectDateGroup(item: ProjectListItem, field: ProjectSortField) {
   if (!date || !Number.isFinite(date.getTime())) {
     return {
       key: `${field}:undated`,
-      label: field === "created_at" ? "Created date missing" : "Updated date missing",
+      label:
+        field === "created_at"
+          ? "Created date missing"
+          : "Updated date missing",
       kind: "date" as const,
     };
   }
@@ -545,7 +736,10 @@ function getProjectDateGroup(item: ProjectListItem, field: ProjectSortField) {
 }
 
 function getProjectClientGroup(item: ProjectListItem) {
-  const clientName = typeof item.project.client_name === "string" ? item.project.client_name.trim() : "";
+  const clientName =
+    typeof item.project.client_name === "string"
+      ? item.project.client_name.trim()
+      : "";
   if (!clientName) {
     return {
       key: "client_name:missing",
@@ -561,12 +755,15 @@ function getProjectClientGroup(item: ProjectListItem) {
   };
 }
 
-function getProjectGroup(item: ProjectListItem, field: ProjectSortField) {
+function getProjectGroup(item: ProjectListItem, field: ProjectScalarGroupBy) {
   if (field === "client_name") return getProjectClientGroup(item);
   return getProjectDateGroup(item, field);
 }
 
-function groupProjects(items: ProjectListItem[], field: ProjectSortField): ProjectDateGroup[] {
+function groupProjects(
+  items: ProjectListItem[],
+  field: ProjectScalarGroupBy,
+): ProjectDateGroup[] {
   const groups: ProjectDateGroup[] = [];
   let currentGroup: ProjectDateGroup | null = null;
 
@@ -661,21 +858,29 @@ function ProjectAccessTabs({
       variant="underline"
       ariaLabel="Project access tabs"
       className={cn(
-        "bg-transparent px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-transparent",
+        "bg-transparent px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-0",
         getProjectAccessTabsLayoutClassName(viewMode),
       )}
-      getTabButtonProps={() => ({ className: "h-full !min-h-[41px] w-full justify-start px-2.5" })}
+      getTabButtonProps={() => ({
+        className: "h-full !min-h-[41px] w-full justify-start px-2.5",
+      })}
     />
   );
 }
 
-function isProjectSetupBlocking(status: ProjectCardSetupStatus | null | undefined) {
+function isProjectSetupBlocking(
+  status: ProjectCardSetupStatus | null | undefined,
+) {
   return status?.state === "creating" || status?.state === "preparing";
 }
 
 function canSelectProjectForDeletion(item: ProjectListItem) {
   if (isProjectSetupBlocking(item.setupStatus)) return false;
-  if (item.accessKind === "pending-invite" || item.accessKind === "sheet-member") return false;
+  if (
+    item.accessKind === "pending-invite" ||
+    item.accessKind === "sheet-member"
+  )
+    return false;
   if (item.accessKind === "owned") return true;
   return item.currentUserRole === "owner" || item.currentUserRole === "admin";
 }
@@ -687,7 +892,9 @@ function canSelectProjectForDeletion(item: ProjectListItem) {
 // v1 group scope (D11). This intentionally does NOT consult the delete gate, so an owned
 // project the delete flow would block (e.g. an active shared link) stays bulk-groupable.
 function canAssignProjectToGroup(item: ProjectListItem) {
-  return item.accessKind === "owned" && !isProjectSetupBlocking(item.setupStatus);
+  return (
+    item.accessKind === "owned" && !isProjectSetupBlocking(item.setupStatus)
+  );
 }
 
 type ProjectCardRowProps = {
@@ -775,7 +982,15 @@ const ProjectCardRow = memo(function ProjectCardRow({
         />
       </DropdownMenu>
     );
-  }, [showGroupMenu, projectGroups, effectiveGroupId, groupBusy, item.project.id, item.project.name, onAssignToGroup]);
+  }, [
+    showGroupMenu,
+    projectGroups,
+    effectiveGroupId,
+    groupBusy,
+    item.project.id,
+    item.project.name,
+    onAssignToGroup,
+  ]);
 
   return (
     <LiveProjectCard
@@ -815,9 +1030,13 @@ export function ProjectsPageClient({
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
   const { toast } = useToast();
-  const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
-  // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure server project normalization in render, not effect-driven event logic.
-  const serverProjectItems = useMemo(() => projects.map(normalizeProjectListItem), [projects]);
+  const toggleProjectFavoriteMutation =
+    useToggleProjectFavorite(favoritesScope);
+  const serverProjectItems = useMemo(
+    // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure server project normalization in render, not effect-driven event logic.
+    () => projects.map(normalizeProjectListItem),
+    [projects],
+  );
   const initialTab: ProjectAccessTab =
     serverProjectItems.every((item) => item.accessKind !== "owned") &&
     serverProjectItems.some((item) => item.accessKind !== "owned")
@@ -850,28 +1069,53 @@ export function ProjectsPageClient({
     deleteProjectState,
     bulkDeleteModalMounted,
   } = pageState;
-  const pageStateSetters = useMemo(() => ({
-    setIsModalOpen: (value: StateUpdater<boolean>) => dispatchPageState({ type: "setIsModalOpen", value }),
-    setExpandedProject: (value: StateUpdater<Tables<"projects"> | null>) => dispatchPageState({ type: "setExpandedProject", value }),
-    setSearchQuery: (value: string) => dispatchPageState({ type: "setSearchQuery", value }),
-    setOptimisticProjectCreates: (value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>>) => dispatchPageState({ type: "setOptimisticProjectCreates", value }),
-    setActiveTab: (value: ProjectAccessTab) => dispatchPageState({ type: "setActiveTab", value }),
-    setFavoriteOverrides: (value: StateUpdater<Record<string, boolean>>) => dispatchPageState({ type: "setFavoriteOverrides", value }),
-    setPendingFavoriteId: (value: string | null) => dispatchPageState({ type: "setPendingFavoriteId", value }),
-    setSelectedProjectIds: (value: StateUpdater<Set<string>>) => dispatchPageState({ type: "setSelectedProjectIds", value }),
-    setSortField: (value: ProjectSortField) => dispatchPageState({ type: "setSortField", value }),
-    setSortDirection: (value: ProjectSortDirection) => dispatchPageState({ type: "setSortDirection", value }),
-    setSortTouched: (value: boolean) => dispatchPageState({ type: "setSortTouched", value }),
-    setGroupOverrides: (value: StateUpdater<Record<string, string | null>>) => dispatchPageState({ type: "setGroupOverrides", value }),
-    setPendingGroupProjectId: (value: string | null) => dispatchPageState({ type: "setPendingGroupProjectId", value }),
-    setCollapsedGroupKeys: (value: StateUpdater<Set<string>>) => dispatchPageState({ type: "setCollapsedGroupKeys", value }),
-    setManageGroupsOpen: (value: boolean) => dispatchPageState({ type: "setManageGroupsOpen", value }),
-    setDeleteProjectTargetIds: (value: string[]) => dispatchPageState({ type: "setDeleteProjectTargetIds", value }),
-    setDeleteProjectPreview: (value: StateUpdater<BulkActionPreviewResult | null>) => dispatchPageState({ type: "setDeleteProjectPreview", value }),
-    setDeleteProjectError: (value: string | null) => dispatchPageState({ type: "setDeleteProjectError", value }),
-    setDeleteProjectState: (value: ProjectDeleteState) => dispatchPageState({ type: "setDeleteProjectState", value }),
-    setBulkDeleteModalMounted: (value: boolean) => dispatchPageState({ type: "setBulkDeleteModalMounted", value }),
-  }), []);
+  const pageStateSetters = useMemo(
+    () => ({
+      setIsModalOpen: (value: StateUpdater<boolean>) =>
+        dispatchPageState({ type: "setIsModalOpen", value }),
+      setExpandedProject: (value: StateUpdater<Tables<"projects"> | null>) =>
+        dispatchPageState({ type: "setExpandedProject", value }),
+      setSearchQuery: (value: string) =>
+        dispatchPageState({ type: "setSearchQuery", value }),
+      setOptimisticProjectCreates: (
+        value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>>,
+      ) => dispatchPageState({ type: "setOptimisticProjectCreates", value }),
+      setActiveTab: (value: ProjectAccessTab) =>
+        dispatchPageState({ type: "setActiveTab", value }),
+      setFavoriteOverrides: (value: StateUpdater<Record<string, boolean>>) =>
+        dispatchPageState({ type: "setFavoriteOverrides", value }),
+      setPendingFavoriteId: (value: string | null) =>
+        dispatchPageState({ type: "setPendingFavoriteId", value }),
+      setSelectedProjectIds: (value: StateUpdater<Set<string>>) =>
+        dispatchPageState({ type: "setSelectedProjectIds", value }),
+      setSortField: (value: ProjectSortField) =>
+        dispatchPageState({ type: "setSortField", value }),
+      setSortDirection: (value: ProjectSortDirection) =>
+        dispatchPageState({ type: "setSortDirection", value }),
+      setSortTouched: (value: boolean) =>
+        dispatchPageState({ type: "setSortTouched", value }),
+      setGroupOverrides: (value: StateUpdater<Record<string, string | null>>) =>
+        dispatchPageState({ type: "setGroupOverrides", value }),
+      setPendingGroupProjectId: (value: string | null) =>
+        dispatchPageState({ type: "setPendingGroupProjectId", value }),
+      setCollapsedGroupKeys: (value: StateUpdater<Set<string>>) =>
+        dispatchPageState({ type: "setCollapsedGroupKeys", value }),
+      setManageGroupsOpen: (value: boolean) =>
+        dispatchPageState({ type: "setManageGroupsOpen", value }),
+      setDeleteProjectTargetIds: (value: string[]) =>
+        dispatchPageState({ type: "setDeleteProjectTargetIds", value }),
+      setDeleteProjectPreview: (
+        value: StateUpdater<BulkActionPreviewResult | null>,
+      ) => dispatchPageState({ type: "setDeleteProjectPreview", value }),
+      setDeleteProjectError: (value: string | null) =>
+        dispatchPageState({ type: "setDeleteProjectError", value }),
+      setDeleteProjectState: (value: ProjectDeleteState) =>
+        dispatchPageState({ type: "setDeleteProjectState", value }),
+      setBulkDeleteModalMounted: (value: boolean) =>
+        dispatchPageState({ type: "setBulkDeleteModalMounted", value }),
+    }),
+    [],
+  );
   const {
     setIsModalOpen,
     setExpandedProject,
@@ -895,7 +1139,10 @@ export function ProjectsPageClient({
     setBulkDeleteModalMounted,
   } = pageStateSetters;
   const optimisticProjectItems = useMemo(
-    () => Object.values(optimisticProjectCreates).map(optimisticProjectSnapshotToListItem),
+    () =>
+      Object.values(optimisticProjectCreates).map(
+        optimisticProjectSnapshotToListItem,
+      ),
     [optimisticProjectCreates],
   );
   const optimisticProjectItemIds = useMemo(
@@ -916,12 +1163,17 @@ export function ProjectsPageClient({
   const projectItems = useMemo(
     () => [
       ...optimisticProjectItems,
-      ...serverProjectItems.filter((item) => !optimisticRealProjectIds.has(item.project.id)),
+      ...serverProjectItems.filter(
+        (item) => !optimisticRealProjectIds.has(item.project.id),
+      ),
     ],
     [optimisticProjectItems, optimisticRealProjectIds, serverProjectItems],
   );
   const projectClientOptions = useMemo(
-    () => createProjectClientOptions(projectItems.map((item) => item.project.client_name ?? "")).map((option) => option.label),
+    () =>
+      createProjectClientOptions(
+        projectItems.map((item) => item.project.client_name ?? ""),
+      ).map((option) => option.label),
     [projectItems],
   );
   const ownedProjectItems = useMemo(
@@ -937,17 +1189,19 @@ export function ProjectsPageClient({
     readProjectViewModePreference,
     getProjectViewModeServerSnapshot,
   );
-  const organizeByDefault: ProjectOrganizeBy = "none";
-  const storedOrganizeBy = useSyncExternalStore(
-    subscribeProjectOrganizeByPreference,
-    () => readProjectOrganizeByPreference(organizeByDefault),
-    () => organizeByDefault,
+  const groupByDefault: ProjectGroupBy = "none";
+  const storedGroupBy = useSyncExternalStore(
+    subscribeProjectGroupByPreference,
+    () => readProjectGroupByPreference(groupByDefault),
+    () => groupByDefault,
   );
-  // D11: Group mode is Your-Projects-only. On Shared, coerce away from "group" to
+  // D11: Project-group mode is Your-Projects-only. On Shared, coerce away from "group" to
   // no grouping WITHOUT persisting (so switching back to Your Projects restores
-  // the pick), and without clobbering a stored "date"/"none" preference.
-  const organizeBy: ProjectOrganizeBy =
-    activeTab === "shared-to-you" && storedOrganizeBy === "group" ? organizeByDefault : storedOrganizeBy;
+  // the pick), and without clobbering a stored scalar grouping preference.
+  const groupBy: ProjectGroupBy =
+    activeTab === "shared-to-you" && storedGroupBy === "group"
+      ? groupByDefault
+      : storedGroupBy;
   // Task 6 (LD-6): the override map is keyed by groupId (string | null), not a boolean.
   // Effective group for a project = groupOverrides[id] if the key is present, else
   // item.groupId ?? null. The override is set immediately on assign and cleared ONLY by
@@ -983,45 +1237,61 @@ export function ProjectsPageClient({
   // Identity-stable handlers so memoized project cards can skip re-render when only an
   // unrelated parent state slice changes (the wrappers always invoke the latest closure).
   const stableToggleProjectFavorite = useStableCallback(toggleProjectFavorite);
-  const stableToggleProjectSelection = useStableCallback(toggleProjectSelection);
+  const stableToggleProjectSelection = useStableCallback(
+    toggleProjectSelection,
+  );
   const stableAssignProjectToGroup = useStableCallback(assignProjectToGroup);
 
-  const activeBaseProjects = activeTab === "your-projects" ? ownedProjectItems : sharedProjectItems;
+  const activeBaseProjects =
+    activeTab === "your-projects" ? ownedProjectItems : sharedProjectItems;
 
   const displayProjects = useMemo(() => {
     const query = deferredSearchQuery.trim().toLowerCase();
-    const searchedProjects = !query ? activeBaseProjects : activeBaseProjects.filter(
-      (item) =>
-        optimisticProjectItemIds.has(item.project.id) ||
-        item.project.name?.toLowerCase().includes(query) ||
-        item.project.client_name?.toLowerCase().includes(query) ||
-        item.project.project_code?.toLowerCase().includes(query) ||
-        item.project.location?.toLowerCase().includes(query) ||
-        getProjectAccessSearchText(item).includes(query),
-    );
+    const searchedProjects = !query
+      ? activeBaseProjects
+      : activeBaseProjects.filter(
+          (item) =>
+            optimisticProjectItemIds.has(item.project.id) ||
+            item.project.name?.toLowerCase().includes(query) ||
+            item.project.client_name?.toLowerCase().includes(query) ||
+            item.project.project_code?.toLowerCase().includes(query) ||
+            item.project.location?.toLowerCase().includes(query) ||
+            getProjectAccessSearchText(item).includes(query),
+        );
     if (!sortTouched && isDateSortField(sortField)) {
-      return searchedProjects.toSorted((a, b) => compareProjectsByDateOnly(a, b, sortField, sortDirection));
+      return searchedProjects.toSorted((a, b) =>
+        compareProjectsByDateOnly(a, b, sortField, sortDirection),
+      );
     }
     if (!sortTouched) return searchedProjects;
-    return searchedProjects.toSorted((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
-  }, [activeBaseProjects, deferredSearchQuery, optimisticProjectItemIds, sortDirection, sortField, sortTouched]);
+    return searchedProjects.toSorted((a, b) =>
+      compareProjectsBySort(a, b, sortField, sortDirection),
+    );
+  }, [
+    activeBaseProjects,
+    deferredSearchQuery,
+    optimisticProjectItemIds,
+    sortDirection,
+    sortField,
+    sortTouched,
+  ]);
 
   const displayLiveProjects = displayProjects;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
-  const projectDateFlagLayoutClassName = getProjectDateFlagLayoutClassName(projectViewMode);
-  // D4 decouple: grouping is gated on the organizeBy axis, NOT on the sort field.
-  // Date/client grouping fires ONLY in organizeBy === "date" (the Q1 default makes
-  // this true on first load for date sorts, so every existing date/client flag
-  // assertion holds). This re-gates ONLY the grouping boolean — the
-  // `!sortTouched && isDateSortField` ORDERING branch in displayProjects is untouched,
-  // so default newest-first order survives in all three modes (incl. "none").
+  const projectDateFlagLayoutClassName =
+    getProjectDateFlagLayoutClassName(projectViewMode);
+  const scalarGroupBy: ProjectScalarGroupBy | null =
+    groupBy !== "none" && groupBy !== "group" ? groupBy : null;
+  // D4 decouple: grouping is its own axis, not a hidden side effect of the sort field.
+  // The sort controls order cards; the group control chooses section boundaries.
   const shouldGroupProjects =
-    organizeBy === "date" &&
-    displayLiveProjects.length > 0 &&
-    (isDateSortField(sortField) || sortField === "client_name");
+    scalarGroupBy !== null && displayLiveProjects.length > 0;
   const groupedLiveProjects = useMemo(
-    () => shouldGroupProjects ? groupProjects(displayLiveProjects, sortField) : [],
-    [displayLiveProjects, shouldGroupProjects, sortField],
+    () =>
+      shouldGroupProjects && scalarGroupBy
+        ? groupProjects(displayLiveProjects, scalarGroupBy)
+        : [],
+    [displayLiveProjects, scalarGroupBy, shouldGroupProjects],
   );
   // Stamp the effective groupId (optimistic override wins) onto each displayed item,
   // then bucket by user-group. The override map is declared for Task 6's optimistic
@@ -1038,18 +1308,26 @@ export function ProjectsPageClient({
   const isSearching = Boolean(searchQuery.trim());
   const groupedByUserGroup = useMemo(
     () =>
-      organizeBy === "group"
-        ? groupProjectsByUserGroup(groupItemsWithOverrides, projectGroups, { isSearching })
+      groupBy === "group"
+        ? groupProjectsByUserGroup(groupItemsWithOverrides, projectGroups, {
+            isSearching,
+          })
         : [],
-    [organizeBy, groupItemsWithOverrides, projectGroups, isSearching],
+    [groupBy, groupItemsWithOverrides, projectGroups, isSearching],
   );
-  const isUserGroupOrganize = organizeBy === "group";
+  const isUserGroupOrganize = groupBy === "group";
   const selectableDisplayProjectIds = useMemo(
-    () => filterMapBy(displayLiveProjects, canSelectProjectForDeletion, (item) => item.project.id),
+    () =>
+      filterMapBy(
+        displayLiveProjects,
+        canSelectProjectForDeletion,
+        (item) => item.project.id,
+      ),
     [displayLiveProjects],
   );
   const selectedVisibleProjectIds = useMemo(
-    () => selectableDisplayProjectIds.filter((id) => selectedProjectIds.has(id)),
+    () =>
+      selectableDisplayProjectIds.filter((id) => selectedProjectIds.has(id)),
     [selectableDisplayProjectIds, selectedProjectIds],
   );
   // LD-5: the assignment selection is its OWN source, gated on canAssignProjectToGroup
@@ -1058,11 +1336,19 @@ export function ProjectsPageClient({
   // Reads the SAME selectedProjectIds set as delete, but filters it differently — the two
   // selected-sets diverging off one shared selection is the realized D9 gate.
   const selectableForAssignmentProjectIds = useMemo(
-    () => filterMapBy(displayLiveProjects, canAssignProjectToGroup, (item) => item.project.id),
+    () =>
+      filterMapBy(
+        displayLiveProjects,
+        canAssignProjectToGroup,
+        (item) => item.project.id,
+      ),
     [displayLiveProjects],
   );
   const selectedAssignableProjectIds = useMemo(
-    () => selectableForAssignmentProjectIds.filter((id) => selectedProjectIds.has(id)),
+    () =>
+      selectableForAssignmentProjectIds.filter((id) =>
+        selectedProjectIds.has(id),
+      ),
     [selectableForAssignmentProjectIds, selectedProjectIds],
   );
 
@@ -1092,7 +1378,12 @@ export function ProjectsPageClient({
       value: (current) => {
         const keys = Object.keys(current);
         if (keys.length === 0) return current;
-        const ssrGroupById = new Map(projectItems.map((entry) => [entry.project.id, entry.groupId ?? null]));
+        const ssrGroupById = new Map(
+          projectItems.map((entry) => [
+            entry.project.id,
+            entry.groupId ?? null,
+          ]),
+        );
         let changed = false;
         const next = { ...current };
         for (const id of keys) {
@@ -1113,12 +1404,19 @@ export function ProjectsPageClient({
     });
   }, [isGroupAssignPending, projectItems]);
   const expandedProjectItem = useMemo(
-    () => expandedProject ? projectItems.find((item) => item.project.id === expandedProject.id) ?? null : null,
+    () =>
+      expandedProject
+        ? (projectItems.find(
+            (item) => item.project.id === expandedProject.id,
+          ) ?? null)
+        : null,
     [expandedProject, projectItems],
   );
 
   useEffect(() => {
-    const serverProjectIds = new Set(serverProjectItems.map((item) => item.project.id));
+    const serverProjectIds = new Set(
+      serverProjectItems.map((item) => item.project.id),
+    );
     // Intentional setState-in-effect: optimistic create rows can only be retired when
     // refreshed server props prove the project row is present. router.refresh() is
     // non-awaitable, and clearing earlier would recreate the observed empty-list lag.
@@ -1130,7 +1428,10 @@ export function ProjectsPageClient({
         let changed = false;
         const next = { ...current };
         for (const [clientId, snapshot] of entries) {
-          if (!snapshot.project.id.startsWith("pending-project-") && serverProjectIds.has(snapshot.project.id)) {
+          if (
+            !snapshot.project.id.startsWith("pending-project-") &&
+            serverProjectIds.has(snapshot.project.id)
+          ) {
             delete next[clientId];
             changed = true;
           }
@@ -1140,67 +1441,87 @@ export function ProjectsPageClient({
     });
   }, [serverProjectItems]);
 
-  const canDeleteExpandedProject = expandedProjectItem ? canSelectProjectForDeletion(expandedProjectItem) : false;
-  const deleteProjectPhrase = deleteProjectTargetIds.length === 1 ? "DELETE PROJECT" : `DELETE ${deleteProjectTargetIds.length} PROJECTS`;
-  const deleteProjectModalTitle = deleteProjectTargetIds.length === 1 ? "Delete project" : `Delete ${deleteProjectTargetIds.length} projects`;
-  const deleteProjectDescription = deleteProjectTargetIds.length === 1
-    ? "This permanently deletes the project, its estimates, and project data. Active shared links will be revoked."
-    : "This permanently deletes the selected projects, their estimates, and project data. Active shared links will be revoked upon deletion.";
+  const canDeleteExpandedProject = expandedProjectItem
+    ? canSelectProjectForDeletion(expandedProjectItem)
+    : false;
+  const deleteProjectPhrase =
+    deleteProjectTargetIds.length === 1
+      ? "DELETE PROJECT"
+      : `DELETE ${deleteProjectTargetIds.length} PROJECTS`;
+  const deleteProjectModalTitle =
+    deleteProjectTargetIds.length === 1
+      ? "Delete project"
+      : `Delete ${deleteProjectTargetIds.length} projects`;
+  const deleteProjectDescription =
+    deleteProjectTargetIds.length === 1
+      ? "This permanently deletes the project, its estimates, and project data. Active shared links will be revoked."
+      : "This permanently deletes the selected projects, their estimates, and project data. Active shared links will be revoked upon deletion.";
 
-  const projectToolbarActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
-    return [
+  const projectToolbarActions: HeaderIconToolbarAddAction[] = [
+    ...(groupBy === "group" && activeTab === "your-projects"
+      ? [
+          {
+            id: "manage-groups",
+            label: "Manage groups",
+            element: (
+              <ManageGroupsPopover
+                groups={projectGroups}
+                onCreate={handleCreateGroup}
+                onRename={handleRenameGroup}
+                onRecolor={handleRecolorGroup}
+                onDelete={handleDeleteGroup}
+                open={manageGroupsOpen}
+                onOpenChange={setManageGroupsOpen}
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      label: "Add projects",
+      icon: <Cards size={12} weight="regular" aria-hidden="true" />,
+      onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true }),
+      className:
+        "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800",
+    },
+  ];
+  const sortDirectionOptions = useMemo<DropdownSelectOption[]>(
+    () => [
       {
-        label: "Add projects",
-        icon: <Plus size={12} weight="regular" aria-hidden="true" />,
-        onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true }),
-        className:
-          "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800",
+        value: "desc",
+        label: getProjectSortDirectionLabel(sortField, "desc"),
+        icon: <SortDescending size={12} weight="regular" aria-hidden="true" />,
       },
-    ];
-  }, []);
-  const sortDirectionOptions = useMemo<DropdownSelectOption[]>(() => [
-    {
-      value: "desc",
-      label: getProjectSortDirectionLabel(sortField, "desc"),
-      icon: <SortDescending size={12} weight="regular" aria-hidden="true" />,
-    },
-    {
-      value: "asc",
-      label: getProjectSortDirectionLabel(sortField, "asc"),
-      icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
-    },
-  ], [sortField]);
-  const arrangeValue = getProjectArrangeValue({ organizeBy, sortField, sortTouched });
-  const arrangeOptions = useMemo<readonly DropdownSelectOption[]>(() => {
-    if (activeTab !== "shared-to-you") return PROJECT_ARRANGE_OPTIONS;
-    return PROJECT_ARRANGE_OPTIONS.map((option) =>
-      option.value === "group:group" ? { ...option, disabled: true } : option,
+      {
+        value: "asc",
+        label: getProjectSortDirectionLabel(sortField, "asc"),
+        icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
+      },
+    ],
+    [sortField],
+  );
+  const groupByOptions = useMemo<readonly DropdownSelectOption[]>(() => {
+    if (activeTab !== "shared-to-you") return PROJECT_GROUP_BY_OPTIONS;
+    return PROJECT_GROUP_BY_OPTIONS.map((option) =>
+      option.value === "group" ? { ...option, disabled: true } : option,
     );
   }, [activeTab]);
 
-  function handleArrangeChange(nextValue: string) {
-    if (nextValue === "none") {
-      writeProjectOrganizeByPreference("none");
-      setSortField("updated_at");
-      setSortDirection(defaultSortDirectionForField("updated_at"));
-      setSortTouched(false);
+  function handleGroupByChange(nextValue: string) {
+    if (!isProjectGroupBy(nextValue)) return;
+    if (nextValue === "group" && activeTab === "shared-to-you") return;
+    writeProjectGroupByPreference(nextValue);
+  }
+
+  function handleSortFieldChange(nextValue: string) {
+    if (
+      !PROJECT_SORT_FIELD_OPTIONS.some((option) => option.value === nextValue)
+    )
       return;
-    }
-
-    if (nextValue === "group:group") {
-      if (activeTab === "shared-to-you") return;
-      writeProjectOrganizeByPreference("group");
-      setSortTouched(true);
-      return;
-    }
-
-    const [mode, fieldValue] = nextValue.split(":") as ["group" | "sort", ProjectSortField];
-    if (!PROJECT_SORT_FIELD_OPTIONS.some((option) => option.value === fieldValue)) return;
-
-    setSortField(fieldValue);
-    setSortDirection(defaultSortDirectionForField(fieldValue));
+    const nextField = nextValue as ProjectSortField;
+    setSortField(nextField);
+    setSortDirection(defaultSortDirectionForField(nextField));
     setSortTouched(true);
-    writeProjectOrganizeByPreference(mode === "group" ? "date" : "none");
   }
 
   function handleSortDirectionChange(nextDirection: string) {
@@ -1208,19 +1529,24 @@ export function ProjectsPageClient({
     setSortTouched(true);
   }
 
-  function handleOptimisticProjectChange(snapshot: NewProjectOptimisticSnapshot) {
+  function handleOptimisticProjectChange(
+    snapshot: NewProjectOptimisticSnapshot,
+  ) {
     setActiveTab("your-projects");
     if (snapshot.remove) {
       setOptimisticProjectCreates((current) => {
-        if (!Object.prototype.hasOwnProperty.call(current, snapshot.clientId)) return current;
+        if (!Object.prototype.hasOwnProperty.call(current, snapshot.clientId))
+          return current;
         const next = { ...current };
         delete next[snapshot.clientId];
         return next;
       });
-      if (snapshot.errorMessage) toast({ message: snapshot.errorMessage, tone: "error" });
+      if (snapshot.errorMessage)
+        toast({ message: snapshot.errorMessage, tone: "error" });
       return;
     }
-    if (snapshot.errorMessage) toast({ message: snapshot.errorMessage, tone: "error" });
+    if (snapshot.errorMessage)
+      toast({ message: snapshot.errorMessage, tone: "error" });
     setOptimisticProjectCreates((current) => ({
       ...current,
       [snapshot.clientId]: snapshot,
@@ -1240,28 +1566,39 @@ export function ProjectsPageClient({
     startTransition(() => {
       void createProjectGroup({ name, accentId })
         .then(() => router.refresh())
-        .catch(() => toast({ message: "Could not create the group.", tone: "error" }));
+        .catch(() =>
+          toast({ message: "Could not create the group.", tone: "error" }),
+        );
     });
   }
   function handleRenameGroup(groupId: string, name: string) {
     startTransition(() => {
       void renameProjectGroup({ groupId, name })
         .then(() => router.refresh())
-        .catch(() => toast({ message: "Could not rename the group.", tone: "error" }));
+        .catch(() =>
+          toast({ message: "Could not rename the group.", tone: "error" }),
+        );
     });
   }
   function handleRecolorGroup(groupId: string, accentId: GroupAccentId | null) {
     startTransition(() => {
       void recolorProjectGroup({ groupId, accentId })
         .then(() => router.refresh())
-        .catch(() => toast({ message: "Could not update the group color.", tone: "error" }));
+        .catch(() =>
+          toast({
+            message: "Could not update the group color.",
+            tone: "error",
+          }),
+        );
     });
   }
   function handleDeleteGroup(groupId: string) {
     startTransition(() => {
       void deleteProjectGroup({ groupId })
         .then(() => router.refresh())
-        .catch(() => toast({ message: "Could not delete the group.", tone: "error" }));
+        .catch(() =>
+          toast({ message: "Could not delete the group.", tone: "error" }),
+        );
     });
   }
 
@@ -1271,7 +1608,10 @@ export function ProjectsPageClient({
   // clear in. The override is cleared by the reconciliation effect below, never here. On
   // failure: restore the previous override value (or delete the key if none) + toast.
   function assignProjectToGroup(projectId: string, nextGroupId: string | null) {
-    const hadOverride = Object.prototype.hasOwnProperty.call(groupOverrides, projectId);
+    const hadOverride = Object.prototype.hasOwnProperty.call(
+      groupOverrides,
+      projectId,
+    );
     const previousOverride = groupOverrides[projectId];
     setGroupOverrides((current) => ({ ...current, [projectId]: nextGroupId }));
     setPendingGroupProjectId(projectId);
@@ -1294,11 +1634,15 @@ export function ProjectsPageClient({
             // three-state contract clean (absent = no override; present-string = group;
             // present-null = Ungrouped). A key-present-with-undefined is interpreted
             // inconsistently by the menu render and the reconcile effect.
-            if (hadOverride && previousOverride !== undefined) next[projectId] = previousOverride;
+            if (hadOverride && previousOverride !== undefined)
+              next[projectId] = previousOverride;
             else delete next[projectId];
             return next;
           });
-          toast({ message: "Could not move the project. Try again.", tone: "error" });
+          toast({
+            message: "Could not move the project. Try again.",
+            tone: "error",
+          });
         })
         .finally(() => setPendingGroupProjectId(null));
     });
@@ -1315,7 +1659,13 @@ export function ProjectsPageClient({
     const snapshot = new Map(
       ids.map(
         (id) =>
-          [id, [Object.prototype.hasOwnProperty.call(groupOverrides, id), groupOverrides[id]] as const] as const,
+          [
+            id,
+            [
+              Object.prototype.hasOwnProperty.call(groupOverrides, id),
+              groupOverrides[id],
+            ] as const,
+          ] as const,
       ),
     );
     setGroupOverrides((current) => {
@@ -1390,7 +1740,10 @@ export function ProjectsPageClient({
             }
             return next;
           });
-          toast({ message: "Could not move the selected projects. Try again.", tone: "error" });
+          toast({
+            message: "Could not move the selected projects. Try again.",
+            tone: "error",
+          });
         });
     });
   }
@@ -1398,7 +1751,10 @@ export function ProjectsPageClient({
   function toggleProjectFavorite(projectId: string, nextFavorite: boolean) {
     const item = projectItems.find((entry) => entry.project.id === projectId);
     const previousFavorite = favoriteIds.has(projectId);
-    setFavoriteOverrides((current) => ({ ...current, [projectId]: nextFavorite }));
+    setFavoriteOverrides((current) => ({
+      ...current,
+      [projectId]: nextFavorite,
+    }));
     setPendingFavoriteId(projectId);
     toggleProjectFavoriteMutation.toggle(
       {
@@ -1414,7 +1770,11 @@ export function ProjectsPageClient({
       {
         // One error signal rolls back both surfaces: the hook restores the shared
         // sidebar cache from its snapshot; this caller restores the local card star.
-        onError: () => setFavoriteOverrides((current) => ({ ...current, [projectId]: previousFavorite })),
+        onError: () =>
+          setFavoriteOverrides((current) => ({
+            ...current,
+            [projectId]: previousFavorite,
+          })),
         onSettled: () => setPendingFavoriteId(null),
       },
     );
@@ -1426,9 +1786,13 @@ export function ProjectsPageClient({
   function renderLiveProjectCard(item: ProjectListItem) {
     const canFavoriteProject = item.accessKind === "owned";
     const isProjectSetupPending = isProjectSetupBlocking(item.setupStatus);
-    const showGroupMenu = item.accessKind === "owned" && organizeBy === "group" && !isProjectSetupPending;
+    const showGroupMenu =
+      item.accessKind === "owned" &&
+      groupBy === "group" &&
+      !isProjectSetupPending;
     const override = groupOverrides[item.project.id];
-    const effectiveGroupId = override !== undefined ? override : item.groupId ?? null;
+    const effectiveGroupId =
+      override !== undefined ? override : (item.groupId ?? null);
 
     return (
       <ProjectCardRow
@@ -1438,7 +1802,9 @@ export function ProjectsPageClient({
         googleMapsApiKey={googleMapsApiKey}
         canFavorite={canFavoriteProject && !isProjectSetupPending}
         isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
-        favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
+        favoriteBusy={
+          canFavoriteProject && pendingFavoriteId === item.project.id
+        }
         selectedForDeletion={selectedProjectIds.has(item.project.id)}
         selectionActive={selectedVisibleProjectIds.length > 0}
         canSelect={canSelectProjectForDeletion(item) && !isProjectSetupPending}
@@ -1494,8 +1860,16 @@ export function ProjectsPageClient({
   }
 
   function openProjectDeletePreview(projectIds: string[]) {
-    const allowedIds = new Set(filterMapBy(projectItems, canSelectProjectForDeletion, (item) => item.project.id));
-    const ids = Array.from(new Set(projectIds)).filter((id) => allowedIds.has(id));
+    const allowedIds = new Set(
+      filterMapBy(
+        projectItems,
+        canSelectProjectForDeletion,
+        (item) => item.project.id,
+      ),
+    );
+    const ids = Array.from(new Set(projectIds)).filter((id) =>
+      allowedIds.has(id),
+    );
     if (ids.length === 0) return;
     setBulkDeleteModalMounted(true);
     setDeleteProjectTargetIds(ids);
@@ -1509,7 +1883,11 @@ export function ProjectsPageClient({
           setDeleteProjectState("ready");
         })
         .catch((error: unknown) => {
-          setDeleteProjectError(error instanceof Error ? error.message : "Could not load project delete preview.");
+          setDeleteProjectError(
+            error instanceof Error
+              ? error.message
+              : "Could not load project delete preview.",
+          );
           setDeleteProjectState("ready");
         });
     });
@@ -1534,29 +1912,83 @@ export function ProjectsPageClient({
       })
         .then((result) => {
           if (!result.ok) {
-            setDeleteProjectPreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
-            setDeleteProjectError(result.issues[0]?.message ?? "Could not delete projects.");
+            setDeleteProjectPreview((current) =>
+              current
+                ? {
+                    ...current,
+                    issues: result.issues,
+                    blocked: result.blocked ?? current.blocked,
+                    ok: false,
+                  }
+                : current,
+            );
+            setDeleteProjectError(
+              result.issues[0]?.message ?? "Could not delete projects.",
+            );
             setDeleteProjectState("ready");
             return;
           }
-          const removedIds = result.deletedIds?.length ? result.deletedIds : deleteProjectTargetIds;
+          const removedIds = result.deletedIds?.length
+            ? result.deletedIds
+            : deleteProjectTargetIds;
           setSelectedProjectIds((current) => {
             const next = new Set(current);
             for (const id of removedIds) next.delete(id);
             return next;
           });
-          if (expandedProject && removedIds.includes(expandedProject.id)) setExpandedProject(null);
+          if (expandedProject && removedIds.includes(expandedProject.id))
+            setExpandedProject(null);
           closeProjectDeletePreview();
           router.refresh();
         })
         .catch((error: unknown) => {
-          setDeleteProjectError(error instanceof Error ? error.message : "Could not delete projects.");
+          setDeleteProjectError(
+            error instanceof Error
+              ? error.message
+              : "Could not delete projects.",
+          );
           setDeleteProjectState("ready");
         });
     });
   }
 
-  const inactiveAccessTabs = PROJECT_ACCESS_TABS.filter((tab) => tab.id !== activeTab);
+  const inactiveAccessTabs = PROJECT_ACCESS_TABS.filter(
+    (tab) => tab.id !== activeTab,
+  );
+  const bulkMoveToGroupSlot =
+    selectedAssignableProjectIds.length > 0 &&
+    groupBy === "group" &&
+    activeTab === "your-projects" ? (
+      <DropdownMenu
+        align="start"
+        side="top"
+        trigger={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-8 rounded-xs border border-transparent text-secondary hover:-translate-y-0.5 hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-surfaceMuted focus-visible:text-ink"
+            aria-label="Move selected projects to group"
+            title="Move selected projects to group"
+            aria-busy={isGroupAssignPending}
+          >
+            <FolderSimple size={14} weight="regular" aria-hidden="true" />
+          </Button>
+        }
+      >
+        {projectGroups.map((group) => (
+          <DropdownMenu.Item
+            key={group.id}
+            label={group.name}
+            onClick={() => bulkAssignSelectedToGroup(group.id)}
+          />
+        ))}
+        <DropdownMenu.Item
+          label="Ungrouped"
+          onClick={() => bulkAssignSelectedToGroup(null)}
+        />
+      </DropdownMenu>
+    ) : null;
 
   return (
     <WorkshopCollectionLayout
@@ -1572,21 +2004,32 @@ export function ProjectsPageClient({
             aria-label="View"
             options={VIEW_SELECT_OPTIONS}
             value={projectViewMode}
-            onValueChange={(next) => writeProjectViewModePreference(next as ProjectCardViewMode)}
+            onValueChange={(next) =>
+              writeProjectViewModePreference(next as ProjectCardViewMode)
+            }
             variant="boxed"
             triggerDisplay="icon"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
           />
           <span
             aria-hidden="true"
-            className="h-4 w-px shrink-0 bg-tertiary/70"
+            className={HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME}
             data-project-toolbar-view-divider=""
           />
           <DropdownSelect
-            aria-label="Arrange projects"
-            options={arrangeOptions}
-            value={arrangeValue}
-            onValueChange={handleArrangeChange}
+            aria-label="Group by"
+            options={groupByOptions}
+            value={groupBy}
+            onValueChange={handleGroupByChange}
+            variant="boxed"
+            triggerDisplay="icon"
+            className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
+          />
+          <DropdownSelect
+            aria-label="Sort field"
+            options={PROJECT_SORT_FIELD_OPTIONS}
+            value={sortField}
+            onValueChange={handleSortFieldChange}
             variant="boxed"
             triggerDisplay="icon"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
@@ -1600,17 +2043,6 @@ export function ProjectsPageClient({
             triggerDisplay="icon"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
           />
-          {organizeBy === "group" && activeTab === "your-projects" ? (
-            <ManageGroupsPopover
-              groups={projectGroups}
-              onCreate={handleCreateGroup}
-              onRename={handleRenameGroup}
-              onRecolor={handleRecolorGroup}
-              onDelete={handleDeleteGroup}
-              open={manageGroupsOpen}
-              onOpenChange={setManageGroupsOpen}
-            />
-          ) : null}
         </div>
       }
       addActions={projectToolbarActions}
@@ -1627,34 +2059,11 @@ export function ProjectsPageClient({
         role="tabpanel"
         aria-labelledby={getProjectAccessTabId(activeTab)}
         aria-label={activeTab === "your-projects" ? "Projects" : "Shared"}
-        className={cn("space-y-2", selectedVisibleProjectIds.length ? "pb-20" : null)}
+        className={cn(
+          "space-y-2",
+          selectedVisibleProjectIds.length ? "pb-20" : null,
+        )}
       >
-        {/* D9 bulk "Move to group" affordance. In-flow (NOT the fixed delete dock, to
-            avoid colliding with the C2 delete-dock contract), gated on group mode + Your
-            Projects. LD-5: it reads selectedAssignableProjectIds (the assignment selection),
-            so an owned project blocked from delete by a shared link is still bulk-groupable. */}
-        {selectedAssignableProjectIds.length > 0 && organizeBy === "group" && activeTab === "your-projects" ? (
-          <div className="flex justify-center" data-bulk-move-to-group="">
-            <DropdownMenu
-              align="start"
-              trigger={
-                <Button type="button" variant="secondary" size="sm" className="h-7 gap-1 px-2">
-                  <FolderSimple size={12} weight="regular" aria-hidden="true" />
-                  Move to group
-                </Button>
-              }
-            >
-              {projectGroups.map((group) => (
-                <DropdownMenu.Item
-                  key={group.id}
-                  label={group.name}
-                  onClick={() => bulkAssignSelectedToGroup(group.id)}
-                />
-              ))}
-              <DropdownMenu.Item label="Ungrouped" onClick={() => bulkAssignSelectedToGroup(null)} />
-            </DropdownMenu>
-          </div>
-        ) : null}
         <BulkActionToolbar
           selectedCount={selectedVisibleProjectIds.length}
           actionLabel="Delete selected projects"
@@ -1662,51 +2071,69 @@ export function ProjectsPageClient({
           placement="bottom-dock"
           onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
           onClear={() => setSelectedProjectIds(new Set())}
-          onSelectVisible={() => setSelectedProjectIds(new Set(selectableDisplayProjectIds))}
+          onSelectVisible={() =>
+            setSelectedProjectIds(new Set(selectableDisplayProjectIds))
+          }
+          secondaryActionSlot={bulkMoveToGroupSlot}
         />
         <section
           aria-label="Live projects"
           data-project-view-mode={projectViewMode}
-          className={shouldGroupProjects || isUserGroupOrganize ? "space-y-4" : projectLayoutClassName}
+          className={
+            shouldGroupProjects || isUserGroupOrganize
+              ? "space-y-4"
+              : projectLayoutClassName
+          }
         >
-          {isUserGroupOrganize ? (
-            groupedByUserGroup.map((group) => (
-              <ProjectGroupSection
-                key={group.key}
-                mode="group"
-                group={{ key: group.key, label: group.label, accentId: group.accentId, isVirtual: group.isVirtual }}
-                items={group.items}
-                viewMode={projectViewMode}
-                renderCard={renderLiveProjectCard}
-                layoutClassName={projectLayoutClassName}
-                flagLayoutClassName={projectDateFlagLayoutClassName}
-                collapsed={collapsedGroupKeys.has(group.key)}
-                onToggleCollapse={toggleGroupCollapsed}
-                headerMenuSlot={group.isVirtual ? undefined : renderGroupHeaderMenu(group.key)}
-              />
-            ))
-          ) : shouldGroupProjects ? (
-            groupedLiveProjects.map((group) => (
-              <ProjectGroupSection
-                key={group.key}
-                mode={group.kind === "client" ? "client" : "date"}
-                group={{ key: group.key, label: group.label }}
-                items={group.items}
-                viewMode={projectViewMode}
-                renderCard={renderLiveProjectCard}
-                layoutClassName={projectLayoutClassName}
-                flagLayoutClassName={projectDateFlagLayoutClassName}
-                legacyHeaderDataAttr={group.kind === "date" ? "data-project-date-group-label" : undefined}
-                legacySectionDataAttr={
-                  group.kind === "date"
-                    ? { "data-project-date-group": group.key }
-                    : { "data-project-client-group": group.key }
-                }
-              />
-            ))
-          ) : (
-            displayLiveProjects.map(renderLiveProjectCard)
-          )}
+          {isUserGroupOrganize
+            ? groupedByUserGroup.map((group) => (
+                <ProjectGroupSection
+                  key={group.key}
+                  mode="group"
+                  group={{
+                    key: group.key,
+                    label: group.label,
+                    accentId: group.accentId,
+                    isVirtual: group.isVirtual,
+                  }}
+                  items={group.items}
+                  viewMode={projectViewMode}
+                  renderCard={renderLiveProjectCard}
+                  layoutClassName={projectLayoutClassName}
+                  flagLayoutClassName={projectDateFlagLayoutClassName}
+                  collapsed={collapsedGroupKeys.has(group.key)}
+                  onToggleCollapse={toggleGroupCollapsed}
+                  headerMenuSlot={
+                    group.isVirtual
+                      ? undefined
+                      : renderGroupHeaderMenu(group.key)
+                  }
+                />
+              ))
+            : shouldGroupProjects
+              ? groupedLiveProjects.map((group) => (
+                  <ProjectGroupSection
+                    key={group.key}
+                    mode={group.kind === "client" ? "client" : "date"}
+                    group={{ key: group.key, label: group.label }}
+                    items={group.items}
+                    viewMode={projectViewMode}
+                    renderCard={renderLiveProjectCard}
+                    layoutClassName={projectLayoutClassName}
+                    flagLayoutClassName={projectDateFlagLayoutClassName}
+                    legacyHeaderDataAttr={
+                      group.kind === "date"
+                        ? "data-project-date-group-label"
+                        : undefined
+                    }
+                    legacySectionDataAttr={
+                      group.kind === "date"
+                        ? { "data-project-date-group": group.key }
+                        : { "data-project-client-group": group.key }
+                    }
+                  />
+                ))
+              : displayLiveProjects.map(renderLiveProjectCard)}
         </section>
       </section>
       {inactiveAccessTabs.map((tab) => (
@@ -1738,12 +2165,14 @@ export function ProjectsPageClient({
             googleMapsApiKey={googleMapsApiKey}
             googleMapsMapId={googleMapsMapId}
             clientOptions={projectClientOptions}
-            onDeleteProject={canDeleteExpandedProject
-              ? (project) => {
-                setExpandedProject(null);
-                openProjectDeletePreview([project.id]);
-              }
-              : undefined}
+            onDeleteProject={
+              canDeleteExpandedProject
+                ? (project) => {
+                    setExpandedProject(null);
+                    openProjectDeletePreview([project.id]);
+                  }
+                : undefined
+            }
           />
         ) : null}
       </Suspense>
@@ -1753,7 +2182,11 @@ export function ProjectsPageClient({
           title={deleteProjectModalTitle}
           description={deleteProjectDescription}
           requiredPhrase={deleteProjectPhrase}
-          executeLabel={deleteProjectTargetIds.length === 1 ? "Delete project" : "Delete projects"}
+          executeLabel={
+            deleteProjectTargetIds.length === 1
+              ? "Delete project"
+              : "Delete projects"
+          }
           loading={deleteProjectState === "loading"}
           executing={deleteProjectState === "executing"}
           preview={deleteProjectPreview}

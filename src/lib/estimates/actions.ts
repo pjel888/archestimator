@@ -35,7 +35,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
-import { getCurrentWorkspaceProject, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
+import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json, Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/types";
 
@@ -1381,6 +1381,7 @@ async function createEstimateWithDefaultTab({
 }
 
 function revalidateProjectEstimatePaths(projectId: string) {
+  clearEstimateRouteContextProcessCache(projectId);
   revalidatePath(`/workshop/projects/${projectId}`);
   revalidatePath(`/workshop/projects/${projectId}/estimates`);
   revalidatePath(`/workshop/projects/${projectId}/data`);
@@ -1396,6 +1397,26 @@ export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimate
 export async function fetchEstimateTabs({ projectId, estimateId }: FetchEstimateTreeInput) {
   await requireAuth();
   return getEstimateTabs(projectId, estimateId);
+}
+
+export async function fetchEstimateEditCapability({ projectId, estimateId }: FetchEstimateTreeInput) {
+  await requireAuth();
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return false;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError || !estimate) return false;
+
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimate.id });
+  if (error) return false;
+  return data === true;
 }
 
 export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: FetchEstimateTabTreeInput) {

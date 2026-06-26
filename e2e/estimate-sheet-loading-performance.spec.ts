@@ -1,16 +1,19 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { createClient, type Session } from "@supabase/supabase-js";
 
-const TEST_PROJECT_ID = process.env.ESTIMATE_SHEET_E2E_PROJECT_ID ?? "22222222-2222-4222-8222-222222222222";
+const TEST_PROJECT_ID = process.env.ESTIMATE_SHEET_E2E_PROJECT_ID ?? "0139e1e5-951d-4f2f-9081-6c953d288d8a";
 const TEST_NODE_ID =
   process.env.ESTIMATE_SHEET_E2E_NODE_ID ??
   process.env.ESTIMATE_SHEET_E2E_ESTIMATE_ID ??
-  "bf254cbd-13d4-4dbf-b21a-84b171cdd6db";
+  "8080f04c-fe18-4314-a1d8-9222e62d1eed";
 const ESTIMATES_LIST_URL = `/workshop/projects/${TEST_PROJECT_ID}/estimates`;
 const ESTIMATE_URL = `/workshop/projects/${TEST_PROJECT_ID}/estimates/${TEST_NODE_ID}`;
 const AUTH_COOKIE_CHUNK_SIZE = 3_180;
 const ownerAuthEmail = process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL?.trim().toLowerCase();
-const hasStaticAuth = Boolean(process.env.PLAYWRIGHT_STORAGE_STATE) || process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1";
+const devAuthSecret = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET?.trim();
+const hasStorageStateAuth = Boolean(process.env.PLAYWRIGHT_STORAGE_STATE);
+const hasDevAuthBypass = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1" && Boolean(devAuthSecret);
+const hasStaticAuth = hasStorageStateAuth || hasDevAuthBypass;
 const hasSupabaseSessionAuth = Boolean(
   ownerAuthEmail &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -122,6 +125,20 @@ function readBaseURL(testInfo: TestInfo) {
   return `http://127.0.0.1:${port}`;
 }
 
+async function installDevAuthCookie(page: Page, testInfo: TestInfo) {
+  if (!hasDevAuthBypass || !devAuthSecret) return;
+  await page.context().addCookies(
+    getCookieUrls(readBaseURL(testInfo)).map((url) => ({
+      name: "archestimator-dev-auth-bypass",
+      value: devAuthSecret,
+      url,
+      httpOnly: true,
+      sameSite: "Lax" as const,
+      expires: Math.floor(Date.now() / 1000) + 60 * 60,
+    })),
+  );
+}
+
 async function installLoadingProofObserver(page: Page) {
   await page.evaluate(() => {
     const proof = { sawSheetSkeleton: false, sawListSkeleton: false };
@@ -169,7 +186,9 @@ test.describe("estimate sheet loading performance", () => {
 
   test("uses the sheet route fallback instead of the parent estimates-list fallback", async ({ page }, testInfo) => {
     let usedGeneratedSession = false;
-    if (!hasStaticAuth) {
+    if (hasDevAuthBypass) {
+      await installDevAuthCookie(page, testInfo);
+    } else if (!hasStorageStateAuth) {
       const session = await createOwnerSession();
       await page.context().addCookies(createAuthCookies(session, readBaseURL(testInfo)));
       usedGeneratedSession = true;
@@ -184,7 +203,7 @@ test.describe("estimate sheet loading performance", () => {
       return;
     }
 
-    await expect(page.locator("[data-workshop-page-shell-root]")).toBeVisible({ timeout: 8000 });
+    await expect(page.locator("[data-workshop-page-shell-root]").last()).toBeVisible({ timeout: 8000 });
     const sheetLink = page.locator(`a[href="${ESTIMATE_URL}"], a[href$="${ESTIMATE_URL}"]`).first();
     await expect(sheetLink).toBeVisible({ timeout: 15_000 });
 

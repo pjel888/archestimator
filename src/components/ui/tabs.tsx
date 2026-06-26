@@ -34,6 +34,8 @@ export type TabsProps = {
   ariaLabel?: string;
   /** Optional ID namespace for pages that render more than one tabset. */
   idBase?: string;
+  /** Set false for tabsets that render one dynamic panel instead of one persistent panel per tab. */
+  controlsPanels?: boolean;
   endAction?: ReactNode;
   getTabButtonProps?: (
     tab: TabItem,
@@ -53,6 +55,7 @@ export function Tabs({
   activationMode = "automatic",
   ariaLabel,
   idBase,
+  controlsPanels = true,
   endAction,
   getTabButtonProps,
   onTabButtonMount,
@@ -177,7 +180,7 @@ export function Tabs({
                   ref={(element) => onTabButtonMount?.(tab, index, element)}
                   role="tab"
                   aria-selected={isActive}
-                  aria-controls={panelId}
+                  aria-controls={controlsPanels ? panelId : undefined}
                   id={tabId}
                   tabIndex={isActive ? 0 : -1}
                   disabled={isDisabled}

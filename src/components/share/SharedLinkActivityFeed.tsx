@@ -4,9 +4,24 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { loadSharedLinkActivity, type ActivityItem } from "@/lib/publication/actions"; // server action callable from client
 
+type ActivityFeedLoadResult = {
+  activities: ActivityItem[];
+  hasMore: boolean;
+  nextCursor?: string | null;
+  partial?: boolean;
+  unavailableSources?: string[];
+};
+
+type ActivityFeedLoader = (cursor?: string | null) => Promise<ActivityFeedLoadResult>;
+
 type SharedLinkActivityFeedProps = {
-  publicationToken: string;
+  publicationToken?: string;
   publicationId?: string | null;
+  loadActivity?: ActivityFeedLoader;
+  feedLabel?: string;
+  loadingLabel?: string;
+  emptyLabel?: string;
+  footerLabel?: string;
   isOwner?: boolean;
   onActivitySeen?: () => void;
 };
@@ -19,6 +34,8 @@ type ActivityFeedState = {
   hasMore: boolean;
   nextCursor: string | null;
   newActivityNotice: boolean;
+  partial: boolean;
+  unavailableSources: string[];
 };
 
 type ActivityFeedAction =
@@ -30,6 +47,8 @@ type ActivityFeedAction =
       hasMore: boolean;
       nextCursor: string | null;
       showNewActivityNotice: boolean;
+      partial: boolean;
+      unavailableSources: string[];
     }
   | { type: "load:error"; message: string }
   | { type: "notice:clear" };
@@ -42,6 +61,8 @@ const INITIAL_ACTIVITY_FEED_STATE: ActivityFeedState = {
   hasMore: false,
   nextCursor: null,
   newActivityNotice: false,
+  partial: false,
+  unavailableSources: [],
 };
 
 function activityFeedReducer(state: ActivityFeedState, action: ActivityFeedAction): ActivityFeedState {
@@ -63,6 +84,8 @@ function activityFeedReducer(state: ActivityFeedState, action: ActivityFeedActio
         hasMore: action.hasMore,
         nextCursor: action.nextCursor,
         newActivityNotice: state.newActivityNotice || action.showNewActivityNotice,
+        partial: action.partial,
+        unavailableSources: action.unavailableSources,
       };
     case "load:error":
       return {
@@ -78,9 +101,18 @@ function activityFeedReducer(state: ActivityFeedState, action: ActivityFeedActio
   }
 }
 
-export default function SharedLinkActivityFeed({ publicationToken, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
+export default function SharedLinkActivityFeed({
+  publicationToken,
+  loadActivity,
+  feedLabel = "Shared link activity",
+  loadingLabel = "Loading shared link activity",
+  emptyLabel = "No activity yet.",
+  footerLabel = "Activity refreshes when you reopen this tab. Use Refresh for the latest.",
+  isOwner = false,
+  onActivitySeen,
+}: SharedLinkActivityFeedProps) {
   const [feedState, dispatchFeed] = useReducer(activityFeedReducer, INITIAL_ACTIVITY_FEED_STATE);
-  const { activities, loading, loadingMore, error, hasMore, nextCursor, newActivityNotice } = feedState;
+  const { activities, loading, loadingMore, error, hasMore, nextCursor, newActivityNotice, partial, unavailableSources } = feedState;
   const loadingRef = useRef(false);
   const newestIdRef = useRef<string | null>(null);
 
@@ -91,13 +123,24 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
       let nextActivities: ActivityItem[];
       let nextHasMore: boolean;
       let nextCursorValue: string | null;
-      if (isOwner) {
+      let nextPartial = false;
+      let nextUnavailableSources: string[] = [];
+      if (loadActivity) {
+        const res = await loadActivity(cursor ?? null);
+        nextActivities = res.activities as ActivityItem[];
+        nextHasMore = res.hasMore;
+        nextCursorValue = res.nextCursor ?? null;
+        nextPartial = Boolean(res.partial);
+        nextUnavailableSources = res.unavailableSources ?? [];
+      } else if (isOwner) {
+        if (!publicationToken) throw new Error("Publication token is required.");
         // Owner path: server action (full, including internal via RBAC inside action)
         const res = await loadSharedLinkActivity(publicationToken, { limit: 50, cursor: cursor ?? undefined });
         nextActivities = res.activities as ActivityItem[];
         nextHasMore = res.hasMore;
         nextCursorValue = res.nextCursor ?? null;
       } else {
+        if (!publicationToken) throw new Error("Publication token is required.");
         // Public/recipient path: filtered route (never leaks is_internal)
         const url = new URL(`/api/share/${encodeURIComponent(publicationToken)}/activity`, window.location.origin);
         if (cursor) url.searchParams.set("cursor", cursor);
@@ -123,6 +166,8 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
         hasMore: nextHasMore,
         nextCursor: nextCursorValue,
         showNewActivityNotice,
+        partial: nextPartial,
+        unavailableSources: nextUnavailableSources,
       });
       onActivitySeen?.();
     } catch (e) {
@@ -130,7 +175,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
     } finally {
       loadingRef.current = false;
     }
-  }, [publicationToken, isOwner, onActivitySeen]);
+  }, [publicationToken, loadActivity, isOwner, onActivitySeen]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -157,7 +202,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
 
   if (loading) {
     return (
-      <div data-testid="activity-loading" className="space-y-2 rounded-xs p-2 text-[10px] text-secondary" aria-busy="true" aria-label="Loading shared link activity">
+      <div data-testid="activity-loading" className="space-y-2 rounded-xs p-2 text-[10px] text-secondary" aria-busy="true" aria-label={loadingLabel}>
         <p>Loading activity…</p>
         {Array.from({ length: 3 }).map((_, index) => (
           <div key={index} className="h-10 rounded-xs border border-hairline bg-surfaceMuted/60" aria-hidden="true" />
@@ -175,7 +220,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
   }
 
   return (
-    <section data-testid="activity-feed" className="rounded-xs text-[10px] text-ink" aria-label="Shared link activity">
+    <section data-testid="activity-feed" className="rounded-xs text-[10px] text-ink" aria-label={feedLabel}>
       <div className="mb-2 flex items-center justify-between text-[9px] text-secondary">
         <span>Activity</span>
         <Button type="button" variant="ghost" size="sm" onClick={() => { dispatchFeed({ type: "notice:clear" }); load(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
@@ -189,10 +234,15 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
           New activity loaded.
         </div>
       ) : null}
+      {partial ? (
+        <div className="mb-2 rounded-xs border border-warningSoft bg-warningSoft px-2 py-1 text-[9px] font-medium text-warning">
+          Partial activity{unavailableSources.length ? `: ${unavailableSources.join(", ")} unavailable.` : "."}
+        </div>
+      ) : null}
       {activities.length === 0 ? (
-        <p role="status" className="rounded-xs border border-dashed border-hairline bg-white p-2 text-secondary">No activity yet.</p>
+        <p role="status" className="rounded-xs border border-dashed border-hairline bg-white p-2 text-secondary">{emptyLabel}</p>
       ) : (
-        <div role="feed" aria-label="Shared link activity feed" className="space-y-2">
+        <div role="feed" aria-label={`${feedLabel} feed`} className="space-y-2">
           {activities.map((a, index) => (
             <article
               key={a.id}
@@ -200,6 +250,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
               aria-label={`${a.title} ${new Date(a.occurredAt).toLocaleString()}`}
               aria-posinset={index + 1}
               aria-setsize={activities.length}
+              tabIndex={0}
               className="rounded-xs border border-hairline bg-surface p-2 text-[10px]"
             >
               <div className="font-medium text-secondary">{a.title}</div>
@@ -232,7 +283,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
           {loadingMore ? "Loading…" : "Load older activity"}
         </Button>
       ) : null}
-      <p className="mt-2 text-[9px] text-secondary">Activity refreshes when you reopen this tab. Use Refresh for the latest.</p>
+      <p className="mt-2 text-[9px] text-secondary">{footerLabel}</p>
     </section>
   );
 }

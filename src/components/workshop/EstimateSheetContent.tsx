@@ -59,6 +59,9 @@ const EstimateRightSidebar = dynamic(
     loading: () => <ComponentLibrarySidebarFallback isError={false} />,
   },
 );
+const ESTIMATE_LIBRARY_DEFAULT_WIDTH_CLASS = "w-[560px]";
+const ESTIMATE_CURSOR_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ESTIMATE_LIBRARY_POST_PAINT_DELAY_MS = 800;
 import {
   INSERT_PROJECT_SOURCE_EVENT,
   readInsertProjectSourceEventDetail,
@@ -139,10 +142,6 @@ import {
 } from "./estimate-sheet/rows/cells";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
-
-// D2 / Req 10: local binding for the within-area group transform. The sheet
-// needs an explicit local binding to be callable here.
-import { groupComponents as groupSheetRows } from "./component-library/helpers";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
 
@@ -566,7 +565,7 @@ function estimateSheetContentReducer(
 
 /**
  * Reorder each area's `estimateRowItems` WITHIN that area (hierarchy preserved):
- * - category/supplier: flatten `groupComponents` buckets back to one array;
+ * - category/supplier: flatten grouped buckets back to one array;
  * - cost: live editable line total, high to low.
  * This is a within-area reorder only — it does NOT add group-header rows (that
  * would require changing the row renderer and risk the perf guard; out of
@@ -575,10 +574,24 @@ function estimateSheetContentReducer(
 function reorderEstimateSheetNodeRows(node: EstimateTreeNode, mode: SheetGroupMode, editableRows: Record<string, Partial<EditableRowValue>>): EstimateTreeNode {
   if (mode === "default") return node;
 
+  function groupRows(items: EstimateRowItem[], groupBy: "category" | "supplier"): [string, EstimateRowItem[]][] {
+    const groups = new Map<string, EstimateRowItem[]>();
+    for (const item of items) {
+      const key = groupBy === "supplier" ? item.supplier || "No supplier" : item.category || "General";
+      const bucket = groups.get(key);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        groups.set(key, [item]);
+      }
+    }
+    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+  }
+
   function orderRows(items: EstimateRowItem[]): EstimateRowItem[] {
     if (items.length <= 1) return items;
     if (mode === "category" || mode === "supplier") {
-      return groupSheetRows(items, mode === "category" ? "category" : "supplier").flatMap(([, bucket]) => bucket);
+      return groupRows(items, mode === "category" ? "category" : "supplier").flatMap(([, bucket]) => bucket);
     }
     // cost: high -> low by live editable line total, with stable input-order ties.
     return items
@@ -646,21 +659,22 @@ function EstimateSheetCursorLayer({
 }: {
   estimateId?: string;
   tabId?: string;
-  userId: string | null;
+  userId?: string | null;
   displayName: string | null;
 }) {
+  const canUseRealtimeCursor = Boolean(estimateId && ESTIMATE_CURSOR_UUID_PATTERN.test(estimateId));
   const { broadcastCursor, channelStatus, lastSendStatus, remoteCursors } = useEstimateCursorCollaboration({
     estimateId,
     tabId,
     userId,
     displayName,
-    enabled: Boolean(estimateId && userId),
+    enabled: canUseRealtimeCursor,
   });
   const layerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const surface = layerRef.current?.closest<HTMLElement>("[data-estimate-pointer-surface]");
-    if (!surface || !estimateId || !userId) return;
+    if (!surface || !estimateId || !canUseRealtimeCursor) return;
 
     function handlePointerMove(event: globalThis.PointerEvent) {
       if (!(event.target instanceof Element) || !surface) return;
@@ -689,7 +703,7 @@ function EstimateSheetCursorLayer({
 
     surface.addEventListener("pointermove", handlePointerMove);
     return () => surface.removeEventListener("pointermove", handlePointerMove);
-  }, [broadcastCursor, estimateId, userId]);
+  }, [broadcastCursor, canUseRealtimeCursor, estimateId]);
 
   useEffect(() => {
     const surface = layerRef.current?.closest<HTMLElement>("[data-estimate-pointer-surface]");
@@ -1128,6 +1142,41 @@ export function EstimateSheetContent({
   // it. Server-provided props short-circuit the fetch for tests/embeds.
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
+  const libraryIntentActive = showCommandPalette || rowComponentPicker?.mode === "replace" || sourcesDrawerOpen;
+  const libraryReleaseKey = shouldLoadLibraryLazily && renderSidebar && projectId && estimateId
+    ? `${projectId}:${estimateId}`
+    : null;
+  const [releasedLibrarySidebarKey, setReleasedLibrarySidebarKey] = useState<string | null>(null);
+  const delayedLibrarySidebarReleased = libraryReleaseKey !== null && releasedLibrarySidebarKey === libraryReleaseKey;
+  useEffect(() => {
+    if (!libraryReleaseKey || libraryIntentActive || delayedLibrarySidebarReleased) {
+      return undefined;
+    }
+
+    let frameId: number | null = null;
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+    const releaseSidebar = () => setReleasedLibrarySidebarKey(libraryReleaseKey);
+
+    frameId = window.requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
+        if (typeof window.requestIdleCallback === "function") {
+          idleId = window.requestIdleCallback(releaseSidebar, { timeout: 400 });
+          return;
+        }
+        releaseSidebar();
+      }, ESTIMATE_LIBRARY_POST_PAINT_DELAY_MS);
+    });
+
+    return () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [delayedLibrarySidebarReleased, libraryIntentActive, libraryReleaseKey]);
+  const libraryQueryCanRun = !shouldLoadLibraryLazily || libraryIntentActive || delayedLibrarySidebarReleased;
   const lazyLibraryQueryKey = workspaceId && projectId
     ? workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)
     : workspaceComponentLibraryLiteQueryKey(workspaceId ?? "missing-workspace", projectId ?? "missing-project");
@@ -1143,13 +1192,14 @@ export function EstimateSheetContent({
       if (!projectId) throw new Error("Project id is required to load the component library.");
       return loadProjectComponentLibraryLite(projectId);
     },
-    enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette || rowComponentPicker?.mode === "replace"),
+    enabled: shouldLoadLibraryLazily && libraryQueryCanRun,
     staleTime: 5 * 60 * 1000,
     // U19: keep the warmed cache long after navigate-away so returning to the
     // estimate doesn't re-run the cold load (it's workspace-global + mutation-invalidated).
     gcTime: 30 * 60 * 1000,
   });
   const lazyLibrary = shouldLoadLibraryLazily ? lazyLibraryData : undefined;
+  const librarySidebarCanHydrate = !shouldLoadLibraryLazily || libraryIntentActive || delayedLibrarySidebarReleased || Boolean(lazyLibrary);
   const isLazyLibraryLoading = shouldLoadLibraryLazily && !lazyLibrary && !isLazyLibraryError;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const queryClient = useQueryClient();
@@ -1906,7 +1956,7 @@ export function EstimateSheetContent({
                 aria-label={rowComponentPicker.mode === "replace" ? "Component search" : "Move target search"}
                 value={rowComponentPickerQuery}
                 onChange={(event) => setRowComponentPickerQuery(event.currentTarget.value)}
-                className="h-8 rounded-xs border border-hairline bg-white px-2 text-[11px] font-medium text-ink outline-none transition focus:border-brand-orange"
+                className="h-8 rounded-xs border border-hairline bg-white px-2 text-[11px] font-medium text-ink outline-none transition placeholder:text-tertiary hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
                 placeholder={rowComponentPicker.mode === "replace" ? "Find component" : "Find target row"}
               />
             </label>
@@ -2243,7 +2293,9 @@ export function EstimateSheetContent({
         )}
       </section>
       {renderSidebar ? (
-        shouldLoadLibraryLazily && isLazyLibraryError && !lazyLibrary ? (
+        shouldLoadLibraryLazily && !librarySidebarCanHydrate ? (
+          <ComponentLibrarySidebarFallback isError={false} />
+        ) : shouldLoadLibraryLazily && isLazyLibraryError && !lazyLibrary ? (
           <ComponentLibrarySidebarFallback isError={isLazyLibraryError} onRetry={() => refetchLazyLibrary()} />
         ) : (
           <EstimateRightSidebar
@@ -2287,7 +2339,7 @@ export function EstimateSheetContent({
 function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolean; onRetry?: () => void }) {
   const surfaceVariant = useEstimateSurfaceVariant();
   return (
-    <aside className={cn("flex h-full min-h-0 min-w-[320px] flex-col", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
+    <aside className={cn("flex h-full min-h-0 flex-col", ESTIMATE_LIBRARY_DEFAULT_WIDTH_CLASS, estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
       {isError ? (
         <div role="alert" className={cn("m-2 mt-2 rounded-xs border border-dashed p-3 text-center", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>

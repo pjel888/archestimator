@@ -426,18 +426,17 @@ export function useEstimateRowHandlers({
     const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
     const currentEditableRow = editableRows[rowItemId] ?? previousRows[rowItemId];
     const nextEditableRow: EditableRowValue = {
-      name: currentEditableRow?.name ?? "",
-      description: currentEditableRow?.description ?? "",
-      supplier: currentEditableRow?.supplier ?? "",
-      unit: currentEditableRow?.unit ?? "unit",
-      unitCost: currentEditableRow?.unitCost ?? "0",
-      imageUrl: currentEditableRow?.imageUrl ?? "",
-      sourceUrl: currentEditableRow?.sourceUrl ?? "",
-      quantity: currentEditableRow?.quantity ?? "0",
-      contingencyMode: currentEditableRow?.contingencyMode ?? "contingency",
-      contingencyPercentage: currentEditableRow?.contingencyPercentage ?? "0",
-      miscCost: currentEditableRow?.miscCost ?? "0",
-      ...values,
+      name: values.name ?? currentEditableRow?.name ?? "",
+      description: values.description ?? currentEditableRow?.description ?? "",
+      supplier: values.supplier ?? currentEditableRow?.supplier ?? "",
+      unit: values.unit ?? currentEditableRow?.unit ?? "unit",
+      unitCost: values.unitCost ?? currentEditableRow?.unitCost ?? "0",
+      imageUrl: values.imageUrl ?? currentEditableRow?.imageUrl ?? "",
+      sourceUrl: values.sourceUrl ?? currentEditableRow?.sourceUrl ?? "",
+      quantity: values.quantity ?? currentEditableRow?.quantity ?? "0",
+      contingencyMode: values.contingencyMode ?? currentEditableRow?.contingencyMode ?? "contingency",
+      contingencyPercentage: values.contingencyPercentage ?? currentEditableRow?.contingencyPercentage ?? "0",
+      miscCost: values.miscCost ?? currentEditableRow?.miscCost ?? "0",
     };
     const expressFieldNames = ["name", "description", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
     if (expressFieldNames.length > 0) {
