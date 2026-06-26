@@ -115,6 +115,15 @@ export function EstimateWorkspaceClient({
 
   return (
     <EstimateSurfaceVariantProvider variant={surfaceVariant}>
+    <div
+      role="note"
+      aria-label="Desktop workspace notice"
+      tabIndex={0}
+      className="shrink-0 border-b border-hairline bg-surface px-3 py-2 text-[10px] leading-4 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden"
+    >
+      <span className="block font-medium text-ink">Estimate editing works best on a desktop-width screen.</span>
+      <span className="block text-tertiary">Side panels open as compact drawers on this width; use a wider display for full three-panel editing.</span>
+    </div>
     <section
       className={cn(
         "flex h-full min-h-0 overflow-hidden",
@@ -135,6 +144,7 @@ export function EstimateWorkspaceClient({
         projectName={projectName}
         selectedNodeId={routeSelectedNodeId}
         nodes={nodes}
+        loadLimitState={loadLimitState}
         disableRouteSync={disableRouteSync}
       />
       <EstimateSheetContent

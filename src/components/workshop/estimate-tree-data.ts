@@ -1,20 +1,7 @@
 import type { EstimateRowItem, EstimateTreeNode, FlatEstimateTreeNode } from "@/lib/estimates/types";
+import { getLocalComponentImageFallback } from "./component-image-fallbacks";
 
 export type { EstimateRowItem, EstimateRowItemSource, EstimateTreeNode, FlatEstimateTreeNode } from "@/lib/estimates/types";
-
-const fallbackComponentImages: Record<string, string> = {
-  "Furniture": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80",
-  "Cabinetry": "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=600&q=80",
-  "Finishes": "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=600&q=80",
-  "Wall Paints / Interior Finishes": "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=600&q=80",
-  "Lighting / Electrical Fixtures": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
-  "Electrical Fixtures": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
-  "Lighting Fixtures": "https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?auto=format&fit=crop&w=600&q=80",
-  "Plumbing Fixtures": "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=600&q=80",
-  "Kitchen Fixtures": "https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=600&q=80",
-  "Outdoor": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80",
-  "General": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80",
-};
 
 const componentThumbnailUrls: Record<string, string> = {
   "lib-sofa": "/component-thumbnails/lib-sofa.jpg",
@@ -122,14 +109,7 @@ function inferCategory(material: string) {
 }
 
 function inferImageUrl(material: string, category: string) {
-  if (fallbackComponentImages[category]) return fallbackComponentImages[category];
-  const value = material.toLowerCase();
-  if (value.includes("paint") || value.includes("skimcoat") || value.includes("wallpaper")) return fallbackComponentImages["Wall Paints / Interior Finishes"];
-  if (value.includes("light") || value.includes("switch") || value.includes("outlet") || value.includes("led")) return fallbackComponentImages["Lighting / Electrical Fixtures"];
-  if (value.includes("closet") || value.includes("lavatory") || value.includes("vanity") || value.includes("sink")) return fallbackComponentImages["Plumbing Fixtures"];
-  if (value.includes("tile") || value.includes("floor")) return fallbackComponentImages.Finishes;
-  if (value.includes("wardrobe") || value.includes("cabinet")) return fallbackComponentImages.Cabinetry;
-  return fallbackComponentImages.General;
+  return getLocalComponentImageFallback({ material, category });
 }
 
 function row(input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "category" | "pricingSource" | "pricingDate"> & Partial<Pick<EstimateRowItem, "category" | "pricingSource" | "pricingDate">>): EstimateRowItem {

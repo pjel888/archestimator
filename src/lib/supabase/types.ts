@@ -4163,6 +4163,39 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_estimate_row_items_bulk_with_history: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          expected_row_revisions: Json
+          target_estimate_id: string
+          target_project_id: string
+          target_row_ids: string[]
+        }
+        Returns: Json
+      }
+      restore_deleted_estimate_rows_with_history: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          source_delete_event_id: string
+          target_estimate_id: string
+          target_project_id: string
+          target_row_ids?: string[] | null
+        }
+        Returns: Json
+      }
+      restore_deleted_estimate_nodes_with_history: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          source_delete_event_id: string
+          target_estimate_id: string
+          target_node_ids?: string[] | null
+          target_project_id: string
+        }
+        Returns: Json
+      }
       delete_estimate_tab_with_history: {
         Args: {
           acting_user_id?: string
@@ -4461,6 +4494,21 @@ export type Database = {
       materialize_expired_collaboration_invitations: {
         Args: never
         Returns: number
+      }
+      move_estimate_row_component_with_history: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          expected_source_row_revision: number
+          expected_target_row_revision: number
+          source_replacement_payload: Json
+          source_row_id: string
+          target_estimate_id: string
+          target_project_id: string
+          target_replacement_payload: Json
+          target_row_id: string
+        }
+        Returns: Json
       }
       normalize_component_brand_name: {
         Args: { value: string }
