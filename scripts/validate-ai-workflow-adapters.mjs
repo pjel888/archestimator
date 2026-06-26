@@ -38,12 +38,38 @@ function walkFiles(dir, predicate = () => true) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
+      if (isLocalOnlyAdapterDirectory(path)) continue;
       out.push(...walkFiles(path, predicate));
     } else if (entry.isFile() && predicate(path)) {
       out.push(path);
     }
   }
   return out;
+}
+
+function isLocalOnlyAdapterDirectory(path) {
+  const normalized = rel(path).replaceAll("\\", "/");
+  return (
+    normalized === ".codex/cache" ||
+    normalized === ".codex/logs" ||
+    normalized === ".codex/sessions" ||
+    normalized === ".codex/state" ||
+    normalized === ".codex/tmp" ||
+    normalized === ".codex/local" ||
+    normalized === ".opencode/node_modules"
+  );
+}
+
+function isGeneratedOpenCodePath(path) {
+  const normalized = rel(path).replaceAll("\\", "/");
+  return (
+    normalized === ".opencode/opencode.json" ||
+    normalized === ".opencode/package.json" ||
+    normalized === ".opencode/package-lock.json" ||
+    normalized === ".opencode/.package-lock.json" ||
+    normalized === ".opencode/.gitignore" ||
+    normalized.startsWith(".opencode/node_modules/")
+  );
 }
 
 function stripJsonComments(text) {
@@ -348,6 +374,7 @@ function checkActiveGuidanceReferences() {
     ".ai/08_prompts",
     ".ai/12_agents",
     ".codex",
+    ".opencode",
     "opencode.json",
     "package.json",
   ];
@@ -355,7 +382,10 @@ function checkActiveGuidanceReferences() {
     const full = join(repoRoot, root);
     if (!existsSync(full)) return [];
     if (statSync(full).isFile()) return [full];
-    return walkFiles(full, (path) => /\.(json|jsonc|md|mjs|toml)$/.test(path));
+    return walkFiles(
+      full,
+      (path) => !isGeneratedOpenCodePath(path) && /\.(json|jsonc|md|mjs|toml)$/.test(path),
+    );
   });
 
   for (const file of files) {

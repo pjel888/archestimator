@@ -55,3 +55,11 @@ do not restate the policy.
 
 Every active, conditional, deprecated, unapproved, and non-agent payload must
 follow `payloads/_template.md` or intentionally fail closed.
+
+## Adapter Validation
+
+Codex and OpenCode are thin adapters over this shared contract. When changing
+`.codex/`, `opencode.json`, or the Codex/OpenCode payloads, run
+`bun run validate:agents` plus the relevant tool resolver (`codex debug
+prompt-input` or `opencode debug config`) before claiming the agent surface is
+clean.

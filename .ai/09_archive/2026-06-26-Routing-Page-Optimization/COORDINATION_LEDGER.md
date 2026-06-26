@@ -57,6 +57,11 @@ Optimize authenticated estimate-sheet route transitions so target navigation avo
 - Post-cleanup readiness rerun: `.ai/05_logs/2026-06-26-routing-page-optimization/after-p31-route-context-process-cache-existing-fixture-readiness-post-cleanup.json`, still `routeTransitionReady: true`.
 - Browser fallback proof: `PLAYWRIGHT_PORT=3020 bun run test:e2e -- e2e/estimate-sheet-loading-performance.spec.ts` passed. The spec now defaults to the same live target fixture documented in this plan (`0139e1e5-951d-4f2f-9081-6c953d288d8a` / `8080f04c-fe18-4314-a1d8-9222e62d1eed`) and supports the standard dev-auth bypass cookie path when configured.
 - Final static checks after the E2E spec update: `bun run type-check` and `git diff --check` passed.
+- Continuation final readiness rerun: `.ai/05_logs/2026-06-26-routing-page-optimization/after-p31-route-context-process-cache-existing-fixture-readiness-final.json`, still `routeTransitionReady: true`.
+- Continuation focused route/loading/store/RPC matrix: `bunx vitest run tests/vitest/estimate-sheet-route-loading.test.ts tests/vitest/project-estimates-list-skeleton.test.tsx tests/vitest/navigation-ui-store.test.ts tests/vitest/live-estimate-node-route.test.ts tests/vitest/estimate-route-server-concurrency.test.ts tests/vitest/estimate-node-route-context-rpc-contract.test.ts tests/vitest/estimate-sheet-cost-inputs.test.tsx --maxWorkers=1` passed 7 files / 84 tests, including the previously red breadcrumb metadata publisher DOM test.
+- Continuation browser security proof: `PLAYWRIGHT_PORT=3020 bun run test:e2e -- e2e/estimate-sheet-loading-performance.spec.ts` passed 5 Chromium tests covering authenticated fallback shape, unauthenticated direct target fail-closed, invalid project/estimate fail-closed, invalid storage-state direct fail-closed, and invalid storage-state prefetch-style route-data fail-closed.
+- Continuation React quality/static gates: `bun run type-check`, `npx --yes react-doctor@latest --verbose --scope changed`, and `git diff --check` passed.
+- Before/after summary: `.ai/05_logs/2026-06-26-routing-page-optimization/before-after-summary.md`.
 
 ## Current Result
 
@@ -64,11 +69,10 @@ Optimize authenticated estimate-sheet route transitions so target navigation avo
 - P31 medians: Cold Direct 2404ms, No Hover 365ms, Hover Prefetch 237ms, Warm Revisit 349ms.
 - P31 readiness is green. The route-context process cache is active: after the first RPC read, target route-context spans are `estimate-route-context.cache-hit` with zero Supabase round trips.
 - The browser fallback proof is green: the target estimate navigation showed `estimate-sheet-route-skeleton`, reached visible sheet content, and did not show `project-estimates-list-skeleton`.
+- The browser security proof is green: unauthenticated direct loads, invalid project/estimate routes, invalid stale Supabase auth-cookie direct loads, and invalid stale-auth prefetch-style route-data fetches all fail closed without protected estimate sheet content.
 
 ## Residual Risk
 
 P31 is local production-like evidence only, using temporary storage-state auth against `127.0.0.1:3020`; it does not prove hosted production behavior. The green result also depends on the documented median duration budgets for target route scenarios, while hard fallback/timeline gates still apply per run.
 
-A broader DOM unit test remains red in this dirty branch: `tests/vitest/estimate-sheet-cost-inputs.test.tsx` / `estimate shell chrome > keeps the project title and breadcrumbs visible when an estimate sheet publishes metadata`. That failure does not invalidate the route-transition benchmark/readiness claim, but it prevents claiming the full branch test suite is green.
-
-The independent native reviewer lane timed out without returning usable findings. Treat this ledger as local implementation plus focused verification evidence, not as an independently reviewed final readiness sign-off.
+This ledger does not claim full `bun run validate` coverage. The project brain records known pre-existing full-suite reds/hangs on `main`, so this completion relies on the targeted gates above plus the route benchmark/readiness and browser security proof.
