@@ -33,6 +33,7 @@ import {
 } from "@/lib/repositories/workspace-repository";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
@@ -49,7 +50,7 @@ import {
   roundQuickAddMoney,
   validateQuickAddComponentInput,
 } from "./quick-add-validation";
-import { recordLibraryEvent } from "./library-telemetry";
+import { recordLibraryEvent, sanitizeLibraryTelemetryRecord, type LibraryTelemetryRecord } from "./library-telemetry";
 import { readComponentSourceUrlInput } from "./source-url";
 import { throwActionError } from "./action-errors";
 
@@ -255,6 +256,249 @@ async function assertCanPublishEstimateTemplateFromEstimate(
 // (a head count, no migration). The caps are far above any legitimate workspace today.
 const LIBRARY_COMPONENT_CAP = 10_000;
 const LIBRARY_TEMPLATE_CAP = 2_000;
+
+type ComponentLibraryTelemetryEventInsert = {
+  actor_user_id: string;
+  workspace_id: string | null;
+  project_id: string | null;
+  estimate_id: string | null;
+  event_name: string;
+  schema_version: "v1";
+  surface: string | null;
+  kind: string | null;
+  resource_kind: string | null;
+  action: string | null;
+  reason: string | null;
+  payload: Json;
+};
+
+type ComponentLibraryTelemetryInsertClient = {
+  from: (table: "component_library_telemetry_events") => {
+    insert: (row: ComponentLibraryTelemetryEventInsert) => PromiseLike<{ error: { message?: string } | null }>;
+  };
+};
+
+type ComponentLibraryPreferenceTab = "components" | "project" | "templates";
+type ComponentLibraryPreferenceViewMode = "default" | "suppliers" | "brand";
+type ComponentLibraryPreferenceTreeOrder = Record<ComponentLibraryPreferenceViewMode, Record<string, string[]>>;
+
+export type ComponentLibraryUserPreferences = {
+  activeTab: ComponentLibraryPreferenceTab;
+  componentViewMode: ComponentLibraryPreferenceViewMode;
+  favoriteItemIds: string[];
+  recentItemIds: string[];
+  treeOrder: ComponentLibraryPreferenceTreeOrder;
+  updatedAt?: string | null;
+};
+
+export type ComponentLibraryUserPreferencesInput = Partial<{
+  activeTab: string | null;
+  componentViewMode: string | null;
+  favoriteItemIds: unknown;
+  recentItemIds: unknown;
+  treeOrder: unknown;
+}>;
+
+type ComponentLibraryPreferenceRow = {
+  active_tab: string | null;
+  component_view_mode: string | null;
+  favorite_item_ids: string[] | null;
+  recent_item_ids: string[] | null;
+  tree_order: Json | null;
+  updated_at: string | null;
+};
+
+type ComponentLibraryPreferenceUpsert = {
+  user_id: string;
+  workspace_id: string;
+  active_tab: ComponentLibraryPreferenceTab;
+  component_view_mode: ComponentLibraryPreferenceViewMode;
+  favorite_item_ids: string[];
+  recent_item_ids: string[];
+  tree_order: Json;
+};
+
+type ComponentLibraryPreferenceQuery = {
+  select: (columns: string) => ComponentLibraryPreferenceQuery;
+  eq: (column: string, value: string) => ComponentLibraryPreferenceQuery;
+  maybeSingle: () => PromiseLike<{ data: ComponentLibraryPreferenceRow | null; error: { message?: string } | null }>;
+  upsert: (
+    row: ComponentLibraryPreferenceUpsert,
+    options: { onConflict: string },
+  ) => PromiseLike<{ error: { message?: string } | null }>;
+};
+
+type ComponentLibraryPreferenceClient = {
+  from: (table: "component_library_user_preferences") => ComponentLibraryPreferenceQuery;
+};
+
+const COMPONENT_LIBRARY_PREFERENCE_TABS = ["components", "project", "templates"] as const;
+const COMPONENT_LIBRARY_PREFERENCE_VIEW_MODES = ["default", "suppliers", "brand"] as const;
+const EMPTY_COMPONENT_LIBRARY_TREE_ORDER: ComponentLibraryPreferenceTreeOrder = { default: {}, suppliers: {}, brand: {} };
+const COMPONENT_LIBRARY_PREFERENCE_ID_PATTERN = /^[a-zA-Z0-9_.:-]{1,160}$/;
+
+function readOptionalTelemetryUuid(value: string | undefined) {
+  return value && isUuid(value) ? value : null;
+}
+
+function readComponentLibraryPreferenceTab(value: unknown): ComponentLibraryPreferenceTab {
+  return COMPONENT_LIBRARY_PREFERENCE_TABS.includes(value as ComponentLibraryPreferenceTab)
+    ? value as ComponentLibraryPreferenceTab
+    : "components";
+}
+
+function readComponentLibraryPreferenceViewMode(value: unknown): ComponentLibraryPreferenceViewMode {
+  return COMPONENT_LIBRARY_PREFERENCE_VIEW_MODES.includes(value as ComponentLibraryPreferenceViewMode)
+    ? value as ComponentLibraryPreferenceViewMode
+    : "default";
+}
+
+function readComponentLibraryPreferenceIds(value: unknown, limit: number) {
+  if (!Array.isArray(value)) return [];
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of value) {
+    if (ids.length >= limit) break;
+    if (typeof candidate !== "string") continue;
+    const id = candidate.trim();
+    if (!COMPONENT_LIBRARY_PREFERENCE_ID_PATTERN.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function readComponentLibraryTreeOrder(value: unknown): ComponentLibraryPreferenceTreeOrder {
+  if (!isJsonObject(value)) return { ...EMPTY_COMPONENT_LIBRARY_TREE_ORDER };
+  const treeOrder: ComponentLibraryPreferenceTreeOrder = { default: {}, suppliers: {}, brand: {} };
+  for (const mode of COMPONENT_LIBRARY_PREFERENCE_VIEW_MODES) {
+    const modeOrder = value[mode];
+    if (!isJsonObject(modeOrder)) continue;
+    let parentCount = 0;
+    for (const [parentKey, rawIds] of Object.entries(modeOrder)) {
+      if (parentCount >= 100) break;
+      if (!COMPONENT_LIBRARY_PREFERENCE_ID_PATTERN.test(parentKey)) continue;
+      const ids = readComponentLibraryPreferenceIds(rawIds, 200);
+      if (ids.length === 0) continue;
+      treeOrder[mode][parentKey] = ids;
+      parentCount += 1;
+    }
+  }
+  return treeOrder;
+}
+
+function normalizeComponentLibraryUserPreferences(input: ComponentLibraryUserPreferencesInput & { updatedAt?: string | null }): ComponentLibraryUserPreferences {
+  return {
+    activeTab: readComponentLibraryPreferenceTab(input.activeTab),
+    componentViewMode: readComponentLibraryPreferenceViewMode(input.componentViewMode),
+    favoriteItemIds: readComponentLibraryPreferenceIds(input.favoriteItemIds, 500),
+    recentItemIds: readComponentLibraryPreferenceIds(input.recentItemIds, 100),
+    treeOrder: readComponentLibraryTreeOrder(input.treeOrder),
+    updatedAt: input.updatedAt ?? null,
+  };
+}
+
+export async function recordComponentLibraryTelemetryEvent(input: LibraryTelemetryRecord) {
+  const record = sanitizeLibraryTelemetryRecord(input);
+  if (!record) return { ok: false, ignored: true };
+
+  try {
+    const user = await requireCurrentUserContext();
+    const workspaceId = readOptionalTelemetryUuid(record.workspaceId);
+    if (workspaceId) {
+      const supabase = await createSupabaseServerClient();
+      const { data, error } = await supabase.rpc("is_workspace_member", { target_workspace_id: workspaceId });
+      if (error || data !== true) return { ok: false, ignored: true };
+    }
+
+    const {
+      schemaVersion,
+      event,
+      workspaceId: _workspaceId,
+      projectId: _projectId,
+      estimateId: _estimateId,
+      surface,
+      kind,
+      resourceKind,
+      action,
+      reason,
+      ...payload
+    } = record;
+    const admin = createSupabaseServiceRoleClient("archestimator-component-library-telemetry") as unknown as ComponentLibraryTelemetryInsertClient;
+    const { error } = await admin.from("component_library_telemetry_events").insert({
+      actor_user_id: user.userId,
+      workspace_id: workspaceId,
+      project_id: readOptionalTelemetryUuid(record.projectId),
+      estimate_id: readOptionalTelemetryUuid(record.estimateId),
+      event_name: event,
+      schema_version: schemaVersion,
+      surface: surface ?? null,
+      kind: kind ?? null,
+      resource_kind: resourceKind ?? null,
+      action: action ?? null,
+      reason: reason ?? null,
+      payload: payload as Json,
+    });
+
+    if (error) return { ok: false, ignored: true };
+    return { ok: true };
+  } catch {
+    return { ok: false, ignored: true };
+  }
+}
+
+export async function loadComponentLibraryUserPreferences(): Promise<ComponentLibraryUserPreferences | null> {
+  try {
+    const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+    const admin = createSupabaseServiceRoleClient("archestimator-component-library-preferences-read") as unknown as ComponentLibraryPreferenceClient;
+    const { data, error } = await admin
+      .from("component_library_user_preferences")
+      .select("active_tab,component_view_mode,favorite_item_ids,recent_item_ids,tree_order,updated_at")
+      .eq("user_id", currentUser.userId)
+      .eq("workspace_id", workspace.id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return normalizeComponentLibraryUserPreferences({
+      activeTab: data.active_tab,
+      componentViewMode: data.component_view_mode,
+      favoriteItemIds: data.favorite_item_ids,
+      recentItemIds: data.recent_item_ids,
+      treeOrder: data.tree_order,
+      updatedAt: data.updated_at,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function saveComponentLibraryUserPreferences(input: ComponentLibraryUserPreferencesInput) {
+  try {
+    const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+    const preferences = normalizeComponentLibraryUserPreferences(input);
+    const admin = createSupabaseServiceRoleClient("archestimator-component-library-preferences-write") as unknown as ComponentLibraryPreferenceClient;
+    const { error } = await admin
+      .from("component_library_user_preferences")
+      .upsert({
+        user_id: currentUser.userId,
+        workspace_id: workspace.id,
+        active_tab: preferences.activeTab,
+        component_view_mode: preferences.componentViewMode,
+        favorite_item_ids: preferences.favoriteItemIds,
+        recent_item_ids: preferences.recentItemIds,
+        tree_order: preferences.treeOrder as Json,
+      }, { onConflict: "user_id,workspace_id" });
+
+    if (error) return { ok: false, ignored: true };
+    return { ok: true };
+  } catch {
+    return { ok: false, ignored: true };
+  }
+}
 
 async function assertWithinLibraryQuota(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,

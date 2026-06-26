@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { memo, useMemo, type ReactNode } from "react";
-import { ArrowSquareOut, Clock, MapPin, Star } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Clock, FileText, Globe, MapPin, Star, Users } from "@phosphor-icons/react/dist/ssr";
 
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json, Tables } from "@/lib/supabase/types";
+import { getProjectLocationStaticMapStyleParams } from "@/lib/google-maps/project-location-map-style";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
@@ -122,8 +123,9 @@ function getProjectMapThumbnailUrl(project: Tables<"projects">, apiKey: string) 
     key,
   });
   params.append("markers", `color:0xF24405|${location}`);
-  params.append("style", "feature:poi|visibility:off");
-  params.append("style", "feature:transit|visibility:off");
+  for (const style of getProjectLocationStaticMapStyleParams()) {
+    params.append("style", style);
+  }
   return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
 
@@ -172,6 +174,7 @@ function LiveProjectCardImpl({
   pendingInviteCount = 0,
   setupStatus = null,
   setupNavigationDisabled = false,
+  publicationSummary = null,
   sharedEstimateCount = 0,
   favoriteEstimateSheets = EMPTY_FAVORITE_ESTIMATE_SHEETS,
   isFavorite = false,
@@ -208,17 +211,33 @@ function LiveProjectCardImpl({
   const visibleFavoriteEstimateSheets = favoriteEstimateSheets.slice(0, 5);
 
   const accessChip = isPendingInvite ? (
-    <span key="access" className="inline-flex shrink-0 items-center rounded-xs bg-warningSoft px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-warning">
+    <span
+      key="access"
+      className={cn(
+        "workshop-project-card-vital workshop-project-card-vital--warning inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px]",
+      )}
+    >
+      <Clock size={10} weight="regular" aria-hidden="true" />
       {isExpiredPendingInvite ? "Invite expired" : getAccessBadgeLabel(accessKind)}
     </span>
   ) : isSharedAccess ? (
-    <span key="access" className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
+    <span
+      key="access"
+      className={cn(
+        "workshop-project-card-vital workshop-project-card-vital--shared inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px]",
+      )}
+    >
+      <Users size={10} weight="regular" aria-hidden="true" />
       {getAccessBadgeLabel(accessKind)}
     </span>
   ) : null;
 
   const invitesChip = hasInvites ? (
-    <span key="invites" className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
+    <span
+      key="invites"
+      className="workshop-project-card-vital inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px]"
+    >
+      <Users size={10} weight="regular" aria-hidden="true" />
       {pendingInviteCount} {pendingInviteCount === 1 ? "invite" : "invites"}
     </span>
   ) : null;
@@ -324,6 +343,42 @@ function LiveProjectCardImpl({
             </div>
           </div>
         ) : null}
+        {showMeta && !isPendingInvite ? renderProjectVitals() : null}
+      </div>
+    );
+  }
+
+  function renderProjectVitals() {
+    const hasSharedEstimates = sharedEstimateCount > 0;
+    const isPublished = publicationSummary?.status === "published";
+    if (!isPublished && !hasSharedEstimates) return null;
+
+    return (
+      <div
+        data-project-card-vitals=""
+        className={cn(
+          "flex min-w-0 flex-wrap items-center gap-1",
+          viewMode === "large" ? "mt-2" : "mt-1.5",
+        )}
+        aria-label={`Project details for ${project.name}`}
+      >
+        {isPublished ? (
+          <span className="workshop-project-card-vital workshop-project-card-vital--published">
+            <Globe size={10} weight="regular" aria-hidden="true" />
+            <span>Published</span>
+            {typeof publicationSummary?.openCount === "number" && publicationSummary.openCount > 0 ? (
+              <span className="tabular-nums">{publicationSummary.openCount} views</span>
+            ) : null}
+          </span>
+        ) : null}
+        {hasSharedEstimates ? (
+          <span className="workshop-project-card-vital workshop-project-card-vital--shared">
+            <FileText size={10} weight="regular" aria-hidden="true" />
+            <span className="tabular-nums">
+              {sharedEstimateCount} {sharedEstimateCount === 1 ? "estimate" : "estimates"}
+            </span>
+          </span>
+        ) : null}
       </div>
     );
   }
@@ -344,23 +399,8 @@ function LiveProjectCardImpl({
   );
   const thumbnailReveal = (
     <ProjectCardThumbnailReveal
-      controlButtonClassName={CONTROL_BUTTON}
-      favoriteControl={{
-        canToggle: canToggleFavorite,
-        favoriteBusy,
-        isFavorite,
-        onToggle: handleToggleFavorite,
-      }}
       getSheetHref={getFavoriteEstimateSheetHref}
       projectName={project.name}
-      revealOnIntentClassName={REVEAL_ON_INTENT}
-      selectControl={{
-        canSelect,
-        canShow: canShowSelect,
-        selectedForDeletion,
-        selectionActive,
-        onToggle: handleToggleSelected,
-      }}
       viewMode={viewMode}
       visibleFavoriteEstimateSheets={visibleFavoriteEstimateSheets}
     />
@@ -517,9 +557,13 @@ function LiveProjectCardImpl({
   }
 
   // ----- TILE: small / medium / large -----
+  // Two-layer card: a translucent liquid-glass BASE wraps an inset white inner
+  // card. The base carries the single armed backdrop-filter; the inner card is
+  // crisp opaque paper (no second blur). The translucent TOP STRIP above the
+  // inner card reveals select (left) + star / group / kebab (right) on hover.
   const thumbnailAspectClass = "aspect-[4/3]";
   const motifSize = "text-[10px]";
-  const contentPad = viewMode === "large" ? "p-0" : "p-2";
+  const contentPad = "p-2";
 
   return (
     <article
@@ -530,75 +574,96 @@ function LiveProjectCardImpl({
       aria-label={cardLabel}
       aria-busy={setupBusy || undefined}
       className={cn(
-        "workshop-project-card-glass group group/card relative flex min-w-0 flex-col overflow-hidden rounded-xs border motion-reduce:transition-none",
+        // Border-radius now comes from the .workshop-project-card-glass rule
+        // (var(--project-card-base-radius)) so the glass base is larger than the
+        // inset inner card and a translucent band reads around the paper.
+        "workshop-project-card-glass group group/card relative flex min-w-0 flex-col overflow-hidden border p-1 motion-reduce:transition-none",
         selectedForDeletion ? "border-ink" : "border-hairline",
-        viewMode === "large" ? "min-h-[360px]" : viewMode === "medium" ? "min-h-[300px]" : "min-h-[190px]",
+        viewMode === "large" ? "min-h-[372px]" : viewMode === "medium" ? "min-h-[316px]" : "min-h-[216px]",
         // Perf: let the browser skip layout/paint for off-screen cards. The `auto` intrinsic
         // size remembers each card's real height after first render (no lasting scroll drift),
-        // seeded with the per-mode min-height. Menus portal out + the card is already
-        // overflow-hidden, so paint containment adds no new clipping.
+        // seeded with the per-mode min-height (bumped to absorb the top strip + base padding).
         "[content-visibility:auto]",
         viewMode === "large"
-          ? "[contain-intrinsic-size:auto_360px]"
+          ? "[contain-intrinsic-size:auto_372px]"
           : viewMode === "medium"
-            ? "[contain-intrinsic-size:auto_300px]"
-            : "[contain-intrinsic-size:auto_190px]",
+            ? "[contain-intrinsic-size:auto_316px]"
+            : "[contain-intrinsic-size:auto_216px]",
       )}
     >
-      <ProjectCardThumbnail
-        fallbackSeed={`${project.id}:${project.name}`}
-        imageUrl={imageUrl}
-        isListView={isListView}
-        mapImageUrl={mapImageUrl}
-        motif={motif}
-        motifSize={motifSize}
-        wrapperClass={cn("w-full border-b border-hairline", thumbnailAspectClass)}
-      >
-        {thumbnailReveal}
-      </ProjectCardThumbnail>
-
+      {/* Translucent TOP STRIP: hover-revealed controls sitting in the glass
+          band above the inset white card (select leftmost, star/group/kebab right). */}
       <div
-        data-project-card-tile-content=""
-        className={cn("flex min-w-0 flex-1 flex-col", viewMode === "large" ? "justify-between" : null, contentPad)}
+        data-project-card-top-strip=""
+        className="relative z-20 flex items-center justify-between gap-2 pb-2"
       >
-        <div
-          data-project-card-title-block=""
-          className={cn(
-            "min-w-0 space-y-1",
-            viewMode === "large" ? "p-2" : null,
-            viewMode === "large" ? "min-h-[70px]" : viewMode === "medium" ? "min-h-[64px]" : "min-h-[58px]",
+        <div className="flex shrink-0 items-center gap-1">{selectControl}</div>
+        <div className="flex shrink-0 items-center gap-1">
+          {groupAssignMenu}
+          {favoriteControl}
+          {expandControl}
+        </div>
+      </div>
+
+      {/* INSET WHITE inner card: thumbnail + content. The image is its own
+          rounded, shadowed layer so the information area reads underneath it. */}
+      <div data-project-card-inner="" className="workshop-project-card-inner flex min-w-0 flex-1 flex-col">
+        <ProjectCardThumbnail
+          fallbackSeed={`${project.id}:${project.name}`}
+          imageUrl={imageUrl}
+          isListView={isListView}
+          mapImageUrl={mapImageUrl}
+          motif={motif}
+          motifSize={motifSize}
+          wrapperClass={cn(
+            "workshop-project-card-thumbnail-surface relative z-10 w-full rounded-t-[var(--project-card-inner-radius)] border-b border-hairline",
+            thumbnailAspectClass,
           )}
         >
-          <ProjectCardTitleBlock
-            clientName={project.client_name}
-            detailsControlClassName={cn(CONTROL_BUTTON, "relative z-20 text-ink", "pointer-events-auto opacity-100")}
-            groupAssignMenu={groupAssignMenu}
-            isPendingInvite={isPendingInvite}
-            location={project.location}
-            projectName={project.name}
-            setupNavigationDisabled={setupNavigationDisabled}
-            viewMode={viewMode}
-            onExpandDetails={handleExpandDetails}
-          />
-          <ProjectCardStatusSlot statusChips={statusChips} />
-        </div>
+          {thumbnailReveal}
+        </ProjectCardThumbnail>
 
-        {showMeta ? renderTileMeta() : null}
-
-        {showFooter || isPendingInvite ? (
+        <div
+          data-project-card-tile-content=""
+          className={cn(
+            "workshop-project-card-content relative z-0 flex min-w-0 flex-1 flex-col rounded-b-[var(--project-card-inner-radius)]",
+            viewMode === "large" ? "justify-between" : null,
+            contentPad,
+          )}
+        >
           <div
-            data-project-card-footer=""
+            data-project-card-title-block=""
             className={cn(
-              "flex items-center justify-between gap-2 border-t border-hairline",
-              viewMode === "large" ? "mt-0 p-2" : "mt-auto pt-2",
+              "min-w-0 space-y-1",
+              viewMode === "large" ? "min-h-[70px]" : viewMode === "medium" ? "min-h-[64px]" : "min-h-[58px]",
             )}
           >
-            <span className="truncate font-sans text-[9px] font-medium text-secondary">
-              {project.project_code ?? "—"}
-            </span>
-            {footerAction}
+            <ProjectCardTitleBlock
+              clientName={project.client_name}
+              location={project.location}
+              projectName={project.name}
+              viewMode={viewMode}
+            />
+            <ProjectCardStatusSlot statusChips={statusChips} />
           </div>
-        ) : null}
+
+          {showMeta ? renderTileMeta() : null}
+
+          {showFooter || isPendingInvite ? (
+            <div
+              data-project-card-footer=""
+              className={cn(
+                "flex items-center justify-between gap-2 border-t border-hairline",
+                viewMode === "large" ? "mt-0 pt-2" : "mt-auto pt-2",
+              )}
+            >
+              <span className="truncate font-sans text-[9px] font-medium text-secondary">
+                {project.project_code ?? "—"}
+              </span>
+              {footerAction}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* Small tiles have no footer link: the whole tile is the navigation target. */}
@@ -611,7 +676,7 @@ function LiveProjectCardImpl({
           onFocus={() => prefetch(projectHref)}
           onMouseEnter={() => prefetch(projectHref)}
           onMouseLeave={() => cancel(projectHref)}
-          className="absolute inset-0 z-10 rounded-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="absolute inset-0 z-10 rounded-[var(--project-card-base-radius)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         />
       ) : null}
       <ProjectCardSetupOverlay setupStatus={setupStatus} setupBusy={setupBusy} />

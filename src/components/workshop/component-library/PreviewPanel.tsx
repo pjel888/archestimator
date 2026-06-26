@@ -28,6 +28,7 @@ type PreviewPanelProps = {
   onDuplicate?: () => void;
   onFavorite?: () => void;
   onDelete?: () => void;
+  deleteLabel?: string;
   addDisabled: boolean;
   addLabel: string;
   insertQuantity: number;
@@ -42,6 +43,7 @@ export function PreviewPanel({
   onDuplicate,
   onFavorite,
   onDelete,
+  deleteLabel = "Delete",
   addDisabled,
   addLabel,
   insertQuantity,
@@ -149,7 +151,7 @@ export function PreviewPanel({
             ) : null}
             {onDelete ? (
               <Button variant="danger" onClick={onDelete} className="h-6 min-h-6 text-[9px]">
-                Delete
+                {deleteLabel}
               </Button>
             ) : null}
           </div>

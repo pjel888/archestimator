@@ -97,6 +97,21 @@ function createComponentTreeNode(item: EstimateRowItem): LibraryTreeNode {
   };
 }
 
+function addIndexedItem(index: Map<string, EstimateRowItem[]>, key: string | null | undefined, item: EstimateRowItem) {
+  if (!key) return;
+  const existing = index.get(key);
+  if (existing) existing.push(item);
+  else index.set(key, [item]);
+}
+
+function mergeIndexedItems(...itemGroups: Array<EstimateRowItem[] | undefined>): EstimateRowItem[] {
+  const byId = new Map<string, EstimateRowItem>();
+  for (const group of itemGroups) {
+    for (const item of group ?? []) byId.set(item.id, item);
+  }
+  return Array.from(byId.values());
+}
+
 function buildReusableComponentFolderTree(
   items: EstimateRowItem[],
   folders: NonNullable<ComponentLibraryTreeSourceOptions["libraryFolders"]> = [],
@@ -270,13 +285,24 @@ function buildBrandTree(
   includeComponentRows = true,
 ): LibraryTreeNode[] {
   const brandsByKey = new Map<string, ComponentLibraryBrandOption>();
+  const itemsByBrandId = new Map<string, EstimateRowItem[]>();
+  const itemsByBrandKey = new Map<string, EstimateRowItem[]>();
+  const derivedBrandNames = new Set<string>();
+
+  for (const item of items) {
+    addIndexedItem(itemsByBrandId, item.brandId, item);
+    if (item.brand) {
+      derivedBrandNames.add(item.brand);
+      addIndexedItem(itemsByBrandKey, normalizeBrandKey(item.brand), item);
+    }
+  }
+
   for (const brand of brands) {
     brandsByKey.set(brand.id, brand);
     brandsByKey.set(normalizeBrandKey(brand.name), brand);
   }
 
-  const derivedBrandNames = Array.from(new Set(items.map((item) => item.brand).filter((brand): brand is string => Boolean(brand)))).sort();
-  for (const brandName of derivedBrandNames) {
+  for (const brandName of Array.from(derivedBrandNames).sort()) {
     const normalized = normalizeBrandKey(brandName);
     if (!brandsByKey.has(normalized)) {
       brandsByKey.set(normalized, { id: `brand-${normalized}`, name: brandName, sort_order: Number.MAX_SAFE_INTEGER });
@@ -293,18 +319,13 @@ function buildBrandTree(
       kind: "organizer",
       children: orderedBrands.map((brand) => {
         const brandKey = normalizeBrandKey(brand.name);
-        const brandItems = items.filter((item) => item.brandId === brand.id || normalizeBrandKey(item.brand ?? "") === brandKey);
+        const brandItems = mergeIndexedItems(itemsByBrandId.get(brand.id), itemsByBrandKey.get(brandKey));
         return {
           id: toBrandTreeNodeId(brand.id),
           label: brand.name,
           kind: "brand",
           children: includeComponentRows
-            ? brandItems.map((item) => ({
-                id: item.id,
-                label: item.name ?? item.material,
-                kind: "component",
-                item,
-              }))
+            ? brandItems.map(createComponentTreeNode)
             : undefined,
         };
       }),
@@ -318,13 +339,24 @@ function buildSupplierTree(
   includeComponentRows = true,
 ): LibraryTreeNode[] {
   const suppliersByKey = new Map<string, ComponentLibrarySupplierOption>();
+  const itemsBySupplierId = new Map<string, EstimateRowItem[]>();
+  const itemsBySupplierKey = new Map<string, EstimateRowItem[]>();
+  const derivedSupplierNames = new Set<string>();
+
+  for (const item of items) {
+    addIndexedItem(itemsBySupplierId, item.supplierId, item);
+    if (item.supplier) {
+      derivedSupplierNames.add(item.supplier);
+      addIndexedItem(itemsBySupplierKey, normalizeSupplierKey(item.supplier), item);
+    }
+  }
+
   for (const supplier of suppliers) {
     suppliersByKey.set(supplier.id, supplier);
     suppliersByKey.set(normalizeSupplierKey(supplier.name), supplier);
   }
 
-  const derivedSupplierNames = Array.from(new Set(items.flatMap((item) => item.supplier ? [item.supplier] : []))).sort();
-  for (const supplierName of derivedSupplierNames) {
+  for (const supplierName of Array.from(derivedSupplierNames).sort()) {
     const normalized = normalizeSupplierKey(supplierName);
     if (!suppliersByKey.has(normalized)) {
       suppliersByKey.set(normalized, { id: `supplier-${normalized}`, name: supplierName, sort_order: Number.MAX_SAFE_INTEGER });
@@ -341,18 +373,13 @@ function buildSupplierTree(
       kind: "organizer",
       children: orderedSuppliers.map((supplier) => {
         const supplierKey = normalizeSupplierKey(supplier.name);
-        const supplierItems = items.filter((item) => item.supplierId === supplier.id || normalizeSupplierKey(item.supplier ?? "") === supplierKey);
+        const supplierItems = mergeIndexedItems(itemsBySupplierId.get(supplier.id), itemsBySupplierKey.get(supplierKey));
         return {
           id: supplier.id.startsWith("supplier-") ? supplier.id : `supplier-${supplier.id}`,
           label: supplier.name,
           kind: "supplier",
           children: includeComponentRows
-            ? supplierItems.map((item) => ({
-                id: item.id,
-                label: item.name ?? item.material,
-                kind: "component",
-                item,
-              }))
+            ? supplierItems.map(createComponentTreeNode)
             : undefined,
         };
       }),

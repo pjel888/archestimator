@@ -469,6 +469,10 @@ function toComboboxOptions(options: Array<{ id: string; name: string }>): Creata
   return options.map((option) => ({ id: option.id, label: option.name }));
 }
 
+function normalizeDuplicateIdentityValue(value: string | null | undefined) {
+  return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function getInitialNestingViewMode(selectedSupplierId?: string | null, selectedBrandId?: string | null): ComponentViewMode {
   if (selectedSupplierId) return "suppliers";
   if (selectedBrandId) return "brand";
@@ -1390,16 +1394,16 @@ function OpenAddComponentModal({
   ]);
   const possibleDuplicate = useMemo(() => {
     if (!duplicateCheckReady || duplicateAcknowledged) return null;
-    const name = draft.name.trim().toLowerCase();
-    const category = draft.category.trim().toLowerCase();
-    const supplier = (selectedSupplier?.name ?? draft.supplierName).trim().toLowerCase();
-    const brand = (selectedBrand?.name ?? draft.brand).trim().toLowerCase();
+    const name = normalizeDuplicateIdentityValue(draft.name);
+    const category = normalizeDuplicateIdentityValue(draft.category);
+    const supplier = normalizeDuplicateIdentityValue(selectedSupplier?.name ?? draft.supplierName);
+    const brand = normalizeDuplicateIdentityValue(selectedBrand?.name ?? draft.brand);
     if (!name || !category || (!supplier && !brand)) return null;
     return libraryItems.find((item) => {
-      const itemName = (item.name ?? item.material ?? "").trim().toLowerCase();
-      const itemCategory = (item.category ?? "").trim().toLowerCase();
-      const itemSupplier = (item.supplier ?? "").trim().toLowerCase();
-      const itemBrand = (item.brand ?? "").trim().toLowerCase();
+      const itemName = normalizeDuplicateIdentityValue(item.name ?? item.material);
+      const itemCategory = normalizeDuplicateIdentityValue(item.category);
+      const itemSupplier = normalizeDuplicateIdentityValue(item.supplier);
+      const itemBrand = normalizeDuplicateIdentityValue(item.brand);
       return itemName === name && itemCategory === category && ((supplier && itemSupplier === supplier) || (brand && itemBrand === brand));
     }) ?? null;
   }, [

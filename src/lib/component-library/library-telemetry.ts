@@ -1,44 +1,48 @@
-export type LibraryTelemetryEvent =
-  | "library_find_started"
-  | "library_find_resolved"
-  | "library_find_abandoned"
-  | "quick_add_started"
-  | "quick_add_saved"
-  | "quick_add_abandoned"
-  | "quick_add_failed"
-  | "insert_target_confirmed"
-  | "insert_target_mismatch"
-  | "trust_chip_rendered"
-  | "trust_chip_unclassified"
-  | "authz_denied"
-  | "idor_attempt"
-  | "cache_bleed_detected"
-  | "redaction_regression"
-  | "xss_attempt"
-  | "formula_injection_detected"
-  | "csrf_attempt"
-  | "rate_limit_exceeded"
-  | "snapshot_bypass_attempt"
-  | "telemetry_pii_leak"
-  | "search_rate_anomaly"
-  | "snapshot_enumeration_pattern"
-  | "folder_api_anomaly"
-  | "bulk_export"
-  | "trust_state_tamper"
-  | "library_component_selected"
-  | "component_route_not_found"
-  | "route_state_authz_denied"
-  | "workspace_switch_cache_recovery"
-  | "library_template_opened"
-  | "template_route_not_found"
-  | "trust_insert_gate_warned"
-  | "trust_insert_gate_confirmed"
-  | "trust_insert_gate_blocked"
-  | "quick_add_field_invalid"
-  | "upload_rejected_type"
-  | "import_failed_partial_commit"
-  | "export_large_export_logged"
-  | "bulk_archive_hash_mismatch";
+export const LIBRARY_TELEMETRY_EVENTS = [
+  "library_find_started",
+  "library_find_resolved",
+  "library_find_abandoned",
+  "quick_add_started",
+  "quick_add_saved",
+  "quick_add_abandoned",
+  "quick_add_failed",
+  "insert_target_confirmed",
+  "insert_target_mismatch",
+  "trust_chip_rendered",
+  "trust_chip_unclassified",
+  "authz_denied",
+  "idor_attempt",
+  "cache_bleed_detected",
+  "redaction_regression",
+  "xss_attempt",
+  "formula_injection_detected",
+  "csrf_attempt",
+  "rate_limit_exceeded",
+  "snapshot_bypass_attempt",
+  "telemetry_pii_leak",
+  "search_rate_anomaly",
+  "snapshot_enumeration_pattern",
+  "folder_api_anomaly",
+  "bulk_export",
+  "trust_state_tamper",
+  "library_component_selected",
+  "component_route_not_found",
+  "route_state_authz_denied",
+  "workspace_switch_cache_recovery",
+  "library_template_opened",
+  "template_route_not_found",
+  "trust_insert_gate_warned",
+  "trust_insert_gate_confirmed",
+  "trust_insert_gate_blocked",
+  "insert_payload_rejected",
+  "quick_add_field_invalid",
+  "upload_rejected_type",
+  "import_failed_partial_commit",
+  "export_large_export_logged",
+  "bulk_archive_hash_mismatch",
+] as const;
+
+export type LibraryTelemetryEvent = typeof LIBRARY_TELEMETRY_EVENTS[number];
 
 export type LibraryTelemetryPayload = {
   workspaceId?: string;
@@ -150,6 +154,7 @@ const SAFE_PAYLOAD_KEYS = new Set<keyof LibraryTelemetryPayload>([
 ]);
 
 let sink: LibraryTelemetrySink | null = null;
+const LIBRARY_TELEMETRY_EVENT_SET = new Set<string>(LIBRARY_TELEMETRY_EVENTS);
 
 export function setLibraryTelemetrySink(next: LibraryTelemetrySink | null) {
   sink = next;
@@ -217,19 +222,42 @@ function sanitizeLibraryTelemetryPayload(payload: LibraryTelemetryPayload): Libr
   return safePayload;
 }
 
-export function recordLibraryEvent(
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function buildLibraryTelemetryRecord(
   event: LibraryTelemetryEvent,
   payload: LibraryTelemetryPayload = {},
-) {
-  const record: LibraryTelemetryRecord = {
+): LibraryTelemetryRecord {
+  return {
     schemaVersion: "v1",
     event,
     ...sanitizeLibraryTelemetryPayload(payload),
   };
+}
+
+export function sanitizeLibraryTelemetryRecord(input: unknown): LibraryTelemetryRecord | null {
+  if (!isRecord(input)) return null;
+  const event = typeof input.event === "string" && LIBRARY_TELEMETRY_EVENT_SET.has(input.event)
+    ? input.event as LibraryTelemetryEvent
+    : null;
+  if (!event) return null;
+  return buildLibraryTelemetryRecord(event, input as LibraryTelemetryPayload);
+}
+
+export function recordLibraryEvent(
+  event: LibraryTelemetryEvent,
+  payload: LibraryTelemetryPayload = {},
+) {
+  const record = buildLibraryTelemetryRecord(event, payload);
 
   if (sink) {
     try {
-      void sink(record);
+      const result = sink(record);
+      if (result && typeof (result as PromiseLike<void>).then === "function") {
+        void Promise.resolve(result).catch(() => {});
+      }
     } catch {
       // Telemetry must never block the product path.
     }

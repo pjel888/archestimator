@@ -26,7 +26,7 @@ export type TabStripProps<TTab extends string = string> = {
   ariaLabel: string;
   onTabChange?: (tab: TTab) => void;
   className?: string;
-  variant?: "folder" | "modal";
+  variant?: "folder" | "modal" | "glass";
   /**
    * Opt-in tabpanel wiring. When provided, each tab gets a stable `id` and an
    * `aria-controls` pointing at the panel with the matching id. Consumers that

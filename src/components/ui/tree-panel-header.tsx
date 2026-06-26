@@ -232,8 +232,9 @@ export function TreePanelHeader({
           className={toolbarClassName}
         />
         {open ? (
-          <search
+          <div
             id={panelId}
+            role="search"
             className="absolute left-0 right-0 top-[40px] z-30 rounded-xs border border-hairline bg-white shadow-sm"
             data-tree-search-panel="true"
           >
@@ -249,10 +250,18 @@ export function TreePanelHeader({
                 inputRef.current?.focus();
               }}
               onKeyDown={(event) => {
-                if (event.key === "Escape") setOpen(false);
+                if (event.key !== "Escape") return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (searchValue) {
+                  onSearchValueChange?.("");
+                  inputRef.current?.focus();
+                  return;
+                }
+                setOpen(false);
               }}
             />
-          </search>
+          </div>
         ) : null}
       </div>
       {tabs && tabs.length > 0 && activeTab !== undefined ? (

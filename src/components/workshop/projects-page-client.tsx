@@ -134,16 +134,22 @@ const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = PROJECT_VIEW_MODE_OPTIONS.ma
   label,
   icon: <Icon size={12} weight="regular" aria-hidden="true" />,
 }));
-const PROJECT_ORGANIZE_BY_OPTIONS = [
-  { value: "none", label: "No grouping", icon: <StackSimple size={12} weight="regular" aria-hidden="true" /> },
-  { value: "date", label: "By date", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
-  { value: "group", label: "By group", icon: <FolderSimple size={12} weight="regular" aria-hidden="true" /> },
-] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_SORT_FIELD_OPTIONS = [
   { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
   { value: "created_at", label: "Date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
   { value: "client_name", label: "Client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
   { value: "name", label: "Project name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
+] as const satisfies readonly DropdownSelectOption[];
+const PROJECT_ARRANGE_OPTIONS = [
+  { value: "none", label: "No grouping", icon: <StackSimple size={12} weight="regular" aria-hidden="true" /> },
+  { value: "group:group", label: "Group by project group", icon: <FolderSimple size={12} weight="regular" aria-hidden="true" /> },
+  { value: "group:updated_at", label: "Group by last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
+  { value: "group:created_at", label: "Group by date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "group:client_name", label: "Group by client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
+  { value: "sort:updated_at", label: "Sort by last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
+  { value: "sort:created_at", label: "Sort by date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "sort:client_name", label: "Sort by client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
+  { value: "sort:name", label: "Sort by project name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
 ] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_ACCESS_TABS = [
   { id: "your-projects", label: "Projects" },
@@ -154,6 +160,11 @@ const PROJECT_ACCESS_TAB_ITEMS = PROJECT_ACCESS_TABS.map(({ id, label }) => ({ i
 type ProjectAccessTab = (typeof PROJECT_ACCESS_TABS)[number]["id"];
 type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
 type ProjectSortDirection = "asc" | "desc";
+type ProjectArrangeValue =
+  | "none"
+  | "group:group"
+  | `group:${ProjectSortField}`
+  | `sort:${ProjectSortField}`;
 type ProjectDeleteState = "idle" | "loading" | "ready" | "executing";
 type StateUpdater<T> = T | ((current: T) => T);
 type ProjectsPageClientState = {
@@ -390,15 +401,6 @@ function isProjectOrganizeBy(value: string | null): value is ProjectOrganizeBy {
   return value !== null && PROJECT_ORGANIZE_BY_VALUES.includes(value as ProjectOrganizeBy);
 }
 
-// Q1 default: "By date" is "group by the active sort dimension", so the default is
-// "date" whenever the current sort field is a *grouping* sort — a date field
-// (updated_at/created_at) OR client_name — and "none" otherwise (e.g. project name).
-// sortField inits to "updated_at" ⇒ the first-load default is "date", which means
-// zero rendered-DOM change on first paint (the date flags render exactly as today).
-function defaultOrganizeByForSortField(field: ProjectSortField): ProjectOrganizeBy {
-  return isDateSortField(field) || field === "client_name" ? "date" : "none";
-}
-
 function readProjectOrganizeByPreference(defaultValue: ProjectOrganizeBy): ProjectOrganizeBy {
   if (typeof window === "undefined") return defaultValue;
   try {
@@ -413,10 +415,6 @@ function writeProjectOrganizeByPreference(organizeBy: ProjectOrganizeBy) {
     window.localStorage.setItem(PROJECT_ORGANIZE_BY_STORAGE_KEY, organizeBy);
   } catch {}
   window.dispatchEvent(new Event(PROJECT_ORGANIZE_BY_CHANGE_EVENT));
-}
-
-function handleProjectOrganizeByPreferenceChange(next: string) {
-  if (isProjectOrganizeBy(next)) writeProjectOrganizeByPreference(next);
 }
 
 function subscribeProjectOrganizeByPreference(onStoreChange: () => void) {
@@ -438,6 +436,23 @@ function getProjectAccessTabsLayoutClassName(viewMode: ProjectCardViewMode) {
     return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] [&_[role=tablist]]:gap-3";
 
   return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))] [&_[role=tablist]]:gap-3";
+}
+
+function getProjectArrangeValue({
+  organizeBy,
+  sortField,
+  sortTouched,
+}: {
+  organizeBy: ProjectOrganizeBy;
+  sortField: ProjectSortField;
+  sortTouched: boolean;
+}): ProjectArrangeValue {
+  if (organizeBy === "group") return "group:group";
+  if (organizeBy === "date" && (isDateSortField(sortField) || sortField === "client_name")) {
+    return `group:${sortField}`;
+  }
+  if (!sortTouched && sortField === "updated_at") return "none";
+  return `sort:${sortField}`;
 }
 
 function getProjectAccessTabId(tab: ProjectAccessTab) {
@@ -922,16 +937,15 @@ export function ProjectsPageClient({
     readProjectViewModePreference,
     getProjectViewModeServerSnapshot,
   );
-  const organizeByDefault = defaultOrganizeByForSortField(sortField);
+  const organizeByDefault: ProjectOrganizeBy = "none";
   const storedOrganizeBy = useSyncExternalStore(
     subscribeProjectOrganizeByPreference,
     () => readProjectOrganizeByPreference(organizeByDefault),
     () => organizeByDefault,
   );
-  // D11: Group mode is Your-Projects-only. On Shared, coerce away from "group" to the
-  // Q1 default WITHOUT persisting (so switching back to Your Projects restores the
-  // pick), and without clobbering a stored "date"/"none" preference (only "group" is
-  // coerced).
+  // D11: Group mode is Your-Projects-only. On Shared, coerce away from "group" to
+  // no grouping WITHOUT persisting (so switching back to Your Projects restores
+  // the pick), and without clobbering a stored "date"/"none" preference.
   const organizeBy: ProjectOrganizeBy =
     activeTab === "shared-to-you" && storedOrganizeBy === "group" ? organizeByDefault : storedOrganizeBy;
   // Task 6 (LD-6): the override map is keyed by groupId (string | null), not a boolean.
@@ -1156,12 +1170,37 @@ export function ProjectsPageClient({
       icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
     },
   ], [sortField]);
+  const arrangeValue = getProjectArrangeValue({ organizeBy, sortField, sortTouched });
+  const arrangeOptions = useMemo<readonly DropdownSelectOption[]>(() => {
+    if (activeTab !== "shared-to-you") return PROJECT_ARRANGE_OPTIONS;
+    return PROJECT_ARRANGE_OPTIONS.map((option) =>
+      option.value === "group:group" ? { ...option, disabled: true } : option,
+    );
+  }, [activeTab]);
 
-  function handleSortFieldChange(nextField: string) {
-    const field = nextField as ProjectSortField;
-    setSortField(field);
-    setSortDirection(defaultSortDirectionForField(field));
+  function handleArrangeChange(nextValue: string) {
+    if (nextValue === "none") {
+      writeProjectOrganizeByPreference("none");
+      setSortField("updated_at");
+      setSortDirection(defaultSortDirectionForField("updated_at"));
+      setSortTouched(false);
+      return;
+    }
+
+    if (nextValue === "group:group") {
+      if (activeTab === "shared-to-you") return;
+      writeProjectOrganizeByPreference("group");
+      setSortTouched(true);
+      return;
+    }
+
+    const [mode, fieldValue] = nextValue.split(":") as ["group" | "sort", ProjectSortField];
+    if (!PROJECT_SORT_FIELD_OPTIONS.some((option) => option.value === fieldValue)) return;
+
+    setSortField(fieldValue);
+    setSortDirection(defaultSortDirectionForField(fieldValue));
     setSortTouched(true);
+    writeProjectOrganizeByPreference(mode === "group" ? "date" : "none");
   }
 
   function handleSortDirectionChange(nextDirection: string) {
@@ -1544,29 +1583,10 @@ export function ProjectsPageClient({
             data-project-toolbar-view-divider=""
           />
           <DropdownSelect
-            aria-label={
-              activeTab === "shared-to-you"
-                ? "Organize by, grouping unavailable on shared projects"
-                : "Organize by"
-            }
-            options={
-              activeTab === "shared-to-you"
-                ? PROJECT_ORGANIZE_BY_OPTIONS.map((option) =>
-                    option.value === "group" ? { ...option, disabled: true } : option,
-                  )
-                : PROJECT_ORGANIZE_BY_OPTIONS
-            }
-            value={organizeBy}
-            onValueChange={handleProjectOrganizeByPreferenceChange}
-            variant="boxed"
-            triggerDisplay="icon"
-            className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
-          />
-          <DropdownSelect
-            aria-label="Sort field"
-            options={PROJECT_SORT_FIELD_OPTIONS}
-            value={sortField}
-            onValueChange={handleSortFieldChange}
+            aria-label="Arrange projects"
+            options={arrangeOptions}
+            value={arrangeValue}
+            onValueChange={handleArrangeChange}
             variant="boxed"
             triggerDisplay="icon"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}

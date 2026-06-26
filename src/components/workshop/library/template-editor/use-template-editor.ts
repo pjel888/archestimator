@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -33,6 +33,10 @@ export type TemplateEditorSaveState =
   | { state: "saving" }
   | { state: "error"; message: string };
 
+type RefreshMode = "immediate" | "deferred" | "none";
+
+const TEMPLATE_EDITOR_DEFERRED_REFRESH_MS = 450;
+
 function createTemporaryId() {
   return `temp-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
 }
@@ -45,6 +49,7 @@ function createTemporaryId() {
  */
 export function useTemplateEditor(template: EstimateTemplate) {
   const router = useNavigationRouter();
+  const deferredRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [templateState, setTemplateState] = useState({ source: template, value: template });
   const [saveState, setSaveState] = useState<TemplateEditorSaveState>({ state: "saved" });
 
@@ -61,8 +66,33 @@ export function useTemplateEditor(template: EstimateTemplate) {
     }));
   }, []);
 
+  const clearDeferredRefresh = useCallback(() => {
+    if (!deferredRefreshRef.current) return;
+    clearTimeout(deferredRefreshRef.current);
+    deferredRefreshRef.current = null;
+  }, []);
+
+  const refreshNow = useCallback(() => {
+    clearDeferredRefresh();
+    router.refresh();
+  }, [clearDeferredRefresh, router]);
+
+  const scheduleRefresh = useCallback(() => {
+    clearDeferredRefresh();
+    deferredRefreshRef.current = setTimeout(() => {
+      deferredRefreshRef.current = null;
+      router.refresh();
+    }, TEMPLATE_EDITOR_DEFERRED_REFRESH_MS);
+  }, [clearDeferredRefresh, router]);
+
+  useEffect(() => clearDeferredRefresh, [clearDeferredRefresh]);
+
   const run = useCallback(
-    async (optimistic: ((nodes: EstimateTreeNode[]) => EstimateTreeNode[]) | null, mutation: () => Promise<unknown>) => {
+    async (
+      optimistic: ((nodes: EstimateTreeNode[]) => EstimateTreeNode[]) | null,
+      mutation: () => Promise<unknown>,
+      refreshMode: RefreshMode = "immediate",
+    ) => {
       let previous: EstimateTemplate | null = null;
       setTemplateState((current) => {
         previous = current.value;
@@ -73,7 +103,8 @@ export function useTemplateEditor(template: EstimateTemplate) {
       try {
         await mutation();
         setSaveState({ state: "saved" });
-        router.refresh();
+        if (refreshMode === "immediate") refreshNow();
+        if (refreshMode === "deferred") scheduleRefresh();
         return true;
       } catch (error) {
         if (previous) {
@@ -84,7 +115,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
         return false;
       }
     },
-    [router],
+    [refreshNow, scheduleRefresh],
   );
 
   const addNode = useCallback(
@@ -149,6 +180,7 @@ export function useTemplateEditor(template: EstimateTemplate) {
       return run(
         (nodes) => updateTemplateRowInNodes(nodes, rowId, localPatch),
         () => updateEstimateTemplateRowItem({ templateId: template.id, rowId, patch }),
+        "deferred",
       );
     },
     [run, template.id],

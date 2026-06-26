@@ -104,6 +104,7 @@ function createItemActionGroups({
   onDuplicate,
   onToggleFavorite,
   onDelete,
+  destructiveActionLabel = "Delete",
 }: {
   item: EstimateRowItem;
   addDisabled?: boolean;
@@ -114,6 +115,7 @@ function createItemActionGroups({
   onDuplicate?: () => void;
   onToggleFavorite?: () => void;
   onDelete?: () => void;
+  destructiveActionLabel?: string;
 }): ActionMenuGroup[] {
   return [
     {
@@ -154,7 +156,7 @@ function createItemActionGroups({
     {
       id: "component-danger",
       items: onDelete
-        ? [{ id: "delete", label: "Delete", icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onDelete }]
+        ? [{ id: "delete", label: destructiveActionLabel, icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onDelete }]
         : [],
     },
   ];
@@ -423,6 +425,7 @@ export function LibraryTree({
   onItemDuplicate,
   onItemToggleFavorite,
   onItemDelete,
+  itemDestructiveActionLabel = "Delete",
   onCreateComponent,
   onFolderRename,
   addDisabled,
@@ -456,6 +459,7 @@ export function LibraryTree({
   // during render, and assigning ref.current is synchronous so the close
   // handler observes it before focus moves to the rename input.
   const suppressNextContextMenuCloseAutoFocusRef = useRef(false);
+  const pendingContextMenuRenameNodeIdRef = useRef<string | null>(null);
 
   const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
   const uiNodes = useMemo(() => toUiNodes(nodes, reorderEnabled), [nodes, reorderEnabled]);
@@ -531,17 +535,15 @@ export function LibraryTree({
     setContextMenuNodeId(nodeId);
   }, []);
 
-  // Wrapped in useStableCallback so the ref mutation lives behind a stable
+  // Wrapped in useStableCallback so the ref mutations live behind a stable
   // indirection (callbackRef.current(...)): the memo below references the
-  // returned stable function, whose own body never writes a ref during render,
-  // which keeps react-hooks/refs satisfied. The ref write only runs at click
-  // time, when the menu item is actually selected.
+  // returned stable function, whose own body never writes refs during render.
+  // The pending rename is consumed by onCloseAutoFocus, so the menu cannot
+  // restore focus over the inline rename input.
   const startFolderRenameFromContextMenu = useStableCallback((nodeId: string) => {
     if (!onFolderRename) return;
     suppressNextContextMenuCloseAutoFocusRef.current = true;
-    window.setTimeout(() => {
-      onFolderRename(nodeId);
-    }, 0);
+    pendingContextMenuRenameNodeIdRef.current = nodeId;
   });
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
@@ -559,6 +561,7 @@ export function LibraryTree({
         onDuplicate: onItemDuplicate ? () => onItemDuplicate(item) : undefined,
         onToggleFavorite: onItemToggleFavorite ? () => onItemToggleFavorite(item) : undefined,
         onDelete: onItemDelete ? () => onItemDelete(item) : undefined,
+        destructiveActionLabel: itemDestructiveActionLabel,
       });
     }
     return createFolderActionGroups({
@@ -586,6 +589,7 @@ export function LibraryTree({
     onItemEdit,
     onItemPreview,
     onItemToggleFavorite,
+    itemDestructiveActionLabel,
     onSelect,
     onFolderRename,
     startFolderRenameFromContextMenu,
@@ -689,6 +693,9 @@ export function LibraryTree({
           if (!suppressNextContextMenuCloseAutoFocusRef.current) return;
           event.preventDefault();
           suppressNextContextMenuCloseAutoFocusRef.current = false;
+          const pendingRenameNodeId = pendingContextMenuRenameNodeIdRef.current;
+          pendingContextMenuRenameNodeIdRef.current = null;
+          if (pendingRenameNodeId) onFolderRename?.(pendingRenameNodeId);
         }}
       >
         <ContextActionMenuContent groups={contextMenuGroups} />

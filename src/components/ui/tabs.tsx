@@ -32,6 +32,8 @@ export type TabsProps = {
   activationMode?: "automatic" | "manual";
   /** Accessible name for the tablist (announced by screen readers). */
   ariaLabel?: string;
+  /** Optional ID namespace for pages that render more than one tabset. */
+  idBase?: string;
   endAction?: ReactNode;
   getTabButtonProps?: (
     tab: TabItem,
@@ -50,6 +52,7 @@ export function Tabs({
   variant = "underline",
   activationMode = "automatic",
   ariaLabel,
+  idBase,
   endAction,
   getTabButtonProps,
   onTabButtonMount,
@@ -156,6 +159,8 @@ export function Tabs({
             {tabs.map((tab, index) => {
               const isActive = tab.id === activeId;
               const tabButtonProps = getTabButtonProps?.(tab, index, isActive) ?? {};
+              const tabId = idBase ? `${idBase}-tab-${tab.id}` : `tab-${tab.id}`;
+              const panelId = idBase ? `${idBase}-panel-${tab.id}` : `tabpanel-${tab.id}`;
               const {
                 className: tabButtonClassName,
                 disabled: tabButtonDisabled,
@@ -172,8 +177,8 @@ export function Tabs({
                   ref={(element) => onTabButtonMount?.(tab, index, element)}
                   role="tab"
                   aria-selected={isActive}
-                  aria-controls={`tabpanel-${tab.id}`}
-                  id={`tab-${tab.id}`}
+                  aria-controls={panelId}
+                  id={tabId}
                   tabIndex={isActive ? 0 : -1}
                   disabled={isDisabled}
                   onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -234,20 +239,3 @@ export type TabPanelProps = {
   className?: string;
   ref?: Ref<HTMLDivElement>;
 };
-
-function TabPanel({ id, activeId, children, className, ref, ...props }: TabPanelProps) {
-    if (id !== activeId) return null;
-
-    return (
-      <div
-        ref={ref}
-        role="tabpanel"
-        id={`tabpanel-${id}`}
-        aria-labelledby={`tab-${id}`}
-        className={cn("pt-2", className)}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import {
   CaretDown,
   CaretRight,
@@ -171,6 +171,8 @@ export function TemplatesTree({
 }: TemplatesTreeProps) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const prefetchedNodeIdsRef = useRef<Set<string> | null>(null);
+  if (prefetchedNodeIdsRef.current === null) prefetchedNodeIdsRef.current = new Set();
 
   const filteredTemplates = useMemo(
     () => filterTemplatesByQuery(templates, searchQuery),
@@ -180,6 +182,18 @@ export function TemplatesTree({
     () => filterProjectSourcesByQuery(projectSources, searchQuery),
     [projectSources, searchQuery],
   );
+  useEffect(() => {
+    prefetchedNodeIdsRef.current?.clear();
+  }, [projectSources]);
+
+  const requestPrefetchNode = useCallback((nodeId: string) => {
+    if (!onPrefetchNode) return;
+    const prefetchedNodeIds = prefetchedNodeIdsRef.current;
+    if (!prefetchedNodeIds) return;
+    if (prefetchedNodeIds.has(nodeId)) return;
+    prefetchedNodeIds.add(nodeId);
+    onPrefetchNode(nodeId);
+  }, [onPrefetchNode]);
   const filteredCustomTemplateCategories = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     if (!normalizedQuery) return customTemplateCategories;
@@ -513,7 +527,7 @@ export function TemplatesTree({
         return (
           <span
             className="flex min-w-0 flex-1"
-            onMouseEnter={onPrefetchNode ? () => onPrefetchNode(treeNode.id) : undefined}
+            onMouseEnter={onPrefetchNode ? () => requestPrefetchNode(treeNode.id) : undefined}
           >
             <SourceFolderRowContent label={datum.source.name} />
           </span>
@@ -524,7 +538,7 @@ export function TemplatesTree({
         return (
           <span
             className="flex min-w-0 flex-1"
-            onMouseEnter={onPrefetchNode ? () => onPrefetchNode(treeNode.id) : undefined}
+            onMouseEnter={onPrefetchNode ? () => requestPrefetchNode(treeNode.id) : undefined}
           >
             <SourceFolderRowContent label={datum.source.name} meta={datum.source.sheetCode} />
           </span>
@@ -538,7 +552,7 @@ export function TemplatesTree({
       }
       return <span className="min-w-0 flex-1 truncate">{treeNode.label}</span>;
     },
-    [onPrefetchNode, categoryTotals, templateTotals, templateNodeTotals],
+    [onPrefetchNode, requestPrefetchNode, categoryTotals, templateTotals, templateNodeTotals],
   );
 
   return (

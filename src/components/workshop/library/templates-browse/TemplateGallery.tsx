@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { DotsThree, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,9 @@ function formatCount(count: number, noun: string) {
   return `${count} ${count === 1 ? noun : `${noun}s`}`;
 }
 
-function formatTemplateStructureCounts(template: EstimateTemplate) {
-  const summary = summarizeEstimateTemplate(template);
+type EstimateTemplateSummary = ReturnType<typeof summarizeEstimateTemplate>;
+
+function formatTemplateStructureCounts(summary: EstimateTemplateSummary) {
   // One node type: groups + areas read as a single "areas" count.
   return `${formatCount(summary.groupCount + summary.areaCount, "area")} · ${formatCount(summary.rowCount, "row")}`;
 }
@@ -41,7 +42,7 @@ function getTemplateChips(template: EstimateTemplate) {
   return [template.category, ...rootNames.filter((name) => name !== template.category)].slice(0, 3);
 }
 
-function TemplateGalleryRow({
+const TemplateGalleryRow = memo(function TemplateGalleryRow({
   template,
   selected,
   onSelect,
@@ -85,7 +86,7 @@ function TemplateGalleryRow({
             {template.name}
           </button>
         </h3>
-        <p className="min-w-0 shrink-0 text-[9px] leading-3 text-tertiary">{formatTemplateStructureCounts(template)}</p>
+        <p className="min-w-0 shrink-0 text-[9px] leading-3 text-tertiary">{formatTemplateStructureCounts(summary)}</p>
         <span className="ml-auto shrink-0 text-[11px] font-medium leading-4 tabular-nums text-ink">
           {pesoFormatter.format(summary.total)}
         </span>
@@ -154,12 +155,11 @@ function TemplateGalleryRow({
       </div>
     </li>
   );
-}
+});
 
 export type TemplateGalleryProps = {
   scopeLabel: string;
   templates: EstimateTemplate[];
-  totalTemplateCount: number;
   selectedTemplateId: string | null;
   status: TemplatesBrowseStatus;
   onSelectTemplate: (templateId: string) => void;
@@ -179,7 +179,6 @@ export type TemplateGalleryProps = {
 export function TemplateGallery({
   scopeLabel,
   templates,
-  totalTemplateCount,
   selectedTemplateId,
   status,
   onSelectTemplate,

@@ -2,7 +2,7 @@
 
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { SidebarSimple } from "@phosphor-icons/react/dist/ssr";
+import { SidebarSimple, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ type ResizableSidePanelProps = {
   widthOffset?: number;
   collapsedWidth?: number;
   persistWidth?: boolean;
+  compactDrawer?: boolean;
   children?: ReactNode;
 };
 
@@ -49,10 +50,33 @@ function getPanelWidthCssVariable(storageKey: string) {
   return getSidePanelWidthConfig(storageKey)?.cssVariable ?? null;
 }
 
+function getSidePanelId(storageKey: string) {
+  return `resizable-side-panel-${storageKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 function persistPanelWidth(storageKey: string, width: number) {
   try { window.localStorage.setItem(storageKey, String(width)); } catch {}
   try {
     document.cookie = `${getSidePanelWidthCookieName(storageKey)}=${width}; Path=/; Max-Age=31536000; SameSite=Lax`;
+  } catch {}
+}
+
+function getCollapsedStorageKey(storageKey: string) {
+  return `${storageKey}:collapsed`;
+}
+
+function getInitialCollapsed(storageKey: string) {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(getCollapsedStorageKey(storageKey)) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function persistPanelCollapsed(storageKey: string, collapsed: boolean) {
+  try {
+    window.localStorage.setItem(getCollapsedStorageKey(storageKey), collapsed ? "true" : "false");
   } catch {}
 }
 
@@ -70,6 +94,14 @@ function usePanelWidthSnapshot(
   );
 }
 
+function usePanelCollapsedSnapshot(storageKey: string, persistWidth: boolean) {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => persistWidth ? getInitialCollapsed(storageKey) : false,
+    () => false,
+  );
+}
+
 export function ResizableSidePanel({
   side,
   ariaLabel,
@@ -80,19 +112,23 @@ export function ResizableSidePanel({
   widthOffset = 0,
   collapsedWidth = 32,
   persistWidth = true,
+  compactDrawer = true,
   children,
 }: ResizableSidePanelProps) {
   const glass = useEstimateSurfaceVariant() === "glass";
   const persistedWidth = usePanelWidthSnapshot(storageKey, defaultWidth, minWidth, maxWidth, persistWidth);
-  const [collapsed, setCollapsed] = useState(false);
+  const persistedCollapsed = usePanelCollapsedSnapshot(storageKey, persistWidth);
+  const [collapsed, setCollapsed] = useState(persistedCollapsed);
   const [committedWidth, setCommittedWidth] = useState<number | null>(null);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const width = dragWidth ?? committedWidth ?? persistedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
   const cssVariable = persistWidth ? getPanelWidthCssVariable(storageKey) : null;
+  const panelId = getSidePanelId(storageKey);
   const defaultActualWidth = defaultWidth + widthOffset;
   const panelStyle = {
     width: compactViewport || collapsed || dragWidth !== null || !cssVariable
@@ -102,6 +138,13 @@ export function ResizableSidePanel({
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setCollapsed(persistedCollapsed);
+  }, [persistedCollapsed]);
 
   useEffect(() => {
     if (!persistWidth) return;
@@ -163,6 +206,56 @@ export function ResizableSidePanel({
     setCommittedWidth(finalWidth);
     setDragWidth(finalWidth);
     if (persistWidth) persistPanelWidth(storageKey, finalWidth);
+  }
+
+  function toggleCollapsed() {
+    setCollapsed((value) => {
+      const nextValue = !value;
+      if (persistWidth) persistPanelCollapsed(storageKey, nextValue);
+      return nextValue;
+    });
+  }
+
+  function openDrawer() {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+    window.requestAnimationFrame(() => {
+      const target = previousFocusRef.current ?? drawerTriggerRef.current;
+      if (target?.isConnected) target.focus();
+    });
+  }
+
+  function handleDrawerKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(
+      drawerRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    ).filter((element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true");
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   function handleResizeKeyDown(event: KeyboardEvent) {
@@ -232,6 +325,7 @@ export function ResizableSidePanel({
       variant="ghost"
       size="icon-sm"
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
+      aria-controls={panelId}
       aria-expanded={!collapsed}
       style={{ width: collapsedWidth }}
       className={cn(
@@ -241,17 +335,94 @@ export function ResizableSidePanel({
         glass ? "border-[color:var(--glass-border)] bg-white/35" : "border-hairline bg-white",
         side === "right" ? "border-l" : "border-r",
       )}
-      onClick={() => setCollapsed((value) => !value)}
+      onClick={toggleCollapsed}
     >
       <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />
     </Button>
   );
 
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const focusable = drawerRef.current?.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    window.requestAnimationFrame(() => {
+      (focusable ?? drawerRef.current)?.focus();
+    });
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (!compactViewport && drawerOpen) setDrawerOpen(false);
+  }, [compactViewport, drawerOpen]);
+
+  if (compactViewport && !compactDrawer) {
+    return null;
+  }
+
+  if (compactViewport) {
+    const drawerSideClass = side === "right" ? "right-0 border-l" : "left-0 border-r";
+    const triggerSideClass = side === "right" ? "ml-auto border-l" : "mr-auto border-r";
+    const drawerLabel = `${ariaLabel} drawer`;
+
+    return (
+      <>
+        <button
+          type="button"
+          ref={drawerTriggerRef}
+          aria-label={`Open ${drawerLabel}`}
+          aria-controls={panelId}
+          aria-expanded={drawerOpen}
+          aria-haspopup="dialog"
+          className={cn(
+            "inline-flex h-full min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-none border-hairline bg-surface px-2 text-[10px] font-medium text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden",
+            triggerSideClass,
+          )}
+          onClick={openDrawer}
+        >
+          <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />
+          <span className="sr-only">{ariaLabel}</span>
+        </button>
+        {drawerOpen ? (
+          <div
+            className="fixed inset-0 z-50 bg-black/30 lg:hidden"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeDrawer();
+            }}
+          >
+            <div
+              ref={drawerRef}
+              id={panelId}
+              role="dialog"
+              aria-modal="true"
+              aria-label={drawerLabel}
+              tabIndex={-1}
+              className={cn(
+                "fixed inset-y-0 flex w-[min(24rem,calc(100vw-2rem))] flex-col border-hairline bg-white text-ink shadow-2xl outline-none",
+                drawerSideClass,
+              )}
+              onKeyDown={handleDrawerKeyDown}
+            >
+              <div className="flex h-10 shrink-0 items-center justify-between border-b border-hairline px-3">
+                <h2 className="text-[11px] font-medium text-ink">{ariaLabel}</h2>
+                <Button variant="ghost" size="icon-sm" aria-label={`Close ${drawerLabel}`} onClick={closeDrawer}>
+                  <X size={14} aria-hidden="true" />
+                </Button>
+              </div>
+              <aside className="min-h-0 flex-1 overflow-hidden !text-[10px]" aria-label={ariaLabel}>
+                {children}
+              </aside>
+            </div>
+          </div>
+        ) : null}
+      </>
+    );
+  }
+
   return (
     <div className="group hidden h-full shrink-0 overflow-hidden lg:flex" style={panelStyle}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
-      <aside className={cn("h-full min-w-0 flex-1 overflow-hidden !text-[10px]", glass ? "bg-transparent" : "bg-white")} aria-label={ariaLabel} aria-hidden={collapsed}>
+      <aside id={panelId} className={cn("h-full min-w-0 flex-1 overflow-hidden !text-[10px]", glass ? "bg-transparent" : "bg-white")} aria-label={ariaLabel} aria-hidden={collapsed}>
         {!collapsed ? children : null}
       </aside>
       {side === "left" ? resizer : null}

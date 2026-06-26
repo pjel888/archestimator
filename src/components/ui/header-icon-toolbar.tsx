@@ -19,6 +19,7 @@ export type HeaderIconToolbarAddAction = {
   className?: string;
   ariaControls?: string;
   ariaExpanded?: boolean;
+  ariaHasPopup?: "dialog" | "menu" | "listbox" | "tree" | "grid" | boolean;
 };
 
 type HeaderIconToolbarProps = {
@@ -97,6 +98,7 @@ export function HeaderIconToolbar({
               onClick={action.onClick}
               aria-controls={action.ariaControls}
               aria-expanded={action.ariaExpanded}
+              aria-haspopup={action.ariaHasPopup}
               aria-pressed={action.pressed}
               disabled={action.disabled}
               className={action.className}
@@ -166,6 +168,7 @@ export function HeaderIconToolbar({
               onClick={action.onClick}
               aria-controls={action.ariaControls}
               aria-expanded={action.ariaExpanded}
+              aria-haspopup={action.ariaHasPopup}
               aria-pressed={action.pressed}
               disabled={action.disabled}
               className={action.className}
@@ -187,6 +190,7 @@ export function HeaderIconToolbar({
               onClick={action.onClick}
               aria-controls={action.ariaControls}
               aria-expanded={action.ariaExpanded}
+              aria-haspopup={action.ariaHasPopup}
               aria-pressed={action.pressed}
               disabled={action.disabled}
               className={

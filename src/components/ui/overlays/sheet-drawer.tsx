@@ -33,6 +33,9 @@ export type SheetProps = {
   withScrim?: boolean;
   blurBackdrop?: boolean;
   closeLabel?: string;
+  closeOnEscape?: boolean;
+  returnFocusOnClose?: boolean;
+  contentId?: string;
   bodyClassName?: string;
   contentClassName?: string;
 };
@@ -70,6 +73,9 @@ export function Sheet({
   withScrim = true,
   blurBackdrop = false,
   closeLabel = "Close panel",
+  closeOnEscape = true,
+  returnFocusOnClose = true,
+  contentId,
   bodyClassName,
   contentClassName,
 }: SheetProps) {
@@ -80,13 +86,16 @@ export function Sheet({
       open={open}
       onOpenChange={onOpenChange}
       closeLabel={closeLabel}
+      closeOnEscape={closeOnEscape}
       closeOnOverlayClick={withScrim || modal}
       modal={modal}
+      returnFocusOnClose={returnFocusOnClose}
     >
       <DialogPortal>
         <div data-archestimator-sheet-root className={cn("fixed inset-0 z-[1000] flex p-3", rootPositionClasses[side])}>
           {withScrim || modal ? <DialogOverlay blur={blurBackdrop} transparent={!modal} /> : null}
           <DialogContent
+            id={contentId}
             described={Boolean(description)}
             className={cn(
               "max-h-[calc(100dvh_-_24px)] shadow-[0_18px_48px_rgba(17,24,39,0.14)]",

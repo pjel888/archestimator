@@ -248,6 +248,10 @@ export interface TreeProps {
   onNodeDragEnd?: (nodeId: string) => void;
   onToggle?: (nodeId: string, expanded: boolean) => void;
   onContextMenu?: (nodeId: string, node: TreeNode, event: MouseEvent) => void;
+  /** Keyboard equivalent for row rename actions, usually F2. */
+  onRenameShortcut?: (nodeId: string, node: TreeNode, event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Keyboard equivalent for opening a row context/action menu, usually Shift+F10 or ContextMenu. */
+  onKeyboardContextMenu?: (nodeId: string, node: TreeNode, event: KeyboardEvent<HTMLDivElement>) => void;
   onRowClick?: (nodeId: string, node: TreeNode) => void;
   onRowDoubleClick?: (nodeId: string, node: TreeNode) => void;
   /** Controlled: currently expanded node IDs */
@@ -372,6 +376,17 @@ function containsDescendant(node: TreeNode, targetId: string): boolean {
     if (child.id === targetId || containsDescendant(child, targetId)) return true;
   }
   return false;
+}
+
+function normalizeTypeaheadLabel(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target.closest("[contenteditable='true']")) return true;
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
 }
 
 function readDropPositionFromEvent(
@@ -624,6 +639,8 @@ export function Tree({
       onNodeDragEnd,
       onToggle,
       onContextMenu,
+      onRenameShortcut,
+      onKeyboardContextMenu,
       onRowClick,
       onRowDoubleClick,
       expandedIds: controlledExpandedIds,
@@ -672,6 +689,7 @@ export function Tree({
 
     const rowElementsRef = useRef<Map<string, HTMLElement>>(null!);
     if (rowElementsRef.current === null) rowElementsRef.current = new Map();
+    const typeaheadRef = useRef<{ query: string; lastTypedAt: number }>({ query: "", lastTypedAt: 0 });
 
     const flatNodes = useMemo(
       // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure tree flattening in render memo, not effect-driven event logic.
@@ -1093,13 +1111,56 @@ export function Tree({
 
     // ─── Keyboard Navigation ───────────────────────────────────────
 
+    const resolveKeyboardFocusId = useCallback(() => {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && treeRootRef.current?.contains(activeElement)) {
+        const activeRow = activeElement.closest<HTMLElement>("[data-tree-row]");
+        const activeRowId = activeRow?.dataset.treeRow;
+        if (activeRowId && flatNodes.some((flat) => flat.id === activeRowId)) return activeRowId;
+      }
+      return effectiveFocusId;
+    }, [effectiveFocusId, flatNodes]);
+
     const handleKeyDown = useCallback(
       (e: KeyboardEvent<HTMLDivElement>) => {
         if (!flatNodes.length) return;
+        if (isEditableKeyboardTarget(e.target)) return;
 
-        const currentIdx = effectiveFocusId
-          ? flatNodes.findIndex((fn) => fn.id === effectiveFocusId)
+        const keyboardFocusId = resolveKeyboardFocusId();
+        const currentIdx = keyboardFocusId
+          ? flatNodes.findIndex((fn) => fn.id === keyboardFocusId)
           : -1;
+
+        const currentNode = currentIdx >= 0 ? flatNodes[currentIdx] : null;
+
+        if (e.key === "F2" && currentNode && onRenameShortcut) {
+          e.preventDefault();
+          onRenameShortcut(currentNode.id, currentNode.node, e);
+          return;
+        }
+
+        if (((e.key === "F10" && e.shiftKey) || e.key === "ContextMenu") && currentNode && onKeyboardContextMenu) {
+          e.preventDefault();
+          onKeyboardContextMenu(currentNode.id, currentNode.node, e);
+          return;
+        }
+
+        if (e.key.length === 1 && !e.altKey && !e.ctrlKey && !e.metaKey && e.key !== " ") {
+          const now = Date.now();
+          const previous = now - typeaheadRef.current.lastTypedAt <= 750 ? typeaheadRef.current.query : "";
+          const query = normalizeTypeaheadLabel(`${previous}${e.key}`);
+          typeaheadRef.current = { query, lastTypedAt: now };
+          if (query) {
+            const startIndex = currentIdx >= 0 ? currentIdx + 1 : 0;
+            const ordered = [...flatNodes.slice(startIndex), ...flatNodes.slice(0, startIndex)];
+            const match = ordered.find((flat) => normalizeTypeaheadLabel(flat.node.label).startsWith(query));
+            if (match) {
+              e.preventDefault();
+              focusFlatNode(flatNodes.findIndex((flat) => flat.id === match.id));
+            }
+          }
+          return;
+        }
 
         switch (e.key) {
           case "ArrowDown": {
@@ -1129,6 +1190,7 @@ export function Tree({
             if (currentIdx >= 0) {
               const fn = flatNodes[currentIdx];
               if (fn.isFolder && !fn.isExpanded) handleToggle(fn.id);
+              else if (fn.isFolder && fn.isExpanded && flatNodes[currentIdx + 1]?.depth === fn.depth + 1) focusFlatNode(currentIdx + 1);
             }
             break;
           }
@@ -1137,6 +1199,14 @@ export function Tree({
             if (currentIdx >= 0) {
               const fn = flatNodes[currentIdx];
               if (fn.isFolder && fn.isExpanded) handleToggle(fn.id);
+              else if (fn.depth > 0) {
+                for (let index = currentIdx - 1; index >= 0; index -= 1) {
+                  if (flatNodes[index]?.depth === fn.depth - 1) {
+                    focusFlatNode(index);
+                    break;
+                  }
+                }
+              }
             }
             break;
           }
@@ -1158,7 +1228,7 @@ export function Tree({
           }
         }
       },
-      [flatNodes, effectiveFocusId, focusFlatNode, handleToggle, onRowClick, triggerSelection]
+      [flatNodes, focusFlatNode, handleToggle, onKeyboardContextMenu, onRenameShortcut, onRowClick, resolveKeyboardFocusId, triggerSelection]
     );
 
     // Focus the matching DOM element when focusId changes

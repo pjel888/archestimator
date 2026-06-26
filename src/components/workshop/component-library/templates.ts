@@ -111,6 +111,41 @@ export function readProjectSourceDragPayload(rawPayload: string): ProjectSourceD
   return null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function readInsertEstimateTemplateEventDetail(detail: unknown): InsertEstimateTemplateEventDetail | null {
+  if (!isRecord(detail)) return null;
+  const targetParentNodeId = readNonEmptyString(detail.targetParentNodeId);
+  if (!targetParentNodeId) return null;
+  const templateId = readNonEmptyString(detail.templateId);
+  const templateNodeId = readNonEmptyString(detail.templateNodeId);
+  if (templateId && templateNodeId) return { targetParentNodeId, templateId, templateNodeId };
+  if (!Array.isArray(detail.templateIds)) return null;
+  const templateIds = detail.templateIds.filter((id): id is string => typeof id === "string" && id.length > 0);
+  return templateIds.length > 0 ? { targetParentNodeId, templateIds } : null;
+}
+
+export function readInsertProjectSourceEventDetail(detail: unknown): InsertProjectSourceEventDetail | null {
+  if (!isRecord(detail) || !isRecord(detail.source)) return null;
+  const targetParentNodeId = readNonEmptyString(detail.targetParentNodeId);
+  const projectId = readNonEmptyString(detail.source.projectId);
+  const estimateId = readNonEmptyString(detail.source.estimateId);
+  const tabId = readNonEmptyString(detail.source.tabId);
+  if (!targetParentNodeId || !projectId || !estimateId || !tabId) return null;
+  if (detail.source.nodeId !== null && detail.source.nodeId !== undefined && typeof detail.source.nodeId !== "string") return null;
+  return {
+    targetParentNodeId,
+    source: {
+      projectId,
+      estimateId,
+      tabId,
+      nodeId: readNonEmptyString(detail.source.nodeId) ?? null,
+    },
+  };
+}
+
 export function templateMatchesQuery(template: EstimateTemplate, query: string) {
   if (!query.trim()) return true;
   const normalizedQuery = query.trim().toLowerCase();

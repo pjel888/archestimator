@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Circle, Package, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { TREE_ROW_ICON_SIZE } from "@/components/ui/tree";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import {
-  computeTemplateNodeTotal,
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
@@ -20,13 +19,22 @@ import { SourceTrustChips } from "@/components/workshop/library/source-trust-chi
 import { getTemplateSourceTrustChips } from "@/components/workshop/library/source-trust-model";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import { buildTemplatePreviewNodeTotals } from "./TemplatePreviewDockModel";
 
 // One neutral node glyph for every node (single-node model).
 function NodeKindIcon() {
   return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
-function StructureOutlineNode({ node, depth }: { node: EstimateTreeNode; depth: number }) {
+function StructureOutlineNode({
+  node,
+  depth,
+  totalsByNodeId,
+}: {
+  node: EstimateTreeNode;
+  depth: number;
+  totalsByNodeId: ReadonlyMap<string, number>;
+}) {
   return (
     <>
       <li
@@ -37,7 +45,7 @@ function StructureOutlineNode({ node, depth }: { node: EstimateTreeNode; depth: 
         <NodeKindIcon />
         <span className="min-w-0 flex-1 truncate text-[10px] leading-4 text-ink">{node.name}</span>
         <span className="shrink-0 text-[9px] leading-3 tabular-nums text-tertiary">
-          {pesoFormatter.format(computeTemplateNodeTotal(node))}
+          {pesoFormatter.format(totalsByNodeId.get(node.id) ?? 0)}
         </span>
       </li>
       {(node.estimateRowItems ?? []).map((row) => (
@@ -54,7 +62,7 @@ function StructureOutlineNode({ node, depth }: { node: EstimateTreeNode; depth: 
         </li>
       ))}
       {(node.children ?? []).map((child) => (
-        <StructureOutlineNode key={child.id} node={child} depth={depth + 1} />
+        <StructureOutlineNode key={child.id} node={child} depth={depth + 1} totalsByNodeId={totalsByNodeId} />
       ))}
     </>
   );
@@ -90,6 +98,7 @@ export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInser
   }, [onClose]);
 
   const summary = summarizeEstimateTemplate(template);
+  const totalsByNodeId = useMemo(() => buildTemplatePreviewNodeTotals(template.nodes), [template.nodes]);
 
   return (
     <ResizableSidePanel
@@ -134,7 +143,9 @@ export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInser
 
           <ul className="mt-3 border-t border-hairline pt-2" aria-label={`${template.name} structure outline`}>
             {template.nodes.length > 0 ? (
-              template.nodes.map((node) => <StructureOutlineNode key={node.id} node={node} depth={0} />)
+              template.nodes.map((node) => (
+                <StructureOutlineNode key={node.id} node={node} depth={0} totalsByNodeId={totalsByNodeId} />
+              ))
             ) : (
               <li className="py-1 text-[10px] leading-4 text-tertiary">
                 No structure yet. Open the template to add Areas.

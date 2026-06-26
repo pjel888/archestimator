@@ -1,4 +1,5 @@
 import type { EstimateRowItem } from "../estimate-tree-data";
+import { getLocalComponentImageFallback } from "../component-image-fallbacks";
 import { readComponentSourceUrlInput, sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { filterMap } from "@/lib/util/array";
 import type {
@@ -20,29 +21,9 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-const componentImageFallbacks: Record<string, string> = {
-  furniture: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80",
-  cabinetry: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=600&q=80",
-  finishes: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=600&q=80",
-  "wall paints / interior finishes": "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=600&q=80",
-  "electrical fixtures": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80",
-  "lighting fixtures": "https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?auto=format&fit=crop&w=600&q=80",
-  "plumbing fixtures": "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=600&q=80",
-  "kitchen fixtures": "https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=600&q=80",
-  outdoor: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80",
-};
-
 export function getComponentImageUrl(item: EstimateRowItem) {
   if (item.imageUrl) return item.imageUrl;
-  const category = item.category?.toLowerCase();
-  if (category && componentImageFallbacks[category]) return componentImageFallbacks[category];
-  const material = (item.material ?? "").toLowerCase();
-  if (material.includes("paint") || material.includes("skimcoat") || material.includes("wallpaper")) return componentImageFallbacks["wall paints / interior finishes"];
-  if (material.includes("light") || material.includes("outlet") || material.includes("switch") || material.includes("led")) return componentImageFallbacks["electrical fixtures"];
-  if (material.includes("toilet") || material.includes("lavatory") || material.includes("vanity") || material.includes("sink")) return componentImageFallbacks["plumbing fixtures"];
-  if (material.includes("tile") || material.includes("floor")) return componentImageFallbacks.finishes;
-  if (material.includes("wardrobe") || material.includes("cabinet")) return componentImageFallbacks.cabinetry;
-  return componentImageFallbacks.furniture;
+  return getLocalComponentImageFallback(item);
 }
 
 export function getComponentName(item: EstimateRowItem) {

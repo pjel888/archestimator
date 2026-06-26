@@ -62,6 +62,7 @@ type ProposalExportPreviewStatus = {
   freshness: "current" | "stale";
   download: ProposalExportPreviewDownloadStatus;
   downloadError?: string | null;
+  unsavedEdits?: number;
 };
 
 type ProposalExportPreviewDialogProps = {
@@ -228,6 +229,7 @@ export function ProposalExportPreviewDialog({
   const downloadInProgress = downloadStatus === "preparing";
   const downloadDisabled = downloadStatus !== "ready";
   const downloadError = status.downloadError ?? null;
+  const unsavedEdits = status.unsavedEdits ?? 0;
 
   const dialog = (
     <dialog
@@ -311,6 +313,17 @@ export function ProposalExportPreviewDialog({
             className="border-b border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700"
           >
             {downloadError}
+          </div>
+        ) : null}
+
+        {unsavedEdits > 0 ? (
+          <div
+            role="status"
+            data-testid="proposal-unsaved-edits-warning"
+            className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800"
+          >
+            Preview includes {unsavedEdits} unsaved row {unsavedEdits === 1 ? "edit" : "edits"}. Save the sheet
+            before exporting if the workbook should contain saved data only.
           </div>
         ) : null}
 

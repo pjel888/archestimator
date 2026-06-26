@@ -1,54 +1,33 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { MapPin } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
-import { ProjectCardDetailsControl } from "./ProjectCardDetailsControl";
 
 type ProjectCardTitleViewMode = "list" | "small" | "medium" | "large";
 
 type ProjectCardTitleBlockProps = {
   clientName: string | null;
-  detailsControlClassName: string;
-  groupAssignMenu: ReactNode;
-  isPendingInvite: boolean;
   location: string | null;
   projectName: string;
-  setupNavigationDisabled: boolean;
   viewMode: ProjectCardTitleViewMode;
-  onExpandDetails: () => void;
 };
 
+// Text-only title block. The kebab details control and group-assignment menu
+// previously rendered in this row now live in the card's translucent top strip
+// (see LiveProjectCard tile branch), so this block is just client / name /
+// location — the bright paper content of the inset white inner card.
 export function ProjectCardTitleBlock({
   clientName,
-  detailsControlClassName,
-  groupAssignMenu,
-  isPendingInvite,
   location,
   projectName,
-  setupNavigationDisabled,
   viewMode,
-  onExpandDetails,
 }: ProjectCardTitleBlockProps) {
   return (
     <>
-      <div className="flex min-w-0 items-start justify-between gap-2">
-        <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
-          {clientName ?? "No client yet"}
-        </p>
-        <div className="flex shrink-0 items-center gap-1">
-          {groupAssignMenu}
-          {isPendingInvite ? null : (
-            <ProjectCardDetailsControl
-              className={detailsControlClassName}
-              disabled={setupNavigationDisabled}
-              projectName={projectName}
-              onExpand={onExpandDetails}
-            />
-          )}
-        </div>
-      </div>
+      <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
+        {clientName ?? "No client yet"}
+      </p>
       <div className="min-w-0">
         <h2
           className={cn(

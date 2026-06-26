@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
@@ -21,7 +22,6 @@ import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-librar
 import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
-import { EstimateRightSidebar } from "../../component-library";
 import { filterTemplatesByQuery, type EstimateTemplate } from "../../component-library/templates";
 import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 import {
@@ -32,20 +32,47 @@ import { TemplateStructureTree } from "./TemplateStructureTree";
 import { TemplateEditorSheet, type TemplateSheetHandlers } from "./TemplateEditorSheet";
 import { useTemplateEditor } from "./use-template-editor";
 
-function TemplateEditorDockFallback() {
-  const surfaceVariant = useLibrarySurfaceVariant();
+const EstimateRightSidebar = dynamic(
+  () => import("../../component-library").then((module) => module.EstimateRightSidebar),
+  { loading: () => <TemplateEditorDockFallback /> },
+);
 
-  return (
-    <output
-      className={cn("hidden w-[380px] shrink-0 p-2 lg:block", librarySurfaceClass(surfaceVariant, "rightDock"))}
-      aria-label="Loading components dock"
-    >
+function TemplateEditorDockFallback({ onActivate }: { onActivate?: () => void }) {
+  const surfaceVariant = useLibrarySurfaceVariant();
+  const className = cn("hidden w-[380px] shrink-0 p-2 lg:block", librarySurfaceClass(surfaceVariant, "rightDock"));
+  const content = (
+    <>
       <Skeleton className={cn("h-8 w-full", librarySurfaceClass(surfaceVariant, "skeleton"))} />
       <div className="mt-2 space-y-1" aria-hidden="true">
         {Array.from({ length: 10 }, (_, index) => (
           <Skeleton key={index} className={cn("h-6 w-full", librarySurfaceClass(surfaceVariant, "skeleton"))} />
         ))}
       </div>
+    </>
+  );
+
+  if (onActivate) {
+    return (
+      <button
+        type="button"
+        className={cn(className, "cursor-default text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}
+        aria-label="Load components dock"
+        onPointerEnter={onActivate}
+        onFocus={onActivate}
+        onClick={onActivate}
+      >
+        {content}
+        <span className="sr-only">Load components dock</span>
+      </button>
+    );
+  }
+
+  return (
+    <output
+      className={className}
+      aria-label="Loading components dock"
+    >
+      {content}
       <span className="sr-only">Loading components dock</span>
     </output>
   );
@@ -153,6 +180,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   const setBreadcrumb = useLibraryEditorChrome((state) => state.setBreadcrumb);
   const clearBreadcrumb = useLibraryEditorChrome((state) => state.clearBreadcrumb);
   const setSaveState = useLibraryEditorChrome((state) => state.setSaveState);
+  const [dockRequested, setDockRequested] = useState(false);
   const [uiState, dispatchUi] = useReducer(
     templateEditorUiReducer,
     serverTemplate,
@@ -165,6 +193,10 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   // the in-DS dialog pattern (mirrors TemplatesBrowseManager). One reusable text prompt
   // for add/rename; a destructive ConfirmDialog for delete.
   const componentLibraryQueryKey = useMemo(() => workspaceComponentLibraryLiteQueryKey(workspaceId), [workspaceId]);
+  const requestDock = useCallback(() => {
+    setDockRequested(true);
+  }, []);
+
   const openTextPrompt = useCallback((next: TemplateEditorTextPrompt) => {
     dispatchUi({ type: "openTextPrompt", prompt: next });
   }, []);
@@ -252,6 +284,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   const { data: libraryData } = useQuery({
     queryKey: componentLibraryQueryKey,
     queryFn: () => loadCurrentWorkspaceComponentLibraryLite(),
+    enabled: dockRequested,
     staleTime: 5 * 60 * 1000,
   });
   const queryClient = useQueryClient();
@@ -384,7 +417,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         </div>
       </ResizableSidePanel>
       <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} />
-      {libraryData ? (
+      {dockRequested && libraryData ? (
         <EstimateRightSidebar
           selectedNodeId={componentTargetArea?.id ?? null}
           selectedNodeKind={componentTargetArea?.kind ?? null}
@@ -404,7 +437,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
           onLibraryDataChanged={handleLibraryDataChanged}
         />
       ) : (
-        <TemplateEditorDockFallback />
+        <TemplateEditorDockFallback onActivate={requestDock} />
       )}
 
       {deleteNodeTarget ? (

@@ -1,14 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState, type SetStateAction } from "react";
-import { FolderPlus, FolderSimple, Package, Plus, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type SetStateAction } from "react";
+import { FolderSimple, Package, Plus, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
+import { Drawer } from "@/components/ui/overlays/sheet-drawer";
 import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { type ToastTone, useToast } from "@/components/ui/toast";
@@ -18,9 +19,23 @@ import {
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { createLibraryFolder, deleteEstimateTemplate, renameEstimateTemplate, renameLibraryFolder, reorderLibraryFolders } from "@/lib/component-library/actions";
+import {
+  createLibraryFolder,
+  deleteEstimateTemplate,
+  executeBulkArchiveLibraryComponents,
+  loadComponentLibraryUserPreferences,
+  previewBulkArchiveLibraryComponents,
+  recordComponentLibraryTelemetryEvent,
+  renameEstimateTemplate,
+  renameLibraryFolder,
+  reorderLibraryFolders,
+  saveComponentLibraryUserPreferences,
+  type ComponentLibraryUserPreferences,
+} from "@/lib/component-library/actions";
+import { setLibraryTelemetrySink } from "@/lib/component-library/library-telemetry";
 import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import { createBulkActionCorrelationId } from "@/lib/mass-deletion/bulk-action";
 import {
   getReusableEstimateOutline,
   listReusableProjectEstimateSources,
@@ -37,6 +52,7 @@ import type {
   ReusableEstimateSource,
   ReusableSourceLiveMetadata,
 } from "@/lib/reusable-sources/types";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
@@ -44,6 +60,7 @@ import { estimateSurfaceClass } from "../estimate-surface-class";
 import { useEstimateSurfaceVariant } from "../estimate-surface-variant";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
+import { LIBRARY_ITEM_DRAG_MIME_TYPE, dispatchAddLibraryItemEvent } from "../estimate-sheet/rows/constants";
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { ComponentViewControls } from "../component-library-manager/LibraryFolderTree";
 import type { ComponentViewMode } from "../component-library-manager/library-folder-tree-shared";
@@ -52,8 +69,6 @@ import {
   buildComponentFacetOptions,
   componentMatchesFacets,
   countActiveComponentFacets,
-  EMPTY_COMPONENT_FACET_FILTERS,
-  type ComponentFacetFilters,
 } from "@/components/workshop/library/component-facet-filter-model";
 import { NewComponentForm } from "./NewComponentForm";
 import { NewTemplateModal } from "./NewTemplateModal";
@@ -65,7 +80,15 @@ import {
   type CreateEstimateTemplateFromNodeEventDetail,
   type EstimateTemplate,
 } from "./templates";
-import type { NewComponentForm as NewComponentFormType } from "./types";
+import {
+  hydrateSidebarLibraryItems,
+  useEstimateRightSidebarChromeState,
+  useLibraryTabState,
+  useProjectTabState,
+  useTemplatesTabState,
+  type EstimateLibraryTab,
+  type TemplateSourceFilter,
+} from "./use-estimate-right-sidebar-state";
 import {
   buildLibraryTreeWithComponentRows,
   buildProjectComponentTree,
@@ -120,6 +143,15 @@ function getSidebarActionToastTone(message: string): ToastTone {
   return "success";
 }
 
+function getArchiveActionIssueMessage(
+  result: { issues?: Array<{ message?: string }>; blocked?: Array<{ message?: string }> },
+  fallback: string,
+) {
+  return result.issues?.find((issue) => issue.message)?.message
+    ?? result.blocked?.find((issue) => issue.message)?.message
+    ?? fallback;
+}
+
 // Stable default for the optional `templates` prop. A bare `= []` default mints a
 // fresh array each render, which would make the U10 prop-reconciliation guard
 // (`syncedTemplatesProp !== templates`) fire every render → infinite re-render.
@@ -133,8 +165,6 @@ const AddComponentModal = dynamic(() =>
 import {
   createComponent,
   defaultForm,
-  getComponentDesignation,
-  getComponentDiscipline,
   getComponentName,
   getComponentPrice,
   isFormDirty,
@@ -294,14 +324,12 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
   );
 }
 
-type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
 const TEMPLATE_SOURCE_FILTER_OPTIONS = [
   { value: "all", label: "All sources" },
   { value: "custom", label: "Custom templates" },
   { value: "projects", label: "From projects" },
 ] as const satisfies readonly DropdownSelectOption[];
-type TemplateSourceFilter = (typeof TEMPLATE_SOURCE_FILTER_OPTIONS)[number]["value"];
 
 function isTemplateSourceFilter(value: string): value is TemplateSourceFilter {
   return TEMPLATE_SOURCE_FILTER_OPTIONS.some((option) => option.value === value);
@@ -512,15 +540,14 @@ function ProjectSourcePreviewPanel({
             </Button>
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
-            {/* U13/A3: neutral chips (no off-palette `info` tone); the live dot is
-                the only functional-color signal. Content-sized, so they don't
-                stretch in the 360px panel. */}
+            {/* U13/A3: neutral chips (no off-palette `info` tone). Content-sized,
+                so they don't stretch in the 360px panel. */}
             <span className="inline-flex items-center gap-1 rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-px text-[8px] font-medium leading-4 text-secondary">
-              <span className="size-1.5 rounded-xs bg-success" aria-hidden="true" />
-              Live source
+              <span className="size-1.5 rounded-xs bg-accent" aria-hidden="true" />
+              Snapshot source
             </span>
             <span className="inline-flex items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-px text-[8px] font-medium leading-4 text-secondary">
-              Read-through source
+              Copies rows at insert time
             </span>
           </div>
         </div>
@@ -537,7 +564,7 @@ function ProjectSourcePreviewPanel({
           </dl>
         ) : (
           <p className="text-[9px] leading-4 text-tertiary">
-            Live project metadata will appear here when this source supplies it.
+            Snapshot source metadata will appear here when this source supplies it.
           </p>
         )}
         {outlineRows.length ? (
@@ -601,6 +628,10 @@ type EstimateRightSidebarProps = {
   enableReusableProjectSources?: boolean;
   /** Reads/writes the user's saved sidebar width. Disable for public/mockup embeds. */
   usePersistentPanelWidth?: boolean;
+  /** Product-specific compact drawer state controlled by EstimateSheetContent. */
+  mobileDrawerOpen?: boolean;
+  onMobileDrawerOpenChange?: (open: boolean) => void;
+  mobileDrawerId?: string;
   // Fired after a server-confirmed library/template mutation so callers that
   // cache the lazy library dataset can invalidate it (remount freshness).
   onLibraryDataChanged?: () => void;
@@ -612,178 +643,39 @@ type EstimateRightSidebarProps = {
   templateCreateMode?: "estimate-node" | "scratch";
 };
 
-const EMPTY_LIBRARY_TREE_ORDER: Record<ComponentViewMode, LibraryTreeOrder> = { default: {}, suppliers: {}, brand: {} };
-
-type EstimateRightSidebarState = {
-  recentIds: string[];
-  libraryItems: EstimateRowItem[];
-  activeTab: EstimateLibraryTab;
-  componentViewMode: ComponentViewMode;
-  viewModeMenuOpen: boolean;
-  expandedNodeIdsByViewMode: Record<ComponentViewMode, string[]>;
-  projectExpandedNodeIds: string[];
-  templateList: EstimateTemplate[];
-  loadedProjectSources: ReusableEstimateSource[];
-  templateSourceFilter: TemplateSourceFilter;
-  projectSourcesLoading: boolean;
-  projectSourceSearchResults: ProjectReusableEstimateSource[];
-  projectEstimateLoadingProjectIds: string[];
-  projectOutlineLoadingEstimateIds: string[];
-  templatesExpandedIds: string[];
-  searchQuery: string;
-  searchOpen: boolean;
-  previewItemId: string | null;
-  previewProjectSourceKey: string | null;
-  bulkSelectedNodeIds: Set<string>;
-  bulkDeleteConfirmOpen: boolean;
-  customOrderByViewMode: Record<ComponentViewMode, LibraryTreeOrder>;
-  showNewComponent: boolean;
-  addComponentOpen: boolean;
-  addTemplateOpen: boolean;
-  addTemplateGroupOpen: boolean;
-  discardComponentChangesOpen: boolean;
-  templateGroupName: string;
-  templateGroupError: string;
-  customTemplateGroups: string[];
-  templateSourceNodeId: string | null;
-  templateSourceProjectSource: ProjectSourceInsertTarget | null;
-  templateDefaultCategory: string | null;
-  renameTemplateTarget: EstimateTemplate | null;
-  renameTemplateName: string;
-  renameTemplateError: string;
-  renameTemplatePending: boolean;
-  deleteTemplateTarget: EstimateTemplate | null;
-  deleteTemplateError: string;
-  deleteTemplatePending: boolean;
-  form: NewComponentFormType;
-  formError: string;
-  deleteCandidate: EstimateRowItem | null;
-  insertQuantity: number;
-  facetFilters: ComponentFacetFilters;
-  localLibraryFolders: LibraryFolderRecord[];
-  pendingLibraryFolder: LibraryFolderRecord | null;
-  editingFolderId: string | null;
-  editingFolderName: string;
-  editingFolderMode: "create" | "rename" | null;
-  createFolderPending: boolean;
+type StoredLibraryPrefs = {
+  favoriteIds: string[];
+  storedRecentIds: string[];
+  storedPrefs: { activeTab?: string; componentViewMode?: string };
+  storedTreeOrder: Partial<Record<ComponentViewMode, LibraryTreeOrder>>;
+  legacyStoredTab: string | null;
+  replaceFavorites?: boolean;
+  replaceTreeOrder?: boolean;
 };
 
-type EstimateRightSidebarInit = {
-  initialLibraryItems: EstimateRowItem[];
-  templates: EstimateTemplate[];
-  projectSources: ReusableEstimateSource[];
-  categoryTree: ComponentLibraryTaxonomyNode[];
-  suppliers: ComponentLibrarySupplierOption[];
-  brands: ComponentLibraryBrand[];
-  libraryFolders: LibraryFolderRecord[];
-};
-
-type EstimateRightSidebarAction = {
-  [K in keyof EstimateRightSidebarState]: {
-    type: "fieldChanged";
-    field: K;
-    value: SetStateAction<EstimateRightSidebarState[K]>;
-  };
-}[keyof EstimateRightSidebarState];
-
-function estimateRightSidebarFieldAction<K extends keyof EstimateRightSidebarState>(
-  field: K,
-  value: SetStateAction<EstimateRightSidebarState[K]>,
-): EstimateRightSidebarAction {
-  return { type: "fieldChanged", field, value } as EstimateRightSidebarAction;
+function serializeLibraryAccountPrefs(preferences: ComponentLibraryUserPreferences) {
+  return JSON.stringify({
+    activeTab: preferences.activeTab,
+    componentViewMode: preferences.componentViewMode,
+    favoriteItemIds: preferences.favoriteItemIds,
+    recentItemIds: preferences.recentItemIds,
+    treeOrder: preferences.treeOrder,
+  });
 }
 
-function createInitialEstimateRightSidebarState({
-  initialLibraryItems,
-  templates,
-  projectSources,
-  categoryTree,
-  suppliers,
-  brands,
-  libraryFolders,
-}: EstimateRightSidebarInit): EstimateRightSidebarState {
-  const splitItems = splitSidebarComponentItems(initialLibraryItems);
+function toStoredLibraryPrefs(preferences: ComponentLibraryUserPreferences): StoredLibraryPrefs {
   return {
-    recentIds: [],
-    libraryItems: hydrateSidebarLibraryItems(initialLibraryItems),
-    activeTab: "components",
-    componentViewMode: "default",
-    viewModeMenuOpen: false,
-    expandedNodeIdsByViewMode: {
-      default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", splitItems.libraryItems, [], [], { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
-      suppliers: [],
-      brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", splitItems.libraryItems, [], [], { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
+    favoriteIds: preferences.favoriteItemIds,
+    storedRecentIds: preferences.recentItemIds,
+    storedPrefs: {
+      activeTab: preferences.activeTab,
+      componentViewMode: preferences.componentViewMode,
     },
-    projectExpandedNodeIds: getAllNodeIds(buildProjectComponentTree(splitItems.projectItems, { libraryFolders })),
-    templateList: templates,
-    loadedProjectSources: projectSources,
-    templateSourceFilter: "all",
-    projectSourcesLoading: false,
-    projectSourceSearchResults: [],
-    projectEstimateLoadingProjectIds: [],
-    projectOutlineLoadingEstimateIds: [],
-    templatesExpandedIds: Array.from(new Set([
-      templatesTreeSectionId("custom-templates"),
-      templatesTreeSectionId("projects"),
-      ...templates.map((template) => templatesTreeCategoryId(template.category)),
-    ])),
-    searchQuery: "",
-    searchOpen: false,
-    previewItemId: null,
-    previewProjectSourceKey: null,
-    bulkSelectedNodeIds: new Set(),
-    bulkDeleteConfirmOpen: false,
-    customOrderByViewMode: EMPTY_LIBRARY_TREE_ORDER,
-    showNewComponent: false,
-    addComponentOpen: false,
-    addTemplateOpen: false,
-    addTemplateGroupOpen: false,
-    discardComponentChangesOpen: false,
-    templateGroupName: "",
-    templateGroupError: "",
-    customTemplateGroups: [],
-    templateSourceNodeId: null,
-    templateSourceProjectSource: null,
-    templateDefaultCategory: null,
-    renameTemplateTarget: null,
-    renameTemplateName: "",
-    renameTemplateError: "",
-    renameTemplatePending: false,
-    deleteTemplateTarget: null,
-    deleteTemplateError: "",
-    deleteTemplatePending: false,
-    form: defaultForm,
-    formError: "",
-    deleteCandidate: null,
-    insertQuantity: 1,
-    facetFilters: EMPTY_COMPONENT_FACET_FILTERS,
-    localLibraryFolders: libraryFolders,
-    pendingLibraryFolder: null,
-    editingFolderId: null,
-    editingFolderName: "",
-    editingFolderMode: null,
-    createFolderPending: false,
+    storedTreeOrder: preferences.treeOrder,
+    legacyStoredTab: null,
+    replaceFavorites: true,
+    replaceTreeOrder: true,
   };
-}
-
-function estimateRightSidebarReducer(
-  state: EstimateRightSidebarState,
-  action: EstimateRightSidebarAction,
-): EstimateRightSidebarState {
-  switch (action.type) {
-    case "fieldChanged": {
-      const currentValue = state[action.field] as never;
-      const nextValue = typeof action.value === "function"
-        ? (action.value as (current: never) => unknown)(currentValue)
-        : action.value;
-      return {
-        ...state,
-        [action.field]: nextValue,
-      } as EstimateRightSidebarState;
-    }
-    default:
-      return state;
-  }
 }
 
 function buildLibrarySelectionNodes(nodes: LibraryTreeNode[]): TreeSelectionNode[] {
@@ -794,42 +686,12 @@ function buildLibrarySelectionNodes(nodes: LibraryTreeNode[]): TreeSelectionNode
   }));
 }
 
-function componentToForm(item: EstimateRowItem): NewComponentFormType {
-  return {
-    material: getComponentName(item),
-    category: item.category ?? "",
-    supplier: item.supplier ?? "",
-    unit: item.unit ?? "pc",
-    itemCost: String(getComponentPrice(item)),
-    currency: item.currency ?? "PHP",
-    discipline: getComponentDiscipline(item),
-    designation: getComponentDesignation(item),
-    description: item.description ?? "",
-    tags: (item.tags ?? []).join(", "),
-    imageUrl: item.imageUrl ?? "",
-    miscCost: String(item.miscCost ?? 0),
-    sku: item.sku ?? "",
-    sourceUrl: item.sourceUrl ?? "",
-    notes: item.notes ?? "",
-  };
-}
-
 function reusableProjectSourceKey(source: ReusableEstimateSource) {
   if (source.kind === "custom-template") return `custom-template:${source.template.id}`;
   if (source.kind === "project") return `project:${source.projectId}`;
   if (source.kind === "project-estimate") return `project-estimate:${source.estimateId}`;
   if (source.kind === "project-tab") return `project-tab:${source.tabId}`;
   return `project-node:${source.nodeId}`;
-}
-
-function hydrateSidebarLibraryItems(items: EstimateRowItem[]): EstimateRowItem[] {
-  return items.map((item, index) => ({
-    ...item,
-    createdAt: item.createdAt ?? new Date(Date.now() - (index % 18) * 86400000).toISOString(),
-    discipline: getComponentDiscipline(item),
-    designation: getComponentDesignation(item),
-    tags: item.tags ?? [item.category, item.supplier, getComponentDiscipline(item)].filter(Boolean),
-  }));
 }
 
 function mergeReusableProjectSources(
@@ -932,8 +794,7 @@ function projectSourceToTemplateSourceNode(source: ProjectSourceInsertTarget, pr
   };
 }
 
-// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateRightSidebarBase({
+function useEstimateRightSidebarContent({
   onInsertComponent,
   onInsertTemplate,
   onInsertTemplateNode,
@@ -958,63 +819,56 @@ function EstimateRightSidebarBase({
   useStoredPreferences = true,
   enableReusableProjectSources = true,
   usePersistentPanelWidth = true,
+  mobileDrawerOpen = false,
+  onMobileDrawerOpenChange,
+  mobileDrawerId,
   onLibraryDataChanged,
   templateCreateMode = "estimate-node",
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const surfaceVariant = useEstimateSurfaceVariant();
+  const compactViewport = useMediaQuery("(max-width: 1023px)");
+  const sourcesDrawerOpen = Boolean(mobileDrawerOpen && compactViewport);
   const effectiveProjectSources = enableReusableProjectSources ? projectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
   // Initial state must not read localStorage: SSR renders the fallbacks, so a
   // storage-aware initializer makes the client's first render diverge and
   // throws a hydration mismatch. Stored prefs apply in the mount effect below.
-  const syncedTemplatesPropRef = useRef(templates);
   const folderEditCommitInFlightRef = useRef(false);
-  const [sidebarState, dispatchSidebarState] = useReducer(
-    estimateRightSidebarReducer,
-    { initialLibraryItems, templates, projectSources: effectiveProjectSources, categoryTree, suppliers, brands, libraryFolders },
-    createInitialEstimateRightSidebarState,
-  );
+  const { state: chromeState, actions: chromeActions } = useEstimateRightSidebarChromeState();
+  const { state: libraryState, actions: libraryActions } = useLibraryTabState({
+    initialLibraryItems,
+    categoryTree,
+    suppliers,
+    brands,
+    libraryFolders,
+  });
+  const { state: projectState, actions: projectActions } = useProjectTabState({
+    initialLibraryItems,
+    libraryFolders,
+  });
+  const { state: templatesState, actions: templatesActions } = useTemplatesTabState({
+    templates,
+    projectSources: effectiveProjectSources,
+  });
   const {
-    recentIds,
-    libraryItems,
     activeTab,
-    componentViewMode,
-    viewModeMenuOpen,
-    expandedNodeIdsByViewMode,
-    projectExpandedNodeIds,
-    templateList,
-    loadedProjectSources,
-    templateSourceFilter,
-    projectSourcesLoading,
-    projectSourceSearchResults,
-    projectEstimateLoadingProjectIds,
-    projectOutlineLoadingEstimateIds,
-    templatesExpandedIds,
     searchQuery,
     searchOpen,
     previewItemId,
     previewProjectSourceKey,
+  } = chromeState;
+  const {
+    recentIds,
+    libraryItems,
+    componentViewMode,
+    viewModeMenuOpen,
+    expandedNodeIdsByViewMode,
     bulkSelectedNodeIds,
     bulkDeleteConfirmOpen,
     customOrderByViewMode,
     showNewComponent,
     addComponentOpen,
-    addTemplateOpen,
-    addTemplateGroupOpen,
     discardComponentChangesOpen,
-    templateGroupName,
-    templateGroupError,
-    customTemplateGroups,
-    templateSourceNodeId,
-    templateSourceProjectSource,
-    templateDefaultCategory,
-    renameTemplateTarget,
-    renameTemplateName,
-    renameTemplateError,
-    renameTemplatePending,
-    deleteTemplateTarget,
-    deleteTemplateError,
-    deleteTemplatePending,
     form,
     formError,
     deleteCandidate,
@@ -1026,186 +880,110 @@ function EstimateRightSidebarBase({
     editingFolderName,
     editingFolderMode,
     createFolderPending,
-  } = sidebarState;
+  } = libraryState;
+  const { projectExpandedNodeIds } = projectState;
+  const {
+    templateList,
+    loadedProjectSources,
+    templateSourceFilter,
+    projectSourcesLoading,
+    projectSourceSearchResults,
+    projectEstimateLoadingProjectIds,
+    projectOutlineLoadingEstimateIds,
+    templatesExpandedIds,
+    addTemplateOpen,
+    customTemplateGroups,
+    templateSourceNodeId,
+    templateSourceProjectSource,
+    templateDefaultCategory,
+    renameTemplateTarget,
+    renameTemplateName,
+    renameTemplateError,
+    renameTemplatePending,
+    deleteTemplateTarget,
+    deleteTemplateError,
+    deleteTemplatePending,
+  } = templatesState;
+  const {
+    setActiveTab,
+    setSearchQuery,
+    setSearchOpen,
+    setPreviewItemId,
+    setPreviewProjectSourceKey,
+  } = chromeActions;
+  const {
+    setRecentIds,
+    setLibraryItems,
+    setComponentViewMode,
+    setViewModeMenuOpen,
+    setExpandedNodeIdsByViewMode,
+    setBulkSelectedNodeIds,
+    setBulkDeleteConfirmOpen,
+    setCustomOrderByViewMode,
+    setShowNewComponent,
+    setAddComponentOpen,
+    setDiscardComponentChangesOpen,
+    setForm,
+    setFormError,
+    setDeleteCandidate,
+    setInsertQuantity,
+    setFacetFilters,
+    setLocalLibraryFolders,
+    setPendingLibraryFolder,
+    setEditingFolderId,
+    setEditingFolderName,
+    setEditingFolderMode,
+    setCreateFolderPending,
+  } = libraryActions;
+  const { setProjectExpandedNodeIds } = projectActions;
+  const {
+    setTemplateList,
+    setLoadedProjectSources,
+    setTemplateSourceFilter,
+    setProjectSourcesLoading,
+    setProjectSourceSearchResults,
+    setProjectEstimateLoadingProjectIds,
+    setProjectOutlineLoadingEstimateIds,
+    setTemplatesExpandedIds,
+    setAddTemplateOpen,
+    setTemplateSourceNodeId,
+    setTemplateSourceProjectSource,
+    setTemplateDefaultCategory,
+    setRenameTemplateTarget,
+    setRenameTemplateName,
+    setRenameTemplateError,
+    setRenameTemplatePending,
+    setDeleteTemplateTarget,
+    setDeleteTemplateError,
+    setDeleteTemplatePending,
+  } = templatesActions;
   const { toast } = useToast();
-  const setRecentIds = useCallback((value: SetStateAction<string[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("recentIds", value));
+  useEffect(() => {
+    if (process.env.NODE_ENV === "test") return undefined;
+    setLibraryTelemetrySink((record) => {
+      void recordComponentLibraryTelemetryEvent(record);
+    });
+    return () => setLibraryTelemetrySink(null);
   }, []);
-  const setLibraryItems = useCallback((value: SetStateAction<EstimateRowItem[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("libraryItems", value));
-  }, []);
-  const setActiveTab = useCallback((value: SetStateAction<EstimateLibraryTab>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("activeTab", value));
-  }, []);
-  const setComponentViewMode = useCallback((value: SetStateAction<ComponentViewMode>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("componentViewMode", value));
-  }, []);
-  const setViewModeMenuOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("viewModeMenuOpen", value));
-  }, []);
-  const setExpandedNodeIdsByViewMode = useCallback((value: SetStateAction<Record<ComponentViewMode, string[]>>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("expandedNodeIdsByViewMode", value));
-  }, []);
-  const setProjectExpandedNodeIds = useCallback((value: SetStateAction<string[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectExpandedNodeIds", value));
-  }, []);
-  const setTemplateList = useCallback((value: SetStateAction<EstimateTemplate[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateList", value));
-  }, []);
-  const setLoadedProjectSources = useCallback((value: SetStateAction<ReusableEstimateSource[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("loadedProjectSources", value));
-  }, []);
-  const setTemplateSourceFilter = useCallback((value: SetStateAction<TemplateSourceFilter>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateSourceFilter", value));
-  }, []);
-  const setProjectSourcesLoading = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectSourcesLoading", value));
-  }, []);
-  const setProjectSourceSearchResults = useCallback((value: SetStateAction<ProjectReusableEstimateSource[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectSourceSearchResults", value));
-  }, []);
-  const setProjectEstimateLoadingProjectIds = useCallback((value: SetStateAction<string[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectEstimateLoadingProjectIds", value));
-  }, []);
+  useEffect(() => {
+    if (!mobileDrawerOpen || compactViewport) return;
+    onMobileDrawerOpenChange?.(false);
+  }, [compactViewport, mobileDrawerOpen, onMobileDrawerOpenChange]);
+
   const projectEstimateLoadedProjectIdsRef = useRef<Set<string> | null>(null);
   if (projectEstimateLoadedProjectIdsRef.current === null) projectEstimateLoadedProjectIdsRef.current = new Set();
   const getProjectEstimateLoadedProjectIds = useCallback(() => {
     if (projectEstimateLoadedProjectIdsRef.current === null) projectEstimateLoadedProjectIdsRef.current = new Set();
     return projectEstimateLoadedProjectIdsRef.current;
   }, []);
-  const setProjectOutlineLoadingEstimateIds = useCallback((value: SetStateAction<string[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("projectOutlineLoadingEstimateIds", value));
-  }, []);
-  const setTemplatesExpandedIds = useCallback((value: SetStateAction<string[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templatesExpandedIds", value));
-  }, []);
-  const setSearchQuery = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("searchQuery", value));
-  }, []);
-  const setSearchOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("searchOpen", value));
-  }, []);
-  const setPreviewItemId = useCallback((value: SetStateAction<string | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("previewItemId", value));
-  }, []);
-  const setPreviewProjectSourceKey = useCallback((value: SetStateAction<string | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("previewProjectSourceKey", value));
-  }, []);
-  const setBulkSelectedNodeIds = useCallback((value: SetStateAction<Set<string>>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("bulkSelectedNodeIds", value));
-  }, []);
-  const setBulkDeleteConfirmOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("bulkDeleteConfirmOpen", value));
-  }, []);
-  const setCustomOrderByViewMode = useCallback((value: SetStateAction<Record<ComponentViewMode, LibraryTreeOrder>>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("customOrderByViewMode", value));
-  }, []);
-  const setShowNewComponent = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("showNewComponent", value));
-  }, []);
-  const setAddComponentOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("addComponentOpen", value));
-  }, []);
-  const setAddTemplateOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("addTemplateOpen", value));
-  }, []);
-  const setAddTemplateGroupOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("addTemplateGroupOpen", value));
-  }, []);
-  const setDiscardComponentChangesOpen = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("discardComponentChangesOpen", value));
-  }, []);
-  const setTemplateGroupName = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateGroupName", value));
-  }, []);
-  const setTemplateGroupError = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateGroupError", value));
-  }, []);
-  const setCustomTemplateGroups = useCallback((value: SetStateAction<string[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("customTemplateGroups", value));
-  }, []);
-  const setTemplateSourceNodeId = useCallback((value: SetStateAction<string | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateSourceNodeId", value));
-  }, []);
-  const setTemplateSourceProjectSource = useCallback((value: SetStateAction<ProjectSourceInsertTarget | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateSourceProjectSource", value));
-  }, []);
-  const setTemplateDefaultCategory = useCallback((value: SetStateAction<string | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("templateDefaultCategory", value));
-  }, []);
-  const setRenameTemplateTarget = useCallback((value: SetStateAction<EstimateTemplate | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("renameTemplateTarget", value));
-  }, []);
-  const setRenameTemplateName = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("renameTemplateName", value));
-  }, []);
-  const setRenameTemplateError = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("renameTemplateError", value));
-  }, []);
-  const setRenameTemplatePending = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("renameTemplatePending", value));
-  }, []);
-  const setDeleteTemplateTarget = useCallback((value: SetStateAction<EstimateTemplate | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("deleteTemplateTarget", value));
-  }, []);
-  const setDeleteTemplateError = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("deleteTemplateError", value));
-  }, []);
-  const setDeleteTemplatePending = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("deleteTemplatePending", value));
-  }, []);
-  const setForm = useCallback((value: SetStateAction<NewComponentFormType>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("form", value));
-  }, []);
-  const setFormError = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("formError", value));
-  }, []);
-  const setDeleteCandidate = useCallback((value: SetStateAction<EstimateRowItem | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("deleteCandidate", value));
-  }, []);
-  const setInsertQuantity = useCallback((value: SetStateAction<number>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("insertQuantity", value));
-  }, []);
   const setLastActionMessage = useCallback((value: SetStateAction<string>) => {
     const message = (typeof value === "function" ? value("") : value).trim();
     if (!message) return;
     toast({ tone: getSidebarActionToastTone(message), message });
   }, [toast]);
-  const setFacetFilters = useCallback((value: SetStateAction<ComponentFacetFilters>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("facetFilters", value));
-  }, []);
-  const setLocalLibraryFolders = useCallback((value: SetStateAction<LibraryFolderRecord[]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("localLibraryFolders", value));
-  }, []);
-  const setPendingLibraryFolder = useCallback((value: SetStateAction<LibraryFolderRecord | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("pendingLibraryFolder", value));
-  }, []);
-  const setEditingFolderId = useCallback((value: SetStateAction<string | null>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("editingFolderId", value));
-  }, []);
-  const setEditingFolderName = useCallback((value: SetStateAction<string>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("editingFolderName", value));
-  }, []);
-  const setEditingFolderMode = useCallback((value: SetStateAction<EstimateRightSidebarState["editingFolderMode"]>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("editingFolderMode", value));
-  }, []);
-  const setCreateFolderPending = useCallback((value: SetStateAction<boolean>) => {
-    dispatchSidebarState(estimateRightSidebarFieldAction("createFolderPending", value));
-  }, []);
   // Like libraryItems, the template list seeds from the server prop once and
-  // then evolves locally (created templates append without a route refresh).
-  // U10 (DATA-1): reconcile to the prop when it changes (a rename/delete/create
-  // on another surface refreshes it via cache invalidation) WHILE preserving any
-  // local optimistic appends not yet reflected in the prop — so an open panel
-  // never shows stale templates and never drops an in-flight optimistic add.
-  if (syncedTemplatesPropRef.current !== templates) {
-    syncedTemplatesPropRef.current = templates;
-    setTemplateList((current) => {
-      const propIds = new Set(templates.map((template) => template.id));
-      const optimisticOnly = current.filter((template) => !propIds.has(template.id));
-      return optimisticOnly.length > 0 ? [...templates, ...optimisticOnly] : templates;
-    });
-  }
+  // then evolves locally inside useTemplatesTabState. That hook reconciles prop
+  // changes while preserving local optimistic appends not yet reflected upstream.
   // U23: gate the loading ids behind a short delay so a warm/prefetched expand
   // shows nothing transient; only a genuinely cold expand reveals skeleton rows.
   const skeletonProjectIds = useDelayedIdSet(projectEstimateLoadingProjectIds, SKELETON_REVEAL_DELAY_MS);
@@ -1219,11 +997,15 @@ function EstimateRightSidebarBase({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const editItemIdRef = useRef<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const projectSourceSearchRequestIdRef = useRef(0);
   const treeHeaderRef = useRef<HTMLDivElement>(null);
   const libraryToolsRef = useRef<HTMLDivElement>(null);
   const libraryPrefsHydratedRef = useRef(!useStoredPreferences);
+  const libraryAccountPrefsSaveSnapshotRef = useRef<string | null>(null);
   const syncedInitialLibraryItemsRef = useRef(initialLibraryItems);
   const syncedLibraryFoldersRef = useRef(libraryFolders);
+  const [archiveComponentPending, setArchiveComponentPending] = useState(false);
+  const [archiveComponentError, setArchiveComponentError] = useState("");
   const closeBulkDeleteConfirmDialog = useCallback(() => setBulkDeleteConfirmOpen(false), [setBulkDeleteConfirmOpen]);
   const closeRenameTemplateDialog = useCallback(() => setRenameTemplateTarget(null), [setRenameTemplateTarget]);
   const closeDeleteTemplateDialog = useCallback(() => setDeleteTemplateTarget(null), [setDeleteTemplateTarget]);
@@ -1286,6 +1068,7 @@ function EstimateRightSidebarBase({
     searchOpen: boolean;
     previewProjectSourceKey: string | null;
     previewItemId: string | null;
+    mobileDrawerOpen: boolean;
     closeNewComponent: () => void;
     setSearchOpen: (value: SetStateAction<boolean>) => void;
     setDiscardComponentChangesOpen: (value: SetStateAction<boolean>) => void;
@@ -1297,32 +1080,37 @@ function EstimateRightSidebarBase({
     setSearchQuery: (value: SetStateAction<string>) => void;
     setPreviewProjectSourceKey: (value: SetStateAction<string | null>) => void;
     setPreviewItemId: (value: SetStateAction<string | null>) => void;
+    onMobileDrawerOpenChange?: (open: boolean) => void;
   } | null>(null);
-  sidebarKeyboardStateRef.current = {
-    showNewComponent,
-    addComponentOpen,
-    discardComponentChangesOpen,
-    deleteCandidate,
-    renameTemplateTarget,
-    deleteTemplateTarget,
-    viewModeMenuOpen,
-    bulkDeleteConfirmOpen,
-    searchQuery,
-    searchOpen,
-    previewProjectSourceKey,
-    previewItemId,
-    closeNewComponent,
-    setSearchOpen,
-    setDiscardComponentChangesOpen,
-    setViewModeMenuOpen,
-    setBulkDeleteConfirmOpen,
-    setDeleteCandidate,
-    setRenameTemplateTarget,
-    setDeleteTemplateTarget,
-    setSearchQuery,
-    setPreviewProjectSourceKey,
-    setPreviewItemId,
-  };
+  useEffect(() => {
+    sidebarKeyboardStateRef.current = {
+      showNewComponent,
+      addComponentOpen,
+      discardComponentChangesOpen,
+      deleteCandidate,
+      renameTemplateTarget,
+      deleteTemplateTarget,
+      viewModeMenuOpen,
+      bulkDeleteConfirmOpen,
+      searchQuery,
+      searchOpen,
+      previewProjectSourceKey,
+      previewItemId,
+      mobileDrawerOpen: sourcesDrawerOpen,
+      closeNewComponent,
+      setSearchOpen,
+      setDiscardComponentChangesOpen,
+      setViewModeMenuOpen,
+      setBulkDeleteConfirmOpen,
+      setDeleteCandidate,
+      setRenameTemplateTarget,
+      setDeleteTemplateTarget,
+      setSearchQuery,
+      setPreviewProjectSourceKey,
+      setPreviewItemId,
+      onMobileDrawerOpenChange,
+    };
+  });
   const canLoadProjectSourcesFromActions = enableReusableProjectSources && Boolean(projectId && estimateId && effectiveProjectSources.length === 0);
   const retryProjectSourcesLoadRef = useRef<(() => void) | null>(null);
   const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
@@ -1381,26 +1169,20 @@ function EstimateRightSidebarBase({
     ? searchQuery.trim()
     : "";
 
-  const applyStoredLibraryPrefs = useEffectEvent((stored: {
-    favoriteIds: string[];
-    storedRecentIds: string[];
-    storedPrefs: { activeTab?: string; componentViewMode?: string };
-    storedTreeOrder: Partial<Record<ComponentViewMode, LibraryTreeOrder>>;
-    legacyStoredTab: string | null;
-  }) => {
-    if (stored.storedTreeOrder.default || stored.storedTreeOrder.suppliers || stored.storedTreeOrder.brand) {
+  const applyStoredLibraryPrefs = useEffectEvent((stored: StoredLibraryPrefs) => {
+    if (stored.replaceTreeOrder || stored.storedTreeOrder.default || stored.storedTreeOrder.suppliers || stored.storedTreeOrder.brand) {
       setCustomOrderByViewMode({
         default: stored.storedTreeOrder.default ?? {},
         suppliers: stored.storedTreeOrder.suppliers ?? {},
         brand: stored.storedTreeOrder.brand ?? {},
       });
     }
-    if (stored.favoriteIds.length || stored.storedRecentIds.length) {
+    if (stored.replaceFavorites || stored.favoriteIds.length || stored.storedRecentIds.length) {
       setRecentIds(stored.storedRecentIds);
       setLibraryItems((items) =>
         items.map((item) => ({
           ...item,
-          isFavorite: item.isFavorite || stored.favoriteIds.includes(item.id),
+          isFavorite: stored.replaceFavorites ? stored.favoriteIds.includes(item.id) : item.isFavorite || stored.favoriteIds.includes(item.id),
           lastUsedAt: stored.storedRecentIds.includes(item.id) ? new Date().toISOString() : item.lastUsedAt,
         })),
       );
@@ -1439,6 +1221,22 @@ function EstimateRightSidebarBase({
       if (cancelled) return;
       applyStoredLibraryPrefs({ favoriteIds, storedRecentIds, storedPrefs, storedTreeOrder, legacyStoredTab });
     });
+    if (process.env.NODE_ENV !== "test") {
+      void loadComponentLibraryUserPreferences()
+        .then((preferences) => {
+          if (cancelled || !preferences) return;
+          libraryAccountPrefsSaveSnapshotRef.current = serializeLibraryAccountPrefs(preferences);
+          safeSetJsonStorage(LIBRARY_PREFS_KEY, {
+            activeTab: preferences.activeTab,
+            componentViewMode: preferences.componentViewMode,
+          });
+          safeSetJsonStorage(LIBRARY_FAVORITES_KEY, preferences.favoriteItemIds);
+          safeSetJsonStorage(LIBRARY_RECENTS_KEY, preferences.recentItemIds);
+          safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, preferences.treeOrder);
+          applyStoredLibraryPrefs(toStoredLibraryPrefs(preferences));
+        })
+        .catch(() => undefined);
+    }
     return () => {
       cancelled = true;
     };
@@ -1518,6 +1316,7 @@ function EstimateRightSidebarBase({
         searchRef.current?.focus();
       }
       if (event.key === "Escape") {
+        let handled = true;
         if (state.viewModeMenuOpen) state.setViewModeMenuOpen(false);
         else if (state.bulkDeleteConfirmOpen) state.setBulkDeleteConfirmOpen(false);
         else if (state.discardComponentChangesOpen) state.setDiscardComponentChangesOpen(false);
@@ -1529,6 +1328,13 @@ function EstimateRightSidebarBase({
         else if (state.searchOpen) state.setSearchOpen(false);
         else if (state.previewProjectSourceKey) state.setPreviewProjectSourceKey(null);
         else if (state.previewItemId) state.setPreviewItemId(null);
+        else if (state.mobileDrawerOpen) state.onMobileDrawerOpenChange?.(false);
+        else handled = false;
+
+        if (handled) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
       }
     };
     window.addEventListener("keydown", handler);
@@ -1586,8 +1392,10 @@ function EstimateRightSidebarBase({
 
   useEffect(() => {
     let cancelled = false;
+    const requestId = projectSourceSearchRequestIdRef.current + 1;
+    projectSourceSearchRequestIdRef.current = requestId;
     const resetTimer = window.setTimeout(() => {
-      if (cancelled) return;
+      if (cancelled || projectSourceSearchRequestIdRef.current !== requestId) return;
       setProjectSourceSearchResults([]);
     }, 0);
     if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
@@ -1599,11 +1407,11 @@ function EstimateRightSidebarBase({
     const timer = window.setTimeout(() => {
       searchReusableProjectSources({ query: projectSourceSearchQuery })
         .then((result) => {
-          if (!cancelled) setProjectSourceSearchResults(result.sources);
+          if (!cancelled && projectSourceSearchRequestIdRef.current === requestId) setProjectSourceSearchResults(result.sources);
         })
         .catch((error: unknown) => {
           console.error("[templates] project source search failed", error);
-          if (!cancelled) toast({ tone: "error", message: toUserSourceError("search") });
+          if (!cancelled && projectSourceSearchRequestIdRef.current === requestId) toast({ tone: "error", message: toUserSourceError("search") });
         });
     }, 250);
     return () => {
@@ -1644,6 +1452,31 @@ function EstimateRightSidebarBase({
     () => filterMapBy(libraryItems, (item) => item.isFavorite === true, (item) => item.id),
     [libraryItems],
   );
+  useEffect(() => {
+    if (!useStoredPreferences || !libraryPrefsHydratedRef.current) return undefined;
+    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
+    safeSetJsonStorage(LIBRARY_FAVORITES_KEY, favoriteIds);
+    safeSetJsonStorage(LIBRARY_RECENTS_KEY, recentIds);
+    safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, customOrderByViewMode);
+
+    const preferences: ComponentLibraryUserPreferences = {
+      activeTab,
+      componentViewMode,
+      favoriteItemIds: favoriteIds,
+      recentItemIds: recentIds,
+      treeOrder: customOrderByViewMode,
+    };
+    const snapshot = serializeLibraryAccountPrefs(preferences);
+    if (libraryAccountPrefsSaveSnapshotRef.current === snapshot) return undefined;
+    libraryAccountPrefsSaveSnapshotRef.current = snapshot;
+    if (process.env.NODE_ENV === "test") return undefined;
+
+    const timer = window.setTimeout(() => {
+      void saveComponentLibraryUserPreferences(preferences).catch(() => undefined);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, componentViewMode, customOrderByViewMode, favoriteIds, recentIds, useStoredPreferences]);
+
   const componentTreeTab = getComponentTreeTab(componentViewMode);
   const splitComponentItems = useMemo(() => splitSidebarComponentItems(libraryItems), [libraryItems]);
   const reusableLibraryItems = splitComponentItems.libraryItems;
@@ -1844,7 +1677,7 @@ function EstimateRightSidebarBase({
         const insertItem = { ...item, quantity: Math.max(1, item.quantity) };
         return onInsertComponent
           ? onInsertComponent(insertItem) !== false
-          : window.dispatchEvent(new CustomEvent("archestimator:add-library-item", { detail: insertItem }));
+          : dispatchAddLibraryItemEvent(insertItem);
       });
 
       if (!insertedItems.length) {
@@ -2156,14 +1989,67 @@ function EstimateRightSidebarBase({
     [canInsertTemplate, effectiveTemplateTargetName, enableReusableProjectSources, onInsertProjectSource, setLastActionMessage, toast],
   );
 
-  const duplicateItem = useCallback((item: EstimateRowItem) => {
-    const now = new Date().toISOString();
-    setLibraryItems((items) => [
-      { ...item, id: `custom-copy-${Date.now()}`, material: `${getComponentName(item)} copy`, name: `${getComponentName(item)} copy`, isCustom: true, createdAt: now, updatedAt: now },
-      ...items,
-    ]);
-    setLastActionMessage(`${getComponentName(item)} duplicated in this sidebar view.`);
-  }, [setLastActionMessage, setLibraryItems]);
+  const archiveLibraryItems = useCallback(async (
+    itemsToArchive: EstimateRowItem[],
+    options: { clearSelection?: boolean } = {},
+  ) => {
+    if (archiveComponentPending) return false;
+    const uniqueItems = Array.from(new Map(itemsToArchive.map((item) => [item.id, item])).values());
+    if (uniqueItems.length === 0) return false;
+    const itemIds = uniqueItems.map((item) => item.id);
+
+    setArchiveComponentPending(true);
+    setArchiveComponentError("");
+    try {
+      const preview = await previewBulkArchiveLibraryComponents({ itemIds });
+      if (!preview.ok || !preview.previewHash || preview.eligibleIds.length === 0) {
+        throw new Error(getArchiveActionIssueMessage(preview, "Could not preview component archive."));
+      }
+
+      const result = await executeBulkArchiveLibraryComponents({
+        itemIds: preview.eligibleIds,
+        expectedPreviewHash: preview.previewHash,
+        correlationId: createBulkActionCorrelationId(),
+      });
+      if (!result.ok) {
+        throw new Error(getArchiveActionIssueMessage(result, "Could not archive components."));
+      }
+
+      const archivedIds = result.archivedIds?.length ? result.archivedIds : preview.eligibleIds;
+      const archivedIdSet = new Set(archivedIds);
+      setLibraryItems((items) => items.filter((entry) => !archivedIdSet.has(entry.id)));
+      setPreviewItemId((current) => (current && archivedIdSet.has(current) ? null : current));
+      setDeleteCandidate((current) => (current && archivedIdSet.has(current.id) ? null : current));
+      setBulkDeleteConfirmOpen(false);
+      if (options.clearSelection) clearBulkSelection();
+
+      const archivedName = archivedIds.length === 1
+        ? getComponentName(uniqueItems.find((item) => archivedIdSet.has(item.id)) ?? uniqueItems[0])
+        : "";
+      toast({
+        tone: "success",
+        message: archivedIds.length === 1 ? `${archivedName} archived.` : `${archivedIds.length} components archived.`,
+      });
+      onLibraryDataChanged?.();
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not archive components.";
+      setArchiveComponentError(message);
+      toast({ tone: "error", message });
+      return false;
+    } finally {
+      setArchiveComponentPending(false);
+    }
+  }, [
+    archiveComponentPending,
+    clearBulkSelection,
+    onLibraryDataChanged,
+    setBulkDeleteConfirmOpen,
+    setDeleteCandidate,
+    setLibraryItems,
+    setPreviewItemId,
+    toast,
+  ]);
 
   const toggleFavorite = useCallback(
     (item: EstimateRowItem) => {
@@ -2185,50 +2071,6 @@ function EstimateRightSidebarBase({
     setTemplateSourceProjectSource(null);
     setAddTemplateOpen(true);
   }, [setAddTemplateOpen, setTemplateSourceProjectSource]);
-
-  const startNewTemplateGroup = useCallback(() => {
-    setTemplateGroupName("");
-    setTemplateGroupError("");
-    setAddTemplateGroupOpen(true);
-  }, [setAddTemplateGroupOpen, setTemplateGroupError, setTemplateGroupName]);
-
-  const handleAddTemplateGroupOpenChange = useCallback((open: boolean) => {
-    setAddTemplateGroupOpen(open);
-    if (!open) {
-      setTemplateGroupName("");
-      setTemplateGroupError("");
-    }
-  }, [setAddTemplateGroupOpen, setTemplateGroupError, setTemplateGroupName]);
-
-  const handleCreateTemplateGroup = useCallback(() => {
-    const groupName = templateGroupName.trim();
-    if (!groupName) {
-      setTemplateGroupError("Group name is required.");
-      return;
-    }
-    if (templateGroupNames.some((category) => category.toLowerCase() === groupName.toLowerCase())) {
-      setTemplateGroupError("A template group with this name already exists.");
-      return;
-    }
-    setCustomTemplateGroups((groups) => [...groups, groupName].sort((left, right) => left.localeCompare(right)));
-    setTemplatesExpandedIds((current) => Array.from(new Set([
-      ...current,
-      templatesTreeSectionId("custom-templates"),
-      templatesTreeCategoryId(groupName),
-    ])));
-    setTemplateSourceFilter((current) => (current === "projects" ? "custom" : current));
-    setLastActionMessage(`${groupName} group added to custom templates.`);
-    handleAddTemplateGroupOpenChange(false);
-  }, [
-    handleAddTemplateGroupOpenChange,
-    setCustomTemplateGroups,
-    setLastActionMessage,
-    setTemplateGroupError,
-    setTemplatesExpandedIds,
-    setTemplateSourceFilter,
-    templateGroupName,
-    templateGroupNames,
-  ]);
 
   const startNewTemplateInCategory = useCallback((category: string) => {
     setTemplateSourceProjectSource(null);
@@ -2372,14 +2214,6 @@ function EstimateRightSidebarBase({
     setTemplateList,
   ]);
 
-  const startEditComponent = useCallback((item: EstimateRowItem) => {
-    setForm(componentToForm(item));
-    setFormError("");
-    setDiscardComponentChangesOpen(false);
-    editItemIdRef.current = item.id;
-    setShowNewComponent(true);
-  }, [setDiscardComponentChangesOpen, setForm, setFormError, setShowNewComponent]);
-
   const saveNewComponent = useCallback(
     (addNow = false) => {
       const result = createComponent(form);
@@ -2422,42 +2256,6 @@ function EstimateRightSidebarBase({
       setShowNewComponent,
     ],
   );
-
-  const restoreDeletedLibraryItems = useCallback((itemsToRestore: EstimateRowItem[]) => {
-    if (!itemsToRestore.length) return;
-    setLibraryItems((items) => {
-      const currentIds = new Set(items.map((item) => item.id));
-      return [...itemsToRestore.filter((item) => !currentIds.has(item.id)), ...items];
-    });
-    setLastActionMessage(itemsToRestore.length === 1 ? `${getComponentName(itemsToRestore[0])} restored to this sidebar view.` : `${itemsToRestore.length} components restored to this sidebar view.`);
-    onLibraryDataChanged?.();
-  }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems]);
-
-  const showDeleteUndoToast = useCallback((itemsToRestore: EstimateRowItem[]) => {
-    if (!itemsToRestore.length) return;
-    toast({
-      id: "component-library-delete-undo",
-      tone: "neutral",
-      durationMs: 5000,
-      message: itemsToRestore.length === 1 ? `${getComponentName(itemsToRestore[0])} removed from this sidebar view.` : `${itemsToRestore.length} components removed from this sidebar view.`,
-      action: {
-        label: "Undo",
-        onClick: () => restoreDeletedLibraryItems(itemsToRestore),
-      },
-    });
-  }, [restoreDeletedLibraryItems, toast]);
-
-  const deleteLibraryItem = useCallback((item: EstimateRowItem) => {
-    setLibraryItems((items) => items.filter((entry) => entry.id !== item.id));
-    setDeleteCandidate(null);
-    showDeleteUndoToast([item]);
-    onLibraryDataChanged?.();
-  }, [
-    onLibraryDataChanged,
-    setDeleteCandidate,
-    setLibraryItems,
-    showDeleteUndoToast,
-  ]);
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
     // Guard the "project" tab at the point it is chosen, instead of correcting
@@ -2650,22 +2448,12 @@ function EstimateRightSidebarBase({
       setBulkDeleteConfirmOpen(false);
       return;
     }
-    const deletedItemIds = new Set(bulkSelectedItems.map((item) => item.id));
-    setLibraryItems((items) => items.filter((entry) => !deletedItemIds.has(entry.id)));
-    setBulkDeleteConfirmOpen(false);
-    clearBulkSelection();
-    setPreviewItemId((current) => (current && deletedItemIds.has(current) ? null : current));
-    showDeleteUndoToast(bulkSelectedItems);
-    onLibraryDataChanged?.();
+    void archiveLibraryItems(bulkSelectedItems, { clearSelection: true });
   }, [
+    archiveLibraryItems,
     bulkSelectedItems,
-    clearBulkSelection,
     isLibraryTab,
-    onLibraryDataChanged,
     setBulkDeleteConfirmOpen,
-    setLibraryItems,
-    setPreviewItemId,
-    showDeleteUndoToast,
   ]);
 
   const handleExpandAll = useCallback(() => {
@@ -2816,7 +2604,7 @@ function EstimateRightSidebarBase({
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
     event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData("application/x-archestimator-library-item", JSON.stringify(item));
+    event.dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(item));
     event.dataTransfer.setData("text/plain", getComponentName(item));
     // Publishing the drag lets the sheet and the left tree reveal their drop
     // zones for exactly this drag's lifetime.
@@ -2929,20 +2717,11 @@ function EstimateRightSidebarBase({
   const activeSourceScopeLabel = projectId === "hero-sanitized-project" ? "" : isProjectTab ? "Project" : "Library";
   const visibleLibraryTreeTabs = enableReusableProjectSources ? LIBRARY_TREE_TABS : PUBLIC_LIBRARY_TREE_TABS;
 
-  return (
-    <ResizableSidePanel
-      side="right"
-      ariaLabel="Library"
-      storageKey="estimate_component_library_width_v2"
-      defaultWidth={560}
-      minWidth={360}
-      maxWidth={560}
-      persistWidth={usePersistentPanelWidth}
-    >
-      {/* group/tree on the panel keeps the tree's drag/select rail space open
-          while the pointer or focus is anywhere in this sidebar, matching the
-          estimate tree's behavior. */}
-      <aside className={cn("group/tree flex h-full min-h-0 min-w-[320px] flex-col !text-[10px]", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
+  const sourceSidebarBody = (
+    /* group/tree on the panel keeps the tree's drag/select rail space open
+       while the pointer or focus is anywhere in this sidebar, matching the
+       estimate tree's behavior. */
+    <aside className={cn("group/tree flex h-full min-h-0 min-w-0 flex-col !text-[10px] sm:min-w-[320px]", estimateSurfaceClass(surfaceVariant, "libraryRail"))} aria-label="Sources">
         {/* Sticky header */}
         <TreePanelHeader
           className={estimateSurfaceClass(surfaceVariant, "railPanelHeader")}
@@ -3009,11 +2788,6 @@ function EstimateRightSidebarBase({
                 </>
               ) : isTemplatesTab ? (
                 <>
-                  {effectiveTemplateSourceFilter !== "projects" ? (
-                    <ToolbarIconButton label="Add Template Group" onClick={startNewTemplateGroup} className={ADD_BUTTON_CLASSNAME}>
-                      <FolderPlus size={13} weight="regular" aria-hidden="true" />
-                    </ToolbarIconButton>
-                  ) : null}
                   <ToolbarIconButton label="Add Template" onClick={startNewTemplate} className={ADD_BUTTON_CLASSNAME}>
                     <StackPlus size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
@@ -3091,10 +2865,14 @@ function EstimateRightSidebarBase({
                   setPreviewProjectSourceKey(null);
                   setPreviewItemId(itemId);
                 }}
-                onItemEdit={isLibraryTab ? startEditComponent : undefined}
-                onItemDuplicate={isLibraryTab ? duplicateItem : undefined}
+                onItemEdit={undefined}
+                onItemDuplicate={undefined}
                 onItemToggleFavorite={isLibraryTab ? toggleFavorite : undefined}
-                onItemDelete={isLibraryTab ? setDeleteCandidate : undefined}
+                onItemDelete={isLibraryTab ? (item) => {
+                  setArchiveComponentError("");
+                  setDeleteCandidate(item);
+                } : undefined}
+                itemDestructiveActionLabel="Archive"
                 onCreateComponent={isLibraryTab ? startNewComponent : undefined}
                 onFolderRename={isLibraryTab && componentViewMode === "default" ? renameFolder : undefined}
                 addDisabled={!canInsert}
@@ -3149,11 +2927,14 @@ function EstimateRightSidebarBase({
                   ...(isLibraryTab
                     ? [
                         {
-                          label: "Delete selected components",
+                          label: "Archive selected components",
                           icon: <Trash size={12} weight="regular" />,
                           variant: "danger" as const,
-                          disabled: bulkSelectedItems.length === 0,
-                          onClick: () => setBulkDeleteConfirmOpen(true),
+                          disabled: archiveComponentPending || bulkSelectedItems.length === 0,
+                          onClick: () => {
+                            setArchiveComponentError("");
+                            setBulkDeleteConfirmOpen(true);
+                          },
                         },
                       ]
                     : []),
@@ -3168,10 +2949,14 @@ function EstimateRightSidebarBase({
             item={previewItem}
             onClose={() => setPreviewItemId(null)}
             onAdd={(quantity) => addComponent(previewItem, quantity ?? insertQuantity)}
-            onEdit={isLibraryTab ? () => startEditComponent(previewItem) : undefined}
-            onDuplicate={isLibraryTab ? () => duplicateItem(previewItem) : undefined}
+            onEdit={undefined}
+            onDuplicate={undefined}
             onFavorite={isLibraryTab ? () => toggleFavorite(previewItem) : undefined}
-            onDelete={isLibraryTab ? () => setDeleteCandidate(previewItem) : undefined}
+            onDelete={isLibraryTab ? () => {
+              setArchiveComponentError("");
+              setDeleteCandidate(previewItem);
+            } : undefined}
+            deleteLabel="Archive"
             addDisabled={!canInsert}
             addLabel={targetLabel}
             insertQuantity={insertQuantity}
@@ -3207,50 +2992,6 @@ function EstimateRightSidebarBase({
             onOpenChange={setAddComponentOpen}
             onComponentCreated={handleComponentCreated}
           />
-        ) : null}
-
-        {addTemplateGroupOpen ? (
-          <Modal
-            open={addTemplateGroupOpen}
-            title="New template group"
-            description="Create a custom template group for organizing saved templates."
-            closeLabel="Cancel template group creation"
-            className="max-w-sm"
-            onOpenChange={handleAddTemplateGroupOpenChange}
-          >
-            <div className="grid gap-3">
-              {templateGroupError ? (
-                <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{templateGroupError}</p>
-              ) : null}
-              <div className="grid gap-1">
-                <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
-                  Group name<span className="ml-0.5 text-danger" aria-hidden="true">*</span>
-                </span>
-                <ControlInput
-                  aria-label="Template group name"
-                  className="h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent"
-                  value={templateGroupName}
-                  placeholder="Exterior + Site"
-                  autoFocus
-                  onChange={(event) => {
-                    setTemplateGroupName(event.target.value);
-                    if (templateGroupError) setTemplateGroupError("");
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") handleCreateTemplateGroup();
-                  }}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => handleAddTemplateGroupOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="button" size="sm" onClick={handleCreateTemplateGroup}>
-                  Add group
-                </Button>
-              </div>
-            </div>
-          </Modal>
         ) : null}
 
         {/* Create flow: save an estimate node (selected, or handed over by
@@ -3320,12 +3061,12 @@ function EstimateRightSidebarBase({
           </Modal>
         ) : null}
 
-        {/* Bulk delete confirmation */}
+        {/* Bulk archive confirmation */}
         {bulkDeleteConfirmOpen && isLibraryTab ? (
           <dialog
             ref={bulkDeleteConfirmDialogRef}
             role="alertdialog"
-            aria-label="Delete selected components"
+            aria-label="Archive selected components"
             className="z-40 m-auto w-full max-w-72 border border-hairline bg-white p-3 text-ink shadow-xl outline-none backdrop:bg-black/25"
             onCancel={(event) => {
               event.preventDefault();
@@ -3333,17 +3074,20 @@ function EstimateRightSidebarBase({
             }}
           >
             <h3 className="text-[11px] font-medium text-ink">
-              Delete {bulkSelectedItems.length} selected {bulkSelectedItems.length === 1 ? "component" : "components"}?
+              Archive {bulkSelectedItems.length} selected {bulkSelectedItems.length === 1 ? "component" : "components"}?
             </h3>
             <p className="mt-1 text-[9px] leading-4 text-tertiary">
-              Removes them from this local library view. Existing estimate rows stay unchanged, and Undo is available for a few seconds.
+              Archived components are hidden from future inserts. Existing estimate rows stay unchanged.
             </p>
+            {archiveComponentError ? (
+              <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">{archiveComponentError}</p>
+            ) : null}
             <div className="mt-3 flex justify-end gap-1">
-              <Button variant="secondary" size="sm" className="h-6 min-h-6 text-[9px]" onClick={closeBulkDeleteConfirmDialog}>
+              <Button variant="secondary" size="sm" className="h-6 min-h-6 text-[9px]" disabled={archiveComponentPending} onClick={closeBulkDeleteConfirmDialog}>
                 Cancel
               </Button>
-              <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" onClick={handleConfirmBulkDelete}>
-                Delete selected
+              <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" disabled={archiveComponentPending} onClick={handleConfirmBulkDelete}>
+                {archiveComponentPending ? "Archiving..." : "Archive selected"}
               </Button>
             </div>
           </dialog>
@@ -3445,35 +3189,75 @@ function EstimateRightSidebarBase({
           </dialog>
         ) : null}
 
-        {/* Delete confirmation */}
+        {/* Archive confirmation */}
         {deleteCandidate ? (
           <dialog
             ref={deleteComponentDialogRef}
             role="alertdialog"
-            aria-label="Delete component"
+            aria-label="Archive component"
             className="z-40 m-auto w-full max-w-72 border border-hairline bg-white p-3 text-ink shadow-xl outline-none backdrop:bg-black/25"
             onCancel={(event) => {
               event.preventDefault();
               closeDeleteComponentDialog();
             }}
           >
-            <h3 className="text-[11px] font-medium text-ink">Delete component?</h3>
+            <h3 className="text-[11px] font-medium text-ink">Archive component?</h3>
             <p className="mt-1 text-[9px] leading-4 text-tertiary">
-              Remove {getComponentName(deleteCandidate)} from this local library view. Existing estimate rows stay unchanged.
+              Archive {getComponentName(deleteCandidate)} in the workspace library. Existing estimate rows stay unchanged.
             </p>
+            {archiveComponentError ? (
+              <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">{archiveComponentError}</p>
+            ) : null}
             <div className="mt-3 flex justify-end gap-1">
-              <Button variant="secondary" size="sm" className="h-6 min-h-6 text-[9px]" onClick={closeDeleteComponentDialog}>
+              <Button variant="secondary" size="sm" className="h-6 min-h-6 text-[9px]" disabled={archiveComponentPending} onClick={closeDeleteComponentDialog}>
                 Cancel
               </Button>
-              <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" onClick={() => deleteLibraryItem(deleteCandidate)}>
-                Delete
+              <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" disabled={archiveComponentPending} onClick={() => void archiveLibraryItems([deleteCandidate])}>
+                {archiveComponentPending ? "Archiving..." : "Archive"}
               </Button>
             </div>
           </dialog>
         ) : null}
       </aside>
-    </ResizableSidePanel>
   );
+
+  return (
+    <>
+      <ResizableSidePanel
+        side="right"
+        ariaLabel="Sources"
+        storageKey="estimate_component_library_width_v2"
+        defaultWidth={560}
+        minWidth={360}
+        maxWidth={560}
+        persistWidth={usePersistentPanelWidth}
+        compactDrawer={false}
+      >
+        {sourceSidebarBody}
+      </ResizableSidePanel>
+      <Drawer
+        open={sourcesDrawerOpen}
+        onOpenChange={(open) => onMobileDrawerOpenChange?.(open)}
+        title="Sources"
+        side="right"
+        size="wide"
+        modal
+        withScrim
+        closeLabel="Close Sources drawer"
+        closeOnEscape={false}
+        returnFocusOnClose
+        contentId={mobileDrawerId}
+        contentClassName="w-[min(38rem,calc(100vw_-_16px))] max-w-[calc(100vw_-_16px)]"
+        bodyClassName="min-h-0 overflow-hidden p-0"
+      >
+        {sourceSidebarBody}
+      </Drawer>
+    </>
+  );
+}
+
+function EstimateRightSidebarBase(props: EstimateRightSidebarProps = {}) {
+  return useEstimateRightSidebarContent(props);
 }
 
 // PERF-5: the sidebar lives inside the high-churn estimate sheet. Its props are

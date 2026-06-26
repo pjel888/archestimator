@@ -88,7 +88,15 @@ function libraryOverviewSearchReducer(
  * templates open their editor. `⌘K` focuses the input, arrows move the
  * highlight, Esc closes.
  */
-export function LibraryOverviewSearch() {
+export function LibraryOverviewSearch({
+  className,
+  autoFocus = false,
+  onDismiss,
+}: {
+  className?: string;
+  autoFocus?: boolean;
+  onDismiss?: () => void;
+} = {}) {
   const router = useNavigationRouter();
   const surfaceVariant = useLibrarySurfaceVariant();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -98,6 +106,11 @@ export function LibraryOverviewSearch() {
   const { query, open, pending, results, highlightedId } = searchState;
 
   const trimmedQuery = query.trim();
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [autoFocus]);
 
   // The search index lives server-side: results load lazily through the
   // server action from the first keystroke. Empty-query resets happen in the
@@ -228,6 +241,9 @@ export function LibraryOverviewSearch() {
         if (open) {
           event.preventDefault();
           dispatchSearch({ type: "close" });
+        } else if (onDismiss) {
+          event.preventDefault();
+          onDismiss();
         }
         return;
       }
@@ -254,11 +270,11 @@ export function LibraryOverviewSearch() {
         activateEntry(entry);
       }
     },
-    [activateEntry, flatEntries, highlightedEntry, moveHighlight, open, trimmedQuery],
+    [activateEntry, flatEntries, highlightedEntry, moveHighlight, onDismiss, open, trimmedQuery],
   );
 
   return (
-    <div ref={containerRef} className="relative w-[360px] max-w-full" data-library-overview-search="true">
+    <div ref={containerRef} className={cn("relative w-[360px] max-w-full", className)} data-library-overview-search="true">
       <SearchInput
         ref={inputRef}
         wrapperClassName={cn("w-full", librarySurfaceClass(surfaceVariant, "segmentedControl"))}

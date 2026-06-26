@@ -3,15 +3,14 @@
 import type { ReactNode } from "react";
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 
-import { getTabStripPanelId, getTabStripTabId } from "@/components/ui/tab-strip-utils";
 import { getLibraryActiveTab, LIBRARY_TABS_ID_BASE } from "./library-tabs-model";
 
 /**
  * Library Optimization Plan P3 T21 (F27): labels the Library tab content region as the
  * `role="tabpanel"` controlled by the active tab in LibraryTabsLayoutClient, completing
- * the tab/panel ARIA relationship (the tab strip exposes role="tab" + aria-controls via
- * the shared idBase). On the template-editor sub-route the breadcrumb owns orientation
- * and the strip is hidden, so the panel semantics are dropped there too.
+ * the tab/panel ARIA relationship used by the Projects-style underline Tabs.
+ * On the template-editor sub-route the breadcrumb owns orientation and the tabs are
+ * hidden, so the panel semantics are dropped there too.
  */
 export function LibraryTabPanel({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -27,8 +26,8 @@ export function LibraryTabPanel({ children }: { children: ReactNode }) {
   return (
     <div
       role="tabpanel"
-      id={getTabStripPanelId(LIBRARY_TABS_ID_BASE, activeTab)}
-      aria-labelledby={getTabStripTabId(LIBRARY_TABS_ID_BASE, activeTab)}
+      id={`${LIBRARY_TABS_ID_BASE}-panel-${activeTab}`}
+      aria-labelledby={`${LIBRARY_TABS_ID_BASE}-tab-${activeTab}`}
       className="contents"
     >
       {children}

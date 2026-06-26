@@ -17,10 +17,10 @@ type ProjectCardThumbnailProps = {
 };
 
 const PROJECT_THUMBNAIL_GRADIENTS = [
-  "radial-gradient(circle at 18% 16%, rgba(242, 68, 5, 0.22), transparent 30%), linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(237,244,248,0.84) 48%, rgba(255,255,255,0.9) 100%)",
-  "radial-gradient(circle at 82% 18%, rgba(44, 123, 229, 0.18), transparent 32%), linear-gradient(135deg, rgba(253,252,247,0.96) 0%, rgba(231,241,235,0.86) 50%, rgba(255,255,255,0.92) 100%)",
-  "radial-gradient(circle at 22% 82%, rgba(41, 128, 99, 0.2), transparent 34%), linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(244,238,228,0.9) 52%, rgba(236,242,246,0.88) 100%)",
-  "radial-gradient(circle at 74% 72%, rgba(133, 92, 255, 0.16), transparent 30%), linear-gradient(135deg, rgba(248,250,252,0.96) 0%, rgba(238,242,235,0.88) 46%, rgba(255,250,246,0.92) 100%)",
+  "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(246,247,248,0.96) 54%, rgba(255,255,255,1) 100%)",
+  "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(244,245,246,0.96) 48%, rgba(255,255,255,1) 100%)",
+  "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(247,248,249,0.96) 52%, rgba(255,255,255,1) 100%)",
+  "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(245,246,247,0.96) 46%, rgba(255,255,255,1) 100%)",
 ] as const;
 
 function passthroughImageLoader({ src }: { src: string }) {

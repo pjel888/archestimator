@@ -166,7 +166,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
         aria-label="Notifications"
         data-toast-viewport="true"
         className={cn(
-          "pointer-events-none fixed bottom-3 left-1/2 z-[100] flex w-[min(320px,calc(100vw-24px))] -translate-x-1/2 flex-col gap-1",
+          "pointer-events-none fixed bottom-[calc(9rem+env(safe-area-inset-bottom))] left-1/2 z-[100] flex w-[min(320px,calc(100vw-24px))] -translate-x-1/2 flex-col gap-1",
           viewportClassName,
         )}
       >

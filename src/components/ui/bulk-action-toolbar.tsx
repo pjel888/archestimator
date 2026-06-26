@@ -9,6 +9,8 @@ import { cn } from "@/lib/ui/cn";
 export interface BulkAction {
   id?: string;
   label: string;
+  ariaLabel?: string;
+  title?: string;
   icon: React.ReactNode;
   onClick: () => void;
   variant?: "default" | "danger" | "ghost";
@@ -31,12 +33,16 @@ export interface BulkActionToolbarProps {
 
 function FloatingDockItem({
   label,
+  ariaLabel,
+  title,
   icon,
   onClick,
   variant = "default",
   disabled = false,
 }: {
   label: string;
+  ariaLabel?: string;
+  title?: string;
   icon: React.ReactNode;
   onClick: () => void;
   variant?: "default" | "danger" | "ghost";
@@ -49,7 +55,7 @@ function FloatingDockItem({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      title={label}
+      title={title ?? label}
       className={cn(
         // Named group: a plain `group` here would inherit hover state from
         // ancestor `group` containers like ResizableSidePanel.
@@ -63,7 +69,7 @@ function FloatingDockItem({
           ? "bg-dangerSoft/60 text-danger hover:bg-dangerSoft hover:text-danger"
           : "bg-white text-secondary hover:bg-surfaceMuted hover:text-ink"
       )}
-      aria-label={label}
+      aria-label={ariaLabel ?? label}
     >
       <span className="flex items-center justify-center transition-transform duration-200 ease-out group-hover/dock-item:scale-110">
         {icon}
@@ -135,6 +141,8 @@ export function BulkActionToolbar({
               <FloatingDockItem
                 key={action.id ?? action.label}
                 label={action.label}
+                ariaLabel={action.ariaLabel}
+                title={action.title}
                 icon={action.icon}
                 onClick={action.onClick}
                 variant={action.variant}

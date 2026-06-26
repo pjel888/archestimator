@@ -4,9 +4,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Books, FileText, Folder, SidebarSimple, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
+import { Books, FileText, Folder, NewspaperClipping, SidebarSimple, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
+import { cn } from "@/lib/ui/cn";
 import { Button } from "@/components/ui/button";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
@@ -58,6 +59,7 @@ const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
   dashboardItem,
   { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
   { id: "library", href: "/workshop/library", label: "Library", icon: Books, shortcut: "⌘3" },
+  { id: "publisher", href: "/workshop/publisher", label: "Publisher", icon: NewspaperClipping, shortcut: "⌘4" },
 ];
 
 const sidebarPrefetchRoutes = sidebarNavItems.map((item) => ({ pathname: item.href }));
@@ -87,11 +89,11 @@ function getFavoriteLinkOrder(favoriteProjects: MainSidebarFavoriteProject[]) {
   ]);
 }
 
-const TOGGLE_ROW_CLASSNAME = [
+const TOGGLE_ROW_CLASSNAME = cn(
   "group relative flex h-8 w-12 items-center justify-center overflow-visible rounded-xs px-0 text-tertiary outline-none transition-[color,transform] duration-[120ms] ease-out hover:text-primary active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
   "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:[border-radius:var(--glass-nav-radius)] before:[background:var(--glass-nav-hover-bg)] before:opacity-0 before:transition-opacity before:duration-[120ms] before:ease-out before:content-[''] hover:before:opacity-100",
   "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
-].join(" ");
+);
 
 /** 1px centre-faded section divider, padded to the rail gutter. */
 function SidebarSectionDivider() {
@@ -103,19 +105,21 @@ function SidebarSectionDivider() {
 }
 
 function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
-  const base = [
+  return cn(
     "group relative flex h-7 min-w-0 items-center gap-2 overflow-hidden rounded-xs outline-none transition-colors duration-[120ms] ease-out",
     "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
     active ? "bg-orange-50 text-primary" : "text-tertiary hover:bg-accent-soft hover:text-primary",
-  ];
+    depth === "project" ? "pl-[52px] pr-2" : "pl-[72px] pr-2",
+  );
+}
 
-  if (depth === "project") {
-    base.push("pl-[52px] pr-2");
-  } else {
-    base.push("pl-[72px] pr-2");
-  }
-
-  return base.join(" ");
+/** Reusable expand/collapse fade-slide used for every label block in the rail. */
+function revealClassName(expanded: boolean, baseClasses?: string) {
+  return cn(
+    baseClasses,
+    "transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+    expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
+  );
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
@@ -321,10 +325,7 @@ export function MainSidebar({
               </div>
               <div
                 aria-hidden={!expanded}
-                className={[
-                  "min-w-0 overflow-hidden transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
-                  expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
-                ].join(" ")}
+                className={revealClassName(expanded, "min-w-0 overflow-hidden")}
               >
                 <p className="truncate text-[10px] font-medium leading-none text-ink">{userName}</p>
                 <p className="mt-1 truncate text-[9px] leading-none text-tertiary">{userSubtitle}</p>
@@ -381,19 +382,19 @@ export function MainSidebar({
               className="group grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs outline-none"
             >
               <span
-                className={[
+                className={cn(
                   "flex h-8 w-12 shrink-0 items-center justify-center rounded-xs transition-colors duration-[160ms] ease-out",
                   expanded ? "text-warning" : "text-tertiary group-hover:text-warning group-focus:text-warning",
-                ].join(" ")}
+                )}
               >
                 <Star size={15} weight="regular" aria-hidden="true" className="shrink-0" />
               </span>
               <span
                 aria-hidden={!expanded}
-                className={[
-                  "min-w-0 truncate whitespace-nowrap text-[10px] font-medium leading-none text-ink transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
-                  expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
-                ].join(" ")}
+                className={revealClassName(
+                  expanded,
+                  "min-w-0 truncate whitespace-nowrap text-[10px] font-medium leading-none text-ink",
+                )}
               >
                 Favorites
               </span>
@@ -402,10 +403,10 @@ export function MainSidebar({
             {liveFavoriteProjects.length > 0 ? (
               <div
                 aria-label="Favorite projects"
-                className={[
+                className={cn(
                   "flex min-w-0 flex-col gap-0.5 pb-2 transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
                   expanded ? "translate-x-0 opacity-100" : "pointer-events-none hidden translate-x-1 opacity-0",
-                ].join(" ")}
+                )}
               >
                 {liveFavoriteProjects.map((project) => {
                   const projectActive = isActiveHref(pathname, project.href);

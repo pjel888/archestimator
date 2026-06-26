@@ -86,10 +86,31 @@ function getTemplateCategories(templates: EstimateTemplate[]) {
   return Array.from(new Set(templates.map((template) => template.category))).sort();
 }
 
-function buildBrowseTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
-  const categories = getTemplateCategories(templates);
+type TemplateBrowseTreeModel = {
+  treeNodes: UiTreeNode[];
+  folderIds: string[];
+  totalsByCategory: Map<string, number>;
+  totalsByTemplateId: Map<string, number>;
+};
 
-  return [
+function buildBrowseTreeModel(templates: EstimateTemplate[]): TemplateBrowseTreeModel {
+  const groupedTemplates = new Map<string, EstimateTemplate[]>();
+  const totalsByCategory = new Map<string, number>();
+  const totalsByTemplateId = new Map<string, number>();
+
+  for (const template of templates) {
+    const group = groupedTemplates.get(template.category);
+    if (group) group.push(template);
+    else groupedTemplates.set(template.category, [template]);
+
+    const total = summarizeEstimateTemplate(template).total;
+    totalsByTemplateId.set(template.id, total);
+    totalsByCategory.set(template.category, (totalsByCategory.get(template.category) ?? 0) + total);
+  }
+
+  const categories = Array.from(groupedTemplates.keys()).sort();
+
+  const treeNodes = [
     {
       id: ALL_TEMPLATES_NODE_ID,
       label: "All Templates",
@@ -106,8 +127,7 @@ function buildBrowseTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
         draggable: false,
         icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
         data: { browseNode: { type: "category", category } satisfies BrowseTreeDatum },
-        children: templates
-          .filter((template) => template.category === category)
+        children: (groupedTemplates.get(category) ?? [])
           .sort((left, right) => left.name.localeCompare(right.name))
           .map((template) => ({
             id: browseTemplateNodeId(template.id),
@@ -122,6 +142,13 @@ function buildBrowseTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
       })),
     },
   ];
+
+  return {
+    treeNodes,
+    folderIds: getBrowseTreeFolderIds(treeNodes),
+    totalsByCategory,
+    totalsByTemplateId,
+  };
 }
 
 function getBrowseTreeFolderIds(nodes: UiTreeNode[]): string[] {
@@ -191,8 +218,8 @@ function TemplatesBrowseTreePanel({
     () => filterTemplatesByQuery(templates, searchQuery),
     [searchQuery, templates],
   );
-  const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates), [filteredTemplates]);
-  const folderIds = useMemo(() => getBrowseTreeFolderIds(treeNodes), [treeNodes]);
+  const browseTreeModel = useMemo(() => buildBrowseTreeModel(filteredTemplates), [filteredTemplates]);
+  const { treeNodes, folderIds, totalsByCategory, totalsByTemplateId } = browseTreeModel;
   const searchActive = searchQuery.trim().length > 0;
   // New categories default expanded: collapse state is tracked, not expansion.
   // Active searches reveal every match instead of hiding hits under folds.
@@ -210,17 +237,6 @@ function TemplatesBrowseTreePanel({
     treeNodes.forEach(visit);
     return map;
   }, [treeNodes]);
-
-  const totalsByCategory = useMemo(() => {
-    const totals = new Map<string, number>();
-    for (const template of filteredTemplates) {
-      totals.set(
-        template.category,
-        (totals.get(template.category) ?? 0) + summarizeEstimateTemplate(template).total,
-      );
-    }
-    return totals;
-  }, [filteredTemplates]);
 
   const currentNodeId = selectedTemplateId
     ? browseTemplateNodeId(selectedTemplateId)
@@ -419,12 +435,12 @@ function TemplatesBrowseTreePanel({
       }
       if (datum?.type === "template") {
         return (
-          <BrowseTreeRowContent label={datum.template.name} total={summarizeEstimateTemplate(datum.template).total} />
+          <BrowseTreeRowContent label={datum.template.name} total={totalsByTemplateId.get(datum.template.id) ?? 0} />
         );
       }
       return <BrowseTreeRowContent label={treeNode.label} total={null} />;
     },
-    [totalsByCategory],
+    [totalsByCategory, totalsByTemplateId],
   );
 
   return (
@@ -791,6 +807,15 @@ export function TemplatesBrowseManager({
   const openNewTemplate = useCallback((category?: string) => {
     dispatch({ type: "newTemplateOpened", category });
   }, []);
+  const openNewTemplateForSelection = useCallback(() => {
+    openNewTemplate(selectedCategory ?? undefined);
+  }, [openNewTemplate, selectedCategory]);
+  const openInsertTarget = useCallback((template: EstimateTemplate) => {
+    dispatch({ type: "insertTargetChanged", template });
+  }, []);
+  const requestDeleteTemplate = useCallback((template: EstimateTemplate) => {
+    dispatch({ type: "deleteTargetChanged", template });
+  }, []);
 
   const handleTemplateCreated = useCallback(
     (template: EstimateTemplate) => {
@@ -1009,10 +1034,10 @@ export function TemplatesBrowseManager({
             onSelectCategory={selectCategory}
             onSelectTemplate={selectTemplate}
             onOpenTemplate={openTemplate}
-            onInsertIntoEstimate={(template) => dispatch({ type: "insertTargetChanged", template })}
+            onInsertIntoEstimate={openInsertTarget}
             onRenameTemplate={renameTemplate}
             onDuplicateTemplate={duplicateTemplate}
-            onRequestDeleteTemplate={(template) => dispatch({ type: "deleteTargetChanged", template })}
+            onRequestDeleteTemplate={requestDeleteTemplate}
             onMoveTemplateToCategory={moveTemplateToCategory}
             onMoveTemplatePrompt={moveTemplatePrompt}
             onRenameCategory={renameCategory}
@@ -1022,16 +1047,15 @@ export function TemplatesBrowseManager({
             <TemplateGallery
               scopeLabel={scopeLabel}
               templates={scopedTemplates}
-              totalTemplateCount={localTemplates.length}
               selectedTemplateId={selectedTemplateId}
               status={status}
               onSelectTemplate={selectTemplate}
               onOpenTemplate={openTemplate}
-              onInsertIntoEstimate={(template) => dispatch({ type: "insertTargetChanged", template })}
+              onInsertIntoEstimate={openInsertTarget}
               onRenameTemplate={renameTemplate}
               onDuplicateTemplate={duplicateTemplate}
-              onRequestDeleteTemplate={(template) => dispatch({ type: "deleteTargetChanged", template })}
-              onNewTemplate={() => openNewTemplate(selectedCategory ?? undefined)}
+              onRequestDeleteTemplate={requestDeleteTemplate}
+              onNewTemplate={openNewTemplateForSelection}
             />
           </div>
           {selectedTemplate ? (
@@ -1039,7 +1063,7 @@ export function TemplatesBrowseManager({
               template={selectedTemplate}
               onClose={closePreview}
               onOpenTemplate={openTemplate}
-              onInsertIntoEstimate={(template) => dispatch({ type: "insertTargetChanged", template })}
+              onInsertIntoEstimate={openInsertTarget}
             />
           ) : null}
         </section>
