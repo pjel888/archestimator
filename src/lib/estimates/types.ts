@@ -142,9 +142,12 @@ export type EstimateTreeNode = {
   id: string;
   name: string;
   kind: "group" | "area";
+  sortOrder?: number;
   total: string;
   children?: EstimateTreeNode[];
   estimateRowItems?: EstimateRowItem[];
+  childrenLoaded?: boolean;
+  rowItemsLoaded?: boolean;
 };
 
 export type EstimateTabSummary = {

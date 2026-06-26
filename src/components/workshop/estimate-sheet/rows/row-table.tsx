@@ -24,7 +24,7 @@ import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type CostAdjustmentM
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { useEstimateColumnResizeController } from "../columns/use-estimate-column-resize-controller";
-import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "./constants";
+import { LIBRARY_ITEM_DRAG_MIME_TYPE, readEstimateLibraryItemDragPayload } from "./constants";
 import { EstimateRowColumnResizeHandle } from "./column-resize-handle";
 import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState } from "./cells";
 import { focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells-model";
@@ -57,6 +57,8 @@ export type EstimateRowItemsTableProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  onOpenReplaceComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
+  onOpenMoveComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
   onRetryExpressDraft?: (rowItemId: string) => void;
   onDeleteExpressDraft?: (rowItemId: string) => void;
@@ -101,6 +103,8 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
     prev.promotingRowId !== next.promotingRowId ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.onOpenReplaceComponentPicker !== next.onOpenReplaceComponentPicker ||
+    prev.onOpenMoveComponentPicker !== next.onOpenMoveComponentPicker ||
     prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
@@ -119,6 +123,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
 
 const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
+const ESTIMATE_ROW_DELETE_RECOVERY_TITLE = "Deletes immediately. Use Undo after saving to restore the row.";
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
 type ScrollMarginAction = { type: "reset" } | { type: "measure"; value: number };
@@ -165,6 +170,8 @@ type EstimateRowItemTableRowProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  onOpenReplaceComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
+  onOpenMoveComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   expressDraftState?: ExpressInsertDraftState;
   onRetryExpressDraft: (rowItemId: string) => void;
   onDeleteExpressDraft: (rowItemId: string) => void;
@@ -195,6 +202,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onPromoteRowToLibrary,
   promotingRowId,
   onMoveRowComponent,
+  onOpenReplaceComponentPicker,
+  onOpenMoveComponentPicker,
   expressDraftState,
   onRetryExpressDraft,
   onDeleteExpressDraft,
@@ -330,6 +339,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onPromoteToLibrary={() => onPromoteRowToLibrary(computedItem.id)}
           promoteToLibraryPending={promotingRowId === computedItem.id}
           onMoveComponent={onMoveRowComponent}
+          onOpenReplacePicker={onOpenReplaceComponentPicker ? (opener) => onOpenReplaceComponentPicker(computedItem.id, opener) : undefined}
+          onOpenMovePicker={onOpenMoveComponentPicker ? (opener) => onOpenMoveComponentPicker(computedItem.id, opener) : undefined}
           onOpenComponentDetails={(opener) => onOpenRowDetails(computedItem.id, opener, "component")}
           expressDraftState={expressDraftState}
           onRetryExpressDraft={() => onRetryExpressDraft(computedItem.id)}
@@ -484,6 +495,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           size="icon-sm"
           className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
           aria-label={`Delete row ${computedItemLabel}`}
+          title={ESTIMATE_ROW_DELETE_RECOVERY_TITLE}
           onClick={() => onDeleteRowItem(computedItem.id)}
         >
           <Trash size={14} weight="regular" aria-hidden="true" />
@@ -516,6 +528,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onPromoteRowToLibrary,
   promotingRowId,
   onMoveRowComponent,
+  onOpenReplaceComponentPicker,
+  onOpenMoveComponentPicker,
   expressInsertDraftStates = {},
   onRetryExpressDraft = noopExpressDraftHandler,
   onDeleteExpressDraft = noopExpressDraftHandler,
@@ -648,11 +662,10 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   if (!items.length) return null;
 
   function handleDrop(event: DragEvent) {
-    const payload = event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE);
-    if (!payload) return;
+    const result = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
+    if (!result.ok) return;
     event.preventDefault();
-    const libraryItem = JSON.parse(payload) as EstimateRowItem;
-    onInsertLibraryItem(targetNodeId, libraryItem);
+    onInsertLibraryItem(targetNodeId, result.item);
   }
 
   function headerCellClassName(columnId: string, className?: string) {
@@ -674,8 +687,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       <table className="w-full border-collapse text-[10px] text-ink">
         <thead className={cn("text-left text-[10px] font-medium text-ink", estimateSurfaceClass(surfaceVariant, "gridTableHead"))}>
           <tr className="grid min-h-10 border-b border-hairline" style={{ gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}>
-            <th className="flex items-center justify-center border-r border-hairline text-tertiary">#</th>
-            <th className="flex items-center justify-center border-r border-hairline">
+            <th scope="col" className="flex items-center justify-center border-r border-hairline text-tertiary">#</th>
+            <th scope="col" className="flex items-center justify-center border-r border-hairline">
               <SelectionCheckbox
                 checked={allRowsSelected}
                 indeterminate={someRowsSelected}
@@ -690,7 +703,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowsSelection(selectableRowIds, !allRowsSelected))}
               />
             </th>
-            <th className={headerCellClassName("material")}>
+            <th scope="col" className={headerCellClassName("material")}>
               <span
                 className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-divider"
                 data-estimate-material-header-rail="true"
@@ -699,27 +712,27 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               Materials
               {columnResize ? <EstimateRowColumnResizeHandle columnId="material" resizeController={columnResizeController} /> : null}
             </th>
-            <th className={headerCellClassName("quantity")}>
+            <th scope="col" className={headerCellClassName("quantity")}>
               Qty
               {columnResize ? <EstimateRowColumnResizeHandle columnId="quantity" resizeController={columnResizeController} /> : null}
             </th>
-            <th className={headerCellClassName("subTotal")}>
+            <th scope="col" className={headerCellClassName("subTotal")}>
               Subtotal
               {columnResize ? <EstimateRowColumnResizeHandle columnId="subTotal" resizeController={columnResizeController} /> : null}
             </th>
-            <th className={headerCellClassName("adjustment", "text-center")}>
+            <th scope="col" className={headerCellClassName("adjustment", "text-center")}>
               Adjustment
               {columnResize ? <EstimateRowColumnResizeHandle columnId="adjustment" resizeController={columnResizeController} /> : null}
             </th>
-            <th className={headerCellClassName("miscCost", "text-center")}>
+            <th scope="col" className={headerCellClassName("miscCost", "text-center")}>
               Misc Cost
               {columnResize ? <EstimateRowColumnResizeHandle columnId="miscCost" resizeController={columnResizeController} /> : null}
             </th>
-            <th className={headerCellClassName("totalItemCosts", "text-center")}>
+            <th scope="col" className={headerCellClassName("totalItemCosts", "text-center")}>
               Total Item Cost
               {columnResize ? <EstimateRowColumnResizeHandle columnId="totalItemCosts" resizeController={columnResizeController} /> : null}
             </th>
-            <th aria-label="Row actions" />
+            <th scope="col" aria-label="Row actions" />
           </tr>
         </thead>
         <tbody
@@ -758,6 +771,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
                 onMoveRowComponent={onMoveRowComponent}
+                onOpenReplaceComponentPicker={onOpenReplaceComponentPicker}
+                onOpenMoveComponentPicker={onOpenMoveComponentPicker}
                 expressDraftState={expressInsertDraftStates[item.id]}
                 onRetryExpressDraft={onRetryExpressDraft}
                 onDeleteExpressDraft={onDeleteExpressDraft}

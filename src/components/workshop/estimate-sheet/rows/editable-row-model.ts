@@ -142,7 +142,7 @@ export function collectEditableRows(nodes: EstimateTreeNode[]) {
   return rows;
 }
 
-function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, Partial<EditableRowValue>>) {
+export function computeEditableRowTotal(item: EstimateRowItem, editableRows: Record<string, Partial<EditableRowValue>>) {
   const editableRow = getEditableRowValue(item, editableRows);
   const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
   const itemCost = parseNonNegativeEditableNumber(editableRow.unitCost);
@@ -154,7 +154,7 @@ function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, Par
 
 export function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, Partial<EditableRowValue>>): number {
   reportEstimateNodeTotalCompute(node.id);
-  const rowTotal = (node.estimateRowItems ?? []).reduce((total, item) => total + computeRowTotal(item, editableRows), 0);
+  const rowTotal = (node.estimateRowItems ?? []).reduce((total, item) => total + computeEditableRowTotal(item, editableRows), 0);
   const childTotal = (node.children ?? []).reduce((total, child) => total + computeNodeTotal(child, editableRows), 0);
   return rowTotal + childTotal;
 }
@@ -166,7 +166,7 @@ export function computeNodeTotals(nodes: EstimateTreeNode[], editableRows: Recor
   function visit(node: EstimateTreeNode): number {
     let total = 0;
     for (const item of node.estimateRowItems ?? []) {
-      total += computeRowTotal(item, editableRows);
+      total += computeEditableRowTotal(item, editableRows);
     }
     for (const child of node.children ?? []) {
       total += visit(child);

@@ -1,6 +1,7 @@
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 
 export const ESTIMATE_TREE_SORT_ORDER_STEP = 10;
+export const ESTIMATE_TREE_SORT_ORDER_MIN_GAP = 0.0001;
 
 export type EstimateTreeDropPosition = "before" | "after" | "inside";
 
@@ -206,6 +207,56 @@ function buildSiblingUpdates(nodes: EstimateTreeNode[], parentIds: Array<string 
   );
 }
 
+function getPersistedSortOrder(node: EstimateTreeNode | undefined): number | null {
+  const value = node?.sortOrder;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function getSparseMovedNodeSortOrder(siblings: EstimateTreeNode[], movedIndex: number): number | null {
+  const previousSibling = siblings[movedIndex - 1];
+  const nextSibling = siblings[movedIndex + 1];
+  const previousSortOrder = getPersistedSortOrder(previousSibling);
+  const nextSortOrder = getPersistedSortOrder(nextSibling);
+
+  if (previousSibling && previousSortOrder === null) return null;
+  if (nextSibling && nextSortOrder === null) return null;
+  if (!previousSibling && !nextSibling) return ESTIMATE_TREE_SORT_ORDER_STEP;
+  if (!previousSibling) {
+    if (nextSortOrder === null || nextSortOrder <= ESTIMATE_TREE_SORT_ORDER_MIN_GAP) return null;
+    return nextSortOrder / 2;
+  }
+  if (previousSortOrder === null) return null;
+  if (!nextSibling) return previousSortOrder + ESTIMATE_TREE_SORT_ORDER_STEP;
+  if (nextSortOrder === null) return null;
+  if (nextSortOrder - previousSortOrder <= ESTIMATE_TREE_SORT_ORDER_MIN_GAP) return null;
+  return previousSortOrder + (nextSortOrder - previousSortOrder) / 2;
+}
+
+function buildReorderUpdates({
+  nodes,
+  parentIds,
+  draggedNodeId,
+  targetParentId,
+}: {
+  nodes: EstimateTreeNode[];
+  parentIds: Array<string | null>;
+  draggedNodeId: string;
+  targetParentId: string | null;
+}): EstimateNodeReorderUpdate[] {
+  const targetSiblings = getChildren(nodes, targetParentId);
+  const movedIndex = targetSiblings.findIndex((node) => node.id === draggedNodeId);
+  if (movedIndex === -1) return buildSiblingUpdates(nodes, parentIds);
+
+  const nextSortOrder = getSparseMovedNodeSortOrder(targetSiblings, movedIndex);
+  if (nextSortOrder === null) return buildSiblingUpdates(nodes, parentIds);
+
+  return [{
+    id: draggedNodeId,
+    parentId: targetParentId,
+    sortOrder: nextSortOrder,
+  }];
+}
+
 export function getDescendantEstimateNodeIds(node: EstimateTreeNode): Set<string> {
   const ids = new Set<string>();
   function visit(current: EstimateTreeNode) {
@@ -241,28 +292,6 @@ export function getEstimateTreeContentSignature(nodes: EstimateTreeNode[]): stri
         path,
         node.kind,
         node.name,
-        node.total,
-        (node.estimateRowItems ?? []).map((item) => [
-          item.id,
-          item.material,
-          item.description,
-          item.supplier,
-          item.source,
-          item.unit,
-          item.itemCost,
-          item.quantity,
-          item.subTotal,
-          item.contingencyPercentage,
-          item.contingencyValue,
-          item.miscCost,
-          item.totalItemCosts,
-          item.category,
-          item.discipline,
-          item.designation,
-          item.pricingSource,
-          item.pricingDate,
-          item.confidence,
-        ]),
       ]);
       visit(node.children ?? [], path);
     }
@@ -353,7 +382,12 @@ export function buildEstimateNodeReorderPlan({
   }
 
   const affectedParentIds = uniqueParentIds([sourceLocation.parentId, targetParentId]);
-  const updates = buildSiblingUpdates(nextNodes, affectedParentIds);
+  const updates = buildReorderUpdates({
+    nodes: nextNodes,
+    parentIds: affectedParentIds,
+    draggedNodeId,
+    targetParentId,
+  });
 
   return {
     ok: true,

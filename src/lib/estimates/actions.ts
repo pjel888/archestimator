@@ -23,6 +23,7 @@ import {
 } from "@/lib/estimates/row-revision-conflict";
 import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
+import { ESTIMATE_TREE_SORT_ORDER_STEP } from "@/lib/estimates/estimate-tree-reorder";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { isUuid } from "@/lib/ids";
 import {
@@ -156,6 +157,79 @@ type DeleteEstimateRowItemInput = {
   rowId: string;
   mutationId?: string;
   expectedRowRevision?: number;
+};
+
+export type DeleteEstimateRowItemResult = {
+  eventId: string;
+  deletedRowId: string;
+  deletedRow: UpdateEstimateRowItemResult;
+};
+
+type MoveEstimateRowComponentInput = {
+  projectId: string;
+  estimateId: string;
+  sourceRowId: string;
+  targetRowId: string;
+  sourceLibraryItem: EstimateRowItem;
+  targetLibraryItem: EstimateRowItem;
+  mutationId?: string;
+  expectedSourceRowRevision?: number;
+  expectedTargetRowRevision?: number;
+};
+
+export type MoveEstimateRowComponentResult = {
+  sourceRow: UpdateEstimateRowItemResult;
+  targetRow: UpdateEstimateRowItemResult;
+};
+
+type DeleteEstimateRowItemsBulkInput = {
+  projectId: string;
+  estimateId: string;
+  rowIds: string[];
+  mutationId?: string;
+  expectedRowRevisions?: Record<string, number>;
+};
+
+export type DeleteEstimateRowItemsBulkResult = {
+  eventId: string;
+  deletedRowIds: string[];
+  deletedRowCount: number;
+};
+
+type RestoreDeletedEstimateRowsInput = {
+  projectId: string;
+  estimateId: string;
+  sourceEventId: string;
+  rowIds?: string[];
+  mutationId?: string;
+};
+
+export type RestoreDeletedEstimateRowsResult = {
+  eventId: string;
+  sourceEventId: string;
+  restoredRowIds: string[];
+  restoredRowCount: number;
+  restoredRows: UpdateEstimateRowItemResult[];
+};
+
+type RestoreDeletedEstimateNodesInput = {
+  projectId: string;
+  estimateId: string;
+  sourceEventId: string;
+  nodeIds?: string[];
+  targetTabId?: string;
+  mutationId?: string;
+};
+
+export type RestoreDeletedEstimateNodesResult = {
+  eventId: string;
+  sourceEventId: string;
+  restoredNodeIds: string[];
+  restoredRootNodeIds: string[];
+  restoredNodeCount: number;
+  restoredRowIds: string[];
+  restoredRowCount: number;
+  tree: EstimateTreeNode[];
 };
 
 export type BulkDeleteEstimateSheetsInput = {
@@ -319,6 +393,7 @@ type CreateEstimateNodeResult = {
 };
 
 type DeleteEstimateNodeResult = {
+  eventId: string;
   tree: EstimateTreeNode[];
   deletedNodeIds: string[];
   fallbackNodeId: string | null;
@@ -411,6 +486,94 @@ function readHistoryRowResult(value: unknown) {
   } satisfies UpdateEstimateRowItemResult;
 }
 
+function readMovedRowResult(value: unknown): MoveEstimateRowComponentResult {
+  if (!value || typeof value !== "object") throw new Error("Estimate row move RPC returned an invalid result.");
+  const result = value as Record<string, unknown>;
+  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
+  const sourceRow = result.sourceRow ?? payload.sourceRow;
+  const targetRow = result.targetRow ?? payload.targetRow;
+
+  return {
+    sourceRow: readHistoryRowResult({ row: sourceRow }),
+    targetRow: readHistoryRowResult({ row: targetRow }),
+  };
+}
+
+function readStringResult(value: unknown, message: string) {
+  if (typeof value === "string" && value.length > 0) return value;
+  throw new Error(message);
+}
+
+function readBulkDeletedRowIds(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((id): id is string => typeof id === "string" && id.length > 0);
+  return [];
+}
+
+function readDeletedRowResult(value: unknown): DeleteEstimateRowItemResult {
+  if (!value || typeof value !== "object") throw new Error("Row delete RPC returned an invalid result.");
+  const result = value as Record<string, unknown>;
+  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
+  const deletedRow = result.deletedRow ?? payload.deletedRow;
+  const deletedRowId = readStringResult(result.rowId ?? payload.rowId, "Row delete RPC returned an incomplete result.");
+
+  return {
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Row delete RPC did not return a history event id."),
+    deletedRowId,
+    deletedRow: readHistoryRowResult({ rowId: deletedRowId, row: deletedRow }),
+  };
+}
+
+function readDeleteRowsBulkResult(value: unknown): DeleteEstimateRowItemsBulkResult {
+  if (!value || typeof value !== "object") throw new Error("Bulk row delete RPC returned an invalid result.");
+  const result = value as Record<string, unknown>;
+  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
+  const deletedRowIds = readBulkDeletedRowIds(result.deletedRowIds ?? payload.deletedRowIds);
+
+  return {
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Bulk row delete RPC did not return a history event id."),
+    deletedRowIds,
+    deletedRowCount: readNumber(result.deletedRowCount ?? payload.deletedRowCount, deletedRowIds.length),
+  };
+}
+
+function readRestoreDeletedRowsResult(value: unknown): RestoreDeletedEstimateRowsResult {
+  if (!value || typeof value !== "object") throw new Error("Deleted row restore RPC returned an invalid result.");
+  const result = value as Record<string, unknown>;
+  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
+  const restoredRowsValue = result.restoredRows ?? payload.restoredRows;
+  const restoredRows = Array.isArray(restoredRowsValue)
+    ? restoredRowsValue.map((row) => readHistoryRowResult({ row }))
+    : [];
+  const restoredRowIds = readBulkDeletedRowIds(result.restoredRowIds ?? payload.restoredRowIds);
+
+  return {
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Deleted row restore RPC did not return a history event id."),
+    sourceEventId: readStringResult(result.sourceEventId ?? payload.sourceEventId, "Deleted row restore RPC did not return the source event id."),
+    restoredRowIds: restoredRowIds.length > 0 ? restoredRowIds : restoredRows.map((row) => row.rowId),
+    restoredRowCount: readNumber(result.restoredRowCount ?? payload.restoredRowCount, restoredRows.length),
+    restoredRows,
+  };
+}
+
+function readRestoreDeletedNodesResult(value: unknown): Omit<RestoreDeletedEstimateNodesResult, "tree"> {
+  if (!value || typeof value !== "object") throw new Error("Deleted node restore RPC returned an invalid result.");
+  const result = value as Record<string, unknown>;
+  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
+  const restoredNodeIds = readBulkDeletedRowIds(result.restoredNodeIds ?? payload.restoredNodeIds);
+  const restoredRootNodeIds = readBulkDeletedRowIds(result.restoredRootNodeIds ?? payload.restoredRootNodeIds);
+  const restoredRowIds = readBulkDeletedRowIds(result.restoredRowIds ?? payload.restoredRowIds);
+
+  return {
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Deleted node restore RPC did not return a history event id."),
+    sourceEventId: readStringResult(result.sourceEventId ?? payload.sourceEventId, "Deleted node restore RPC did not return the source event id."),
+    restoredNodeIds,
+    restoredRootNodeIds,
+    restoredNodeCount: readNumber(result.restoredNodeCount ?? payload.restoredNodeCount, restoredNodeIds.length),
+    restoredRowIds,
+    restoredRowCount: readNumber(result.restoredRowCount ?? payload.restoredRowCount, restoredRowIds.length),
+  };
+}
+
 async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, estimateId: string) {
   const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
   if (error) throw error;
@@ -440,6 +603,27 @@ function readJsonRecord(value: unknown): Record<string, unknown> {
 
 function readStringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function readDeleteEstimateNodeRpcResult(
+  value: unknown,
+  fallbackDeletedNodeIds: string[],
+  fallbackNodeId: string | null,
+): Pick<DeleteEstimateNodeResult, "eventId" | "deletedNodeIds" | "fallbackNodeId"> {
+  if (!value || typeof value !== "object") {
+    throw new Error("Tree delete RPC returned an invalid result.");
+  }
+
+  const result = value as Record<string, unknown>;
+  const payload = readJsonRecord(result.payload);
+  const deletedNodeIds = readStringArray(result.deletedNodeIds ?? payload.deletedNodeIds);
+  const nextFallbackNodeId = result.fallbackNodeId ?? payload.fallbackNodeId;
+
+  return {
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Tree delete RPC did not return a history event id."),
+    deletedNodeIds: deletedNodeIds.length ? deletedNodeIds : fallbackDeletedNodeIds,
+    fallbackNodeId: typeof nextFallbackNodeId === "string" ? nextFallbackNodeId : fallbackNodeId,
+  };
 }
 
 function getFallbackActorLabel(actorUserId: string | null) {
@@ -764,7 +948,12 @@ async function getValidatedEstimateRow(projectId: string, estimateId: string, ro
   return { project, supabase, row };
 }
 
-async function getValidatedEstimateNode(projectId: string, estimateId: string, nodeId: string) {
+async function getValidatedEstimateNode(
+  projectId: string,
+  estimateId: string,
+  nodeId: string,
+  options?: { requireEdit?: boolean },
+) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
@@ -778,6 +967,7 @@ async function getValidatedEstimateNode(projectId: string, estimateId: string, n
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
+  if (options?.requireEdit) await assertCanEditEstimate(supabase, estimate.id);
 
   const { data: node, error: nodeError } = await supabase
     .from("estimate_nodes")
@@ -874,6 +1064,30 @@ function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
 function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
   if (libraryItem.sourceLibraryItemId && isUuid(libraryItem.sourceLibraryItemId)) return libraryItem.sourceLibraryItemId;
   return libraryItem.source === "library" && isUuid(libraryItem.id) ? libraryItem.id : null;
+}
+
+function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
+  const quantity = libraryItem.quantity || 1;
+  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
+
+  return {
+    sourceLibraryItemId,
+    sourceSnapshot: getSourceSnapshot(libraryItem),
+    categoryNodeId: libraryItem.categoryNodeId ?? null,
+    supplierId: libraryItem.supplierId ?? null,
+    material: libraryItem.material,
+    description: libraryItem.description,
+    supplier: libraryItem.supplier,
+    unit: libraryItem.unit,
+    quantity,
+    unitCost: libraryItem.itemCost,
+    contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
+    miscCost: libraryItem.miscCost,
+    discipline: libraryItem.discipline,
+    designation: libraryItem.designation,
+    metadata: getEstimateRowMetadata(libraryItem),
+    linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
+  };
 }
 
 async function assertCurrentLibrarySourceForEstimateCommit(
@@ -1383,7 +1597,7 @@ export async function reorderEstimateTreeNodes(
     updateIds.add(update.id);
     assertNotOptimisticEstimateNodeId(update.id, "Estimate tree update node");
     if (update.parentId) assertNotOptimisticEstimateNodeId(update.parentId, "Estimate tree update parent");
-    if (!Number.isInteger(update.sortOrder) || update.sortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative integer.");
+    if (!Number.isFinite(update.sortOrder) || update.sortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative number.");
   }
 
   const { project } = await getCurrentWorkspaceProject(projectId);
@@ -1399,6 +1613,7 @@ export async function reorderEstimateTreeNodes(
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
+  await assertCanEditEstimate(supabase, estimate.id);
 
   const referencedNodeIds = Array.from(new Set([
     ...input.updates.map((update) => update.id),
@@ -2053,6 +2268,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
+  await assertCanEditEstimate(supabase, estimate.id);
 
   if (parentId) {
     const { data: parentNode, error: parentError } = await supabase
@@ -2087,14 +2303,14 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   if (siblingsError) throw siblingsError;
 
   const siblingRows = (siblings ?? []) as CreateEstimateNodeSiblingRow[];
-  const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), -1);
+  const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), 0);
   const createNodePayload: CreateEstimateNodeWithHistoryArgs = {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     parent_node_id: parentId,
     node_kind: kind,
     node_name: name,
-    initial_sort_order: maxSiblingSortOrder + 1,
+    initial_sort_order: maxSiblingSortOrder + ESTIMATE_TREE_SORT_ORDER_STEP,
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
     ...(estimateTabId ? { target_tab_id: estimateTabId } : {}),
@@ -2135,7 +2351,7 @@ export async function renameEstimateNode(
 ): Promise<RenameEstimateNodeResult> {
   assertNotOptimisticEstimateNodeId(nodeId, "Estimate node");
   const name = readEstimateNodeName(formDataOrName);
-  const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
+  const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
 
   const { error } = await supabase.rpc("rename_estimate_node_with_history", {
@@ -2158,13 +2374,13 @@ export async function deleteEstimateNode(
   nodeId: string,
   targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
-  const { project, estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
+  const { project, estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the tree node.");
 
   const deletePlan = planEstimateTreeDelete(currentTree, node.id, node.id);
-  const { error } = await supabase.rpc("delete_estimate_node_with_history", {
+  const { data: deleteResult, error } = await supabase.rpc("delete_estimate_node_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_node_id: node.id,
@@ -2176,11 +2392,17 @@ export async function deleteEstimateNode(
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
+  const authoritativeDelete = readDeleteEstimateNodeRpcResult(
+    deleteResult,
+    Array.from(deletePlan.deletedNodeIds),
+    deletePlan.fallbackNodeId,
+  );
 
   return {
+    eventId: authoritativeDelete.eventId,
     tree,
-    deletedNodeIds: Array.from(deletePlan.deletedNodeIds),
-    fallbackNodeId: deletePlan.fallbackNodeId,
+    deletedNodeIds: authoritativeDelete.deletedNodeIds,
+    fallbackNodeId: authoritativeDelete.fallbackNodeId,
   };
 }
 
@@ -2210,6 +2432,7 @@ export async function deleteEstimateNodesBulk(
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
+  await assertCanEditEstimate(supabase, estimate.id);
 
   const { data: scopedNodes, error: nodeError } = await supabase
     .from("estimate_nodes")
@@ -2240,7 +2463,7 @@ export async function deleteEstimateNodesBulk(
     fallbackNodeId = deletePlan.fallbackNodeId;
   }
 
-  const { error } = await supabase.rpc("delete_estimate_nodes_bulk_with_history", {
+  const { data: deleteResult, error } = await supabase.rpc("delete_estimate_nodes_bulk_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_node_ids: rootNodeIds,
@@ -2252,11 +2475,13 @@ export async function deleteEstimateNodesBulk(
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
+  const authoritativeDelete = readDeleteEstimateNodeRpcResult(deleteResult, Array.from(deletedNodeIds), fallbackNodeId);
 
   return {
+    eventId: authoritativeDelete.eventId,
     tree,
-    deletedNodeIds: Array.from(deletedNodeIds),
-    fallbackNodeId,
+    deletedNodeIds: authoritativeDelete.deletedNodeIds,
+    fallbackNodeId: authoritativeDelete.fallbackNodeId,
   };
 }
 
@@ -2521,32 +2746,13 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  const quantity = libraryItem.quantity || 1;
   await assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem);
-  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const { data, error } = await supabase.rpc("replace_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
     expected_row_revision: expectedRowRevision ?? row.row_revision,
-    replacement_payload: {
-      sourceLibraryItemId,
-      sourceSnapshot: getSourceSnapshot(libraryItem),
-      categoryNodeId: libraryItem.categoryNodeId ?? null,
-      supplierId: libraryItem.supplierId ?? null,
-      material: libraryItem.material,
-      description: libraryItem.description,
-      supplier: libraryItem.supplier,
-      unit: libraryItem.unit,
-      quantity,
-      unitCost: libraryItem.itemCost,
-      contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
-      miscCost: libraryItem.miscCost,
-      discipline: libraryItem.discipline,
-      designation: libraryItem.designation,
-      metadata: getEstimateRowMetadata(libraryItem),
-      linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
-    },
+    replacement_payload: buildEstimateRowReplacementPayload(libraryItem),
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(mutationId),
   });
@@ -2583,10 +2789,10 @@ export async function detachEstimateRowItemFromLibrary({
   return detachedRow;
 }
 
-export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput) {
+export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput): Promise<DeleteEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  const { error } = await supabase.rpc("delete_estimate_row_item_with_history", {
+  const { data, error } = await supabase.rpc("delete_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -2595,4 +2801,169 @@ export async function deleteEstimateRowItem({ projectId, estimateId, rowId, muta
     correlation_id: getMutationCorrelationId(mutationId),
   });
   if (error) throwEstimateRowMutationError(error);
+  return readDeletedRowResult(data);
+}
+
+export async function moveEstimateRowComponentWithHistory({
+  projectId,
+  estimateId,
+  sourceRowId,
+  targetRowId,
+  sourceLibraryItem,
+  targetLibraryItem,
+  mutationId,
+  expectedSourceRowRevision,
+  expectedTargetRowRevision,
+}: MoveEstimateRowComponentInput): Promise<MoveEstimateRowComponentResult> {
+  if (sourceRowId === targetRowId) throw new Error("Source and target estimate rows must be different.");
+  const sourceRow = await getValidatedEstimateRow(projectId, estimateId, sourceRowId, { requireEdit: true });
+  const targetRow = await getValidatedEstimateRow(projectId, estimateId, targetRowId, { requireEdit: true });
+  const currentUser = await requireCurrentUserContext();
+  await assertCurrentLibrarySourceForEstimateCommit(targetRow.supabase, sourceLibraryItem);
+  await assertCurrentLibrarySourceForEstimateCommit(targetRow.supabase, targetLibraryItem);
+
+  const { data, error } = await targetRow.supabase.rpc("move_estimate_row_component_with_history", {
+    target_project_id: targetRow.project.id,
+    target_estimate_id: estimateId,
+    source_row_id: sourceRowId,
+    target_row_id: targetRowId,
+    expected_source_row_revision: expectedSourceRowRevision ?? sourceRow.row.row_revision,
+    expected_target_row_revision: expectedTargetRowRevision ?? targetRow.row.row_revision,
+    source_replacement_payload: buildEstimateRowReplacementPayload(sourceLibraryItem) as Json,
+    target_replacement_payload: buildEstimateRowReplacementPayload(targetLibraryItem) as Json,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (error) throwEstimateRowMutationError(error);
+  return readMovedRowResult(data);
+}
+
+function normalizeEstimateRowIdSelection(rowIds: string[]) {
+  const normalizedRowIds: string[] = [];
+  const seen = new Set<string>();
+  for (const rawRowId of rowIds) {
+    const rowId = String(rawRowId ?? "").trim();
+    if (!rowId || seen.has(rowId)) continue;
+    seen.add(rowId);
+    normalizedRowIds.push(rowId);
+  }
+
+  if (normalizedRowIds.length === 0) throw new Error("Select at least one estimate row.");
+  if (normalizedRowIds.length > 100) throw new Error("Selected row delete is limited to 100 rows at a time.");
+  return normalizedRowIds;
+}
+
+function normalizeEstimateNodeIdSelection(nodeIds: string[]) {
+  const normalizedNodeIds: string[] = [];
+  const seen = new Set<string>();
+  for (const rawNodeId of nodeIds) {
+    const nodeId = String(rawNodeId ?? "").trim();
+    if (!nodeId || seen.has(nodeId)) continue;
+    seen.add(nodeId);
+    normalizedNodeIds.push(nodeId);
+  }
+
+  if (normalizedNodeIds.length === 0) throw new Error("Select at least one estimate tree node.");
+  return normalizedNodeIds;
+}
+
+export async function deleteEstimateRowItemsBulk({
+  projectId,
+  estimateId,
+  rowIds,
+  mutationId,
+  expectedRowRevisions,
+}: DeleteEstimateRowItemsBulkInput): Promise<DeleteEstimateRowItemsBulkResult> {
+  const normalizedRowIds = normalizeEstimateRowIdSelection(rowIds);
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
+  const currentUser = await requireCurrentUserContext();
+  const { data: rows, error: rowsError } = await supabase
+    .from("estimate_row_items")
+    .select("id, row_revision, estimate_nodes!inner(estimates!inner(project_id))")
+    .eq("estimate_id", estimateId)
+    .eq("estimate_nodes.estimates.project_id", project.id)
+    .in("id", normalizedRowIds);
+
+  if (rowsError) throw rowsError;
+  const rowRevisionById = new Map((rows ?? []).map((row) => [row.id, row.row_revision]));
+  if (rowRevisionById.size !== normalizedRowIds.length) throw new Error("One or more estimate row items were not found in the current project.");
+  const expectedRevisionPayload = Object.fromEntries(
+    normalizedRowIds.map((rowId) => [rowId, expectedRowRevisions?.[rowId] ?? rowRevisionById.get(rowId)]),
+  );
+
+  const { data, error } = await supabase.rpc("delete_estimate_row_items_bulk_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_row_ids: normalizedRowIds,
+    expected_row_revisions: expectedRevisionPayload,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (error) throwEstimateRowMutationError(error);
+  return readDeleteRowsBulkResult(data);
+}
+
+export async function restoreDeletedEstimateRows({
+  projectId,
+  estimateId,
+  sourceEventId,
+  rowIds,
+  mutationId,
+}: RestoreDeletedEstimateRowsInput): Promise<RestoreDeletedEstimateRowsResult> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const normalizedRowIds = rowIds && rowIds.length > 0 ? normalizeEstimateRowIdSelection(rowIds) : null;
+  const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
+  const currentUser = await requireCurrentUserContext();
+  const { data, error } = await supabase.rpc("restore_deleted_estimate_rows_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    source_delete_event_id: sourceEventId,
+    target_row_ids: normalizedRowIds,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (error) throwEstimateRowMutationError(error);
+  return readRestoreDeletedRowsResult(data);
+}
+
+export async function restoreDeletedEstimateNodes({
+  projectId,
+  estimateId,
+  sourceEventId,
+  nodeIds,
+  targetTabId,
+  mutationId,
+}: RestoreDeletedEstimateNodesInput): Promise<RestoreDeletedEstimateNodesResult> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const normalizedNodeIds = nodeIds && nodeIds.length > 0 ? normalizeEstimateNodeIdSelection(nodeIds) : null;
+  const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
+  const currentUser = await requireCurrentUserContext();
+  const { data, error } = await supabase.rpc("restore_deleted_estimate_nodes_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    source_delete_event_id: sourceEventId,
+    target_node_ids: normalizedNodeIds,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (error) throw new Error(`Could not restore deleted estimate tree nodes: ${error.message}`);
+  const restored = readRestoreDeletedNodesResult(data);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after restoring the deleted tree nodes.");
+
+  return { ...restored, tree };
 }

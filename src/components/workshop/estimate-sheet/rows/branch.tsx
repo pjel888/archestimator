@@ -48,6 +48,8 @@ export type EstimateSheetBranchProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  onOpenReplaceComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
+  onOpenMoveComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
   onRetryExpressDraft?: (rowItemId: string) => void;
   onDeleteExpressDraft?: (rowItemId: string) => void;
@@ -81,6 +83,8 @@ export type SheetMutationHandlers = Pick<
   | "onRequestProjectSpecific"
   | "onPromoteRowToLibrary"
   | "onMoveRowComponent"
+  | "onOpenReplaceComponentPicker"
+  | "onOpenMoveComponentPicker"
   | "onRetryExpressDraft"
   | "onDeleteExpressDraft"
 >;
@@ -133,6 +137,8 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
     prev.promotingRowId !== next.promotingRowId ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.onOpenReplaceComponentPicker !== next.onOpenReplaceComponentPicker ||
+    prev.onOpenMoveComponentPicker !== next.onOpenMoveComponentPicker ||
     prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
@@ -159,7 +165,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -403,6 +409,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               onPromoteRowToLibrary={onPromoteRowToLibrary}
               promotingRowId={promotingRowId}
               onMoveRowComponent={onMoveRowComponent}
+              onOpenReplaceComponentPicker={onOpenReplaceComponentPicker}
+              onOpenMoveComponentPicker={onOpenMoveComponentPicker}
               expressInsertDraftStates={expressInsertDraftStates}
               onRetryExpressDraft={onRetryExpressDraft}
               onDeleteExpressDraft={onDeleteExpressDraft}
@@ -449,6 +457,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
                 onMoveRowComponent={onMoveRowComponent}
+                onOpenReplaceComponentPicker={onOpenReplaceComponentPicker}
+                onOpenMoveComponentPicker={onOpenMoveComponentPicker}
                 expressInsertDraftStates={expressInsertDraftStates}
                 onRetryExpressDraft={onRetryExpressDraft}
                 onDeleteExpressDraft={onDeleteExpressDraft}

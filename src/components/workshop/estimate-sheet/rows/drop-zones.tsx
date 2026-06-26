@@ -11,7 +11,10 @@ import {
 } from "../../component-library/templates";
 import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import type { EstimateRowItem } from "../../estimate-tree-data";
-import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "./constants";
+import {
+  LIBRARY_ITEM_DRAG_MIME_TYPE,
+  readEstimateLibraryItemDragPayload,
+} from "./constants";
 
 const DROP_SLOT_SURFACE_CLASS =
   "flex h-16 w-full items-center justify-center gap-1.5 border border-dashed border-hairline bg-surfaceMuted/30 text-tertiary transition-opacity";
@@ -111,10 +114,10 @@ export function ComponentDropTarget({
       }}
       onDrop={(event) => {
         setDragCount(0);
-        const payload = event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE);
-        if (!payload) return;
+        const result = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
+        if (!result.ok) return;
         event.preventDefault();
-        onInsertLibraryItem(nodeId, JSON.parse(payload) as EstimateRowItem);
+        onInsertLibraryItem(nodeId, result.item);
       }}
     >
       <EstimateDropZone

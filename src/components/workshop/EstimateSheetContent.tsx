@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState, type ReactNode, type SetStateAction } from "react";
-import { FunnelSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type SetStateAction } from "react";
+import { FunnelSimple, SidebarSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
@@ -18,21 +18,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEstimateRowMutations, type EstimateRowMutationError, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
+import { loadEstimateSheetUserPreferences, saveEstimateSheetUserPreferences } from "@/lib/estimate-sheet/user-preferences-actions";
 import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
-import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { useEstimateUiStore } from "@/stores/estimate-ui-store";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
-import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, type EstimateSheetVersionControlData, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
+import type { EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
-import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
-import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
-import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
@@ -43,7 +40,6 @@ import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-st
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
-import { getLibraryCommitTrustGate, type LibraryCommitTrustGateResult } from "@/components/workshop/library/source-trust-model";
 import { useToast } from "@/components/ui/toast";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
@@ -64,14 +60,11 @@ const EstimateRightSidebar = dynamic(
   },
 );
 import {
-  INSERT_ESTIMATE_TEMPLATE_EVENT,
   INSERT_PROJECT_SOURCE_EVENT,
+  readInsertProjectSourceEventDetail,
   type EstimateTemplate,
-  type InsertEstimateTemplateEventDetail,
-  type InsertProjectSourceEventDetail,
 } from "./component-library/templates";
 import {
-  reportEstimateProposalPreviewSignatureCompute,
   reportEstimateSelectedNodePresentationCompute,
   reportEstimateSheetContentRender,
 } from "./estimate-sheet-render-probe";
@@ -88,22 +81,13 @@ const ProposalExportPreviewDialog = dynamic(
 );
 import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import {
-  BLANK_ESTIMATE_ROW_AUDIT_LABEL,
-  BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
-  BLANK_ESTIMATE_ROW_TAG,
   DEFAULT_ACTIVITY_FILTERS,
-  createActivityFilterKey,
-  getActivityFilterInput,
-  getActivityScopeKey,
   // Aliased: the helpers barrel re-exported below also has a
   // getComponentImageUrl with a different parameter type.
-  isBlankEstimateRowItem,
   pesoFormatter,
   type ActivityFilterState,
-  type ActivityScopeTreeItem,
   type EstimateActivityScope,
   type FlattenedEstimateRow,
-  type RowDetailTab,
   type RowDetailsState,
 } from "./estimate-sheet/activity-history-model";
 // Interaction-gated overlays from the activity-history barrel: each renders only
@@ -124,34 +108,41 @@ import {
   collectAllNodeIds,
 } from "./estimate-sheet/rows/expansion";
 import {
+  ADD_LIBRARY_ITEM_EVENT,
   EMPTY_ESTIMATE_ROW_ITEMS,
+  readAddLibraryItemEventDetail,
+  type EstimateLibraryItemPayloadRejectReason,
 } from "./estimate-sheet/rows/constants";
 import {
-  calculateContingencyValue,
   collectEditableRows,
-  computeNodeTotal,
+  computeEditableRowTotal,
   computeNodeTotals,
   flattenEstimateRows,
   getInitialEditableRow,
-  materializeEditableEstimateTree,
-  parseEditableContingencyPercentage,
-  parseNonNegativeEditableNumber,
   type EditableRowValue,
 } from "./estimate-sheet/rows/editable-row-model";
-import { getNodeCode } from "./estimate-sheet/rows/node-visuals-utils";
+import {
+  DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS,
+} from "./estimate-sheet/proposal-preview-model";
+import { useEstimateHistoryPanel } from "./estimate-sheet/use-estimate-history-panel";
+import { useEstimateProposalPreview } from "./estimate-sheet/use-estimate-proposal-preview";
+import {
+  findEstimateRowItem,
+  useEstimateRowHandlers,
+  type ExpressInsertDraft,
+  type PendingLibraryCommitGate,
+  type RowComponentPickerState,
+} from "./estimate-sheet/use-estimate-row-handlers";
+import { useEstimateTemplateInsertion } from "./estimate-sheet/use-estimate-template-insertion";
 import {
   type ExpressInsertDraftState,
 } from "./estimate-sheet/rows/cells";
-import {
-  canMakeProjectSpecific,
-  canPromoteEstimateRowToLibrary,
-} from "./estimate-sheet/rows/cells-model";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
-// D2 / Req 10: local bindings for the within-area group/sort transform. The
-// sheet needs explicit local bindings to be callable here.
-import { groupComponents as groupSheetRows, sortComponents as sortSheetRows } from "./component-library/helpers";
+// D2 / Req 10: local binding for the within-area group transform. The sheet
+// needs an explicit local binding to be callable here.
+import { groupComponents as groupSheetRows } from "./component-library/helpers";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
 
@@ -225,7 +216,6 @@ type EstimateSheetContentProps = {
 
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
 const EMPTY_FLATTENED_ESTIMATE_ROWS: FlattenedEstimateRow[] = [];
-const EMPTY_ACTIVITY_SCOPE_ITEMS: ActivityScopeTreeItem[] = [];
 const EMPTY_BREADCRUMB_NODES: BreadcrumbNode[] = [];
 const EMPTY_SELECTED_NODE_PRESENTATION = {
   nodeCode: "",
@@ -243,19 +233,6 @@ function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTree
   return [];
 }
 
-function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItem | null {
-  for (const node of nodes) {
-    for (const item of node.estimateRowItems ?? []) {
-      if (item.id === rowItemId) return item;
-    }
-    if (node.children) {
-      const childRowItem = findEstimateRowItem(node.children, rowItemId);
-      if (childRowItem) return childRowItem;
-    }
-  }
-  return null;
-}
-
 function computeNodeCode(nodes: EstimateTreeNode[], targetId: string): string {
   reportEstimateSelectedNodePresentationCompute("code");
   for (let i = 0; i < nodes.length; i++) {
@@ -269,440 +246,7 @@ function computeNodeCode(nodes: EstimateTreeNode[], targetId: string): string {
   return "";
 }
 
-type PendingLibraryCommitGate = {
-  id: string;
-  action: "insert" | "replace";
-  targetNodeId?: string;
-  rowItemId?: string;
-  libraryItem: EstimateRowItem;
-  existingRow?: EstimateRowItem | null;
-  gate: LibraryCommitTrustGateResult;
-};
-
-function shouldGateLibraryCommit(item: EstimateRowItem) {
-  return item.source === "library" || item.source === "supplier" || Boolean(item.sourceLibraryItemId);
-}
-
-function libraryCommitEventAction(action: PendingLibraryCommitGate["action"]) {
-  return action === "replace" ? "replace_row" : "insert_row";
-}
-
-
-
-
-
-
-
-function createBlankEstimateRowTemplate(): EstimateRowItem {
-  return {
-    id: "manual-estimate-row-template",
-    material: BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
-    description: "",
-    supplier: "",
-    source: "project",
-    unit: "unit",
-    itemCost: 0,
-    quantity: 1,
-    subTotal: 0,
-    contingencyPercentage: 0,
-    contingencyValue: 0,
-    miscCost: 0,
-    totalItemCosts: 0,
-    category: "Unassigned",
-    tags: [BLANK_ESTIMATE_ROW_TAG],
-    pricingSource: "Manual estimate row",
-    pricingDate: new Date().toISOString().slice(0, 10),
-    confidence: "unpriced",
-  };
-}
-
-function createExpressEstimateRowTemplate(): EstimateRowItem {
-  const createdAt = new Date().toISOString();
-  return {
-    id: "express-estimate-row-template",
-    material: "",
-    description: "",
-    supplier: "",
-    source: "project",
-    unit: "",
-    itemCost: 0,
-    quantity: 1,
-    subTotal: 0,
-    contingencyPercentage: 0,
-    contingencyValue: 0,
-    miscCost: 0,
-    totalItemCosts: 0,
-    category: "Unassigned",
-    pricingSource: "Express component",
-    pricingDate: createdAt.slice(0, 10),
-    confidence: "unpriced",
-    discipline: "Unspecified",
-    designation: "",
-    sourceLibraryItemId: null,
-    linkState: "unlinked",
-    metadata: withExpressComponentMetadata({}, {
-      id: createEstimateRowItemId(),
-      createdFrom: "estimate-sheet-add-row",
-      sourceLabel: "Express component",
-      createdAt,
-    }),
-  };
-}
-
-type ExpressInsertDraft = {
-  targetNodeId: string;
-  libraryItem: EstimateRowItem;
-  mutationId: string;
-  status: ExpressInsertDraftState;
-  bufferedPatch?: Partial<EditableRowValue>;
-  errorMessage?: string;
-};
-
-
-function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>, metadata: ProposalExportMetadata | null) {
-  reportEstimateProposalPreviewSignatureCompute();
-  const parts: string[] = [metadata ? `${metadata.projectId}|${metadata.estimateId}|${metadata.projectName}|${metadata.estimateName}|${metadata.versionLabel}|${metadata.currency}` : "no-metadata"];
-
-  function visit(node: EstimateTreeNode) {
-    parts.push(`node:${node.id}|${node.kind}|${node.name}`);
-    node.estimateRowItems?.forEach((item) => {
-      const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
-      parts.push([
-        "row",
-        item.id,
-        item.material,
-        item.description,
-        item.category,
-        item.designation,
-        item.unit,
-        item.itemCost,
-        editableRow.quantity,
-        editableRow.contingencyMode,
-        editableRow.contingencyPercentage,
-        editableRow.miscCost,
-        item.supplier,
-        item.pricingSource,
-        item.pricingDate,
-      ].join("|"));
-    });
-    node.children?.forEach(visit);
-  }
-
-  nodes.forEach(visit);
-  return parts.join("\n");
-}
-
-const PROPOSAL_XLSX_CONTENT_TYPE = "spreadsheetml";
-
-function readContentDispositionFilename(header: string | null): string | null {
-  if (!header) return null;
-  const match = /filename\*?=(?:UTF-8''|")?([^";]+)"?/i.exec(header);
-  return match?.[1] ? decodeURIComponent(match[1].replace(/"+$/g, "")) : null;
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
-const DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS: ProposalExportUserSettings = {
-  contingencyRate: 10,
-  vatRate: 12,
-  contingencyIncluded: false,
-  vatIncluded: false,
-  includeFormulas: true,
-  includeInternalBreakdown: false,
-};
-
-// Append only non-default settings so an untouched export keeps a clean URL (and the route's
-// own defaults stay authoritative).
-function appendProposalExportSettingsParams(params: URLSearchParams, settings: ProposalExportUserSettings) {
-  if (settings.contingencyRate !== DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS.contingencyRate) params.set("contingencyRate", String(settings.contingencyRate));
-  if (settings.vatRate !== DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS.vatRate) params.set("vatRate", String(settings.vatRate));
-  if (settings.contingencyIncluded) params.set("contingencyMode", "included");
-  if (settings.vatIncluded) params.set("vatMode", "included");
-  if (!settings.includeFormulas) params.set("includeFormulas", "false");
-  if (settings.includeInternalBreakdown) params.set("audience", "internal");
-}
-
-// The rate/formula choices flow into the client preview model (audience stays client-safe in the
-// preview; the real audience is server-resolved at download).
-function proposalPreviewModelSettings(settings: ProposalExportUserSettings) {
-  return {
-    contingencyRate: settings.contingencyRate,
-    vatRate: settings.vatRate,
-    contingencyMode: settings.contingencyIncluded ? ("included" as const) : ("percentage" as const),
-    vatMode: settings.vatIncluded ? ("included" as const) : ("percentage" as const),
-    includeFormulas: settings.includeFormulas,
-  };
-}
-
-
-
-
-
-
-
-
-function createEstimateRowItemId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
-
-  const bytes = new Uint8Array(16);
-  if (typeof globalThis.crypto?.getRandomValues === "function") {
-    globalThis.crypto.getRandomValues(bytes);
-  } else {
-    for (let index = 0; index < bytes.length; index += 1) {
-      bytes[index] = Math.floor(Math.random() * 256);
-    }
-  }
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
-  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
-}
-
-function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem): EstimateRowItem {
-  const id = createEstimateRowItemId();
-  const quantity = libraryItem.quantity || 1;
-  const contingencyPercentage = libraryItem.contingencyPercentage ?? 0;
-  const miscCost = libraryItem.miscCost ?? 0;
-  const subTotal = libraryItem.itemCost * quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
-  return {
-    ...libraryItem,
-    id,
-    quantity,
-    subTotal,
-    contingencyPercentage,
-    contingencyValue,
-    miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
-  };
-}
-
-function cloneTemplateNodesForEstimate(nodes: EstimateTreeNode[]): EstimateTreeNode[] {
-  function cloneNode(node: EstimateTreeNode): EstimateTreeNode {
-    return {
-      ...node,
-      id: createEstimateRowItemId(),
-      total: "PHP 0.00",
-      children: node.children?.map(cloneNode) ?? [],
-      estimateRowItems: node.estimateRowItems?.map(cloneLibraryItemForEstimate) ?? [],
-    };
-  }
-
-  return nodes.map(cloneNode);
-}
-
-function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNodeId: string, templateNodes: EstimateTreeNode[]): EstimateTreeNode[] {
-  return nodes.map((node) => {
-    if (node.id === targetParentNodeId) {
-      return { ...node, children: [...(node.children ?? []), ...templateNodes] };
-    }
-
-    return {
-      ...node,
-      children: node.children ? appendTemplateNodesToParent(node.children, targetParentNodeId, templateNodes) : node.children,
-    };
-  });
-}
-
-function removeEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateTreeNode[] {
-  return nodes.map((node) => ({
-    ...node,
-    estimateRowItems: node.estimateRowItems?.filter((item) => item.id !== rowItemId),
-    children: node.children ? removeEstimateRowItem(node.children, rowItemId) : node.children,
-  }));
-}
-
-type EstimateRowItemLocation = {
-  nodeId: string;
-  index: number;
-  item: EstimateRowItem;
-};
-
-function findEstimateRowItemLocation(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItemLocation | null {
-  for (const node of nodes) {
-    const rowItems = node.estimateRowItems ?? [];
-    for (let rowIndex = 0; rowIndex < rowItems.length; rowIndex += 1) {
-      const item = rowItems[rowIndex];
-      if (item.id === rowItemId) return { nodeId: node.id, index: rowIndex, item };
-    }
-    if (node.children) {
-      const childLocation = findEstimateRowItemLocation(node.children, rowItemId);
-      if (childLocation) return childLocation;
-    }
-  }
-  return null;
-}
-
-function restoreEstimateRowItemAtLocation(nodes: EstimateTreeNode[], location: EstimateRowItemLocation): EstimateTreeNode[] {
-  return nodes.map((node) => {
-    if (node.id === location.nodeId) {
-      const currentItems = node.estimateRowItems ?? [];
-      if (currentItems.some((item) => item.id === location.item.id)) return node;
-      const nextItems = [...currentItems];
-      nextItems.splice(Math.min(location.index, nextItems.length), 0, location.item);
-      return { ...node, estimateRowItems: nextItems };
-    }
-    return {
-      ...node,
-      children: node.children ? restoreEstimateRowItemAtLocation(node.children, location) : node.children,
-    };
-  });
-}
-
-function replaceEstimateRowItemsInTree(nodes: EstimateTreeNode[], replacements: Map<string, EstimateRowItem>): EstimateTreeNode[] {
-  return nodes.map((node) => ({
-    ...node,
-    estimateRowItems: node.estimateRowItems?.map((item) => replacements.get(item.id) ?? item),
-    children: node.children ? replaceEstimateRowItemsInTree(node.children, replacements) : node.children,
-  }));
-}
-
-function getActiveExpressEditorRowId() {
-  if (typeof document === "undefined") return "";
-  const activeElement = document.activeElement;
-  if (!(activeElement instanceof HTMLElement)) return "";
-  if (!activeElement.dataset.expressField) return "";
-  return activeElement.dataset.estimateRowId || activeElement.closest<HTMLElement>("[data-estimate-row-id]")?.dataset.estimateRowId || "";
-}
-
-function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
-  if (!editableRow) return libraryItem;
-
-  const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
-  const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-  const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
-  const subTotal = libraryItem.itemCost * quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
-
-  return {
-    ...libraryItem,
-    quantity,
-    subTotal,
-    contingencyPercentage,
-    contingencyValue,
-    miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
-  };
-}
-
-
-function getClearedEstimateRowMetadata(metadata: EstimateRowItem["metadata"]): EstimateRowItem["metadata"] {
-  const { expressComponent: _expressComponent, projectComponentProjection: _projectComponentProjection, ...rest } = readEstimateRowMetadata(metadata);
-  void _expressComponent;
-  void _projectComponentProjection;
-  return {
-    ...rest,
-    sourceComponentId: null,
-    tags: [BLANK_ESTIMATE_ROW_TAG],
-  };
-}
-
-function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateRowItem): EstimateRowItem {
-  const quantity = libraryItem.quantity || 1;
-  const contingencyPercentage = libraryItem.contingencyPercentage ?? 0;
-  const miscCost = libraryItem.miscCost ?? 0;
-  const subTotal = libraryItem.itemCost * quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
-  return {
-    ...libraryItem,
-    id: rowItemId,
-    quantity,
-    subTotal,
-    contingencyPercentage,
-    contingencyValue,
-    miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
-  };
-}
-
-function buildActivityScopeTreeItems({
-  nodes,
-  rows,
-  editableRows,
-  metadata,
-  projectTotal,
-  nodeTotals,
-  activityScopeDirectOnly,
-}: {
-  nodes: EstimateTreeNode[];
-  rows: FlattenedEstimateRow[];
-  editableRows: Record<string, EditableRowValue>;
-  metadata: ProposalExportMetadata | null;
-  projectTotal: number;
-  nodeTotals: ReadonlyMap<string, number>;
-  // Unification P3-activity: scope is a STORED, STABLE per-node choice — never
-  // derived from kind/children. An empty map yields includeDescendants:true for
-  // every node, byte-identical to the legacy leaf behavior (a leaf's descendant
-  // set is itself) while keeping the cache key invariant when a child is added.
-  activityScopeDirectOnly: Record<string, boolean>;
-}) {
-  const rowById = new Map(rows.map((row) => [row.item.id, row]));
-  const items: ActivityScopeTreeItem[] = [
-    {
-      id: "sheet",
-      scope: { mode: "sheet" },
-      depth: 0,
-      kind: "sheet",
-      label: metadata?.estimateName ?? "Estimate",
-      eyebrow: metadata?.estimateSheetCode ?? "Estimate",
-      total: projectTotal,
-      row: null,
-    },
-  ];
-
-  function visit(node: EstimateTreeNode, depth: number, nodeCode: string, ancestorNames: string[]) {
-    const isGroup = node.kind === "group";
-    const pathLabel = [...ancestorNames, node.name].join(" / ");
-    items.push({
-      id: `node:${node.id}`,
-      // P3-activity: STORED stable choice, kind-agnostic. Default (absent) → true,
-      // so the cache key `node:{id}:desc` does not change when children are added.
-      scope: { mode: "node", nodeId: node.id, includeDescendants: !(activityScopeDirectOnly[node.id] ?? false) },
-      depth,
-      kind: isGroup ? "group" : "area",
-      label: node.name,
-      eyebrow: `${nodeCode} Area`,
-      description: isGroup ? "Includes descendant node and row activity" : pathLabel,
-      total: nodeTotals.get(node.id) ?? computeNodeTotal(node, editableRows),
-      row: null,
-    });
-
-    node.children?.forEach((child, childIndex) => {
-      visit(child, depth + 1, getNodeCode(nodeCode, childIndex), [...ancestorNames, node.name]);
-    });
-
-    // P3-activity: emit row-scope items for EVERY node, not just kind==="area".
-    // Pre-relax this is a provable no-op (no non-area node carries rows today);
-    // post-unification a former-group node's own rows must surface here.
-    node.estimateRowItems?.forEach((rowItem, rowIndex) => {
-      const row = rowById.get(rowItem.id) ?? null;
-      const label = isBlankEstimateRowItem(rowItem) ? BLANK_ESTIMATE_ROW_AUDIT_LABEL : rowItem.material;
-      items.push({
-        id: `row:${node.id}:${rowIndex}:${rowItem.id}`,
-        scope: { mode: "row", rowId: rowItem.id },
-        depth: depth + 1,
-        kind: "row",
-        label,
-        eyebrow: `Row ${String(rowIndex + 1).padStart(2, "0")}`,
-        description: pathLabel,
-        total: row?.lineTotal ?? rowItem.totalItemCosts ?? null,
-        row,
-      });
-    });
-  }
-
-  nodes.forEach((node, index) => visit(node, 1, getNodeCode("", index), []));
-  return items;
-}
+type LibraryInsertPayloadSurface = "custom_event" | "insert" | "replace";
 
 const SHEET_GROUP_OPTIONS: { mode: SheetGroupMode; label: string }[] = [
   { mode: "default", label: "Default" },
@@ -710,6 +254,7 @@ const SHEET_GROUP_OPTIONS: { mode: SheetGroupMode; label: string }[] = [
   { mode: "supplier", label: "Supplier" },
   { mode: "cost", label: "Cost (high to low)" },
 ];
+const ESTIMATE_SOURCES_DRAWER_ID = "estimate-sources-drawer";
 
 function EstimateSheetHeader({
   onExpandAll,
@@ -856,7 +401,8 @@ function sheetFacetsActive(facets: SheetFacetState) {
   return facets.suppliers.length > 0 || facets.categories.length > 0 || facets.hasValueOnly;
 }
 
-function estimateRowItemValue(item: EstimateRowItem) {
+function estimateRowItemValue(item: EstimateRowItem, editableRows?: Record<string, Partial<EditableRowValue>>) {
+  if (editableRows) return computeEditableRowTotal(item, editableRows);
   // Best-effort "row value" without recomputing the full editable total: the
   // seed total, else cost × quantity. Used only for the "has value" facet and
   // the cost sort ordering — never for display.
@@ -864,10 +410,10 @@ function estimateRowItemValue(item: EstimateRowItem) {
   return (item.itemCost ?? 0) * (item.quantity ?? 0);
 }
 
-function estimateRowMatchesFacets(item: EstimateRowItem, facets: SheetFacetState) {
+function estimateRowMatchesFacets(item: EstimateRowItem, facets: SheetFacetState, editableRows: Record<string, Partial<EditableRowValue>>) {
   if (facets.suppliers.length > 0 && !facets.suppliers.includes(item.supplier || "")) return false;
   if (facets.categories.length > 0 && !facets.categories.includes(item.category || "")) return false;
-  if (facets.hasValueOnly && estimateRowItemValue(item) <= 0) return false;
+  if (facets.hasValueOnly && estimateRowItemValue(item, editableRows) <= 0) return false;
   return true;
 }
 
@@ -895,14 +441,14 @@ function collectSheetFacetOptions(node: EstimateTreeNode | null): { suppliers: s
  * keeps a row OR a kept descendant. Returns the SAME node when no facet is
  * active (identity preserved).
  */
-function filterEstimateSheetNodeByFacets(node: EstimateTreeNode, facets: SheetFacetState): EstimateTreeNode | null {
+function filterEstimateSheetNodeByFacets(node: EstimateTreeNode, facets: SheetFacetState, editableRows: Record<string, Partial<EditableRowValue>>): EstimateTreeNode | null {
   if (!sheetFacetsActive(facets)) return node;
 
   function visit(current: EstimateTreeNode): EstimateTreeNode | null {
     const children = (current.children ?? [])
       .map(visit)
       .filter((child): child is EstimateTreeNode => child !== null);
-    const estimateRowItems = (current.estimateRowItems ?? []).filter((item) => estimateRowMatchesFacets(item, facets));
+    const estimateRowItems = (current.estimateRowItems ?? []).filter((item) => estimateRowMatchesFacets(item, facets, editableRows));
     if (children.length > 0 || estimateRowItems.length > 0) {
       return { ...current, children, estimateRowItems };
     }
@@ -935,6 +481,8 @@ type EstimateSheetContentState = {
   proposalExportSettings: ProposalExportUserSettings;
   inspector: EstimateActivityScope | null;
   rowDetails: RowDetailsState | null;
+  rowComponentPicker: RowComponentPickerState | null;
+  rowComponentPickerQuery: string;
   projectSpecificRowId: string;
   promotingRowId: string | null;
   activityFilters: ActivityFilterState;
@@ -963,10 +511,6 @@ function estimateSheetContentFieldAction<K extends keyof EstimateSheetContentSta
   return { type: "fieldChanged", field, value } as EstimateSheetContentAction;
 }
 
-function resolveEstimateSheetContentStateAction<T>(current: T, value: SetStateAction<T>): T {
-  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
-}
-
 function createInitialEstimateSheetContentState(nodes: EstimateTreeNode[]): EstimateSheetContentState {
   return {
     editableRows: collectEditableRows(nodes),
@@ -984,6 +528,8 @@ function createInitialEstimateSheetContentState(nodes: EstimateTreeNode[]): Esti
     proposalExportSettings: DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS,
     inspector: null,
     rowDetails: null,
+    rowComponentPicker: null,
+    rowComponentPickerQuery: "",
     projectSpecificRowId: "",
     promotingRowId: null,
     activityFilters: DEFAULT_ACTIVITY_FILTERS,
@@ -1021,12 +567,12 @@ function estimateSheetContentReducer(
 /**
  * Reorder each area's `estimateRowItems` WITHIN that area (hierarchy preserved):
  * - category/supplier: flatten `groupComponents` buckets back to one array;
- * - cost: `sortComponents` priceDesc.
+ * - cost: live editable line total, high to low.
  * This is a within-area reorder only — it does NOT add group-header rows (that
  * would require changing the row renderer and risk the perf guard; out of
  * scope). Returns the SAME node when mode === "default" (identity preserved).
  */
-function reorderEstimateSheetNodeRows(node: EstimateTreeNode, mode: SheetGroupMode): EstimateTreeNode {
+function reorderEstimateSheetNodeRows(node: EstimateTreeNode, mode: SheetGroupMode, editableRows: Record<string, Partial<EditableRowValue>>): EstimateTreeNode {
   if (mode === "default") return node;
 
   function orderRows(items: EstimateRowItem[]): EstimateRowItem[] {
@@ -1034,8 +580,11 @@ function reorderEstimateSheetNodeRows(node: EstimateTreeNode, mode: SheetGroupMo
     if (mode === "category" || mode === "supplier") {
       return groupSheetRows(items, mode === "category" ? "category" : "supplier").flatMap(([, bucket]) => bucket);
     }
-    // cost: high → low.
-    return sortSheetRows(items.map((item, index) => ({ item, score: 0, index })), "priceDesc");
+    // cost: high -> low by live editable line total, with stable input-order ties.
+    return items
+      .map((item, index) => ({ item, index, total: estimateRowItemValue(item, editableRows) }))
+      .sort((left, right) => right.total - left.total || left.index - right.index)
+      .map(({ item }) => item);
   }
 
   function visit(current: EstimateTreeNode): EstimateTreeNode {
@@ -1324,19 +873,47 @@ export function EstimateSheetContent({
       toast({ id: "estimate-row-save", tone: "error", message: error?.message ?? "Could not save." });
     }
   }, [toast]);
+  const recordLibraryInsertPayloadRejected = useCallback(
+    (reason: EstimateLibraryItemPayloadRejectReason, surface: LibraryInsertPayloadSurface, field?: string) => {
+      recordLibraryEvent("insert_payload_rejected", {
+        workspaceId,
+        projectId,
+        estimateId,
+        surface: "components",
+        action: surface,
+        eventName: ADD_LIBRARY_ITEM_EVENT,
+        reason,
+        field,
+      });
+    },
+    [estimateId, projectId, workspaceId],
+  );
+  const recordReadOnlyLibraryMutationAttempt = useCallback(
+    (action: string) => {
+      recordLibraryEvent("authz_denied", {
+        workspaceId,
+        projectId,
+        estimateId,
+        resourceKind: "estimate",
+        role: "viewer",
+        action,
+      });
+    },
+    [estimateId, projectId, workspaceId],
+  );
   const {
     saveState,
     markRowDirty: markRowDirtyNow,
     insertRow,
     replaceRow,
+    moveRows,
     detachRow,
     promoteRow,
     deleteRow,
+    deleteRows,
+    restoreDeletedRows,
     updateRow,
   } = useEstimateRowMutations(estimateId, dataTabId, workspaceId, projectId, notifySaveState);
-  // Row tables are memoized on callback identity: every handler that reaches
-  // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
-  const markRowDirty = useStableCallback(markRowDirtyNow);
   const legacyTreeQuery = useEstimateAreaTreeQuery({
     projectId,
     estimateId,
@@ -1362,9 +939,7 @@ export function EstimateSheetContent({
   } = activeTreeQuery;
   const estimatePointerSurfaceRef = useRef<HTMLDivElement | null>(null);
   const skipEditableRowsSyncRef = useRef(0);
-  const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>({});
-  const pendingFocusRowIdRef = useRef("");
-  const pendingFocusFrameIdRef = useRef(0);
+  const accountColumnWidthsSnapshotRef = useRef<string | null>(null);
   const [contentState, dispatchContentState] = useReducer(
     estimateSheetContentReducer,
     nodes,
@@ -1386,6 +961,8 @@ export function EstimateSheetContent({
     proposalExportSettings,
     inspector,
     rowDetails,
+    rowComponentPicker,
+    rowComponentPickerQuery,
     projectSpecificRowId,
     promotingRowId,
     activityFilters,
@@ -1398,13 +975,12 @@ export function EstimateSheetContent({
     sheetFacets,
     sheetGroupMode,
   } = contentState;
+  const [sourcesDrawerOpen, setSourcesDrawerOpen] = useState(false);
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
     dispatchContentState(estimateSheetContentFieldAction("editableRows", value));
   });
-  const setExpressInsertDrafts = useStableCallback((updater: SetStateAction<Record<string, ExpressInsertDraft>>) => {
-    const next = resolveEstimateSheetContentStateAction(expressInsertDraftsRef.current, updater);
-    expressInsertDraftsRef.current = next;
-    dispatchContentState(estimateSheetContentFieldAction("expressInsertDrafts", next));
+  const setExpressInsertDrafts = useStableCallback((value: SetStateAction<Record<string, ExpressInsertDraft>>) => {
+    dispatchContentState(estimateSheetContentFieldAction("expressInsertDrafts", value));
   });
   const setPendingLibraryCommitGate = useStableCallback((value: SetStateAction<PendingLibraryCommitGate | null>) => {
     dispatchContentState(estimateSheetContentFieldAction("pendingLibraryCommitGate", value));
@@ -1444,6 +1020,12 @@ export function EstimateSheetContent({
   });
   const setRowDetails = useStableCallback((value: SetStateAction<RowDetailsState | null>) => {
     dispatchContentState(estimateSheetContentFieldAction("rowDetails", value));
+  });
+  const setRowComponentPicker = useStableCallback((value: SetStateAction<RowComponentPickerState | null>) => {
+    dispatchContentState(estimateSheetContentFieldAction("rowComponentPicker", value));
+  });
+  const setRowComponentPickerQuery = useStableCallback((value: SetStateAction<string>) => {
+    dispatchContentState(estimateSheetContentFieldAction("rowComponentPickerQuery", value));
   });
   const setProjectSpecificRowId = useStableCallback((value: SetStateAction<string>) => {
     dispatchContentState(estimateSheetContentFieldAction("projectSpecificRowId", value));
@@ -1504,30 +1086,43 @@ export function EstimateSheetContent({
     hydrateEstimateColumnWidths(estimateId);
   }, [estimateColumnResizeEnabled, estimateId, hydrateEstimateColumnWidths]);
 
+  useEffect(() => {
+    if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
+    let cancelled = false;
+    void loadEstimateSheetUserPreferences(estimateId)
+      .then((preferences) => {
+        if (cancelled || !preferences) return;
+        const snapshot = JSON.stringify(preferences.columnWidths);
+        accountColumnWidthsSnapshotRef.current = snapshot;
+        commitEstimateColumnWidths(estimateId, preferences.columnWidths);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [commitEstimateColumnWidths, estimateColumnResizeEnabled, estimateId]);
+
+  useEffect(() => {
+    if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
+    const snapshot = JSON.stringify(committedEstimateColumnWidths);
+    if (accountColumnWidthsSnapshotRef.current === snapshot) return undefined;
+    accountColumnWidthsSnapshotRef.current = snapshot;
+    const timer = window.setTimeout(() => {
+      void saveEstimateSheetUserPreferences({
+        estimateId,
+        columnWidths: committedEstimateColumnWidths,
+      }).catch(() => undefined);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [committedEstimateColumnWidths, estimateColumnResizeEnabled, estimateId]);
+
   const expressInsertDraftStates = useMemo<Record<string, ExpressInsertDraftState>>(
     () => Object.fromEntries(Object.entries(expressInsertDrafts).map(([rowId, draft]) => [rowId, draft.status])),
     [expressInsertDrafts],
   );
-  // P3-activity: per-node stored activity scope (direct-only vs descendants).
-  // Stable identity (selector returns the same default {} until a flip), so the
-  // activity cache key never becomes time-varying when a child is added.
-  const activityScopeDirectOnly = useEstimateUiStore((s) => s.activityScopeDirectOnly);
-  const [historyReloadToken, bumpHistoryReloadToken] = useReducer((current: number) => current + 1, 0);
   // C3/Req 13: ref to the tab strip's imperative handle so the middle-panel
   // header can trigger createTab without prop-drilling.
   const tabStripRef = useRef<EstimateTabStripHandle | null>(null);
-  // Mirrors the tab strip's create-enabled / pending state for the header button.
-  // Updated via onCreateTabStateChange (effect in EstimateTabStrip) so the header
-  // re-renders on each transition even though refs don't cause re-renders.
-  const inspectorOpenerRef = useRef<HTMLElement | null>(null);
-  const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
-  const proposalPreviewOpenerRef = useRef<HTMLElement | null>(null);
-  const inspectorScopeRef = useRef("");
-  const historyRequestGenerationRef = useRef(0);
-  const activateHistoryScope = useCallback((scopeKey: string) => {
-    inspectorScopeRef.current = scopeKey;
-    historyRequestGenerationRef.current += 1;
-  }, []);
   // Lazy library path: production pages no longer pass library props, so the
   // dataset loads through a server action once the sidebar (or palette) needs
   // it. Server-provided props short-circuit the fetch for tests/embeds.
@@ -1548,7 +1143,7 @@ export function EstimateSheetContent({
       if (!projectId) throw new Error("Project id is required to load the component library.");
       return loadProjectComponentLibraryLite(projectId);
     },
-    enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
+    enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette || rowComponentPicker?.mode === "replace"),
     staleTime: 5 * 60 * 1000,
     // U19: keep the warmed cache long after navigate-away so returning to the
     // estimate doesn't re-run the cold load (it's workspace-global + mutation-invalidated).
@@ -1593,44 +1188,38 @@ export function EstimateSheetContent({
       currency: "PHP",
     };
   }, [estimateId, projectId, proposalExportMetadata]);
-  const persistedTabs = useMemo(() => estimateTabs.filter((tab) => tab.id !== "legacy-main"), [estimateTabs]);
-  const hasMultiplePersistedTabs = persistedTabs.length > 1;
-  const activeProposalExportTab = useMemo(
-    () =>
-      persistedTabs.find((tab) => tab.id === dataTabId) ??
-      persistedTabs.find((tab) => tab.id === activeTabId) ??
-      persistedTabs.find((tab) => tab.isDefault) ??
-      persistedTabs[0],
-    [activeTabId, dataTabId, persistedTabs],
-  );
-  const activeProposalExportTabName = activeProposalExportTab?.name ?? "Current";
-  const tabScopeSignature = useMemo(
-    () => persistedTabs.map((tab) => `${tab.id}:${tab.name}:${tab.sortOrder}`).join("|"),
-    [persistedTabs],
-  );
-  const getProposalPreviewSignature = useCallback(
-    (scope: ProposalExportPreviewScope) => [
-      createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
-      dataTabId ?? "legacy",
-      tabScopeSignature,
-      scope,
-      JSON.stringify(proposalPreviewModelSettings(proposalExportSettings)),
-    ].join("::"),
-    [dataTabId, editableRows, estimateTree, proposalExportSettings, resolvedProposalExportMetadata, tabScopeSignature],
-  );
-  const currentProposalPreviewSignature = useMemo(
-    () => (proposalPreviewModel ? getProposalPreviewSignature(proposalPreviewScope) : ""),
-    [getProposalPreviewSignature, proposalPreviewModel, proposalPreviewScope],
-  );
-  const proposalDownloadHref = useMemo(() => {
-    if (!projectId || !estimateId) return null;
-    const baseHref = `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
-    const params = new URLSearchParams();
-    if (hasMultiplePersistedTabs && proposalPreviewScope === "active-tab" && dataTabId) params.set("tab", dataTabId);
-    appendProposalExportSettingsParams(params, proposalExportSettings);
-    const query = params.toString();
-    return query ? `${baseHref}?${query}` : baseHref;
-  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId, proposalExportSettings, proposalPreviewScope]);
+  const {
+    changeProposalExportSettings,
+    closeProposalPreview,
+    downloadProposalExport,
+    openProposalPreview,
+    proposalPreviewScopeControls,
+    proposalPreviewStatus,
+    refreshProposalPreview,
+  } = useEstimateProposalPreview({
+    projectId,
+    estimateId,
+    activeTabId,
+    dataTabId,
+    estimateTabs,
+    estimateTree,
+    editableRows,
+    resolvedProposalExportMetadata,
+    isProposalPreviewOpen,
+    proposalPreviewScope,
+    proposalPreviewModel,
+    proposalPreviewSignature,
+    isDownloadingProposal,
+    proposalDownloadError,
+    proposalExportSettings,
+    setIsProposalPreviewOpen,
+    setProposalPreviewScope,
+    setProposalPreviewModel,
+    setProposalPreviewSignature,
+    setIsDownloadingProposal,
+    setProposalDownloadError,
+    setProposalExportSettings,
+  });
   const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
@@ -1667,10 +1256,10 @@ export function EstimateSheetContent({
     let node: EstimateTreeNode | null = sheetSearchActive
       ? filterEstimateSheetNode(selectedNode, sheetSearchQuery)
       : selectedNode;
-    if (node && facetsActive) node = filterEstimateSheetNodeByFacets(node, sheetFacets);
-    if (node && groupActive) node = reorderEstimateSheetNodeRows(node, sheetGroupMode);
+    if (node && facetsActive) node = filterEstimateSheetNodeByFacets(node, sheetFacets, editableRows);
+    if (node && groupActive) node = reorderEstimateSheetNodeRows(node, sheetGroupMode, editableRows);
     return node;
-  }, [selectedNode, sheetSearchActive, sheetSearchQuery, facetsActive, sheetFacets, groupActive, sheetGroupMode]);
+  }, [selectedNode, sheetSearchActive, sheetSearchQuery, facetsActive, sheetFacets, groupActive, sheetGroupMode, editableRows]);
   // Facet options derive from the unfiltered selected node so toggling a facet
   // never removes other facets' options from the popover.
   const sheetFacetOptions = useMemo(() => collectSheetFacetOptions(selectedNode), [selectedNode]);
@@ -1766,33 +1355,97 @@ export function EstimateSheetContent({
     () => estimateTree.reduce((total, node) => total + (estimateNodeTotals.get(node.id) ?? 0), 0),
     [estimateNodeTotals, estimateTree],
   );
-  const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || projectSpecificRowId);
+  const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || projectSpecificRowId || rowComponentPicker?.mode === "move");
   const currentRows = useMemo(
     () => (shouldBuildFlattenedRows ? flattenEstimateRows(estimateTree, editableRows) : EMPTY_FLATTENED_ESTIMATE_ROWS),
     [editableRows, estimateTree, shouldBuildFlattenedRows],
   );
-  const inspectorScopeKey = getActivityScopeKey(inspector);
-  const activityFilterKey = useMemo(() => createActivityFilterKey(activityFilters), [activityFilters]);
-  const activityScopeItems = useMemo(() => {
-    if (!inspector) return EMPTY_ACTIVITY_SCOPE_ITEMS;
-    return buildActivityScopeTreeItems({
-      nodes: estimateTree,
-      rows: currentRows,
-      editableRows,
-      metadata: resolvedProposalExportMetadata,
-      projectTotal,
-      nodeTotals: estimateNodeTotals,
-      activityScopeDirectOnly,
-    });
-  }, [activityScopeDirectOnly, currentRows, editableRows, estimateNodeTotals, estimateTree, inspector, projectTotal, resolvedProposalExportMetadata]);
-  const selectedActivityScopeItem = useMemo(
-    () => activityScopeItems.find((item) => getActivityScopeKey(item.scope) === inspectorScopeKey) ?? activityScopeItems[0] ?? null,
-    [activityScopeItems, inspectorScopeKey],
+  const {
+    activityScopeItems,
+    closeInspector,
+    closeRowDetails,
+    loadMoreVersionControl,
+    openActivityHistory,
+    openRowDetails,
+    reloadVersionControl,
+    replaceActivityFilters,
+    resetActivityFilters,
+    selectActivityScope,
+    selectedActivityScopeItem,
+    selectedRowDetailsItem,
+    setRowDetailsTab,
+  } = useEstimateHistoryPanel({
+    projectId,
+    estimateId,
+    estimateTree,
+    currentRows,
+    editableRows,
+    resolvedProposalExportMetadata,
+    projectTotal,
+    estimateNodeTotals,
+    inspector,
+    rowDetails,
+    activityFilters,
+    historyData,
+    isHistoryLoadingMore,
+    setInspector,
+    setRowDetails,
+    setActivityFilters,
+    setHistoryData,
+    setIsHistoryLoading,
+    setIsHistoryLoadingMore,
+    setHistoryError,
+  });
+  const rowComponentPickerSourceItem = useMemo(
+    () => (rowComponentPicker ? findEstimateRowItem(estimateTree, rowComponentPicker.rowItemId) : null),
+    [estimateTree, rowComponentPicker],
   );
-  const selectedRowDetailsItem = useMemo(
-    () => (rowDetails ? currentRows.find((row) => row.item.id === rowDetails.rowId) ?? null : null),
-    [currentRows, rowDetails],
-  );
+  const rowComponentPickerSourceLabel =
+    rowComponentPickerSourceItem?.material || rowComponentPickerSourceItem?.name || "Selected component";
+  const normalizedRowComponentPickerQuery = rowComponentPickerQuery.trim().toLocaleLowerCase();
+  const rowComponentReplaceOptions = useMemo(() => {
+    if (rowComponentPicker?.mode !== "replace") return EMPTY_ESTIMATE_ROW_ITEMS;
+    const items = resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
+    if (!normalizedRowComponentPickerQuery) return items.slice(0, 50);
+    return items
+      .filter((item) =>
+        [
+          item.name,
+          item.material,
+          item.supplier,
+          item.category,
+          item.unit,
+        ].some((value) => value?.toLocaleLowerCase().includes(normalizedRowComponentPickerQuery))
+      )
+      .slice(0, 50);
+  }, [normalizedRowComponentPickerQuery, resolvedLibraryItems, rowComponentPicker?.mode]);
+  const rowComponentMoveOptions = useMemo(() => {
+    if (rowComponentPicker?.mode !== "move") return [];
+    const sourceIsMovable = Boolean(rowComponentPickerSourceItem && !isExpressComponentRow(rowComponentPickerSourceItem));
+    return currentRows
+      .filter((row) => {
+        if (!normalizedRowComponentPickerQuery) return true;
+        return [
+          row.item.material,
+          row.item.supplier,
+          row.item.unit,
+          row.nodePath.join(" / "),
+        ].some((value) => value?.toLocaleLowerCase().includes(normalizedRowComponentPickerQuery));
+      })
+      .slice(0, 100)
+      .map((row) => {
+        const isSource = row.item.id === rowComponentPicker.rowItemId;
+        return {
+          row,
+          disabled: !sourceIsMovable || isSource,
+          reason: !sourceIsMovable
+            ? "Express components must be replaced directly before they can be moved."
+            : isSource
+              ? "A component cannot be moved into its current row."
+              : "",
+        };
+      });
+  }, [currentRows, normalizedRowComponentPickerQuery, rowComponentPicker, rowComponentPickerSourceItem]);
   const projectSpecificRow = useMemo(
     () => (projectSpecificRowId ? currentRows.find((row) => row.item.id === projectSpecificRowId) ?? null : null),
     [currentRows, projectSpecificRowId],
@@ -1817,288 +1470,20 @@ export function EstimateSheetContent({
     if (window.location.pathname === href) return;
     window.history.replaceState(null, "", href);
   }, [disableRouteSync, estimateId, projectId]);
-  const setActiveInspector = useCallback((nextInspector: EstimateActivityScope | null) => {
-    const nextScopeKey = getActivityScopeKey(nextInspector);
-    activateHistoryScope(nextScopeKey);
-    setInspector(nextInspector);
-  }, [activateHistoryScope, setInspector]);
-  const replaceActivityFilters = useCallback((nextFilters: ActivityFilterState) => {
-    setActivityFilters(nextFilters);
-    if (projectId && estimateId && inspector) {
-      historyRequestGenerationRef.current += 1;
-      setIsHistoryLoading(true);
-      setIsHistoryLoadingMore(false);
-      setHistoryData(null);
-      setHistoryError("");
-    }
-  }, [estimateId, inspector, projectId, setActivityFilters, setHistoryData, setHistoryError, setIsHistoryLoading, setIsHistoryLoadingMore]);
-  const resetActivityFilters = useCallback(() => {
-    replaceActivityFilters(DEFAULT_ACTIVITY_FILTERS);
-  }, [replaceActivityFilters]);
-  const reloadVersionControl = useCallback(() => {
-    if (projectId && estimateId) {
-      historyRequestGenerationRef.current += 1;
-      setIsHistoryLoading(true);
-      setIsHistoryLoadingMore(false);
-      setHistoryData(null);
-      setHistoryError("");
-    }
-    bumpHistoryReloadToken();
-  }, [estimateId, projectId, setHistoryData, setHistoryError, setIsHistoryLoading, setIsHistoryLoadingMore]);
-  const closeInspector = useCallback(() => {
-    setActiveInspector(null);
-    window.requestAnimationFrame(() => inspectorOpenerRef.current?.focus());
-  }, [setActiveInspector]);
-  const closeInspectorFromKeyDown = useEffectEvent(() => closeInspector());
-  const prepareHistoryLoad = useCallback(() => {
-    if (projectId && estimateId) {
-      setIsHistoryLoading(true);
-      setIsHistoryLoadingMore(false);
-      setHistoryData(null);
-      setHistoryError("");
-    }
-  }, [estimateId, projectId, setHistoryData, setHistoryError, setIsHistoryLoading, setIsHistoryLoadingMore]);
-  const openActivityHistory = useCallback((opener: HTMLElement, initialScope: EstimateActivityScope = { mode: "sheet" }) => {
-    inspectorOpenerRef.current = opener;
-    prepareHistoryLoad();
-    setActiveInspector(initialScope);
-  }, [prepareHistoryLoad, setActiveInspector]);
-  const openRowDetails = useCallback((rowItemId: string, opener: HTMLElement, tab: RowDetailTab = "details") => {
-    rowDetailsOpenerRef.current = opener;
-    setRowDetails({ rowId: rowItemId, tab });
-  }, [setRowDetails]);
-  const closeRowDetails = useCallback(() => {
-    setRowDetails(null);
-    window.requestAnimationFrame(() => rowDetailsOpenerRef.current?.focus());
-  }, [setRowDetails]);
-  const closeRowDetailsFromKeyDown = useEffectEvent(() => closeRowDetails());
-  const setRowDetailsTab = useCallback((tab: RowDetailTab) => {
-    setRowDetails((current) => (current ? { ...current, tab } : current));
-  }, [setRowDetails]);
-  const selectActivityScope = useCallback((nextScope: EstimateActivityScope) => {
-    if (getActivityScopeKey(nextScope) === inspectorScopeKey) return;
-    prepareHistoryLoad();
-    setActiveInspector(nextScope);
-  }, [inspectorScopeKey, prepareHistoryLoad, setActiveInspector]);
-  const loadMoreVersionControl = useCallback(() => {
-    if (!inspector || !historyData || !projectId || !estimateId || isHistoryLoadingMore) return;
-
-    const isRowHistory = inspector.mode === "row";
-    const isNodeHistory = inspector.mode === "node";
-    const requestScopeKey = isRowHistory ? `row:${inspector.rowId}` : isNodeHistory ? `node:${inspector.nodeId}:${inspector.includeDescendants ? "desc" : "direct"}` : "sheet";
-    const cursor = isRowHistory ? historyData.rowNextCursor : isNodeHistory ? historyData.nodeNextCursor : historyData.nextCursor;
-    if (!cursor) return;
-
-    setIsHistoryLoadingMore(true);
-    setHistoryError("");
-    const requestGeneration = historyRequestGenerationRef.current;
-    const isCurrentHistoryRequest = () => inspectorScopeRef.current === requestScopeKey && historyRequestGenerationRef.current === requestGeneration;
-
-    fetchEstimateSheetVersionControl({
-      projectId,
-      estimateId,
-      rowId: isRowHistory ? inspector.rowId : undefined,
-      nodeId: isNodeHistory ? inspector.nodeId : undefined,
-      includeDescendants: isNodeHistory ? inspector.includeDescendants : undefined,
-      eventLimit: 50,
-      ...getActivityFilterInput(activityFilters),
-      sheetCursor: !isRowHistory && !isNodeHistory ? cursor : undefined,
-      rowCursor: isRowHistory ? cursor : undefined,
-      nodeCursor: isNodeHistory ? cursor : undefined,
-      scope: isRowHistory ? "row" : isNodeHistory ? "node" : "sheet",
-    })
-      .then((data) => {
-        if (!isCurrentHistoryRequest()) return;
-        setHistoryData((current) => {
-          if (!current) return data;
-          if (isRowHistory) {
-            return {
-              ...current,
-              rowEvents: [...current.rowEvents, ...data.rowEvents],
-              rowNextCursor: data.rowNextCursor,
-            };
-          }
-
-          if (isNodeHistory) {
-            return {
-              ...current,
-              nodeEvents: [...(current.nodeEvents ?? []), ...data.nodeEvents],
-              nodeNextCursor: data.nodeNextCursor,
-            };
-          }
-
-          return {
-            ...current,
-            events: [...current.events, ...data.events],
-            nextCursor: data.nextCursor,
-          };
-        });
-      })
-      .catch((error: unknown) => {
-        if (!isCurrentHistoryRequest()) return;
-        setHistoryError(error instanceof Error ? error.message : "Activity history could not load.");
-      })
-      .finally(() => {
-        if (!isCurrentHistoryRequest()) return;
-        setIsHistoryLoadingMore(false);
-      });
-  }, [activityFilters, estimateId, historyData, inspector, isHistoryLoadingMore, projectId, setHistoryData, setHistoryError, setIsHistoryLoadingMore]);
-  const buildProposalPreview = useCallback((scope: ProposalExportPreviewScope = proposalPreviewScope) => {
-    if (!resolvedProposalExportMetadata) return null;
-
-    // The preview reflects the user's rate/formula choices so its grand total matches the file;
-    // audience stays client-safe in the preview (the real audience is server-resolved on download).
-    const model = buildProposalExportModel({
-      metadata: resolvedProposalExportMetadata,
-      nodes: materializeEditableEstimateTree(estimateTree, editableRows),
-      settings: proposalPreviewModelSettings(proposalExportSettings),
-    });
-    setProposalPreviewModel(model);
-    setProposalPreviewSignature(getProposalPreviewSignature(scope));
-    return model;
-  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata, setProposalPreviewModel, setProposalPreviewSignature]);
-  const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
-    setProposalPreviewScope(scope);
-    setProposalDownloadError(null);
-    if (isProposalPreviewOpen) buildProposalPreview(scope);
-  }, [buildProposalPreview, isProposalPreviewOpen, setProposalDownloadError, setProposalPreviewScope]);
-  const changeProposalExportSettings = useCallback((next: ProposalExportUserSettings) => {
-    // Settings changes mark the preview stale (the signature includes settings); the user
-    // refreshes to rebuild — matching the existing stale-then-refresh pattern (avoids jank).
-    setProposalExportSettings(next);
-    setProposalDownloadError(null);
-  }, [setProposalDownloadError, setProposalExportSettings]);
-  const openProposalPreview = useCallback(() => {
-    // Capture the opener so focus returns to it when the dialog closes (F-06/P1-T3),
-    // mirroring inspectorOpenerRef / rowDetailsOpenerRef.
-    proposalPreviewOpenerRef.current = (typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null);
-    const model = buildProposalPreview();
-    if (model) setIsProposalPreviewOpen(true);
-  }, [buildProposalPreview, setIsProposalPreviewOpen]);
-  const closeProposalPreview = useCallback(() => {
-    setIsProposalPreviewOpen(false);
-    setProposalDownloadError(null);
-    window.requestAnimationFrame(() => proposalPreviewOpenerRef.current?.focus());
-  }, [setIsProposalPreviewOpen, setProposalDownloadError]);
-  const refreshProposalPreview = useCallback(() => {
-    setProposalDownloadError(null);
-    buildProposalPreview();
-  }, [buildProposalPreview, setProposalDownloadError]);
-  // F-05 (P1-T1): fetch-then-blob download. A bare <a href> saved the route's JSON
-  // error body (413/404/500/429/401) to disk under the .xlsx name; here we inspect
-  // response.ok + content-type, blob only on success, and surface the route's {error}
-  // inline instead of handing the user a corrupt file.
-  const downloadProposalExport = useCallback(async () => {
-    if (!proposalDownloadHref) return;
-    setIsDownloadingProposal(true);
-    setProposalDownloadError(null);
-    try {
-      const response = await fetch(proposalDownloadHref);
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!response.ok || !contentType.includes(PROPOSAL_XLSX_CONTENT_TYPE)) {
-        let message = "We couldn't generate the spreadsheet. Please try again.";
-        try {
-          const body = await response.json();
-          if (body && typeof body.error === "string" && body.error.trim()) message = body.error;
-        } catch {
-          /* non-JSON error body — keep the friendly default */
-        }
-        setProposalDownloadError(message);
-        return;
-      }
-      const blob = await response.blob();
-      const filename = readContentDispositionFilename(response.headers.get("content-disposition")) ?? "proposal.xlsx";
-      triggerBlobDownload(blob, filename);
-    } catch {
-      setProposalDownloadError("We couldn't reach the export service. Check your connection and try again.");
-    } finally {
-      setIsDownloadingProposal(false);
-    }
-  }, [proposalDownloadHref, setIsDownloadingProposal, setProposalDownloadError]);
-  const proposalPreviewScopeControls = hasMultiplePersistedTabs
-    ? {
-        selectedScope: proposalPreviewScope,
-        activeTabName: activeProposalExportTabName,
-        tabCount: persistedTabs.length,
-        onScopeChange: changeProposalPreviewScope,
-      }
-    : undefined;
-  const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
-  // Disable download for a genuinely empty export. For multi-tab all-tabs scope the
-  // preview is built from the active tab only, so other tabs may still carry rows —
-  // keep that case enabled and let the route decide.
-  const isProposalExportEmpty =
-    (proposalPreviewModel?.proposalRows.length ?? 0) === 0 &&
-    !(hasMultiplePersistedTabs && proposalPreviewScope === "all-tabs");
-  useEffect(() => {
-    if (!inspectorScopeKey) return;
-
-    if (!projectId || !estimateId) return;
-
-    let isActive = true;
-    const requestScopeKey = inspectorScopeKey;
-    const isRowHistory = requestScopeKey.startsWith("row:");
-    const isNodeHistory = requestScopeKey.startsWith("node:");
-    const rowId = isRowHistory ? requestScopeKey.slice("row:".length) : undefined;
-    const [nodeId, nodeDescendantMode] = isNodeHistory ? requestScopeKey.slice("node:".length).split(":") : [];
-    const requestGeneration = historyRequestGenerationRef.current;
-    const isCurrentHistoryRequest = () => isActive && inspectorScopeRef.current === requestScopeKey && historyRequestGenerationRef.current === requestGeneration;
-    fetchEstimateSheetVersionControl({
-      projectId,
-      estimateId,
-      rowId,
-      nodeId,
-      includeDescendants: isNodeHistory ? nodeDescendantMode === "desc" : undefined,
-      eventLimit: 50,
-      ...getActivityFilterInput(activityFilters),
-      scope: isRowHistory ? "row" : isNodeHistory ? "node" : "sheet",
-    })
-      .then((data) => {
-        if (!isCurrentHistoryRequest()) return;
-        setHistoryData(data);
-      })
-      .catch((error: unknown) => {
-        if (!isCurrentHistoryRequest()) return;
-        setHistoryError(error instanceof Error ? error.message : "Activity history could not load.");
-      })
-      .finally(() => {
-        if (isCurrentHistoryRequest()) setIsHistoryLoading(false);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [activityFilterKey, activityFilters, estimateId, historyReloadToken, inspectorScopeKey, projectId, setHistoryData, setHistoryError, setIsHistoryLoading]);
-
-  useEffect(() => {
-    inspectorScopeRef.current = inspectorScopeKey;
-  }, [inspectorScopeKey]);
-
-  useEffect(() => {
-    if (!inspector) return;
-
-    function handleEscape(event: globalThis.KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      closeInspectorFromKeyDown();
-    }
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [inspector]);
-
-  useEffect(() => {
-    if (!rowDetails) return;
-
-    function handleEscape(event: globalThis.KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      closeRowDetailsFromKeyDown();
-    }
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [rowDetails]);
+  const openReplaceComponentPicker = useCallback((rowItemId: string, opener: HTMLElement) => {
+    setRowComponentPicker({ mode: "replace", rowItemId, opener });
+    setRowComponentPickerQuery("");
+  }, [setRowComponentPicker, setRowComponentPickerQuery]);
+  const openMoveComponentPicker = useCallback((rowItemId: string, opener: HTMLElement) => {
+    setRowComponentPicker({ mode: "move", rowItemId, opener });
+    setRowComponentPickerQuery("");
+  }, [setRowComponentPicker, setRowComponentPickerQuery]);
+  const closeRowComponentPicker = useCallback(() => {
+    const opener = rowComponentPicker?.opener;
+    setRowComponentPicker(null);
+    setRowComponentPickerQuery("");
+    window.requestAnimationFrame(() => opener?.focus());
+  }, [rowComponentPicker?.opener, setRowComponentPicker, setRowComponentPickerQuery]);
 
   useEffect(() => {
     dispatchProjectTotalChange(projectTotal);
@@ -2127,404 +1512,89 @@ export function EstimateSheetContent({
     setEditableRows(previousRows);
   }, [restoreEstimateTree, setEditableRows]);
 
-  useEffect(() => {
-    if (saveState === "dirty" || saveState === "saving") return;
-    if (skipEditableRowsSyncRef.current > 0) {
-      skipEditableRowsSyncRef.current -= 1;
-      return;
-    }
-    queueMicrotask(() => {
-      const nextRows = collectEditableRows(estimateTree);
-      const activeExpressRowId = getActiveExpressEditorRowId();
-      setEditableRows((currentRows) => {
-        if (!activeExpressRowId || !currentRows[activeExpressRowId]) return nextRows;
-        return {
-          ...nextRows,
-          [activeExpressRowId]: currentRows[activeExpressRowId],
-        };
-      });
-    });
-  }, [estimateTree, saveState, setEditableRows]);
-
-  const requestPendingRowFocus = useStableCallback((rowId: string) => {
-    pendingFocusRowIdRef.current = rowId;
-    if (pendingFocusFrameIdRef.current) window.cancelAnimationFrame(pendingFocusFrameIdRef.current);
-    let attempts = 0;
-
-    function tryFocus() {
-      const pendingFocusRowId = pendingFocusRowIdRef.current;
-      if (!pendingFocusRowId) {
-        pendingFocusFrameIdRef.current = 0;
-        return;
-      }
-      const focusTarget =
-        document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"] [data-express-field="name"]`) ??
-        document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
-      if (focusTarget) {
-        focusTarget.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-        focusTarget.focus();
-        focusTarget.select();
-        pendingFocusRowIdRef.current = "";
-        pendingFocusFrameIdRef.current = 0;
-        return;
-      }
-
-      attempts += 1;
-      if (attempts < 5) pendingFocusFrameIdRef.current = window.requestAnimationFrame(tryFocus);
-      else {
-        pendingFocusRowIdRef.current = "";
-        pendingFocusFrameIdRef.current = 0;
-      }
-    }
-
-    pendingFocusFrameIdRef.current = window.requestAnimationFrame(tryFocus);
+  const {
+    cancelPendingLibraryCommit,
+    clearRowComponent,
+    confirmPendingLibraryCommit,
+    confirmProjectSpecific,
+    deleteExpressDraft,
+    deleteRowItem,
+    deleteSelectedRows,
+    insertBlankRow,
+    insertIntoSelectedNode,
+    insertLibraryItem,
+    markRowDirty,
+    moveFromComponentPicker,
+    moveRowComponent,
+    promoteRowToLibrary,
+    replaceFromComponentPicker,
+    replaceRowItem,
+    requestProjectSpecific,
+    retryExpressDraft,
+    updateRowItem,
+  } = useEstimateRowHandlers({
+    canEditEstimate,
+    projectId,
+    workspaceId,
+    estimateId,
+    estimateTree,
+    editableRows,
+    saveState,
+    insertTargetNodeId,
+    pendingLibraryCommitGate,
+    expressInsertDrafts,
+    bulkSelectedRowIds,
+    rowComponentPicker,
+    projectSpecificRowItem: projectSpecificRow?.item ?? null,
+    markRowDirtyNow,
+    insertRow,
+    replaceRow,
+    moveRows,
+    detachRow,
+    promoteRow,
+    deleteRow,
+    deleteRows,
+    restoreDeletedRows,
+    updateRow,
+    setEstimateTree,
+    setEditableRows,
+    setExpressInsertDrafts,
+    setPendingLibraryCommitGate,
+    setBulkSelectedRowIds,
+    setProjectSpecificRowId,
+    setPromotingRowId,
+    skipEditableRowsSyncRef,
+    getEstimateTreeRevision,
+    restoreEstimateState,
+    closeRowComponentPicker,
+    refetchProjectComponentProjection,
+    handleLibraryDataChanged,
+    recordReadOnlyLibraryMutationAttempt,
+    toast,
   });
 
-  useEffect(() => () => {
-    if (pendingFocusFrameIdRef.current) window.cancelAnimationFrame(pendingFocusFrameIdRef.current);
-  }, []);
-
-  const commitRowItemUpdate = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
-    if (!projectId || !estimateId) return;
-    const previousTree = estimateTree;
-    const previousRows = collectEditableRows(estimateTree);
-    const rollbackRevision = getEstimateTreeRevision();
-    const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
-    const currentEditableRow = editableRows[rowItemId] ?? previousRows[rowItemId];
-    const nextEditableRow: EditableRowValue = {
-      name: currentEditableRow?.name ?? "",
-      description: currentEditableRow?.description ?? "",
-      supplier: currentEditableRow?.supplier ?? "",
-      unit: currentEditableRow?.unit ?? "unit",
-      unitCost: currentEditableRow?.unitCost ?? "0",
-      imageUrl: currentEditableRow?.imageUrl ?? "",
-      sourceUrl: currentEditableRow?.sourceUrl ?? "",
-      quantity: currentEditableRow?.quantity ?? "0",
-      contingencyMode: currentEditableRow?.contingencyMode ?? "contingency",
-      contingencyPercentage: currentEditableRow?.contingencyPercentage ?? "0",
-      miscCost: currentEditableRow?.miscCost ?? "0",
-      ...values,
-    };
-    const expressFieldNames = ["name", "description", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
-    if (expressFieldNames.length > 0) {
-      recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
-    }
-    const sourceSnapshotPatch = values.imageUrl !== undefined || values.sourceUrl !== undefined
-      ? {
-          ...(values.imageUrl !== undefined ? { imageUrl: values.imageUrl.trim() || null } : {}),
-          ...(values.sourceUrl !== undefined ? { sourceUrl: values.sourceUrl.trim() || null } : {}),
-        }
-      : undefined;
-    const shouldPromoteLegacyBlankToExpress = Boolean(currentRowItem && isBlankEstimateRowItem(currentRowItem));
-
-    updateRow({
-      projectId,
-      estimateId,
-      rowId: rowItemId,
-      ...(values.name !== undefined ? { material: values.name } : {}),
-      ...(values.description !== undefined ? { description: values.description } : {}),
-      ...(values.supplier !== undefined ? { supplier: values.supplier } : {}),
-      ...(values.unit !== undefined ? { unit: values.unit } : {}),
-      ...(values.unitCost !== undefined ? { unitCost: parseNonNegativeEditableNumber(values.unitCost) } : {}),
-      ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
-      ...(values.quantity !== undefined ? { quantity: parseNonNegativeEditableNumber(values.quantity) } : {}),
-      ...(values.contingencyPercentage !== undefined || values.contingencyMode !== undefined ? { contingencyPercentage: parseEditableContingencyPercentage(nextEditableRow) } : {}),
-      ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
-      ...(shouldPromoteLegacyBlankToExpress ? {
-        metadata: withExpressComponentMetadata(currentRowItem?.metadata, {
-          id: rowItemId,
-          createdFrom: "legacy-blank-row-inline-edit",
-          sourceLabel: "Express component",
-          createdAt: new Date().toISOString(),
-        }),
-      } : {}),
-      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-      onSuccess: () => refetchProjectComponentProjection(),
-    });
+  const {
+    insertTemplateIntoSelectedGroup,
+    insertTemplatesIntoParentById,
+    insertTemplateNodeIntoParentById,
+    insertTemplateNodeIntoSelectedGroup,
+  } = useEstimateTemplateInsertion({
+    canEditEstimate,
+    projectId,
+    estimateId,
+    dataTabId,
+    estimateTree,
+    editableRows,
+    templateById,
+    templateTargetParentNode,
+    setEstimateTree,
+    setEditableRows,
+    setSelectedNodeId,
+    getEstimateTreeRevision,
+    restoreEstimateState,
+    recordReadOnlyLibraryMutationAttempt,
+    toast,
   });
-
-  const updateRowItem = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
-    const pendingExpressDraft = expressInsertDraftsRef.current[rowItemId];
-    if (pendingExpressDraft) {
-      setExpressInsertDrafts((current) => {
-        const draft = current[rowItemId];
-        if (!draft) return current;
-        return {
-          ...current,
-          [rowItemId]: {
-            ...draft,
-            bufferedPatch: {
-              ...(draft.bufferedPatch ?? {}),
-              ...values,
-            },
-          },
-        };
-      });
-      return;
-    }
-
-    commitRowItemUpdate(rowItemId, values);
-  });
-
-  const handleExpressInsertSuccess = useStableCallback((rowItemId: string) => {
-    const draft = expressInsertDraftsRef.current[rowItemId];
-    const bufferedPatch = draft?.bufferedPatch;
-    setExpressInsertDrafts((current) => {
-      const next = { ...current };
-      delete next[rowItemId];
-      return next;
-    });
-    recordExpressComponentEvent("insert_succeeded", { projectId, estimateId, rowId: rowItemId });
-    refetchProjectComponentProjection();
-    if (bufferedPatch && Object.keys(bufferedPatch).length > 0) {
-      queueMicrotask(() => commitRowItemUpdate(rowItemId, bufferedPatch));
-    }
-  });
-
-  const handleExpressInsertError = useStableCallback((rowItemId: string, error: Error) => {
-    setExpressInsertDrafts((current) => {
-      const draft = current[rowItemId];
-      if (!draft) return current;
-      return {
-        ...current,
-        [rowItemId]: {
-          ...draft,
-          status: "failed",
-          errorMessage: error.message,
-        },
-      };
-    });
-    recordExpressComponentEvent("insert_failed", { projectId, estimateId, rowId: rowItemId, reason: error.message });
-  });
-
-  const retryExpressDraft = useStableCallback((rowItemId: string) => {
-    if (!projectId || !estimateId) return;
-    const draft = expressInsertDraftsRef.current[rowItemId];
-    if (!draft) return;
-    setExpressInsertDrafts((current) => {
-      const currentDraft = current[rowItemId];
-      if (!currentDraft) return current;
-      return {
-        ...current,
-        [rowItemId]: {
-          ...currentDraft,
-          status: "creating",
-          errorMessage: undefined,
-        },
-      };
-    });
-    recordExpressComponentEvent("insert_requested", { projectId, estimateId, nodeId: draft.targetNodeId, rowId: rowItemId, retry: true });
-    insertRow({
-      projectId,
-      estimateId,
-      targetNodeId: draft.targetNodeId,
-      rowId: rowItemId,
-      libraryItem: draft.libraryItem,
-      mutationId: draft.mutationId,
-      rollback: () => undefined,
-      onSuccess: () => handleExpressInsertSuccess(rowItemId),
-      onError: (error) => handleExpressInsertError(rowItemId, error),
-    });
-  });
-
-  const deleteExpressDraft = useStableCallback((rowItemId: string) => {
-    setEstimateTree((current) => removeEstimateRowItem(current, rowItemId));
-    setEditableRows((current) => {
-      const next = { ...current };
-      delete next[rowItemId];
-      return next;
-    });
-    setExpressInsertDrafts((current) => {
-      const next = { ...current };
-      delete next[rowItemId];
-      return next;
-    });
-    recordExpressComponentEvent("draft_deleted", { projectId, estimateId, rowId: rowItemId });
-  });
-
-  const commitLibraryItemInsert = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
-    const targetNode = findEstimateNode(estimateTree, targetNodeId);
-    if (!targetNode) return false;
-
-    const previousTree = estimateTree;
-    const previousRows = editableRows;
-    const newItem = cloneLibraryItemForEstimate(libraryItem);
-    const isExpressInsert = isExpressComponentRow(newItem);
-    const mutationId = isExpressInsert ? createEstimateRowItemId() : undefined;
-    requestPendingRowFocus(newItem.id);
-    if (isExpressInsert && mutationId) {
-      setExpressInsertDrafts((current) => ({
-        ...current,
-        [newItem.id]: {
-          targetNodeId,
-          libraryItem,
-          mutationId,
-          status: "creating",
-        },
-      }));
-    }
-    const rollbackRevision = setEstimateTree((current) =>
-      current.map((node) => {
-        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
-          if (areaNode.id === targetNodeId) {
-            return { ...areaNode, estimateRowItems: [...(areaNode.estimateRowItems ?? []), newItem] };
-          }
-          return { ...areaNode, children: areaNode.children?.map(visit) };
-        }
-        return visit(node);
-      }),
-    );
-    setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
-
-    if (projectId && estimateId) {
-      insertRow({
-        projectId,
-        estimateId,
-        targetNodeId,
-        rowId: newItem.id,
-        libraryItem,
-        ...(mutationId ? { mutationId } : {}),
-        rollback: isExpressInsert ? () => undefined : () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onSuccess: isExpressInsert ? () => handleExpressInsertSuccess(newItem.id) : undefined,
-        onError: isExpressInsert ? (error) => handleExpressInsertError(newItem.id, error) : undefined,
-      });
-    }
-    return true;
-  });
-
-  const insertLibraryItem = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
-    if (!shouldGateLibraryCommit(libraryItem)) return commitLibraryItemInsert(targetNodeId, libraryItem);
-    const gate = getLibraryCommitTrustGate(libraryItem, { action: "insert" });
-    if (gate.severity === "pass") return commitLibraryItemInsert(targetNodeId, libraryItem);
-    recordLibraryEvent(gate.severity === "block" ? "trust_insert_gate_blocked" : "trust_insert_gate_warned", {
-      workspaceId,
-      projectId,
-      estimateId,
-      itemId: libraryItem.id,
-      action: libraryCommitEventAction("insert"),
-      reason: gate.reasons.map((reason) => reason.id).join(","),
-    });
-    setPendingLibraryCommitGate({
-      id: `${libraryItem.id}:insert:${targetNodeId}:${Date.now()}`,
-      action: "insert",
-      targetNodeId,
-      libraryItem,
-      gate,
-    });
-    return true;
-  });
-
-  const insertIntoSelectedNode = useCallback(
-    (libraryItem: EstimateRowItem) => {
-      if (!insertTargetNodeId) return false;
-      return insertLibraryItem(insertTargetNodeId, libraryItem);
-    },
-    [insertLibraryItem, insertTargetNodeId],
-  );
-
-  const insertTemplateIntoParent = useStableCallback(
-    (targetParentNodeId: string, template: EstimateTemplate) => {
-      // P6: a template inserts as a child of ANY existing node (no group gate).
-      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (!targetParentNode) return false;
-
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(template.nodes);
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
-      setSelectedNodeId(targetParentNodeId);
-
-      if (projectId && estimateId) {
-        insertEstimateTemplateIntoEstimate({
-          projectId,
-          estimateId,
-          targetParentNodeId,
-          templateId: template.id,
-          targetTabId: dataTabId,
-        })
-          .then((result) => {
-            // INS-1: only reconcile when no later optimistic update superseded
-            // ours, so a concurrent insert's stale snapshot can't clobber newer
-            // state. INS-4: setEstimateTree bumps the editable-rows skip ref so
-            // the server tree doesn't overwrite an in-flight cell edit.
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
-          })
-          .catch((error: unknown) => {
-            console.error("[estimate] template insert failed", error);
-            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
-          });
-      }
-
-      return true;
-    },
-  );
-
-  // INS-1: insert one or many templates under a group through the batched
-  // server action — one optimistic update + one round-trip — so a category
-  // drop can't lose templates to a concurrent-insert tree-read race. A single
-  // template still routes through the efficient single-insert path.
-  const insertTemplatesIntoParent = useStableCallback(
-    (targetParentNodeId: string, templates: EstimateTemplate[]) => {
-      if (templates.length === 0) return false;
-      if (templates.length === 1) return insertTemplateIntoParent(targetParentNodeId, templates[0]);
-
-      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (!targetParentNode) return false;
-
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
-      setSelectedNodeId(targetParentNodeId);
-
-      if (projectId && estimateId) {
-        insertEstimateTemplatesIntoEstimate({
-          projectId,
-          estimateId,
-          targetParentNodeId,
-          templateIds: templates.map((template) => template.id),
-          targetTabId: dataTabId,
-        })
-          .then((result) => {
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
-          })
-          .catch((error: unknown) => {
-            console.error("[estimate] template batch insert failed", error);
-            toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
-          });
-      }
-
-      return true;
-    },
-  );
-
-  const insertTemplatesIntoParentById = useCallback(
-    (targetParentNodeId: string, templateIds: string[]) => {
-      const templates = templateIds
-        .map((templateId) => templateById.get(templateId))
-        .filter((template): template is EstimateTemplate => Boolean(template));
-      if (templates.length === 0) return false;
-      return insertTemplatesIntoParent(targetParentNodeId, templates);
-    },
-    [insertTemplatesIntoParent, templateById],
-  );
-
-  const insertTemplateIntoSelectedGroup = useCallback(
-    (template: EstimateTemplate) => {
-      // P6: insert directly into the selected node (any kind), no area-wrap.
-      if (!templateTargetParentNode) return false;
-      return insertTemplateIntoParent(templateTargetParentNode.id, template);
-    },
-    [insertTemplateIntoParent, templateTargetParentNode],
-  );
 
   // U2: insert a project-derived source (whole tab / node subtree) as a child of
   // a target node. Non-optimistic — the server copies the subtree via the
@@ -2532,9 +1602,14 @@ export function EstimateSheetContent({
   // (no group gate); the relaxed insert_estimate_subtree RPC accepts it.
   const insertProjectSourceIntoParentById = useStableCallback(
     async (targetParentNodeId: string, source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null }) => {
+      if (!canEditEstimate) {
+        recordReadOnlyLibraryMutationAttempt("insert_project_source");
+        return false;
+      }
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (!targetParentNode) return false;
       if (!projectId || !estimateId) return false;
+      const projectSourceRequestRevision = getEstimateTreeRevision();
 
       try {
         const result = await insertProjectSourceIntoEstimate({
@@ -2550,7 +1625,7 @@ export function EstimateSheetContent({
         // the tree doesn't clobber an in-flight cell edit. Bulk source inserts
         // are serialized by the sidebar, so every returned tree builds on the
         // previous confirmed insert.
-        setEstimateTree(() => result.tree);
+        if (getEstimateTreeRevision() === projectSourceRequestRevision) setEstimateTree(() => result.tree);
         return true;
       } catch (error: unknown) {
         console.error("[estimate] project source insert failed", error);
@@ -2571,85 +1646,6 @@ export function EstimateSheetContent({
       });
     },
     [insertProjectSourceIntoParentById, templateTargetParentNode],
-  );
-
-  // Inserts ONE node of a template (any node inside it) with its subtree. Same
-  // optimistic shape as whole-template insertion; the server recreates the
-  // subtree through the history-aware node/row RPCs. P6: any node is a valid
-  // target (no group gate).
-  const insertTemplateNodeIntoParent = useStableCallback(
-    (targetParentNodeId: string, template: EstimateTemplate, templateNode: EstimateTreeNode) => {
-      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (!targetParentNode) return false;
-
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
-      setSelectedNodeId(targetParentNodeId);
-
-      if (projectId && estimateId) {
-        insertEstimateTemplateNodeIntoEstimate({
-          projectId,
-          estimateId,
-          targetParentNodeId,
-          templateId: template.id,
-          templateNodeId: templateNode.id,
-          targetTabId: dataTabId,
-        })
-          .then((result) => {
-            // INS-1/INS-4: reconcile only when our optimistic revision still
-            // stands, and via setEstimateTree so in-flight edits survive.
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
-          })
-          .catch((error: unknown) => {
-            console.error("[estimate] template node insert failed", error);
-            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
-          });
-      }
-
-      return true;
-    },
-  );
-
-  const insertTemplateNodeIntoParentById = useCallback(
-    (targetParentNodeId: string, templateId: string, templateNodeId: string) => {
-      const template = templateById.get(templateId);
-      if (!template) return false;
-      const templateNode = findEstimateNode(template.nodes, templateNodeId);
-      if (!templateNode) return false;
-      return insertTemplateNodeIntoParent(targetParentNodeId, template, templateNode);
-    },
-    [insertTemplateNodeIntoParent, templateById],
-  );
-  const insertTemplatesIntoParentByIdFromEvent = useEffectEvent((targetParentNodeId: string, templateIds: string[]) => {
-    insertTemplatesIntoParentById(targetParentNodeId, templateIds);
-  });
-  const insertTemplateNodeIntoParentByIdFromEvent = useEffectEvent(
-    (targetParentNodeId: string, templateId: string, templateNodeId: string) => {
-      insertTemplateNodeIntoParentById(targetParentNodeId, templateId, templateNodeId);
-    },
-  );
-
-  const insertTemplateNodeIntoSelectedGroup = useCallback(
-    (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
-      // P6: insert directly into the selected node (any kind), no area-wrap.
-      if (!templateTargetParentNode) return false;
-      return insertTemplateNodeIntoParent(templateTargetParentNode.id, template, templateNode);
-    },
-    [insertTemplateNodeIntoParent, templateTargetParentNode],
-  );
-
-  const insertBlankRow = useCallback(
-    (targetNodeId: string) => {
-      recordExpressComponentEvent("insert_requested", { projectId, estimateId, nodeId: targetNodeId });
-      insertLibraryItem(targetNodeId, createExpressEstimateRowTemplate());
-    },
-    [estimateId, insertLibraryItem, projectId],
   );
 
   useEffect(() => {
@@ -2680,394 +1676,40 @@ export function EstimateSheetContent({
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
-      const customEvent = event as CustomEvent<EstimateRowItem>;
-      if (customEvent.detail && insertTargetNodeId) insertLibraryItem(insertTargetNodeId, customEvent.detail);
-    }
-    window.addEventListener("archestimator:add-library-item", handleSidebarAdd);
-    return () => window.removeEventListener("archestimator:add-library-item", handleSidebarAdd);
-  }, [insertLibraryItem, insertTargetNodeId]);
-
-  // Template drops on the left estimate tree arrive here: that panel can target
-  // ANY node row, but the optimistic insert + rollback flow lives in this
-  // component. Category drags carry several template ids; dragging a node from
-  // inside a template carries that node's id. P6: every target inserts directly
-  // (no area-wrap branch).
-  useEffect(() => {
-    function handleInsertTemplateEvent(event: Event) {
-      const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { targetParentNodeId?: string; templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
-      if (typeof detail?.targetParentNodeId !== "string") return;
-      if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
-        insertTemplateNodeIntoParentByIdFromEvent(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
+      const customEvent = event as CustomEvent<unknown>;
+      const result = readAddLibraryItemEventDetail(customEvent.detail);
+      if (!result.ok) {
+        recordLibraryInsertPayloadRejected(result.reason, "custom_event", result.field);
+        result.onAccepted?.(false);
+        customEvent.preventDefault();
         return;
       }
-      if (!Array.isArray(detail.templateIds)) return;
-      const templateIds = detail.templateIds.filter((templateId): templateId is string => typeof templateId === "string" && templateId.length > 0);
-      if (templateIds.length > 0) insertTemplatesIntoParentByIdFromEvent(detail.targetParentNodeId, templateIds);
+      if (!insertTargetNodeId) {
+        result.onAccepted?.(false);
+        customEvent.preventDefault();
+        return;
+      }
+      const accepted = insertLibraryItem(insertTargetNodeId, result.item);
+      result.onAccepted?.(accepted);
+      if (!accepted) customEvent.preventDefault();
     }
-    window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-    return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-  }, []);
+    window.addEventListener(ADD_LIBRARY_ITEM_EVENT, handleSidebarAdd);
+    return () => window.removeEventListener(ADD_LIBRARY_ITEM_EVENT, handleSidebarAdd);
+  }, [insertLibraryItem, insertTargetNodeId, recordLibraryInsertPayloadRejected]);
 
   // U2: a project source dropped onto a group row hands the insert over here (the
   // sheet owns the tree + the action), mirroring the template-drop event flow.
   useEffect(() => {
     if (!libraryEnableReusableProjectSources) return undefined;
     function handleInsertProjectSourceEvent(event: Event) {
-      const detail = (event as CustomEvent<InsertProjectSourceEventDetail>).detail;
-      if (!detail || typeof detail.targetParentNodeId !== "string" || !detail.source) return;
+      const detail = readInsertProjectSourceEventDetail((event as CustomEvent<unknown>).detail);
+      if (!detail) return;
       insertProjectSourceIntoParentById(detail.targetParentNodeId, detail.source);
     }
     window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
     return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
   }, [insertProjectSourceIntoParentById, libraryEnableReusableProjectSources]);
 
-  const commitReplaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
-    const previousTree = estimateTree;
-    const previousRows = editableRows;
-    const editableReplacement = previousRows[rowItemId];
-    const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
-    const replacementItem = replaceRowItemWithLibraryItem(rowItemId, replacementLibraryItem);
-    const rollbackRevision = setEstimateTree((current) =>
-      current.map((node) => {
-        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
-          return {
-            ...areaNode,
-            estimateRowItems: areaNode.estimateRowItems?.map((item) =>
-              item.id === rowItemId ? replacementItem : item,
-            ),
-            children: areaNode.children?.map(visit),
-          };
-        }
-        return visit(node);
-      }),
-    );
-    const shouldResetInlineEditor = isBlankEstimateRowItem(replacementItem) || isExpressComponentRow(replacementItem);
-    setEditableRows((current) => ({
-      ...current,
-      [rowItemId]: shouldResetInlineEditor
-        ? getInitialEditableRow(replacementItem)
-        : current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
-    }));
-    if (projectId && estimateId) {
-      replaceRow({
-        projectId,
-        estimateId,
-        rowId: rowItemId,
-        libraryItem: replacementLibraryItem,
-        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onSuccess: () => refetchProjectComponentProjection(),
-        onError: () => toast({ tone: "error", message: "Couldn't replace the component. Try again." }),
-      });
-    }
-    return true;
-  });
-
-  const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
-    if (!shouldGateLibraryCommit(libraryItem)) return commitReplaceRowItem(rowItemId, libraryItem);
-    const existingRow = findEstimateRowItem(estimateTree, rowItemId);
-    const editableReplacement = editableRows[rowItemId];
-    const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
-    const gate = getLibraryCommitTrustGate(replacementLibraryItem, {
-      action: "replace",
-      existingRow,
-    });
-    if (gate.severity === "pass") return commitReplaceRowItem(rowItemId, libraryItem);
-    recordLibraryEvent(gate.severity === "block" ? "trust_insert_gate_blocked" : "trust_insert_gate_warned", {
-      workspaceId,
-      projectId,
-      estimateId,
-      itemId: libraryItem.id,
-      rowId: rowItemId,
-      action: libraryCommitEventAction("replace"),
-      reason: gate.reasons.map((reason) => reason.id).join(","),
-    });
-    setPendingLibraryCommitGate({
-      id: `${libraryItem.id}:replace:${rowItemId}:${Date.now()}`,
-      action: "replace",
-      rowItemId,
-      libraryItem,
-      existingRow,
-      gate,
-    });
-    return true;
-  });
-
-  const cancelPendingLibraryCommit = useStableCallback(() => {
-    if (pendingLibraryCommitGate) {
-      recordLibraryEvent("trust_insert_gate_blocked", {
-        workspaceId,
-        projectId,
-        estimateId,
-        itemId: pendingLibraryCommitGate.libraryItem.id,
-        rowId: pendingLibraryCommitGate.rowItemId,
-        action: libraryCommitEventAction(pendingLibraryCommitGate.action),
-        reason: "cancelled",
-      });
-    }
-    setPendingLibraryCommitGate(null);
-  });
-
-  const confirmPendingLibraryCommit = useStableCallback(() => {
-    if (!pendingLibraryCommitGate || pendingLibraryCommitGate.gate.severity === "block") return;
-    const { action, targetNodeId, rowItemId, libraryItem } = pendingLibraryCommitGate;
-    setPendingLibraryCommitGate(null);
-    recordLibraryEvent("trust_insert_gate_confirmed", {
-      workspaceId,
-      projectId,
-      estimateId,
-      itemId: libraryItem.id,
-      rowId: rowItemId,
-      action: libraryCommitEventAction(action),
-      reason: pendingLibraryCommitGate.gate.reasons.map((reason) => reason.id).join(","),
-    });
-    if (action === "insert" && targetNodeId) {
-      commitLibraryItemInsert(targetNodeId, libraryItem);
-      return;
-    }
-    if (action === "replace" && rowItemId) {
-      commitReplaceRowItem(rowItemId, libraryItem);
-    }
-  });
-
-  const clearRowComponent = useStableCallback((rowItemId: string) => {
-    const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
-    if (!currentRowItem || !isExpressComponentRow(currentRowItem)) {
-      replaceRowItem(rowItemId, createBlankEstimateRowTemplate());
-      return;
-    }
-
-    const previousTree = estimateTree;
-    const previousRows = editableRows;
-    const editableReplacement = previousRows[rowItemId];
-    const blankLibraryItem = applyEditableValuesToLibraryItem(createBlankEstimateRowTemplate(), editableReplacement);
-    const replacementItem = replaceRowItemWithLibraryItem(rowItemId, blankLibraryItem);
-    const rollbackRevision = setEstimateTree((current) =>
-      current.map((node) => {
-        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
-          return {
-            ...areaNode,
-            estimateRowItems: areaNode.estimateRowItems?.map((item) =>
-              item.id === rowItemId ? replacementItem : item,
-            ),
-            children: areaNode.children?.map(visit),
-          };
-        }
-        return visit(node);
-      }),
-    );
-    setEditableRows((current) => ({
-      ...current,
-      [rowItemId]: getInitialEditableRow(replacementItem),
-    }));
-    if (projectId && estimateId) {
-      updateRow({
-        projectId,
-        estimateId,
-        rowId: rowItemId,
-        material: replacementItem.material,
-        description: replacementItem.description,
-        supplier: replacementItem.supplier,
-        unit: replacementItem.unit,
-        unitCost: replacementItem.itemCost,
-        quantity: replacementItem.quantity,
-        contingencyPercentage: replacementItem.contingencyPercentage ?? 0,
-        miscCost: replacementItem.miscCost,
-        sourceSnapshot: null,
-        metadata: getClearedEstimateRowMetadata(currentRowItem.metadata),
-        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onSuccess: () => refetchProjectComponentProjection(),
-      });
-    }
-  });
-
-  const requestProjectSpecific = useStableCallback((rowItemId: string) => {
-    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
-    if (!rowItem || !canMakeProjectSpecific(rowItem)) return;
-    setProjectSpecificRowId(rowItemId);
-  });
-
-  const promoteRowToLibrary = useStableCallback((rowItemId: string) => {
-    if (!projectId || !estimateId) return;
-    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
-    if (!rowItem || !canPromoteEstimateRowToLibrary(rowItem)) {
-      toast({ tone: "error", message: "This row is not eligible to promote to the library." });
-      return;
-    }
-    if (saveState === "dirty" || saveState === "saving") {
-      toast({ tone: "error", message: "Finish saving row edits before promoting this component." });
-      return;
-    }
-
-    const previousTree = estimateTree;
-    const previousRows = editableRows;
-    const rollbackRevision = getEstimateTreeRevision();
-    setPromotingRowId(rowItemId);
-    promoteRow({
-      projectId,
-      estimateId,
-      rowId: rowItemId,
-      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-      onSuccess: (result) => {
-        setEstimateTree((current) =>
-          current.map((node) => {
-            function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
-              return {
-                ...areaNode,
-                estimateRowItems: areaNode.estimateRowItems?.map((item) => {
-                  if (item.id !== rowItemId) return item;
-                  const metadata = readEstimateRowMetadata(item.metadata);
-                  delete metadata.expressComponent;
-                  delete metadata.projectComponentProjection;
-                  return {
-                    ...item,
-                    source: "library",
-                    sourceLibraryItemId: result.itemId,
-                    metadata,
-                    linkState: "linked-clean",
-                  };
-                }),
-                children: areaNode.children?.map(visit),
-              };
-            }
-            return visit(node);
-          }),
-        );
-        setPromotingRowId(null);
-        refetchProjectComponentProjection();
-        handleLibraryDataChanged();
-        toast({ tone: "success", message: `${rowItem.material || "Component"} promoted to the workspace library.` });
-      },
-      onError: (error) => {
-        setPromotingRowId(null);
-        toast({ tone: "error", message: error.message || "Could not promote component." });
-      },
-    });
-  });
-
-  function confirmProjectSpecific() {
-    if (!projectId || !estimateId || !projectSpecificRow) {
-      setProjectSpecificRowId("");
-      return;
-    }
-
-    const rowItemId = projectSpecificRow.item.id;
-    const previousTree = estimateTree;
-    const previousRows = editableRows;
-    const rollbackRevision = getEstimateTreeRevision();
-    detachRow({
-      projectId,
-      estimateId,
-      rowId: rowItemId,
-      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-      onSuccess: () => refetchProjectComponentProjection(),
-    });
-    setProjectSpecificRowId("");
-  }
-
-  const moveRowComponent = useStableCallback((sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => {
-    if (sourceRowItemId === targetRowItemId) return;
-    if (isExpressComponentRow(movedItem)) {
-      toast({ tone: "error", message: "Replace express components directly before moving them between rows." });
-      return;
-    }
-    const sourceLocation = findEstimateRowItemLocation(estimateTree, sourceRowItemId);
-    const targetLocation = findEstimateRowItemLocation(estimateTree, targetRowItemId);
-    if (!sourceLocation || !targetLocation) return;
-
-    const previousSourceEditableRow = editableRows[sourceRowItemId] ?? getInitialEditableRow(sourceLocation.item);
-    const previousTargetEditableRow = editableRows[targetRowItemId] ?? getInitialEditableRow(targetLocation.item);
-    const targetLibraryItem = applyEditableValuesToLibraryItem(movedItem, previousTargetEditableRow);
-    const sourceBlankLibraryItem = applyEditableValuesToLibraryItem(createBlankEstimateRowTemplate(), previousSourceEditableRow);
-    const targetReplacementItem = replaceRowItemWithLibraryItem(targetRowItemId, targetLibraryItem);
-    const sourceReplacementItem = replaceRowItemWithLibraryItem(sourceRowItemId, sourceBlankLibraryItem);
-    const replacements = new Map<string, EstimateRowItem>([
-      [targetRowItemId, targetReplacementItem],
-      [sourceRowItemId, sourceReplacementItem],
-    ]);
-    setEstimateTree((current) => replaceEstimateRowItemsInTree(current, replacements));
-    setEditableRows((current) => ({
-      ...current,
-      [targetRowItemId]: current[targetRowItemId] ?? previousTargetEditableRow,
-      [sourceRowItemId]: getInitialEditableRow(sourceReplacementItem),
-    }));
-
-    const restoreSourceRow = () => {
-      setEstimateTree((current) => replaceEstimateRowItemsInTree(current, new Map([[sourceRowItemId, sourceLocation.item]])));
-      setEditableRows((current) => ({
-        ...current,
-        [sourceRowItemId]: previousSourceEditableRow,
-      }));
-    };
-    const restoreTargetRow = () => {
-      setEstimateTree((current) => replaceEstimateRowItemsInTree(current, new Map([[targetRowItemId, targetLocation.item]])));
-      setEditableRows((current) => ({
-        ...current,
-        [targetRowItemId]: previousTargetEditableRow,
-      }));
-    };
-    const reportMoveError = () => toast({ tone: "error", message: "Couldn't move the component. Try again." });
-    const applyMovedRowSuccess = (baseItem: EstimateRowItem) => (result: UpdateEstimateRowItemResult) => {
-      const patch = estimateRowMutationResultToPatch(result);
-      const nextItem = applyEstimateRowItemPatch(baseItem, patch);
-      // The row mutation hook patches the query cache; the visible sheet also
-      // keeps local tree state so partial move failures can reconcile row-by-row.
-      setEstimateTree((current) => patchEstimateRowItemInTree(current, result.rowId, patch));
-      setEditableRows((current) => ({ ...current, [result.rowId]: getInitialEditableRow(nextItem) }));
-      refetchProjectComponentProjection();
-    };
-
-    if (projectId && estimateId) {
-      replaceRow({
-        projectId,
-        estimateId,
-        rowId: targetRowItemId,
-        libraryItem: targetLibraryItem,
-        rollback: restoreTargetRow,
-        onSuccess: applyMovedRowSuccess(targetReplacementItem),
-        onError: reportMoveError,
-      });
-      replaceRow({
-        projectId,
-        estimateId,
-        rowId: sourceRowItemId,
-        libraryItem: sourceBlankLibraryItem,
-        rollback: restoreSourceRow,
-        onSuccess: applyMovedRowSuccess(sourceReplacementItem),
-        onError: reportMoveError,
-      });
-    }
-  });
-
-  const deleteRowItem = useStableCallback((rowItemId: string) => {
-    const previousRowLocation = findEstimateRowItemLocation(estimateTree, rowItemId);
-    const previousEditableRow = editableRows[rowItemId];
-    setEstimateTree((current) => removeEstimateRowItem(current, rowItemId));
-    setEditableRows((current) => {
-      const remainingRows = { ...current };
-      delete remainingRows[rowItemId];
-      return remainingRows;
-    });
-    if (projectId && estimateId) {
-      deleteRow({
-        projectId,
-        estimateId,
-        rowId: rowItemId,
-        rollback: () => {
-          if (previousRowLocation) {
-            setEstimateTree((current) => restoreEstimateRowItemAtLocation(current, previousRowLocation));
-            setEditableRows((current) => ({ ...current, [rowItemId]: previousEditableRow ?? getInitialEditableRow(previousRowLocation.item) }));
-          }
-        },
-        onSuccess: () => refetchProjectComponentProjection(),
-        onError: () => toast({ tone: "error", message: "Couldn't delete the row. Try again." }),
-      });
-    }
-  });
-
-  function deleteSelectedRows() {
-    bulkSelectedRowIds.forEach((rowItemId) => deleteRowItem(rowItemId));
-    setBulkSelectedRowIds(new Set());
-  }
   const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
   const activeTreeErrorMessage = activeTreeQuery.isError
     ? activeTreeQuery.error instanceof Error
@@ -3192,15 +1834,7 @@ export function EstimateSheetContent({
         <ProposalExportPreviewDialog
           open={isProposalPreviewOpen}
           model={proposalPreviewModel}
-          status={{
-            freshness: isProposalPreviewStale ? "stale" : "current",
-            download: isDownloadingProposal
-              ? { kind: "preparing" }
-              : Boolean(proposalDownloadHref) && !isProposalExportEmpty
-                ? { kind: "ready" }
-                : { kind: "disabled" },
-            downloadError: proposalDownloadError,
-          }}
+          status={proposalPreviewStatus}
           onDownload={downloadProposalExport}
           scopeControls={proposalPreviewScopeControls}
           exportSettings={proposalExportSettings}
@@ -3237,6 +1871,107 @@ export function EstimateSheetContent({
           onTabChange={setRowDetailsTab}
           onClose={closeRowDetails}
         />
+      ) : null}
+      {rowComponentPicker ? (
+        <Modal
+          open
+          title={rowComponentPicker.mode === "replace" ? "Replace component" : "Move component"}
+          description={rowComponentPicker.mode === "replace"
+            ? "Choose a library component for this estimate row."
+            : "Choose the row that should receive this component."}
+          size="md"
+          closeLabel={rowComponentPicker.mode === "replace" ? "Close replace component picker" : "Close move component picker"}
+          onOpenChange={(open) => {
+            if (!open) closeRowComponentPicker();
+          }}
+          bodyClassName="max-h-[min(480px,70dvh)] overflow-auto"
+        >
+          <div className="grid gap-3 text-[10px] leading-4">
+            <div className="grid gap-1 rounded-xs border border-hairline bg-surfaceMuted p-2">
+              <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Current component</p>
+              <p className="font-medium text-ink">{rowComponentPickerSourceLabel}</p>
+              {rowComponentPickerSourceItem ? (
+                <p className="text-tertiary">
+                  {rowComponentPickerSourceItem.supplier || "No supplier"} · {pesoFormatter.format(rowComponentPickerSourceItem.itemCost)} / {rowComponentPickerSourceItem.unit}
+                </p>
+              ) : (
+                <p className="text-tertiary">This row could not be found in the current sheet.</p>
+              )}
+            </div>
+            <label className="grid gap-1">
+              <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">
+                {rowComponentPicker.mode === "replace" ? "Search library" : "Search rows"}
+              </span>
+              <input
+                aria-label={rowComponentPicker.mode === "replace" ? "Component search" : "Move target search"}
+                value={rowComponentPickerQuery}
+                onChange={(event) => setRowComponentPickerQuery(event.currentTarget.value)}
+                className="h-8 rounded-xs border border-hairline bg-white px-2 text-[11px] font-medium text-ink outline-none transition focus:border-brand-orange"
+                placeholder={rowComponentPicker.mode === "replace" ? "Find component" : "Find target row"}
+              />
+            </label>
+            {rowComponentPicker.mode === "replace" ? (
+              <div className="grid gap-1" role="list" aria-label="Replacement components">
+                {isLazyLibraryLoading ? (
+                  <p className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-tertiary">
+                    Loading library components...
+                  </p>
+                ) : rowComponentReplaceOptions.length > 0 ? rowComponentReplaceOptions.map((item) => {
+                  const itemLabel = item.material || item.name || "Component";
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="grid gap-0.5 rounded-xs border border-hairline bg-white px-2 py-1.5 text-left hover:border-brand-orange hover:bg-brand-orange/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-orange"
+                      aria-label={`Replace with ${itemLabel}`}
+                      onClick={() => replaceFromComponentPicker(item)}
+                    >
+                      <span className="font-medium text-ink">{itemLabel}</span>
+                      <span className="truncate text-tertiary">
+                        {item.supplier || "No supplier"} · {pesoFormatter.format(item.itemCost)} / {item.unit}
+                      </span>
+                    </button>
+                  );
+                }) : (
+                  <p className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-tertiary">
+                    No matching library components.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-1" role="list" aria-label="Move target rows">
+                {rowComponentMoveOptions.length > 0 ? rowComponentMoveOptions.map((option) => {
+                  const itemLabel = option.row.item.material || option.row.item.name || "Component";
+                  const pathLabel = option.row.nodePath.join(" / ") || "Current area";
+                  return (
+                    <button
+                      key={option.row.item.id}
+                      type="button"
+                      className={cn(
+                        "grid gap-0.5 rounded-xs border border-hairline bg-white px-2 py-1.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-orange",
+                        option.disabled
+                          ? "cursor-not-allowed text-tertiary opacity-60"
+                          : "hover:border-brand-orange hover:bg-brand-orange/5",
+                      )}
+                      aria-label={`Move to ${itemLabel}`}
+                      title={option.reason || `Move to ${itemLabel}`}
+                      disabled={option.disabled}
+                      onClick={() => moveFromComponentPicker(option.row.item.id)}
+                    >
+                      <span className="font-medium text-ink">{itemLabel}</span>
+                      <span className="truncate text-tertiary">{pathLabel}</span>
+                      {option.reason ? <span className="text-[9px] text-tertiary">{option.reason}</span> : null}
+                    </button>
+                  );
+                }) : (
+                  <p className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-tertiary">
+                    No matching target rows.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </Modal>
       ) : null}
       {projectSpecificRow ? (
         <dialog
@@ -3302,14 +2037,15 @@ export function EstimateSheetContent({
                           type="checkbox"
                           aria-label={`Supplier ${supplier}`}
                           checked={sheetFacets.suppliers.includes(supplier)}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const checked = event.currentTarget.checked;
                             setSheetFacets((current) => ({
                               ...current,
-                              suppliers: event.currentTarget.checked
+                              suppliers: checked
                                 ? [...current.suppliers, supplier]
                                 : current.suppliers.filter((value) => value !== supplier),
-                            }))
-                          }
+                            }));
+                          }}
                           className="size-3 rounded-xs accent-brand-orange"
                         />
                         <span className="truncate">{supplier}</span>
@@ -3326,14 +2062,15 @@ export function EstimateSheetContent({
                           type="checkbox"
                           aria-label={`Category ${category}`}
                           checked={sheetFacets.categories.includes(category)}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const checked = event.currentTarget.checked;
                             setSheetFacets((current) => ({
                               ...current,
-                              categories: event.currentTarget.checked
+                              categories: checked
                                 ? [...current.categories, category]
                                 : current.categories.filter((value) => value !== category),
-                            }))
-                          }
+                            }));
+                          }}
                           className="size-3 rounded-xs accent-brand-orange"
                         />
                         <span className="truncate">{category}</span>
@@ -3346,9 +2083,10 @@ export function EstimateSheetContent({
                     type="checkbox"
                     aria-label="Has value"
                     checked={sheetFacets.hasValueOnly}
-                    onChange={(event) =>
-                      setSheetFacets((current) => ({ ...current, hasValueOnly: event.currentTarget.checked }))
-                    }
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
+                      setSheetFacets((current) => ({ ...current, hasValueOnly: checked }));
+                    }}
                     className="size-3 rounded-xs accent-brand-orange"
                   />
                   Has value (cost &gt; 0)
@@ -3367,15 +2105,32 @@ export function EstimateSheetContent({
           }
           // C3/Req 13+6: New-tab button relocated here from the tab strip.
           // Hidden entirely when canCreate is false (non-editors see no affordance).
-          addActions={createTabState.canCreate ? [
-            {
-              label: "New tab",
-              icon: <TabsIcon size={13} weight="regular" aria-hidden="true" />,
-              onClick: () => void tabStripRef.current?.createTab(),
-              disabled: createTabState.pending,
-              className: ADD_BUTTON_CLASSNAME,
-            },
-          ] : []}
+          addActions={[
+            ...(renderSidebar ? [
+              {
+                label: "Open Sources drawer",
+                visibleLabel: "Sources",
+                icon: <SidebarSimple size={13} weight="regular" aria-hidden="true" className="rotate-180" />,
+                onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
+                  event.currentTarget.focus({ preventScroll: true });
+                  setSourcesDrawerOpen(true);
+                },
+                ariaControls: ESTIMATE_SOURCES_DRAWER_ID,
+                ariaExpanded: sourcesDrawerOpen,
+                ariaHasPopup: "dialog" as const,
+                className: "lg:hidden text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
+              },
+            ] : []),
+            ...(createTabState.canCreate ? [
+              {
+                label: "New tab",
+                icon: <TabsIcon size={13} weight="regular" aria-hidden="true" />,
+                onClick: () => void tabStripRef.current?.createTab(),
+                disabled: createTabState.pending,
+                className: ADD_BUTTON_CLASSNAME,
+              },
+            ] : []),
+          ]}
         />
         {estimateTabs.length > 0 ? (
           <EstimateTabStrip
@@ -3446,6 +2201,8 @@ export function EstimateSheetContent({
                       onPromoteRowToLibrary={promoteRowToLibrary}
                       promotingRowId={promotingRowId}
                       onMoveRowComponent={moveRowComponent}
+                      onOpenReplaceComponentPicker={openReplaceComponentPicker}
+                      onOpenMoveComponentPicker={openMoveComponentPicker}
                       expressInsertDraftStates={expressInsertDraftStates}
                       onRetryExpressDraft={retryExpressDraft}
                       onDeleteExpressDraft={deleteExpressDraft}
@@ -3467,6 +2224,8 @@ export function EstimateSheetContent({
                 actions={[
                   {
                     label: "Delete selected rows",
+                    ariaLabel: "Delete selected rows",
+                    title: "Deletes selected rows immediately. Use Undo after saving to restore them.",
                     icon: <Trash size={12} weight="regular" />,
                     variant: "danger",
                     onClick: deleteSelectedRows,
@@ -3508,6 +2267,9 @@ export function EstimateSheetContent({
             useStoredPreferences={libraryUseStoredPreferences}
             enableReusableProjectSources={libraryEnableReusableProjectSources}
             usePersistentPanelWidth={libraryUsePersistentPanelWidth}
+            mobileDrawerOpen={sourcesDrawerOpen}
+            onMobileDrawerOpenChange={setSourcesDrawerOpen}
+            mobileDrawerId={ESTIMATE_SOURCES_DRAWER_ID}
             onInsertTemplate={insertTemplateIntoSelectedGroup}
             onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
             onInsertProjectSource={insertProjectSourceIntoSelectedGroup}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { Cube, DotsSixVertical, DotsThreeVertical, StackPlus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsClockwise, ArrowsOutCardinal, Cube, DotsSixVertical, DotsThreeVertical, StackPlus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -19,6 +19,7 @@ import {
   ESTIMATE_COMPONENT_DRAG_MIME_TYPE,
   LIBRARY_ITEM_DRAG_MIME_TYPE,
   readEstimateComponentDragPayload,
+  readEstimateLibraryItemDragPayload,
   type EstimateComponentDragPayload,
 } from "./constants";
 import { canMakeProjectSpecific, canPromoteEstimateRowToLibrary } from "./cells-model";
@@ -369,6 +370,8 @@ export function EstimateMaterialCell({
   onPromoteToLibrary,
   promoteToLibraryPending,
   onMoveComponent,
+  onOpenReplacePicker,
+  onOpenMovePicker,
   onOpenComponentDetails,
   expressDraftState,
   onRetryExpressDraft,
@@ -389,6 +392,8 @@ export function EstimateMaterialCell({
   onPromoteToLibrary: () => void;
   promoteToLibraryPending?: boolean;
   onMoveComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  onOpenReplacePicker?: (opener: HTMLElement) => void;
+  onOpenMovePicker?: (opener: HTMLElement) => void;
   onOpenComponentDetails: (opener: HTMLElement) => void;
   expressDraftState?: ExpressInsertDraftState;
   onRetryExpressDraft: () => void;
@@ -421,12 +426,12 @@ export function EstimateMaterialCell({
       return;
     }
 
-    const payload = event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE);
-    if (!payload) return;
+    const result = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
+    if (!result.ok) return;
     event.preventDefault();
     event.stopPropagation();
     onReplaceDragLeave();
-    onReplace(JSON.parse(payload) as EstimateRowItem);
+    onReplace(result.item);
   }
 
   function handleComponentDragStart(event: DragEvent<HTMLButtonElement>) {
@@ -494,6 +499,38 @@ export function EstimateMaterialCell({
             }}
           >
             <StackPlus size={11} weight="regular" aria-hidden="true" />
+          </Button>
+        ) : null}
+        {onOpenReplacePicker ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
+            aria-label={`Replace component ${componentLabel}`}
+            title="Replace component"
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              onOpenReplacePicker(event.currentTarget);
+            }}
+          >
+            <ArrowsClockwise size={11} weight="regular" aria-hidden="true" />
+          </Button>
+        ) : null}
+        {onOpenMovePicker ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
+            aria-label={`Move component ${componentLabel}`}
+            title="Move component"
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              onOpenMovePicker(event.currentTarget);
+            }}
+          >
+            <ArrowsOutCardinal size={11} weight="regular" aria-hidden="true" />
           </Button>
         ) : null}
         <Button
