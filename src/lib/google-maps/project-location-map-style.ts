@@ -46,3 +46,25 @@ export const PROJECT_LOCATION_MAP_STYLES: readonly GoogleMapStyle[] = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#dcebf2" }] },
   { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
 ] as const;
+
+function toStaticMapStylerValue(value: boolean | number | string) {
+  if (typeof value !== "string") return String(value);
+  if (value.startsWith("#")) return `0x${value.slice(1)}`;
+  return value;
+}
+
+const PROJECT_LOCATION_STATIC_MAP_STYLE_PARAMS = PROJECT_LOCATION_MAP_STYLES.map((style) => {
+  const parts: string[] = [];
+  if (style.featureType) parts.push(`feature:${style.featureType}`);
+  if (style.elementType) parts.push(`element:${style.elementType}`);
+  for (const styler of style.stylers) {
+    for (const [key, value] of Object.entries(styler)) {
+      parts.push(`${key}:${toStaticMapStylerValue(value)}`);
+    }
+  }
+  return parts.join("|");
+});
+
+export function getProjectLocationStaticMapStyleParams() {
+  return PROJECT_LOCATION_STATIC_MAP_STYLE_PARAMS;
+}

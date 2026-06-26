@@ -178,6 +178,12 @@
     0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
   --glass-radius: 12px;
   --glass-nav-radius: 8px;
+  /* Two-layer project tile: the frosted glass BASE wraps an inset white inner
+     card. The base radius is larger than the inner radius so a thin band of the
+     translucent glass shows around all four edges of the inner white card.
+     radius nests as base − padding (10 − 4 = 6px). */
+  --project-card-base-radius: 10px;
+  --project-card-inner-radius: 6px;
   /* Hover and active nav states: flat tints inside the glass panel. */
   --glass-nav-hover-bg: rgba(38, 44, 58, 0.055);
   --glass-nav-active-bg: color-mix(
@@ -1532,74 +1538,189 @@ input[type="number"] {
   }
 }
 
-/* Frosted project cards: a content-grade liquid-glass material for the
+/* Frosted project cards: a content-grade white liquid-glass material for the
    workshop project index. One blur lives on the card shell; nested controls use
    translucent fills and inset highlights only. */
 .workshop-project-card-glass {
   position: relative;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.76),
-    rgba(255, 255, 255, 0.58)
-  );
+  border-radius: var(--project-card-base-radius);
+  background: rgba(255, 255, 255, 0.74);
   -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
   backdrop-filter: none;
   border-color: color-mix(
     in srgb,
-    var(--glass-border) 82%,
-    rgba(255, 255, 255, 0.28)
+    var(--glass-border) 78%,
+    rgba(255, 255, 255, 0.38)
   );
   box-shadow:
-    0 7px 14px rgba(30, 35, 50, 0.08),
-    0 1px 4px rgba(30, 35, 50, 0.05),
+    0 10px 24px rgba(30, 35, 50, 0.11),
+    0 2px 7px rgba(30, 35, 50, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.34),
     var(--glass-inset-hi);
   transition:
-    transform 160ms var(--ease-out),
-    border-color 160ms var(--ease-out),
-    box-shadow 160ms var(--ease-out),
-    background-color 160ms var(--ease-out);
+    transform 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
+    background-color 180ms var(--ease-out);
 }
 
 .workshop-project-card-glass:hover,
 .workshop-project-card-glass:focus-within {
   border-color: color-mix(
     in srgb,
-    var(--brand-orange) 24%,
-    var(--glass-border)
+    var(--glass-border) 72%,
+    rgba(255, 255, 255, 0.46)
   );
   box-shadow:
-    0 9px 14px rgba(30, 35, 50, 0.105),
-    0 2px 7px rgba(30, 35, 50, 0.06),
+    0 14px 30px rgba(30, 35, 50, 0.13),
+    0 3px 9px rgba(30, 35, 50, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.4),
     var(--glass-inset-hi);
 }
 
 .workshop-project-card-glass:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .workshop-project-card-glass[data-project-card-selected="true"] {
   border-color: color-mix(in srgb, var(--ink) 68%, var(--glass-border));
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--ink) 54%, transparent),
-    0 9px 14px rgba(30, 35, 50, 0.105),
+    0 10px 18px rgba(30, 35, 50, 0.115),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
     var(--glass-inset-hi);
 }
 
 .workshop-project-card-control {
-  background: rgba(255, 255, 255, 0.76);
-  border-color: rgba(30, 35, 50, 0.1);
+  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(30, 35, 50, 0.09);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.36),
     0 1px 2px rgba(30, 35, 50, 0.06);
 }
 
 .workshop-project-card-control:hover,
 .workshop-project-card-control:focus-visible {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.86);
   border-color: rgba(30, 35, 50, 0.14);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
     0 2px 5px rgba(30, 35, 50, 0.08);
+}
+
+/* Compact vitals row inside the project card meta stack. Tiny glass pills stay
+   translucent and neutral so they read as secondary metadata without fighting
+   the title. */
+.workshop-project-card-vital {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid color-mix(in srgb, var(--glass-border) 70%, rgba(255, 255, 255, 0.42));
+  background: rgba(255, 255, 255, 0.54);
+  padding: 0.125rem 0.375rem;
+  font-size: 0.5rem;
+  line-height: 0.625rem;
+  font-weight: 500;
+  color: var(--secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  transition: background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+
+.workshop-project-card-glass:hover .workshop-project-card-vital {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: color-mix(in srgb, var(--glass-border) 62%, rgba(255, 255, 255, 0.52));
+}
+
+.workshop-project-card-vital--published {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 28%, rgba(255, 255, 255, 0.58));
+  background: color-mix(in srgb, var(--success) 9%, rgba(255, 255, 255, 0.54));
+}
+
+.workshop-project-card-vital--shared {
+  color: var(--brand-orange);
+  border-color: color-mix(in srgb, var(--brand-orange) 26%, rgba(255, 255, 255, 0.58));
+  background: color-mix(in srgb, var(--brand-orange) 8%, rgba(255, 255, 255, 0.54));
+}
+
+.workshop-project-card-vital--warning {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 28%, rgba(255, 255, 255, 0.58));
+  background: color-mix(in srgb, var(--warning) 9%, rgba(255, 255, 255, 0.54));
+}
+
+/* Inset cool-white inner card — floats inside the frosted glass base with a
+   clearer liquid edge than plain white. No backdrop-filter of its own (the base
+   already carries the one armed blur; stacking a second blur would double the
+   GPU cost and blur the crisp content). A hairline border + soft specular
+   highlights give it the inset, slightly-raised glass-panel read. */
+.workshop-project-card-inner {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--project-card-inner-radius);
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid
+    color-mix(in srgb, var(--glass-border) 68%, rgba(255, 255, 255, 0.46));
+  border-top-color: rgba(255, 255, 255, 0.76);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.36),
+    0 2px 5px rgba(30, 35, 50, 0.06),
+    0 10px 24px rgba(30, 35, 50, 0.075);
+}
+
+/* Reduced transparency: the inner card reads as opaque cool glass, so no
+   fallback override is needed. The rule is here only to document that intent. */
+
+/* On hover the inner panel lifts a hair so the card reads as a tappable,
+   floating surface inside the frosted frame. */
+.workshop-project-card-glass:hover .workshop-project-card-inner {
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
+    0 3px 8px rgba(30, 35, 50, 0.08),
+    0 14px 28px rgba(30, 35, 50, 0.1);
+}
+
+.workshop-project-card-thumbnail-surface {
+  box-shadow:
+    0 7px 12px rgba(30, 35, 50, 0.12),
+    0 1px 3px rgba(30, 35, 50, 0.08);
+}
+
+.workshop-project-card-glass:hover .workshop-project-card-thumbnail-surface {
+  box-shadow:
+    0 8px 14px rgba(30, 35, 50, 0.14),
+    0 2px 4px rgba(30, 35, 50, 0.09);
+}
+
+.workshop-project-card-content {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.68),
+      rgba(248, 250, 252, 0.5)
+    ),
+    rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.workshop-project-card-glass:hover .workshop-project-card-content {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.76),
+      rgba(248, 250, 252, 0.58)
+    ),
+    rgba(255, 255, 255, 0.42);
 }
 
 /* Create-project modal: one centered liquid-glass plate with paper-grade
@@ -1779,10 +1900,23 @@ input[type="number"] {
 .workshop-project-card-thumbnail-reveal {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(255, 255, 255, 0.76)
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.42) 38%,
+    rgba(255, 255, 255, 0.88) 100%
   );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.workshop-project-card-thumbnail-reveal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.64) 100%
+  );
+  pointer-events: none;
 }
 
 /* ── Estimate-sheet hero — liquid-glass surface variant ──────────────────────

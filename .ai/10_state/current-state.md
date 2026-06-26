@@ -42,6 +42,221 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Estimate sheet June 24/25 plan folders archived after implementation closeout (2026-06-26):**
+
+- Archived these folders from `.ai/03_plans/` to `.ai/09_archive/`: `2026-06-24-Estimate-Sheet-Center-Content-Analysis`, `2026-06-24-Estimate-Sheet-Right-Sidebar-Analysis`, `2026-06-24-Estimate-Sheet-Tree-Sidebar-Analysis`, and `2026-06-25-Estimate-Sheet-Orchestration`.
+- Archive was done only after the orchestration evidence said the three June 24 source folders were implemented under the current scope and the orchestration implementation ledger had no remaining unimplemented source-folder rows.
+- The closeout ledger, source-ID coverage appendix, loop ledger, and implementation evidence now live under `.ai/09_archive/2026-06-25-Estimate-Sheet-Orchestration/`.
+
+**Estimate tree lazy subtree + realtime-v2 contract locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the remaining tree-side lazy subtree loading and concrete realtime-v2 collaboration contract gap from the June 24 tree source plan and June 25 orchestration pack.
+- Added typed branch-hydration helpers in `src/lib/estimates/estimate-tree-lazy.ts`, optional `childrenLoaded` / `rowItemsLoaded` node metadata, a bounded server-side subtree reader in `workspace-repository.ts`, server/client subtree load actions, and expand-time hydration in `EstimateSheetTree.tsx` for nodes marked partial or terminal nodes from an over-limit initial tree.
+- Added `src/lib/collaboration/estimate-tree-realtime-contract.ts` as a separate v2 tree collaboration event contract for subtree request/load, LWW branch change, and full-refetch messages without changing the existing cursor/presence channel.
+- Fresh local evidence passed: focused lazy/realtime suite (`3 files / 8 tests`), nearby tree/collaboration suite (`8 files / 40 tests`), load-limit/cache suite (`4 files / 12 tests`), and `bun run type-check`.
+- With F-13, M-21/M-22/M-23/M-24, tree delete Undo, and this lazy/realtime slice closed, the three June 24 estimate-sheet source folders are implemented under the current orchestration scope. No production deploy, manual browser matrix, or provider write was claimed for this local code slice.
+
+**Estimate right sidebar F-13 profiler proof locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the right-sidebar F-13 active-tab render proof gap from the June 24 source plan and June 25 orchestration pack.
+- Added `tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx`, which renders the real `EstimateRightSidebar` shell inside React `<Profiler>`, mocks only the heavy `LibraryTree` and `TemplatesTree` bodies, and proves inactive tab trees stay at zero renders during active-tab interactions.
+- Updated `tests/vitest/estimate-sheet-sidebar-library-consumers.test.tsx` to follow the M-21 extraction boundary: the source trust-gate logic now lives in `use-estimate-row-handlers.ts`, while `EstimateSheetContent.tsx` still owns the source-review modal copy.
+- Fresh local evidence passed: profiler test (`1 file / 1 test`), right-sidebar regression cluster (`6 files / 118 tests`), `bun run type-check`, and changed-file React Doctor exit 0. React Doctor still reports broader changed-branch warnings, but no `EstimateRightSidebarBase` giant-component finding.
+- Remaining source-folder gaps after this slice were lazy subtree loading and a concrete realtime-v2 collaboration contract; those closed in the newer tree lazy/realtime entry above.
+
+**Estimate sheet center M-23 activity-history hook locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the center-content M-23 activity-history controller extraction gap from the June 24 source plan and June 25 orchestration pack.
+- Implemented `src/components/workshop/estimate-sheet/use-estimate-history-panel.ts` and moved activity scope item construction, selected scope/row details derivation, history reload/filter state transitions, request-generation guards, initial fetch, pagination fetch, modal focus restoration, and Escape-key close handling out of `EstimateSheetContent.tsx`.
+- `EstimateSheetContent.tsx` still owns reducer-backed activity/history state and renders the activity-history and row-details modals; it delegates the controller behavior to the hook.
+- Fresh local evidence passed: `bun run type-check`; `bunx vitest run tests/vitest/estimate-sheet-version-control-ui.test.tsx tests/vitest/estimate-sheet-activity-history-ui.test.tsx tests/vitest/estimate-sheet-extracted-models.test.ts tests/vitest/estimate-sheet-row-details-crud.test.tsx --maxWorkers=1` (`4 files / 37 tests`); and `bunx vitest run tests/vitest/estimate-sheet-version-control-actions.test.ts --maxWorkers=1` (`1 file / 32 tests`).
+- Remaining source-folder gaps after this slice at that time: F-13 React DevTools active-tab profiler proof, lazy subtree loading, and a concrete realtime-v2 collaboration contract. F-13 and lazy/realtime have since closed in newer entries above.
+
+**Estimate sheet center M-21 row-handler hook locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the center-content M-21 row-handler/controller extraction gap from the June 24 source plan and June 25 orchestration pack.
+- Implemented `src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts` and moved row editable-state resync, express draft insert/retry/delete handling, row save buffering, library insert/replace trust gates, clear-component, project-specific detach, library promotion, component replace/move picker actions, single-row delete Undo, and selected-row bulk delete Undo out of `EstimateSheetContent.tsx`.
+- `EstimateSheetContent.tsx` still owns the reducer/local state and passes the needed state/actions into the hook; template insertion and proposal preview remain on their dedicated `M-22`/`M-24` hooks.
+- Fresh local evidence passed: `bunx vitest run tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-row-details-crud.test.tsx tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx --maxWorkers=1` (`4 files / 80 tests`), `bunx vitest run tests/vitest/estimate-sheet-version-control-actions.test.ts --maxWorkers=1` (`1 file / 32 tests`), and `bun run type-check`.
+- Remaining source-folder gaps after this slice at that time: F-13 React DevTools active-tab profiler proof, center M-23 activity-history controller extraction, lazy subtree loading, and a concrete realtime-v2 collaboration contract. M-23, F-13, and lazy/realtime have since closed in newer entries above.
+
+**Estimate sheet center M-24 proposal preview hook locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the center-content M-24 proposal-preview controller extraction gap from the June 24 source plan and June 25 orchestration pack.
+- Implemented `src/components/workshop/estimate-sheet/use-estimate-proposal-preview.ts` and moved proposal export tab-scope selection, preview signature composition, preview model building, export settings updates, stale/current status, download availability, blob download error handling, and dialog focus restoration out of `EstimateSheetContent.tsx`.
+- `EstimateSheetContent.tsx` still owns the reducer-backed proposal state and passes it to the hook; pure proposal-preview helpers remain in `proposal-preview-model.ts`.
+- Fresh local evidence passed: `bunx vitest run tests/vitest/proposal-export-preview.test.tsx tests/vitest/estimate-sheet-extracted-models.test.ts --maxWorkers=1` (`2 files / 19 tests`), `bun run type-check`, and scoped `git diff --check`.
+- Remaining source-folder gaps after this slice at that time: F-13 React DevTools active-tab profiler proof, center M-21 row-handler extraction, center M-23 activity-history controller extraction, lazy subtree loading, and a concrete realtime-v2 collaboration contract. M-21, M-23, F-13, and lazy/realtime have since closed in newer entries above.
+
+**Estimate sheet center M-22 template insertion hook locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the center-content M-22 estimate-template insertion orchestration gap from the June 24 source plan and June 25 orchestration pack.
+- Implemented `src/components/workshop/estimate-sheet/use-estimate-template-insertion.ts` and moved whole-template insert, batched multi-template insert, template-node subtree insert, id lookup, left-tree template custom-event handling, optimistic tree/row updates, stale-response revision guards, rollback, and error toasts out of `EstimateSheetContent.tsx`.
+- Project-source subtree insertion intentionally remains in `EstimateSheetContent.tsx` because it is the separate U2 source-copy RPC flow, not the estimate-template insertion hook.
+- Fresh local evidence passed: `bunx vitest run tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-extracted-models.test.ts --maxWorkers=1` (`2 files / 34 tests`), `bun run type-check`, and scoped `git diff --check`.
+- Remaining source-folder gaps after this slice at that time: F-13 React DevTools active-tab profiler proof, center M-21 row-handler extraction, center M-23 activity-history controller extraction, center M-24 proposal-preview controller extraction, lazy subtree loading, and a concrete realtime-v2 collaboration contract. M-21, M-23, M-24, F-13, and lazy/realtime have since closed in newer entries above.
+
+**Estimate sheet tree/subtree delete Undo locally and provider verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was the estimate-sheet tree/sidebar post-success delete Undo gap from the June 24 source plans and June 25 orchestration pack.
+- Implemented migration `20260626023000_estimate_node_delete_undo_rpc.sql`: new tree delete events persist canonical deleted node and row snapshots; `restore_deleted_estimate_nodes_with_history` restores single-node, subtree, and bulk tree deletes with edit authz, idempotency, row restore, sort-slot collision handling, and restore history events; `estimate_sheet_events` snapshot cap is now 5 MB.
+- Wired delete `eventId` through tree delete actions and added `restoreDeletedEstimateNodes`; `EstimateSheetTree` now shows post-success Undo for single/bulk tree deletes and repairs route/selection back to the restored node when the delete forced a fallback.
+- Provider proof: linked Supabase project `ebxxqidacheyapmmzavr`; scoped SQL apply succeeded; migration history repaired for `20260626023000`; readback confirmed restore/delete RPCs are `SECURITY DEFINER`, authenticated-executable, anon-denied, and local/remote migration history is aligned.
+- Fresh local evidence passed: focused tree/action/schema matrix `4 files / 82 tests`; `bun run type-check`; `git diff --check`.
+- Remaining source-folder gaps at that point: F-13 React DevTools active-tab profiler proof, full `EstimateSheetContent.tsx` hook/component decomposition beyond extracted helper/model modules, lazy subtree loading, and a concrete realtime-v2 collaboration contract. M-21 through M-24, F-13, and lazy/realtime have since closed in newer entries above.
+
+**Workshop Library performance pass locally verified (2026-06-26):**
+
+- Branch/worktree: `codex/estimate-sheet-orchestration` at `/Users/philiplewis/Documents/archestimator`; scope was `/workshop/library`, `/workshop/library/components`, `/workshop/library/templates`, and `/workshop/library/templates/[templateId]`.
+- Implemented local performance hardening without reducing the visible UX/UI: library tabs are native `next/link` anchors with `prefetch={false}` plus deduped intent-only `router.prefetch`; header search restores focus/Escape behavior; templates browse builds its tree/totals in one grouped pass and stabilizes gallery callbacks; template gallery rows are memoized and summarize each template once; template editor now loads the components dock strictly on pointer/focus/click intent; template editor row refreshes stay deferred/coalesced; preview dock subtree totals are precomputed once per selected template; supplier/brand tree builds use indexed id/name lookup; TemplatesTree source prefetch is deduped through a lazy ref.
+- Fresh local evidence passed: focused DOM matrix `10 files / 94 tests`; patch-scoped ESLint; patch-scoped `git diff --check`; `npx react-doctor@latest --verbose --scope changed` exited 0 with 20 broader changed-branch warnings outside the final library patch set; `bun run type-check`; `bun run build` (Next 16/Turbopack production build, including all library routes).
+- Browser/auth route-transition evidence is now captured under `.ai/03_plans/2026-06-25-Estimate-Sheet-Orchestration/evidence/`: `library-route-transition-2026-06-26.json` shows Workshop -> Library median `341ms`, `0` failures, overlay rate `0.20`; `library-tab-transitions-2026-06-26.json` shows Overview -> Components `356ms`, Components -> Templates `456ms`, Templates -> Overview `398ms`, `0` failures; `library-template-editor-transition-2026-06-26.json` shows Templates browse -> Template Editor median `1952ms`, `0` failures, overlay rate `0`, one RSC request per run, and temporary fixture cleanup succeeded.
+- Harness caveat: the template-editor browser proof used local dev-auth admin-db with `WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED=1` because the production `library_templates_seed` RPC is `security invoker` and returns empty rows under the service-role dev bypass where `auth.uid()` is null. The route/tab evidence used the normal local dev-auth configuration. No hosted/provider/production performance proof or Vercel deploy was performed.
+
+**Publisher Page UX/UI research addendum added (2026-06-25):**
+
+- Added `.ai/03_plans/2026-06-25-Publisher-Page/19_UX_UI_RESEARCH_AND_REFINEMENT_2026-06-25.md` and updated the Publisher plan pack with source-backed UX/UI refinements. The pack now has 20 numbered docs (00-19) plus README.
+- New traced requirements: UX-09 at-a-glance roster split, UX-10 permission-change impact preview, UX-11 768px tablet support, UX-12 copy-link privacy, A11Y-08 WCAG 2.2 AA target, A11Y-09 error summary + inline errors, TEST-07 UX task-model validation, TEST-08 UX/accessibility/privacy edge validation.
+- Updated docs: 00, 04, 05, 11, 12, 15, 16, 17, README, plus new 19. Requirement count is now 94 (81 PENDING, 13 IN-PLAN). No application code, tests, migrations, config, browser automation, or provider state changed.
+- Implementation agents must read docs 18 and 19 before Phase 1. Doc 18 remains authoritative for factual code corrections; doc 19 is authoritative for the new UX/UI planning refinements.
+
+**Publisher Page plan pack pass-2 audit complete (2026-06-25):**
+
+- Sisyphus (Claude Opus 4.7) ran a second-pass adversarial audit on the 19-document pack at `.ai/03_plans/2026-06-25-Publisher-Page/` and produced a new authoritative errata doc `18_AUDIT_FINDINGS_AND_CORRECTIONS_2026-06-25.md` with 47 findings (8 CRITICAL, 17 HIGH, 15 MEDIUM, 7 LOW). Per-document audit banners applied to README + 04/05/06/07/08/09/10/11/12/13/14/15. Overall readiness lifts 82 → 88.
+- CRITICAL headlines: server-action surface names in §06/§07 were FABRICATED (use `createProjectPublication`/`rotateProjectPublicationLink`/`revokeProjectPublication`/`republishProjectPublication`/`addSharedLinkRecipients` plural/`removeSharedLinkRecipient`/`setEstimateSheetAccessMode` — full list in 18_); RPC name `atomic_publish_and_digest_slot` corrected to `shared_link_atomic_publish_and_digest_slot` (`20260621133000`); lock migration timestamp `20260601151500` → `20260601145000`; helper `isBeforeSharedLinkActivityCursor` does NOT exist (use `parseSharedLinkActivityCursor` + `encodeSharedLinkActivityCursor` at activity-helpers.ts:256/246); service-role claim "never used in app code" is FALSE (used in 10 src/lib files — Publisher must not add new paths); 8 share/[token] endpoints not 7 (missing `route.ts`); `feat/sidebar-redesign` branch does NOT exist locally or on remote (plan coordination risk was fabricated); current branch is `codex/estimate-sheet-orchestration` not `main` (Phase 0 must switch).
+- HIGH headlines: workspace-repository.ts is 3,267 lines not 2,300 (Ponytail T2.3 split target #1 — roster function MUST live in new `src/lib/publisher/roster-repository.ts`); `ProjectPublicationListSummary` too narrow (roster needs new `ProjectPublicationRosterRow` type); MainSidebar risk MED not LOW (8 test files import it); 15+ test files import workspace-repository; rotate-token race incorrectly dismissed (requires `pg_advisory_xact_lock` or bulk re-notify); FR-07 needs per-action recipient cap (recommend 50); FR-09 snapshot_version behavior on sheet change unspecified; SEC-02 needs fallback path if Next.js 16 lacks redaction config; Philippines DPA NPC 4-element + GDPR Art 33/34 missing (primary market is PH); CWE-639/863 mapping missing; Referrer-Policy missing for Copy Link; ARCH-DEFECT-01/02/04/06/08/12/13/14/15 architectural defects.
+- New decisions required from Philip: D-ARCH-05 (rotate race handling), D-ARCH-06 (optimistic queueing), D-ARCH-07 (FR-07 cap value), D-ARCH-08 (FR-09 snapshot_version), D-SEC-05 (DPoP Phase 5+ eval), D-OPS-01 (Referrer-Policy).
+- Audit trail: 7 parallel specialist reviewers dispatched (3 explore + 2 librarian + 1 oracle); 6 timed out at 30 min with zero output (same systemic infrastructure issue as pass 1). Lead emulated all failed lanes via direct Bash + Read on live repo per OMX MULTI-AGENT EXECUTION DIRECTIVE FALLBACK clause. One librarian (Next.js 16 + Supabase SSR) was still in-flight at audit finalization; output (if any) folded into future pass-3 refinement.
+- Scope confirmation: zero code/migration/config/provider mutations; zero git ops. All writes confined to `.ai/03_plans/2026-06-25-Publisher-Page/*` (1 new doc 18_ + 13 audit-banner edits + scorecard rewrite + README index add) plus this single announcement line.
+
+**Estimate sheet orchestration MOP-6 continuation checkpoint (2026-06-25):**
+
+- Full-scope continuation audit answer: the three source analysis folders were
+  **not** fully implemented at audit start. This pass implemented and verified
+  the safe non-rejected continuation gaps for account-backed right-sidebar
+  preferences, estimate-sheet column-width account sync, editable-total cost
+  sort, destructive delete recovery copy, right hover prefetch dedupe,
+  context-menu rename focus, sparse create-sort step, durable telemetry proof,
+  and `estimate_sheet_event_result` execute hardening. Follow-up passes also
+  implemented tree route-param parsing via `useParams` (`F-23`) and the
+  product-specific below-1024 right `Sources` drawer with source/jsdom proof.
+  A later recovery slice fixed the drawer e2e harness plus real-browser
+  Escape/focus issues and passed local Chromium proof for the `Sources` drawer
+  at 1023px and 390px widths.
+  A later pass extracted the right-sidebar reducer into chrome/library/project/
+  templates state hooks and cleared the local `EstimateRightSidebarBase`
+  React Doctor `no-giant-component` warning. A later data slice implemented and
+  provider-applied numeric `estimate_nodes.sort_order` via migration
+  `20260625221500`; linked readback shows `numeric(20,4)`, preserved tab-aware
+  constraints/indexes, no integer create-node overload, and a numeric create-node
+  overload.
+  A later center P3 polish slice replaced missing component-image remote
+  fallbacks with local SVG placeholders, debounced same-scope activity-history
+  filter reloads, offset global toasts above the bottom dock, and added the
+  proposal-preview unsaved-edits banner. A later center slice implemented and
+  provider-applied row-delete post-success Undo through migration
+  `20260626013000`. A later tree slice implemented and provider-applied
+  tree/subtree post-success delete Undo through migration `20260626023000`.
+  The remaining not-fully-implemented rows are architecture-scope future
+  slices: tree lazy subtree loading and realtime-v2 contract work. F-13
+  active-tab profiler proof and center M-23 hook/controller extraction have
+  since closed in newer 2026-06-26 entries above.
+  Pure center helper/model extraction for M-21 through M-24 is now implemented
+  and covered through extracted proposal-preview, template-insertion, and
+  activity-scope-tree helpers plus focused behavior locks; M-22 estimate-template
+  insertion orchestration, M-24 proposal-preview controller orchestration, and
+  M-21 row-handler/controller orchestration are also now extracted into
+  dedicated hooks. Tree non-launch polish is now closed:
+  F-24 keeps
+  the inline rename editor visible with a saving affordance, F-25 scrolls newly
+  created rows into view, and F-26's append-as-child placement decision is
+  documented/proved by existing child-placement coverage.
+- Hosted Supabase provider proof is green for this estimate-sheet slice on
+  project `ebxxqidacheyapmmzavr`: versions `20260625183000`,
+  `20260625193000`, `20260625203000`, `20260625213000`, `20260625214500`, and
+  `20260625220000` are applied and repaired into remote migration history;
+  version `20260625221500` is also applied and repaired for numeric tree sort;
+  version `20260626013000` is applied and repaired for center row-delete Undo;
+  version `20260626023000` is applied and repaired for tree/subtree delete
+  Undo.
+  Readback at `2026-06-25T13:44:09Z` shows the telemetry/preferences tables
+  exist with RLS enabled and direct anon/authenticated table access denied, and
+  `estimate_sheet_event_result(uuid, uuid)` denies anon execute while allowing
+  authenticated/service-role execute. Numeric-sort readback after
+  `20260625221500` shows `estimate_nodes.sort_order` as `numeric(20,4)`, no
+  duplicate sibling sort slots, preserved tab-aware constraints/indexes, and
+  the numeric create-node overload. Row-undo readback after `20260626013000`
+  shows `restore_deleted_estimate_rows_with_history` as `SECURITY DEFINER`,
+  authenticated executable, anon denied, and aligned in migration history.
+  Tree-undo readback after `20260626023000` shows
+  `restore_deleted_estimate_nodes_with_history` as `SECURITY DEFINER`,
+  authenticated executable, anon denied, and aligned in migration history; the
+  helper snapshot function is not exposed to anon or authenticated roles.
+- Fresh local proof for the continuation closure passed: schema contract 1 file
+  / 12 tests; center/right/tree matrix 4 files / 140 tests;
+  preferences/sort/telemetry matrix 4 files / 52 tests; numeric sort-order
+  matrix 8 files / 104 tests; tree polish matrix 3 files / 53 tests; center
+  P3 polish matrix 4 files / 57 tests; center row-delete Undo matrix 3 files /
+  49 tests; center extraction/refactor matrix 11 files / 102 tests;
+  tree/subtree delete Undo matrix 4 files / 82 tests;
+  lazy/realtime architecture-contract check 2 files / 13 tests;
+  `bun run type-check`; and `git diff --check`.
+  Follow-up drawer proof also passed: `e2e/estimate-sources-drawer.spec.ts`
+  in Chromium at 1023px and 390px; focused drawer/source tests 2 files /
+  103 tests; `bun run type-check`; and `git diff --check`. A newer 2026-06-26
+  entry above adds the F-13 automated React Profiler proof.
+
+- Continuation work has started on the previously deferred/non-rejected MOP-6
+  backlog. Slice 1 implemented persisted shared side-panel collapse state
+  (`Task 2.4`) and explicit same-origin proposal export fetch credentials.
+- Slice 2 verified right-sidebar thumbnail rendering (`Task 3.2`) from
+  `thumbnail_path` / `thumbnailPath` through sanitized component-row thumbnails.
+- Scoped hosted Supabase provider proof was completed for the estimate-sheet
+  row/tree RPCs against linked project `ebxxqidacheyapmmzavr`. The two local SQL
+  files were applied directly with `supabase db query --linked --file` because
+  broad migration-history drift made `supabase db push` unsafe. Post-apply
+  metadata proof shows the target RPCs exist with authenticated EXECUTE, anon
+  denied, `SECURITY DEFINER`, edit assertions, and idempotency lookup where
+  expected. The target version rows were later repaired into remote migration
+  history; unrelated historical migration-list drift remains outside this
+  estimate-sheet slice.
+- A durable component-library/right-sidebar telemetry sink was added and
+  applied to linked project `ebxxqidacheyapmmzavr` via scoped direct SQL:
+  `public.component_library_telemetry_events` now exists with RLS enabled,
+  direct anon/authenticated table access denied, service-role INSERT available,
+  redaction constraints, and review indexes. The right sidebar installs a
+  best-effort server-action sink outside tests; async telemetry failures are
+  swallowed. The target telemetry version row was later repaired into remote
+  migration history; unrelated historical migration-list drift remains outside
+  this estimate-sheet slice.
+- Focused proof passed:
+  `bun x vitest run tests/vitest/resizable-side-panel-a11y.test.tsx tests/vitest/estimate-sheet-center-atomic-contracts.test.ts --maxWorkers=1`
+  (2 files / 6 tests), `bun x vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/component-library-helpers.test.ts tests/vitest/library-source-trust.test.ts --maxWorkers=1`
+  (3 files / 118 tests), `bun x vitest run tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/estimate-sheet-version-control-schema.test.ts --maxWorkers=1`
+  (3 files / 69 tests), `bun x vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/library-telemetry-emit.test.ts tests/vitest/component-library-durable-telemetry.test.ts --maxWorkers=1`
+  (3 files / 105 tests), `git diff --check`, and `bun run type-check`.
+- Overall estimate-sheet orchestration remains open for the remaining
+  architecture rows: lazy subtree loading and realtime-v2 contract work. F-13
+  profiler proof and center M-23 have since closed in newer 2026-06-26 entries
+  above.
+
+**Estimate sheet orchestration checkpoint (2026-06-25):**
+
+- Branch `codex/estimate-sheet-orchestration` has completed local MOP-0 through
+  MOP-5 implementation evidence for estimate-sheet orchestration. Evidence is
+  under
+  `.ai/03_plans/2026-06-25-Estimate-Sheet-Orchestration/evidence/implementation-20260625T095050Z/`.
+- MOP-5 added tree keyboard affordances, tree and center-sheet move/replace
+  picker dialogs, row-table header semantics, regenerated local jsdom render
+  baseline, and observability guardrails. Latest focused evidence: MOP-5
+  interaction matrix 4 files / 99 tests, render/performance 6 files / 22 tests,
+  render baseline 1 file / 3 tests, observability 4 files / 111 tests, and
+  `bun run type-check` passed.
+- Hosted Supabase migrations are still not applied in this local pass because
+  MOP-0 recorded linked migration drift. No provider writes, production
+  deploys, browser automation, PITR/paid add-ons, or external mutations were
+  used.
+
 **InfoSec planning-package checkpoint (2026-06-25):**
 
 - The InfoSec run folder

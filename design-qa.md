@@ -1,3 +1,72 @@
+## 2026-06-25 library toolbar background QA
+
+source visual truth path:
+- /Users/philiplewis/.codex/attachments/c9a8ee93-3c18-4739-9f13-aba35dcab00d/image-1.png
+- /Users/philiplewis/.codex/attachments/c9a8ee93-3c18-4739-9f13-aba35dcab00d/image-2.png
+
+implementation screenshot path:
+- blocked: current `http://localhost:3000/workshop/library` requires the user's authenticated in-app session; a fresh system Chrome context redirects to `/login?next=%2Fworkshop%2Flibrary`.
+
+viewport: desktop in-app browser reference viewport.
+
+state: `/workshop/library` page-level search header icon toolbar and tabs toolbar compared against `/workshop/projects`.
+
+full-view comparison evidence:
+- Source Library screenshot shows a pale rectangular slab behind the search icon row and library tab row.
+- Source Projects screenshot shows the toolbar and tab controls blending into the same washed canvas surface, without a distinct header slab.
+- Code evidence after patch: `LibraryTabsLayoutClient` now uses `dashboard-canvas-wash estimate-glass-divider shrink-0 bg-transparent` for the Library toolbar/tabs wrapper instead of `estimate-glass-chrome estimate-glass-divider shrink-0`.
+
+focused region comparison evidence:
+- Focused visual issue is confined to the page-level Library toolbar/tabs wrapper.
+- `HeaderIconToolbar` remains explicitly `bg-transparent`.
+- `TabStrip` remains `variant="glass"` with `className="border-b-0 bg-transparent"`.
+- Live focused screenshot comparison is blocked by auth/session access as noted above; no broader layout or content regions were changed.
+
+findings:
+- No source-level P0/P1/P2 findings remain for the requested toolbar background mismatch.
+- Browser-rendered visual QA remains blocked by authenticated session access.
+
+patches made since previous QA pass:
+- Replaced the Library page-level toolbar/tabs wrapper's frosted glass chrome background with the shared dashboard canvas wash used by the Projects page family.
+- Preserved the existing soft divider, search behavior, add action, tab ids, and tab active-state behavior.
+
+verification:
+- `bun run type-check --pretty false` passed.
+- `bun run lint -- src/components/workshop/library/LibraryTabsLayoutClient.tsx` passed.
+- `git diff --check -- src/components/workshop/library/LibraryTabsLayoutClient.tsx` passed.
+
+final result: blocked
+
+## 2026-06-25 workshop project card comment 1 QA
+
+source visual truth path: Browser Comment 1 inline screenshot from `http://localhost:3000/workshop/projects` (chat attachment; no filesystem path exposed)
+implementation screenshot path: /Users/philiplewis/Documents/archestimator/.omx/artifacts/visual-ralph/project-card-comment-1/implementation-card.png
+viewport: in-app browser desktop viewport, focused card crop
+state: `/workshop/projects`, Lewis Residence project card visible after local dev-server reload
+
+full-view comparison evidence:
+- The map/thumbnail now runs to the inner card's visible top/side edges, separated only by the 1px hairline border.
+- The information area below the thumbnail has a translucent frosted background instead of a flat white block.
+- The project information retains padding inside the lower panel.
+- The previous `1 favorite` metadata pill is no longer rendered on the tile.
+
+focused region comparison evidence:
+- DOM measurement after reload: thumbnail edge deltas versus the inner card were left `1px`, right `1px`, top `1px`.
+- Computed info-panel padding was `8px` on all sides.
+- Computed info-panel background was a layered translucent white/cool-white gradient over `rgba(255,255,255,0.34)`.
+- DOM check for the project-card vitals text returned `hasFavoriteVital: false`.
+
+findings:
+- No actionable P0/P1/P2 findings remain for the requested card changes.
+
+patches made since previous QA pass:
+- Removed the favorite-count metadata vital from project tiles while leaving the actual favorite toggle control intact.
+- Made the tile thumbnail flush with the inner card edges.
+- Added `.workshop-project-card-content` as a reusable frosted lower information panel.
+- Kept the lower information area padded and constrained to the existing project-card glass system.
+
+final result: passed
+
 ## 2026-06-25 hero mount motion QA
 
 route: http://localhost:3000/

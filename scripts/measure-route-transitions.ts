@@ -91,6 +91,15 @@ async function clickHref(page: Page, href: string, position?: { x: number; y: nu
   await link.click(position ? { position } : undefined);
 }
 
+async function clickLibraryTab(page: Page, name: "Overview" | "Components" | "Templates") {
+  const tab = page
+    .getByRole("tablist", { name: "Library sections" })
+    .getByRole("tab", { name, exact: true });
+  await tab.waitFor({ state: "visible", timeout: 15_000 });
+  await tab.scrollIntoViewIfNeeded().catch(() => undefined);
+  await tab.click();
+}
+
 const SCENARIOS: Scenario[] = [
   {
     name: "Public: Landing to Login",
@@ -134,6 +143,33 @@ const SCENARIOS: Scenario[] = [
     clickPosition: collapsedSidebarIconPosition,
     action: async (page) => {
       await page.locator('a[href="/workshop/library"]').first().click({ position: collapsedSidebarIconPosition });
+    },
+  },
+  {
+    name: "Authenticated Library: Overview to Components",
+    from: "/workshop/library",
+    expectedPathname: "/workshop/library/components",
+    requiresAuth: true,
+    action: async (page) => {
+      await clickLibraryTab(page, "Components");
+    },
+  },
+  {
+    name: "Authenticated Library: Components to Templates",
+    from: "/workshop/library/components",
+    expectedPathname: "/workshop/library/templates",
+    requiresAuth: true,
+    action: async (page) => {
+      await clickLibraryTab(page, "Templates");
+    },
+  },
+  {
+    name: "Authenticated Library: Templates to Overview",
+    from: "/workshop/library/templates",
+    expectedPathname: "/workshop/library",
+    requiresAuth: true,
+    action: async (page) => {
+      await clickLibraryTab(page, "Overview");
     },
   },
   {
@@ -241,7 +277,6 @@ async function addDevAuthBypassCookie(context: BrowserContext) {
       name: DEV_AUTH_BYPASS_COOKIE,
       value: DEV_AUTH_BYPASS_SECRET,
       url: baseUrl.origin,
-      path: "/",
       httpOnly: true,
       sameSite: "Lax",
     },

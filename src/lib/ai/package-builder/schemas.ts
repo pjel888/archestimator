@@ -472,7 +472,7 @@ function parseTreeNodeDraft(value: unknown): PackageBuilderTreeNodeDraft {
     kind: readEnum(record.kind, ["group", "area"], "Tree node kind must be group or area."),
     name: readString(record.name, "Tree node name", 120),
     parentClientDraftId: readNullableString(record.parentClientDraftId, "Parent client draft id", 120),
-    sortOrder: readInteger(record.sortOrder, "Tree sort order"),
+    sortOrder: readNonNegativeNumber(record.sortOrder, "Tree sort order"),
   };
 }
 

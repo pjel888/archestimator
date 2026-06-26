@@ -15,8 +15,9 @@
   --signal: #f24405;
   --signal-aa: #c63804;
   --signal-wash: color-mix(in srgb, var(--signal) 10%, white);
-  --grid-max: 1728px;
-  --landing-frame-max: 1728px;
+  /* Keep the public landing full-width through common 21-inch desktop browser widths. */
+  --grid-max: 2048px;
+  --landing-frame-max: 2048px;
   --gutter: clamp(0.875rem, 2.4vw, 3.5rem);
   --hero-gutter: clamp(1.25rem, 1.45vw, 2rem);
   --section-y: clamp(4rem, 7.5vw, 8rem);
@@ -607,8 +608,10 @@
 .heroActualEstimateMockupScale :global(button[aria-label="Collapse all tab"]),
 .heroActualEstimateMockupScale :global(button[aria-label="Collapse Tree"]),
 .heroActualEstimateMockupScale :global(button[aria-label="Collapse Library"]),
+.heroActualEstimateMockupScale :global(button[aria-label="Collapse Sources"]),
 .heroActualEstimateMockupScale :global([role="separator"][aria-label="Resize Tree"]),
-.heroActualEstimateMockupScale :global([role="separator"][aria-label="Resize Library"]) {
+.heroActualEstimateMockupScale :global([role="separator"][aria-label="Resize Library"]),
+.heroActualEstimateMockupScale :global([role="separator"][aria-label="Resize Sources"]) {
   display: none;
 }
 
