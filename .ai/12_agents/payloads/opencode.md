@@ -18,6 +18,12 @@ ordinary non-trivial work uses an in-session loop; high-blast-radius or
 explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
 `LOOP_LEDGER.md`.
 
+OpenCode may also load global ECC instructions from `~/.opencode` or
+`~/.config/opencode`. In Archestimator those global rules are advisory adapter
+defaults only. Project instructions in `AGENTS.md`, `.ai/00_system`, and this
+payload override global mandates such as always-on TDD, fixed coverage
+thresholds, Conventional Commit defaults, or automatic broad E2E requirements.
+
 ## Reading Chain
 
 Start with `AGENTS.md` and the FAST PATH block at the top of
@@ -52,7 +58,14 @@ chooses isolation or the risk/parallelism justifies it.
 ## Validation Rules
 
 Docs-only: path checks and `git diff --check`. Config changes require the
-official/installed validation command for that tool plus repo checks.
+official/installed validation command for that tool plus repo checks. For
+OpenCode config changes, use the documented repo-root `opencode.json` for
+project configuration. Reserve `.opencode/` for intentionally authored OpenCode
+agents, commands, and plugins. After edits, run `opencode debug config` from
+the repo root and verify the resolved `instructions` include `AGENTS.md` and
+this payload. Run `bun run validate:agents` to catch stale OpenCode schema,
+generated `.opencode/` package state, unpinned code-review-graph MCP config,
+and malformed Codex role files.
 
 ## Design-System Guidance
 

@@ -262,10 +262,12 @@ Default roles:
 - Use graph/GitNexus impact analysis for risky shared symbol/API refactors when available. For narrow local edits, focused caller/import checks are enough.
 - Archestimator Supabase/Postgres changes are pre-authorized for project `ebxxqidacheyapmmzavr` under the pre-launch MVP database mandate; never touch archestimator or unrelated provider resources.
 - AI capability is currently Ask-only unless Philip explicitly approves a wider slice. No Draft/Apply, write tools, retrieval/RAG, or stored conversation features may be added by implication.
-- Tool-specific adapter files (`CLAUDE.md`, `GEMINI.md`, `.agents/`,
-  `.claude/`, `.codex/`, `.gemini/`, `.commandcode/`) must stay
-  subordinate to `.ai/00_system` and `.ai/12_agents`. They may point to `.ai`;
-  they must not fork policy.
+- Tool-specific adapter files (`CLAUDE.md`, `GEMINI.md`, `opencode.json`,
+  `.agents/`, `.claude/`, `.codex/`, intentionally authored `.opencode/`
+  extension files, `.gemini/`, `.commandcode/`) must stay subordinate to
+  `.ai/00_system` and `.ai/12_agents`. They may point to `.ai`; they must not
+  fork policy. After Codex/OpenCode adapter changes, run
+  `bun run validate:agents` plus the relevant installed resolver.
 
 ## UI implementation guidance
 

@@ -10,3 +10,9 @@ in `.ai`.
 
 Keep runtime state, logs, sessions, caches, tmp files, and machine-local
 settings out of Git.
+
+Validate the shared Codex/OpenCode adapter surface with:
+
+```sh
+bun run validate:agents
+```

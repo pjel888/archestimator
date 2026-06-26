@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    ".ai/12_agents/payloads/opencode.md"
+  ],
+  "mcp": {
+    "code-review-graph": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "code-review-graph==2.3.5",
+        "serve"
+      ],
+      "enabled": true
+    }
+  }
+}

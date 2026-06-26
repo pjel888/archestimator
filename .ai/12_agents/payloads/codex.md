@@ -65,6 +65,8 @@ route-wide changes. Minor cosmetic UI edits such as spacing, copy, color, icon,
 or class-only tweaks do not automatically need Playwright/browser proof; use
 static review, focused type/LSP/lint, or nearby component/unit checks when that
 proves the edit. Docs/config-only changes usually need path checks and `git diff --check`.
+For Codex/OpenCode adapter changes, run `bun run validate:agents`; for Codex
+role/config changes also run `codex debug prompt-input` and verify zero stderr.
 
 ## Design-System Guidance
 

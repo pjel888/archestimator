@@ -8,6 +8,7 @@
     "build": "next build",
     "graph:reindex": "node .gitnexus/run.cjs analyze && node scripts/neutralize-graph-mandate.mjs",
     "graph:neutralize": "node scripts/neutralize-graph-mandate.mjs",
+    "validate:agents": "node scripts/validate-ai-workflow-adapters.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "storybook:check-boundary": "node scripts/check-storybook-boundary.mjs",

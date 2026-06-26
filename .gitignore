@@ -96,10 +96,18 @@ scripts/.tmp-*.mjs
 /.codex/*.local.*
 /.codex/*.sqlite*
 .codex/*
+!.codex/README.md
+!.codex/config.toml
+!.codex/hooks.json
 !.codex/agents/
 !.codex/agents/**
 !.codex/prompts/
 !.codex/prompts/**
+/.opencode/node_modules/
+/.opencode/package.json
+/.opencode/package-lock.json
+/.opencode/.package-lock.json
+/.opencode/.gitignore
 
 # local design reference
 /claude-design-reference/
