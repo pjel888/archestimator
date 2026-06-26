@@ -46,7 +46,9 @@ grep, don't linear-read).
 
 - The authenticated estimate-sheet target route now has green local
   production-like readiness evidence: `routeTransitionReady: true` in
-  `.ai/05_logs/2026-06-26-routing-page-optimization/after-p31-route-context-process-cache-existing-fixture-readiness.json`.
+  `.ai/05_logs/2026-06-26-routing-page-optimization/after-p31-route-context-process-cache-existing-fixture-readiness.json`
+  and in the post-cleanup rerun
+  `.ai/05_logs/2026-06-26-routing-page-optimization/after-p31-route-context-process-cache-existing-fixture-readiness-post-cleanup.json`.
 - P31 benchmark medians across 7 storage-state authenticated runs per target
   scenario: Cold Direct 2404ms, No Hover 365ms, Hover Prefetch 237ms, Warm
   Revisit 349ms. Fallback gates stayed clean: zero overlay rate, zero parent
@@ -60,7 +62,15 @@ grep, don't linear-read).
 - Validation evidence: `bun run type-check`, focused Vitest route/RPC/shell
   suite (6 files / 46 tests), `bun run build`, authenticated Playwright
   storage-state smoke, P31 benchmark, and P31 readiness checker passed locally.
-  The evidence is local-only and does not claim hosted production proof.
+  Post-cleanup evidence also passed: React Doctor changed-scope scan, focused
+  Vitest matrix (8 files / 77 tests), exact readiness rerun, browser fallback
+  proof in `e2e/estimate-sheet-loading-performance.spec.ts`, `bun run
+  type-check`, and `git diff --check`.
+- Known gaps: evidence is local-only and does not claim hosted production proof;
+  the independent native reviewer lane timed out without usable findings; the
+  broader dirty branch still has a red DOM unit test in
+  `tests/vitest/estimate-sheet-cost-inputs.test.tsx` for breadcrumb metadata
+  publication, so do not claim the full suite is green.
 
 **Publisher follow-up hardening and blocker closure are locally verified (2026-06-26):**
 
