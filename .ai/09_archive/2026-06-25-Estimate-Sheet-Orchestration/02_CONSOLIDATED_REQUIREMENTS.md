@@ -39,8 +39,8 @@ date: 2026-06-25
 | ID | Decision | Reason |
 |---|---|---|
 | `ESO-DEFER-01` | Defer center component decomposition until post-launch. | Behavior locks and data safety are higher priority; decomposition would increase merge risk. |
-| `ESO-DEFER-02` | Defer account-synced favorites/recents/widths and column-width sync. | Beta accepts browser-local preferences where copy is honest. |
-| `ESO-DEFER-03` | Defer full mobile editing and mobile drawer unless separately scoped. | Minimum v1 is honest desktop-first fallback; drawer is design work with focus-trap/browser proof. |
+| `ESO-DEFER-02` | Superseded by MOP-6 continuation for account-synced favorites/recents, right-sidebar state, and estimate-sheet column widths. | No longer an active deferral for those preferences; browser-local storage remains the first-paint/offline fallback. |
+| `ESO-DEFER-03` | Defer full mobile editing; compact right `Sources` drawer was separately scoped and source/jsdom-implemented in MOP-6. | Browser viewport/focus/overflow proof for the drawer remains open; full mobile editing is still outside this scope. |
 | `ESO-DEFER-04` | Defer tree delete undo. | Source plan explicitly defaults `Q-11` to post-launch. |
 | `ESO-REJECT-01` | Reject partial-success bulk row delete. | Center plan selected all-or-nothing contract for recovery and user trust. |
 | `ESO-REJECT-02` | Reject live/read-through project sources. | Right and UX lanes select snapshot copy semantics. |

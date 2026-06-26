@@ -30,15 +30,15 @@ This appendix answers the adversarial review gap: every source finding/task/thre
 | `ESC-P2-14` | Incorporated | MOP-5 | Ops/perf | Telemetry/performance observation. |
 | `ESC-P2-15` | Incorporated | MOP-5 | UX/a11y | Table semantics/screen-reader release smoke. |
 | `ESC-P2-26` | Incorporated | MOP-0/MOP-2 | Data/security | Source freshness and authz preflight/proof. |
-| `ESC-P3-16` | Deferred | MOP-6 | Refactor owner | Product/low-priority enhancement after behavior locks. |
-| `ESC-P3-17` | Deferred | MOP-6 | Refactor owner | Non-launch cleanup after characterization tests. |
+| `ESC-P3-16` | Implemented | MOP-6 continuation | Product owner | Editable-total cost sort now uses live editable row totals; covered by `estimate-sheet-cost-inputs.test.tsx`. |
+| `ESC-P3-17` | Implemented | MOP-6 continuation | Product owner | Missing component images now use local generated SVG placeholders shared by the library, activity cards, and seed fallback inference; covered by `component-library-helpers.test.ts`. |
 | `ESC-P3-18` | Incorporated | MOP-5 | UX/ops | Activity/detail/export copy and evidence where touched. |
-| `ESC-P3-19` | Deferred | MOP-6 | Product owner | Not launch-blocking. |
+| `ESC-P3-19` | Implemented | MOP-6 continuation | Product owner | Proposal workbook export fetch now uses explicit same-origin credentials; covered by `estimate-sheet-center-atomic-contracts.test.ts`. |
 | `ESC-P3-20` | Incorporated | MOP-5 | UX/a11y | Empty/degraded state copy and tests. |
 | `ESC-P3-21` | Incorporated | MOP-5 | Perf | Large-data/perf budgets. |
 | `ESC-P3-22` | Incorporated | MOP-5 | UX/a11y | A11y evidence and focus behavior. |
-| `ESC-P3-23` | Deferred | MOP-6 | Product owner | Collaboration/export enhancement after integrity. |
-| `ESC-P3-24` | Deferred | MOP-6 | Product owner | Collaboration/export enhancement after integrity. |
+| `ESC-P3-23` | Implemented / scoped | MOP-6 continuation | Product owner | Same-scope activity history filter reloads are debounced while explicit scope navigation remains immediate; covered by `estimate-sheet-version-control-ui.test.tsx`. |
+| `ESC-P3-24` | Implemented | MOP-6 continuation | Product owner | Toast viewport is offset above the bottom dock/safe area; covered by `toast.test.tsx`. |
 | `ESC-P3-25` | Incorporated | MOP-5 | Perf/ops | Performance observation and budgets. |
 
 ## Center Implementation Tasks
@@ -62,7 +62,7 @@ These rows cover the task IDs from the center source plan implementation file `1
 | `M-9` | Incorporated | MOP-4/MOP-5 | UX/a11y + contracts | Keyboard replace/move model is selected in contract pass and proved in a11y pass. |
 | `M-10` | Incorporated | MOP-2/MOP-5 | Center + UX/a11y | Row save-state chips are coupled to center mutation semantics and live-region proof. |
 | `M-11` | Incorporated | MOP-5 | UX/a11y | Clear-component icon/copy is destructive-action polish after integrity gates. |
-| `M-12` | Deferred | MOP-6 | Product owner | Undo pattern can follow launch integrity unless selected as the MOP-2 bulk-delete failure path. |
+| `M-12` | Revisited / architecture-scope | MOP-6 continuation | Product owner | Current rollback-on-failure is implemented; full undo after successful edits/deletes requires restore data, ordering/conflict semantics, UI policy, and API/RPC work. |
 | `M-13` | Incorporated | MOP-5 | UX/a11y | Sort/group copy cleanup in UX/a11y pass. |
 | `M-14` | Incorporated | MOP-5 | UX/a11y | Selection pruning announcement in live-region proof. |
 | `M-15` | Incorporated | MOP-5 | UX/a11y | Table semantics are a release accessibility gate. |
@@ -71,14 +71,14 @@ These rows cover the task IDs from the center source plan implementation file `1
 | `M-18` | Incorporated | MOP-5 | Perf + center | Active editor virtualization pinning and large-row smoke proof. |
 | `M-19` | Incorporated | MOP-5 | Perf | Per-node total memoization belongs to performance budget work. |
 | `M-20` | Incorporated | MOP-5 | Perf | Cursor anchor cache belongs to performance budget work. |
-| `M-21` | Deferred | MOP-6 | Refactor owner | Post-launch component decomposition after characterization tests. |
-| `M-22` | Deferred | MOP-6 | Refactor owner | Post-launch template insertion extraction after behavior locks. |
-| `M-23` | Deferred | MOP-6 | Refactor owner | Post-launch history panel extraction after behavior locks. |
-| `M-24` | Deferred | MOP-6 | Refactor owner | Post-launch proposal preview extraction after behavior locks. |
-| `M-25` | Deferred | MOP-6 | Product owner | Account-synced preferences remain separate schema/RLS scope. |
-| `M-26` | Deferred | MOP-6 | Product owner | Broader undo policy follows launch-critical destructive clarity. |
-| `M-27` | Deferred with guard | MOP-6 | Product owner | Proposal dirty-state banner is product enhancement unless proposal/export code is touched earlier. |
-| `M-28` | Deferred | MOP-6 | Product owner | Editable-total cost sort is lower-priority product behavior after integrity gates. |
+| `M-21` | Implemented | MOP-6 continuation | Refactor owner | Pure helper/model extraction is covered by direct tests, and row-handler/controller orchestration is extracted into `use-estimate-row-handlers.ts` with focused row edit/insert/delete/bulk-delete/version-control validation. |
+| `M-22` | Implemented | MOP-6 continuation | Refactor owner | Template insertion clone/append helpers and full estimate-template insertion orchestration are extracted into `use-estimate-template-insertion.ts`; the batched template custom-event path remains covered. Project-source subtree insertion is a separate U2 path and remains in `EstimateSheetContent.tsx`. |
+| `M-23` | Implemented | MOP-6 continuation | Refactor owner | Activity scope tree construction, same-scope reload debounce, and full activity-history controller orchestration are extracted into `use-estimate-history-panel.ts`; focused history, row-details, extracted-model, and version-control request-shape tests passed. |
+| `M-24` | Implemented | MOP-6 continuation | Refactor owner | Proposal preview signature/settings/download helpers, dirty-state warning, and full proposal-preview controller orchestration are extracted and covered through `proposal-preview-model.ts` and `use-estimate-proposal-preview.ts`. |
+| `M-25` | Implemented | MOP-6 continuation | Product owner | Account-backed estimate-sheet column-width sync added with locked-down provider table and local first-paint fallback. |
+| `M-26` | Implemented for successful row and tree deletes / broader undo remains architecture-scope | MOP-6 continuation | Product owner | Center row delete now has post-success Undo backed by `restore_deleted_estimate_rows_with_history` and provider-applied migration `20260626013000`; tree node/subtree delete Undo is backed by persisted delete snapshots, `restore_deleted_estimate_nodes_with_history`, and provider-applied migration `20260626023000`. These delete-specific restore paths do not claim a general undo stack for every edit. |
+| `M-27` | Implemented | MOP-6 continuation | Product owner | Proposal preview now warns when the preview includes unsaved row edits; covered by `proposal-export-preview.test.tsx`. |
+| `M-28` | Implemented | MOP-6 continuation | Product owner | Group -> Cost sort uses live editable totals; covered by `estimate-sheet-cost-inputs.test.tsx`. |
 
 ## Center Decision Ledger
 
@@ -106,15 +106,15 @@ These rows cover the center source plan decision IDs from `18-OPEN-QUESTIONS-AND
 | `F-04` | Incorporated | MOP-1 | Right | Latest-wins search test. |
 | `F-05` | Incorporated | MOP-1 | Right | Persisted duplicate refresh proof. |
 | `F-06` | Incorporated | MOP-1 | Right | Delete/archive invalidation and refresh proof. |
-| `F-07` | Deferred | MOP-6 | Product owner | Browser-local preferences accepted for beta. |
-| `F-08` | Deferred | MOP-6 | Product owner | Account sync/custom ordering deferred. |
+| `F-07` | Implemented | MOP-6 continuation | Product owner | Favorites/recents now sync through account-backed preferences with browser-local first-paint fallback. |
+| `F-08` | Implemented | MOP-6 continuation | Product owner | Custom tree ordering now syncs through account-backed preferences with browser-local first-paint fallback. |
 | `F-09` | Incorporated | MOP-1/MOP-5 | Right + UX | Folder delete or manage-link fallback; deadline preserved as right Phase 2. |
 | `F-10` | Incorporated | MOP-1 | Right | Remove local-only template-group affordance. |
 | `F-11` | Incorporated | MOP-1/MOP-2 | Right + center | Snapshot-copy copy; insertion safety waits for center gate. |
-| `F-12` | Deferred | MOP-6 | UX/product | Mobile drawer deferred; honest fallback in MOP-5. |
-| `F-13` | Deferred | MOP-6 | Refactor owner | Reducer extraction after behavior locks. |
-| `F-14` | Incorporated | MOP-5 | Perf/right | Hover prefetch dedupe and budget tests. |
-| `F-15` | Incorporated | MOP-0.5/MOP-5 | UX/right | Rename focus race can be quick win if isolated. |
+| `F-12` | Implemented / browser-proof-limited | MOP-6 continuation | UX/product | Product-specific below-1024 right `Sources` drawer is implemented through `EstimateSheetContent` + `EstimateRightSidebar`; source/jsdom proof covers the real source tools, trigger labelling, Escape order, generic-drawer opt-out, and lazy-load wiring. `e2e/estimate-sources-drawer.spec.ts` is present for browser proof. The 2026-06-25 continuation attempted it against the configured provider and an owner-accessible route candidate, but Playwright rendered the estimate route as 404 before drawer assertions; real-browser viewport/focus/overflow proof remains incomplete. |
+| `F-13` | Implemented / automated-profiler-proved | MOP-6 continuation | Refactor owner | Right-sidebar state is split into chrome/library/project/templates hooks and the local `EstimateRightSidebarBase` React Doctor `no-giant-component` warning is cleared. The active-tab render-scope claim is covered by `tests/vitest/perf/estimate-right-sidebar-active-tab-renders.test.tsx`, which profiles the real sidebar shell and proves inactive tab trees stay at zero renders during active-tab interactions. |
+| `F-14` | Implemented | MOP-6 continuation | Perf/right | Hover prefetch dedupe is implemented and covered by `component-library-ui.test.tsx`. |
+| `F-15` | Implemented | MOP-6 continuation | UX/right | Context-menu rename restores focus to the inline rename input; covered by `component-library-ui.test.tsx`. |
 | `RR-01` | Incorporated | MOP-1 | Right | Persistence honesty gate. |
 | `RR-02` | Incorporated | MOP-1 | Right | Refresh/invalidation proof. |
 | `RR-03` | Incorporated | MOP-1 | Right | Modal identity characterization. |
@@ -148,16 +148,16 @@ These rows cover the center source plan decision IDs from `18-OPEN-QUESTIONS-AND
 | `Task 2.1` | Incorporated | MOP-1/MOP-5 | Right + UX | Project Components label. |
 | `Task 2.2` | Incorporated | MOP-1/MOP-5 | Right | Folder delete or fallback link. |
 | `Task 2.3` | Incorporated | MOP-5 | Right | Manage-link alternative. |
-| `Task 2.4` | Deferred | MOP-6 | Product owner | Collapse persistence after honesty. |
+| `Task 2.4` | Implemented | MOP-6 continuation | Product owner | Shared side-panel collapse state persists under the panel storage key; evidence in `mop6-continuation-slice-1.md`. |
 | `Task 2.5` | Incorporated | MOP-5 | UX | UX state gaps. |
 | `Task 2.6` | Incorporated | MOP-5 | UX | Below-1024 fallback. |
 | `Task 3.1` | Incorporated | MOP-5 | UX/a11y | Hit targets. |
-| `Task 3.2` | Deferred | MOP-6 | Product owner | Thumbnails after integrity. |
-| `Task 3.3` | Deferred | MOP-6 | Refactor owner | Reducer extraction after behavior locks. |
-| `Task 3.4` | Incorporated | MOP-5 | Perf | Hover prefetch dedupe. |
-| `Task 3.5` | Incorporated | MOP-0.5/MOP-5 | UX/right | Rename focus if isolated. |
+| `Task 3.2` | Implemented | MOP-6 continuation | Product owner | `thumbnail_path`/`thumbnailPath` data maps into sanitized sidebar thumbnails; evidence in `mop6-continuation-slice-2.md`. |
+| `Task 3.3` | Implemented / automated-profiler-proved | MOP-6 continuation | Refactor owner | Extracted the giant field reducer into tab-scoped hooks in `use-estimate-right-sidebar-state.ts`; parent component now composes those hooks through a thin memoized wrapper. React Doctor no longer reports `EstimateRightSidebarBase` as a giant component, and the active-tab render-scope proof is covered by the automated React Profiler harness. |
+| `Task 3.4` | Implemented | MOP-6 continuation | Perf | Hover prefetch dedupe is implemented and covered by `component-library-ui.test.tsx`. |
+| `Task 3.5` | Implemented | MOP-6 continuation | UX/right | Context-menu rename focus is implemented and covered by `component-library-ui.test.tsx`. |
 | `Task 3.6` | Incorporated | MOP-5 | UX/a11y | Remaining a11y polish. |
-| `Task 4.1` | Deferred | MOP-6 | UX/product | Mobile drawer separate scope. |
+| `Task 4.1` | Implemented / browser-proved locally | MOP-6 continuation | UX/product | Dedicated right `Sources` drawer is wired below desktop with `Sheet`/`Dialog` semantics and a single reused sidebar body; focused tests cover source tools, labelling, Escape sequencing, lazy-load wiring, and absence of the generic compact drawer. `e2e/estimate-sources-drawer.spec.ts` now passes in Chromium at 1023px and 390px for dialog semantics, focus, Escape sequencing, scroll lock, and overflow. |
 
 ## Right Sidebar Decision Ledger
 
@@ -167,11 +167,11 @@ These rows cover the right-sidebar decision IDs from `20-OPEN-QUESTIONS-AND-DECI
 |---|---|---|---|---|
 | `Q1-Q3` | Incorporated | MOP-1/MOP-5 | Right + UX | Tab naming and reusable-source placement are resolved through Project Components/snapshot-copy copy and right-sidebar honesty. |
 | `Q4-Q7` | Incorporated | MOP-1 | Right | Edit, duplicate, archive/delete, and local-only action policy are launch trust gates. |
-| `Q8-Q10` | Deferred or incorporated by accepted defaults | MOP-1/MOP-6 | Product/right | Favorites/recents and custom ordering stay browser-local; folder delete/reparent is either implemented or given an honest fallback. |
+| `Q8-Q10` | Implemented or incorporated by accepted defaults | MOP-1/MOP-6 | Product/right | Favorites/recents and custom ordering now sync through account-backed preferences with browser-local first-paint/offline fallback; folder delete/reparent is either implemented or given an honest fallback. |
 | `Q11-Q14` | Incorporated | MOP-1/MOP-5 | Right + UX | Folder creation/rename validation and local-only template group creation are cleaned up or removed. |
 | `Q15-Q17` | Incorporated | MOP-1/MOP-2 | Right + center | Project sources are snapshot copies; hover/search refresh behavior is bounded and latest-wins. |
 | `Q18-Q22` | Incorporated | MOP-5/MOP-6 | UX/product | Search persistence, preview behavior, insertion quantity, double-click policy, and drag handle behavior are UX/a11y or product-default work. |
-| `Q23-Q24` | Incorporated | MOP-5 | UX/a11y | Canonical target term is Area; below-1024 access is honest fallback unless a drawer is separately browser-proved. |
+| `Q23-Q24` | Incorporated / browser-proved locally | MOP-5/MOP-6 continuation | UX/a11y | Canonical target term is Area; below-1024 right `Sources` drawer access has source/jsdom proof plus local Chromium viewport/focus/Escape/scroll-lock/overflow proof at 1023px and 390px. |
 | `Q25-Q30` | Incorporated or accepted defer | MOP-1/MOP-5/MOP-6 | Right + product | Collapse state, transactional bulk insert, undo, read-only availability, shortcut behavior, and legacy `NewComponentForm` removal are scoped into right honesty, UX, or deferred product work. |
 
 ## Tree Findings, Migrations, and Threats
@@ -199,14 +199,14 @@ These rows cover the right-sidebar decision IDs from `20-OPEN-QUESTIONS-AND-DECI
 | `F-19` | Incorporated | MOP-3 | Data/tree | Explicit edit authz. |
 | `F-20` | Incorporated | MOP-3/MOP-5 | Security/tree | Share/public mutation gating. |
 | `F-21` | Incorporated | MOP-5 | UX/tree | Empty/degraded states. |
-| `F-22` | Incorporated | MOP-5 | UX/tree | Responsive drawer/fallback posture. |
-| `F-23` | Deferred | MOP-6 | Product owner | Non-launch tree polish. |
-| `F-24` | Deferred | MOP-6 | Product owner | Non-launch tree polish. |
-| `F-25` | Incorporated | MOP-5 | Perf/tree | Large-tree/perf proof. |
-| `F-26` | Deferred | MOP-6 | Product owner | Lazy/realtime v2 scope. |
+| `F-22` | Incorporated / proof-limited | MOP-5/MOP-6 continuation | UX/tree | Responsive drawer/fallback posture has DOM proof only; browser viewport proof remains unclaimed. |
+| `F-23` | Implemented | MOP-6 continuation | Product owner | Tree route repair now reads `[nodeId]` through `useParams` instead of pathname parsing; covered by focused tree DOM/context suites. |
+| `F-24` | Implemented | MOP-6 continuation | Product owner | Inline rename now keeps the editor visible while the server rename is saving, disables the controls, and renders a `Saving...` status. Covered by `estimate-tree-context-menu.test.tsx`. |
+| `F-25` | Implemented | MOP-6 continuation | Product owner | Newly created tree rows are scrolled into view after optimistic create. Covered by `estimate-tree-modal.test.tsx`. |
+| `F-26` | Implemented / split from lazy-realtime | MOP-6 continuation | Product owner | Source F-26 was the add-child placement decision, not lazy/realtime. Current behavior consistently appends new/dropped children after existing children; context-menu and DnD tests document that decision. Lazy subtree loading/realtime-v2 are tracked separately under Q-17/Q-18 and are now contract-closed. |
 | `F-27` | Incorporated | MOP-3 | Tree | Signature isolation with row-edit integration. |
 | `M-01` | Incorporated | MOP-3 | Data/tree | Delete RPC return runbook. |
-| `M-02` | Incorporated | MOP-3 | Data/tree | Numeric/sparse sort runbook. |
+| `M-02` | Implemented / provider-applied | MOP-6 continuation | Data/tree | Sparse ordering now preserves existing numeric sort values and emits one moved-node midpoint update when safe; migration `20260625221500` converts linked `estimate_nodes.sort_order` to `numeric(20,4)`, rewrites active RPC sort contracts, preserves tab-aware unique constraints/indexes, and is recorded in remote migration history. |
 | `M-03` | Incorporated | MOP-3 | Data/tree | Create sort scheme update. |
 | `T-01` | Incorporated | MOP-3 | Security/tree | Tree mutation authz proof. |
 | `T-02` | Incorporated | MOP-3 | Security/tree | Cross-workspace rejection. |
@@ -233,9 +233,9 @@ These rows cover the tree decision IDs from `12-OPEN-QUESTIONS-AND-DECISIONS.md`
 | `Q-01-Q-05` | Incorporated | MOP-0.5/MOP-3/MOP-5 | Tree + UX | Create/rename selection and cancel behavior are current or quick-win/tree-race validation. |
 | `Q-06` | Incorporated | MOP-3 | Tree | Escape on unsaved optimistic node rolls back; covered by create/race tests. |
 | `Q-07-Q-10` | Incorporated | MOP-3 | Tree + data | Name validation, delete fallback, and cascade behavior are tree mutation proof. |
-| `Q-11` | Deferred | MOP-6 | Product owner | Delete undo is post-launch unless selected as part of a destructive-operation recovery path. |
+| `Q-11` | Implemented for successful deletes / broader undo remains architecture-scope | MOP-6 continuation | Product owner | Center row delete Undo is provider-applied through `20260626013000`; tree/subtree delete Undo is provider-applied through `20260626023000` with persisted delete snapshots, restore RPC, and success-toast Undo. Do not claim a general undo stack for every edit from these delete-specific restore paths. |
 | `Q-12-Q-16` | Incorporated | MOP-3/MOP-5 | Tree + UX | Hover expand, move selection, expansion persistence, URL selection, and per-row pending states are implementation/test gates. |
-| `Q-17-Q-18` | Incorporated / accepted limitation | MOP-3/MOP-5 | Tree + perf | Last-write-wins and large-tree virtualization/lazy-load boundaries are documented and budgeted. |
+| `Q-17-Q-18` | Implemented / contract-closed | MOP-3/MOP-5/MOP-6 continuation | Tree + perf | Last-write-wins remains the tree conflict strategy, virtualization remains the visible-row renderer, and lazy subtree loading now has typed subtree payloads, request-id freshness guards, bounded branch fetches, per-node hydration state, and expand-time hydration for partial / over-limit terminal nodes. Realtime cursor/presence remains unchanged; tree collaboration v2 now has a concrete event contract for subtree request/load, LWW branch changes, and full-refetch requests. |
 | `Q-19-Q-20` | Incorporated | MOP-3/MOP-5 | Security + data/tree | Public/share CRUD hiding and max depth 100 are security/data gates. |
 | `Q-21-Q-25` | Incorporated or accepted defer | MOP-4/MOP-5/MOP-6 | Contracts + UX/product | Multi-node drag, character count, external drops, presence, and two-tab behavior are scoped into v1 contracts or deferred product scope. |
 

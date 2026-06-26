@@ -1,0 +1,166 @@
+{
+  "generatedAt": "2026-06-25T17:29:04.224Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "authMode": "dev-auth-bypass",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 5,
+  "waitForNetworkIdle": false,
+  "warmRoutesBeforeMeasure": true,
+  "scenarioFilter": "authenticated library:",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "heroPath": {
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "estimateNodeId": "bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "Authenticated Library: Overview to Components",
+      "from": "/workshop/library",
+      "expectedPathname": "/workshop/library/components",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 450,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/components"
+        },
+        {
+          "run": 2,
+          "durationMs": 545,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/components"
+        },
+        {
+          "run": 3,
+          "durationMs": 255,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/components"
+        },
+        {
+          "run": 4,
+          "durationMs": 329,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/components"
+        },
+        {
+          "run": 5,
+          "durationMs": 356,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/components"
+        }
+      ],
+      "failures": [],
+      "medianMs": 356,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Library: Components to Templates",
+      "from": "/workshop/library/components",
+      "expectedPathname": "/workshop/library/templates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 456,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/templates"
+        },
+        {
+          "run": 2,
+          "durationMs": 346,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/templates"
+        },
+        {
+          "run": 3,
+          "durationMs": 275,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/templates"
+        },
+        {
+          "run": 4,
+          "durationMs": 580,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/templates"
+        },
+        {
+          "run": 5,
+          "durationMs": 790,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library/templates"
+        }
+      ],
+      "failures": [],
+      "medianMs": 456,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Library: Templates to Overview",
+      "from": "/workshop/library/templates",
+      "expectedPathname": "/workshop/library",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 792,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 2,
+          "durationMs": 412,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 3,
+          "durationMs": 398,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 4,
+          "durationMs": 311,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 5,
+          "durationMs": 242,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        }
+      ],
+      "failures": [],
+      "medianMs": 398,
+      "overlayVisibilityRate": 0.2,
+      "rscRequestCount": 5
+    }
+  ]
+}

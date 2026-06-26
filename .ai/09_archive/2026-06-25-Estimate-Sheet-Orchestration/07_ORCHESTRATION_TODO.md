@@ -29,6 +29,15 @@ date: 2026-06-25
 
 ## Future Implementation Todo
 
+Status note (2026-06-25 continuation): this checklist is a historical planning
+breakdown. Current implementation status is superseded by
+`17_FULL_SCOPE_COORDINATION_LEDGER.md`, `implementation-ledger.md`, and
+`LOOP_LEDGER.md` Cycles 18-27. In short: the safe non-rejected continuation
+gaps were implemented and provider-verified; remaining unchecked ideas are
+either older completed MOP work already evidenced elsewhere or explicit
+product/architecture deferrals such as lazy subtree loading and realtime-v2
+contract work.
+
 ### MOP-0 Common Control Plane and DB/Authz Preflight
 
 - [ ] Create implementation branch/worktree with source-plan state intentionally handled.
@@ -39,7 +48,7 @@ date: 2026-06-25
 - [ ] Assign single owners for hot files.
 - [ ] Choose RPC names and API shapes.
 - [ ] Define feature flags and rollback controls.
-- [ ] Prove or create telemetry schema/sink and redaction allow-list.
+- [x] Prove or create telemetry schema/sink and redaction allow-list.
 - [ ] Define permission/read-only matrix.
 - [ ] Define shared event/drag payload schemas.
 - [ ] Define snapshot-copy and success/recents rules.
@@ -92,7 +101,10 @@ date: 2026-06-25
 - [ ] Fix delete fallback selection.
 - [ ] Add explicit tree mutation authz.
 - [ ] Add max-depth and sort-order safeguards.
-- [ ] Decide numeric/sparse sort only after code/type/schema preflight.
+- [x] Decide and apply numeric/sparse sort after code/type/schema/provider
+  preflight. `estimate_nodes.sort_order` is now `numeric(20,4)` on the linked
+  provider via scoped SQL apply for `20260625221500`; broad `db push` remains
+  unsafe because unrelated migration-history drift still exists.
 - [ ] Implement selected keyboard move model only after MOP-4 contract selection.
 
 ### MOP-4 Shared Interaction and Feedback Contracts
@@ -109,7 +121,7 @@ date: 2026-06-25
 ### MOP-5 UX/A11y/Responsive/Perf/Ops
 
 - [ ] Align right dock width and grid dominance.
-- [ ] Add below-1024 fallback.
+- [x] Add below-1024 fallback.
 - [ ] Add table header/index semantics.
 - [ ] Add live-region announcements.
 - [ ] Add tree keyboard support.
@@ -118,16 +130,44 @@ date: 2026-06-25
 - [ ] Coordinate bottom bulk dock priority.
 - [ ] Add render/payload budget tests.
 - [ ] Run large-data local smoke tests.
-- [ ] Verify telemetry redaction.
+- [x] Verify telemetry redaction.
 - [ ] Create dashboard/alert or daily-review cadence.
 - [ ] Run rollback drill.
 - [ ] Hold beta observation window.
 
 ### MOP-6 Post-Launch
 
-- [ ] Decompose `EstimateSheetContent.tsx`.
-- [ ] Extract right-sidebar reducer/hooks.
-- [ ] Revisit account-synced preferences.
-- [ ] Revisit mobile drawers.
-- [ ] Revisit delete undo.
-- [ ] Revisit lazy subtree loading and realtime collaboration.
+- [x] Revisited `EstimateSheetContent.tsx` decomposition. Pure helper/model
+  extraction for M-21 through M-24 is now implemented and covered. `M-22`
+  estimate-template insertion orchestration is also extracted into
+  `use-estimate-template-insertion.ts`, and `M-24` proposal-preview controller
+  orchestration is extracted into `use-estimate-proposal-preview.ts`; `M-21`
+  row-handler/controller orchestration is extracted into
+  `use-estimate-row-handlers.ts`; `M-23` activity-history controller state,
+  fetch/pagination guards, and modal focus/Escape handling are extracted into
+  `use-estimate-history-panel.ts`.
+- [x] Extract right-sidebar reducer/hooks. React Doctor no longer reports the
+  right sidebar component as giant; active-tab render scoping is now covered by
+  an automated React Profiler regression harness.
+- [x] Revisit account-synced preferences. Estimate-sheet column widths and
+  right-sidebar state now have account-backed persistence with local first-paint
+  fallback.
+- [x] Revisit mobile drawers. Right `Sources` drawer now has source/jsdom proof
+  and local Chromium browser proof at 1023px and 390px widths for dialog
+  semantics, focus, Escape sequencing, scroll lock, and overflow.
+- [x] Implement center P3 polish. Local SVG component-image fallbacks,
+  same-scope activity-history filter debounce, toast bottom-dock clearance, and
+  proposal preview unsaved-edits warning are implemented and focused-test
+  proved.
+- [x] Implement tree non-launch polish. F-24 keeps the inline rename editor
+  visible with a disabled saving affordance, F-25 scrolls newly created tree
+  rows into view, and F-26 is documented/proved as append-as-child placement.
+- [x] Revisit delete undo. Center row delete post-success Undo is now
+  implemented and provider-applied through `20260626013000`; tree node/subtree
+  delete Undo is now implemented and provider-applied through `20260626023000`.
+- [x] Revisit lazy subtree loading and realtime collaboration. Lazy subtree
+  loading now has typed subtree payloads, request-id guards, bounded branch
+  fetches, per-node hydration state, and expand-time hydration for partial /
+  over-limit terminal nodes. Realtime cursor/presence remains unchanged, and
+  tree collaboration v2 now has a concrete event contract for subtree
+  request/load, LWW branch changes, and full-refetch requests.

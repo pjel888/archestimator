@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-06-25T17:15:34.936Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "authMode": "dev-auth-bypass",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 5,
+  "waitForNetworkIdle": false,
+  "warmRoutesBeforeMeasure": true,
+  "scenarioFilter": "authenticated: workshop to library",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "heroPath": {
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "estimateNodeId": "bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "Authenticated: Workshop to Library",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/library",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 341,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 2,
+          "durationMs": 1177,
+          "overlayVisible": false,
+          "rscRequestCount": 0,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 3,
+          "durationMs": 254,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 4,
+          "durationMs": 225,
+          "overlayVisible": false,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 5,
+          "durationMs": 675,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        }
+      ],
+      "failures": [],
+      "medianMs": 341,
+      "overlayVisibilityRate": 0.2,
+      "rscRequestCount": 4
+    }
+  ]
+}

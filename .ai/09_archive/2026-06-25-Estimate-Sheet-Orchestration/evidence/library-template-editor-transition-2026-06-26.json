@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-25T17:48:00.682Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "harness": "local dev-auth admin-db with WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED=1 because security-invoker library_templates_seed returns empty under service-role dev bypass",
+  "scenario": "Authenticated Library: Templates browse to Template Editor",
+  "expectedPathname": "/workshop/library/templates/a34ed462-9e21-4240-9972-b8532d55e62e",
+  "fixture": {
+    "templateId": "a34ed462-9e21-4240-9972-b8532d55e62e",
+    "nodeId": "e5163c37-b8c8-47bf-8335-3b9268ae942a",
+    "rowId": "03146a3f-ff03-4354-ab52-0740d4ab47b2",
+    "workspaceId": "b40d0170-a2f3-4021-a42d-31fb45851ca4"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "durationMs": 1693,
+      "overlayVisible": false,
+      "rscRequestCount": 1,
+      "finalPathname": "/workshop/library/templates/a34ed462-9e21-4240-9972-b8532d55e62e"
+    },
+    {
+      "run": 2,
+      "durationMs": 1475,
+      "overlayVisible": false,
+      "rscRequestCount": 1,
+      "finalPathname": "/workshop/library/templates/a34ed462-9e21-4240-9972-b8532d55e62e"
+    },
+    {
+      "run": 3,
+      "durationMs": 1952,
+      "overlayVisible": false,
+      "rscRequestCount": 1,
+      "finalPathname": "/workshop/library/templates/a34ed462-9e21-4240-9972-b8532d55e62e"
+    },
+    {
+      "run": 4,
+      "durationMs": 1952,
+      "overlayVisible": false,
+      "rscRequestCount": 1,
+      "finalPathname": "/workshop/library/templates/a34ed462-9e21-4240-9972-b8532d55e62e"
+    },
+    {
+      "run": 5,
+      "durationMs": 4175,
+      "overlayVisible": false,
+      "rscRequestCount": 1,
+      "finalPathname": "/workshop/library/templates/a34ed462-9e21-4240-9972-b8532d55e62e"
+    }
+  ],
+  "failures": [],
+  "medianMs": 1952,
+  "overlayVisibilityRate": 0,
+  "rscRequestCount": 5,
+  "cleanup": {
+    "templateId": "a34ed462-9e21-4240-9972-b8532d55e62e",
+    "deleted": true,
+    "error": null
+  }
+}
