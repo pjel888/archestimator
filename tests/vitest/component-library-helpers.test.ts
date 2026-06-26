@@ -9,6 +9,7 @@ import {
   expandLibraryBundle,
   exportLibraryItemsToJson,
   filterComponents,
+  getComponentImageUrl,
   getLibraryBundleTotal,
   getComponentDesignation,
   getComponentDiscipline,
@@ -22,6 +23,7 @@ import {
   searchComponents,
   sortComponents,
 } from "@/components/workshop/component-library/helpers";
+import { getComponentImageUrl as getActivityComponentImageUrl } from "@/components/workshop/estimate-sheet/activity-history-model";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 
@@ -70,7 +72,26 @@ describe("component library helpers", () => {
     expect(result.component?.totalItemCosts).toBe(14500);
     expect(result.component?.miscCost).toBe(2000);
     expect(result.component?.tags).toEqual(["counter", "custom"]);
-    expect(result.component?.imageUrl).toMatch(/^https:\/\//);
+    expect(result.component?.imageUrl).toMatch(/^data:image\/svg\+xml,/);
+    expect(result.component?.imageUrl).not.toContain("images.unsplash.com");
+  });
+
+  it("uses local SVG placeholders for component image fallbacks", () => {
+    const tileFallback = getComponentImageUrl({ ...base, id: "fallback-tile", material: "Porcelain Tile", category: "Finishes", supplier: "", unit: "sqm", itemCost: 1 });
+    const activityFallback = getActivityComponentImageUrl({
+      id: "fallback-light",
+      material: "LED Downlight",
+      description: "",
+      category: "Lighting Fixtures",
+      supplier: "",
+      unit: "pc",
+      itemCost: 1,
+    });
+
+    expect(tileFallback).toMatch(/^data:image\/svg\+xml,/);
+    expect(tileFallback).not.toContain("images.unsplash.com");
+    expect(activityFallback).toMatch(/^data:image\/svg\+xml,/);
+    expect(activityFallback).not.toContain("images.unsplash.com");
   });
 
   it("allows safe component source URLs and rejects unsafe schemes during custom component creation", () => {
@@ -275,6 +296,66 @@ describe("library tree sibling ordering", () => {
     const { findLibrarySiblingOrder } = await import("@/components/workshop/component-library/tree");
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "c")).toEqual({ parentKey: "root", siblingIds: ["a", "b", "c"] });
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "root")).toBeNull();
+  });
+
+  it("builds supplier and brand trees from indexed id/name matches without duplicate rows", async () => {
+    const { buildLibraryTreeWithComponentRows } = await import("@/components/workshop/component-library/tree");
+    const treeItems: EstimateRowItem[] = [
+      {
+        ...base,
+        id: "id-match",
+        material: "Id Matched Component",
+        supplier: "Alias Supplier",
+        supplierId: "supplier-canonical",
+        brand: "Alias Brand",
+        brandId: "brand-canonical",
+        unit: "pc",
+        itemCost: 10,
+        category: "Finishes",
+      },
+      {
+        ...base,
+        id: "name-match",
+        material: "Name Matched Component",
+        supplier: "Canonical Supplier",
+        brand: "Canonical Brand",
+        unit: "pc",
+        itemCost: 20,
+        category: "Finishes",
+      },
+      {
+        ...base,
+        id: "both-match",
+        material: "Both Matched Component",
+        supplier: "Canonical Supplier",
+        supplierId: "supplier-canonical",
+        brand: "Canonical Brand",
+        brandId: "brand-canonical",
+        unit: "pc",
+        itemCost: 30,
+        category: "Finishes",
+      },
+    ];
+
+    const supplierTree = buildLibraryTreeWithComponentRows("suppliers", treeItems, [], [], {
+      suppliers: [{ id: "supplier-canonical", name: "Canonical Supplier" }],
+    });
+    const brandTree = buildLibraryTreeWithComponentRows("brands", treeItems, [], [], {
+      brands: [{ id: "brand-canonical", name: "Canonical Brand" }],
+    });
+
+    const supplierNode = supplierTree[0].children?.find((node) => node.label === "Canonical Supplier");
+    const brandNode = brandTree[0].children?.find((node) => node.label === "Canonical Brand");
+    expect(supplierNode?.children?.map((node) => node.item?.id).sort()).toEqual([
+      "both-match",
+      "id-match",
+      "name-match",
+    ]);
+    expect(brandNode?.children?.map((node) => node.item?.id).sort()).toEqual([
+      "both-match",
+      "id-match",
+      "name-match",
+    ]);
   });
 
   it("splits project express components into a project-only sidebar tree", async () => {

@@ -16,13 +16,15 @@ const routerMock = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
-const pathnameMock = vi.hoisted(() => ({
-  current: "/workshop/projects/project-1/estimates/kitchen",
+const routeParamsMock = vi.hoisted(() => ({
+  nodeId: "kitchen",
 }));
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
+  restoreDeletedEstimateNodes: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   renameEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
@@ -30,7 +32,7 @@ const actionMocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => pathnameMock.current,
+  useParams: () => ({ projectId: "project-1", nodeId: routeParamsMock.nodeId }),
   useRouter: () => routerMock,
 }));
 
@@ -324,7 +326,7 @@ describe("estimate tree context menu", () => {
     routerMock.push.mockReset();
     routerMock.replace.mockReset();
     routerMock.refresh.mockReset();
-    pathnameMock.current = "/workshop/projects/project-1/estimates/kitchen";
+    routeParamsMock.nodeId = "kitchen";
     window.history.replaceState(null, "", "/");
     replaceStateSpy = vi.spyOn(window.history, "replaceState");
     actionMocks.createEstimateNode.mockReset();
@@ -332,6 +334,7 @@ describe("estimate tree context menu", () => {
     actionMocks.reorderEstimateTreeNodes.mockReset();
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.deleteEstimateNode.mockReset();
+    actionMocks.restoreDeletedEstimateNodes.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
   });
 
@@ -440,6 +443,59 @@ describe("estimate tree context menu", () => {
     expect(input).toHaveFocus();
   });
 
+  it("opens inline rename from the focused tree row with F2", async () => {
+    renderTree();
+
+    const kitchen = treeNodeButton("kitchen");
+    kitchen.focus();
+    fireEvent.keyDown(screen.getByRole("tree", { name: "Modern Bungalow estimate areas" }), { key: "F2" });
+
+    const input = await screen.findByLabelText("Rename Kitchen");
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("Kitchen");
+  });
+
+  it("opens the existing row action menu from the keyboard with Shift+F10", async () => {
+    renderTree();
+
+    const kitchen = treeNodeButton("kitchen");
+    kitchen.focus();
+    fireEvent.keyDown(screen.getByRole("tree", { name: "Modern Bungalow estimate areas" }), { key: "F10", shiftKey: true });
+
+    const menu = await screen.findByRole("menu");
+    expect(menu).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("moves a tree row through the keyboard-operable Move dialog", async () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({ tree: fixtureTree() });
+    renderTree();
+
+    await chooseMenuItem("kitchen", "Move...");
+
+    const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
+    expect(within(dialog).getByRole("radio", { name: /Kitchen/ })).toBeDisabled();
+    const siteWorksDestination = within(dialog)
+      .getAllByRole("radio")
+      .find((radio) => radio.getAttribute("value") === "site-works");
+    expect(siteWorksDestination).toBeDefined();
+    fireEvent.click(siteWorksDestination!);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      expect.objectContaining({
+        updates: expect.arrayContaining([
+          expect.objectContaining({ id: "kitchen", parentId: "site-works" }),
+        ]),
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Move Kitchen" })).not.toBeInTheDocument());
+  });
+
   it("keeps rename active while the pointer moves outside the input", async () => {
     renderTree();
     await chooseMenuItem("kitchen", "Rename");
@@ -515,7 +571,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: " Chef Kitchen " } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
+    await waitFor(() => expect(screen.getByDisplayValue("Chef Kitchen")).toBeDisabled());
     await waitFor(() => expect(actionMocks.renameEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "kitchen", "Chef Kitchen"));
     await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(renameTree(fixtureTree(), "kitchen", "Chef Kitchen")));
     expect(routerMock.refresh).not.toHaveBeenCalled();
@@ -527,6 +583,29 @@ describe("estimate tree context menu", () => {
     expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(renameTree(fixtureTree(), "kitchen", "Chef Kitchen"));
     expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("keeps the inline rename affordance visible while the server rename is saving", async () => {
+    const pending = deferred<{ nodeId: string; name: string }>();
+    actionMocks.renameEstimateNode.mockReturnValue(pending.promise);
+    renderTree();
+    await chooseMenuItem("kitchen", "Rename");
+
+    fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: " Chef Kitchen " } });
+    fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
+
+    const pendingInput = await screen.findByDisplayValue("Chef Kitchen");
+    expect(pendingInput).toBeDisabled();
+    expect(screen.getByText("Saving...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm rename Kitchen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset rename Kitchen" })).toBeDisabled();
+
+    await act(async () => {
+      pending.resolve({ nodeId: "kitchen", name: "Chef Kitchen" });
+      await pending.promise;
+    });
+    expect(screen.queryByDisplayValue("Chef Kitchen")).not.toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen");
   });
 
   it("cancels in-flight area tree refetches before applying an optimistic rename", async () => {
@@ -541,13 +620,13 @@ describe("estimate tree context menu", () => {
     await chooseMenuItem("kitchen", "Rename");
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Chef Kitchen" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
-    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
+    await waitFor(() => expect(screen.getByDisplayValue("Chef Kitchen")).toBeDisabled());
 
     await act(async () => {
       staleFetch.resolve(fixtureTree());
       await refetchPromise;
     });
-    expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen");
+    expect(screen.getByDisplayValue("Chef Kitchen")).toBeDisabled();
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(renameTree(fixtureTree(), "kitchen", "Chef Kitchen"));
 
     await act(async () => {
@@ -613,7 +692,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Bad Name" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Bad Name"));
+    await waitFor(() => expect(screen.getByDisplayValue("Bad Name")).toBeDisabled());
     await act(async () => {
       pending.reject(new Error("Rename failed"));
       await pending.promise.catch(() => undefined);
@@ -633,7 +712,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Bad Name" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Bad Name"));
+    await waitFor(() => expect(screen.getByDisplayValue("Bad Name")).toBeDisabled());
     const newerTree = deleteKitchenTree();
     act(() => {
       queryClient.setQueryData(estimateQueryKeys.areaTree("estimate-1"), newerTree);
@@ -659,7 +738,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Chef Kitchen" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
+    await waitFor(() => expect(screen.getByDisplayValue("Chef Kitchen")).toBeDisabled());
     await openContextMenu("living");
     expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveAttribute("data-disabled");
     expect(screen.getByRole("menuitem", { name: "Delete" })).toHaveAttribute("data-disabled");
@@ -689,7 +768,7 @@ describe("estimate tree context menu", () => {
   });
 
   it("confirmed Group Node delete removes descendant rows before the server action resolves", async () => {
-    const pending = deferred<{ tree: EstimateTreeNode[]; deletedNodeIds: string[]; fallbackNodeId: string | null }>();
+    const pending = deferred<{ eventId: string; tree: EstimateTreeNode[]; deletedNodeIds: string[]; fallbackNodeId: string | null }>();
     actionMocks.deleteEstimateNode.mockReturnValue(pending.promise);
     renderTree();
     await chooseMenuItem("ground-floor", "Delete");
@@ -702,13 +781,13 @@ describe("estimate tree context menu", () => {
     await waitFor(() => expect(actionMocks.deleteEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "ground-floor", undefined));
 
     await act(async () => {
-      pending.resolve({ tree: fixtureTree(), deletedNodeIds: ["ground-floor", "kitchen", "living"], fallbackNodeId: "site-works" });
+      pending.resolve({ eventId: "delete-event-1", tree: fixtureTree(), deletedNodeIds: ["ground-floor", "kitchen", "living"], fallbackNodeId: "site-works" });
       await pending.promise;
     });
   });
 
   it("confirmed delete removes the node before the server action resolves and never refreshes", async () => {
-    const pending = deferred<{ tree: EstimateTreeNode[]; deletedNodeIds: string[]; fallbackNodeId: string | null }>();
+    const pending = deferred<{ eventId: string; tree: EstimateTreeNode[]; deletedNodeIds: string[]; fallbackNodeId: string | null }>();
     actionMocks.deleteEstimateNode.mockReturnValue(pending.promise);
     const { queryClient } = renderTree();
     await chooseMenuItem("front-yard", "Delete");
@@ -723,13 +802,13 @@ describe("estimate tree context menu", () => {
     expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).not.toContain("front-yard");
 
     await act(async () => {
-      pending.resolve({ tree: fixtureTree(), deletedNodeIds: ["front-yard"], fallbackNodeId: "site-works" });
+      pending.resolve({ eventId: "delete-event-1", tree: fixtureTree(), deletedNodeIds: ["front-yard"], fallbackNodeId: "site-works" });
       await pending.promise;
     });
   });
 
   it("deleting the selected node updates selection and repairs the route with a shallow URL sync", async () => {
-    actionMocks.deleteEstimateNode.mockResolvedValue({ tree: deleteKitchenTree(), deletedNodeIds: ["kitchen"], fallbackNodeId: "living" });
+    actionMocks.deleteEstimateNode.mockResolvedValue({ eventId: "delete-event-1", tree: deleteKitchenTree(), deletedNodeIds: ["kitchen"], fallbackNodeId: "living" });
     renderTree();
     await chooseMenuItem("kitchen", "Delete");
 
@@ -742,9 +821,43 @@ describe("estimate tree context menu", () => {
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
+  it("restores a selected deleted node from the post-success Undo toast and repairs the route back", async () => {
+    const user = userEvent.setup();
+    actionMocks.deleteEstimateNode.mockResolvedValue({ eventId: "delete-event-1", tree: deleteKitchenTree(), deletedNodeIds: ["kitchen"], fallbackNodeId: "living" });
+    actionMocks.restoreDeletedEstimateNodes.mockResolvedValue({
+      eventId: "restore-event-1",
+      sourceEventId: "delete-event-1",
+      restoredNodeIds: ["kitchen"],
+      restoredRootNodeIds: ["kitchen"],
+      restoredNodeCount: 1,
+      restoredRowIds: [],
+      restoredRowCount: 0,
+      tree: fixtureTree(),
+    });
+    renderTree();
+    await chooseMenuItem("kitchen", "Delete");
+
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Delete Kitchen" })).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(treeNodeButton("living")).toHaveAttribute("aria-current", "page"));
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await waitFor(() => expect(actionMocks.restoreDeletedEstimateNodes).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      sourceEventId: "delete-event-1",
+      nodeIds: ["kitchen"],
+      targetTabId: undefined,
+    }));
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveAttribute("aria-current", "page"));
+    expect(replacedPaths().at(-1)).toBe("/workshop/projects/project-1/estimates/kitchen");
+    expect(routerMock.replace).not.toHaveBeenCalled();
+    expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
   it("repairs delete routing from the current pathname when server props are stale", async () => {
-    pathnameMock.current = "/workshop/projects/project-1/estimates/living";
-    actionMocks.deleteEstimateNode.mockResolvedValue({ tree: deleteLivingTree(), deletedNodeIds: ["living"], fallbackNodeId: "kitchen" });
+    routeParamsMock.nodeId = "living";
+    actionMocks.deleteEstimateNode.mockResolvedValue({ eventId: "delete-event-1", tree: deleteLivingTree(), deletedNodeIds: ["living"], fallbackNodeId: "kitchen" });
     renderTree(fixtureTree(), "kitchen");
     await chooseMenuItem("living", "Delete");
 
@@ -757,7 +870,7 @@ describe("estimate tree context menu", () => {
 
   it("reconciles delete route repair with the server-confirmed fallback when the client tree was stale", async () => {
     const confirmedTree = deleteKitchenAndLivingTree();
-    actionMocks.deleteEstimateNode.mockResolvedValue({ tree: confirmedTree, deletedNodeIds: ["kitchen", "living"], fallbackNodeId: "front-yard" });
+    actionMocks.deleteEstimateNode.mockResolvedValue({ eventId: "delete-event-1", tree: confirmedTree, deletedNodeIds: ["kitchen", "living"], fallbackNodeId: "front-yard" });
     const { queryClient } = renderTree();
     await chooseMenuItem("kitchen", "Delete");
 

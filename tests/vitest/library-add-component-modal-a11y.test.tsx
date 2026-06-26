@@ -59,6 +59,17 @@ const duplicateRows: EstimateRowItem[] = [
   },
 ];
 
+const brandDuplicateRows: EstimateRowItem[] = [
+  {
+    ...duplicateRows[0],
+    id: "component-brand-duplicate",
+    material: "Concealed Pull",
+    name: "Concealed Pull",
+    supplier: "",
+    brand: "Hinge Co",
+  },
+];
+
 function renderAddModal(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
   const props: ComponentProps<typeof AddComponentModal> = {
     open: true,
@@ -223,5 +234,36 @@ describe("AddComponentModal quick add contract", () => {
     await screen.findByText('A component named "Door Hinge" already exists. Add anyway or open the existing one.');
     fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
     expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
+  });
+
+  it("normalizes duplicate identity whitespace and supports brand-only matches", async () => {
+    renderAddModal({ libraryItems: [...duplicateRows, ...brandDuplicateRows] });
+    const dialog = await getAddDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+
+    fireEvent.change(within(form).getByLabelText("Category"), { target: { value: "Hardware" } });
+    fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
+    const name = within(form).getByLabelText("Name");
+    fireEvent.change(name, { target: { value: "  door    hinge  " } });
+    fireEvent.blur(name);
+
+    await screen.findByText('A component named "Door Hinge" already exists. Add anyway or open the existing one.');
+
+    fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "" } });
+    fireEvent.change(within(form).getByRole("combobox", { name: "Brand" }), { target: { value: "Hinge Co" } });
+    fireEvent.change(name, { target: { value: "Concealed Pull" } });
+    fireEvent.blur(name);
+
+    await screen.findByText('A component named "Concealed Pull" already exists. Add anyway or open the existing one.');
+    fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
+    fireEvent.change(within(form).getByLabelText("Unit cost"), { target: { value: "45.50" } });
+    fireEvent.change(within(form).getByLabelText("Pricing date"), { target: { value: "2026-01-10" } });
+    fireEvent.change(within(form).getByLabelText("Pricing source"), {
+      target: { value: "https://supplier.example/quote" },
+    });
+    fireEvent.change(within(form).getByLabelText("Confidence"), { target: { value: "Supplier quote" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
+
+    await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));
   });
 });

@@ -170,6 +170,74 @@ describe("ui tree", () => {
     expect(row("a")).not.toHaveClass("border-l-focus");
   });
 
+  it("supports typeahead and complete left/right tree navigation", async () => {
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        defaultExpandedIds={["a"]}
+      />,
+    );
+
+    const tree = screen.getByRole("tree", { name: "Sample tree" });
+    row("a").focus();
+
+    fireEvent.keyDown(tree, { key: "g" });
+    await waitFor(() => expect(row("c")).toHaveFocus());
+
+    fireEvent.keyDown(tree, { key: "Home" });
+    await waitFor(() => expect(row("a")).toHaveFocus());
+
+    fireEvent.keyDown(tree, { key: "ArrowRight" });
+    await waitFor(() => expect(row("a1")).toHaveFocus());
+
+    fireEvent.keyDown(tree, { key: "ArrowLeft" });
+    await waitFor(() => expect(row("a")).toHaveFocus());
+
+    fireEvent.keyDown(tree, { key: "ArrowLeft" });
+    expect(row("a")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("emits rename and context-menu keyboard shortcuts for the focused row", () => {
+    const onRenameShortcut = vi.fn();
+    const onKeyboardContextMenu = vi.fn();
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        onRenameShortcut={onRenameShortcut}
+        onKeyboardContextMenu={onKeyboardContextMenu}
+      />,
+    );
+
+    const tree = screen.getByRole("tree", { name: "Sample tree" });
+    row("a").focus();
+
+    fireEvent.keyDown(tree, { key: "F2" });
+    expect(onRenameShortcut).toHaveBeenCalledWith("a", expect.objectContaining({ id: "a" }), expect.any(Object));
+
+    fireEvent.keyDown(tree, { key: "F10", shiftKey: true });
+    expect(onKeyboardContextMenu).toHaveBeenCalledWith("a", expect.objectContaining({ id: "a" }), expect.any(Object));
+  });
+
+  it("does not run typeahead from editable controls inside a row", () => {
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        renderRow={(node) => <input aria-label={`Rename ${node.label}`} defaultValue={node.label} />}
+      />,
+    );
+
+    const input = screen.getByLabelText("Rename Alpha");
+    input.focus();
+
+    fireEvent.keyDown(input, { key: "g" });
+
+    expect(input).toHaveFocus();
+    expect(row("c")).not.toHaveFocus();
+  });
+
   it("remaps the bottom band of an expanded folder to before its first child", () => {
     const onDrop = vi.fn();
     render(

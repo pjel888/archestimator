@@ -25,13 +25,14 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => "/workshop/projects/project-1/estimates/estimate-1",
+  useParams: () => ({ projectId: "project-1", nodeId: "estimate-1" }),
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),

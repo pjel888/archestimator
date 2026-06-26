@@ -10,6 +10,7 @@ const actionMocks = vi.hoisted(() => ({
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
 

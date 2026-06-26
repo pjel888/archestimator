@@ -8,6 +8,7 @@ import {
   endEstimateWorkshopDrag,
 } from "@/components/workshop/estimate-workshop-drag";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
+import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 
 const componentLibraryMocks = vi.hoisted(() => ({
@@ -151,6 +152,7 @@ describe("TemplateEditorClient", () => {
   beforeEach(() => {
     navigationMocks.refresh.mockReset();
     componentLibraryMocks.estimateRightSidebar.mockReset();
+    vi.mocked(loadCurrentWorkspaceComponentLibraryLite).mockClear();
     for (const mock of Object.values(actionMocks)) mock.mockReset();
     actionMocks.updateEstimateTemplateRowItem.mockResolvedValue({ row: {} });
     actionMocks.removeEstimateTemplateRowItem.mockResolvedValue({ rowId: "row-1" });
@@ -181,6 +183,7 @@ describe("TemplateEditorClient", () => {
 
   it("keeps the re-hosted sidebar template-only without project-source props", async () => {
     renderEditor(buildTemplate());
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Load components dock" }));
 
     await waitFor(() => expect(componentLibraryMocks.estimateRightSidebar).toHaveBeenCalled());
     const props = componentLibraryMocks.estimateRightSidebar.mock.calls.at(-1)?.[0] as {
@@ -198,6 +201,26 @@ describe("TemplateEditorClient", () => {
     expect(props.onInsertProjectSource).toBeUndefined();
   });
 
+  it("does not auto-load the components dock before user intent", async () => {
+    vi.useFakeTimers();
+    try {
+      renderEditor(buildTemplate());
+
+      expect(loadCurrentWorkspaceComponentLibraryLite).not.toHaveBeenCalled();
+      expect(componentLibraryMocks.estimateRightSidebar).not.toHaveBeenCalled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(1_200);
+        await Promise.resolve();
+      });
+
+      expect(loadCurrentWorkspaceComponentLibraryLite).not.toHaveBeenCalled();
+      expect(componentLibraryMocks.estimateRightSidebar).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("commits an inline quantity edit through the row update action", async () => {
     renderEditor(buildTemplate());
 
@@ -212,7 +235,44 @@ describe("TemplateEditorClient", () => {
         patch: { quantity: 3 },
       });
     });
-    expect(navigationMocks.refresh).toHaveBeenCalled();
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("coalesces rapid inline row edits into one deferred refresh", async () => {
+    renderEditor(buildTemplate());
+
+    const quantityInput = screen.getByLabelText("GROHE Lavatory Faucet quantity");
+    fireEvent.change(quantityInput, { target: { value: "3" } });
+    fireEvent.blur(quantityInput);
+
+    await waitFor(() => {
+      expect(actionMocks.updateEstimateTemplateRowItem).toHaveBeenCalledWith({
+        templateId: "template-1",
+        rowId: "row-1",
+        patch: { quantity: 3 },
+      });
+    });
+
+    const unitCostInput = screen.getByLabelText("GROHE Lavatory Faucet unit cost");
+    fireEvent.change(unitCostInput, { target: { value: "12000" } });
+    fireEvent.blur(unitCostInput);
+
+    await waitFor(() => {
+      expect(actionMocks.updateEstimateTemplateRowItem).toHaveBeenCalledWith({
+        templateId: "template-1",
+        rowId: "row-1",
+        patch: { unitCost: 12000 },
+      });
+    });
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByDisplayValue("3")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("12000")).toBeInTheDocument();
   });
 
   it("removes a row optimistically", async () => {

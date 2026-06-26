@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
+import { ToastProvider } from "@/components/ui/toast";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
@@ -19,13 +20,15 @@ const actionMocks = vi.hoisted(() => ({
   deleteEstimateNodesBulk: vi.fn(),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
+  restoreDeletedEstimateNodes: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
+  useParams: () => ({ projectId: "project-1", nodeId: "kitchen" }),
   useRouter: () => routerMock,
 }));
 
@@ -62,15 +65,17 @@ function renderTree(
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetTree
-        projectId="project-1"
-        estimateId="estimate-1"
-        activeTabId={options.activeTabId}
-        initialTabId={options.initialTabId}
-        projectName="Modern Bungalow"
-        selectedNodeId={selectedNodeId}
-        nodes={nodes}
-      />
+      <ToastProvider>
+        <EstimateSheetTree
+          projectId="project-1"
+          estimateId="estimate-1"
+          activeTabId={options.activeTabId}
+          initialTabId={options.initialTabId}
+          projectName="Modern Bungalow"
+          selectedNodeId={selectedNodeId}
+          nodes={nodes}
+        />
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
@@ -92,6 +97,7 @@ describe("estimate tree bulk selection", () => {
     actionMocks.deleteEstimateNodesBulk.mockReset();
     actionMocks.fetchEstimateTabTree.mockReset();
     actionMocks.fetchEstimateTree.mockReset();
+    actionMocks.restoreDeletedEstimateNodes.mockReset();
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
     actionMocks.fetchEstimateTabTree.mockResolvedValue(fixtureTree());
@@ -150,6 +156,7 @@ describe("estimate tree bulk selection", () => {
       },
     ];
     actionMocks.deleteEstimateNodesBulk.mockResolvedValue({
+      eventId: "bulk-delete-event-1",
       tree: confirmedTree,
       deletedNodeIds: ["living"],
       fallbackNodeId: "kitchen",
@@ -167,8 +174,65 @@ describe("estimate tree bulk selection", () => {
     expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
   });
 
+  it("restores bulk-deleted nodes from Undo with the active tab id", async () => {
+    const user = userEvent.setup();
+    const confirmedTree: EstimateTreeNode[] = [
+      {
+        id: "project-scope",
+        name: "Project Scope",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "ground-floor",
+            name: "Ground Floor",
+            kind: "group",
+            total: "₱0.00",
+            children: [
+              { id: "kitchen", name: "Kitchen", kind: "area", total: "₱0.00", estimateRowItems: [], children: [] },
+            ],
+          },
+        ],
+      },
+    ];
+    actionMocks.deleteEstimateNodesBulk.mockResolvedValue({
+      eventId: "bulk-delete-event-1",
+      tree: confirmedTree,
+      deletedNodeIds: ["living"],
+      fallbackNodeId: "kitchen",
+    });
+    actionMocks.restoreDeletedEstimateNodes.mockResolvedValue({
+      eventId: "restore-event-1",
+      sourceEventId: "bulk-delete-event-1",
+      restoredNodeIds: ["living"],
+      restoredRootNodeIds: ["living"],
+      restoredNodeCount: 1,
+      restoredRowIds: [],
+      restoredRowCount: 0,
+      tree: fixtureTree(),
+    });
+    renderTree(fixtureTree(), "kitchen", { activeTabId: "tab-2", initialTabId: "tab-2" });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Living Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete selected" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Delete 1 selected Area" })).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument());
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await waitFor(() => expect(actionMocks.restoreDeletedEstimateNodes).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      sourceEventId: "bulk-delete-event-1",
+      nodeIds: ["living"],
+      targetTabId: "tab-2",
+    }));
+    await waitFor(() => expect(treeNode("living")).toBeInTheDocument());
+  });
+
   it("bulk delete deduplicates parent and child selections before calling the server", async () => {
     actionMocks.deleteEstimateNodesBulk.mockResolvedValue({
+      eventId: "bulk-delete-event-1",
       tree: [
         {
           id: "project-scope",

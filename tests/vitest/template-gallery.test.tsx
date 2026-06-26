@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TemplatesBrowseManager } from "@/components/workshop/library/templates-browse/TemplatesBrowseManager";
+import { buildTemplatePreviewNodeTotals } from "@/components/workshop/library/templates-browse/TemplatePreviewDockModel";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 
@@ -209,6 +210,28 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(within(dock).getByText("Zirconium Wall Panel")).toBeInTheDocument();
     expect(within(dock).getByText("Template total")).toBeInTheDocument();
     expect(dock.querySelector('[data-template-preview-total="true"]')).toHaveTextContent("₱1,000.00");
+  });
+
+  it("precomputes preview dock subtree totals once per selected template", () => {
+    const root = makeNode({
+      id: "preview-root",
+      name: "Root",
+      kind: "group",
+      estimateRowItems: [makeRow({ id: "root-row", material: "Root row", itemCost: 200 })],
+      children: [
+        makeNode({
+          id: "preview-child",
+          name: "Child",
+          kind: "area",
+          estimateRowItems: [makeRow({ id: "child-row", material: "Child row", itemCost: 300, quantity: 2 })],
+        }),
+      ],
+    });
+
+    const totals = buildTemplatePreviewNodeTotals([root]);
+
+    expect(totals.get("preview-root")).toBe(800);
+    expect(totals.get("preview-child")).toBe(600);
   });
 
   it("pushes the editor route from the row Open action", () => {

@@ -12,6 +12,7 @@ const supabaseServerMocks = vi.hoisted(() => ({
 }));
 
 const authMocks = vi.hoisted(() => ({
+  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -137,6 +138,16 @@ function makeSupabase({
     rpc: vi.fn(async (fn: string) => {
       if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
       if (rpcError) return { data: null, error: rpcError };
+      if (fn === "delete_estimate_row_item_with_history") {
+        return {
+          data: {
+            eventId: "delete-event-1",
+            rowId: "row-1",
+            deletedRow: canonicalMovedRow("row-1", { rowRevision }),
+          },
+          error: null,
+        };
+      }
 
       return {
         data: rpcData ?? {
@@ -170,6 +181,116 @@ function makeSupabase({
   rowQuery.order.mockImplementation(() => existingRowsQuery);
   existingRowsQuery.limit.mockImplementation(() => existingRowsQuery);
   return supabase;
+}
+
+function makeAtomicRowSupabase({
+  sourceRowRevision = 11,
+  targetRowRevision = 17,
+  canEditEstimate = true,
+  moveRpcData,
+  bulkDeleteRpcData,
+  restoreRpcData,
+}: {
+  sourceRowRevision?: number;
+  targetRowRevision?: number;
+  canEditEstimate?: boolean;
+  moveRpcData?: unknown;
+  bulkDeleteRpcData?: unknown;
+  restoreRpcData?: unknown;
+} = {}) {
+  const rowQuery = queryResult({
+    data: {
+      id: "row-1",
+      node_id: "node-1",
+      estimate_id: "estimate-1",
+      source_library_item_id: null,
+      metadata: {},
+      link_state: "unlinked",
+      row_revision: sourceRowRevision,
+      estimate_nodes: { id: "node-1", kind: "area", estimates: { project_id: "project-1" } },
+    },
+    error: null,
+  });
+  const sourceLibraryQuery = queryResult({
+    data: { id: "11111111-1111-4111-8111-111111111111", updated_at: null, lifecycle_state: "available" },
+    error: null,
+  });
+  const bulkRowsQuery = queryResult({
+    data: [
+      { id: "source-row", row_revision: sourceRowRevision },
+      { id: "target-row", row_revision: targetRowRevision },
+    ],
+    error: null,
+  });
+  const supabase = {
+    rpc: vi.fn(async (fn: string) => {
+      if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
+      if (fn === "move_estimate_row_component_with_history") {
+        return {
+          data: moveRpcData ?? {
+            sourceRowId: "source-row",
+            targetRowId: "target-row",
+            sourceRow: canonicalMovedRow("source-row", { material: "", rowRevision: sourceRowRevision + 1 }),
+            targetRow: canonicalMovedRow("target-row", { material: "Porcelain Tile", rowRevision: targetRowRevision + 1 }),
+          },
+          error: null,
+        };
+      }
+      if (fn === "delete_estimate_row_items_bulk_with_history") {
+        return {
+          data: bulkDeleteRpcData ?? { eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 },
+          error: null,
+        };
+      }
+      if (fn === "restore_deleted_estimate_rows_with_history") {
+        return {
+          data: restoreRpcData ?? {
+            eventId: "restore-event-1",
+            sourceEventId: "bulk-delete-event-1",
+            restoredRowIds: ["source-row", "target-row"],
+            restoredRowCount: 2,
+            restoredRows: [
+              canonicalMovedRow("source-row", { rowRevision: sourceRowRevision + 1 }),
+              canonicalMovedRow("target-row", { rowRevision: targetRowRevision + 1 }),
+            ],
+          },
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    }),
+    from: vi.fn((table: string) => {
+      if (table === "estimate_row_items") return rowQuery;
+      if (table === "cost_library_items") return sourceLibraryQuery;
+      throw new Error(`Unexpected table ${table}`);
+    }),
+    rowQuery,
+    sourceLibraryQuery,
+    bulkRowsQuery,
+  };
+  rowQuery.in.mockImplementation(() => bulkRowsQuery);
+  return supabase;
+}
+
+function canonicalMovedRow(rowId: string, overrides: Record<string, unknown> = {}) {
+  return {
+    id: rowId,
+    nodeId: "node-1",
+    material: "Moved component",
+    description: "Moved description",
+    supplier: "Moved supplier",
+    unit: "unit",
+    quantity: 1,
+    unitCost: 100,
+    contingencyPercentage: 0,
+    contingencyValue: 0,
+    miscCost: 0,
+    sourceSnapshot: null,
+    metadata: {},
+    linkState: "unlinked",
+    rowRevision: 1,
+    ...overrides,
+  };
 }
 
 function makeEstimateRecord(overrides: Record<string, unknown> = {}) {
@@ -223,6 +344,7 @@ describe("estimate sheet version control server actions", () => {
       estimate: { id: "estimate-1" },
       tree: [],
     });
+    authMocks.requireAuth.mockResolvedValue({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
   });
 
@@ -434,13 +556,14 @@ describe("estimate sheet version control server actions", () => {
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { deleteEstimateRowItem } = await import("@/lib/estimates/actions");
 
-    await deleteEstimateRowItem({
+    const result = await deleteEstimateRowItem({
       projectId: "project-1",
       estimateId: "estimate-1",
       rowId: "row-1",
       mutationId: "77777777-7777-4777-8777-777777777777",
     });
 
+    expect(result).toMatchObject({ eventId: "delete-event-1", deletedRowId: "row-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_item_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -448,6 +571,116 @@ describe("estimate sheet version control server actions", () => {
       expected_row_revision: 7,
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: "77777777-7777-4777-8777-777777777777",
+    });
+  });
+
+  it("moves a center row component through one atomic history RPC", async () => {
+    const supabase = makeAtomicRowSupabase();
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { moveEstimateRowComponentWithHistory } = await import("@/lib/estimates/actions");
+
+    const result = await moveEstimateRowComponentWithHistory({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      sourceRowId: "source-row",
+      targetRowId: "target-row",
+      sourceLibraryItem: makeLibraryItem({
+        id: "blank-row-template",
+        source: "project",
+        sourceLibraryItemId: null,
+        material: "",
+        description: "",
+        supplier: "",
+        unit: "unit",
+        itemCost: 0,
+        quantity: 1,
+        miscCost: 0,
+        category: "General",
+      }),
+      targetLibraryItem: makeLibraryItem(),
+      expectedSourceRowRevision: 11,
+      expectedTargetRowRevision: 17,
+      mutationId: "99999999-9999-4999-8999-999999999999",
+    });
+
+    expect(result.sourceRow).toMatchObject({ rowId: "source-row", rowRevision: 12 });
+    expect(result.targetRow).toMatchObject({ rowId: "target-row", rowRevision: 18 });
+    expect(supabase.rpc).toHaveBeenCalledWith("move_estimate_row_component_with_history", expect.objectContaining({
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      source_row_id: "source-row",
+      target_row_id: "target-row",
+      expected_source_row_revision: 11,
+      expected_target_row_revision: 17,
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: "99999999-9999-4999-8999-999999999999",
+    }));
+    const moveArgs = getRpcArgs(supabase, "move_estimate_row_component_with_history");
+    expect(moveArgs.source_replacement_payload).toMatchObject({
+      sourceLibraryItemId: null,
+      material: "",
+      linkState: "unlinked",
+    });
+    expect(moveArgs.target_replacement_payload).toMatchObject({
+      sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+      material: "Porcelain Tile",
+      linkState: "linked-clean",
+    });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
+  });
+
+  it("bulk-deletes center rows through one all-or-nothing history RPC", async () => {
+    const supabase = makeAtomicRowSupabase();
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
+
+    const result = await deleteEstimateRowItemsBulk({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowIds: ["source-row", "target-row"],
+      expectedRowRevisions: { "source-row": 11, "target-row": 17 },
+      mutationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    });
+
+    expect(result).toEqual({ eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 });
+    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_row_ids: ["source-row", "target-row"],
+      expected_row_revisions: { "source-row": 11, "target-row": 17 },
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.anything());
+  });
+
+  it("restores deleted center rows through the row restore history RPC", async () => {
+    const supabase = makeAtomicRowSupabase();
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { restoreDeletedEstimateRows } = await import("@/lib/estimates/actions");
+
+    const result = await restoreDeletedEstimateRows({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      sourceEventId: "bulk-delete-event-1",
+      rowIds: ["source-row", "target-row"],
+      mutationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    });
+
+    expect(result).toMatchObject({
+      eventId: "restore-event-1",
+      sourceEventId: "bulk-delete-event-1",
+      restoredRowIds: ["source-row", "target-row"],
+      restoredRowCount: 2,
+    });
+    expect(result.restoredRows).toHaveLength(2);
+    expect(supabase.rpc).toHaveBeenCalledWith("restore_deleted_estimate_rows_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      source_delete_event_id: "bulk-delete-event-1",
+      target_row_ids: ["source-row", "target-row"],
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     });
   });
 

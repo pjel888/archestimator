@@ -12,13 +12,14 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
+  useParams: () => ({ projectId: "project-1", nodeId: "kitchen" }),
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -145,6 +146,23 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
     const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
     expect(JSON.stringify(optimisticTree)).toContain("New Area");
+  });
+
+  it("scrolls a newly created Area row into view", async () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    actionMocks.createEstimateNode.mockReturnValue(new Promise(() => {}));
+
+    try {
+      renderTree(sampleEstimateTree, "main-house");
+
+      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" }));
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    }
   });
 
   it("rolls back an optimistic Add Area when the server action fails", async () => {

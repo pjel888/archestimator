@@ -1,13 +1,15 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ElementType } from "react";
 
-import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+
+let EstimateSheetContent: typeof import("@/components/workshop/EstimateSheetContent").EstimateSheetContent;
 
 const routerMock = vi.hoisted(() => ({
   prefetch: vi.fn(),
@@ -27,11 +29,65 @@ const estimateActionMocks = vi.hoisted(() => ({
   insertEstimateTemplateIntoEstimate: vi.fn(),
   insertEstimateTemplateNodeIntoEstimate: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
 
 const loadLibraryMock = vi.hoisted(() => vi.fn());
 const loadProjectLibraryMock = vi.hoisted(() => vi.fn());
+const dynamicMockState = vi.hoisted(() => ({
+  EstimateRightSidebar: null as ElementType | null,
+}));
+
+vi.mock("next/dynamic", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+
+  return {
+    default: (
+      loader: () => Promise<unknown>,
+      options?: { loading?: ElementType },
+    ) => {
+      if (String(loader).includes("EstimateRightSidebar")) {
+        function DynamicEstimateRightSidebar(props: Record<string, unknown>) {
+          const Component = dynamicMockState.EstimateRightSidebar;
+          const Loading = options?.loading;
+          if (!Component) return Loading ? React.createElement(Loading, props) : null;
+          return React.createElement(Component, props);
+        }
+
+        return DynamicEstimateRightSidebar;
+      }
+
+      function DynamicComponent(props: Record<string, unknown>) {
+        const [Component, setComponent] = React.useState<ElementType | null>(null);
+
+        React.useEffect(() => {
+          let cancelled = false;
+          void loader().then((resolved) => {
+            if (cancelled) return;
+            const resolvedComponent =
+              typeof resolved === "function" || (resolved && typeof resolved === "object" && "$$typeof" in resolved)
+                ? resolved
+                : (resolved as { default?: ElementType }).default;
+            if (resolvedComponent) setComponent(() => resolvedComponent as ElementType);
+          });
+          return () => {
+            cancelled = true;
+          };
+        }, []);
+
+        if (!Component) {
+          const Loading = options?.loading;
+          return Loading ? React.createElement(Loading, props) : null;
+        }
+
+        return React.createElement(Component, props);
+      }
+
+      return DynamicComponent;
+    },
+  };
+});
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/projects/lazy-project/estimates/lazy-node",
@@ -57,6 +113,7 @@ const sampleDataset = {
   brands: [],
   libraryFolders: [],
 };
+const DYNAMIC_IMPORT_TIMEOUT = 10_000;
 
 function renderSheet(queryClient: QueryClient, props: Record<string, unknown> = {}) {
   return render(
@@ -80,7 +137,33 @@ function makeQueryClient() {
   });
 }
 
+function installMatchMedia(matches = false) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
 describe("component library lazy load (U4)", () => {
+  beforeAll(async () => {
+    dynamicMockState.EstimateRightSidebar = (await import("@/components/workshop/component-library")).EstimateRightSidebar;
+    ({ EstimateSheetContent } = await import("@/components/workshop/EstimateSheetContent"));
+  });
+
+  beforeEach(() => {
+    installMatchMedia(false);
+  });
+
   afterEach(() => {
     cleanup();
     resetEstimateWorkspaceState();
@@ -108,7 +191,7 @@ describe("component library lazy load (U4)", () => {
     const queryClient = makeQueryClient();
     const view = renderSheet(queryClient);
 
-    expect(await screen.findByRole("tab", { name: "Library" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Library" }, { timeout: DYNAMIC_IMPORT_TIMEOUT })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Project" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Templates" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Loading Library tree" })).toBeInTheDocument();
@@ -135,6 +218,32 @@ describe("component library lazy load (U4)", () => {
     expect(loadLibraryMock).not.toHaveBeenCalled();
   });
 
+  it("opens the product-specific Sources drawer from the sheet header below desktop", async () => {
+    installMatchMedia(true);
+    loadProjectLibraryMock.mockResolvedValueOnce(sampleDataset);
+
+    const queryClient = makeQueryClient();
+    renderSheet(queryClient);
+
+    const trigger = await screen.findByRole("button", { name: "Open Sources drawer" });
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    expect(trigger).toHaveAttribute("aria-controls", "estimate-sources-drawer");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(trigger);
+
+    const drawer = await screen.findByRole("dialog", { name: "Sources" }, { timeout: DYNAMIC_IMPORT_TIMEOUT });
+    expect(drawer).toHaveAttribute("id", "estimate-sources-drawer");
+    expect(drawer).toHaveAttribute("aria-modal", "true");
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(within(drawer).getByRole("tablist", { name: "Estimate source sections" })).toBeInTheDocument();
+    expect(within(drawer).getByRole("tab", { name: "Library" })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sources" })).not.toBeInTheDocument());
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("shows a visible, non-blocking error with retry when the library load fails", async () => {
     loadProjectLibraryMock.mockRejectedValueOnce(new Error("library backend down"));
 
@@ -152,7 +261,7 @@ describe("component library lazy load (U4)", () => {
     await userEvent.click(retryButton);
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
-    });
+    }, { timeout: DYNAMIC_IMPORT_TIMEOUT });
     expect(loadProjectLibraryMock).toHaveBeenCalledTimes(2);
     expect(loadLibraryMock).not.toHaveBeenCalled();
   });
@@ -168,7 +277,7 @@ describe("component library lazy load (U4)", () => {
       libraryFolders: [],
     });
 
-    expect(screen.getByRole("tab", { name: "Library" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Library" }, { timeout: DYNAMIC_IMPORT_TIMEOUT })).toBeInTheDocument();
     expect(loadLibraryMock).not.toHaveBeenCalled();
     expect(loadProjectLibraryMock).not.toHaveBeenCalled();
   });

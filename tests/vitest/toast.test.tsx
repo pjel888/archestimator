@@ -39,7 +39,7 @@ describe("ToastProvider", () => {
     const viewport = document.querySelector("[data-toast-viewport='true']");
     expect(viewport).not.toBeNull();
     expect(viewport).toHaveClass("fixed");
-    expect(viewport).toHaveClass("bottom-3");
+    expect(viewport).toHaveClass("bottom-[calc(9rem+env(safe-area-inset-bottom))]");
     expect(viewport).toHaveClass("left-1/2");
     expect(screen.getByRole("status")).toHaveTextContent("Saving tree order");
 

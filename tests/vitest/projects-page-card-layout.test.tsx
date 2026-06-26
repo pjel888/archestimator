@@ -131,8 +131,21 @@ describe("Projects page card layout", () => {
     );
 
     const card = screen.getByLabelText("Lewis Residence project, owned access");
-    expect(card).toHaveClass("min-h-[360px]");
+    expect(card).toHaveClass("min-h-[372px]");
     expect(card).toHaveClass("workshop-project-card-glass");
+
+    // Translucent TOP STRIP holds the hover-revealed controls (select left,
+    // star/group/kebab right) in the glass band above the inset white card.
+    const topStrip = card.querySelector("[data-project-card-top-strip]");
+    expect(topStrip).not.toBeNull();
+    expect(topStrip).toHaveClass("flex");
+    expect(within(topStrip as HTMLElement).getByRole("checkbox", { name: "Select Lewis Residence for deletion" })).toBeInTheDocument();
+    expect(within(topStrip as HTMLElement).getByRole("button", { name: "Expand Lewis Residence details" })).toBeInTheDocument();
+
+    // INSET WHITE inner card wraps the thumbnail + content (no second blur).
+    const inner = card.querySelector("[data-project-card-inner]");
+    expect(inner).not.toBeNull();
+    expect(inner).toHaveClass("workshop-project-card-inner");
 
     const tileContent = card.querySelector("[data-project-card-tile-content]");
     expect(tileContent).not.toBeNull();
@@ -140,12 +153,15 @@ describe("Projects page card layout", () => {
     expect(tileContent).toHaveClass("justify-between");
     expect(tileContent).not.toHaveClass("p-3");
 
+    // Title block is now text-only (client / name / location); the kebab moved
+    // up to the top strip, so it is no longer inside the title block.
     const titleBlock = card.querySelector("[data-project-card-title-block]");
     expect(titleBlock).not.toBeNull();
     expect(titleBlock).toHaveClass("p-2");
     expect(titleBlock).not.toHaveClass("pt-2");
     expect(titleBlock).not.toHaveClass("pr-2");
     expect(within(titleBlock as HTMLElement).getByText("Quezon City, Metro Manila, Philippines")).toBeInTheDocument();
+    expect(within(titleBlock as HTMLElement).queryByRole("button", { name: "Expand Lewis Residence details" })).toBeNull();
 
     const thumbnail = card.querySelector("[data-project-card-thumbnail]");
     expect(thumbnail).toHaveClass("aspect-[4/3]");

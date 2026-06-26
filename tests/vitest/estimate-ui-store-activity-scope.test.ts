@@ -9,10 +9,11 @@ import { useEstimateUiStore } from "@/stores/estimate-ui-store";
 // cache key `node:{id}:{desc|direct}` must NOT become time-varying when a child
 // is added to a node, or the inspector cache would silently invalidate/poison.
 
-// Mirror EXACTLY how EstimateSheetContent.buildActivityScopeTreeItems resolves a
-// node's includeDescendants from the store map, then how activity-history's
+// Mirror EXACTLY how buildActivityScopeTreeItems resolves a node's
+// includeDescendants from the store map, then how activity-history's
 // getActivityScopeKey encodes the cache key. Keeping these in lockstep with the
-// component is the whole point of the test — if either drifts, this breaks.
+// sheet activity model is the whole point of the test — if either drifts, this
+// breaks.
 function resolveScope(map: Record<string, boolean>, nodeId: string) {
   return {
     mode: "node" as const,

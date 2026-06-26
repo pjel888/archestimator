@@ -59,6 +59,7 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTabs: vi.fn(),
   renameEstimateNode: vi.fn(),
@@ -91,7 +92,7 @@ vi.mock("@tanstack/react-query", async () => {
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => "/workshop/projects/project-1/estimates/estimate-1",
+  useParams: () => ({ projectId: "project-1", nodeId: "estimate-1" }),
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),

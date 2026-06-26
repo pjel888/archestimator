@@ -12,6 +12,7 @@ const actionMocks = vi.hoisted(() => ({
   duplicateEstimateSheet: vi.fn(),
   executeBulkDeleteEstimateSheets: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   previewBulkDeleteEstimateSheets: vi.fn(),
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),

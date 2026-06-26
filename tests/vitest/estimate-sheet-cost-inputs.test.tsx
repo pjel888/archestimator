@@ -5,7 +5,7 @@ import type { ComponentProps, ReactElement } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
+import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 // Req 1 / D2: "Activity" + "Preview Excel Export" moved to the project chrome
 // header (`EstimateHeaderActions`), fed by the page via a shared store. Render it
 // alongside the sheet so the relocated buttons are reachable here.
@@ -100,7 +100,7 @@ function renderExpressReplacementSheet() {
       children: [],
     },
   ];
-  renderEstimateSheet("express-area", { nodes: expressTree });
+  renderEstimateSheet("express-area", { nodes: expressTree, canEditEstimate: true });
 
   return {
     expressRow,
@@ -243,10 +243,10 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("uses the selected area as the add target and focuses the inserted row quantity", async () => {
-    renderEstimateSheet("kitchen");
+    renderEstimateSheet("kitchen", { canEditEstimate: true });
 
     await act(async () => {
-      window.dispatchEvent(new CustomEvent("archestimator:add-library-item", { detail: estimateLibraryItems[0] }));
+      window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, { detail: estimateLibraryItems[0] }));
     });
 
     const kitchenSection = screen.getByLabelText("Kitchen");
@@ -257,7 +257,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("adds an empty editable express component row when the area drop zone is clicked", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("kitchen");
+    renderEstimateSheet("kitchen", { canEditEstimate: true });
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     await user.click(within(kitchenSection).getByRole("button", { name: "Add blank estimate row to Kitchen" }));
@@ -271,7 +271,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("adds a blank estimate row when the area drop zone is keyboard-activated", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("kitchen");
+    renderEstimateSheet("kitchen", { canEditEstimate: true });
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     const addBlankRowButton = within(kitchenSection).getByRole("button", { name: "Add blank estimate row to Kitchen" });
@@ -342,7 +342,7 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getAllByText("Hardwood Oak Flooring").length).toBeGreaterThan(0);
@@ -355,7 +355,7 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Activity History" });
+    const dialog = await screen.findByRole("dialog", { name: "Activity History" });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByRole("treeitem", { name: /Estimate/i })).toHaveAttribute("aria-selected", "true");
   });
@@ -577,10 +577,10 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("inserts from the shared add-library-item callback path", async () => {
-    renderEstimateSheet("kitchen", { estimateId: "estimate-sidebar-test" });
+    renderEstimateSheet("kitchen", { estimateId: "estimate-sidebar-test", canEditEstimate: true });
 
     await act(async () => {
-      window.dispatchEvent(new CustomEvent("archestimator:add-library-item", { detail: estimateLibraryItems[0] }));
+      window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, { detail: estimateLibraryItems[0] }));
     });
 
     const kitchenSection = screen.getByLabelText("Kitchen");
@@ -588,7 +588,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("opens command palette and inserts into the selected area from the keyboard", async () => {
-    renderEstimateSheet("kitchen");
+    renderEstimateSheet("kitchen", { canEditEstimate: true });
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const palette = await screen.findByRole("dialog", { name: "Command palette" });
@@ -706,7 +706,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("deletes only the component from the card action while keeping the row item editable", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     const row = materialCell.closest("tr");
@@ -720,7 +720,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("moves a component to another row item from the in-card drag handle and clears the source component", async () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const sourceComponent = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     const sourceRow = sourceComponent.closest("tr");
@@ -738,6 +738,50 @@ describe("estimate sheet cost inputs", () => {
       expect(within(sourceRow as HTMLElement).getByLabelText("Component name")).toHaveValue("");
     });
     expect(within(targetRow as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
+  });
+
+  it("replaces a component from the in-card keyboard picker", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area", { canEditEstimate: true, libraryItems: estimateLibraryItems });
+
+    const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    await user.click(within(materialCell).getByRole("button", { name: "Replace component Hardwood Oak Flooring" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Replace component" });
+    await user.type(within(dialog).getByLabelText("Component search"), "HEMLINGBY");
+    await user.click(within(dialog).getByRole("button", { name: "Replace with HEMLINGBY Loveseat" }));
+    const reviewDialog = await screen.findByRole("dialog", { name: "Review source before replacing row" });
+    await user.click(within(reviewDialog).getByRole("button", { name: "Continue with replace" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByLabelText("HEMLINGBY Loveseat replaceable estimate component").length).toBeGreaterThan(1);
+    expect(screen.queryByRole("dialog", { name: "Replace component" })).not.toBeInTheDocument();
+  });
+
+  it("moves a component from the in-card keyboard picker and keeps the source row editable", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area", { canEditEstimate: true });
+
+    const sourceComponent = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    const sourceRow = sourceComponent.closest("tr");
+    const targetComponent = screen.getByLabelText("HEMLINGBY Loveseat replaceable estimate component");
+    const targetRow = targetComponent.closest("tr");
+    expect(sourceRow).not.toBeNull();
+    expect(targetRow).not.toBeNull();
+
+    await user.click(within(sourceComponent).getByRole("button", { name: "Move component Hardwood Oak Flooring" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Move component" });
+    expect(within(dialog).getByRole("button", { name: "Move to Hardwood Oak Flooring" })).toBeDisabled();
+    await user.click(within(dialog).getByRole("button", { name: "Move to HEMLINGBY Loveseat" }));
+
+    await waitFor(() => {
+      expect(within(sourceRow as HTMLElement).getByLabelText("Component name")).toHaveValue("");
+    });
+    expect(within(targetRow as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Move component" })).not.toBeInTheDocument();
   });
 
   it("replaces an express row with a dragged library component", async () => {
@@ -862,7 +906,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("replaces the row estimate component on drop while preserving editable row fields", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(quantityInput);
@@ -1015,5 +1059,24 @@ describe("estimate sheet filter + group/sort (D2)", () => {
     // Area 2 still exists as its own area (no flatten across areas).
     expect(screen.getAllByText("FG Area 2").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Select Other Item")).toBeInTheDocument();
+  });
+
+  it("choosing Group → Cost uses live editable row totals", async () => {
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
+
+    const area1 = ["fg-r1", "fg-r2", "fg-r3"];
+    fireEvent.click(within(sheetTools).getByRole("button", { name: "Group tab" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Cost (high to low)" }));
+
+    expect(rowOrder(area1)).toEqual(["fg-r2", "fg-r3", "fg-r1"]);
+
+    const zincQuantity = screen.getByLabelText("Zinc Panel quantity") as HTMLInputElement;
+    fireEvent.change(zincQuantity, { target: { value: "20" } });
+    expect(zincQuantity.value).toBe("20");
+
+    await waitFor(() => {
+      expect(rowOrder(area1)).toEqual(["fg-r1", "fg-r2", "fg-r3"]);
+    });
   });
 });

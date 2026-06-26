@@ -9,7 +9,7 @@ import { ToastProvider } from "@/components/ui/toast";
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
+  useParams: () => ({ projectId: "project-1", nodeId: "kitchen" }),
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -21,6 +21,7 @@ vi.mock("@/lib/estimates/actions", () => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));

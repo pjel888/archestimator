@@ -12,6 +12,7 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   deleteEstimateRowItem: vi.fn(),
+  deleteEstimateRowItemsBulk: vi.fn(),
   detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
@@ -19,6 +20,8 @@ const actionMocks = vi.hoisted(() => ({
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
+  moveEstimateRowComponentWithHistory: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
 
@@ -125,9 +128,13 @@ describe("estimate sheet bulk row delete partial failures", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
-    actionMocks.deleteEstimateRowItem.mockImplementation(async ({ rowId }: { rowId: string }) => {
-      if (rowId === sinkRowId) throw new Error("delete failed for sink");
-      return undefined;
+    actionMocks.deleteEstimateRowItemsBulk.mockRejectedValue(new Error("bulk delete failed"));
+    actionMocks.restoreDeletedEstimateRows.mockResolvedValue({
+      eventId: "restore-event-1",
+      sourceEventId: "delete-event-1",
+      restoredRowIds: [cabinetRowId, sinkRowId],
+      restoredRowCount: 2,
+      restoredRows: [],
     });
   });
 
@@ -137,38 +144,110 @@ describe("estimate sheet bulk row delete partial failures", () => {
     vi.clearAllMocks();
   });
 
-  it("keeps successful row deletes removed and restores only the failed row", async () => {
+  it("restores every selected row when the atomic bulk delete fails", async () => {
+    renderSheet([cabinetRow, sinkRow]);
+    const user = await selectRowsInOrder(["Kitchen Cabinet", "Kitchen Sink"]);
+
+    const deleteSelectedButton = screen.getByRole("button", { name: "Delete selected rows" });
+    expect(deleteSelectedButton).toHaveAttribute(
+      "title",
+      "Deletes selected rows immediately. Use Undo after saving to restore them.",
+    );
+    await user.click(deleteSelectedButton);
+
+    await waitFor(() => {
+      expect(actionMocks.deleteEstimateRowItemsBulk).toHaveBeenCalledTimes(1);
+    });
+    await screen.findByText("Couldn't delete the selected rows. Try again.");
+
+    expect(actionMocks.deleteEstimateRowItem).not.toHaveBeenCalled();
+    expect(actionMocks.deleteEstimateRowItemsBulk).toHaveBeenCalledWith(expect.objectContaining({
+      projectId,
+      estimateId,
+      rowIds: [cabinetRowId, sinkRowId],
+      expectedRowRevisions: {
+        [cabinetRowId]: 7,
+        [sinkRowId]: 3,
+      },
+    }));
+    expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
+    expect(screen.getByText("Kitchen Sink")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /undo/i })).not.toBeInTheDocument();
+  });
+
+  it("removes all selected rows only after the bulk delete RPC succeeds", async () => {
+    actionMocks.deleteEstimateRowItemsBulk.mockResolvedValue({ eventId: "bulk-delete-event-1", deletedRowIds: [cabinetRowId, sinkRowId], deletedRowCount: 2 });
     renderSheet([cabinetRow, sinkRow]);
     const user = await selectRowsInOrder(["Kitchen Cabinet", "Kitchen Sink"]);
 
     await user.click(screen.getByRole("button", { name: "Delete selected rows" }));
 
     await waitFor(() => {
-      expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(2);
+      expect(actionMocks.deleteEstimateRowItemsBulk).toHaveBeenCalledTimes(1);
     });
-    await screen.findByText("Couldn't delete the row. Try again.");
 
     expect(screen.queryByText("Kitchen Cabinet")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kitchen Sink")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await waitFor(() => {
+      expect(actionMocks.restoreDeletedEstimateRows).toHaveBeenCalledWith(expect.objectContaining({
+        projectId,
+        estimateId,
+        sourceEventId: "bulk-delete-event-1",
+        rowIds: [cabinetRowId, sinkRowId],
+      }));
+    });
+    expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(screen.getByText("Kitchen Sink")).toBeInTheDocument();
   });
 
-  it("restores a failed first selection without rolling back a later successful delete", async () => {
-    actionMocks.deleteEstimateRowItem.mockImplementation(async ({ rowId }: { rowId: string }) => {
-      if (rowId === cabinetRowId) throw new Error("delete failed for cabinet");
-      return undefined;
+  it("offers post-success undo for a single deleted row", async () => {
+    actionMocks.deleteEstimateRowItem.mockResolvedValue({ eventId: "delete-event-1", deletedRowId: cabinetRowId, deletedRow: {} });
+    actionMocks.restoreDeletedEstimateRows.mockResolvedValue({
+      eventId: "restore-event-1",
+      sourceEventId: "delete-event-1",
+      restoredRowIds: [cabinetRowId],
+      restoredRowCount: 1,
+      restoredRows: [],
     });
+    renderSheet([cabinetRow]);
+    const user = userEvent.setup();
 
-    renderSheet([cabinetRow, sinkRow]);
-    const user = await selectRowsInOrder(["Kitchen Cabinet", "Kitchen Sink"]);
-
-    await user.click(screen.getByRole("button", { name: "Delete selected rows" }));
+    const deleteRowButton = screen.getByRole("button", { name: "Delete row Kitchen Cabinet" });
+    expect(deleteRowButton).toHaveAttribute(
+      "title",
+      "Deletes immediately. Use Undo after saving to restore the row.",
+    );
+    await user.click(deleteRowButton);
 
     await waitFor(() => {
-      expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(2);
+      expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(1);
     });
-    await screen.findByText("Couldn't delete the row. Try again.");
 
+    expect(screen.queryByText("Kitchen Cabinet")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await waitFor(() => {
+      expect(actionMocks.restoreDeletedEstimateRows).toHaveBeenCalledWith(expect.objectContaining({
+        projectId,
+        estimateId,
+        sourceEventId: "delete-event-1",
+        rowIds: [cabinetRowId],
+      }));
+    });
     expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
-    expect(screen.queryByText("Kitchen Sink")).not.toBeInTheDocument();
+  });
+
+  it("restores a single deleted row automatically when the delete save fails", async () => {
+    actionMocks.deleteEstimateRowItem.mockRejectedValue(new Error("single delete failed"));
+    renderSheet([cabinetRow]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Delete row Kitchen Cabinet" }));
+
+    await screen.findByText("Couldn't delete the row. Try again.");
+    expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /undo/i })).not.toBeInTheDocument();
   });
 });

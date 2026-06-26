@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
 import { NewTemplateModal } from "@/components/workshop/component-library/NewTemplateModal";
@@ -13,11 +13,13 @@ import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const templateActionMocks = vi.hoisted(() => ({
   createLibraryFolder: vi.fn(),
+  executeBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
   createEstimateTemplate: vi.fn(),
   createEstimateTemplateFromEstimateTab: vi.fn(),
   createEstimateTemplateFromEstimateNode: vi.fn(),
+  previewBulkArchiveLibraryComponents: vi.fn(),
   renameEstimateTemplate: vi.fn(),
   deleteEstimateTemplate: vi.fn(),
 }));
@@ -42,11 +44,13 @@ vi.mock("@/components/ui/toast", () => ({
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
   createLibraryFolder: templateActionMocks.createLibraryFolder,
+  executeBulkArchiveLibraryComponents: templateActionMocks.executeBulkArchiveLibraryComponents,
   renameLibraryFolder: templateActionMocks.renameLibraryFolder,
   reorderLibraryFolders: templateActionMocks.reorderLibraryFolders,
   createEstimateTemplate: templateActionMocks.createEstimateTemplate,
   createEstimateTemplateFromEstimateTab: templateActionMocks.createEstimateTemplateFromEstimateTab,
   createEstimateTemplateFromEstimateNode: templateActionMocks.createEstimateTemplateFromEstimateNode,
+  previewBulkArchiveLibraryComponents: templateActionMocks.previewBulkArchiveLibraryComponents,
   renameEstimateTemplate: templateActionMocks.renameEstimateTemplate,
   deleteEstimateTemplate: templateActionMocks.deleteEstimateTemplate,
 }));
@@ -157,6 +161,46 @@ function renderSidebar(props: ComponentProps<typeof EstimateRightSidebar> = {}) 
   return render(<EstimateRightSidebar initialLibraryItems={sidebarSeedItems} {...props} />);
 }
 
+function installMatchMedia(matches = false) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+function MobileSourcesDrawerHarness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        aria-controls="estimate-sources-drawer"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        Sources
+      </button>
+      <EstimateRightSidebar
+        initialLibraryItems={sidebarSeedItems}
+        mobileDrawerOpen={open}
+        onMobileDrawerOpenChange={setOpen}
+        mobileDrawerId="estimate-sources-drawer"
+      />
+    </>
+  );
+}
+
 type SidebarToastCall = {
   message: string;
   tone?: string;
@@ -168,6 +212,40 @@ type SidebarToastCall = {
 
 function findToastCall(message: string) {
   return toastMocks.toast.mock.calls.map(([input]) => input as SidebarToastCall).find((input) => input.message === message);
+}
+
+function archivePreview(ids: string[]) {
+  return {
+    ok: true,
+    targetType: "library_component" as const,
+    ids,
+    eligibleIds: ids,
+    previewHash: `preview-${ids.join("-")}`,
+    summary: {
+      requestedCount: ids.length,
+      eligibleCount: ids.length,
+      blockedCount: 0,
+    },
+    issues: [],
+    blocked: [],
+  };
+}
+
+function archiveResult(ids: string[]) {
+  return {
+    ok: true,
+    targetType: "library_component" as const,
+    ids,
+    archivedIds: ids,
+    previewHash: `preview-${ids.join("-")}`,
+    summary: {
+      requestedCount: ids.length,
+      eligibleCount: ids.length,
+      blockedCount: 0,
+    },
+    issues: [],
+    blocked: [],
+  };
 }
 
 function openComponentViewMenu() {
@@ -244,6 +322,7 @@ describe("component library UI", () => {
   });
 
   beforeEach(() => {
+    installMatchMedia(false);
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) =>
       window.setTimeout(() => callback(performance.now()), 0),
     );
@@ -251,13 +330,21 @@ describe("component library UI", () => {
     window.localStorage.clear();
     useEstimateWorkshopDragState.setState({ activeDrag: null });
     templateActionMocks.createLibraryFolder.mockReset();
+    templateActionMocks.executeBulkArchiveLibraryComponents.mockReset();
     templateActionMocks.renameLibraryFolder.mockReset();
     templateActionMocks.reorderLibraryFolders.mockReset();
     templateActionMocks.createEstimateTemplate.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
+    templateActionMocks.previewBulkArchiveLibraryComponents.mockReset();
     templateActionMocks.renameEstimateTemplate.mockReset();
     templateActionMocks.deleteEstimateTemplate.mockReset();
+    templateActionMocks.previewBulkArchiveLibraryComponents.mockImplementation(({ itemIds }: { itemIds: string[] }) =>
+      Promise.resolve(archivePreview(itemIds)),
+    );
+    templateActionMocks.executeBulkArchiveLibraryComponents.mockImplementation(({ itemIds }: { itemIds: string[] }) =>
+      Promise.resolve(archiveResult(itemIds)),
+    );
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
     reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
@@ -333,6 +420,55 @@ describe("component library UI", () => {
     expect(screen.queryByLabelText("Search Library")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show library search" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /new/i })).not.toBeInTheDocument();
+  });
+
+  it("renders the real estimate source tools inside the compact Sources drawer", async () => {
+    installMatchMedia(true);
+    renderSidebar({
+      mobileDrawerOpen: true,
+      onMobileDrawerOpenChange: vi.fn(),
+      mobileDrawerId: "estimate-sources-drawer",
+    });
+
+    const drawer = await screen.findByRole("dialog", { name: "Sources" });
+    expect(drawer).toHaveAttribute("aria-modal", "true");
+    expect(drawer).toHaveAttribute("id", "estimate-sources-drawer");
+    expect(within(drawer).getByRole("complementary", { name: "Sources" })).toBeInTheDocument();
+    expect(within(drawer).getByRole("tablist", { name: "Estimate source sections" })).toBeInTheDocument();
+    expect(within(drawer).getByRole("tab", { name: "Library" })).toHaveAttribute("aria-selected", "true");
+    expect(within(drawer).getByRole("button", { name: "Show library search" })).toBeInTheDocument();
+    expect(screen.getAllByRole("complementary", { name: "Sources" })).toHaveLength(1);
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(screen.queryByRole("button", { name: "Open Library drawer" })).not.toBeInTheDocument();
+  });
+
+  it("keeps Escape inside the source drawer until sidebar state is cleared, then returns focus", async () => {
+    installMatchMedia(true);
+    render(<MobileSourcesDrawerHarness />);
+
+    const trigger = screen.getByRole("button", { name: "Sources" });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    const drawer = await screen.findByRole("dialog", { name: "Sources" });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Show library search" }));
+    const searchInput = await within(drawer).findByLabelText("Search Library");
+    fireEvent.change(searchInput, { target: { value: "steel" } });
+
+    fireEvent.keyDown(searchInput, { key: "Escape" });
+    await waitFor(() => expect(within(drawer).getByLabelText("Search Library")).toHaveValue(""));
+    expect(screen.getByRole("dialog", { name: "Sources" })).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "Escape" });
+    await waitFor(() => expect(within(drawer).queryByLabelText("Search Library")).not.toBeInTheDocument());
+    expect(screen.getByRole("dialog", { name: "Sources" })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sources" })).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
   it("nests an empty library folder inside another folder from the sidebar tree", async () => {
@@ -436,29 +572,35 @@ describe("component library UI", () => {
     expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
   });
 
-  it("bulk-deletes selected components from the dock with undo", () => {
-    renderSidebar();
+  it("bulk-archives selected components through the action-backed archive flow", async () => {
+    const onLibraryDataChanged = vi.fn();
+    renderSidebar({ onLibraryDataChanged });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select HEMLINGBY Loveseat" }));
     const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
-    fireEvent.click(within(dock).getByRole("button", { name: "Delete selected components" }));
+    fireEvent.click(within(dock).getByRole("button", { name: "Archive selected components" }));
 
-    const dialog = screen.getByRole("alertdialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Delete selected" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Archive selected components" });
+    expect(dialog).toHaveTextContent("Archive 1 selected component?");
+    expect(dialog).toHaveTextContent("Archived components are hidden from future inserts. Existing estimate rows stay unchanged.");
 
+    fireEvent.click(within(dialog).getByRole("button", { name: "Archive selected" }));
+
+    await waitFor(() =>
+      expect(templateActionMocks.previewBulkArchiveLibraryComponents).toHaveBeenCalledWith({ itemIds: ["lib-sofa"] }),
+    );
+    await waitFor(() =>
+      expect(templateActionMocks.executeBulkArchiveLibraryComponents).toHaveBeenCalledWith({
+        itemIds: ["lib-sofa"],
+        expectedPreviewHash: "preview-lib-sofa",
+        correlationId: expect.any(String),
+      }),
+    );
     expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat" })).not.toBeInTheDocument();
-    const undoToast = findToastCall("HEMLINGBY Loveseat removed from this sidebar view.");
-    expect(undoToast).toEqual(expect.objectContaining({
-      tone: "neutral",
-      action: expect.objectContaining({ label: "Undo", onClick: expect.any(Function) }),
-    }));
-    expect(screen.queryByText("HEMLINGBY Loveseat removed from this sidebar view.")).not.toBeInTheDocument();
-
-    act(() => undoToast?.action?.onClick());
-
-    expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
-    expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: "HEMLINGBY Loveseat restored to this sidebar view." });
-    expect(screen.queryByText("HEMLINGBY Loveseat restored to this sidebar view.")).not.toBeInTheDocument();
+    expect(findToastCall("HEMLINGBY Loveseat archived.")).toEqual(expect.objectContaining({ tone: "success" }));
+    expect(findToastCall("HEMLINGBY Loveseat archived.")?.action).toBeUndefined();
+    expect(screen.queryByText("HEMLINGBY Loveseat archived.")).not.toBeInTheDocument();
+    expect(onLibraryDataChanged).toHaveBeenCalledTimes(1);
   });
 
   it("shows left-aligned icon-only tools with tooltips and tree controls", () => {
@@ -621,6 +763,7 @@ describe("component library UI", () => {
 
     const folderNameInput = await screen.findByRole("textbox", { name: "Folder name" });
     expect(folderNameInput).toHaveValue("Furniture");
+    expect(folderNameInput).toHaveFocus();
 
     await user.clear(folderNameInput);
     await user.type(folderNameInput, "Seating{Enter}");
@@ -901,13 +1044,13 @@ describe("component library UI", () => {
 
     const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
     expect(within(dock).getByRole("button", { name: "Add selected components" })).toBeInTheDocument();
-    expect(within(dock).queryByRole("button", { name: "Delete selected components" })).not.toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "Archive selected components" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Project Vanity" }));
     expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Duplicate" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Favorite" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
 
     fireEvent.click(within(dock).getByRole("button", { name: "Add selected components" }));
     expect(onInsert).toHaveBeenCalledWith(expect.objectContaining<Partial<EstimateRowItem>>({
@@ -1072,7 +1215,7 @@ describe("component library UI", () => {
     }
   });
 
-  it("dismisses delete confirmation with Escape", () => {
+  it("dismisses archive confirmation with Escape", () => {
     renderSidebar();
     expandSupplierFolder();
     // Click a component row to open preview
@@ -1080,9 +1223,9 @@ describe("component library UI", () => {
     if (componentRows.length > 0) {
       fireEvent.click(componentRows[0]);
     }
-    const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
-    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
-    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    const archiveButtons = screen.getAllByRole("button", { name: "Archive" });
+    fireEvent.click(archiveButtons[archiveButtons.length - 1]);
+    expect(screen.getByRole("alertdialog", { name: "Archive component" })).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -1423,7 +1566,7 @@ describe("component library UI", () => {
     expect(onInsert).toHaveBeenCalledWith(expect.objectContaining<Partial<EstimateRowItem>>({ id: "lib-sofa" }));
   });
 
-  it("exposes component CRUD through the row context menu", async () => {
+  it("keeps sidebar row management to persisted actions", async () => {
     renderSidebar({
       selectedNodeKind: "area",
       selectedNodeName: "Kitchen",
@@ -1436,29 +1579,28 @@ describe("component library UI", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" }), { clientX: 16, clientY: 16 });
-    expect(await screen.findByRole("menuitem", { name: "Edit" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Duplicate" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Archive" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Duplicate" })).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Add to favorites" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate" }));
-    expect(await screen.findByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).toBeInTheDocument();
-    expect(toastMocks.toast).toHaveBeenCalledWith({ tone: "success", message: "HEMLINGBY Loveseat duplicated in this sidebar view." });
-    expect(screen.queryByText("HEMLINGBY Loveseat duplicated in this sidebar view.")).not.toBeInTheDocument();
-
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat copy" }), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Archive" }));
     const dialog = await screen.findByRole("alertdialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
-    expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).not.toBeInTheDocument();
-    expect(findToastCall("HEMLINGBY Loveseat copy removed from this sidebar view.")).toEqual(expect.objectContaining({
-      tone: "neutral",
-      action: expect.objectContaining({ label: "Undo", onClick: expect.any(Function) }),
-    }));
-    expect(screen.queryByText("HEMLINGBY Loveseat copy removed from this sidebar view.")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => expect(templateActionMocks.previewBulkArchiveLibraryComponents).toHaveBeenCalledWith({ itemIds: ["lib-sofa"] }));
+    await waitFor(() =>
+      expect(templateActionMocks.executeBulkArchiveLibraryComponents).toHaveBeenCalledWith({
+        itemIds: ["lib-sofa"],
+        expectedPreviewHash: "preview-lib-sofa",
+        correlationId: expect.any(String),
+      }),
+    );
+    expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat" })).not.toBeInTheDocument();
+    expect(findToastCall("HEMLINGBY Loveseat archived.")).toEqual(expect.objectContaining({ tone: "success" }));
   });
 
-  it("uses an in-app discard dialog instead of a native confirm when closing dirty component edits", async () => {
+  it("does not expose the old local component edit flow in the sidebar", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     renderSidebar({
       selectedNodeKind: "area",
@@ -1468,28 +1610,11 @@ describe("component library UI", () => {
     });
 
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" }), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Edit" }));
 
-    const editDialog = await screen.findByRole("dialog", { name: "Edit component" });
-    fireEvent.change(within(editDialog).getByRole("textbox", { name: "Component name" }), {
-      target: { value: "HEMLINGBY Loveseat updated" },
-    });
-    fireEvent.click(within(editDialog).getByRole("button", { name: "Cancel" }));
-
+    expect(await screen.findByRole("menuitem", { name: "Archive" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Edit component" })).not.toBeInTheDocument();
     expect(confirmSpy).not.toHaveBeenCalled();
-    const discardDialog = await screen.findByRole("alertdialog", { name: "Discard component changes?" });
-    expect(within(discardDialog).getByText("Discard the unsaved component edits and close the form?")).toBeInTheDocument();
-
-    fireEvent.click(within(discardDialog).getByRole("button", { name: "Keep editing" }));
-    expect(screen.queryByRole("alertdialog", { name: "Discard component changes?" })).not.toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Edit component" })).toBeInTheDocument();
-
-    fireEvent.click(within(screen.getByRole("dialog", { name: "Edit component" })).getByRole("button", { name: "Cancel" }));
-    const discardDialogAgain = await screen.findByRole("alertdialog", { name: "Discard component changes?" });
-    fireEvent.click(within(discardDialogAgain).getByRole("button", { name: "Discard changes" }));
-
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit component" })).not.toBeInTheDocument());
-    expect(screen.queryByRole("alertdialog", { name: "Discard component changes?" })).not.toBeInTheDocument();
   });
 
   it("opens the create-template modal when the sheets tree hands a node over", async () => {
@@ -1714,7 +1839,7 @@ describe("templates tree", () => {
     openTemplatesTab();
 
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Template Group" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Template Group" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Template" })).toBeInTheDocument();
 
     // The category reads as a plain group node row: name + summed cost only.
@@ -1728,25 +1853,13 @@ describe("templates tree", () => {
     expect(templateRow).toHaveAttribute("draggable", "true");
   });
 
-  it("creates an empty custom template group from the templates toolbar", async () => {
+  it("does not expose local-only custom template group creation", () => {
     openTemplatesTab();
 
     const toolbar = screen.getByRole("toolbar", { name: "Template tools" });
-    const addGroupButton = within(toolbar).getByRole("button", { name: "Add Template Group" });
-    const addTemplateButton = within(toolbar).getByRole("button", { name: "Add Template" });
-    expect(Array.from(toolbar.querySelectorAll("button")).indexOf(addGroupButton)).toBeLessThan(
-      Array.from(toolbar.querySelectorAll("button")).indexOf(addTemplateButton),
-    );
-
-    fireEvent.click(addGroupButton);
-    fireEvent.change(await screen.findByLabelText("Template group name"), { target: { value: "Exterior + Site" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add group" }));
-
-    expect(screen.getByRole("treeitem", { name: "Exterior + Site templates" })).toBeInTheDocument();
-
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Exterior + Site templates" }), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "New Template" }));
-    expect(await screen.findByLabelText("Template category")).toHaveValue("Exterior + Site");
+    expect(within(toolbar).queryByRole("button", { name: "Add Template Group" })).not.toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "Add Template" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Template group name")).not.toBeInTheDocument();
   });
 
   it("reveals the template's internal structure, with every row draggable, when expanded", () => {
@@ -2047,6 +2160,62 @@ describe("templates tree", () => {
     expect(await screen.findByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
   });
 
+  it("keeps the latest project-source search result when requests resolve out of order", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    let resolveAmenitySearch: ((value: { sources: ReusableEstimateSource[] }) => void) | undefined;
+    let resolveHotelSearch: ((value: { sources: ReusableEstimateSource[] }) => void) | undefined;
+    reusableSourceActionMocks.searchReusableProjectSources.mockImplementation(({ query }: { query: string }) => {
+      if (query === "Amenity") {
+        return new Promise((resolve) => {
+          resolveAmenitySearch = resolve;
+        });
+      }
+      if (query === "Hotel") {
+        return new Promise((resolve) => {
+          resolveHotelSearch = resolve;
+        });
+      }
+      return Promise.resolve({ sources: [] });
+    });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+
+    const search = openLibrarySearch("Show templates search", "Search Templates");
+    fireEvent.change(search, { target: { value: "Amenity" } });
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledWith({ query: "Amenity" }),
+    );
+    fireEvent.change(search, { target: { value: "Hotel" } });
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledWith({ query: "Hotel" }),
+    );
+
+    act(() => {
+      resolveHotelSearch?.({
+        sources: [
+          {
+            kind: "project",
+            projectId: "project-hotel",
+            name: "Hotel Search Project",
+          },
+        ],
+      });
+    });
+    expect(await screen.findByRole("treeitem", { name: "Hotel Search Project project source" })).toBeInTheDocument();
+
+    act(() => {
+      resolveAmenitySearch?.({ sources: projectSources });
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByRole("treeitem", { name: "Amenity Millwork project area" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("treeitem", { name: "Hotel Search Project project source" })).toBeInTheDocument();
+  });
+
   it("lazy-loads an estimate outline when a project estimate expands", async () => {
     reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
       sources: projectSources.filter((source) => source.kind === "project"),
@@ -2099,9 +2268,11 @@ describe("templates tree", () => {
     await screen.findByRole("treeitem", { name: "Renovation Project project source" });
     // Hovering — without any click — warms the next level.
     hoverProjectSourceRow("Renovation Project project source", "Renovation Project");
+    hoverProjectSourceRow("Renovation Project project source", "Renovation Project");
     await waitFor(() =>
       expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-2" }),
     );
+    expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledTimes(1);
 
     // Expanding now serves the already-resident estimate with no second fetch.
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
@@ -2259,7 +2430,7 @@ describe("templates tree", () => {
     expect(sourceFilter).toHaveTextContent("Custom templates");
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Template Group" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Template Group" })).not.toBeInTheDocument();
   });
 
   it("restores custom templates when project-source loading resolves empty after selecting the project filter", async () => {
@@ -2366,7 +2537,7 @@ describe("templates tree", () => {
     expect(templateActionMocks.createEstimateTemplateFromEstimateTab).not.toHaveBeenCalled();
   });
 
-  it("previews project-source live metadata without template management actions", () => {
+  it("previews project-source snapshot metadata without template management actions", () => {
     const onInsertProjectSource = vi.fn(() => true);
     openTemplatesTab({
       projectSources: projectSourcesWithMetadata,
@@ -2382,8 +2553,10 @@ describe("templates tree", () => {
 
     const preview = screen.getByRole("region", { name: "Project source preview" });
     expect(within(preview).getByText("Amenity Millwork")).toBeInTheDocument();
-    expect(within(preview).getByText("Live source")).toBeInTheDocument();
-    expect(within(preview).getByText("Read-through source")).toBeInTheDocument();
+    expect(within(preview).getByText("Snapshot source")).toBeInTheDocument();
+    expect(within(preview).getByText("Copies rows at insert time")).toBeInTheDocument();
+    expect(within(preview).queryByText("Live source")).not.toBeInTheDocument();
+    expect(within(preview).queryByText("Read-through source")).not.toBeInTheDocument();
     expect(within(preview).getByText("Renovation Project")).toBeInTheDocument();
     expect(within(preview).getByText("Lobby Estimate")).toBeInTheDocument();
     expect(within(preview).getByText("EST-002")).toBeInTheDocument();
@@ -2391,7 +2564,7 @@ describe("templates tree", () => {
     expect(within(preview).getByText("7")).toBeInTheDocument();
     expect(within(preview).getByText("₱125,000.00")).toBeInTheDocument();
     expect(within(preview).queryByRole("button", { name: "Rename" })).not.toBeInTheDocument();
-    expect(within(preview).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
 
     fireEvent.click(within(preview).getByRole("button", { name: /Add .* Main House/ }));
 

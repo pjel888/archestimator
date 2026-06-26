@@ -19,6 +19,16 @@ describe("route transition measurement script governance", () => {
     expect(measureScript).toContain("clickPosition");
     expect(measureScript).toContain("collapsedSidebarIconPosition");
     expect(measureScript).toContain('expectedPathname: "/workshop/settings"');
+    expect(measureScript).toContain('name: "Authenticated Library: Overview to Components"');
+    expect(measureScript).toContain('name: "Authenticated Library: Components to Templates"');
+    expect(measureScript).toContain('name: "Authenticated Library: Templates to Overview"');
+    expect(measureScript).toContain('expectedPathname: "/workshop/library/components"');
+    expect(measureScript).toContain('expectedPathname: "/workshop/library/templates"');
+    expect(measureScript).toContain("clickLibraryTab");
+    expect(measureScript).toContain('getByRole("tablist", { name: "Library sections" })');
+    expect(measureScript).toContain('clickLibraryTab(page, "Overview")');
+    expect(measureScript).toContain('clickLibraryTab(page, "Components")');
+    expect(measureScript).toContain('clickLibraryTab(page, "Templates")');
     expect(measureScript).toContain("HERO_PROJECT_ID");
     expect(measureScript).toContain("HERO_ESTIMATE_NODE_ID");
     expect(measureScript).toContain('name: "Authenticated Hero: Workshop to Projects"');

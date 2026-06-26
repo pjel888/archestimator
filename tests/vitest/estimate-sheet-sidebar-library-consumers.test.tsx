@@ -10,8 +10,9 @@ describe("Estimate Sheet sidebar Library consumers", () => {
   it("keeps shared tab controls linked to rendered tab panels", () => {
     const tabsSource = source("src/components/ui/tabs.tsx");
 
-    expect(tabsSource).toContain("aria-controls={`tabpanel-${tab.id}`}");
-    expect(tabsSource).toContain("id={`tabpanel-${id}`}");
+    expect(tabsSource).toContain("const panelId = idBase ? `${idBase}-panel-${tab.id}` : `tabpanel-${tab.id}`;");
+    expect(tabsSource).toContain("aria-controls={panelId}");
+    expect(tabsSource).toContain("id={tabId}");
   });
 
   it("keeps Library and Project source rows visibly scoped with trust chips", () => {
@@ -24,6 +25,24 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(sidebarSource).toContain("sourceScopeLabel={activeSourceScopeLabel}");
     expect(treeSource).toContain("SourceTrustChips");
     expect(treeSource).toContain("const sourceLabel = sourceScope ? `${sourceScope} · ${supplierLabel}` : supplierLabel;");
+  });
+
+  it("labels the compact estimate right rail as a Sources drawer", () => {
+    const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
+    const sidebarSource = source("src/components/workshop/component-library/index.tsx");
+    const drawerSource = source("src/components/ui/overlays/sheet-drawer.tsx");
+
+    expect(sheetSource).toContain('label: "Open Sources drawer"');
+    expect(sheetSource).toContain('visibleLabel: "Sources"');
+    expect(sheetSource).toContain("ariaHasPopup: \"dialog\"");
+    expect(sheetSource).toContain("mobileDrawerId={ESTIMATE_SOURCES_DRAWER_ID}");
+    expect(sidebarSource).toContain('import { Drawer } from "@/components/ui/overlays/sheet-drawer"');
+    expect(sidebarSource).toContain('ariaLabel="Sources"');
+    expect(sidebarSource).toContain("compactDrawer={false}");
+    expect(sidebarSource).toContain('title="Sources"');
+    expect(sidebarSource).toContain('closeLabel="Close Sources drawer"');
+    expect(drawerSource).toContain("closeOnEscape={closeOnEscape}");
+    expect(drawerSource).toContain("returnFocusOnClose={returnFocusOnClose}");
   });
 
   it("routes sidebar action notifications through toast instead of inline status text", () => {
@@ -54,16 +73,17 @@ describe("Estimate Sheet sidebar Library consumers", () => {
 
   it("routes risky Library commits through the Estimate Sheet source review gate", () => {
     const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
+    const rowHandlersSource = source("src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts");
     const trustModelSource = source("src/components/workshop/library/source-trust-model.ts");
     const estimateActionsSource = source("src/lib/estimates/actions.ts");
 
-    expect(sheetSource).toContain("getLibraryCommitTrustGate");
+    expect(rowHandlersSource).toContain("getLibraryCommitTrustGate");
     expect(trustModelSource).toContain("Review source before replacing row");
     expect(sheetSource).toContain("Incoming Library source");
     expect(sheetSource).toContain("Current estimate row");
-    expect(sheetSource).toContain("trust_insert_gate_warned");
-    expect(sheetSource).toContain("trust_insert_gate_confirmed");
-    expect(sheetSource).toContain('item.source === "supplier"');
+    expect(rowHandlersSource).toContain("trust_insert_gate_warned");
+    expect(rowHandlersSource).toContain("trust_insert_gate_confirmed");
+    expect(rowHandlersSource).toContain('item.source === "supplier"');
     expect(estimateActionsSource).toContain("libraryItem.sourceLibraryItemId && isUuid(libraryItem.sourceLibraryItemId)");
     expect(estimateActionsSource).toContain("assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem)");
   });

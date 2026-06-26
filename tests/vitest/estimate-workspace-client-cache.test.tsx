@@ -1,4 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,6 +24,7 @@ vi.mock("@/lib/estimates/actions", () => ({
   fetchEstimateTabs: (...args: unknown[]) => fetchEstimateTabs(...args),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
 }));
 
 const INITIAL_TABS: EstimateTabSummary[] = [{ id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }];
@@ -78,5 +79,17 @@ describe("EstimateWorkspaceClient tab-cache reconciliation", () => {
     expect(queryClient.getQueryData(estimateQueryKeys.tabs("estimate-1"))).toEqual(created);
     // …and no second network round-trip (refetch) was issued.
     expect(fetchEstimateTabs).not.toHaveBeenCalled();
+  });
+
+  it("renders a focusable below-desktop fallback notice for the estimate workspace", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderClient(queryClient);
+
+    const notice = screen.getByRole("note", { name: "Desktop workspace notice" });
+
+    expect(notice).toHaveClass("lg:hidden");
+    expect(notice).toHaveAttribute("tabindex", "0");
+    expect(notice).toHaveTextContent("Estimate editing works best on a desktop-width screen.");
+    expect(notice).toHaveTextContent("Side panels open as compact drawers on this width; use a wider display for full three-panel editing.");
   });
 });

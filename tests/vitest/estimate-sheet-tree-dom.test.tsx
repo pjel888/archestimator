@@ -20,13 +20,14 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
-  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
+  useParams: () => ({ projectId: "project-1", nodeId: "kitchen" }),
   useRouter: () => routerMock,
 }));
 
@@ -175,6 +176,16 @@ describe("estimate sheet tree DOM integration", () => {
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
+  });
+
+  it("renders empty-state copy with an Add Area action when the tree has no areas", () => {
+    actionMocks.createEstimateNode.mockResolvedValue({ nodeId: "new-area" });
+
+    renderTree([], null);
+
+    expect(screen.getByText("No areas yet")).toBeInTheDocument();
+    expect(screen.getByText("Add an area to start organizing this estimate.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
   });
 
   it("renders visible nested items as draggable treeitems with the shared tree row styling", () => {

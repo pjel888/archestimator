@@ -10,6 +10,7 @@ const actionMocks = vi.hoisted(() => ({
   fetchEstimateTabs: vi.fn(),
   fetchEstimateTabTree: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
 }));
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);

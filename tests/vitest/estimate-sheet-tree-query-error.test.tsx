@@ -18,6 +18,7 @@ const actionMocks = vi.hoisted(() => ({
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
 

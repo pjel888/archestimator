@@ -290,7 +290,7 @@ describe("workshop library consolidation UI", () => {
     const componentActions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
 
     expect(libraryRoute).toContain("LibraryOverview");
-    expect(libraryRoute).toContain("getLibraryOverview");
+    expect(libraryRoute).not.toContain("getLibraryOverview");
     expect(libraryRoute).not.toContain("LibraryComponentsRoute");
     expect(componentsSubRoute).toContain("LibraryComponentsRoute");
     expect(componentsSharedRoute).toContain("LibraryPageClient");
@@ -321,20 +321,29 @@ describe("workshop library consolidation UI", () => {
       join(process.cwd(), "src/components/workshop/library/overview/RecentComponentCard.tsx"),
       "utf8",
     );
+    const templatePreviewDock = readFileSync(
+      join(process.cwd(), "src/components/workshop/library/templates-browse/TemplatePreviewDock.tsx"),
+      "utf8",
+    );
     const templateEditor = readFileSync(
       join(process.cwd(), "src/components/workshop/library/template-editor/TemplateEditorClient.tsx"),
       "utf8",
     );
 
     expect(tabStrip).toContain("prefetch={tab.prefetch}");
-    expect(libraryTabs.match(/^\s+prefetch: false,$/gm)?.length).toBe(3);
+    expect(libraryTabs).toContain("prefetch={false}");
+    expect(libraryTabs).toContain("prefetchLibraryRoute(tab.href)");
+    expect(libraryTabs).toContain("onPointerEnter");
+    expect(libraryTabs).toContain("onFocus");
+    expect(libraryTabs).toContain("onClick");
     expect(titleBar).toContain('href="/workshop/library" prefetch={false}');
     expect(titleBar).toContain('href="/workshop/library/templates" prefetch={false}');
-    expect(overview).toContain("href={linkHref}");
-    expect(overview).toContain("href={stat.href}");
-    expect(overview.match(/prefetch=\{false\}/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(overview).toContain('data-library-overview="empty"');
+    expect(overview).not.toContain("href=");
     expect(recentComponentCard).toContain("href={getComponentDetailsHref(component.id)}");
     expect(recentComponentCard).toContain("prefetch={false}");
+    expect(templatePreviewDock).toContain("buildTemplatePreviewNodeTotals(template.nodes)");
+    expect(templatePreviewDock).not.toContain("computeTemplateNodeTotal");
     expect(templateEditor).toContain('href="/workshop/library/templates"');
     expect(templateEditor).toContain("prefetch={false}");
   });

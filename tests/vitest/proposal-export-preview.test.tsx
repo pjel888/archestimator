@@ -194,6 +194,23 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeEnabled();
   });
 
+  it("warns when the preview includes unsaved row edits", () => {
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    render(
+      <ProposalExportPreviewDialog
+        open
+        model={model}
+        onDownload={vi.fn()}
+        status={{ freshness: "current", download: { kind: "ready" }, unsavedEdits: 2 }}
+        onRefresh={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("proposal-unsaved-edits-warning")).toHaveTextContent("Preview includes 2 unsaved row edits");
+  });
+
   it("surfaces export validation notes in the contents summary (P1-T2, F-20)", () => {
     const issueNodes: EstimateTreeNode[] = [
       {
@@ -386,7 +403,10 @@ describe("ProposalExportPreviewDialog", () => {
     try {
       await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
       await waitFor(() =>
-        expect(fetchMock).toHaveBeenLastCalledWith("/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx"),
+        expect(fetchMock).toHaveBeenLastCalledWith(
+          "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx",
+          { credentials: "same-origin" },
+        ),
       );
 
       await user.click(screen.getByRole("button", { name: /Main tab/i }));
@@ -394,7 +414,10 @@ describe("ProposalExportPreviewDialog", () => {
 
       await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
       await waitFor(() =>
-        expect(fetchMock).toHaveBeenLastCalledWith("/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=tab-main"),
+        expect(fetchMock).toHaveBeenLastCalledWith(
+          "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=tab-main",
+          { credentials: "same-origin" },
+        ),
       );
     } finally {
       fetchMock.mockRestore();

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { ESTIMATE_TREE_SORT_ORDER_STEP } from "@/lib/estimates/estimate-tree-reorder";
+
 const repositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
   getEstimateTabTree: vi.fn(),
@@ -13,6 +15,7 @@ const supabaseServerMocks = vi.hoisted(() => ({
 }));
 
 const authMocks = vi.hoisted(() => ({
+  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -31,6 +34,7 @@ vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
 
 beforeEach(() => {
+  authMocks.requireAuth.mockResolvedValue(undefined);
   authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
 });
 
@@ -79,7 +83,10 @@ function makeSupabase({
       if (table === "estimate_nodes") return nodeQuery;
       throw new Error(`Unexpected table ${table}`);
     }),
-    rpc: vi.fn(async () => rpcResults?.shift() ?? rpcResult),
+    rpc: vi.fn(async (name: string) => {
+      if (name === "can_edit_estimate") return { data: true, error: null };
+      return rpcResults?.shift() ?? rpcResult;
+    }),
     estimateQuery,
     nodeQuery,
   };
@@ -135,7 +142,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     });
 
     expect(repositoryMocks.getCurrentWorkspaceProject).toHaveBeenCalledWith("project-1");
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
       target_estimate_id: "estimate-1",
       move_updates: [
@@ -161,7 +168,10 @@ describe("reorderEstimateTreeNodes server action", () => {
       ],
       error: null,
     });
-    const restRpc = vi.fn(async () => ({ data: 2, error: null }));
+    const restRpc = vi.fn(async (name: string) => {
+      if (name === "can_edit_estimate") return { data: true, error: null };
+      return { data: 2, error: null };
+    });
     const supabase = {
       rest: { rpc: restRpc },
       from: vi.fn((table: string) => {
@@ -242,6 +252,28 @@ describe("reorderEstimateTreeNodes server action", () => {
     });
   });
 
+  it("passes fractional numeric sort orders through to the history reorder RPC", async () => {
+    const supabase = makeSupabase({
+      nodes: [
+        { id: "ground-floor", kind: "group", estimate_id: "estimate-1", parent_id: null },
+        { id: "kitchen", kind: "area", estimate_id: "estimate-1", parent_id: "ground-floor" },
+      ],
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
+
+    await reorderEstimateTreeNodes("project-1", "estimate-1", {
+      updates: [{ id: "kitchen", parentId: "ground-floor", sortOrder: 15.5 }],
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
+      target_estimate_id: "estimate-1",
+      move_updates: [{ id: "kitchen", parent_id: "ground-floor", sort_order: 15.5 }],
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+    });
+  });
+
   it("rejects inactive or cross-estimate nodes before the RPC", async () => {
     const supabase = makeSupabase({
       nodes: [
@@ -262,7 +294,8 @@ describe("reorderEstimateTreeNodes server action", () => {
         updates: [{ id: "legacy-node", parentId: "other-estimate-parent", sortOrder: 10 }],
       }),
     ).rejects.toThrow("Estimate tree update parent not found in the current estimate.");
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.anything());
   });
 
   it("rejects cross-tab reparenting before the reorder RPC", async () => {
@@ -281,7 +314,8 @@ describe("reorderEstimateTreeNodes server action", () => {
         updates: [{ id: "kitchen", parentId: "site-works", sortOrder: 10 }],
       }),
     ).rejects.toThrow("Estimate tree nodes cannot be moved across tabs.");
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.anything());
   });
 
   it("converts RPC errors into a user-readable reorder failure", async () => {
@@ -347,7 +381,10 @@ describe("createEstimateNode server action", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { nodeId: "new-bedroom" }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { nodeId: "new-bedroom" }, error: null };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -364,7 +401,7 @@ describe("createEstimateNode server action", () => {
       parent_node_id: "second-floor",
       node_kind: "area",
       node_name: "New Bedroom",
-      initial_sort_order: 8,
+      initial_sort_order: 7 + ESTIMATE_TREE_SORT_ORDER_STEP,
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
@@ -375,7 +412,7 @@ describe("createEstimateNode server action", () => {
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("appends a new Group Node after existing siblings at max sibling sort_order + 1", async () => {
+  it("appends a new Group Node after existing siblings at the sparse sort-order step", async () => {
     const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
     const parentQuery = queryResult({
       data: { id: "main-house", kind: "group", estimate_id: "estimate-1", estimates: { project_id: "project-1" } },
@@ -393,7 +430,10 @@ describe("createEstimateNode server action", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { nodeId: "new-group" }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { nodeId: "new-group" }, error: null };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -410,7 +450,7 @@ describe("createEstimateNode server action", () => {
       parent_node_id: "main-house",
       node_kind: "group",
       node_name: "New Group",
-      initial_sort_order: 11,
+      initial_sort_order: 10 + ESTIMATE_TREE_SORT_ORDER_STEP,
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
@@ -427,7 +467,10 @@ describe("createEstimateNode server action", () => {
         if (table === "estimate_nodes") return siblingQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { nodeId: "new-root-group" }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { nodeId: "new-root-group" }, error: null };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -446,7 +489,7 @@ describe("createEstimateNode server action", () => {
       parent_node_id: null,
       node_kind: "group",
       node_name: "Alternate Scope",
-      initial_sort_order: 4,
+      initial_sort_order: 3 + ESTIMATE_TREE_SORT_ORDER_STEP,
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
       target_tab_id: "tab-b",
@@ -473,7 +516,10 @@ describe("createEstimateNode server action", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: null, error: new Error("duplicate estimate node reorder slots") })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: null, error: new Error("duplicate estimate node reorder slots") };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -523,7 +569,10 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { eventId: "delete-event-1" }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { eventId: "delete-event-1" }, error: null };
+      }),
       estimateQuery,
       nodeValidationQuery,
       mutationQuery,
@@ -630,6 +679,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
       correlation_id: expect.any(String),
     });
     expect(mutationQuery.delete).not.toHaveBeenCalled();
+    expect(result.eventId).toBe("delete-event-1");
     expect(result.deletedNodeIds).toEqual(["kitchen"]);
     expect(result.fallbackNodeId).toBe("living");
     expect(result.tree).toEqual([
@@ -658,7 +708,18 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         if (table === "estimate_nodes") return nodeQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { eventId: "delete-event-1" }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return {
+          data: {
+            eventId: "delete-event-1",
+            deletedRootNodeIds: ["ground-floor"],
+            deletedNodeIds: ["ground-floor", "kitchen", "living"],
+            fallbackNodeId: "site-works",
+          },
+          error: null,
+        };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     repositoryMocks.getProjectEstimateTreeByEstimate
@@ -705,7 +766,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
     const result = await deleteEstimateNodesBulk("project-1", "estimate-1", ["ground-floor", "kitchen"]);
 
     expect(nodeQuery.in).toHaveBeenCalledWith("id", ["ground-floor", "kitchen"]);
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_nodes_bulk_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -713,6 +774,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
+    expect(result.eventId).toBe("delete-event-1");
     expect(result.deletedNodeIds).toEqual(["ground-floor", "kitchen", "living"]);
     expect(result.fallbackNodeId).toBe("site-works");
     expect(result.tree).toEqual([
@@ -741,7 +803,10 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         if (table === "estimate_nodes") return nodeQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { eventId: "delete-event-1" }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { eventId: "delete-event-1" }, error: null };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { deleteEstimateNodesBulk } = await import("@/lib/estimates/actions");
@@ -752,7 +817,64 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 
     expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_nodes_bulk_with_history", expect.anything());
+  });
+
+  it("restores deleted tree nodes through the node restore history RPC and refreshes the target tab tree", async () => {
+    const supabase = {
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return {
+          data: {
+            eventId: "restore-event-1",
+            sourceEventId: "delete-event-1",
+            restoredNodeIds: ["kitchen"],
+            restoredRootNodeIds: ["kitchen"],
+            restoredNodeCount: 1,
+            restoredRowIds: ["row-1"],
+            restoredRowCount: 1,
+          },
+          error: null,
+        };
+      }),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    repositoryMocks.getEstimateTabTree.mockResolvedValueOnce({
+      project: { id: "project-1" },
+      estimate: { id: "estimate-1" },
+      tree: [{ id: "kitchen", name: "Kitchen", kind: "area", total: "₱0.00", children: [] }],
+    });
+    const { restoreDeletedEstimateNodes } = await import("@/lib/estimates/actions");
+
+    const result = await restoreDeletedEstimateNodes({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      sourceEventId: "delete-event-1",
+      nodeIds: ["kitchen"],
+      targetTabId: "tab-2",
+      mutationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("restore_deleted_estimate_nodes_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      source_delete_event_id: "delete-event-1",
+      target_node_ids: ["kitchen"],
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith("project-1", "estimate-1", "tab-2");
+    expect(result).toEqual({
+      eventId: "restore-event-1",
+      sourceEventId: "delete-event-1",
+      restoredNodeIds: ["kitchen"],
+      restoredRootNodeIds: ["kitchen"],
+      restoredNodeCount: 1,
+      restoredRowIds: ["row-1"],
+      restoredRowCount: 1,
+      tree: [{ id: "kitchen", name: "Kitchen", kind: "area", total: "₱0.00", children: [] }],
+    });
   });
 
   it("does not redirect inside rename or delete server actions", () => {

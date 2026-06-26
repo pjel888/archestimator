@@ -269,13 +269,14 @@ describe("workspace repository estimate tree projection", () => {
     );
 
     expect(tree[0]?.children?.map((child) => child.id)).toEqual(["kitchen", "site-work", "living"]);
+    expect(tree[0]?.children?.map((child) => child.sortOrder)).toEqual([10, 20, 30]);
   });
 
   it("builds complete display rows from the narrowed estimate-sheet query columns only", () => {
     // Exactly the columns ESTIMATE_TREE_ROW_ITEM_COLUMNS / _NODE_COLUMNS
-    // fetch — no estimate_id, sort_order, or updated_at. Guards that the
+    // fetch — no estimate_id or updated_at. Guards that the
     // explicit column selection stays sufficient for linked-row display.
-    const narrowedNode: EstimateTreeNodeQueryRow = { id: "kitchen", parent_id: null, kind: "area", name: "Kitchen" };
+    const narrowedNode: EstimateTreeNodeQueryRow = { id: "kitchen", parent_id: null, kind: "area", name: "Kitchen", sort_order: 10 };
     const narrowedRow: EstimateTreeRowItemQueryRow = {
       id: "row-1",
       node_id: "kitchen",

@@ -56,6 +56,34 @@ describe("SidebarNavItemRow", () => {
     expect(link.className).not.toContain("before:right-1.5");
   });
 
+  it("extends the inactive hover tint across the label when expanded", () => {
+    render(
+      <SidebarNavItemRow
+        item={{ id: "projects", href: "/workshop/projects", label: "Projects", icon: TestIcon }}
+        active={false}
+        expanded
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Projects" });
+    expect(link).toHaveClass("before:left-1.5", "before:right-1.5");
+    expect(link.className).not.toContain("before:w-9");
+  });
+
+  it("keeps the inactive hover tint icon-sized when collapsed", () => {
+    render(
+      <SidebarNavItemRow
+        item={{ id: "projects", href: "/workshop/projects", label: "Projects", icon: TestIcon }}
+        active={false}
+        expanded={false}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Projects" });
+    expect(link).toHaveClass("before:left-1.5", "before:w-9");
+    expect(link.className).not.toContain("before:right-1.5");
+  });
+
   it("keeps viewport prefetch disabled until hover intent, then restores Next hover prefetch", () => {
     const onPrefetchStart = vi.fn();
     const onPrefetchCancel = vi.fn();

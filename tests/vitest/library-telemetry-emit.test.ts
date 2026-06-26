@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   recordLibraryEvent,
+  sanitizeLibraryTelemetryRecord,
   setLibraryTelemetrySink,
   type LibraryTelemetryPayload,
   type LibraryTelemetryRecord,
@@ -47,6 +48,25 @@ describe("library telemetry", () => {
       sessionAddId: "quick-add-1",
       entry: "button",
     })).not.toThrow();
+  });
+
+  it("swallows async sink rejections so telemetry cannot break the Library path", async () => {
+    const rejection = vi.fn();
+    const originalUnhandled = process.listeners("unhandledRejection");
+    process.removeAllListeners("unhandledRejection");
+    process.on("unhandledRejection", rejection);
+    setLibraryTelemetrySink(() => Promise.reject(new Error("sink unavailable")));
+
+    expect(() => recordLibraryEvent("quick_add_started", {
+      workspaceId: "workspace-1",
+      sessionAddId: "quick-add-1",
+      entry: "button",
+    })).not.toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    process.removeListener("unhandledRejection", rejection);
+    for (const listener of originalUnhandled) process.on("unhandledRejection", listener);
+    expect(rejection).not.toHaveBeenCalled();
   });
 
   it("drops private or free-text payload keys at runtime", () => {
@@ -118,6 +138,61 @@ describe("library telemetry", () => {
     expect(serialized).not.toContain("source review note");
     expect(serialized).not.toContain("invoice.pdf");
     expect(Object.keys(records[0] ?? {})).not.toEqual(expect.arrayContaining(["nested", "list"]));
+  });
+
+  it("does not emit raw project-source search query text", () => {
+    const records: LibraryTelemetryRecord[] = [];
+    setLibraryTelemetrySink((record) => {
+      records.push(record);
+    });
+
+    recordLibraryEvent("search_rate_anomaly", {
+      workspaceId: "workspace-1",
+      surface: "templates",
+      inputLength: 14,
+      inputCategory: "project_source",
+      query: "private villa",
+      rawQuery: "private villa",
+    } as LibraryTelemetryPayload & Record<string, unknown>);
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      schemaVersion: "v1",
+      event: "search_rate_anomaly",
+      workspaceId: "workspace-1",
+      surface: "templates",
+      inputLength: 14,
+      inputCategory: "project_source",
+    });
+    expect(JSON.stringify(records[0])).not.toContain("private villa");
+    expect(Object.keys(records[0] ?? {})).not.toEqual(expect.arrayContaining(["query", "rawQuery"]));
+  });
+
+  it("re-sanitizes untrusted records before durable telemetry writes", () => {
+    const record = sanitizeLibraryTelemetryRecord({
+      schemaVersion: "v1",
+      event: "quick_add_failed",
+      workspaceId: "workspace-1",
+      reason: "validation_error",
+      sourceUrl: "https://supplier.example/private.pdf?token=secret",
+      query: "client penthouse marble",
+      nested: { fileName: "invoice.pdf" },
+    });
+
+    expect(record).toEqual({
+      schemaVersion: "v1",
+      event: "quick_add_failed",
+      workspaceId: "workspace-1",
+      reason: "validation_error",
+    });
+  });
+
+  it("rejects unknown telemetry event names before durable writes", () => {
+    expect(sanitizeLibraryTelemetryRecord({
+      schemaVersion: "v1",
+      event: "unknown_event",
+      workspaceId: "workspace-1",
+    })).toBeNull();
   });
 
   it("keeps Library telemetry out of public share routes", () => {

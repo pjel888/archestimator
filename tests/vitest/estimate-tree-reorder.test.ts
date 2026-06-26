@@ -5,6 +5,7 @@ import {
   ESTIMATE_TREE_SORT_ORDER_STEP,
   buildEstimateNodeReorderPlan,
   evaluateEstimateTreeDrop,
+  getEstimateTreeContentSignature,
   getDescendantEstimateNodeIds,
   getEstimateTreeStructureSignature,
   mergeEstimateTreeStructureWithCachedNodes,
@@ -65,6 +66,14 @@ function fixtureTree(): EstimateTreeNode[] {
   ];
 }
 
+function withPersistedSortOrders(nodes: EstimateTreeNode[]): EstimateTreeNode[] {
+  return nodes.map((current, index) => ({
+    ...current,
+    sortOrder: (index + 1) * ESTIMATE_TREE_SORT_ORDER_STEP,
+    children: current.children ? withPersistedSortOrders(current.children) : current.children,
+  }));
+}
+
 function childIds(nodes: EstimateTreeNode[], parentId: string | null): string[] {
   const roots = nodes;
   if (parentId === null) return roots.map((item) => item.id);
@@ -104,6 +113,54 @@ describe("estimate tree reorder planning", () => {
     expect(result.plan.updates).toEqual([
       { id: "living", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
       { id: "kitchen", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 2 },
+    ]);
+  });
+
+  it("emits one midpoint update when persisted sibling sort orders have room", () => {
+    const result = evaluateEstimateTreeDrop({
+      nodes: withPersistedSortOrders(fixtureTree()),
+      draggedNodeIds: ["kitchen"],
+      target: { targetNodeId: "living", position: "after" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.plan.updates).toEqual([
+      { id: "kitchen", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 3 },
+    ]);
+  });
+
+  it("keeps a 30-sibling same-parent move under the sparse payload budget", () => {
+    const nodes = [
+      node({
+        id: "main-house",
+        name: "Main House",
+        kind: "group",
+        sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP,
+        children: Array.from({ length: 30 }, (_, index) =>
+          node({
+            id: `room-${index + 1}`,
+            name: `Room ${index + 1}`,
+            kind: "area",
+            sortOrder: (index + 1) * ESTIMATE_TREE_SORT_ORDER_STEP,
+            children: [],
+          }),
+        ),
+      }),
+    ];
+
+    const result = buildEstimateNodeReorderPlan({
+      nodes,
+      draggedNodeId: "room-1",
+      targetParentId: "main-house",
+      targetIndex: 30,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(result.plan.updates.length).toBeLessThanOrEqual(2);
+    expect(result.plan.updates).toEqual([
+      { id: "room-1", parentId: "main-house", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 31 },
     ]);
   });
 
@@ -253,6 +310,32 @@ describe("estimate tree reorder planning", () => {
     if (!result.ok) throw new Error(result.message);
     expect(getEstimateTreeStructureSignature(result.plan.nextNodes)).not.toBe(getEstimateTreeStructureSignature(initial));
     expect(getEstimateTreeStructureSignature(result.plan.nextNodes)).toContain("ground-floor/site-works:group");
+  });
+
+  it("keeps the prop-sync content signature structure-only", () => {
+    const initial = fixtureTree();
+    const rowOnlyEdit = fixtureTree();
+    const kitchen = byId(rowOnlyEdit, "kitchen");
+    kitchen.total = "₱9,999.00";
+    kitchen.estimateRowItems = [
+      {
+        ...kitchen.estimateRowItems![0],
+        material: "Updated row-only material",
+        quantity: 4,
+        totalItemCosts: 5000,
+      },
+    ];
+
+    const renamed = fixtureTree();
+    byId(renamed, "kitchen").name = "Chef Kitchen";
+
+    const reordered = fixtureTree();
+    const groundFloor = byId(reordered, "ground-floor");
+    groundFloor.children = [...(groundFloor.children ?? [])].reverse();
+
+    expect(getEstimateTreeContentSignature(rowOnlyEdit)).toBe(getEstimateTreeContentSignature(initial));
+    expect(getEstimateTreeContentSignature(renamed)).not.toBe(getEstimateTreeContentSignature(initial));
+    expect(getEstimateTreeContentSignature(reordered)).not.toBe(getEstimateTreeContentSignature(initial));
   });
 
   it("lands mixed-kind siblings exactly at the drop index", () => {

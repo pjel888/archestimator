@@ -19,6 +19,7 @@ const actionMocks = vi.hoisted(() => ({
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
 
@@ -196,7 +197,7 @@ describe("estimate sheet row details and CRUD entry points", () => {
     const componentCard = screen.getByLabelText("Custom Built-in Cabinet replaceable estimate component");
     await user.click(within(componentCard).getByRole("button", { name: "Open component details for Custom Built-in Cabinet" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getByText("Current component")).toBeInTheDocument();
     expect(within(dialog).getAllByText("Custom Built-in Cabinet").length).toBeGreaterThan(0);
@@ -215,7 +216,7 @@ describe("estimate sheet row details and CRUD entry points", () => {
     const componentCard = screen.getByLabelText("Project Component replaceable estimate component");
     await user.click(within(componentCard).getByRole("button", { name: "Open component details for Project Component" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getByText("1")).toBeInTheDocument();
     expect(within(dialog).getByText("Current component")).toBeInTheDocument();
@@ -235,7 +236,7 @@ describe("estimate sheet row details and CRUD entry points", () => {
     const componentCard = screen.getByLabelText("Owner-Supplied Pendant replaceable estimate component");
     await user.click(within(componentCard).getByRole("button", { name: "Open component details for Owner-Supplied Pendant" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("This row is not linked to a library component.").length).toBeGreaterThan(0);
@@ -250,7 +251,7 @@ describe("estimate sheet row details and CRUD entry points", () => {
     const componentCard = screen.getByLabelText("Library Faucet replaceable estimate component");
     await user.click(within(componentCard).getByRole("button", { name: "Open component details for Library Faucet" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("The source library component changed after this row was added. Review before replacing or detaching it.").length).toBeGreaterThan(0);

@@ -25,7 +25,9 @@ describe("estimate component-library lazy-load boundary", () => {
   it("keeps the lite library query intent-gated and retryable", () => {
     expect(estimateSheetContentSource).toContain("workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)");
     expect(estimateSheetContentSource).toContain("return loadProjectComponentLibraryLite(projectId)");
-    expect(estimateSheetContentSource).toContain("enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette)");
+    expect(estimateSheetContentSource).toContain(
+      'enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette || rowComponentPicker?.mode === "replace")',
+    );
     expect(estimateSheetContentSource).toContain(
       "<ComponentLibrarySidebarFallback isError={isLazyLibraryError} onRetry={() => refetchLazyLibrary()} />",
     );

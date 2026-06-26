@@ -6,9 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
+import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
+import { setLibraryTelemetrySink, type LibraryTelemetryRecord } from "@/lib/component-library/library-telemetry";
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
@@ -18,9 +20,13 @@ const actionMocks = vi.hoisted(() => ({
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
+  insertEstimateTemplateNodeIntoEstimate: vi.fn(),
+  insertEstimateTemplatesIntoEstimate: vi.fn(),
+  moveEstimateRowComponentWithHistory: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
   updateEstimateRowItem: vi.fn(),
 }));
 
@@ -96,6 +102,19 @@ const starterTemplate = {
           ],
         },
       ],
+    },
+  ],
+};
+
+const finishesTemplate = {
+  ...starterTemplate,
+  id: "template-finishes-pack",
+  name: "Finishes Pack",
+  nodes: [
+    {
+      ...starterTemplate.nodes[0],
+      id: "template-finishes",
+      name: "Finishes Pack",
     },
   ],
 };
@@ -310,17 +329,6 @@ function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRev
   };
 }
 
-function mockCabinetMovePersistence() {
-  const targetReplace = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
-  const sourceClear = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
-  actionMocks.replaceEstimateRowItemWithLibrary.mockImplementation(({ rowId }: { rowId: string }) => {
-    if (rowId === sinkRowId) return targetReplace.promise;
-    if (rowId === cabinetRowId) return sourceClear.promise;
-    return Promise.reject(new Error(`Unexpected row ${rowId}`));
-  });
-  return { targetReplace, sourceClear };
-}
-
 async function dragCabinetOntoSink() {
   renderPersistedEstimateSheet(nodesWithRow);
 
@@ -336,7 +344,7 @@ async function dragCabinetOntoSink() {
   fireEvent.dragOver(targetCell, { dataTransfer });
   fireEvent.drop(targetCell, { dataTransfer });
 
-  await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(actionMocks.moveEstimateRowComponentWithHistory).toHaveBeenCalledTimes(1));
   return { sourceRow: sourceRow as HTMLElement, targetRow: targetRow as HTMLElement };
 }
 
@@ -358,6 +366,7 @@ function renderPersistedEstimateSheet(sheetNodes = nodes) {
         nodes={sheetNodes}
         projectId={projectId}
         estimateId={estimateId}
+        canEditEstimate={true}
         renderSidebar={false}
       />
     </QueryClientProvider>,
@@ -368,6 +377,7 @@ describe("estimate sheet library insertion persistence", () => {
   afterEach(() => {
     cleanup();
     resetEstimateWorkspaceState();
+    setLibraryTelemetrySink(null);
     vi.clearAllMocks();
   });
 
@@ -378,6 +388,33 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.insertEstimateTemplateNodeIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.moveEstimateRowComponentWithHistory.mockResolvedValue({
+      sourceRow: makeCanonicalReplaceResult(cabinetRowId, {
+        ...nodesWithRow[0].estimateRowItems![0],
+        material: "Project Component",
+        description: "",
+        supplier: "",
+        source: "project",
+        unit: "unit",
+        itemCost: 0,
+        quantity: 2,
+        subTotal: 0,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 10,
+        totalItemCosts: 10,
+        category: "Unassigned",
+        pricingSource: "Manual estimate row",
+      }, 8),
+      targetRow: makeCanonicalReplaceResult(sinkRowId, {
+        ...nodesWithRow[0].estimateRowItems![0],
+        quantity: 1,
+        miscCost: 0,
+        totalItemCosts: 100,
+      }, 4),
+    });
     actionMocks.updateEstimateRowItem.mockResolvedValue({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
@@ -415,7 +452,7 @@ describe("estimate sheet library insertion persistence", () => {
     const libraryItem = estimateLibraryItems[0];
 
     await act(async () => {
-      window.dispatchEvent(new CustomEvent("archestimator:add-library-item", { detail: libraryItem }));
+      window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, { detail: libraryItem }));
     });
 
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
@@ -423,6 +460,80 @@ describe("estimate sheet library insertion persistence", () => {
     expect(input).toMatchObject({ projectId, estimateId, targetNodeId, libraryItem });
     expect(isUuid(input.rowId)).toBe(true);
     expect(input.rowId).not.toContain(libraryItem.id);
+  });
+
+  it("rejects malformed add-library custom events without mutating", async () => {
+    const records: LibraryTelemetryRecord[] = [];
+    setLibraryTelemetrySink((record) => records.push(record));
+    renderPersistedEstimateSheet();
+
+    let dispatchResult = true;
+    await act(async () => {
+      dispatchResult = window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, {
+        cancelable: true,
+        detail: { id: "not-a-row-item" },
+      }));
+    });
+
+    expect(dispatchResult).toBe(false);
+    expect(actionMocks.insertEstimateRowItemFromLibrary).not.toHaveBeenCalled();
+    expect(records).toContainEqual(expect.objectContaining({
+      event: "insert_payload_rejected",
+      projectId,
+      estimateId,
+      action: "custom_event",
+      reason: "missing_required_field",
+    }));
+  });
+
+  it("rejects valid add-library custom events for read-only viewers", async () => {
+    const records: LibraryTelemetryRecord[] = [];
+    const accepted = vi.fn();
+    setLibraryTelemetrySink((record) => records.push(record));
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <EstimateSheetContent
+          selectedNodeId={targetNodeId}
+          nodes={nodes}
+          projectId={projectId}
+          estimateId={estimateId}
+          canEditEstimate={false}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    let dispatchResult = true;
+    await act(async () => {
+      dispatchResult = window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, {
+        cancelable: true,
+        detail: { libraryItem: estimateLibraryItems[0], onAccepted: accepted },
+      }));
+    });
+
+    expect(dispatchResult).toBe(false);
+    expect(accepted).toHaveBeenCalledWith(false);
+    expect(actionMocks.insertEstimateRowItemFromLibrary).not.toHaveBeenCalled();
+    expect(records).toContainEqual(expect.objectContaining({
+      event: "authz_denied",
+      projectId,
+      estimateId,
+      action: "insert_row",
+      role: "viewer",
+      resourceKind: "estimate",
+    }));
+  });
+
+  it("ignores malformed library replacement drag payloads without throwing or replacing", () => {
+    renderPersistedEstimateSheet(nodesWithRow);
+    const targetCell = screen.getByLabelText("Kitchen Sink replaceable estimate component");
+    const dataTransfer = createDataTransferStub("none");
+    dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, "{");
+
+    fireEvent.dragOver(targetCell, { dataTransfer });
+    expect(() => fireEvent.drop(targetCell, { dataTransfer })).not.toThrow();
+
+    expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
   });
 
   it("still renders and persists an editable express row when the legacy flag is disabled", async () => {
@@ -734,6 +845,7 @@ describe("estimate sheet library insertion persistence", () => {
           nodes={nodesWithGroup}
           projectId={projectId}
           estimateId={estimateId}
+          canEditEstimate={true}
           renderSidebar={false}
           libraryTemplates={[starterTemplate]}
         />
@@ -764,6 +876,7 @@ describe("estimate sheet library insertion persistence", () => {
           nodes={nodesWithGroup}
           projectId={projectId}
           estimateId={estimateId}
+          canEditEstimate={true}
           renderSidebar={false}
           libraryTemplates={[starterTemplate]}
         />
@@ -784,6 +897,42 @@ describe("estimate sheet library insertion persistence", () => {
       templateId: starterTemplate.id,
     });
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).not.toHaveProperty("template");
+  });
+
+  it("batches template drop events with multiple template ids into one action call", async () => {
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          canEditEstimate={true}
+          renderSidebar={false}
+          libraryTemplates={[starterTemplate, finishesTemplate]}
+        />
+      </QueryClientProvider>,
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: {
+          targetParentNodeId: groupNodeId,
+          templateIds: [starterTemplate.id, finishesTemplate.id],
+        },
+      }));
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateTemplatesIntoEstimate).toHaveBeenCalledTimes(1));
+    expect(actionMocks.insertEstimateTemplateIntoEstimate).not.toHaveBeenCalled();
+    expect(actionMocks.insertEstimateTemplatesIntoEstimate).toHaveBeenCalledWith(expect.objectContaining({
+      projectId,
+      estimateId,
+      targetParentNodeId: groupNodeId,
+      templateIds: [starterTemplate.id, finishesTemplate.id],
+    }));
+    expect(actionMocks.insertEstimateTemplatesIntoEstimate.mock.calls[0][0]).not.toHaveProperty("templates");
   });
 
   it("keeps a committed quantity edit visible while the server save is delayed", async () => {
@@ -966,46 +1115,46 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).queryByText("Save failed")).not.toBeInTheDocument();
   });
 
-  it("keeps a successful move target when clearing the source row fails", async () => {
-    const { targetReplace, sourceClear } = mockCabinetMovePersistence();
+  it("persists component moves through one atomic row move action", async () => {
+    const move = deferred<{
+      sourceRow: ReturnType<typeof makeCanonicalReplaceResult>;
+      targetRow: ReturnType<typeof makeCanonicalReplaceResult>;
+    }>();
+    actionMocks.moveEstimateRowComponentWithHistory.mockReturnValueOnce(move.promise);
     const { sourceRow, targetRow } = await dragCabinetOntoSink();
 
-    const targetInput = actionMocks.replaceEstimateRowItemWithLibrary.mock.calls.find(([input]) => input.rowId === sinkRowId)?.[0];
-    if (!targetInput) throw new Error("Target replace input was not captured.");
-
-    await act(async () => {
-      targetReplace.resolve(makeCanonicalReplaceResult(sinkRowId, targetInput.libraryItem, 4));
-      sourceClear.reject(new Error("source clear failed"));
-      await Promise.allSettled([targetReplace.promise, sourceClear.promise]);
+    const input = actionMocks.moveEstimateRowComponentWithHistory.mock.calls[0][0];
+    expect(input).toMatchObject({
+      projectId,
+      estimateId,
+      sourceRowId: cabinetRowId,
+      targetRowId: sinkRowId,
+      mutationId: expect.any(String),
     });
 
-    expect(await screen.findByText("source clear failed")).toBeInTheDocument();
+    await act(async () => {
+      move.resolve({
+        sourceRow: makeCanonicalReplaceResult(cabinetRowId, input.sourceLibraryItem, 8),
+        targetRow: makeCanonicalReplaceResult(sinkRowId, input.targetLibraryItem, 4),
+      });
+      await move.promise;
+    });
+
     await waitFor(() => {
-      expect(within(sourceRow).getByLabelText("Kitchen Cabinet replaceable estimate component")).toBeInTheDocument();
+      expect(within(sourceRow).getByLabelText("Component name")).toHaveValue("");
       expect(within(targetRow).getByLabelText("Kitchen Cabinet replaceable estimate component")).toBeInTheDocument();
     });
     expect(within(targetRow).queryByLabelText("Kitchen Sink replaceable estimate component")).not.toBeInTheDocument();
   });
 
-  it("keeps a successful source clear when replacing the target row fails", async () => {
-    const { targetReplace, sourceClear } = mockCabinetMovePersistence();
+  it("rolls back both rows when an atomic component move fails", async () => {
+    actionMocks.moveEstimateRowComponentWithHistory.mockRejectedValueOnce(new Error("component move failed"));
     const { sourceRow, targetRow } = await dragCabinetOntoSink();
 
-    const sourceInput = actionMocks.replaceEstimateRowItemWithLibrary.mock.calls.find(([input]) => input.rowId === cabinetRowId)?.[0];
-    if (!sourceInput) throw new Error("Source clear input was not captured.");
-
-    await act(async () => {
-      targetReplace.reject(new Error("target replace failed"));
-      sourceClear.resolve(makeCanonicalReplaceResult(cabinetRowId, sourceInput.libraryItem, 8));
-      await Promise.allSettled([targetReplace.promise, sourceClear.promise]);
-    });
-
-    expect(await screen.findByText("target replace failed")).toBeInTheDocument();
     await waitFor(() => {
+      expect(within(sourceRow).getByLabelText("Kitchen Cabinet replaceable estimate component")).toBeInTheDocument();
       expect(within(targetRow).getByLabelText("Kitchen Sink replaceable estimate component")).toBeInTheDocument();
-      expect(within(sourceRow).getByLabelText("Component name")).toHaveValue("");
     });
-    expect(within(sourceRow).queryByLabelText("Kitchen Cabinet replaceable estimate component")).not.toBeInTheDocument();
   });
 
   it("keeps another row edit when an older row save fails", async () => {

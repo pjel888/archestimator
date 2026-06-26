@@ -111,7 +111,7 @@ function renderSheet() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetContent selectedNodeId="lot" nodes={fixtureTree()} libraryTemplates={templates} renderSidebar={false} />
+      <EstimateSheetContent selectedNodeId="lot" nodes={fixtureTree()} canEditEstimate={true} libraryTemplates={templates} renderSidebar={false} />
     </QueryClientProvider>,
   );
 }
@@ -123,7 +123,7 @@ function renderAreaScopedSheet() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetContent estimateId="estimate-1" selectedNodeId="kitchen" nodes={fixtureTree()} libraryTemplates={templates} renderSidebar={false} />
+      <EstimateSheetContent estimateId="estimate-1" selectedNodeId="kitchen" nodes={fixtureTree()} canEditEstimate={true} libraryTemplates={templates} renderSidebar={false} />
     </QueryClientProvider>,
   );
 }

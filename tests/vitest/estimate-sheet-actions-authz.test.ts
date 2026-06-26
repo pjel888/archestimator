@@ -47,11 +47,13 @@ function canonicalRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const requireAuth = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const fromSpy = vi.hoisted(() => vi.fn());
 const rpcSpy = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/session", () => ({
+  requireAuth,
   requireCurrentUserContext,
   getCurrentUserContext: requireCurrentUserContext,
 }));
@@ -62,11 +64,18 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import {
   createEstimateSheetDraft,
+  createEstimateNode,
+  deleteEstimateNode,
+  deleteEstimateNodesBulk,
   deleteEstimateRowItem,
+  deleteEstimateRowItemsBulk,
   duplicateEstimateSheet,
   insertEstimateRowItemFromLibrary,
+  moveEstimateRowComponentWithHistory,
   regenerateEstimateSheetCode,
   replaceEstimateRowItemWithLibrary,
+  renameEstimateNode,
+  reorderEstimateTreeNodes,
   updateEstimateDetails,
   updateEstimateRowItem,
 } from "@/lib/estimates/actions";
@@ -88,6 +97,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   beforeEach(() => {
     fromSpy.mockReset();
     rpcSpy.mockReset();
+    requireAuth.mockResolvedValue(undefined);
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
       email: "viewer@example.com",
@@ -143,12 +153,51 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     await expect(updateEstimateRowItem({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, quantity: 2 })).rejects.toThrow(/edit access denied/i);
     await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).rejects.toThrow(/edit access denied/i);
     await expect(deleteEstimateRowItem({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID })).rejects.toThrow(/edit access denied/i);
+    await expect(moveEstimateRowComponentWithHistory({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceRowId: ROW_ID,
+      targetRowId: "77777777-7777-4777-8777-777777777777",
+      sourceLibraryItem: libraryItem,
+      targetLibraryItem: libraryItem,
+    })).rejects.toThrow(/edit access denied/i);
+    await expect(deleteEstimateRowItemsBulk({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowIds: [ROW_ID],
+    })).rejects.toThrow(/edit access denied/i);
 
     expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
     expect(rpcSpy).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
     expect(rpcSpy).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
     expect(rpcSpy).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
     expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_component_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", expect.anything());
+  });
+
+  it("tree mutation actions deny a viewer before tree writes", async () => {
+    const createFormData = new FormData();
+    createFormData.set("name", "New Area");
+    createFormData.set("kind", "area");
+
+    await expect(createEstimateNode(PROJECT_ID, ESTIMATE_ID, createFormData)).rejects.toThrow(/edit access denied/i);
+    await expect(renameEstimateNode(PROJECT_ID, ESTIMATE_ID, NODE_ID, "Renamed Area")).rejects.toThrow(/edit access denied/i);
+    await expect(deleteEstimateNode(PROJECT_ID, ESTIMATE_ID, NODE_ID)).rejects.toThrow(/edit access denied/i);
+    await expect(deleteEstimateNodesBulk(PROJECT_ID, ESTIMATE_ID, [NODE_ID])).rejects.toThrow(/edit access denied/i);
+    await expect(
+      reorderEstimateTreeNodes(PROJECT_ID, ESTIMATE_ID, {
+        updates: [{ id: NODE_ID, parentId: null, sortOrder: 10 }],
+      }),
+    ).rejects.toThrow(/edit access denied/i);
+
+    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
+    expect(rpcSpy).not.toHaveBeenCalledWith("create_estimate_node_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("rename_estimate_node_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_node_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_nodes_bulk_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.anything());
+    assertNoWrite();
   });
 
   it("updateEstimateRowItem omits sourceSnapshot and metadata for routine edits", async () => {

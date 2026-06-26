@@ -38,6 +38,8 @@ function readMigrationBySuffix(suffix: string) {
   return readFileSync(join(process.cwd(), "supabase/migrations", migrationFile), "utf8");
 }
 
+const nodeDeleteUndoMigration = readMigrationBySuffix("_estimate_node_delete_undo_rpc.sql");
+
 describe("estimate sheet version control schema", () => {
   it("adds append-only events, named versions, row revisions, and safety indexes", () => {
     expect(migration).toContain("add column if not exists row_revision integer not null default 1");
@@ -72,6 +74,59 @@ describe("estimate sheet version control schema", () => {
     expect(migration).toContain("estimate_sheet_row_revision_conflict");
     expect(migration).toContain("for update");
     expect(migration).toContain("row_revision = row_revision + 1");
+  });
+
+  it("defines atomic center row move and bulk row delete RPCs", () => {
+    const centerMutationMigration = readMigrationBySuffix("_estimate_center_atomic_row_mutations.sql");
+
+    expect(centerMutationMigration).toContain("create or replace function public.move_estimate_row_component_with_history");
+    expect(centerMutationMigration).toContain("expected_source_row_revision integer");
+    expect(centerMutationMigration).toContain("expected_target_row_revision integer");
+    expect(centerMutationMigration).toContain("source_replacement_payload jsonb");
+    expect(centerMutationMigration).toContain("target_replacement_payload jsonb");
+    expect(centerMutationMigration).toContain("order by row_item.id");
+    expect(centerMutationMigration).toContain("for update");
+    expect(centerMutationMigration).toContain("'row_moved'");
+    expect(centerMutationMigration).toContain("'sourceRow'");
+    expect(centerMutationMigration).toContain("'targetRow'");
+    expect(centerMutationMigration).toContain("public.estimate_sheet_event_result(target_estimate_id, correlation_id)");
+    expect(centerMutationMigration).toContain("create or replace function public.delete_estimate_row_items_bulk_with_history");
+    expect(centerMutationMigration).toContain("expected_row_revisions jsonb");
+    expect(centerMutationMigration).toContain("requested_count > 100");
+    expect(centerMutationMigration).toContain("'rows_bulk_deleted'");
+    expect(centerMutationMigration).toContain("delete from public.estimate_row_items row_item");
+    expect(centerMutationMigration).toContain("grant execute on function public.move_estimate_row_component_with_history");
+    expect(centerMutationMigration).toContain("grant execute on function public.delete_estimate_row_items_bulk_with_history");
+    expect(centerMutationMigration).not.toMatch(/\bsavepoint\b/i);
+  });
+
+  it("defines center row delete undo from persisted row delete history", () => {
+    const undoMigration = readMigrationBySuffix("_estimate_row_delete_undo_rpc.sql");
+
+    expect(undoMigration).toContain("create or replace function public.restore_deleted_estimate_rows_with_history");
+    expect(undoMigration).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(undoMigration).toContain("event.event_type in ('row_deleted', 'rows_bulk_deleted')");
+    expect(undoMigration).toContain("delete_event.payload->'deletedSnapshot'");
+    expect(undoMigration).toContain("delete_event.payload->'deletedRows'");
+    expect(undoMigration).toContain("'row_restored'");
+    expect(undoMigration).toContain("'sourceEventId'");
+    expect(undoMigration).toContain("grant execute on function public.restore_deleted_estimate_rows_with_history");
+  });
+
+  it("hardens tree mutation RPCs and returns authoritative delete metadata", () => {
+    const treeAuthorityMigration = readMigrationBySuffix("_estimate_tree_delete_authority_and_authz.sql");
+
+    expect(treeAuthorityMigration).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(treeAuthorityMigration).toContain("rename_estimate_node_with_history");
+    expect(treeAuthorityMigration).toContain("create or replace function public.delete_estimate_node_with_history");
+    expect(treeAuthorityMigration).toContain("create or replace function public.delete_estimate_nodes_bulk_with_history");
+    expect(treeAuthorityMigration).toContain("'deletedNodeIds'");
+    expect(treeAuthorityMigration).toContain("'fallbackNodeId'");
+    expect(treeAuthorityMigration).toContain("estimate_sheet_deleted_node_ids");
+    expect(treeAuthorityMigration).toContain("estimate_sheet_bulk_deleted_node_ids");
+    expect(treeAuthorityMigration).toContain("grant execute on function public.rename_estimate_node_with_history");
+    expect(treeAuthorityMigration).toContain("grant execute on function public.delete_estimate_node_with_history");
+    expect(treeAuthorityMigration).toContain("grant execute on function public.delete_estimate_nodes_bulk_with_history");
   });
 
   it("versions row contingency percentage through totals, snapshots, and restore-as-copy", () => {
@@ -121,6 +176,19 @@ describe("estimate sheet version control schema", () => {
     expect(migration).not.toContain("source_estimate.status");
   });
 
+  it("defines tree/subtree post-success Undo history contracts", () => {
+    expect(nodeDeleteUndoMigration).toContain("create or replace function public.estimate_node_snapshot");
+    expect(nodeDeleteUndoMigration).toContain("'deletedNodes', deleted_node_snapshots");
+    expect(nodeDeleteUndoMigration).toContain("'deletedRows', deleted_row_snapshots");
+    expect(nodeDeleteUndoMigration).toContain("create or replace function public.restore_deleted_estimate_nodes_with_history");
+    expect(nodeDeleteUndoMigration).toContain("event.event_type in ('node_deleted_with_children', 'nodes_bulk_deleted_with_children')");
+    expect(nodeDeleteUndoMigration).toContain("'nodes_restored_with_children'");
+    expect(nodeDeleteUndoMigration).toContain("target_node_ids uuid[] default null");
+    expect(nodeDeleteUndoMigration).toContain("<= 5242880");
+    expect(nodeDeleteUndoMigration).toContain("revoke all on function public.restore_deleted_estimate_nodes_with_history(uuid, uuid, uuid, uuid[], uuid, uuid) from public, anon");
+    expect(nodeDeleteUndoMigration).toContain("grant execute on function public.restore_deleted_estimate_nodes_with_history(uuid, uuid, uuid, uuid[], uuid, uuid) to authenticated");
+  });
+
   it("defines node create and rename history RPCs in a forward migration", () => {
     const nodeActivityMigration = readFileSync(
       join(process.cwd(), "supabase/migrations/20260524132800_estimate_node_activity_history.sql"),
@@ -147,6 +215,18 @@ describe("estimate sheet version control schema", () => {
     expect(migration).toContain("grant execute on function public.insert_estimate_template_into_estimate_with_history");
     expect(migration).toContain("grant execute on function public.update_estimate_details_with_history");
     expect(migration).toContain("grant execute on function public.delete_estimate_node_with_history");
+  });
+
+  it("keeps the idempotency helper off the anonymous execute surface", () => {
+    const helperGrantMigration = readMigrationBySuffix("_estimate_sheet_event_result_execute_hardening.sql");
+
+    expect(helperGrantMigration).toContain(
+      "revoke execute on function public.estimate_sheet_event_result(uuid, uuid) from public, anon",
+    );
+    expect(helperGrantMigration).toContain(
+      "grant execute on function public.estimate_sheet_event_result(uuid, uuid) to authenticated, service_role",
+    );
+    expect(helperGrantMigration).not.toContain("to anon");
   });
 
   it("defines project-specific row detach RPC with revision, provenance, and history contracts", () => {
