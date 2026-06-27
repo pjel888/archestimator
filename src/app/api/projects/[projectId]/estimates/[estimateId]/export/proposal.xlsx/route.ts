@@ -7,7 +7,7 @@ import { getCurrentUserContext } from "@/lib/auth/session";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
-import type { EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import type { Json, Tables } from "@/lib/supabase/types";
 import type { ProposalExportAudience, ProposalExportMetadata, ProposalExportSettings, ProposalChargeMode, ProposalTabbedWorkbookModel } from "@/lib/proposal-export/types";
 import { buildProposalWorkbookFilename } from "./filename";
@@ -166,6 +166,18 @@ async function resolveExportSettings(workspace: ProposalExportWorkspace, exportC
   return { ...exportContext.requestedSettings, audience };
 }
 
+function withSheetAdjustmentSettings(
+  settings: Partial<ProposalExportSettings>,
+  sheetAdjustment: EstimateSheetAdjustment | null | undefined,
+): Partial<ProposalExportSettings> {
+  if (!sheetAdjustment || sheetAdjustment.percentage === 0) return settings;
+  return {
+    ...settings,
+    sheetAdjustmentMode: sheetAdjustment.mode,
+    sheetAdjustmentRate: sheetAdjustment.percentage,
+  };
+}
+
 // F-13 (P1-T4): structured, single-line observability for the heaviest export endpoint.
 // Mirrors the share-route logging shape ({ level, route, ... , ts }).
 function logProposalExport(entry: {
@@ -242,7 +254,7 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
     const model = buildProposalExportModel({
       metadata: buildMetadata(result.project, result.estimate, result.workspace),
       nodes: result.tree,
-      settings: await resolveExportSettings(result.workspace, exportContext),
+      settings: withSheetAdjustmentSettings(await resolveExportSettings(result.workspace, exportContext), result.sheetAdjustment),
     });
     const buffer = await createProposalWorkbookBuffer(model);
     const filename = buildProposalWorkbookFilename(
@@ -274,7 +286,7 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
   const model = buildProposalExportModel({
     metadata: buildMetadata(result.project, result.estimate, result.workspace),
     nodes: result.tree,
-    settings: await resolveExportSettings(result.workspace, exportContext),
+    settings: withSheetAdjustmentSettings(await resolveExportSettings(result.workspace, exportContext), result.sheetAdjustment),
   });
   const buffer = await createProposalWorkbookBuffer(model);
   const filename = buildProposalWorkbookFilename(
@@ -313,7 +325,8 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
   const generatedAt = new Date().toISOString();
   // Resolve the (gated) audience once from the shared workspace; all tabs use the same settings.
   const resolvedSettings = await resolveExportSettings(result.workspace, exportContext);
-  const settings = { ...defaultProposalExportSettings, ...resolvedSettings };
+  const adjustedResolvedSettings = withSheetAdjustmentSettings(resolvedSettings, result.sheetAdjustment);
+  const settings = { ...defaultProposalExportSettings, ...adjustedResolvedSettings };
   const worksheetNames = buildUniqueWorksheetNames(result.tabs.map(({ tab }) => ({ id: tab.id, name: tab.name })));
   const tabWorkbookModel: ProposalTabbedWorkbookModel = {
     metadata,
@@ -330,7 +343,7 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
           metadata,
           nodes: tree,
           generatedAt,
-          settings: resolvedSettings,
+          settings: adjustedResolvedSettings,
         }),
       };
     }),

@@ -10,6 +10,8 @@ import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptanc
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
+import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { recordUploadAsset } from "@/lib/uploads/upload-records";
 
 export const runtime = "nodejs";
 
@@ -25,8 +27,8 @@ const ALLOWED_SHARP_FORMATS = new Set(["jpeg", "png", "webp", "avif"]);
 const AVIF_FTYP_BRANDS = new Set(["avif", "avis"]);
 const PRIVATE_IMAGE_ERROR_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+function jsonError(message: string, status = 400, headers?: HeadersInit) {
+  return NextResponse.json({ error: message }, { status, headers });
 }
 
 function privateImageNotFound() {
@@ -162,6 +164,17 @@ async function uploadWebp({
   return createProjectImageRouteUrl(path);
 }
 
+async function canEditProject(projectId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  const { data, error } = await supabase.rpc("can_edit_project", {
+    target_project_id: projectId,
+  });
+  if (error) {
+    console.error("Project image authorization failed", error);
+    return false;
+  }
+  return data === true;
+}
+
 function isOwnedUploadPath(path: string, workspaceId: string, userId: string) {
   const parsed = parseProjectImageStoragePath(path);
   return Boolean(parsed && parsed.workspaceId === workspaceId && parsed.ownerUserId === userId);
@@ -221,96 +234,148 @@ export async function POST(request: Request) {
   }
 
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const formData = await request.formData();
-  const projectId = String(formData.get("projectId") ?? "").trim();
-  const file = formData.get("file");
-  if (!projectId) return jsonError("Project is required.");
-  if (!(file instanceof File)) return jsonError("Image file is required.");
-  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) return jsonError("Use a JPG, PNG, WebP, or AVIF image.");
-  if (file.size <= 0) return jsonError("Image file is empty.");
-  if (file.size > MAX_UPLOAD_BYTES) return jsonError("Image upload is too large. Compress or choose an image under 12 MB.", 413);
-
-  const serverSupabase = await createSupabaseServerClient();
-  const { data: project, error: projectError } = await serverSupabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("workspace_id", workspace.id)
-    .single();
-
-  if (projectError || !project) return jsonError("Project could not be found.", 404);
-
-  const sourceBuffer = Buffer.from(await file.arrayBuffer());
-  const magicMime = readMagicMime(sourceBuffer.subarray(0, 64));
-  if (!magicMime || !ALLOWED_MIME_TYPES.has(magicMime)) {
-    return jsonError("The uploaded file does not look like a supported image.");
+  const admission = reserveUploadAdmission({ surface: "project-image", workspaceId: workspace.id, userId: currentUser.userId, request });
+  if (!admission.allowed) {
+    return jsonError(admission.message, 429, { "Retry-After": String(admission.retryAfter) });
   }
 
-  let optimized: { data: Buffer; info: sharp.OutputInfo };
-  let thumbnail: { data: Buffer; info: sharp.OutputInfo };
-
   try {
-    const pipeline = sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
-    const metadata = await pipeline.metadata();
-    if (!isAllowedSharpFormat(metadata.format, magicMime)) return jsonError("Unsupported image encoding.");
-    if (!metadata.width || !metadata.height) return jsonError("Could not read image dimensions.");
-    if (metadata.width * metadata.height > MAX_IMAGE_PIXELS) return jsonError("Image dimensions are too large. Use an image under 24 megapixels.", 413);
+    const formData = await request.formData();
+    const projectId = String(formData.get("projectId") ?? "").trim();
+    const file = formData.get("file");
+    if (!projectId) return jsonError("Project is required.");
+    if (!(file instanceof File)) return jsonError("Image file is required.");
+    if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) return jsonError("Use a JPG, PNG, WebP, or AVIF image.");
+    if (file.size <= 0) return jsonError("Image file is empty.");
+    if (file.size > MAX_UPLOAD_BYTES) return jsonError("Image upload is too large. Compress or choose an image under 12 MB.", 413);
 
-    optimized = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS })
-      .rotate()
-      .resize({ width: MAX_IMAGE_EDGE, height: MAX_IMAGE_EDGE, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 82, effort: 4 })
-      .toBuffer({ resolveWithObject: true });
+    const serverSupabase = await createSupabaseServerClient();
+    const { data: project, error: projectError } = await serverSupabase
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("workspace_id", workspace.id)
+      .single();
 
-    thumbnail = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS })
-      .rotate()
-      .resize({ width: THUMBNAIL_EDGE, height: THUMBNAIL_EDGE, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 85, effort: 4 })
-      .toBuffer({ resolveWithObject: true });
-  } catch {
-    return jsonError("Could not decode image safely. Choose a standard JPG, PNG, WebP, or AVIF file.");
-  }
-
-  const supabase = await createStorageSupabaseClient();
-  const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
-  const basePath = `${workspace.id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${baseName}`;
-  const imagePath = `${basePath}.webp`;
-  const thumbnailPath = `${basePath}-thumb.webp`;
-  const uploadedPaths: string[] = [];
-
-  try {
-    const url = await uploadWebp({ buffer: optimized.data, path: imagePath, supabase });
-    uploadedPaths.push(imagePath);
-    const thumbnailUrl = await uploadWebp({ buffer: thumbnail.data, path: thumbnailPath, supabase });
-    uploadedPaths.push(thumbnailPath);
-
-    return NextResponse.json({
-      bucket: PROJECT_IMAGE_BUCKET,
-      path: imagePath,
-      thumbnailPath,
-      url,
-      thumbnailUrl,
-      width: optimized.info.width,
-      height: optimized.info.height,
-      thumbnailWidth: thumbnail.info.width,
-      thumbnailHeight: thumbnail.info.height,
-      originalBytes: file.size,
-      optimizedBytes: optimized.data.byteLength,
-      contentType: "image/webp",
-    });
-  } catch {
-    if (uploadedPaths.length > 0) {
-      await supabase.storage.from(PROJECT_IMAGE_BUCKET).remove(uploadedPaths).catch(() => undefined);
+    if (projectError || !project) return jsonError("Project could not be found.", 404);
+    if (!(await canEditProject(projectId, serverSupabase))) {
+      return jsonError("You do not have permission to edit this project.", 403);
     }
-    return jsonError("Could not store image.", 500);
+
+    const sourceBuffer = Buffer.from(await file.arrayBuffer());
+    const magicMime = readMagicMime(sourceBuffer.subarray(0, 64));
+    if (!magicMime || !ALLOWED_MIME_TYPES.has(magicMime)) {
+      return jsonError("The uploaded file does not look like a supported image.");
+    }
+
+    let optimized: { data: Buffer; info: sharp.OutputInfo };
+    let thumbnail: { data: Buffer; info: sharp.OutputInfo };
+
+    try {
+      const pipeline = sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
+      const metadata = await pipeline.metadata();
+      if (!isAllowedSharpFormat(metadata.format, magicMime)) return jsonError("Unsupported image encoding.");
+      if (!metadata.width || !metadata.height) return jsonError("Could not read image dimensions.");
+      if (metadata.width * metadata.height > MAX_IMAGE_PIXELS) return jsonError("Image dimensions are too large. Use an image under 24 megapixels.", 413);
+
+      optimized = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS })
+        .rotate()
+        .resize({ width: MAX_IMAGE_EDGE, height: MAX_IMAGE_EDGE, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82, effort: 4 })
+        .toBuffer({ resolveWithObject: true });
+
+      thumbnail = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS })
+        .rotate()
+        .resize({ width: THUMBNAIL_EDGE, height: THUMBNAIL_EDGE, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 85, effort: 4 })
+        .toBuffer({ resolveWithObject: true });
+    } catch {
+      return jsonError("Could not decode image safely. Choose a standard JPG, PNG, WebP, or AVIF file.");
+    }
+
+    const supabase = await createStorageSupabaseClient();
+    const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
+    const basePath = `${workspace.id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${baseName}`;
+    const imagePath = `${basePath}.webp`;
+    const thumbnailPath = `${basePath}-thumb.webp`;
+    const uploadedPaths: string[] = [];
+
+    try {
+      const url = await uploadWebp({ buffer: optimized.data, path: imagePath, supabase });
+      uploadedPaths.push(imagePath);
+      const thumbnailUrl = await uploadWebp({ buffer: thumbnail.data, path: thumbnailPath, supabase });
+      uploadedPaths.push(thumbnailPath);
+      const uploadRecord = await recordUploadAsset(supabase, {
+        workspaceId: workspace.id,
+        actorUserId: currentUser.userId,
+        surface: "project-image",
+        targetEntityType: "project",
+        targetEntityId: projectId,
+        bucket: PROJECT_IMAGE_BUCKET,
+        path: imagePath,
+        thumbnailPath,
+        fileName: file.name,
+        contentType: "image/webp",
+        sizeBytes: optimized.data.byteLength,
+        checksumBytes: optimized.data,
+        scanStatus: "not_required",
+        metadata: {
+          originalBytes: file.size,
+          optimizedBytes: optimized.data.byteLength,
+          thumbnailBytes: thumbnail.data.byteLength,
+          width: optimized.info.width,
+          height: optimized.info.height,
+          thumbnailWidth: thumbnail.info.width,
+          thumbnailHeight: thumbnail.info.height,
+        },
+      });
+
+      return NextResponse.json({
+        bucket: PROJECT_IMAGE_BUCKET,
+        uploadSessionId: uploadRecord.uploadSessionId,
+        assetId: uploadRecord.assetId,
+        scanStatus: uploadRecord.scanStatus,
+        path: imagePath,
+        thumbnailPath,
+        url,
+        thumbnailUrl,
+        width: optimized.info.width,
+        height: optimized.info.height,
+        thumbnailWidth: thumbnail.info.width,
+        thumbnailHeight: thumbnail.info.height,
+        originalBytes: file.size,
+        optimizedBytes: optimized.data.byteLength,
+        contentType: "image/webp",
+      });
+    } catch {
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from(PROJECT_IMAGE_BUCKET).remove(uploadedPaths).catch(() => undefined);
+      }
+      return jsonError("Could not store image.", 500);
+    }
+  } finally {
+    admission.release();
   }
 }
 
 export async function DELETE(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const body = await request.json().catch(() => null);
-  const paths = readStoragePaths(body).filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId));
+  const parsedPaths = readStoragePaths(body)
+    .map(parseProjectImageStoragePath)
+    .filter((parsed): parsed is NonNullable<ReturnType<typeof parseProjectImageStoragePath>> => (
+      Boolean(parsed && parsed.workspaceId === workspace.id && parsed.ownerUserId === currentUser.userId)
+    ));
+  const paths = parsedPaths.map((parsed) => parsed.path);
   if (paths.length === 0) return jsonError("No removable image paths were provided.");
+
+  const serverSupabase = await createSupabaseServerClient();
+  const projectIds = Array.from(new Set(parsedPaths.map((parsed) => parsed.projectId)));
+  for (const projectId of projectIds) {
+    if (!(await canEditProject(projectId, serverSupabase))) {
+      return jsonError("You do not have permission to edit this project.", 403);
+    }
+  }
 
   const supabase = await createStorageSupabaseClient();
   const { error } = await supabase.storage.from(PROJECT_IMAGE_BUCKET).remove(paths);

@@ -7,11 +7,14 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
+import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { recordUploadAsset } from "@/lib/uploads/upload-records";
 
 export const runtime = "nodejs";
 
 const COMPONENT_ATTACHMENT_BUCKET = "component-attachments";
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "application/vnd.ms-excel",
@@ -25,8 +28,38 @@ const EXTENSION_BY_MIME_TYPE = new Map([
 ]);
 const ALLOWED_ATTACHMENT_EXTENSIONS = [".pdf", ".xls", ".xlsx"] as const;
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+function jsonError(message: string, status = 400, headers?: HeadersInit) {
+  return NextResponse.json({ error: message }, { status, headers });
+}
+
+function privateAttachmentNotFound() {
+  return NextResponse.json(
+    { error: "Attachment could not be found." },
+    {
+      status: 404,
+      headers: {
+        "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL,
+      },
+    },
+  );
+}
+
+function privateAttachmentUnavailable(message = "Attachment is not available until scanning is complete.") {
+  return jsonError(message, 409, {
+    "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL,
+  });
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function safeContentDisposition(fileName: string) {
+  const fallback = fileName
+    .replace(/[^\x20-\x7e]+/g, "-")
+    .replace(/[\\"]/g, "")
+    .trim();
+  return `attachment; filename="${fallback || "component-attachment"}"`;
 }
 
 function includesAscii(bytes: Uint8Array, value: string) {
@@ -85,6 +118,47 @@ function isOwnedAttachmentPath(path: string, workspaceId: string, userId: string
   );
 }
 
+type AttachmentDownloadRow = {
+  id: string;
+  workspace_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  review_status?: string | null;
+  is_current_approved?: boolean | null;
+};
+
+type UploadAssetScanRow = {
+  id: string;
+  upload_session_id: string;
+  workspace_id: string;
+  surface: string;
+  storage_bucket: string;
+  storage_path: string;
+  status: string;
+  scan_status: string;
+};
+
+type AttachmentDownloadQuery<T> = {
+  select: (columns: string) => AttachmentDownloadQuery<T>;
+  eq: (column: string, value: unknown) => AttachmentDownloadQuery<T>;
+  maybeSingle: () => PromiseLike<{ data: T | null; error: { message?: string | null } | null }>;
+};
+
+type UploadEventInsertQuery = {
+  insert: (row: Record<string, unknown>) => PromiseLike<{ error: { message?: string | null } | null }>;
+};
+
+type AttachmentDownloadClient = {
+  from: {
+    (table: "cost_library_item_variant_attachments"): AttachmentDownloadQuery<AttachmentDownloadRow>;
+    (table: "upload_assets"): AttachmentDownloadQuery<UploadAssetScanRow>;
+    (table: "upload_events"): UploadEventInsertQuery;
+  };
+};
+
 function readStoragePaths(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
   const rawPaths = (value as { path?: unknown; paths?: unknown }).paths ?? (value as { path?: unknown }).path;
@@ -126,6 +200,137 @@ async function createStorageSupabaseClient() {
   return createSupabaseServerClient();
 }
 
+async function canManageLibrary(workspaceId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("is_workspace_editor", {
+    target_workspace_id: workspaceId,
+  });
+  if (error) {
+    console.error("Component attachment authorization failed", error);
+    return false;
+  }
+  return data === true;
+}
+
+async function readAttachmentDownloadRecord(client: unknown, attachmentId: string, workspaceId: string) {
+  const downloadClient = client as AttachmentDownloadClient;
+  const { data, error } = await downloadClient
+    .from("cost_library_item_variant_attachments")
+    .select("id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved")
+    .eq("id", attachmentId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Component attachment lookup failed", error);
+    return { attachment: null, lookupFailed: true };
+  }
+
+  if (!data) return { attachment: null, lookupFailed: false };
+  if (data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET || !ALLOWED_MIME_TYPES.has(data.content_type)) {
+    return { attachment: null, lookupFailed: false };
+  }
+  return { attachment: data, lookupFailed: false };
+}
+
+async function readCleanUploadAsset(client: unknown, attachment: AttachmentDownloadRow) {
+  const downloadClient = client as AttachmentDownloadClient;
+  const { data, error } = await downloadClient
+    .from("upload_assets")
+    .select("id, upload_session_id, workspace_id, surface, storage_bucket, storage_path, status, scan_status")
+    .eq("workspace_id", attachment.workspace_id)
+    .eq("storage_bucket", COMPONENT_ATTACHMENT_BUCKET)
+    .eq("storage_path", attachment.storage_path)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Component attachment upload asset lookup failed", error);
+    return { uploadAsset: null, lookupFailed: true };
+  }
+
+  if (
+    !data
+    || data.workspace_id !== attachment.workspace_id
+    || data.surface !== "component-attachment"
+    || data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET
+    || data.storage_path !== attachment.storage_path
+    || data.status !== "finalized"
+    || data.scan_status !== "clean"
+  ) {
+    return { uploadAsset: null, lookupFailed: false };
+  }
+
+  return { uploadAsset: data, lookupFailed: false };
+}
+
+async function recordAttachmentDownloadIssued(
+  client: unknown,
+  attachment: AttachmentDownloadRow,
+  uploadAsset: UploadAssetScanRow,
+  actorUserId: string,
+) {
+  const downloadClient = client as AttachmentDownloadClient;
+  const { error } = await downloadClient.from("upload_events").insert({
+    workspace_id: attachment.workspace_id,
+    upload_session_id: uploadAsset.upload_session_id,
+    upload_asset_id: uploadAsset.id,
+    actor_user_id: actorUserId,
+    event_type: "download_url_issued",
+    metadata: {
+      attachmentId: attachment.id,
+      storagePath: attachment.storage_path,
+      reviewStatus: attachment.review_status ?? null,
+      isCurrentApproved: attachment.is_current_approved ?? null,
+    },
+  });
+
+  if (error) {
+    console.error("Component attachment download audit failed", error);
+    return false;
+  }
+  return true;
+}
+
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+  const attachmentId = requestUrl.searchParams.get("id") ?? "";
+  if (!isUuid(attachmentId)) return privateAttachmentNotFound();
+
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!(await canManageLibrary(workspace.id))) {
+    return jsonError("Only workspace editors/admins can manage the library.", 403, {
+      "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL,
+    });
+  }
+
+  const storageSupabase = await createStorageSupabaseClient();
+  const { attachment, lookupFailed: attachmentLookupFailed } = await readAttachmentDownloadRecord(storageSupabase, attachmentId, workspace.id);
+  if (attachmentLookupFailed) return jsonError("Could not verify attachment.", 500, { "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL });
+  if (!attachment) return privateAttachmentNotFound();
+
+  const { uploadAsset, lookupFailed: uploadAssetLookupFailed } = await readCleanUploadAsset(storageSupabase, attachment);
+  if (uploadAssetLookupFailed) {
+    return jsonError("Could not verify attachment scan status.", 500, { "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL });
+  }
+  if (!uploadAsset) return privateAttachmentUnavailable();
+
+  const auditRecorded = await recordAttachmentDownloadIssued(storageSupabase, attachment, uploadAsset, currentUser.userId);
+  if (!auditRecorded) return privateAttachmentUnavailable("Attachment download could not be audited.");
+
+  const { data, error } = await storageSupabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).download(attachment.storage_path);
+  if (error || !data) return privateAttachmentNotFound();
+
+  return new Response(await data.arrayBuffer(), {
+    headers: {
+      "Cache-Control": "private, max-age=300",
+      "Content-Disposition": safeContentDisposition(attachment.file_name),
+      "Content-Length": String(attachment.size_bytes),
+      "Content-Type": attachment.content_type,
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
 export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_UPLOAD_BYTES + 1024 * 1024) {
@@ -133,52 +338,94 @@ export async function POST(request: Request) {
   }
 
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const formData = await request.formData();
-  const file = formData.get("file");
-  if (!(file instanceof File)) return jsonError("Attachment file is required.");
-  if (file.size <= 0) return jsonError("Attachment file is empty.");
-  if (file.size > MAX_UPLOAD_BYTES) return jsonError("Attachment upload is too large. Choose a PDF or Excel file under 20 MB.", 413);
-
-  const sourceBuffer = Buffer.from(await file.arrayBuffer());
-  const magicMime = readMagicMime(sourceBuffer);
-  if (!magicMime || !ALLOWED_MIME_TYPES.has(magicMime)) {
-    return jsonError("The uploaded file does not look like a supported attachment.");
+  if (!(await canManageLibrary(workspace.id))) {
+    return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
 
-  const declaredMime = file.type.trim();
-  if (declaredMime && ALLOWED_MIME_TYPES.has(declaredMime) && declaredMime !== magicMime) {
-    return jsonError("The uploaded file does not look like a supported attachment.");
+  const admission = reserveUploadAdmission({ surface: "component-attachment", workspaceId: workspace.id, userId: currentUser.userId, request });
+  if (!admission.allowed) {
+    return jsonError(admission.message, 429, { "Retry-After": String(admission.retryAfter) });
   }
-
-  const extension = EXTENSION_BY_MIME_TYPE.get(magicMime);
-  if (!extension) return jsonError("Use a PDF, XLS, or XLSX attachment.");
-
-  const supabase = await createStorageSupabaseClient();
-  const path = `${workspace.id}/${currentUser.userId}/${safeUploadName(file.name)}-${randomUUID()}.${extension}`;
 
   try {
-    const { error } = await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).upload(path, sourceBuffer, {
-      contentType: magicMime,
-      cacheControl: "31536000",
-      upsert: false,
-    });
-    if (error) throw new Error(error.message);
+    const formData = await request.formData();
+    const file = formData.get("file");
+    if (!(file instanceof File)) return jsonError("Attachment file is required.");
+    if (file.size <= 0) return jsonError("Attachment file is empty.");
+    if (file.size > MAX_UPLOAD_BYTES) return jsonError("Attachment upload is too large. Choose a PDF or Excel file under 20 MB.", 413);
 
-    return NextResponse.json({
-      bucket: COMPONENT_ATTACHMENT_BUCKET,
-      path,
-      fileName: file.name,
-      contentType: magicMime,
-      sizeBytes: file.size,
-    });
-  } catch (error) {
-    console.error("Component attachment upload failed", error);
-    return jsonError("Could not store attachment.", 500);
+    const sourceBuffer = Buffer.from(await file.arrayBuffer());
+    const magicMime = readMagicMime(sourceBuffer);
+    if (!magicMime || !ALLOWED_MIME_TYPES.has(magicMime)) {
+      return jsonError("The uploaded file does not look like a supported attachment.");
+    }
+
+    const declaredMime = file.type.trim();
+    if (declaredMime && ALLOWED_MIME_TYPES.has(declaredMime) && declaredMime !== magicMime) {
+      return jsonError("The uploaded file does not look like a supported attachment.");
+    }
+
+    const extension = EXTENSION_BY_MIME_TYPE.get(magicMime);
+    if (!extension) return jsonError("Use a PDF, XLS, or XLSX attachment.");
+
+    const supabase = await createStorageSupabaseClient();
+    const path = `${workspace.id}/${currentUser.userId}/${safeUploadName(file.name)}-${randomUUID()}.${extension}`;
+    let uploadedPath: string | null = null;
+
+    try {
+      const { error } = await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).upload(path, sourceBuffer, {
+        contentType: magicMime,
+        cacheControl: "31536000",
+        upsert: false,
+      });
+      if (error) throw new Error(error.message);
+      uploadedPath = path;
+      const uploadRecord = await recordUploadAsset(supabase, {
+        workspaceId: workspace.id,
+        actorUserId: currentUser.userId,
+        surface: "component-attachment",
+        targetEntityType: "component-library",
+        targetEntityId: null,
+        bucket: COMPONENT_ATTACHMENT_BUCKET,
+        path,
+        fileName: file.name,
+        contentType: magicMime,
+        sizeBytes: file.size,
+        checksumBytes: sourceBuffer,
+        scanStatus: "pending",
+        metadata: {
+          attachmentKind: extension === "pdf" ? "pdf" : "excel",
+        },
+      });
+
+      return NextResponse.json({
+        bucket: COMPONENT_ATTACHMENT_BUCKET,
+        uploadSessionId: uploadRecord.uploadSessionId,
+        assetId: uploadRecord.assetId,
+        scanStatus: uploadRecord.scanStatus,
+        path,
+        fileName: file.name,
+        contentType: magicMime,
+        sizeBytes: file.size,
+      });
+    } catch (error) {
+      console.error("Component attachment upload failed", error);
+      if (uploadedPath) {
+        await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).remove([uploadedPath]).catch(() => undefined);
+      }
+      return jsonError("Could not store attachment.", 500);
+    }
+  } finally {
+    admission.release();
   }
 }
 
 export async function DELETE(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!(await canManageLibrary(workspace.id))) {
+    return jsonError("Only workspace editors/admins can manage the library.", 403);
+  }
+
   const body = await request.json().catch(() => null);
   const paths = readStoragePaths(body).filter((path) => isOwnedAttachmentPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");
