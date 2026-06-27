@@ -10,7 +10,12 @@ export class EstimateRowRevisionConflictError extends Error {
 }
 
 export function isEstimateRowRevisionConflict(error: unknown) {
-  const record = error && typeof error === "object" ? error as { code?: unknown; message?: unknown } : {};
+  const record = error && typeof error === "object"
+    ? error as { code?: unknown; message?: unknown; details?: unknown; detail?: unknown; hint?: unknown }
+    : {};
+  const haystack = [record.message, record.details, record.detail, record.hint]
+    .filter((value): value is string => typeof value === "string")
+    .join("\n");
   return record.code === ESTIMATE_ROW_REVISION_CONFLICT_CODE
-    || (typeof record.message === "string" && record.message.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE));
+    || haystack.includes(ESTIMATE_ROW_REVISION_CONFLICT_CODE);
 }

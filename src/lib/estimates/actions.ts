@@ -22,6 +22,7 @@ import {
   EstimateRowRevisionConflictError,
   isEstimateRowRevisionConflict,
 } from "@/lib/estimates/row-revision-conflict";
+import { recordEstimateMutationEvent } from "@/lib/estimates/estimate-mutation-telemetry";
 import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
 import { ESTIMATE_TREE_SORT_ORDER_STEP } from "@/lib/estimates/estimate-tree-reorder";
@@ -51,6 +52,12 @@ type CreateEstimateNodeWithHistoryArgs = Omit<
 function throwEstimateRowMutationError(error: unknown): never {
   if (isEstimateRowRevisionConflict(error)) throw new EstimateRowRevisionConflictError();
   if (error instanceof Error) throw error;
+  if (error && typeof error === "object") {
+    const record = error as { message?: unknown; details?: unknown; detail?: unknown };
+    const message = [record.message, record.details, record.detail]
+      .find((value): value is string => typeof value === "string" && value.trim().length > 0);
+    if (message) throw new Error(message);
+  }
   throw new Error("Could not save the estimate row.");
 }
 
@@ -691,15 +698,51 @@ function readRestoreDeletedNodesResult(value: unknown): Omit<RestoreDeletedEstim
 }
 
 async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, estimateId: string) {
+  let currentUser: Awaited<ReturnType<typeof requireCurrentUserContext>>;
+  try {
+    currentUser = await requireCurrentUserContext();
+  } catch (error) {
+    recordEstimateMutationEvent("authz_denied", {
+      operation: "authz_check",
+      estimateId,
+      reason: "missing_session",
+    });
+    throw error;
+  }
+
   const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
-  if (error) throw error;
-  if (data !== true) throw new Error("Estimate edit access denied.");
-  const currentUser = await requireCurrentUserContext();
-  assertEstimateActionRateLimit({
-    resourceId: estimateId,
-    surface: "estimate-mutation",
-    userId: currentUser.userId,
-  });
+  if (error) {
+    recordEstimateMutationEvent("authz_denied", {
+      operation: "authz_check",
+      estimateId,
+      reason: "can_edit_estimate_rpc_error",
+      code: typeof error.code === "string" ? error.code : undefined,
+    });
+    throw error;
+  }
+  if (data !== true) {
+    recordEstimateMutationEvent("authz_denied", {
+      operation: "authz_check",
+      estimateId,
+      reason: "can_edit_estimate_false",
+    });
+    throw new Error("Estimate edit access denied.");
+  }
+
+  try {
+    assertEstimateActionRateLimit({
+      resourceId: estimateId,
+      surface: "estimate-mutation",
+      userId: currentUser.userId,
+    });
+  } catch (error) {
+    recordEstimateMutationEvent("rate_limited", {
+      operation: "authz_check",
+      estimateId,
+      reason: "estimate_mutation_rate_limit",
+    });
+    throw error;
+  }
 }
 
 function normalizeEstimateSheetAdjustmentMode(value: EstimateSheetAdjustmentMode): EstimateSheetAdjustmentMode {
