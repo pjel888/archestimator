@@ -1,0 +1,25 @@
+{
+  "artifact": "upload-provider-migration-dry-run",
+  "generatedAt": "2026-06-27T01:14:31Z",
+  "proofBoundary": "linked-provider-dry-run",
+  "projectId": "ebxxqidacheyapmmzavr",
+  "projectScope": "Archestimator only",
+  "passed": true,
+  "source": "supabase db push --linked --dry-run",
+  "command": "supabase db push --linked --dry-run",
+  "exit": 0,
+  "observedSignals": [
+    "DRY RUN: migrations will *not* be pushed to the database.",
+    "Remote database is up to date."
+  ],
+  "providerMigrationDrift": [],
+  "latestLocalAlignment": {
+    "componentImagesPrivateMigrationProviderVersion": "20260627010904",
+    "componentImagesPrivateMigrationLocalPath": "supabase/migrations/20260627010904_20260627120000_make_component_images_private.sql"
+  },
+  "evidenceLimitations": [
+    "This proves the linked Supabase migration ledger is reconciled with the local migration directory at dry-run time.",
+    "It does not prove signed or resumable upload provider flows.",
+    "It does not prove S3-like multipart parity, provider migration of existing objects, or application/browser behavior."
+  ]
+}

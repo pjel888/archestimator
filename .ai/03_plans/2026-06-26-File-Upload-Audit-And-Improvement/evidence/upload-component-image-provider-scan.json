@@ -1,0 +1,127 @@
+{
+  "artifact": "upload-component-image-provider-scan",
+  "generatedAt": "2026-06-27T00:58:57Z",
+  "proofBoundary": "linked-provider-aggregate-readback",
+  "projectId": "ebxxqidacheyapmmzavr",
+  "passed": true,
+  "queries": [
+    {
+      "name": "component_image_reference_columns",
+      "description": "Information-schema discovery for persisted image, thumbnail, source snapshot, and metadata columns."
+    },
+    {
+      "name": "component_image_reference_counts",
+      "description": "Aggregate counts for cost-library images, estimate row snapshots, and estimate template row snapshots."
+    },
+    {
+      "name": "component_image_snapshot_counts",
+      "description": "Aggregate counts for publication, estimate-sheet version, and cost-library version snapshots."
+    },
+    {
+      "name": "upload_asset_counts",
+      "description": "Aggregate counts for upload_assets component/project image records and unsafe storage path markers."
+    }
+  ],
+  "scopes": [
+    {
+      "scope": "cost_library_item_price_options",
+      "counts": {
+        "total": 0,
+        "imageRefs": 0,
+        "componentBucketRefs": 0,
+        "unsafePaths": 0
+      }
+    },
+    {
+      "scope": "cost_library_items",
+      "counts": {
+        "total": 0,
+        "thumbnailRefs": 0,
+        "localDerivatives": 0,
+        "legacyPublicUrls": 0,
+        "brokeredPrivateUrls": 0,
+        "unsafePaths": 0
+      }
+    },
+    {
+      "scope": "estimate_row_items",
+      "counts": {
+        "total": 3,
+        "imageRefs": 3,
+        "assetDescriptors": 0,
+        "legacyPublicUrls": 0,
+        "brokeredPrivateUrls": 0,
+        "unsafeUrls": 0,
+        "unclassifiedImageRefs": 3
+      }
+    },
+    {
+      "scope": "estimate_template_row_items",
+      "counts": {
+        "total": 0,
+        "imageRefs": 0,
+        "assetDescriptors": 0,
+        "legacyPublicUrls": 0,
+        "brokeredPrivateUrls": 0,
+        "unsafeUrls": 0
+      }
+    },
+    {
+      "scope": "project_publications",
+      "counts": {
+        "total": 0,
+        "imageSnapshotRows": 0,
+        "assetDescriptors": 0,
+        "legacyPublicUrls": 0,
+        "brokeredPrivateUrls": 0,
+        "unsafeMarkers": 0
+      }
+    },
+    {
+      "scope": "estimate_sheet_versions",
+      "counts": {
+        "total": 0,
+        "imageSnapshotRows": 0,
+        "assetDescriptors": 0,
+        "legacyPublicUrls": 0,
+        "brokeredPrivateUrls": 0,
+        "unsafeMarkers": 0
+      }
+    },
+    {
+      "scope": "cost_library_item_versions",
+      "counts": {
+        "total": 0,
+        "imageSnapshotRows": 0,
+        "assetDescriptors": 0,
+        "legacyPublicUrls": 0,
+        "brokeredPrivateUrls": 0,
+        "unsafeMarkers": 0
+      }
+    },
+    {
+      "scope": "upload_assets",
+      "counts": {
+        "totalUploadAssets": 0,
+        "componentImageAssets": 0,
+        "projectImageAssets": 0,
+        "componentImageBucketAssets": 0,
+        "unsafeStoragePaths": 0
+      }
+    }
+  ],
+  "summary": {
+    "legacyPublicComponentImageUrls": 0,
+    "brokeredPrivateComponentOrProjectUrls": 0,
+    "uploadAssetDescriptors": 0,
+    "unsafeReferenceMarkers": 0,
+    "persistedRowsNeedingComponentImageBackfill": 0,
+    "nonProviderEstimateRowImageReferences": 3
+  },
+  "limitations": [
+    "Aggregate scan intentionally does not include raw storage paths, row ids, project ids, or user-authored snapshot content.",
+    "This aggregate scan is not direct provider read-denial proof and did not by itself prove linked storage bucket privacy state.",
+    "Publication snapshot privacy migration is not exercised against non-empty publication data because project_publications currently has zero rows.",
+    "Linked storage bucket privacy state is tracked separately in upload-component-image-private-bucket-readback.json."
+  ]
+}

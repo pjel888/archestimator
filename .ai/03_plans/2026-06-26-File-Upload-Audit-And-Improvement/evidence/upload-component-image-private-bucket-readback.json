@@ -1,0 +1,62 @@
+{
+  "artifact": "upload-component-image-private-bucket-readback",
+  "generatedAt": "2026-06-27T01:10:37Z",
+  "proofBoundary": "linked-provider-storage-catalog-readback",
+  "projectId": "ebxxqidacheyapmmzavr",
+  "migration": {
+    "providerVersion": "20260627010904",
+    "providerName": "20260627120000_make_component_images_private",
+    "localPath": "supabase/migrations/20260627010904_20260627120000_make_component_images_private.sql",
+    "appliedWith": "Supabase connector _apply_migration"
+  },
+  "before": {
+    "bucket": {
+      "id": "component-images",
+      "public": true
+    },
+    "publicReadPolicy": {
+      "present": true,
+      "policyname": "component images are publicly readable",
+      "roles": ["public"],
+      "cmd": "SELECT",
+      "qual": "((bucket_id = 'component-images'::text) AND (COALESCE((storage.foldername(name))[3], ''::text) <> 'project-images'::text))"
+    }
+  },
+  "after": {
+    "bucket": {
+      "id": "component-images",
+      "public": false
+    },
+    "namedPublicReadPolicies": [],
+    "componentImageStoragePolicies": []
+  },
+  "readbackQueries": [
+    {
+      "name": "component_images_bucket_and_named_public_read_policy",
+      "result": {
+        "id": "component-images",
+        "public": false,
+        "named_public_read_policies": []
+      }
+    },
+    {
+      "name": "component_image_storage_policy_scan",
+      "result": {
+        "component_image_storage_policies": []
+      }
+    },
+    {
+      "name": "connector_migration_ledger_lookup",
+      "result": {
+        "version": "20260627010904",
+        "name": "20260627120000_make_component_images_private"
+      }
+    }
+  ],
+  "passed": true,
+  "limitations": [
+    "This proves linked provider bucket catalog state and policy absence only; it is not a direct unauthenticated object download/read-denial operation proof.",
+    "Publication snapshot migration is not exercised against non-empty publication data because project_publications currently has zero rows.",
+    "Brokered component-image resolver authorization remains covered by local route tests, not by this provider catalog readback."
+  ]
+}

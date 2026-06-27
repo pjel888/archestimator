@@ -1,0 +1,62 @@
+{
+  "artifact": "upload-provider-readback",
+  "generatedAt": "2026-06-27T00:17:50Z",
+  "proofBoundary": "linked-provider-readback",
+  "projectId": "ebxxqidacheyapmmzavr",
+  "projectScope": "Archestimator only",
+  "passed": true,
+  "source": "Supabase connector read-only migration ledger and catalog queries",
+  "migrationVersionsPresent": [
+    "20260626183000_upload_storage_direct_write_containment",
+    "20260626184000_freeze_unscanned_component_attachment_approval",
+    "20260626190000_upload_domain_tables",
+    "20260626194500_upload_scan_status_taxonomy",
+    "20260626200000_upload_scan_lifecycle_contracts"
+  ],
+  "uploadTables": [
+    { "name": "upload_assets", "rlsEnabled": true },
+    { "name": "upload_events", "rlsEnabled": true },
+    { "name": "upload_sessions", "rlsEnabled": true }
+  ],
+  "uploadTablePolicies": [
+    { "table": "upload_assets", "policy": "members can read own upload assets", "command": "SELECT", "roles": ["authenticated"] },
+    { "table": "upload_events", "policy": "members can read own upload events", "command": "SELECT", "roles": ["authenticated"] },
+    { "table": "upload_sessions", "policy": "members can read own upload sessions", "command": "SELECT", "roles": ["authenticated"] }
+  ],
+  "scanStatusesPresent": [
+    "clean",
+    "failed",
+    "failed_permanent",
+    "failed_transient",
+    "infected",
+    "not_required",
+    "override_approved",
+    "pending",
+    "unsupported"
+  ],
+  "scanLifecycleEventsPresent": [
+    "backpressure_denied",
+    "cleanup_failed",
+    "cleanup_queued",
+    "cleanup_succeeded",
+    "scan_failed_permanent",
+    "scan_failed_transient",
+    "scan_infected",
+    "scan_override_approved",
+    "scan_started",
+    "scan_unsupported"
+  ],
+  "functionGrants": [
+    { "function": "approve_upload_scan_override", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
+    { "function": "get_upload_asset_descriptor", "anonExecute": false, "authenticatedExecute": true, "serviceRoleExecute": true },
+    { "function": "record_upload_asset", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
+    { "function": "record_upload_scan_result", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
+    { "function": "validate_estimate_row_image_asset", "anonExecute": false, "authenticatedExecute": true, "serviceRoleExecute": true }
+  ],
+  "removedStoragePoliciesPresent": [],
+  "evidenceLimitations": [
+    "This readback proves linked-provider migration presence, table RLS, enum labels, function grants, public upload table policies, and removal of known broad direct storage policies.",
+    "It does not replace auth-token proof-script scenarios for anon/authenticated row-level behavior.",
+    "It does not prove direct Supabase Storage operations fail for every client role or prove app-route/browser behavior."
+  ]
+}

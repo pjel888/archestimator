@@ -1,0 +1,421 @@
+{
+  "artifact": "upload-release-gates",
+  "generatedAt": "2026-06-27T01:20:09Z",
+  "proofBoundary": "local-plus-linked-provider-readback",
+  "closedBeta": {
+    "status": "blocked",
+    "localPasses": [
+      {
+        "id": "UPLOAD-GATE-APP-AUTHZ",
+        "requirements": ["UPLOAD-REQ-002"],
+        "evidence": "Route tests cover pre-body auth failure, library manager denial, project edit denial, estimate-row project/estimate edit denial, and no storage writes before denial."
+      },
+      {
+        "id": "UPLOAD-GATE-UPLOAD-DOMAIN-CONTRACTS-LOCAL",
+        "requirements": ["UPLOAD-REQ-001", "UPLOAD-REQ-007", "UPLOAD-REQ-008"],
+        "evidence": "Policy registry, provider-neutral object key builder, upload asset/session RPC contract, provider adapter contract, path constraints, and narrow RLS/grants are covered by upload-domain and provider tests."
+      },
+      {
+        "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL",
+        "requirements": ["UPLOAD-REQ-002", "UPLOAD-REQ-004", "UPLOAD-REQ-011", "UPLOAD-REQ-012", "UPLOAD-REQ-013", "UPLOAD-REQ-014"],
+        "evidence": "Happy-path route tests now cover project image, component image, and estimate-row image storage plus atomic upload asset records. Malicious fixture tests cover oversized content-length, MIME/magic mismatch, empty files, fake XLSX, stale estimate rows, workspace-mismatched resolvers, and no storage/RPC work after rejection."
+      },
+      {
+        "id": "UPLOAD-GATE-UPLOAD-DOMAIN-APPLIED-READBACK",
+        "requirements": ["UPLOAD-REQ-021"],
+        "evidence": "Linked Supabase provider readback for project ebxxqidacheyapmmzavr lists the five upload migrations, confirms upload_sessions/upload_assets/upload_events exist with RLS enabled, confirms authenticated-only upload table SELECT policies, confirms upload scan lifecycle enum labels and function grants, and finds none of the known broad direct storage policies present. See evidence/upload-provider-readback.json."
+      },
+      {
+        "id": "UPLOAD-GATE-DIRECT-STORAGE-CONTAINMENT-STATIC",
+        "requirements": ["UPLOAD-REQ-003"],
+        "evidence": "Static migration contract drops broad direct project-image/component-image/component-attachment write/update/delete policies and pending component-attachment direct-read policy."
+      },
+      {
+        "id": "UPLOAD-GATE-ATTACHMENT-SCAN-FREEZE",
+        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
+        "evidence": "Approval/supersede RPCs fail closed until scanning exists; attachment download broker exists but refuses files unless the matching upload asset is finalized and scan-clean."
+      },
+      {
+        "id": "UPLOAD-GATE-ATTACHMENT-DOWNLOAD-BROKER-FAIL-CLOSED",
+        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
+        "evidence": "GET /api/component-library/attachments?id=... validates the attachment workspace, requires library-manager authorization, requires a matching finalized upload_assets row with scan_status=clean, audits download_url_issued before storage download, returns no-store failures, and never reaches storage for pending/unscanned assets."
+      },
+      {
+        "id": "UPLOAD-GATE-SCAN-STATUS-TAXONOMY-LOCAL",
+        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
+        "evidence": "Additive migration extends upload_scan_status with failed_transient, failed_permanent, and override_approved alongside existing pending, clean, infected, and unsupported states; current attachment downloads still allow only scan_status=clean."
+      },
+      {
+        "id": "UPLOAD-GATE-ABUSE-CAPS-LOCAL",
+        "requirements": ["UPLOAD-REQ-022"],
+        "evidence": "In-process closed-beta rate and active-upload caps return 429 with Retry-After; actor-bound rate tests cover rotating x-forwarded-for attempts."
+      },
+      {
+        "id": "UPLOAD-GATE-UPLOAD-CLEANUP-CORE-LOCAL",
+        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
+        "evidence": "Upload cleanup planner only emits provider cleanup targets for failed/deleted/expired records or expired reserved sessions, rejects finalized assets and unsafe workspace/path/bucket shapes, dedupes thumbnails, and summarizes removed/failed/rejected counts without provider secrets."
+      },
+      {
+        "id": "UPLOAD-GATE-CLEANUP-RETENTION-OBSERVABILITY-LOCAL",
+        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
+        "evidence": "Cleanup operations now produce explicit failed/deleted/expired-session/audit retention cutoffs, retry-after guidance for failed provider deletes, dashboard-safe cleanup metrics, and warning/critical backlog alerts without exposing storage paths or provider internals."
+      },
+      {
+        "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL",
+        "requirements": ["UPLOAD-REQ-011", "UPLOAD-REQ-012", "UPLOAD-REQ-013", "UPLOAD-REQ-014", "UPLOAD-REQ-017"],
+        "evidence": "Estimate-row reference image DOM tests cover estimate-scoped upload FormData, selected/uploading/error/cancel/retry states, stale abort isolation, Escape/overlay guard, alert/status roles, and returned URL commit."
+      },
+      {
+        "id": "UPLOAD-GATE-ESTIMATE-ROW-ASSET-FINALITY",
+        "requirements": ["UPLOAD-REQ-004", "UPLOAD-REQ-025"],
+        "evidence": "Estimate-row uploads require row scope, return imageAsset descriptors, commit descriptors through the row editor, validate/canonicalize descriptors through validate_estimate_row_image_asset before update_estimate_row_item_with_history, reject tampered descriptors, and carry descriptors through project-component projection metadata."
+      },
+      {
+        "id": "UPLOAD-GATE-ESTIMATE-ROW-IMAGE-PRIVATE-BUCKET",
+        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010", "UPLOAD-REQ-025"],
+        "evidence": "Estimate-row reference images now write to the private project-images bucket under project-scoped project-images/{projectId}/estimate-row-images/{estimateId}/ paths, return /api/projects/images resolver URLs, and validate upload_assets as surface=project-image, target_entity_type=estimate-row, target_entity_id=projectId with row metadata."
+      },
+      {
+        "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-RESOLVER-LOCAL",
+        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "evidence": "New component-library image uploads return /api/component-library/images resolver URLs instead of Supabase public URLs; resolver tests cover workspace-gated private GET, workspace mismatch denial, no-store fail-closed malformed paths, and no .getPublicUrl(path) in broker routes."
+      },
+      {
+        "id": "UPLOAD-GATE-COMPONENT-IMAGE-BACKFILL-READINESS-LOCAL",
+        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "evidence": "Local backfill classifier distinguishes asset-backed descriptors, brokered private resolver URLs, local derivatives, legacy public component-images URLs needing private-resolver backfill, and unsafe/external references requiring manual review across component library, estimate-row source snapshots, and publication snapshots."
+      },
+      {
+        "id": "UPLOAD-GATE-COMPONENT-IMAGE-PERSISTED-SCAN-READBACK",
+        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "evidence": "Linked provider aggregate scan found zero persisted legacy public component-image URLs, zero upload_assets component-image records, and zero publication/version snapshot image rows in project ebxxqidacheyapmmzavr; three estimate-row image references remain non-provider/external snapshot references. See evidence/upload-component-image-provider-scan.json."
+      },
+      {
+        "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-BUCKET-READBACK",
+        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "evidence": "Linked provider storage catalog readback confirms component-images public=false, the old component images are publicly readable SELECT policy is absent, and no remaining storage.objects policies reference component-images in project ebxxqidacheyapmmzavr. See evidence/upload-component-image-private-bucket-readback.json."
+      },
+      {
+        "id": "UPLOAD-GATE-SCANNER-LIFECYCLE-CONTRACTS-LOCAL",
+        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006", "UPLOAD-REQ-022", "UPLOAD-REQ-023"],
+        "evidence": "Scanner lifecycle module and migration contracts define attachment-only scan requirements, clean/pending/infected/unsupported/transient/permanent/override decisions, queue backpressure classification, service-role-only scanner-result RPC, and audited override RPC with actor, reason, expiry, and checksum requirements. The current download broker still only serves scan-clean files."
+      }
+    ],
+    "blockers": [
+      {
+        "id": "UPLOAD-GATE-PROVIDER-STORAGE-DENIAL",
+        "requirements": ["UPLOAD-REQ-003"],
+        "reason": "Linked provider readback confirms the known broad direct storage policies are absent, but direct write/update/delete/download denial operations are still skipped until ARCH_UPLOAD_STORAGE_PROOF=1 and scoped Supabase test credentials are configured."
+      },
+      {
+        "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVACY-DECISION",
+        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "reason": "New estimate-row images now use the private project-images bucket, new brokered component-image uploads use a private workspace resolver, a local backfill-readiness classifier exists, linked provider aggregate scan found no persisted legacy public component-image URLs, and linked provider storage catalog readback confirms component-images is private with the old public read policy removed; however, direct object read-denial operation proof is not captured and publication snapshot migration has not been exercised against non-empty publication data."
+      }
+    ]
+  },
+  "production": {
+    "status": "blocked",
+    "blockers": [
+      {
+        "id": "UPLOAD-GATE-SCANNER",
+        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
+        "reason": "Fail-closed audited download broker, safe response headers, scan-status taxonomy, local scan lifecycle decisions, and service-role scanner/override RPC contracts exist locally, but the scanner/CDR provider, queue worker, real clean/failure transitions, provider-backed clean download proof, and operational override workflow are not implemented."
+      },
+      {
+        "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY",
+        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
+        "reason": "Local cleanup planning, retention cutoffs, retry guidance, dashboard-safe metrics, backlog alerts, and scanner backpressure classifiers exist, but durable scheduled TTL cleanup, provider-backed retry/audit execution, real dashboard emission, quota alerts, production backpressure hooks, and an exercised retention runbook are not complete."
+      },
+      {
+        "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF",
+        "requirements": ["UPLOAD-REQ-016", "UPLOAD-REQ-024"],
+        "reason": "Only local Sharp smoke evidence exists; hosted body-size, memory, duration, concurrency, and storage-latency proof is still required."
+      }
+    ]
+  },
+  "platform": {
+    "status": "blocked",
+    "localPasses": [
+      {
+        "id": "UPLOAD-GATE-PROVIDER-ADAPTER-READ-PARITY-LOCAL",
+        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "evidence": "UploadStorageProvider now covers upload, remove, download, signed-read URL, and legacy public URL methods; fake-provider and Supabase-adapter tests prove provider-neutral read/remove behavior and fail-closed download/signing errors."
+      },
+      {
+        "id": "UPLOAD-GATE-UPLOAD-SESSION-STRATEGY-LOCAL",
+        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "evidence": "Upload session strategy contract keeps current capped uploads server-mediated, routes future larger files to short-lived signed single-part or multipart resumable strategies, rejects unknown/oversize/policy-gap sessions, and requires finalize RPC, object existence, checksum/ETag, actor/workspace/surface binding, upload asset records, and scan-before-use for direct-provider flows."
+      },
+      {
+        "id": "UPLOAD-GATE-PROVIDER-MIGRATION-DRY-RUN-READBACK",
+        "requirements": ["UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "evidence": "Linked Supabase dry-run proof reports Remote database is up to date after migration reconciliation. See evidence/upload-provider-migration-dry-run.json."
+      },
+      {
+        "id": "UPLOAD-GATE-S3-LIKE-MULTIPART-PARITY-LOCAL",
+        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "evidence": "Provider-portability contracts validate fake S3-like signed single-part sessions, multipart part signing/completion/abort behavior, object-head checksum/ETag finalization, object-scope binding, size/content-type guards, missing-part failure, and abort cleanup."
+      },
+      {
+        "id": "UPLOAD-GATE-ASSET-DESCRIPTOR-MIGRATION-PARITY-LOCAL",
+        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "evidence": "Asset-descriptor migration parity contracts normalize upload asset descriptors, brokered private component/project image URLs, and legacy public component-image URLs into provider-neutral bucket/path locators; unsafe URLs and descriptor/URL mismatches remain manual-review only."
+      }
+    ],
+    "blockers": [
+      {
+        "id": "UPLOAD-GATE-PROVIDER-PORTABILITY",
+        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "reason": "Provider adapter read/remove parity, upload-session strategy semantics, linked Supabase migration dry-run proof, local S3-like multipart parity contracts, and local asset-descriptor migration parity have evidence, but signed/resumable flows are not implemented against a real provider."
+      }
+    ]
+  },
+  "localEvidence": [
+    {
+      "command": "bunx vitest run tests/vitest/upload-domain-contracts.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 9 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-storage-provider.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 3 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/storage-provider.ts tests/vitest/upload-storage-provider.test.ts",
+      "exit": 0,
+      "result": "No lint errors for storage provider contract"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-cleanup.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 7 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/cleanup.ts tests/vitest/upload-cleanup.test.ts",
+      "exit": 0,
+      "result": "No lint errors for upload cleanup core"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-component-image-backfill.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 4 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/component-image-backfill.ts tests/vitest/upload-component-image-backfill.test.ts",
+      "exit": 0,
+      "result": "No lint errors for component-image backfill readiness classifier"
+    },
+    {
+      "command": "Supabase connector: aggregate component-image persisted reference scan for project ebxxqidacheyapmmzavr",
+      "exit": 0,
+      "result": "Linked provider aggregate scan found zero persisted legacy public component-image URLs and zero upload_assets component-image records; see evidence/upload-component-image-provider-scan.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-component-image-provider-scan.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 2 tests passed"
+    },
+    {
+      "command": "bunx eslint tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "No lint errors for component-image provider scan evidence"
+    },
+    {
+      "command": "Supabase connector: apply component-images private bucket migration and read back storage catalog for project ebxxqidacheyapmmzavr",
+      "exit": 0,
+      "result": "Linked provider storage catalog readback confirms component-images public=false, the old public read policy is absent, and no storage.objects policies reference component-images; see evidence/upload-component-image-private-bucket-readback.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/linked-supabase-readiness-sql.test.ts tests/vitest/supabase-linked-readiness-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "6 files, 15 tests passed"
+    },
+    {
+      "command": "bunx eslint tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/linked-supabase-readiness-sql.test.ts tests/vitest/supabase-linked-readiness-script.test.ts",
+      "exit": 0,
+      "result": "No lint errors for component-image private bucket readback, provider dry-run evidence, release gates, and linked-readiness tests"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "25 files, 163 tests passed"
+    },
+    {
+      "command": "supabase db push --linked --dry-run (post component-images private migration)",
+      "exit": 0,
+      "result": "Linked provider dry-run passed; Remote database is up to date after component-images private migration ledger alignment. See evidence/upload-provider-migration-dry-run.json"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Release-gate, provider-readback, provider-migration-dry-run, component-image provider-scan, and component-image private-bucket readback JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-session-strategy.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 4 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/session-strategy.ts tests/vitest/upload-session-strategy.test.ts",
+      "exit": 0,
+      "result": "No lint errors for upload session strategy contract"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-provider-portability.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 2 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "22 files, 155 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/provider-portability.ts tests/vitest/upload-provider-portability.test.ts",
+      "exit": 0,
+      "result": "No lint errors for upload provider portability contract"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-asset-descriptor-migration.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 4 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "23 files, 159 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "24 files, 161 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/asset-descriptor-migration.ts tests/vitest/upload-asset-descriptor-migration.test.ts",
+      "exit": 0,
+      "result": "No lint errors for upload asset descriptor migration parity contract"
+    },
+    {
+      "command": "Supabase connector: list migrations and read-only upload-domain catalog query for project ebxxqidacheyapmmzavr",
+      "exit": 0,
+      "result": "Linked provider readback passed; see evidence/upload-provider-readback.json"
+    },
+    {
+      "command": "supabase db push --linked --dry-run",
+      "exit": 0,
+      "result": "Linked provider dry-run passed; Remote database is up to date. See evidence/upload-provider-migration-dry-run.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "4 files, 18 tests passed after restoring placeholder upload migration files"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "18 files, 147 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "19 files, 151 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "20 files, 152 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 38 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 36 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "16 files, 115 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-scanning.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 68 tests passed"
+    },
+    {
+      "command": "bunx eslint src/app/api/estimate-row-images/route.ts src/lib/uploads/scanning.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-scanning.test.ts",
+      "exit": 0,
+      "result": "No lint errors for estimate-row privacy, scanner contracts, and route/security tests"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "17 files, 143 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 34 tests passed"
+    },
+    {
+      "command": "node scripts/prove-upload-domain-rls-postgres.mjs",
+      "exit": 0,
+      "result": "Provider proof skipped as expected because ARCH_UPLOAD_DOMAIN_RLS_PROOF is not set; report covers upload_sessions, upload_assets, and upload_events table/RPC boundaries"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-domain-proof-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 1 test passed"
+    },
+    {
+      "command": "bunx eslint src/app/api/component-library/attachments/route.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "No lint errors for attachment download broker slice"
+    },
+    {
+      "command": "bunx eslint src/app/api/component-library/images/route.ts src/app/api/estimate-row-images/route.ts src/components/workshop/estimate-sheet/rows/cells.tsx src/components/workshop/estimate-sheet/rows/editable-row-model.ts src/components/workshop/estimate-sheet/rows/row-table.tsx src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts src/lib/estimates/actions.ts src/lib/component-library/project-component-projection.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/estimate-sheet-actions-authz.test.ts tests/vitest/project-component-projection.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts",
+      "exit": 0,
+      "result": "No lint errors for finality slice; pre-existing projection warnings for unused project-folder helpers remain"
+    },
+    {
+      "command": "node scripts/prove-upload-storage-denial-postgres.mjs",
+      "exit": 0,
+      "result": "Provider proof skipped as expected because ARCH_UPLOAD_STORAGE_PROOF is not set; report covers project-images, component-images, and component-attachments buckets"
+    },
+    {
+      "command": "node scripts/measure-upload-smoke-benchmark.mjs",
+      "exit": 0,
+      "result": "Local Sharp smoke passed; linked provider-readback evidence is tracked separately"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Release-gate, provider-readback, provider-migration-dry-run, and component-image provider-scan JSON parsed successfully"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors"
+    }
+  ]
+}

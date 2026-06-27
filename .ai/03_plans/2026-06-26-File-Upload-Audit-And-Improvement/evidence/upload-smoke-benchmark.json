@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-06-26T18:49:41.691Z",
+  "mode": "upload-smoke-benchmark",
+  "proofBoundary": "local-only",
+  "fullBenchmark": false,
+  "results": [
+    {
+      "label": "smoke-0_25mp-synthetic",
+      "pixels": 262144,
+      "width": 512,
+      "height": 512,
+      "inputBytes": 4503,
+      "metadataFormat": "png",
+      "optimizedBytes": 536,
+      "optimizedWidth": 512,
+      "optimizedHeight": 512,
+      "thumbnailBytes": 536,
+      "thumbnailWidth": 512,
+      "thumbnailHeight": 512,
+      "durationMs": 25,
+      "memoryBefore": {
+        "rssMb": 67,
+        "heapUsedMb": 6,
+        "externalMb": 2
+      },
+      "memoryAfter": {
+        "rssMb": 75,
+        "heapUsedMb": 6,
+        "externalMb": 2
+      },
+      "rssDeltaMb": 8
+    },
+    {
+      "label": "smoke-2mp-synthetic",
+      "pixels": 2000000,
+      "width": 2000,
+      "height": 1000,
+      "inputBytes": 30168,
+      "metadataFormat": "png",
+      "optimizedBytes": 2346,
+      "optimizedWidth": 1600,
+      "optimizedHeight": 800,
+      "thumbnailBytes": 304,
+      "thumbnailWidth": 512,
+      "thumbnailHeight": 256,
+      "durationMs": 62,
+      "memoryBefore": {
+        "rssMb": 75,
+        "heapUsedMb": 6,
+        "externalMb": 2
+      },
+      "memoryAfter": {
+        "rssMb": 104,
+        "heapUsedMb": 6,
+        "externalMb": 2
+      },
+      "rssDeltaMb": 29
+    }
+  ],
+  "totalDurationMs": 87,
+  "passedLocalSmoke": true,
+  "note": "Synthetic local Sharp smoke only. It does not prove hosted memory, request body, route duration, storage latency, or browser upload UX."
+}

@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-06-26T19:13:08.857Z",
+  "mode": "upload-domain-rls-proof",
+  "proofBoundary": "provider-proof-skipped",
+  "passed": false,
+  "skipped": true,
+  "reason": "ARCH_UPLOAD_DOMAIN_RLS_PROOF is not set to 1.",
+  "missingEnv": [],
+  "checkedTables": [
+    "upload_sessions",
+    "upload_assets",
+    "upload_events"
+  ],
+  "note": "Static migration tests do not prove hosted Supabase upload-domain grants, RLS, or RPC behavior. Run with ARCH_UPLOAD_DOMAIN_RLS_PROOF=1 and scoped proof credentials before release."
+}
