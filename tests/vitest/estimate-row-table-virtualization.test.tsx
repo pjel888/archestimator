@@ -68,6 +68,56 @@ describe("estimate row table virtualization", () => {
     expect(bodyRow.querySelectorAll("[data-estimate-cell-index]").length).toBeGreaterThan(0);
   });
 
+  it("hides row and component mutation affordances for read-only viewers", () => {
+    const rows = makeRows(1, "readonly");
+    const rowLabel = rows[0]?.material ?? "readonly Row 1";
+
+    render(
+      <EstimateRowItemsTable
+        canEditEstimate={false}
+        items={rows}
+        editableRows={{}}
+        setEditableRows={noop}
+        targetNodeId="readonly-node"
+        onInsertLibraryItem={noop}
+        onReplaceRowItem={noop}
+        onDeleteRowItem={noop}
+        onUpdateRowItem={noop}
+        onMarkRowDirty={noop}
+        onOpenRowDetails={noop}
+        onClearRowComponent={noop}
+        onRequestProjectSpecific={noop}
+        onPromoteRowToLibrary={noop}
+        onMoveRowComponent={noop}
+        onMoveRowItem={noop}
+        onOpenMoveRowItemDialog={noop}
+        onOpenReplaceComponentPicker={noop}
+        onOpenMoveComponentPicker={noop}
+        selectedRowIds={new Set([rows[0]?.id ?? ""])}
+        onToggleRowSelection={noop}
+        onToggleRowsSelection={noop}
+        virtualization={{ enabled: false }}
+      />
+    );
+
+    expect(screen.queryByRole("checkbox", { name: "Select all estimate row items" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: `Select ${rowLabel}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Move row ${rowLabel}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Delete row ${rowLabel}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Replace component ${rowLabel}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Move component ${rowLabel}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Delete component ${rowLabel}` })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Drag component ${rowLabel}` })).not.toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: `Open row details for ${rowLabel}` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Open row activity for ${rowLabel}` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Open component details for ${rowLabel}` })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: `${rowLabel} quantity` })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: `${rowLabel} contingency percentage` })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: `${rowLabel} adjustment percentage` })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: `${rowLabel} misc cost` })).toBeDisabled();
+  });
+
   it("renders left-edge resize handles in each node table header when column resizing is enabled", () => {
     const surfaceRef = createRef<HTMLElement | null>();
     surfaceRef.current = document.createElement("div");

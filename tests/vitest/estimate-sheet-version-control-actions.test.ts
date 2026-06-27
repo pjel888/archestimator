@@ -190,6 +190,7 @@ function makeAtomicRowSupabase({
   canEditEstimate = true,
   moveRpcData,
   bulkDeleteRpcData,
+  bulkDeleteRpcError = null,
   restoreRpcData,
 }: {
   sourceRowRevision?: number;
@@ -197,6 +198,7 @@ function makeAtomicRowSupabase({
   canEditEstimate?: boolean;
   moveRpcData?: unknown;
   bulkDeleteRpcData?: unknown;
+  bulkDeleteRpcError?: unknown;
   restoreRpcData?: unknown;
 } = {}) {
   const rowQuery = queryResult({
@@ -240,7 +242,7 @@ function makeAtomicRowSupabase({
       if (fn === "delete_estimate_row_items_bulk_with_history") {
         return {
           data: bulkDeleteRpcData ?? { eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 },
-          error: null,
+          error: bulkDeleteRpcError,
         };
       }
       if (fn === "restore_deleted_estimate_rows_with_history") {
@@ -449,6 +451,28 @@ describe("estimate sheet version control server actions", () => {
       expect(error).toBeInstanceOf(Error);
       expect((error as Error).message).toContain("This row changed elsewhere");
     }
+  });
+
+  it("maps structured Supabase row revision conflicts to a stable stale-data error code", async () => {
+    const supabase = makeAtomicRowSupabase({
+      bulkDeleteRpcError: {
+        code: "P0001",
+        message: "estimate row RPC failed",
+        details: "{\"code\":\"estimate_sheet_row_revision_conflict\",\"rowId\":\"row-1\"}",
+      },
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
+
+    await expect(deleteEstimateRowItemsBulk({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowIds: ["source-row", "target-row"],
+      expectedRowRevisions: { "source-row": 1, "target-row": 1 },
+    })).rejects.toMatchObject({
+      name: "EstimateRowRevisionConflictError",
+      code: "estimate_sheet_row_revision_conflict",
+    });
   });
 
   it("shows stale-data copy and actively refetches the active tree on row revision conflicts", () => {

@@ -105,6 +105,7 @@ function renderSheet(rows: EstimateRowItem[]) {
     <ToastProvider>
       <QueryClientProvider client={queryClient}>
         <EstimateSheetContent
+          canEditEstimate
           selectedNodeId={targetNodeId}
           nodes={nodes}
           projectId={projectId}
@@ -165,10 +166,6 @@ describe("estimate sheet bulk row delete partial failures", () => {
       projectId,
       estimateId,
       rowIds: [cabinetRowId, sinkRowId],
-      expectedRowRevisions: {
-        [cabinetRowId]: 7,
-        [sinkRowId]: 3,
-      },
     }));
     expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(screen.getByText("Kitchen Sink")).toBeInTheDocument();

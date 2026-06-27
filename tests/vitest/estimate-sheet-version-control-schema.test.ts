@@ -103,6 +103,19 @@ describe("estimate sheet version control schema", () => {
     expect(centerMutationMigration).not.toMatch(/\bsavepoint\b/i);
   });
 
+  it("fixes bulk row delete event targeting without unsupported uuid aggregates", () => {
+    const bulkDeleteUuidFixMigration = readMigrationBySuffix("_fix_bulk_row_delete_uuid_first_row.sql");
+
+    expect(bulkDeleteUuidFixMigration).toContain("create or replace function public.delete_estimate_row_items_bulk_with_history");
+    expect(bulkDeleteUuidFixMigration).toContain(
+      "(array_agg(row_item.id order by row_item.node_id, row_item.sort_order, row_item.id))[1]",
+    );
+    expect(bulkDeleteUuidFixMigration).not.toContain("min(row_item.id)");
+    expect(bulkDeleteUuidFixMigration).toContain(
+      "grant execute on function public.delete_estimate_row_items_bulk_with_history",
+    );
+  });
+
   it("defines a dedicated row-item reorganization RPC with server-derived auth and order validation", () => {
     expect(rowItemMoveMigration).toContain("create or replace function public.move_estimate_row_item_with_history");
     expect(rowItemMoveMigration).toContain("actor_user_id uuid := auth.uid()");
