@@ -7,7 +7,10 @@ import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
-import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
+import {
+  ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
+  LIBRARY_ITEM_DRAG_MIME_TYPE,
+} from "@/components/workshop/estimate-sheet/rows/constants";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import {
   beginEstimateWorkshopDrag,
@@ -168,6 +171,32 @@ describe("estimate sheet drag-aware drop zones", () => {
 
     act(() => endEstimateWorkshopDrag());
     expect(screen.queryByText("Drag and drop estimate component into Kitchen")).not.toBeInTheDocument();
+  });
+
+  it("clears row move drop zones after a cross-branch row drop", async () => {
+    renderSheet();
+
+    act(() => beginEstimateWorkshopDrag({
+      kind: "estimate-row-item",
+      rowItemId: "kitchen-row-1",
+      rowLabel: "HEMLINGBY Loveseat",
+      sourceNodeId: "kitchen",
+    }));
+
+    const annexDropZoneLabel = screen.getByText("Move row to Annex");
+    const annexDropZone = annexDropZoneLabel.closest(".py-1");
+    expect(annexDropZone).not.toBeNull();
+    expect(screen.getByText("Move row to Kitchen")).toBeInTheDocument();
+
+    const dataTransfer = createDataTransferStub([ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE]);
+    dataTransfer.setData(
+      ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
+      JSON.stringify({ rowItemId: "kitchen-row-1", sourceNodeId: "kitchen", label: "HEMLINGBY Loveseat" }),
+    );
+    fireEvent.drop(annexDropZone as HTMLElement, { dataTransfer });
+
+    expect(screen.queryByText(/^Move row to /)).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Add blank estimate row to Annex" })).toBeInTheDocument();
   });
 
   it("shows component drop zones on collapsed nodes and expands after a drop", async () => {
