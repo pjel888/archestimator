@@ -35,6 +35,8 @@ type EstimateRowItemRow = Pick<
   | "misc_cost"
   | "node_id"
   | "quantity"
+  | "quantity_base"
+  | "quantity_contingency_amount"
   | "row_revision"
   | "sort_order"
   | "source_library_item_id"
@@ -45,7 +47,7 @@ type EstimateRowItemRow = Pick<
 >;
 
 const ESTIMATE_NODE_SELECT = "id, estimate_id, parent_id, kind, name, sort_order";
-const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, metadata, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, row_revision, discipline, designation, link_state";
+const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, metadata, material, description, supplier, unit, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, misc_cost, row_revision, discipline, designation, link_state";
 
 const inMemoryTrees = new Map<string, EstimateTree>();
 
@@ -85,6 +87,8 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
     supplier: row.supplier,
     unit: row.unit,
     quantity: Number(row.quantity),
+    quantityBase: row.quantity_base === null ? null : Number(row.quantity_base),
+    quantityContingencyAmount: row.quantity_base === null ? null : Number(row.quantity_contingency_amount ?? 0),
     unitCost: Number(row.unit_cost),
     contingencyPercentage: Number(row.contingency_percentage),
     miscCost: Number(row.misc_cost),
@@ -109,6 +113,8 @@ function toEstimateRowItemUpdate(row: EstimateRowItem): TablesInsert<"estimate_r
     supplier: row.supplier,
     unit: row.unit,
     quantity: row.quantity,
+    quantity_base: row.quantityBase ?? null,
+    quantity_contingency_amount: row.quantityBase === null || row.quantityBase === undefined ? null : row.quantityContingencyAmount ?? 0,
     unit_cost: row.unitCost,
     contingency_percentage: row.contingencyPercentage ?? 0,
     misc_cost: row.miscCost,

@@ -1841,6 +1841,8 @@ export type Database = {
           misc_cost: number
           node_id: string
           quantity: number
+          quantity_base: number | null
+          quantity_contingency_amount: number | null
           row_revision: number
           sort_order: number
           source_library_item_id: string | null
@@ -1866,6 +1868,8 @@ export type Database = {
           misc_cost?: number
           node_id: string
           quantity?: number
+          quantity_base?: number | null
+          quantity_contingency_amount?: number | null
           row_revision?: number
           sort_order?: number
           source_library_item_id?: string | null
@@ -1891,6 +1895,8 @@ export type Database = {
           misc_cost?: number
           node_id?: string
           quantity?: number
+          quantity_base?: number | null
+          quantity_contingency_amount?: number | null
           row_revision?: number
           sort_order?: number
           source_library_item_id?: string | null
@@ -1971,6 +1977,51 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estimates"
             referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      estimate_sheet_adjustments: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          mode: "contingency" | "discount"
+          percentage: number
+          row_revision: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          mode?: "contingency" | "discount"
+          percentage?: number
+          row_revision?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          mode?: "contingency" | "discount"
+          percentage?: number
+          row_revision?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_sheet_adjustments_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: true
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_adjustments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4516,6 +4567,19 @@ export type Database = {
           target_project_id: string
           target_replacement_payload: Json
           target_row_id: string
+        }
+        Returns: Json
+      }
+      move_estimate_row_item_with_history: {
+        Args: {
+          correlation_id?: string
+          move_updates: Json
+          moved_row_id: string
+          source_node_id: string
+          target_active_tab_id: string | null
+          target_estimate_id: string
+          target_node_id: string
+          target_project_id: string
         }
         Returns: Json
       }

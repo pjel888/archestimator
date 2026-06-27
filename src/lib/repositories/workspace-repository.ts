@@ -5,7 +5,7 @@ import { cookies, headers } from "next/headers";
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
-import type { EstimateRowItem, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
@@ -2556,7 +2556,7 @@ type EstimateTabsReadClient = {
 // column here or the Pick types below fail the build.
 const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id, sort_order";
 const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
-  "id, node_id, material, description, supplier, supplier_id, unit, unit_cost, quantity, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
+  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
 const ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS =
   `${ESTIMATE_TREE_NODE_COLUMNS}, estimate_row_items!estimate_row_items_node_id_fkey(${ESTIMATE_TREE_ROW_ITEM_COLUMNS})` as const;
 
@@ -2565,6 +2565,7 @@ export type EstimateTreeRowItemQueryRow = Pick<
   EstimateRowItemRow,
   | "id"
   | "node_id"
+  | "sort_order"
   | "material"
   | "description"
   | "supplier"
@@ -2572,6 +2573,8 @@ export type EstimateTreeRowItemQueryRow = Pick<
   | "unit"
   | "unit_cost"
   | "quantity"
+  | "quantity_base"
+  | "quantity_contingency_amount"
   | "contingency_percentage"
   | "misc_cost"
   | "row_revision"
@@ -2594,6 +2597,7 @@ type LiveEstimateTreeResult = {
   estimate: Tables<"estimates"> | null;
   selectedNodeId: string | null;
   tree: EstimateTreeNode[];
+  sheetAdjustment?: EstimateSheetAdjustment;
   loadLimitState?: LiveEstimateTreeLoadLimitState;
 };
 
@@ -2622,7 +2626,7 @@ type LiveEstimateTreeLoadLimitState = {
 type LiveEstimateTabTreeResult = LiveEstimateTreeResult & {
   tab: EstimateTabSummary | null;
 };
-type EstimateTabTreePayload = Pick<LiveEstimateTabTreeResult, "estimate" | "selectedNodeId" | "tree" | "loadLimitState">;
+type EstimateTabTreePayload = Pick<LiveEstimateTabTreeResult, "estimate" | "selectedNodeId" | "tree" | "sheetAdjustment" | "loadLimitState">;
 
 type LiveEstimateNodeSubtreeResult = LiveEstimateTreeResult & {
   tab: EstimateTabSummary | null;
@@ -2643,6 +2647,7 @@ type EstimateNodeRouteContextRpcPayload = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects">;
   estimate: EstimateRecordWithLegacy;
+  sheetAdjustment: EstimateSheetAdjustment;
   selectedNodeId: string;
   selectedTabId: string;
   tabs: EstimateTabSummary[];
@@ -2702,13 +2707,71 @@ function readEmbeddedEstimateTabs(estimate: EstimateRecordWithProject): Estimate
     .map(toEstimateTabSummary);
 }
 
+function createDefaultEstimateSheetAdjustment(estimateId: string): EstimateSheetAdjustment {
+  return {
+    estimateId,
+    mode: "contingency",
+    percentage: 0,
+    rowRevision: 0,
+    updatedAt: undefined,
+    updatedBy: null,
+  };
+}
+
+function toEstimateSheetAdjustment(row: Tables<"estimate_sheet_adjustments">): EstimateSheetAdjustment {
+  return {
+    estimateId: row.estimate_id,
+    mode: row.mode,
+    percentage: Number(row.percentage ?? 0),
+    rowRevision: row.row_revision,
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by,
+  };
+}
+
+function readRouteEstimateSheetAdjustment(value: unknown, estimateId: string): EstimateSheetAdjustment {
+  if (value === null || value === undefined) return createDefaultEstimateSheetAdjustment(estimateId);
+  const row = readRouteRpcObject(value, "sheetAdjustment", "estimate_node_route_context");
+  const mode = row.mode === "discount" ? "discount" : "contingency";
+  return {
+    estimateId: assertRpcString(row.estimate_id ?? row.estimateId ?? estimateId, "sheetAdjustment.estimate_id"),
+    mode,
+    percentage: assertRpcNumber(row.percentage, "sheetAdjustment.percentage"),
+    rowRevision: assertRpcNumber(row.row_revision ?? row.rowRevision ?? 0, "sheetAdjustment.row_revision"),
+    updatedAt: assertRpcOptionalString(row.updated_at ?? row.updatedAt, "sheetAdjustment.updated_at") ?? undefined,
+    updatedBy: assertRpcOptionalString(row.updated_by ?? row.updatedBy, "sheetAdjustment.updated_by"),
+  };
+}
+
+async function readOptionalEstimateSheetAdjustment(
+  supabase: WorkspaceSupabaseClient,
+  estimateId: string,
+): Promise<EstimateSheetAdjustment> {
+  const { data, error } = await supabase
+    .from("estimate_sheet_adjustments")
+    .select("*")
+    .eq("estimate_id", estimateId)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingOptionalCollaborationTable(error)) return createDefaultEstimateSheetAdjustment(estimateId);
+    throw error;
+  }
+
+  return data ? toEstimateSheetAdjustment(data) : createDefaultEstimateSheetAdjustment(estimateId);
+}
+
 function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const quantity = Number(row.quantity);
+  const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
+  const quantityContingencyAmount = quantityBase === null ? null : Number(row.quantity_contingency_amount ?? 0);
   const itemCost = Number(row.unit_cost);
-  const contingencyPercentage = Number(row.contingency_percentage ?? 0);
   const miscCost = Number(row.misc_cost);
   const subTotal = itemCost * quantity;
-  const contingencyValue = (subTotal * contingencyPercentage) / 100;
+  const contingencyPercentage = quantityBase === null
+    ? Number(row.contingency_percentage ?? 0)
+    : quantityBase > 0 ? ((quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0;
+  const contingencyValue = quantityBase === null ? (subTotal * contingencyPercentage) / 100 : 0;
   const sourceSnapshot = readJsonRecord(row.source_snapshot);
   const metadata = readJsonRecord(row.metadata);
   const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
@@ -2725,6 +2788,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
 
   return {
     id: row.id,
+    sortOrder: row.sort_order,
     material: row.material,
     laborUnitCost,
     scopeStatus,
@@ -2735,6 +2799,8 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     unit: row.unit,
     itemCost,
     quantity,
+    quantityBase,
+    quantityContingencyAmount,
     subTotal,
     contingencyPercentage,
     contingencyValue,
@@ -2831,6 +2897,7 @@ function assertRouteEstimateRowItemRow(value: Record<string, unknown>, path: str
   return {
     id: assertRpcString(value.id, `${path}.id`),
     node_id: assertRpcString(value.node_id, `${path}.node_id`),
+    sort_order: assertRpcNumber(value.sort_order, `${path}.sort_order`),
     material: assertRpcString(value.material, `${path}.material`),
     description: assertRpcString(value.description, `${path}.description`),
     supplier: assertRpcString(value.supplier, `${path}.supplier`),
@@ -2838,6 +2905,8 @@ function assertRouteEstimateRowItemRow(value: Record<string, unknown>, path: str
     unit: assertRpcString(value.unit, `${path}.unit`),
     unit_cost: assertRpcNumber(value.unit_cost, `${path}.unit_cost`),
     quantity: assertRpcNumber(value.quantity, `${path}.quantity`),
+    quantity_base: assertRpcOptionalNumber(value.quantity_base, `${path}.quantity_base`),
+    quantity_contingency_amount: assertRpcOptionalNumber(value.quantity_contingency_amount, `${path}.quantity_contingency_amount`),
     contingency_percentage: assertRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
     misc_cost: assertRpcNumber(value.misc_cost, `${path}.misc_cost`),
     row_revision: assertRpcNumber(value.row_revision, `${path}.row_revision`),
@@ -2871,10 +2940,12 @@ export function parseEstimateNodeRouteContextRpcPayload(value: unknown): Estimat
   const payload = readRouteRpcObject(value, source, source);
   const selectedTabId = assertRpcOptionalString(payload.selectedTabId, "selectedTabId");
   if (!selectedTabId) return null;
+  const estimate = assertRouteEstimateRecord(readRouteRpcObject(payload.estimate, "estimate", source), "estimate");
   return {
     workspace: assertWorkspaceRecord(readRouteRpcObject(payload.workspace, "workspace", source), "workspace"),
     project: assertProjectListRecord(readRouteRpcObject(payload.project, "project", source), "project"),
-    estimate: assertRouteEstimateRecord(readRouteRpcObject(payload.estimate, "estimate", source), "estimate"),
+    estimate,
+    sheetAdjustment: readRouteEstimateSheetAdjustment(payload.sheetAdjustment, estimate.id),
     selectedNodeId: assertRpcString(payload.selectedNodeId, "selectedNodeId"),
     selectedTabId,
     tabs: readRouteRpcArray(payload.tabs, "tabs", source, assertRouteEstimateTabRow).map(toEstimateTabSummary),
@@ -2991,9 +3062,10 @@ async function getProjectEstimateTreeByEstimateLegacy(
   const nodesQuery = supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
   const rowsQuery = supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
 
-  const [nodesResult, rowsResult] = await Promise.all([
+  const [nodesResult, rowsResult, sheetAdjustment] = await Promise.all([
     maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
     maxRowItemCount ? rowsQuery.limit(maxRowItemCount + 1) : rowsQuery,
+    readOptionalEstimateSheetAdjustment(supabase, estimate.id),
   ]);
 
   if (nodesResult.error) throw nodesResult.error;
@@ -3016,7 +3088,7 @@ async function getProjectEstimateTreeByEstimateLegacy(
   const nodes = limitedNodes.rows;
   const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
   const tree = buildEstimateTree(nodes, limitedRows.rows);
-  return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
+  return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree, sheetAdjustment, loadLimitState };
 }
 
 /**
@@ -3374,9 +3446,12 @@ async function readEstimateTabTreePayloadForResolvedTabId(
     .eq("estimate_tab_id", tabId)
     .order("sort_order", { ascending: true })
     .order("sort_order", { referencedTable: "estimate_row_items", ascending: true });
-  const nodesResult = await traced("estimate-tab-tree.nodes-with-rows", async () =>
-    maxNodeCount ? tabScopedNodesQuery.limit(maxNodeCount + 1) : tabScopedNodesQuery,
-  );
+  const [nodesResult, sheetAdjustment] = await Promise.all([
+    traced("estimate-tab-tree.nodes-with-rows", async () =>
+      maxNodeCount ? tabScopedNodesQuery.limit(maxNodeCount + 1) : tabScopedNodesQuery,
+    ),
+    readOptionalEstimateSheetAdjustment(supabase, estimate.id),
+  ]);
 
   if (nodesResult.error) throw nodesResult.error;
 
@@ -3402,6 +3477,7 @@ async function readEstimateTabTreePayloadForResolvedTabId(
     estimate: normalizeEstimateRecord(stripEstimateProjectJoin(estimate)),
     selectedNodeId: tree[0]?.id ?? null,
     tree,
+    sheetAdjustment,
     loadLimitState,
   };
 }
@@ -3558,6 +3634,7 @@ async function loadEstimateNodeRouteContextRpcPath(
       workspace: payload.workspace,
       project: payload.project,
       estimate: normalizeEstimateRecord(payload.estimate),
+      sheetAdjustment: payload.sheetAdjustment,
       tab: selectedTab,
       selectedNodeId: selectedTab ? payload.selectedNodeId : null,
       tree: selectedTab ? tree : [],
@@ -3606,6 +3683,7 @@ export type LiveEstimateTreesForTabsResult = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects"> | null;
   estimate: Tables<"estimates"> | null;
+  sheetAdjustment?: EstimateSheetAdjustment;
   tabs: LiveEstimateTabTree[];
   loadLimitState?: LiveEstimateTreeLoadLimitState;
 };
@@ -3678,7 +3756,10 @@ export async function getEstimateTreesForTabs(
     .eq("estimate_id", estimate.id)
     .in("estimate_tab_id", tabIds)
     .order("sort_order", { ascending: true });
-  const nodesResult = maxNodeCount ? await nodesQuery.limit(maxNodeCount + 1) : await nodesQuery;
+  const [nodesResult, sheetAdjustment] = await Promise.all([
+    maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
+    readOptionalEstimateSheetAdjustment(supabase, estimate.id),
+  ]);
   if (nodesResult.error) throw nodesResult.error;
   const rawNodes = (nodesResult.data ?? []) as Array<EstimateTreeNodeQueryRow & { estimate_tab_id: string | null }>;
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
@@ -3712,6 +3793,7 @@ export async function getEstimateTreesForTabs(
     workspace,
     project,
     estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy),
+    sheetAdjustment,
     tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows),
     loadLimitState,
   };
@@ -3732,6 +3814,7 @@ export async function getProjectEstimateTreeByEstimate(
       estimate: result.estimate,
       selectedNodeId: result.selectedNodeId,
       tree: result.tree,
+      sheetAdjustment: result.sheetAdjustment,
       loadLimitState: result.loadLimitState,
     };
   } catch (error) {
