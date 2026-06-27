@@ -48,6 +48,7 @@ grep, don't linear-read).
 - Provider readback confirms `component-images.public=false`, the named public read policy is absent, and no remaining `storage.objects` policies reference `component-images`. Evidence lives in `.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-private-bucket-readback.json`.
 - Local migration history is aligned to the Supabase connector ledger as `supabase/migrations/20260627010904_20260627120000_make_component_images_private.sql` because the connector assigned provider version `20260627010904` while preserving the planned local name.
 - Release gates now include `UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-BUCKET-READBACK`; the privacy blocker remains only for direct unauthenticated object read-denial operation proof and a non-empty publication snapshot migration exercise.
+- Fresh evidence: focused private-bucket/readiness/release-gate matrix passed (`6 files / 15 tests`), expanded upload matrix passed (`25 files / 163 tests`), `supabase db push --linked --dry-run` reported `Remote database is up to date.`, five-artifact JSON parse passed, `bunx tsc --noEmit --pretty false`, scoped ESLint, and `git diff --check`.
 
 **Upload provider portability has local S3-like multipart and asset-descriptor parity coverage (2026-06-27):**
 
