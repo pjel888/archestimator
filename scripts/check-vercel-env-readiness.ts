@@ -30,6 +30,31 @@ const INVITE_DELIVERY_ENV_NAMES = [
   "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
 ] as const;
 
+const SCHEDULED_JOB_ENV_NAMES = [
+  "CRON_SECRET",
+] as const;
+
+const UPLOAD_OPERATIONS_ALERT_ENV_NAMES = [
+  "UPLOAD_OPERATIONS_ALERTS_ENABLED",
+  "UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL",
+  "UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN",
+] as const;
+
+const HOSTED_UPLOAD_RUNTIME_PROOF_ENV_NAMES = [
+  "UPLOAD_RUNTIME_PROOF_SECRET",
+  "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+  "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+  "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+  "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+  "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS",
+] as const;
+
+const LIVE_UPLOAD_SCANNER_ENV_NAMES = [
+  "UPLOAD_SCAN_PROVIDER",
+  "UPLOAD_CLAMD_HOST",
+  "UPLOAD_CLAMD_PORT",
+] as const;
+
 type EnvGroupResult = {
   required: string[];
   present: string[];
@@ -45,7 +70,12 @@ export type VercelEnvReadinessResult = {
   coreClosedBetaRuntime: EnvGroupResult;
   emailDelivery: EnvGroupResult;
   inviteDelivery: EnvGroupResult;
+  scheduledJobs: EnvGroupResult;
+  uploadOperationsAlerts: EnvGroupResult;
+  hostedUploadRuntimeProof: EnvGroupResult;
+  liveUploadScanner: EnvGroupResult;
   vercelEnvReady: boolean;
+  uploadProductionProofReady: boolean;
   note: string;
 };
 
@@ -75,6 +105,10 @@ export function checkVercelEnvReadiness(input: string, source = "provided-text")
   const coreClosedBetaRuntime = evaluateGroup(CORE_CLOSED_BETA_ENV_NAMES, discoveredNames);
   const emailDelivery = evaluateGroup(EMAIL_DELIVERY_ENV_NAMES, discoveredNames);
   const inviteDelivery = evaluateGroup(INVITE_DELIVERY_ENV_NAMES, discoveredNames);
+  const scheduledJobs = evaluateGroup(SCHEDULED_JOB_ENV_NAMES, discoveredNames);
+  const uploadOperationsAlerts = evaluateGroup(UPLOAD_OPERATIONS_ALERT_ENV_NAMES, discoveredNames);
+  const hostedUploadRuntimeProof = evaluateGroup(HOSTED_UPLOAD_RUNTIME_PROOF_ENV_NAMES, discoveredNames);
+  const liveUploadScanner = evaluateGroup(LIVE_UPLOAD_SCANNER_ENV_NAMES, discoveredNames);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -84,8 +118,16 @@ export function checkVercelEnvReadiness(input: string, source = "provided-text")
     coreClosedBetaRuntime,
     emailDelivery,
     inviteDelivery,
-    vercelEnvReady: coreClosedBetaRuntime.ready,
-    note: "Vercel env readiness checks variable names only. It does not read or prove secret values, callback URL correctness, provider dashboard configuration, delivery, rollback, or hosted auth behavior.",
+    scheduledJobs,
+    uploadOperationsAlerts,
+    hostedUploadRuntimeProof,
+    liveUploadScanner,
+    vercelEnvReady: coreClosedBetaRuntime.ready && scheduledJobs.ready,
+    uploadProductionProofReady: scheduledJobs.ready
+      && uploadOperationsAlerts.ready
+      && hostedUploadRuntimeProof.ready
+      && liveUploadScanner.ready,
+    note: "Vercel env readiness checks variable names only. It does not read or prove secret values, callback URL correctness, provider dashboard configuration, scheduled job execution, alert delivery, live scanner reachability, hosted runtime limits, rollback, or hosted auth behavior.",
   };
 }
 

@@ -1,0 +1,410 @@
+{
+  "id": "TARGET-ROUTE-SMOKE-PARTIAL-001",
+  "date": "2026-06-27T09:47:14.032Z",
+  "environment": "local-browser-provider-fixture",
+  "browser": "chromium",
+  "routeLoaded": true,
+  "editedFieldsPersisted": true,
+  "moveDialogPersisted": true,
+  "reloadPersistenceVerified": true,
+  "coveredSmokeSteps": [
+    1,
+    2,
+    10,
+    11
+  ],
+  "partiallyCoveredSmokeSteps": [
+    9
+  ],
+  "openSmokeSteps": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    12,
+    13
+  ],
+  "route": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+  "reloadRoute": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/e7d38627-651c-4994-b277-78d2486d55f6",
+  "movedRowId": "5d425ac1-a84d-4fea-bea0-f81bb1239da7",
+  "targetNodeId": "e7d38627-651c-4994-b277-78d2486d55f6",
+  "inlineFieldsAvailable": false,
+  "finalPersistedRow": {
+    "id": "5d425ac1-a84d-4fea-bea0-f81bb1239da7",
+    "node_id": "e7d38627-651c-4994-b277-78d2486d55f6",
+    "sort_order": 1,
+    "row_revision": 5,
+    "quantity": 3,
+    "material": "E2E movable row mqw6erl1",
+    "description": "E2E movable row mqw6erl1 browser fixture",
+    "misc_cost": 123,
+    "adjustment_percentage": 5
+  },
+  "finalPersistedRows": [
+    {
+      "id": "5f5401b8-5782-43fd-8a84-c46b5333db51",
+      "node_id": "9efba138-e9dd-4136-b450-4f978977f6fb",
+      "sort_order": 0,
+      "row_revision": 2,
+      "quantity": 1
+    },
+    {
+      "id": "2865fd88-ab2d-4991-8425-f8865c8c517c",
+      "node_id": "e7d38627-651c-4994-b277-78d2486d55f6",
+      "sort_order": 0,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "5d425ac1-a84d-4fea-bea0-f81bb1239da7",
+      "node_id": "e7d38627-651c-4994-b277-78d2486d55f6",
+      "sort_order": 1,
+      "row_revision": 5,
+      "quantity": 3
+    }
+  ],
+  "editCheckpoints": [
+    {
+      "label": "quantity-before",
+      "inputValue": "1",
+      "rowMutationStatus": null,
+      "rowMutationLabel": null,
+      "persistedRow": {
+        "id": "5d425ac1-a84d-4fea-bea0-f81bb1239da7",
+        "node_id": "9efba138-e9dd-4136-b450-4f978977f6fb",
+        "sort_order": 0,
+        "row_revision": 1,
+        "quantity": 1,
+        "material": "E2E movable row mqw6erl1",
+        "description": "E2E movable row mqw6erl1 browser fixture",
+        "misc_cost": 0,
+        "adjustment_percentage": 0
+      },
+      "sameOriginPostRequestCount": 1,
+      "sameOriginPostResponseCount": 0,
+      "activeElement": {
+        "tagName": "BODY",
+        "ariaLabel": null,
+        "rowId": null,
+        "cellIndex": null
+      }
+    },
+    {
+      "label": "quantity-after-enter",
+      "inputValue": "3",
+      "rowMutationStatus": "pending",
+      "rowMutationLabel": "Saving row changes",
+      "persistedRow": {
+        "id": "5d425ac1-a84d-4fea-bea0-f81bb1239da7",
+        "node_id": "9efba138-e9dd-4136-b450-4f978977f6fb",
+        "sort_order": 0,
+        "row_revision": 1,
+        "quantity": 1,
+        "material": "E2E movable row mqw6erl1",
+        "description": "E2E movable row mqw6erl1 browser fixture",
+        "misc_cost": 0,
+        "adjustment_percentage": 0
+      },
+      "sameOriginPostRequestCount": 1,
+      "sameOriginPostResponseCount": 0,
+      "activeElement": {
+        "tagName": "BODY",
+        "ariaLabel": null,
+        "rowId": null,
+        "cellIndex": null
+      }
+    }
+  ],
+  "sameOriginPostRequests": [
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/e7d38627-651c-4994-b277-78d2486d55f6",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    }
+  ],
+  "sameOriginPostResponses": [
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"rowId\":\"5d425ac1-a84d-4fea-bea0-f81bb1239da7\",\"nodeId\":\"9efba138-e9dd-4136-b450-4f978977f6fb\",\"material\":\"E2E movable row mqw6erl1\",\"description\":\"E2E movable row mqw6erl1 browser fixture\",\"supplier\":\"E2E Supplier\",\"unit\":\"pc\",\"quantity\":3,\"quantityBase\":null,\"quantityContingencyAmount\":null,\"itemCost\":100,\"contingencyPercentage\":0,\"contingencyValue\":0,\"adjustmentPercentage\":0,\"adjustmentValue\":0,\"miscCost\":0,\"sourceSnapshot\":null,\"metadata\":{\"e2e\":true,\"source\":\"estimate-row-fixture\"},\"linkState\":\"unlinked\",\"rowRevision\":2}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"rowId\":\"5d425ac1-a84d-4fea-bea0-f81bb1239da7\",\"nodeId\":\"9efba138-e9dd-4136-b450-4f978977f6fb\",\"material\":\"E2E movable row mqw6erl1\",\"description\":\"E2E movable row mqw6erl1 browser fixture\",\"supplier\":\"E2E Supplier\",\"unit\":\"pc\",\"quantity\":3,\"quantityBase\":null,\"quantityContingencyAmount\":null,\"itemCost\":100,\"contingencyPercentage\":0,\"contingencyValue\":0,\"adjustmentPercentage\":5,\"adjustmentValue\":15,\"miscCost\":0,\"sourceSnapshot\":null,\"metadata\":{\"e2e\":true,\"source\":\"estimate-row-fixture\"},\"linkState\":\"unlinked\",\"rowRevision\":3}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"rowId\":\"5d425ac1-a84d-4fea-bea0-f81bb1239da7\",\"nodeId\":\"9efba138-e9dd-4136-b450-4f978977f6fb\",\"material\":\"E2E movable row mqw6erl1\",\"description\":\"E2E movable row mqw6erl1 browser fixture\",\"supplier\":\"E2E Supplier\",\"unit\":\"pc\",\"quantity\":3,\"quantityBase\":null,\"quantityContingencyAmount\":null,\"itemCost\":100,\"contingencyPercentage\":0,\"contingencyValue\":0,\"adjustmentPercentage\":5,\"adjustmentValue\":15,\"miscCost\":123,\"sourceSnapshot\":null,\"metadata\":{\"e2e\":true,\"source\":\"estimate-row-fixture\"},\"linkState\":\"unlinked\",\"rowRevision\":4}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"eventId\":\"25baf939-52a5-46db-accf-53ef5e3ecd47\",\"updatedRowCount\":2,\"rows\":[{\"rowId\":\"5f5401b8-5782-43fd-8a84-c46b5333db51\",\"nodeId\":\"9efba138-e9dd-4136-b450-4f978977f6fb\",\"sortOrder\":0,\"rowRevision\":2},{\"rowId\":\"2865fd88-ab2d-4991-8425-f8865c8c517c\",\"nodeId\":\"e7d38627-651c-4994-b277-78d2486d55f6\",\"sortOrder\":0,\"rowRevision\":1},{\"rowId\":\"5d425ac1-a84d-4fea-bea0-f81bb1239da7\",\"nodeId\":\"e7d38627-651c-4994-b277-78d2486d55f6\",\"sortOrder\":1,\"rowRevision\":5}]}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/ab66c99b-a5f6-4a20-b508-7750373d4a60/estimates/9efba138-e9dd-4136-b450-4f978977f6fb",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": null,
+      "textError": "Timed out reading response body",
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    }
+  ],
+  "sameOriginPostFailures": [],
+  "browserConsoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": []
+}

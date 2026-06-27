@@ -368,6 +368,10 @@ function tableLocator(page: Page, nodeId: string) {
   return page.locator(`[data-estimate-row-table-root="${nodeId}"]`).first();
 }
 
+function rowMoveHandle(page: Page, rowId: string, material: string) {
+  return rowLocator(page, rowId).getByRole("button", { name: `Move row ${material}` });
+}
+
 async function dragRowHandleToTargetRow({
   sourceHandle,
   targetRow,
@@ -415,9 +419,8 @@ test.describe("estimate row move browser proof", () => {
       await expect(tableLocator(page, fixture.targetNodeId)).toBeVisible({ timeout: 30_000 });
       await expect(rowLocator(page, fixture.movedRowId)).toBeVisible();
       await expect(rowLocator(page, fixture.targetExistingRowId)).toBeVisible();
-      await expect(page.locator(`[data-estimate-row-id="${fixture.movedRowId}"] [data-estimate-row-move-action]`).first()).toBeVisible();
 
-      const movedHandle = rowLocator(page, fixture.movedRowId).locator("[data-estimate-row-move-action]").first();
+      const movedHandle = rowMoveHandle(page, fixture.movedRowId, fixture.movedMaterial);
       const targetRow = rowLocator(page, fixture.targetExistingRowId);
       await expect(movedHandle).toBeVisible();
       await expect(movedHandle).toHaveAttribute("draggable", "true");

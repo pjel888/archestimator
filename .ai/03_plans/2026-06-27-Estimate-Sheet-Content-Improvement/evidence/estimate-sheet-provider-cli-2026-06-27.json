@@ -1,0 +1,54 @@
+{
+  "id": "PROVIDER-ESTIMATE-SHEET-2026-06-27",
+  "date": "2026-06-27",
+  "environment": "linked-supabase-provider",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "sanitized": true,
+  "commands": [
+    {
+      "command": "supabase migration list --linked",
+      "exitCode": 0,
+      "result": "Local and remote ledgers matched through 20260627145000_fix_row_history_wrapper_delegate_names.sql."
+    },
+    {
+      "command": "supabase db push --linked --dry-run",
+      "exitCode": 0,
+      "result": "Remote database is up to date."
+    },
+    {
+      "command": "supabase db lint --linked",
+      "exitCode": 0,
+      "result": "No new row-history wrapper unused-variable warnings. Remaining output is known existing PL/pgSQL temp-table static-analysis noise and unrelated unused-parameter warnings."
+    }
+  ],
+  "appliedMigrations": [
+    "20260627130000_harden_estimate_sheet_versions_rls.sql",
+    "20260627140000_harden_latest_estimate_mutation_rpc_authz.sql",
+    "20260627141000_harden_estimate_sheet_adjustment_writes.sql",
+    "20260627142000_fix_restore_version_copy_wrapper.sql",
+    "20260627143000_drop_unsafe_restore_version_copy_backup.sql",
+    "20260627144000_remove_unused_row_history_wrapper_variables.sql",
+    "20260627145000_fix_row_history_wrapper_delegate_names.sql"
+  ],
+  "ownerAuthenticatedRowUpdateProbe": {
+    "ok": true,
+    "beforeQuantity": 1,
+    "afterQuantity": 7,
+    "beforeRevision": 1,
+    "afterRevision": 2,
+    "hasCanonicalRow": true,
+    "resultRowQuantity": 7,
+    "resultRowRevision": 2
+  },
+  "claimsProved": [
+    "Provider migration ledger is aligned for the estimate-sheet hardening migrations.",
+    "Provider dry-run reports no pending estimate-sheet migration drift.",
+    "Authenticated owner RPC update path can persist a canonical row quantity change and increments row revision."
+  ],
+  "notClaimed": [
+    "staging deployment proof",
+    "production deployment proof",
+    "hosted route smoke",
+    "full manual action-matrix smoke"
+  ]
+}

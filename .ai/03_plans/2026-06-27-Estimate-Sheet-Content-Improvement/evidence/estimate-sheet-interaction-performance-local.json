@@ -1,0 +1,50 @@
+{
+  "id": "BENCH-DND-003",
+  "date": "2026-06-27T09:50:12.622Z",
+  "environment": "local-browser-provider-fixture",
+  "browser": "chromium",
+  "rowCount": 3,
+  "nodeCount": 3,
+  "warmup": 0,
+  "sampleCount": 21,
+  "hoverP95": 0.8,
+  "hoverWorst": 14.4,
+  "dropToDomMs": 63.2,
+  "ackMs": 753,
+  "sameOriginPostRequestCount": 4,
+  "serverActionRequestCount": 4,
+  "rowMoveMutationRequestCount": 1,
+  "postRequests": [
+    {
+      "pathname": "/workshop/projects/6d3ad85f-5dd2-40a1-bb67-01f7a4850968/estimates/ef5c2ea9-da0b-4a8d-bcdf-df21300e0472",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/6d3ad85f-5dd2-40a1-bb67-01f7a4850968/estimates/ef5c2ea9-da0b-4a8d-bcdf-df21300e0472",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/6d3ad85f-5dd2-40a1-bb67-01f7a4850968/estimates/ef5c2ea9-da0b-4a8d-bcdf-df21300e0472",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/6d3ad85f-5dd2-40a1-bb67-01f7a4850968/estimates/ef5c2ea9-da0b-4a8d-bcdf-df21300e0472",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    }
+  ],
+  "activeDragCleared": true,
+  "budgets": {
+    "hoverP95": 16,
+    "dropToDomMs": 100,
+    "ackMs": 1500,
+    "rowMoveMutationRequestCount": 1
+  }
+}

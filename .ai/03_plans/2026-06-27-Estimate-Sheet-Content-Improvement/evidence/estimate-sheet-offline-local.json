@@ -1,0 +1,126 @@
+{
+  "id": "BENCH-QUEUE-003",
+  "date": "2026-06-27T09:46:25.637Z",
+  "environment": "local-browser-provider-fixture",
+  "browser": "chromium",
+  "pendingVisibleMs": 99,
+  "failureVisibleMs": 104,
+  "draftPreserved": true,
+  "persistedWhileOffline": 1,
+  "retryCount": 1,
+  "retryAckMs": 2811,
+  "finalPersistedQuantity": 8,
+  "checkpoints": [
+    {
+      "label": "after-fill-7",
+      "inputValue": "7",
+      "rowMutationStatus": null,
+      "navigatorOnline": true,
+      "persistedQuantity": 1,
+      "sameOriginPostRequestCount": 1,
+      "sameOriginPostFailureCount": 0
+    },
+    {
+      "label": "after-set-offline",
+      "inputValue": "7",
+      "rowMutationStatus": null,
+      "navigatorOnline": false,
+      "persistedQuantity": 1,
+      "sameOriginPostRequestCount": 6,
+      "sameOriginPostFailureCount": 5
+    },
+    {
+      "label": "after-offline-failed",
+      "inputValue": "7",
+      "rowMutationStatus": "failed",
+      "navigatorOnline": false,
+      "persistedQuantity": 1,
+      "sameOriginPostRequestCount": 6,
+      "sameOriginPostFailureCount": 5
+    }
+  ],
+  "sameOriginPostRequests": [
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "hasNextAction": true
+    }
+  ],
+  "sameOriginPostFailures": [
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_INTERNET_DISCONNECTED",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_INTERNET_DISCONNECTED",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_INTERNET_DISCONNECTED",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_INTERNET_DISCONNECTED",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_INTERNET_DISCONNECTED",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_ABORTED",
+      "hasNextAction": true
+    },
+    {
+      "pathname": "/workshop/projects/065587c5-fc92-49a7-91c5-0fc0276dc87d/estimates/5dcdb09d-1ab8-4d55-a45e-7b88d22b246e",
+      "failureText": "net::ERR_ABORTED",
+      "hasNextAction": true
+    }
+  ],
+  "budgets": {
+    "pendingVisibleMs": 100,
+    "failureVisibleMs": 500,
+    "retryAckMs": 10000
+  }
+}

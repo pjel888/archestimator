@@ -21,7 +21,12 @@ const landingAllowlist = new Set([
 // Public auth routes share the landing/public brand surface, not the compact
 // app/workshop tool surface. Keep this path-scoped so dashboard/workshop rules
 // do not silently weaken elsewhere.
-const landingAllowlistPrefixes = ["src/components/landing/", "src/components/auth/", "src/components/frontdoor/"];
+const landingAllowlistPrefixes = [
+  "src/components/landing/",
+  "src/components/landing-v3/",
+  "src/components/auth/",
+  "src/components/frontdoor/",
+];
 // The public /share proposal surface is a documented "Client Portal" exception: it is
 // allowed a larger type scale (label floor 12px, prose body ~15-16px) than the compact
 // app/workshop system. It is EXEMPT ONLY from the three px-threshold rules
@@ -48,9 +53,19 @@ const allowedBorderRadiusValues = new Set([
   "var(--glass-nav-radius)",
   // Dashboard bento image/hub cards alias the 12px glass radius via this token.
   "var(--image-card-radius)",
+  // Project cards use a documented two-layer glass radius system that is
+  // asserted by project-card layout tests.
+  "var(--project-card-base-radius)",
+  "var(--project-card-inner-radius)",
   // `inherit` is not a magic radius — it adopts the parent surface's corner so
   // pseudo-element overlays (grain, scrims) match the card they sit on.
   "inherit",
+]);
+const allowedRoundedClassTokens = new Set([
+  "rounded-xs",
+  "rounded-[var(--project-card-base-radius)]",
+  "rounded-[var(--project-card-inner-radius)]",
+  "rounded-b-[var(--project-card-inner-radius)]",
 ]);
 const ignoredDirs = new Set(["node_modules", ".next", ".git"]);
 const scannedExtensions = new Set([".tsx", ".ts", ".jsx", ".js", ".css"]);
@@ -243,9 +258,9 @@ export function collectFileViolations(rel, text) {
       }
     }
 
-    for (const match of line.matchAll(/(?:^|[\s"'`])((?:[a-z0-9_-]+:)*!?rounded(?:-[^\s"'`{}),]+)?)/g)) {
+    for (const match of line.matchAll(/(?:^|[\s"'`])((?:[a-z0-9_-]+:)*!?rounded(?:-[^\s"'`{},]+)?)/g)) {
       const base = normalizedClassToken(match[1]);
-      if (base !== "rounded-xs") {
+      if (!allowedRoundedClassTokens.has(base)) {
         fileViolations.push(`${rel}:${index + 1} uses ${match[1]}. App border radius must be rounded-xs only.`);
       }
     }
@@ -278,13 +293,17 @@ export function collectFileViolations(rel, text) {
 }
 
 /** Validate the required design tokens in globals.css. */
+function normalizeCssValue(value) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
 export function collectGlobalsViolations(globalsCss) {
   const out = [];
   for (const [name, expectedValue] of requiredGlobals) {
     const re = new RegExp(`${name}\\s*:\\s*([^;]+);`);
     const match = globalsCss.match(re);
-    const actualValue = match?.[1]?.trim();
-    if (actualValue?.toLowerCase() !== expectedValue.toLowerCase()) {
+    const actualValue = match?.[1] ? normalizeCssValue(match[1]) : undefined;
+    if (actualValue?.toLowerCase() !== normalizeCssValue(expectedValue).toLowerCase()) {
       out.push(`src/app/globals.css requires ${name}: ${expectedValue}; found ${actualValue ?? "missing"}`);
     }
   }

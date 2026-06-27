@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-06-27T08:25:02.176Z",
+  "note": "Local jsdom render/keystroke budget proof. Not a production Chrome trace; use browser benchmarks for frame-timing claims.",
+  "budgets": {
+    "keystrokeMsAvgMax": 16,
+    "keystrokeMsWorstMax": 50,
+    "otherTableRendersTotalMax": 0
+  },
+  "profiles": [
+    {
+      "scenario": "sheet-50",
+      "rowCount": 50,
+      "areaCount": 5,
+      "initialRenderMs": 247.7,
+      "keystrokes": 10,
+      "keystrokeMsAvg": 6.24,
+      "keystrokeMsWorst": 8.85,
+      "editedTableRenders": 9,
+      "otherTableRendersTotal": 0,
+      "otherTableCount": 4
+    },
+    {
+      "scenario": "sheet-200",
+      "rowCount": 200,
+      "areaCount": 10,
+      "initialRenderMs": 402.75,
+      "keystrokes": 10,
+      "keystrokeMsAvg": 2.19,
+      "keystrokeMsWorst": 2.81,
+      "editedTableRenders": 9,
+      "otherTableRendersTotal": 0,
+      "otherTableCount": 9
+    },
+    {
+      "scenario": "sheet-500",
+      "rowCount": 500,
+      "areaCount": 10,
+      "initialRenderMs": 1047.16,
+      "keystrokes": 10,
+      "keystrokeMsAvg": 12.17,
+      "keystrokeMsWorst": 16.68,
+      "editedTableRenders": 9,
+      "otherTableRendersTotal": 0,
+      "otherTableCount": 9
+    }
+  ]
+}

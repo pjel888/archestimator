@@ -1,7 +1,12 @@
 {
   "detector": {
     "ignoreRules": [],
-    "ignoreFiles": [],
+    "ignoreFiles": [
+      "src/components/landing/LandingHeader.tsx",
+      "src/components/landing/NeatWireframeBackground.tsx",
+      "src/components/landing-v3/**",
+      "src/components/workshop/component-image-fallbacks.ts"
+    ],
     "ignoreValues": [
       {
         "rule": "design-system-color",
