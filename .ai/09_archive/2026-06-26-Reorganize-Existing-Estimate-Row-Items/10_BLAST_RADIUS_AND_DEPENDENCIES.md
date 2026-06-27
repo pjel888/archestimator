@@ -29,7 +29,7 @@
 | `tests/vitest/estimate-row-table-virtualization.test.tsx` | Virtualized row table remains bounded |
 | `tests/vitest/estimate-sheet-actions-authz.test.ts` | Server action authorization and validation |
 | `tests/vitest/estimate-tree-drag-over-perf.test.ts` | Tree dragover budget remains acceptable |
-| `e2e/estimate-row-drop-to-branch.spec.ts` | Mandatory focused browser geometry proof before release |
+| `e2e/estimate-row-move.spec.ts` | Mandatory focused browser geometry proof before release |
 
 ## Dependency Position
 
