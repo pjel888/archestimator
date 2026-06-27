@@ -1326,17 +1326,19 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(row as HTMLElement).getByText("₱ 1,100.00")).toBeInTheDocument();
   });
 
-  it("clamps out-of-range contingency before saving the row", async () => {
+  it("clamps out-of-range quantity contingency before saving the row", async () => {
     const user = userEvent.setup();
     actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
-      quantity: 2,
-      quantityBase: null,
-      quantityContingencyAmount: null,
+      quantity: 4,
+      quantityBase: 2,
+      quantityContingencyAmount: 2,
       itemCost: 100,
       contingencyPercentage: 100,
-      contingencyValue: 200,
+      contingencyValue: 0,
+      adjustmentPercentage: 0,
+      adjustmentValue: 0,
       miscCost: 10,
       linkState: "linked-overridden",
       rowRevision: 8,
@@ -1355,18 +1357,19 @@ describe("estimate sheet library insertion persistence", () => {
     const input = actionMocks.updateEstimateRowItem.mock.calls[0]?.[0];
     expect(input).toEqual(expect.objectContaining({
       rowId: cabinetRowId,
+      quantity: 4,
+      quantityBase: 2,
+      quantityContingencyAmount: 2,
       contingencyPercentage: 100,
       expectedRowRevision: 7,
     }));
     expect(input).not.toEqual(expect.objectContaining({
-      quantity: expect.any(Number),
-      quantityBase: expect.anything(),
-      quantityContingencyAmount: expect.anything(),
+      adjustmentPercentage: expect.any(Number),
     }));
-    expect(contingencyInput.value).toBe("100");
+    expect(contingencyInput.value).toBe("+100");
   });
 
-  it("saves row contingency percentage edits as row adjustments", async () => {
+  it("saves signed row adjustment percentage edits after subtotal", async () => {
     const user = userEvent.setup();
     actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
       rowId: cabinetRowId,
@@ -1375,8 +1378,10 @@ describe("estimate sheet library insertion persistence", () => {
       quantityBase: null,
       quantityContingencyAmount: null,
       itemCost: 100,
-      contingencyPercentage: 10,
-      contingencyValue: 20,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      adjustmentPercentage: -10,
+      adjustmentValue: -20,
       miscCost: 10,
       linkState: "linked-overridden",
       rowRevision: 8,
@@ -1384,26 +1389,27 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet contingency percentage") as HTMLInputElement;
+    const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
 
     await user.click(adjustmentInput);
     await user.clear(adjustmentInput);
-    await user.type(adjustmentInput, "10");
+    await user.type(adjustmentInput, "-10");
     await user.tab();
 
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
     const input = actionMocks.updateEstimateRowItem.mock.calls[0]?.[0];
     expect(input).toEqual(expect.objectContaining({
       rowId: cabinetRowId,
-      contingencyPercentage: 10,
+      adjustmentPercentage: -10,
       expectedRowRevision: 7,
     }));
     expect(input).not.toEqual(expect.objectContaining({
       quantity: expect.any(Number),
       quantityBase: expect.anything(),
       quantityContingencyAmount: expect.anything(),
+      contingencyPercentage: expect.any(Number),
     }));
     expect(within(kitchenSection).queryByLabelText("Kitchen Cabinet adjustment type")).not.toBeInTheDocument();
-    expect(adjustmentInput.value).toBe("10");
+    expect(adjustmentInput.value).toBe("-10");
   });
 });

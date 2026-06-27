@@ -19,15 +19,15 @@ describe("estimate sheet column model", () => {
       "material",
       "quantity",
       "contingency",
-      "discount",
       "subTotal",
+      "adjustment",
       "miscCost",
       "totalItemCosts",
       "actions",
     ]);
-    expect(DEFAULT_ESTIMATE_COLUMN_TEMPLATE).toBe("36px 32px minmax(160px,1fr) 58px 92px 86px 92px 92px 108px 30px");
+    expect(DEFAULT_ESTIMATE_COLUMN_TEMPLATE).toBe("36px 32px minmax(160px,1fr) 58px 92px 92px 92px 92px 108px 30px");
     expect(ESTIMATE_COLUMN_TEMPLATE).toBe(
-      "36px 32px minmax(var(--est-col-material, 160px), 1fr) var(--est-col-quantity, 58px) var(--est-col-contingency, 92px) var(--est-col-discount, 86px) var(--est-col-subTotal, 92px) var(--est-col-miscCost, 92px) var(--est-col-totalItemCosts, 108px) 30px",
+      "36px 32px minmax(var(--est-col-material, 160px), 1fr) var(--est-col-quantity, 58px) var(--est-col-contingency, 92px) var(--est-col-subTotal, 92px) var(--est-col-adjustment, 92px) var(--est-col-miscCost, 92px) var(--est-col-totalItemCosts, 108px) 30px",
     );
   });
 
@@ -36,8 +36,8 @@ describe("estimate sheet column model", () => {
       "material",
       "quantity",
       "contingency",
-      "discount",
       "subTotal",
+      "adjustment",
       "miscCost",
       "totalItemCosts",
     ]);
@@ -46,8 +46,8 @@ describe("estimate sheet column model", () => {
       "--est-col-material",
       "--est-col-quantity",
       "--est-col-contingency",
-      "--est-col-discount",
       "--est-col-subTotal",
+      "--est-col-adjustment",
       "--est-col-miscCost",
       "--est-col-totalItemCosts",
     ]);
@@ -65,8 +65,8 @@ describe("estimate sheet column model", () => {
       "--est-col-material": "240px",
       "--est-col-quantity": "74px",
       "--est-col-contingency": "92px",
-      "--est-col-discount": "86px",
       "--est-col-subTotal": "92px",
+      "--est-col-adjustment": "92px",
       "--est-col-miscCost": "92px",
       "--est-col-totalItemCosts": "108px",
     });

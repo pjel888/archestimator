@@ -48,7 +48,8 @@ describe("ProjectTotalHeader", () => {
     expect(meter).toHaveAttribute("aria-valuenow", "0");
     expect(meter).toHaveAttribute("aria-valuetext", "No estimate cost yet");
     expect(header.querySelectorAll("[data-budget-health-segment]")).toHaveLength(144);
-    expect(header.querySelector("[data-budget-health-segment]")).toHaveClass("aspect-square", "h-1.5", "w-1.5", "shrink-0");
+    expect(header.querySelector("[data-budget-health-meter]")).toHaveClass("h-2", "gap-px");
+    expect(header.querySelector("[data-budget-health-segment]")).toHaveClass("h-full", "min-w-0", "flex-1");
     expect(header.querySelectorAll('[data-budget-health-segment-active="true"]')).toHaveLength(0);
   });
 
@@ -99,7 +100,7 @@ describe("ProjectTotalHeader", () => {
     expect(activeColors[Math.floor(activeColors.length / 2)]).not.toBe(activeColors[activeColors.length - 1]);
   });
 
-  it("turns over-budget cost red and fills the heatmap through the red zone", () => {
+  it("keeps the heatmap within budget and renders over-budget cost as red-to-maroon", () => {
     renderProjectTotalHeader();
 
     act(() => dispatchProjectTotalChange(1_250_000));
@@ -107,8 +108,9 @@ describe("ProjectTotalHeader", () => {
     const header = screen.getByLabelText("Estimate running totals");
     const health = header.querySelector("[data-budget-health-state]");
     const meter = within(header).getByRole("meter", { name: "Budget health" });
-    const activeSegments = header.querySelectorAll('[data-budget-health-segment-active="true"]');
+    const activeSegments = Array.from(header.querySelectorAll('[data-budget-health-segment-active="true"]'));
     const lastActiveSegment = activeSegments[activeSegments.length - 1];
+    const firstOverrunSegment = activeSegments.find((segment) => segment.getAttribute("data-budget-health-segment-tone") === "overbudget");
 
     expect(health).toHaveAttribute("data-budget-health-state", "danger");
     expect(within(header).getByText("₱ 250K over · 125% used")).toHaveClass("text-[#C86161]");
@@ -117,7 +119,34 @@ describe("ProjectTotalHeader", () => {
     expect(meter).toHaveAttribute("aria-valuemax", "125");
     expect(meter).toHaveAttribute("aria-valuetext", "₱ 250,000.00 over · 125% used");
     expect(activeSegments).toHaveLength(144);
-    expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-tone", "red");
+    expect(firstOverrunSegment).toHaveAttribute("data-budget-health-segment-color", "#d66364");
+    expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-tone", "maroon");
+    expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-color", "#7b1b32");
+  });
+
+  it("compresses the budget heatmap to its proportional share during severe overrun", () => {
+    renderProjectTotalHeader();
+
+    act(() => dispatchProjectTotalChange(10_740_000));
+
+    const header = screen.getByLabelText("Estimate running totals");
+    const activeSegments = Array.from(header.querySelectorAll('[data-budget-health-segment-active="true"]'));
+    const heatmapSegments = activeSegments.filter((segment) => {
+      const tone = segment.getAttribute("data-budget-health-segment-tone");
+      return tone !== "overbudget" && tone !== "maroon";
+    });
+    const overrunSegments = activeSegments.filter((segment) => {
+      const tone = segment.getAttribute("data-budget-health-segment-tone");
+      return tone === "overbudget" || tone === "maroon";
+    });
+
+    expect(within(header).getByText("₱ 9.74M over · 1074% used")).toHaveClass("text-[#C86161]");
+    expect(activeSegments).toHaveLength(144);
+    expect(heatmapSegments).toHaveLength(13);
+    expect(overrunSegments).toHaveLength(131);
+    expect(heatmapSegments[0]).not.toHaveAttribute("data-budget-health-segment-tone", "overbudget");
+    expect(overrunSegments[0]).toHaveAttribute("data-budget-health-segment-tone", "overbudget");
+    expect(activeSegments[activeSegments.length - 1]).toHaveAttribute("data-budget-health-segment-tone", "maroon");
   });
 
   it("shows a missing-budget state instead of fake variance when no planned budget exists", () => {
@@ -134,10 +163,9 @@ describe("ProjectTotalHeader", () => {
     expect(meter).toHaveAttribute("aria-valuetext", "Add planned budget to track variance");
     expect(header.querySelectorAll("[data-budget-health-segment]")).toHaveLength(144);
     const activeSegments = header.querySelectorAll('[data-budget-health-segment-active="true"]');
-    const lastActiveSegment = activeSegments[activeSegments.length - 1];
 
-    expect(activeSegments).toHaveLength(144);
-    expect(lastActiveSegment).toHaveAttribute("data-budget-health-segment-tone", "missing");
+    expect(activeSegments).toHaveLength(0);
+    expect(header.querySelector("[data-budget-health-segment]")).toHaveAttribute("data-budget-health-segment-tone", "inactive");
   });
 
   it("does not render on non-estimate project routes", () => {

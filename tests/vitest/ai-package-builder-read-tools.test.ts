@@ -1551,6 +1551,7 @@ describe("AI package-builder read tools", () => {
             unitCost: 9_000,
             miscCost: 500,
             contingencyPercentage: 10,
+            adjustmentPercentage: 10,
             total: 10_400,
           },
         ],

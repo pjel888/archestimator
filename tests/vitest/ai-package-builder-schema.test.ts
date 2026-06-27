@@ -148,6 +148,19 @@ describe("AI package-builder schemas", () => {
     const draft = parsePackageBuilderDraft(validDraft);
     expect(validatePackageBuilderDraft(draft)).toEqual({ valid: true, errors: [] });
     expect(draft.brief).toMatchObject({ bedrooms: 3, targetBudget: 5_000_000, currencyCode: "PHP" });
+
+    const signedAdjustmentDraft = parsePackageBuilderDraft({
+      ...validDraft,
+      rowDraft: [
+        {
+          ...validDraft.rowDraft[0],
+          contingencyPercentage: -7,
+        },
+      ],
+    });
+    expect(signedAdjustmentDraft.rowDraft[0]?.contingencyPercentage).toBe(-7);
+    expect(signedAdjustmentDraft.rowDraft[0]?.adjustmentPercentage).toBe(-7);
+    expect(validatePackageBuilderDraft(signedAdjustmentDraft)).toEqual({ valid: true, errors: [] });
   });
 
   it("accepts a confirmation-gated component-library creation draft", () => {
@@ -428,7 +441,7 @@ describe("AI package-builder schemas", () => {
           patch: {
             quantity: 2,
             miscCost: 1_500,
-            contingencyPercentage: 12,
+            contingencyPercentage: -12,
           },
           warnings: ["Review row update before Apply."],
           applyEligible: true,
@@ -447,6 +460,7 @@ describe("AI package-builder schemas", () => {
     });
 
     expect(validatePackageBuilderDraft(updateDraft)).toEqual({ valid: true, errors: [] });
+    expect(updateDraft.rowUpdateDraft?.[0]?.patch).toMatchObject({ adjustmentPercentage: -12 });
 
     const invalidCreateDraft = parsePackageBuilderDraft({
       ...updateDraft,
@@ -549,7 +563,7 @@ describe("AI package-builder schemas", () => {
       unit: "pc",
       unitCost: 18_000,
       miscCost: 0,
-      contingencyPercentage: 0,
+      adjustmentPercentage: -8,
       category: "Furniture",
       categoryPath: ["Objects", "Furniture"],
       supplierId: null,
@@ -594,7 +608,13 @@ describe("AI package-builder schemas", () => {
       },
     });
 
-    expect(replacementDraft.rowReplacementDraft).toEqual([rowReplacementDraft]);
+    expect(replacementDraft.rowReplacementDraft).toEqual([
+      expect.objectContaining({
+        ...rowReplacementDraft,
+        contingencyPercentage: -8,
+        adjustmentPercentage: -8,
+      }),
+    ]);
     expect(validatePackageBuilderDraft(replacementDraft)).toEqual({ valid: true, errors: [] });
 
     const invalidCreateDraft = parsePackageBuilderDraft({
@@ -789,7 +809,7 @@ describe("AI package-builder schemas", () => {
       unit: "lot",
       unitCost: 30_000,
       miscCost: 2_000,
-      contingencyPercentage: 5,
+      adjustmentPercentage: -5,
       warnings: ["Review the template row before Apply; it is copied from a reusable template preview."],
       applyEligible: true,
       sourceSnapshot: {
@@ -841,7 +861,13 @@ describe("AI package-builder schemas", () => {
       },
     });
 
-    expect(copyDraft.templateRowCopyDraft).toEqual([templateRowCopyDraft]);
+    expect(copyDraft.templateRowCopyDraft).toEqual([
+      expect.objectContaining({
+        ...templateRowCopyDraft,
+        contingencyPercentage: -5,
+        adjustmentPercentage: -5,
+      }),
+    ]);
     expect(validatePackageBuilderDraft(copyDraft)).toEqual({ valid: true, errors: [] });
 
     const invalidCreateDraft = parsePackageBuilderDraft({

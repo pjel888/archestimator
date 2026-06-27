@@ -309,7 +309,7 @@ describe("AI package-builder draft assembly", () => {
         patch: {
           quantity: 2,
           miscCost: 1_500,
-          contingencyPercentage: 12,
+          adjustmentPercentage: 12,
         },
       }),
     ]);

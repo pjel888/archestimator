@@ -11,7 +11,7 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     const tabsSource = source("src/components/ui/tabs.tsx");
 
     expect(tabsSource).toContain("const panelId = idBase ? `${idBase}-panel-${tab.id}` : `tabpanel-${tab.id}`;");
-    expect(tabsSource).toContain("aria-controls={panelId}");
+    expect(tabsSource).toContain("aria-controls={controlsPanels ? panelId : undefined}");
     expect(tabsSource).toContain("id={tabId}");
   });
 
@@ -20,7 +20,7 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     const treeSource = source("src/components/workshop/component-library/tree/LibraryTree.tsx");
 
     expect(sidebarSource).toContain('activeLibraryTreeAriaLabel = isProjectTab ? "Project sources" : "Library sources"');
-    expect(sidebarSource).toContain('activeSourceScopeLabel = projectId === "hero-sanitized-project" ? "" : isProjectTab ? "Project" : "Library"');
+    expect(sidebarSource).toContain('activeSourceScopeLabel = isProjectTab || projectId === "hero-sanitized-project" ? "" : "Library"');
     expect(sidebarSource).toContain("treeAriaLabel={activeLibraryTreeAriaLabel}");
     expect(sidebarSource).toContain("sourceScopeLabel={activeSourceScopeLabel}");
     expect(treeSource).toContain("SourceTrustChips");

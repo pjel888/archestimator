@@ -41,6 +41,7 @@ function readMigrationBySuffix(suffix: string) {
 const nodeDeleteUndoMigration = readMigrationBySuffix("_estimate_node_delete_undo_rpc.sql");
 const rowItemMoveMigration = readMigrationBySuffix("_estimate_row_item_move_rpc.sql");
 const quantityContingencyMigration = readMigrationBySuffix("_quantity_contingency_and_sheet_adjustments.sql");
+const signedQuantityAdjustmentMigration = readMigrationBySuffix("_signed_quantity_and_row_adjustments.sql");
 
 describe("estimate sheet version control schema", () => {
   it("adds append-only events, named versions, row revisions, and safety indexes", () => {
@@ -178,6 +179,50 @@ describe("estimate sheet version control schema", () => {
     expect(discountMigration).toContain("drop constraint if exists estimate_row_items_contingency_percentage_check");
     expect(discountMigration).toContain("check (contingency_percentage >= -100 and contingency_percentage <= 100)");
     expect(discountMigration).toContain("drop constraint if exists estimate_template_row_items_contingency_percentage_check");
+  });
+
+  it("migrates row discounts into signed adjustments and makes contingency quantity-side only", () => {
+    expect(signedQuantityAdjustmentMigration).toContain("add column if not exists adjustment_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("set adjustment_percentage = contingency_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("where quantity_base is null");
+    expect(signedQuantityAdjustmentMigration).toContain("alter table public.estimate_template_row_items");
+    expect(signedQuantityAdjustmentMigration).toContain("update public.estimate_template_row_items");
+    expect(signedQuantityAdjustmentMigration).toContain("add constraint estimate_template_row_items_adjustment_percentage_range");
+    expect(signedQuantityAdjustmentMigration).toContain("drop constraint estimate_row_items_quantity_contingency_nonnegative");
+    expect(signedQuantityAdjustmentMigration).toContain("add constraint estimate_row_items_signed_quantity_contingency");
+    expect(signedQuantityAdjustmentMigration).toContain("quantity_base + coalesce(quantity_contingency_amount, 0) >= 0");
+    expect(signedQuantityAdjustmentMigration).toContain("add constraint estimate_row_items_adjustment_percentage_range");
+    expect(signedQuantityAdjustmentMigration).toContain("check (adjustment_percentage >= -100 and adjustment_percentage <= 100)");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.estimate_row_adjustment_value");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.estimate_row_payload_adjustment_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.estimate_row_contingency_value");
+    expect(signedQuantityAdjustmentMigration).toContain("select 0;");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.insert_estimate_row_item_with_history");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.replace_estimate_row_item_with_history");
+    expect(signedQuantityAdjustmentMigration).toContain("adjustment_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("public.estimate_row_payload_adjustment_percentage(row_payload, 0)");
+    expect(signedQuantityAdjustmentMigration).toContain("public.estimate_row_payload_adjustment_percentage(replacement_payload, row_item.adjustment_percentage)");
+    expect(signedQuantityAdjustmentMigration).toContain("'adjustmentPercentage', row_item.adjustment_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("'adjustmentValue', public.estimate_row_adjustment_value(row_item)");
+    expect(signedQuantityAdjustmentMigration).toContain("adjustment_percentage = case when row_patch ? 'adjustmentPercentage'");
+    expect(signedQuantityAdjustmentMigration).toContain("'adjustmentPercentage'");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.project_estimate_list_summaries(target_project_id uuid)");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.project_estimate_list_summaries_for_estimates");
+    expect(signedQuantityAdjustmentMigration).toContain("r.quantity * r.unit_cost * coalesce(r.adjustment_percentage, 0) / 100");
+    expect(signedQuantityAdjustmentMigration).toContain("row_item.adjustment_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.insert_estimate_template_into_estimate(");
+    expect(signedQuantityAdjustmentMigration).toContain("adjustment_percentage,\n    misc_cost");
+    expect(signedQuantityAdjustmentMigration).toContain("restore_deleted_estimate_rows_with_history_quantity_legacy");
+    expect(signedQuantityAdjustmentMigration).toContain("restore_deleted_estimate_nodes_with_history_quantity_legacy");
+    expect(signedQuantityAdjustmentMigration).toContain("create or replace function public.apply_restored_estimate_row_adjustments");
+    expect(signedQuantityAdjustmentMigration).toContain("public.estimate_restore_snapshot_adjustment_percentage(row_snapshot)");
+    expect(signedQuantityAdjustmentMigration).toContain("insert_estimate_subtree_into_estimate_quantity_legacy");
+    expect(signedQuantityAdjustmentMigration).toContain("source_row.adjustment_percentage");
+    expect(signedQuantityAdjustmentMigration).toContain("revoke all on function public.estimate_node_route_context");
+    expect(signedQuantityAdjustmentMigration).toContain("grant execute on function public.estimate_node_route_context");
+    expect(signedQuantityAdjustmentMigration).toContain("revoke execute on function public.estimate_row_adjustment_value(public.estimate_row_items) from public, anon");
+    expect(signedQuantityAdjustmentMigration).toContain("revoke execute on function public.estimate_row_payload_adjustment_percentage(jsonb, numeric) from public, anon");
+    expect(signedQuantityAdjustmentMigration).toContain("grant execute on function public.project_estimate_list_summaries(uuid) to authenticated");
   });
 
   it("persists quantity add-ons and sheet-level adjustments through row RPCs, snapshots, and route context", () => {

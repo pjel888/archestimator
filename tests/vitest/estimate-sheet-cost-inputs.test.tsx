@@ -372,7 +372,8 @@ describe("estimate sheet cost inputs", () => {
     const livingAreaSection = screen.getByLabelText("Living Area");
     const materialHeader = within(livingAreaSection).getByRole("columnheader", { name: "Materials" });
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Contingency" })).toBeInTheDocument();
-    expect(within(livingAreaSection).getByRole("columnheader", { name: "Discount" })).toBeInTheDocument();
+    expect(within(livingAreaSection).getByRole("columnheader", { name: "Adjustment" })).toBeInTheDocument();
+    expect(within(livingAreaSection).queryByRole("columnheader", { name: "Discount" })).not.toBeInTheDocument();
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
     expect(materialHeader.querySelector("[data-estimate-material-header-rail='true']")).toHaveClass("w-[3px]", "bg-divider");
     expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
@@ -380,66 +381,68 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
     expect(
       within(livingAreaSection)
-        .getByRole("row", { name: /Materials Qty Contingency Discount Subtotal Misc Cost Total Item Cost/ })
+        .getByRole("row", { name: /Materials Qty Contingency Subtotal Adjustment Misc Cost Total Item Cost/ })
         .querySelector("svg"),
     ).toBeNull();
   });
 
-  it("centers subtotal, contingency, discount, and misc cost row values", () => {
+  it("centers subtotal, contingency, adjustment, and misc cost row values", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const subtotalCell = within(livingAreaSection).getByText("₱ 57,600.00").closest("td");
     const contingencyInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring contingency percentage");
     const contingencyCell = contingencyInput.closest("td");
-    const discountInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring discount percentage");
-    const discountCell = discountInput.closest("td");
+    const adjustmentInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    const adjustmentCell = adjustmentInput.closest("td");
     const miscCostInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring misc cost");
 
     expect(subtotalCell).toHaveClass("justify-center");
     expect(contingencyCell).toHaveClass("relative", "justify-center");
-    expect(discountCell).toHaveClass("relative", "justify-center");
+    expect(adjustmentCell).toHaveClass("relative", "justify-center");
     expect(screen.queryByLabelText("Hardwood Oak Flooring adjustment type")).not.toBeInTheDocument();
     expect(contingencyInput).toHaveClass("text-right");
-    expect(discountInput).toHaveClass("text-right");
+    expect(adjustmentInput).toHaveClass("text-right");
     expect(contingencyInput).toHaveClass("h-5");
-    expect(discountInput).toHaveClass("h-5");
+    expect(adjustmentInput).toHaveClass("h-5");
     expect(within(contingencyCell as HTMLElement).getAllByText("%")).toHaveLength(1);
-    expect(within(contingencyCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
-    expect(within(discountCell as HTMLElement).getAllByText("%")).toHaveLength(1);
-    expect(within(discountCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
+    expect(within(contingencyCell as HTMLElement).getByText("0 sqm")).toHaveClass("text-center", "text-[8px]");
+    expect(within(adjustmentCell as HTMLElement).getAllByText("%")).toHaveLength(1);
+    expect(within(adjustmentCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
     expect(miscCostInput.closest("td")).toHaveClass("justify-center");
     expect(miscCostInput).toHaveClass("text-center");
   });
 
-  it("applies row contingency percentage edits as a row adjustment", async () => {
+  it("converts row contingency percentage edits into quantity adjustments", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
-    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
-    await user.clear(adjustmentInput);
-    await user.type(adjustmentInput, "10");
+    const contingencyInput = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
+    await user.clear(contingencyInput);
+    await user.type(contingencyInput, "+10");
     await user.tab();
 
-    await screen.findByText("₱ 5,760.00");
+    await screen.findByText("+4.8 sqm");
     expect(screen.getByText("₱ 93,360.00")).toBeInTheDocument();
-    expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveValue("48");
+    expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveValue("48 + 4.8");
   });
 
-  it("applies row discount percentage edits as a row adjustment", async () => {
+  it("applies signed row adjustment percentage edits to subtotal without changing quantity", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
     expect(screen.queryByLabelText("Hardwood Oak Flooring adjustment type")).not.toBeInTheDocument();
-    const discountInput = screen.getByLabelText("Hardwood Oak Flooring discount percentage");
-    await user.clear(discountInput);
-    await user.type(discountInput, "10");
+    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    await user.click(adjustmentInput);
+    await user.clear(adjustmentInput);
+    await user.type(adjustmentInput, "-10");
     await user.tab();
 
     await screen.findByText("-₱ 5,760.00");
     expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
-    expect(screen.getByLabelText("Hardwood Oak Flooring contingency percentage")).toHaveValue(0);
-    expect(discountInput).toHaveValue(10);
+    expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveValue("48");
+    expect(screen.getByLabelText("Hardwood Oak Flooring contingency percentage")).toHaveValue("0");
+    expect(adjustmentInput).toHaveValue("-10");
   });
 
   it("keeps area breadcrumbs as a compact node-body trail", () => {
@@ -568,7 +571,7 @@ describe("estimate sheet cost inputs", () => {
     });
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    await waitFor(() => expect(within(kitchenSection).getAllByRole("spinbutton").length).toBeGreaterThan(0));
+    await within(kitchenSection).findByLabelText("HEMLINGBY Loveseat quantity");
   });
 
   it("opens command palette and inserts into the selected area from the keyboard", async () => {
@@ -610,7 +613,7 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(firstQuantity);
     await user.keyboard("{ArrowRight}{ArrowRight}");
-    expect(screen.getByLabelText("Hardwood Oak Flooring discount percentage")).toHaveFocus();
+    expect(screen.getByLabelText("Hardwood Oak Flooring adjustment percentage")).toHaveFocus();
 
     await user.keyboard("{ArrowRight}");
     expect(screen.getByLabelText("Hardwood Oak Flooring misc cost")).toHaveFocus();

@@ -70,8 +70,18 @@ describe("quantity contingency row model", () => {
       contingencyPercentage: 0,
       hasContingency: true,
     });
+    expect(parseQuantityExpression("100 - 20")).toMatchObject({
+      isValid: true,
+      baseQuantity: 100,
+      contingencyAmount: -20,
+      totalQuantity: 80,
+      contingencyPercentage: -20,
+      hasContingency: true,
+      hasContingencyExpression: true,
+      expression: "100 - 20",
+    });
 
-    for (const invalid of ["100++20", "+20", "100+", "1e2+20", "100,000+20", "100-20"]) {
+    for (const invalid of ["100++20", "+20", "100+", "1e2+20", "100,000+20", "20-100"]) {
       expect(parseQuantityExpression(invalid).isValid, invalid).toBe(false);
     }
   });
@@ -93,13 +103,38 @@ describe("quantity contingency row model", () => {
     });
   });
 
-  it("converts an edited contingency percentage into a quantity add-on patch", () => {
+  it("does not coerce a negative quantity adjustment into a percentage discount", () => {
+    const item = row();
+    const parsed = parseEditableQuantityExpression(item, "100-20");
+
+    expect(parsed).toEqual({
+      ok: true,
+      patch: {
+        quantity: "80",
+        quantityExpression: "100 - 20",
+        quantityBase: "100",
+        quantityContingencyAmount: "-20",
+        contingencyMode: "discount",
+        contingencyPercentage: "20",
+      },
+    });
+  });
+
+  it("converts an edited signed contingency percentage into a quantity adjustment patch", () => {
     expect(buildEditableQuantityContingencyPercentagePatch("100", "20")).toEqual({
       quantity: "120",
       quantityExpression: "100 + 20",
       quantityBase: "100",
       quantityContingencyAmount: "20",
       contingencyMode: "contingency",
+      contingencyPercentage: "20",
+    });
+    expect(buildEditableQuantityContingencyPercentagePatch("100", "-20")).toEqual({
+      quantity: "80",
+      quantityExpression: "100 - 20",
+      quantityBase: "100",
+      quantityContingencyAmount: "-20",
+      contingencyMode: "discount",
       contingencyPercentage: "20",
     });
 
@@ -113,12 +148,14 @@ describe("quantity contingency row model", () => {
     });
   });
 
-  it("keeps legacy rows on percentage-as-money math when no quantity base is stored", () => {
+  it("maps legacy row money contingency into the subtotal adjustment field", () => {
     const item = row();
     const editable = getInitialEditableRow(item);
 
     expect(editable.quantityBase).toBe("");
     expect(editable.quantityContingencyAmount).toBe("");
+    expect(editable.contingencyPercentage).toBe("0");
+    expect(editable.adjustmentPercentage).toBe("10");
     expect(computeEditableRowTotal(item, { [item.id]: editable })).toBe(225);
   });
 
