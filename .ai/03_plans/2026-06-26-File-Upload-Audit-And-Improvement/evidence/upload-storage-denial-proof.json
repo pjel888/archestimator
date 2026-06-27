@@ -1,24 +1,214 @@
 {
-  "generatedAt": "2026-06-27T01:35:33.651Z",
+  "generatedAt": "2026-06-27T01:36:41.146Z",
   "mode": "upload-storage-denial-proof",
   "proofBoundary": "linked-provider",
   "passed": false,
   "skipped": false,
   "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
   "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "authStrategy": "temporary-user",
+  "pathWorkspaceSource": "generated-uuid",
+  "pathUserSource": "temporary-auth-user",
+  "temporaryUserDeleted": true,
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "DATABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      "ARCHESTIMATOR_DEV_AUTH_EMAIL",
+      "DEEPSEEK_API_KEY",
+      "RESEND_API_KEY",
+      "NEXT_PUBLIC_CLARITY_PROJECT_ID",
+      "NEXT_PUBLIC_GA_MEASUREMENT_ID",
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+      "NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED",
+      "GOOGLE_MAPS_API_KEY"
+    ]
+  },
   "checkedBuckets": [
     "project-images",
     "component-images",
     "component-attachments"
   ],
-  "authStrategy": "temporary-user",
-  "setupErrors": [
-    "Temporary auth user create failed: Internal Server Error"
+  "checks": [
+    {
+      "label": "project-images:anon-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "project-images:authenticated-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "project-images:wrong-prefix-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "project-images:anon-direct-update",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "project-images:authenticated-direct-update",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "project-images:anon-direct-download",
+      "denied": true,
+      "errorMessage": "Object not found",
+      "statusCode": "404"
+    },
+    {
+      "label": "project-images:authenticated-direct-download",
+      "denied": true,
+      "errorMessage": "Object not found",
+      "statusCode": "404"
+    },
+    {
+      "label": "project-images:anon-direct-delete",
+      "denied": false,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "project-images:authenticated-direct-delete",
+      "denied": false,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:anon-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-images:authenticated-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-images:wrong-prefix-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-images:anon-direct-update",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-images:authenticated-direct-update",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-images:anon-direct-download",
+      "denied": true,
+      "errorMessage": "Object not found",
+      "statusCode": "404"
+    },
+    {
+      "label": "component-images:authenticated-direct-download",
+      "denied": true,
+      "errorMessage": "Object not found",
+      "statusCode": "404"
+    },
+    {
+      "label": "component-images:anon-direct-delete",
+      "denied": false,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:authenticated-direct-delete",
+      "denied": false,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-attachments:anon-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-attachments:authenticated-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-attachments:wrong-prefix-direct-insert",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-attachments:anon-direct-update",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-attachments:authenticated-direct-update",
+      "denied": true,
+      "errorMessage": "new row violates row-level security policy",
+      "statusCode": "403"
+    },
+    {
+      "label": "component-attachments:anon-direct-download",
+      "denied": true,
+      "errorMessage": "Object not found",
+      "statusCode": "404"
+    },
+    {
+      "label": "component-attachments:authenticated-direct-download",
+      "denied": true,
+      "errorMessage": "Object not found",
+      "statusCode": "404"
+    },
+    {
+      "label": "component-attachments:anon-direct-delete",
+      "denied": false,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-attachments:authenticated-direct-delete",
+      "denied": false,
+      "errorMessage": null,
+      "statusCode": null
+    }
   ],
-  "checks": [],
   "failedChecks": [
-    "temporary-auth-session"
+    "project-images:anon-direct-delete",
+    "project-images:authenticated-direct-delete",
+    "component-images:anon-direct-delete",
+    "component-images:authenticated-direct-delete",
+    "component-attachments:anon-direct-delete",
+    "component-attachments:authenticated-direct-delete"
   ],
   "cleanupErrors": [],
-  "note": "Provider proof could not create a temporary authenticated session for direct storage denial checks."
+  "note": "Provider proof only covers direct Supabase Storage operations for upload buckets. It does not prove app route behavior, scanner status, or browser UX."
 }
