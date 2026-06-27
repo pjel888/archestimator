@@ -6,12 +6,17 @@ import {
 /** Recomputes a row's derived money fields from its base values. */
 export function recomputeTemplateRow(item: EstimateRowItem): EstimateRowItem {
   const subTotal = item.itemCost * item.quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, item.contingencyPercentage ?? 0);
+  const contingencyValue = 0;
+  const legacyAdjustmentPercentage = item.quantityBase === null || item.quantityBase === undefined ? item.contingencyPercentage ?? 0 : 0;
+  const adjustmentPercentage = item.adjustmentPercentage ?? legacyAdjustmentPercentage;
+  const adjustmentValue = calculateContingencyValue(subTotal, adjustmentPercentage);
   return {
     ...item,
     subTotal,
     contingencyValue,
-    totalItemCosts: subTotal + item.miscCost + contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
+    totalItemCosts: subTotal + item.miscCost + contingencyValue + adjustmentValue,
   };
 }
 

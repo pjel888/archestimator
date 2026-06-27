@@ -2714,7 +2714,7 @@ function useEstimateRightSidebarContent({
   const activeToolsLabel = isProjectTab ? "Project tools" : isTemplatesTab ? "Template tools" : "Library tools";
   const activeExpandedNodeIds = isProjectTab ? projectExpandedNodeIds : expandedNodeIdsByViewMode[componentViewMode];
   const activeLibraryTreeAriaLabel = isProjectTab ? "Project sources" : "Library sources";
-  const activeSourceScopeLabel = projectId === "hero-sanitized-project" ? "" : isProjectTab ? "Project" : "Library";
+  const activeSourceScopeLabel = isProjectTab || projectId === "hero-sanitized-project" ? "" : "Library";
   const visibleLibraryTreeTabs = enableReusableProjectSources ? LIBRARY_TREE_TABS : PUBLIC_LIBRARY_TREE_TABS;
 
   const sourceSidebarBody = (

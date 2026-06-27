@@ -114,8 +114,13 @@ function inferImageUrl(material: string, category: string) {
 
 function row(input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "category" | "pricingSource" | "pricingDate"> & Partial<Pick<EstimateRowItem, "category" | "pricingSource" | "pricingDate">>): EstimateRowItem {
   const subTotal = input.itemCost * input.quantity;
-  const contingencyPercentage = input.contingencyPercentage ?? 0;
-  const contingencyValue = (subTotal * contingencyPercentage) / 100;
+  const quantityBase = input.quantityBase ?? null;
+  const contingencyPercentage = quantityBase === null
+    ? 0
+    : quantityBase > 0 ? ((input.quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0;
+  const contingencyValue = 0;
+  const adjustmentPercentage = input.adjustmentPercentage ?? (quantityBase === null ? input.contingencyPercentage ?? 0 : 0);
+  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const category = input.category ?? inferCategory(input.material);
   return {
     ...input,
@@ -127,7 +132,9 @@ function row(input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "categ
     subTotal,
     contingencyPercentage,
     contingencyValue,
-    totalItemCosts: subTotal + input.miscCost + contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
+    totalItemCosts: subTotal + input.miscCost + contingencyValue + adjustmentValue,
   };
 }
 

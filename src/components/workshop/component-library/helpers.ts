@@ -231,6 +231,8 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
       subTotal,
       contingencyPercentage: 0,
       contingencyValue: 0,
+      adjustmentPercentage: 0,
+      adjustmentValue: 0,
       miscCost,
       miscCostDefault: miscCost,
       totalItemCosts: subTotal + miscCost,
@@ -256,6 +258,8 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
         subTotal,
         contingencyPercentage: 0,
         contingencyValue: 0,
+        adjustmentPercentage: 0,
+        adjustmentValue: 0,
         totalItemCosts: subTotal + miscCost,
         description: form.description.trim(),
         id: "component-image-preview",
@@ -604,7 +608,9 @@ export function expandLibraryBundle(bundle: LibraryBundle, items: EstimateRowIte
 
 function getLibraryRowTotal(item: EstimateRowItem) {
   const subTotal = getComponentPrice(item) * Math.max(1, item.quantity || 1);
-  return subTotal + (item.miscCost ?? 0) + (subTotal * (item.contingencyPercentage ?? 0)) / 100;
+  const legacyAdjustmentPercentage = item.quantityBase === null || item.quantityBase === undefined ? item.contingencyPercentage ?? 0 : 0;
+  const adjustmentPercentage = item.adjustmentPercentage ?? legacyAdjustmentPercentage;
+  return subTotal + (item.miscCost ?? 0) + (subTotal * adjustmentPercentage) / 100;
 }
 
 export function getLibraryBundleTotal(bundle: LibraryBundle, items: EstimateRowItem[]) {

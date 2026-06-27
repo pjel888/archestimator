@@ -26,14 +26,17 @@ type TemplateRowInput = Pick<
 > & {
   categoryNodeId?: string;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
   discipline?: string;
   designation?: string;
 };
 
 function templateRow(input: TemplateRowInput): EstimateRowItem {
   const subTotal = input.itemCost * input.quantity;
-  const contingencyPercentage = input.contingencyPercentage ?? 0;
-  const contingencyValue = (subTotal * contingencyPercentage) / 100;
+  const contingencyPercentage = 0;
+  const contingencyValue = 0;
+  const adjustmentPercentage = input.adjustmentPercentage ?? input.contingencyPercentage ?? 0;
+  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   return {
     ...input,
     name: input.material,
@@ -43,8 +46,10 @@ function templateRow(input: TemplateRowInput): EstimateRowItem {
     subTotal,
     contingencyPercentage,
     contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
     miscCostDefault: input.miscCost,
-    totalItemCosts: subTotal + input.miscCost + contingencyValue,
+    totalItemCosts: subTotal + input.miscCost + contingencyValue + adjustmentValue,
   };
 }
 

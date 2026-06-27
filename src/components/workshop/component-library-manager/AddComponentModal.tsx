@@ -40,6 +40,10 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
+import {
+  uploadComponentAttachment,
+  validateComponentAttachmentFile,
+} from "@/lib/uploads/component-attachment-client";
 import { filterMapBy } from "@/lib/util/array";
 import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
@@ -151,14 +155,6 @@ type UploadedComponentImage = {
   optimizedBytes: number;
 };
 
-type UploadedComponentAttachment = {
-  bucket: string;
-  path: string;
-  fileName: string;
-  contentType: string;
-  sizeBytes: number;
-};
-
 type AddComponentModalProps = {
   open: boolean;
   folders: LibraryFolderRecord[];
@@ -181,16 +177,9 @@ type AddComponentModalProps = {
 type AddComponentModalTab = "component" | "activity";
 
 const MAX_CLIENT_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
-const MAX_CLIENT_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const CLIENT_IMAGE_EDGE = 1600;
 const CLIENT_IMAGE_QUALITY = 0.82;
 const ALLOWED_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
-const ALLOWED_ATTACHMENT_TYPES = new Set([
-  "application/pdf",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-]);
-const ALLOWED_ATTACHMENT_EXTENSION_PATTERN = /\.(pdf|xls|xlsx)$/i;
 const accountingNumberFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -349,25 +338,6 @@ async function removeComponentAttachmentUpload(attachment: VariantAttachmentDraf
 
 function isImageUploadBusy(state: ImageUploadState["state"]) {
   return state === "processing" || state === "uploading";
-}
-
-function hasAllowedAttachmentExtension(name: string) {
-  return ALLOWED_ATTACHMENT_EXTENSION_PATTERN.test(name);
-}
-
-async function uploadComponentAttachment(file: File): Promise<UploadedComponentAttachment> {
-  const formData = new FormData();
-  formData.set("file", file);
-  const response = await fetch("/api/component-library/attachments", {
-    method: "POST",
-    body: formData,
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = result && typeof result.error === "string" ? result.error : "Could not upload attachment.";
-    throw new Error(message);
-  }
-  return result as UploadedComponentAttachment;
 }
 
 function isUsableUploadResponse(value: UploadedComponentImage): value is UploadedComponentImage {
@@ -1271,9 +1241,8 @@ function OpenAddComponentModal({
   treeMutationPending,
 }: AddComponentModalProps) {
   const userFolders = useMemo(() => getUserLibraryFolders(folders), [folders]);
-  const initialDraftRef = useRef<ComponentDraft | null>(null);
-  if (initialDraftRef.current === null) {
-    initialDraftRef.current = getInitialDraft({
+  const initialModalStateInput = useMemo(() => ({
+    initialDraft: getInitialDraft({
       folders: userFolders,
       categoryTree,
       selectedFolderId,
@@ -1281,14 +1250,15 @@ function OpenAddComponentModal({
       selectedBrandId,
       suppliers,
       brands,
-    });
-  }
-  const initialDraft = initialDraftRef.current;
-  const [modalState, dispatchModal] = useReducer(openAddComponentModalReducer, {
-    initialDraft,
+    }),
     selectedSupplierId,
     selectedBrandId,
-  }, createOpenAddComponentModalState);
+  }), [brands, categoryTree, selectedBrandId, selectedFolderId, selectedSupplierId, suppliers, userFolders]);
+  const [modalState, dispatchModal] = useReducer(
+    openAddComponentModalReducer,
+    initialModalStateInput,
+    createOpenAddComponentModalState,
+  );
   const {
     draft,
     variantPreviewUrls,
@@ -1692,18 +1662,20 @@ function OpenAddComponentModal({
 
   async function handleAttachmentUpload(file: File) {
     if (!activeVariant) return;
-    if (file.type && !ALLOWED_ATTACHMENT_TYPES.has(file.type) && !hasAllowedAttachmentExtension(file.name)) {
-      setAttachmentUpload({ state: "error", message: "Use a PDF, XLS, or XLSX file." });
-      return;
-    }
-    if (file.size > MAX_CLIENT_ATTACHMENT_BYTES) {
-      setAttachmentUpload({ state: "error", message: "Choose an attachment under 20 MB." });
+    const validation = validateComponentAttachmentFile(file);
+    if (!validation.ok) {
+      setAttachmentUpload({ state: "error", message: validation.message });
       return;
     }
 
     dirtyRef.current = true;
     setError("");
-    setAttachmentUpload({ state: "uploading", message: "Uploading attachment to Supabase Storage..." });
+    setAttachmentUpload({
+      state: "uploading",
+      message: validation.uploadMode === "signed_single_part"
+        ? "Uploading attachment with a signed storage session..."
+        : "Uploading attachment to Supabase Storage...",
+    });
 
     try {
       const uploaded = await uploadComponentAttachment(file);

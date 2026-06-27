@@ -1228,7 +1228,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   const { data: rowItemRows, error: rowItemsError } = await supabase
     .from("estimate_row_items")
     .select(
-      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, discipline, designation, link_state, metadata",
+      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, discipline, designation, link_state, metadata",
     )
     .eq("estimate_id", input.estimateId)
     .in("node_id", subtreeNodeIds)
@@ -1298,7 +1298,8 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
       unit: row.unit,
       quantity: row.quantity,
       unit_cost: row.unit_cost,
-      contingency_percentage: row.contingency_percentage,
+      contingency_percentage: 0,
+      adjustment_percentage: row.adjustment_percentage,
       misc_cost: row.misc_cost,
       discipline: row.discipline,
       designation: row.designation,
@@ -1392,7 +1393,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
   const { data: rowItemRows, error: rowItemsError } = await supabase
     .from("estimate_row_items")
     .select(
-      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, discipline, designation, link_state, metadata",
+      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, discipline, designation, link_state, metadata",
     )
     .eq("estimate_id", input.estimateId)
     .in("node_id", sourceNodeIds)
@@ -1486,7 +1487,8 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
         unit: row.unit,
         quantity: row.quantity,
         unit_cost: row.unit_cost,
-        contingency_percentage: row.contingency_percentage,
+        contingency_percentage: 0,
+        adjustment_percentage: row.adjustment_percentage,
         misc_cost: row.misc_cost,
         discipline: row.discipline,
         designation: row.designation,
@@ -1719,6 +1721,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
       quantity: row.quantity,
       unit_cost: row.unit_cost,
       contingency_percentage: row.contingency_percentage,
+      adjustment_percentage: row.adjustment_percentage,
       misc_cost: row.misc_cost,
       discipline: row.discipline,
       designation: row.designation,

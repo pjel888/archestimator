@@ -176,7 +176,8 @@ export function useTemplateEditor(template: EstimateTemplate) {
       if (patch.quantity !== undefined) localPatch.quantity = patch.quantity;
       if (patch.unitCost !== undefined) localPatch.itemCost = patch.unitCost;
       if (patch.miscCost !== undefined) localPatch.miscCost = patch.miscCost;
-      if (patch.contingencyPercentage !== undefined) localPatch.contingencyPercentage = patch.contingencyPercentage;
+      if (patch.contingencyPercentage !== undefined) localPatch.adjustmentPercentage = patch.contingencyPercentage;
+      if (patch.adjustmentPercentage !== undefined) localPatch.adjustmentPercentage = patch.adjustmentPercentage;
       return run(
         (nodes) => updateTemplateRowInNodes(nodes, rowId, localPatch),
         () => updateEstimateTemplateRowItem({ templateId: template.id, rowId, patch }),

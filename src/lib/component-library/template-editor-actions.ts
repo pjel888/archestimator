@@ -22,6 +22,7 @@ export type TemplateEditorRowPatch = Partial<{
   unitCost: number;
   miscCost: number;
   contingencyPercentage: number;
+  adjustmentPercentage: number;
 }>;
 
 function revalidateTemplateEditorPaths(templateId: string) {
@@ -271,7 +272,8 @@ function buildTemplateRowInsert(input: {
     quantity: item.quantity > 0 ? item.quantity : 1,
     unit_cost: item.itemCost ?? 0,
     misc_cost: item.miscCost ?? 0,
-    contingency_percentage: item.contingencyPercentage ?? 0,
+    contingency_percentage: 0,
+    adjustment_percentage: item.adjustmentPercentage ?? item.contingencyPercentage ?? 0,
     discipline: item.discipline ?? "",
     designation: item.designation ?? "",
     link_state: item.sourceLibraryItemId || item.source === "library" ? "linked-clean" : "unlinked",
@@ -361,6 +363,7 @@ export async function createEstimateTemplateAllowanceRow(input: {
       unit_cost: 0,
       misc_cost: 0,
       contingency_percentage: 0,
+      adjustment_percentage: 0,
       discipline: "",
       designation: "",
       link_state: "unlinked",
@@ -413,7 +416,13 @@ export async function updateEstimateTemplateRowItem(input: {
     if (!Number.isFinite(input.patch.contingencyPercentage) || Math.abs(input.patch.contingencyPercentage) > 100) {
       throw new Error("Adjustment must stay between -100 and 100 percent.");
     }
-    update.contingency_percentage = input.patch.contingencyPercentage;
+    update.adjustment_percentage = input.patch.contingencyPercentage;
+  }
+  if (input.patch.adjustmentPercentage !== undefined) {
+    if (!Number.isFinite(input.patch.adjustmentPercentage) || Math.abs(input.patch.adjustmentPercentage) > 100) {
+      throw new Error("Adjustment must stay between -100 and 100 percent.");
+    }
+    update.adjustment_percentage = input.patch.adjustmentPercentage;
   }
   if (Object.keys(update).length === 0) throw new Error("Nothing to update.");
 
@@ -572,6 +581,7 @@ export async function insertTemplateIntoTemplate(input: {
     unit_cost: row.unit_cost,
     misc_cost: row.misc_cost,
     contingency_percentage: row.contingency_percentage,
+    adjustment_percentage: row.adjustment_percentage,
     discipline: row.discipline,
     designation: row.designation,
     link_state: row.link_state,
