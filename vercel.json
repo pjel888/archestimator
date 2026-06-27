@@ -1,5 +1,15 @@
 {
   "regions": ["syd1"],
+  "crons": [
+    {
+      "path": "/api/internal/upload-cleanup",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/internal/upload-scan",
+      "schedule": "15 3 * * *"
+    }
+  ],
   "git": {
     "deploymentEnabled": false
   }

@@ -610,6 +610,16 @@
   ],
   "localEvidence": [
     {
+      "command": "bunx vitest run tests/vitest/upload-alert-delivery-proof-script.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "4 files, 19 tests passed after production proof runbook updates"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload production proof runbook updates"
+    },
+    {
       "command": "bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
       "exit": 0,
       "result": "3 files, 14 tests passed after adding the production proof runbook alignment test"
