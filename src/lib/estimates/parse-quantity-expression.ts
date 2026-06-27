@@ -37,8 +37,9 @@ function formatQuantityPart(value: number) {
 
 export function formatQuantityExpression(baseQuantity: number, contingencyAmount: number) {
   const base = formatQuantityPart(baseQuantity);
-  if (contingencyAmount <= 0) return base;
-  return `${base} + ${formatQuantityPart(contingencyAmount)}`;
+  if (contingencyAmount === 0) return base;
+  const operator = contingencyAmount < 0 ? "-" : "+";
+  return `${base} ${operator} ${formatQuantityPart(Math.abs(contingencyAmount))}`;
 }
 
 export function parseQuantityExpression(input: string): QuantityExpressionResult {
@@ -57,23 +58,24 @@ export function parseQuantityExpression(input: string): QuantityExpressionResult
     };
   }
 
-  if (/[^0-9.+]/.test(compact)) return invalidQuantityExpression("Use numbers and one + only.");
+  if (/[^0-9.+-]/.test(compact)) return invalidQuantityExpression("Use numbers and one + or - only.");
 
-  const parts = compact.split("+");
-  if (parts.length > 2) return invalidQuantityExpression("Use only one +.");
-  if (parts.length === 2 && (parts[0] === "" || parts[1] === "")) {
-    return invalidQuantityExpression("Enter both base and contingency.");
-  }
+  const match = /^((?:\d+|\d+\.\d+|\.\d+))(?:([+-])((?:\d+|\d+\.\d+|\.\d+)))?$/.exec(compact);
+  if (!match) return invalidQuantityExpression("Enter a base quantity and an optional + or - adjustment.");
 
-  const baseQuantity = parseDecimalOperand(parts[0]);
+  const baseQuantity = parseDecimalOperand(match[1]);
   if (baseQuantity === null) return invalidQuantityExpression("Enter a valid base quantity.");
 
-  const contingencyAmount = parts.length === 2 ? parseDecimalOperand(parts[1]) : 0;
+  const operator = match[2] ?? "";
+  const unsignedAdjustment = match[3] === undefined ? 0 : parseDecimalOperand(match[3]);
+  const contingencyAmount = unsignedAdjustment === null ? null : operator === "-" ? -unsignedAdjustment : unsignedAdjustment;
   if (contingencyAmount === null) return invalidQuantityExpression("Enter a valid contingency quantity.");
 
   const totalQuantity = baseQuantity + contingencyAmount;
-  const hasContingencyExpression = parts.length === 2;
-  const hasContingency = hasContingencyExpression && contingencyAmount > 0;
+  if (totalQuantity < 0) return invalidQuantityExpression("Quantity adjustment cannot make the total quantity negative.");
+
+  const hasContingencyExpression = Boolean(operator);
+  const hasContingency = Boolean(operator) && contingencyAmount !== 0;
   const contingencyPercentage = baseQuantity > 0 ? (contingencyAmount / baseQuantity) * 100 : 0;
 
   return {
@@ -83,7 +85,7 @@ export function parseQuantityExpression(input: string): QuantityExpressionResult
     contingencyPercentage,
     expression: hasContingency ? formatQuantityExpression(baseQuantity, contingencyAmount) : formatQuantityPart(totalQuantity),
     hasContingency,
-    hasContingencyExpression,
+    hasContingencyExpression: Boolean(operator),
     isValid: true,
   };
 }

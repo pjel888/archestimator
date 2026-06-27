@@ -70,6 +70,7 @@ type PublicationManagerContext = {
 type EstimateSource = Pick<Tables<"estimates">, "id" | "name" | "sheet_code" | "updated_at">;
 type EstimateRowSource = Pick<
   Tables<"estimate_row_items">,
+  | "adjustment_percentage"
   | "contingency_percentage"
   | "description"
   | "designation"
@@ -429,7 +430,7 @@ async function buildSnapshotForProject(
     const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
       context.admin
         .from("estimate_row_items")
-        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, imageUrl:source_snapshot->>imageUrl")
+        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, imageUrl:source_snapshot->>imageUrl")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
       context.admin
@@ -504,6 +505,7 @@ async function buildSnapshotForProject(
           unitCost: Number(row.unit_cost),
           miscCost: Number(row.misc_cost),
           contingencyPercentage: Number(row.contingency_percentage ?? 0),
+          adjustmentPercentage: Number(row.adjustment_percentage ?? 0),
           // P9: extract only the source_snapshot image path instead of transferring full row JSON.
           imageUrl: typeof row.imageUrl === "string" && row.imageUrl.trim() ? row.imageUrl : undefined,
         };

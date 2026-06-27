@@ -35,6 +35,7 @@ type SnapshotRowInput = {
   unitCost: number;
   miscCost: number;
   contingencyPercentage: number;
+  adjustmentPercentage?: number;
   // P9: source_snapshot.imageUrl extracted at publish (additive)
   imageUrl?: string | null;
   // Link to the estimate node that owns this row in the workshop tree
@@ -203,8 +204,10 @@ function calculateRowTotal(row: SnapshotRowInput) {
   const unitCost = toFiniteNumber(row.unitCost);
   const miscCost = toFiniteNumber(row.miscCost);
   const contingencyPercentage = toFiniteNumber(row.contingencyPercentage);
+  const legacyAdjustmentPercentage = row.quantityBase === null || row.quantityBase === undefined ? contingencyPercentage : 0;
+  const adjustmentPercentage = toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage);
   const subtotal = quantity * unitCost;
-  return subtotal + miscCost + (row.quantityBase === null || row.quantityBase === undefined ? (subtotal * contingencyPercentage) / 100 : 0);
+  return subtotal + miscCost + (subtotal * adjustmentPercentage) / 100;
 }
 
 function buildSnapshotRow(row: SnapshotRowInput, tabId?: string | null): PublicationSnapshotRow {

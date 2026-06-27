@@ -41,6 +41,7 @@ export type EstimateRowItem = {
   quantityContingencyAmount?: number | null;
   unitCost: number;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
   miscCost: number;
   rowRevision?: number;
   discipline: string;

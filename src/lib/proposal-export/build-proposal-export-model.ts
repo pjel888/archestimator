@@ -128,9 +128,9 @@ function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, set
   const laborUnitCost = roundMoney(sourceRow.laborUnitCost ?? 0);
   const materialSubtotal = roundMoney(materialUnitCost * quantity);
   const laborSubtotal = roundMoney(laborUnitCost * quantity);
-  const contingencySubtotal = quantityBase === null
-    ? roundMoney((materialSubtotal * (sourceRow.contingencyPercentage ?? 0)) / 100)
-    : 0;
+  const legacyAdjustmentPercentage = quantityBase === null ? sourceRow.contingencyPercentage ?? 0 : 0;
+  const adjustmentPercentage = sourceRow.adjustmentPercentage ?? legacyAdjustmentPercentage;
+  const contingencySubtotal = roundMoney((materialSubtotal * adjustmentPercentage) / 100);
   const miscSubtotal = roundMoney(sourceRow.miscCost);
   const costAmount = roundMoney(materialSubtotal + laborSubtotal + contingencySubtotal + miscSubtotal);
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";

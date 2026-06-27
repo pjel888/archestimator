@@ -5,8 +5,8 @@
  * byte-for-byte:
  *
  *   subtotal       = quantity * unit_cost
- *   contingency    = 0 when quantity_base is set, else subtotal * contingency_percentage / 100
- *   line_total     = subtotal + misc_cost + contingency
+ *   adjustment     = subtotal * adjustment_percentage / 100
+ *   line_total     = subtotal + misc_cost + adjustment
  *
  * Used by the project-estimate list aggregation, the duplicate action's
  * optimistic total, and the `project_estimate_list_summaries` RPC parity proof,
@@ -18,6 +18,7 @@ export type EstimateRowCostInput = {
   quantity_contingency_amount?: number | string | null;
   unit_cost: number | string | null;
   contingency_percentage?: number | string | null;
+  adjustment_percentage?: number | string | null;
   misc_cost: number | string | null;
 };
 
@@ -25,10 +26,11 @@ export function computeEstimateRowLineTotal(row: EstimateRowCostInput): number {
   const quantity = Number(row.quantity ?? 0);
   const unitCost = Number(row.unit_cost ?? 0);
   const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
-  const contingencyPercentage = Number(row.contingency_percentage ?? 0);
+  const legacyAdjustmentPercentage = quantityBase === null ? Number(row.contingency_percentage ?? 0) : 0;
+  const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
   const miscCost = Number(row.misc_cost ?? 0);
   const subTotal = quantity * unitCost;
-  return subTotal + miscCost + (quantityBase === null ? (subTotal * contingencyPercentage) / 100 : 0);
+  return subTotal + miscCost + (subTotal * adjustmentPercentage) / 100;
 }
 
 export function sumEstimateRowLineTotals(rows: readonly EstimateRowCostInput[]): number {

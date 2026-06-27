@@ -28,6 +28,7 @@ export type ProjectComponentProjectionRow = {
   quantity_base: number | string | null;
   quantity_contingency_amount: number | string | null;
   contingency_percentage: number | string | null;
+  adjustment_percentage?: number | string | null;
   misc_cost: number | string;
   row_revision: number | null;
   category_node_id: string | null;
@@ -114,12 +115,15 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
   const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : readNumber(row.quantity_base);
   const quantityContingencyAmount = quantityBase === null ? null : readNumber(row.quantity_contingency_amount ?? 0);
   const itemCost = readNumber(row.unit_cost);
+  const legacyAdjustmentPercentage = quantityBase === null ? readNumber(row.contingency_percentage ?? 0) : 0;
   const contingencyPercentage = quantityBase === null
-    ? readNumber(row.contingency_percentage ?? 0)
+    ? 0
     : quantityBase > 0 ? ((quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0;
   const miscCost = readNumber(row.misc_cost);
   const subTotal = itemCost * quantity;
-  const contingencyValue = quantityBase === null ? (subTotal * contingencyPercentage) / 100 : 0;
+  const contingencyValue = 0;
+  const adjustmentPercentage = row.adjustment_percentage === undefined ? legacyAdjustmentPercentage : readNumber(row.adjustment_percentage ?? 0);
+  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const category = readString(sourceSnapshot.category) || "Project";
   const categoryNodeId = row.category_node_id ?? (typeof sourceSnapshot.categoryNodeId === "string" ? sourceSnapshot.categoryNodeId : undefined);
   const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
@@ -145,8 +149,10 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     subTotal,
     contingencyPercentage,
     contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
     miscCost,
-    totalItemCosts: subTotal + contingencyValue + miscCost,
+    totalItemCosts: subTotal + contingencyValue + adjustmentValue + miscCost,
     rowRevision: row.row_revision ?? undefined,
     category,
     categoryNodeId: categoryNodeId ?? undefined,
@@ -195,7 +201,7 @@ export async function getProjectComponentRowsLibrary(
   const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
   let projectRowsQuery = supabase
     .from("estimate_row_items")
-    .select("id, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at, estimate_nodes!inner(id, name, estimates!inner(id, name, project_id))")
+    .select("id, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at, estimate_nodes!inner(id, name, estimates!inner(id, name, project_id))")
     .eq("estimate_nodes.estimates.project_id", project.id)
     .order("created_at", { ascending: false });
   if (projectRowLimit !== undefined) projectRowsQuery = projectRowsQuery.limit(projectRowLimit);

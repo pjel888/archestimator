@@ -134,9 +134,10 @@ export function buildProjectChartCostComposition(
 function calculateProjectChartRowCostParts(row: ProjectChartRowFact): ProjectChartCostComposition {
   const subTotal = toFiniteNumber(row.quantity) * toFiniteNumber(row.unitCost);
   const miscTotal = toFiniteNumber(row.miscCost);
-  const adjustmentTotal = row.quantityBase === null || row.quantityBase === undefined
-    ? (subTotal * toFiniteNumber(row.contingencyPercentage ?? 0)) / 100
+  const legacyAdjustmentPercentage = row.quantityBase === null || row.quantityBase === undefined
+    ? toFiniteNumber(row.contingencyPercentage ?? 0)
     : 0;
+  const adjustmentTotal = (subTotal * toFiniteNumber(row.adjustmentPercentage ?? legacyAdjustmentPercentage)) / 100;
   return {
     baseTotal: subTotal,
     miscTotal,

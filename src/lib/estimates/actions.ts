@@ -110,6 +110,7 @@ type UpdateEstimateRowItemInput = {
   quantityBase?: number | null;
   quantityContingencyAmount?: number | null;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
   miscCost?: number;
   sourceSnapshot?: Json | null;
   metadata?: Json;
@@ -170,6 +171,8 @@ export type UpdateEstimateRowItemResult = {
   itemCost: number;
   contingencyPercentage: number;
   contingencyValue: number;
+  adjustmentPercentage: number;
+  adjustmentValue: number;
   miscCost: number;
   sourceSnapshot: Json | null;
   metadata: Json;
@@ -516,6 +519,8 @@ type EstimateHistoryRowRpcResult = {
     unitCost?: unknown;
     contingencyPercentage?: unknown;
     contingencyValue?: unknown;
+    adjustmentPercentage?: unknown;
+    adjustmentValue?: unknown;
     miscCost?: unknown;
     sourceSnapshot?: unknown;
     metadata?: unknown;
@@ -556,6 +561,8 @@ function readHistoryRowResult(value: unknown) {
     itemCost: readNumber(row.unitCost),
     contingencyPercentage: readNumber(row.contingencyPercentage),
     contingencyValue: readNumber(row.contingencyValue),
+    adjustmentPercentage: readNumber(row.adjustmentPercentage),
+    adjustmentValue: readNumber(row.adjustmentValue),
     miscCost: readNumber(row.miscCost),
     sourceSnapshot: readJsonValue(row.sourceSnapshot, null) as Json | null,
     metadata: readJsonValue(row.metadata, {}),
@@ -1142,6 +1149,7 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
     unit: libraryItem.unit,
     unit_cost: libraryItem.itemCost,
     contingency_percentage: libraryItem.contingencyPercentage ?? 0,
+    adjustment_percentage: libraryItem.adjustmentPercentage ?? 0,
     misc_cost: libraryItem.miscCost,
     currency: libraryItem.currency ?? "PHP",
   }) as Json;
@@ -1284,6 +1292,7 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
     quantityContingencyAmount,
     unitCost: libraryItem.itemCost,
     contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
+    adjustmentPercentage: libraryItem.adjustmentPercentage ?? 0,
     miscCost: libraryItem.miscCost,
     discipline: libraryItem.discipline,
     designation: libraryItem.designation,
@@ -2102,6 +2111,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
       material: row.material,
       metadata: row.metadata,
       contingency_percentage: row.contingency_percentage,
+      adjustment_percentage: row.adjustment_percentage ?? 0,
       misc_cost: row.misc_cost,
       node_id: nodeId,
       quantity: row.quantity,
@@ -2921,6 +2931,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       quantityContingencyAmount,
       unitCost: libraryItem.itemCost,
       contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
+      adjustmentPercentage: libraryItem.adjustmentPercentage ?? 0,
       miscCost: libraryItem.miscCost,
       discipline: libraryItem.discipline,
       designation: libraryItem.designation,
@@ -3014,7 +3025,7 @@ export async function updateEstimateSheetAdjustment({
   return toEstimateSheetAdjustment(insertedAdjustment);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
@@ -3040,6 +3051,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     ...(quantityBase !== undefined ? { quantityBase } : {}),
     ...(quantityContingencyAmount !== undefined ? { quantityContingencyAmount } : {}),
     ...(contingencyPercentage !== undefined ? { contingencyPercentage } : {}),
+    ...(adjustmentPercentage !== undefined ? { adjustmentPercentage } : {}),
     ...(miscCost !== undefined ? { miscCost } : {}),
     ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
     ...(metadata !== undefined ? { metadata } : {}),

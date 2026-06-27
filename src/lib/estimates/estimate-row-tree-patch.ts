@@ -11,6 +11,7 @@ export type EstimateRowItemPatch = {
   quantityContingencyAmount?: number | null;
   itemCost?: number;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
   miscCost?: number;
   rowRevision?: number;
   sourceSnapshot?: Json | null;
@@ -32,6 +33,7 @@ type EstimateRowMutationResultPatchInput = {
   quantityContingencyAmount: number | null;
   itemCost: number;
   contingencyPercentage: number;
+  adjustmentPercentage: number;
   miscCost: number;
   sourceSnapshot: Json | null;
   metadata: Json;
@@ -69,6 +71,7 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     quantityContingencyAmount: result.quantityContingencyAmount,
     itemCost: result.itemCost,
     contingencyPercentage: result.contingencyPercentage,
+    adjustmentPercentage: result.adjustmentPercentage,
     miscCost: result.miscCost,
     sourceSnapshot: result.sourceSnapshot,
     imageUrl: readSnapshotString(result.sourceSnapshot, "imageUrl"),
@@ -91,8 +94,10 @@ export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: Estimate
   const isQuantityContingency = quantityBase !== null;
   const contingencyPercentage = isQuantityContingency
     ? quantityBase > 0 ? ((quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0
-    : patch.contingencyPercentage ?? item.contingencyPercentage ?? 0;
-  const contingencyValue = isQuantityContingency ? 0 : (subTotal * contingencyPercentage) / 100;
+    : 0;
+  const contingencyValue = 0;
+  const adjustmentPercentage = patch.adjustmentPercentage ?? item.adjustmentPercentage ?? (isQuantityContingency ? 0 : item.contingencyPercentage ?? 0);
+  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   return {
     ...item,
     quantity,
@@ -102,8 +107,10 @@ export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: Estimate
     subTotal,
     contingencyPercentage,
     contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
     miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
+    totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
     material: patch.material ?? item.material,
     description: patch.description ?? item.description,
     supplier: patch.supplier ?? item.supplier,

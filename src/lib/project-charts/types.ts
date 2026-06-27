@@ -24,6 +24,7 @@ export type ProjectChartRowFact = {
   quantityContingencyAmount?: number | null;
   unitCost: number;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
   miscCost: number;
 };
 

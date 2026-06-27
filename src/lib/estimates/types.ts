@@ -108,6 +108,8 @@ export type EstimateRowItem = {
   subTotal: number;
   contingencyPercentage?: number;
   contingencyValue?: number;
+  adjustmentPercentage?: number;
+  adjustmentValue?: number;
   miscCost: number;
   miscCostDefault?: number;
   totalItemCosts: number;
