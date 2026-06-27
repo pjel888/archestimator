@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-06-27T03:01:23.283Z",
+  "mode": "upload-signed-provider-proof",
+  "proofBoundary": "linked-provider-signed-upload-readback",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "provider": "supabase-storage",
+  "uploadMode": "signed_single_part",
+  "resumableImplemented": false,
+  "signedUrlRecorded": false,
+  "tokenRecorded": false,
+  "uploadedWithAuthorizationHeader": false,
+  "assetShape": {
+    "surface": "component-attachment",
+    "bucket": "component-attachments",
+    "pathShape": "{workspaceId}/{userId}/signed-provider-{proofId}.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 33
+  },
+  "objectHead": {
+    "contentType": "application/pdf",
+    "sizeBytes": 33,
+    "etagObserved": true,
+    "checksumObserved": false,
+    "validationProof": "etag"
+  },
+  "uploadAssetRecorded": true,
+  "checks": [
+    {
+      "label": "provider-issued-signed-single-part-session",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "signed-upload-accepts-token-without-authorization-header",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": 200
+    },
+    {
+      "label": "provider-object-head-validates-finalization",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "etag"
+    },
+    {
+      "label": "provider-object-head-rejects-path-mismatch",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "signed-upload-finalization-records-upload-asset",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    }
+  ],
+  "failedChecks": [],
+  "note": "Provider proof exercises Supabase signed single-part upload URL issuance, token-only upload without Authorization header, object metadata readback, finalization validation, and upload asset recording. It does not implement TUS/resumable/multipart flows or app-route/browser integration.",
+  "cleanupErrors": []
+}

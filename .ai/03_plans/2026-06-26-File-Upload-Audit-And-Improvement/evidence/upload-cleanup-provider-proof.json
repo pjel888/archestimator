@@ -1,0 +1,378 @@
+{
+  "generatedAt": "2026-06-27T02:19:25.816Z",
+  "mode": "upload-cleanup-provider-proof",
+  "proofBoundary": "linked-provider-cleanup-execution-readback",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "checkedBuckets": [
+    "project-images",
+    "component-images",
+    "component-attachments"
+  ],
+  "planner": {
+    "recordCount": 10,
+    "candidateCount": 5,
+    "rejectedCount": 5,
+    "candidateLabels": [
+      "component-images:failed-main",
+      "component-images:failed-thumbnail",
+      "project-images:expired",
+      "project-images:reserved-expired",
+      "component-attachments:deleted-pdf"
+    ],
+    "rejectedLabels": [
+      "component-images:finalized-preserved",
+      "project-images:active-preserved",
+      "component-attachments:cross-workspace-preserved",
+      "component-attachments:wrong-extension-preserved",
+      "component-images:traversal-rejected-unseeded"
+    ],
+    "rejectedReasons": {
+      "not_cleanup_eligible": 2,
+      "unsafe_path": 3
+    }
+  },
+  "targetShapes": [
+    {
+      "label": "component-images:failed-main",
+      "bucket": "component-images",
+      "pathShape": "{workspaceId}/{userId}/cleanup-component-{proofId}.webp",
+      "seeded": true,
+      "expectedDisposition": "deleted",
+      "contentType": "image/webp"
+    },
+    {
+      "label": "component-images:failed-thumbnail",
+      "bucket": "component-images",
+      "pathShape": "{workspaceId}/{userId}/cleanup-component-thumb-{proofId}.webp",
+      "seeded": true,
+      "expectedDisposition": "deleted",
+      "contentType": "image/webp"
+    },
+    {
+      "label": "project-images:expired",
+      "bucket": "project-images",
+      "pathShape": "{workspaceId}/{userId}/project-images/{projectId}/cleanup-project-expired-{proofId}.webp",
+      "seeded": true,
+      "expectedDisposition": "deleted",
+      "contentType": "image/webp"
+    },
+    {
+      "label": "project-images:reserved-expired",
+      "bucket": "project-images",
+      "pathShape": "{workspaceId}/{userId}/project-images/{projectId}/cleanup-project-reserved-{proofId}.webp",
+      "seeded": true,
+      "expectedDisposition": "deleted",
+      "contentType": "image/webp"
+    },
+    {
+      "label": "component-attachments:deleted-pdf",
+      "bucket": "component-attachments",
+      "pathShape": "{workspaceId}/{userId}/cleanup-attachment-deleted-{proofId}.pdf",
+      "seeded": true,
+      "expectedDisposition": "deleted",
+      "contentType": "application/pdf"
+    },
+    {
+      "label": "component-images:finalized-preserved",
+      "bucket": "component-images",
+      "pathShape": "{workspaceId}/{userId}/cleanup-finalized-{proofId}.webp",
+      "seeded": true,
+      "expectedDisposition": "preserved",
+      "contentType": "image/webp"
+    },
+    {
+      "label": "project-images:active-preserved",
+      "bucket": "project-images",
+      "pathShape": "{workspaceId}/{userId}/project-images/{projectId}/cleanup-active-{proofId}.webp",
+      "seeded": true,
+      "expectedDisposition": "preserved",
+      "contentType": "image/webp"
+    },
+    {
+      "label": "component-attachments:cross-workspace-preserved",
+      "bucket": "component-attachments",
+      "pathShape": "{otherWorkspaceId}/{userId}/cleanup-cross-workspace-{proofId}.pdf",
+      "seeded": true,
+      "expectedDisposition": "preserved",
+      "contentType": "application/pdf"
+    },
+    {
+      "label": "component-attachments:wrong-extension-preserved",
+      "bucket": "component-attachments",
+      "pathShape": "{workspaceId}/{userId}/cleanup-wrong-extension-{proofId}.exe",
+      "seeded": true,
+      "expectedDisposition": "preserved",
+      "contentType": "application/pdf"
+    },
+    {
+      "label": "component-images:traversal-rejected-unseeded",
+      "bucket": "component-images",
+      "pathShape": "{workspaceId}/{userId}/../cleanup-traversal-{proofId}.webp",
+      "seeded": false,
+      "expectedDisposition": "rejected-unseeded",
+      "contentType": "image/webp"
+    }
+  ],
+  "seededCount": 9,
+  "removedCount": 5,
+  "failedCount": 0,
+  "rejectedCount": 5,
+  "failedBuckets": [],
+  "readbackMissingCount": 5,
+  "preservedReadbackCount": 4,
+  "checks": [
+    {
+      "label": "planner-candidate-count",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "planner-rejected-count",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "planner-deduped-duplicate-thumbnail-targets",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "planner-rejected-finalized-active-cross-workspace-wrong-extension-and-traversal",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "provider-deletes-only-planner-candidates",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:failed-main:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:failed-thumbnail:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "project-images:expired:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "project-images:reserved-expired:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-attachments:deleted-pdf:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:finalized-preserved:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "project-images:active-preserved:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-attachments:cross-workspace-preserved:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-attachments:wrong-extension-preserved:service-seed",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:failed-main:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-images:failed-thumbnail:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "project-images:expired:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "project-images:reserved-expired:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-attachments:deleted-pdf:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-images:finalized-preserved:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "project-images:active-preserved:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-attachments:cross-workspace-preserved:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-attachments:wrong-extension-preserved:service-readback-before-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "provider-cleanup-remove-target-count",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "component-images:failed-main:service-readback-missing-after-delete",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": "404",
+      "proof": "service-readback-missing-after-delete"
+    },
+    {
+      "label": "component-images:failed-thumbnail:service-readback-missing-after-delete",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": "404",
+      "proof": "service-readback-missing-after-delete"
+    },
+    {
+      "label": "project-images:expired:service-readback-missing-after-delete",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": "404",
+      "proof": "service-readback-missing-after-delete"
+    },
+    {
+      "label": "project-images:reserved-expired:service-readback-missing-after-delete",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": "404",
+      "proof": "service-readback-missing-after-delete"
+    },
+    {
+      "label": "component-attachments:deleted-pdf:service-readback-missing-after-delete",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": "404",
+      "proof": "service-readback-missing-after-delete"
+    },
+    {
+      "label": "component-images:finalized-preserved:service-readback-preserved-after-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "project-images:active-preserved:service-readback-preserved-after-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-attachments:cross-workspace-preserved:service-readback-preserved-after-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    },
+    {
+      "label": "component-attachments:wrong-extension-preserved:service-readback-preserved-after-cleanup",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-readback-present"
+    }
+  ],
+  "failedChecks": [],
+  "cleanupErrors": [],
+  "operationalSnapshot": {
+    "status": "attention",
+    "retryAfterSeconds": null,
+    "retentionCutoffs": {
+      "failedAssetsBefore": "2026-06-20T02:30:00.000Z",
+      "deletedAssetsBefore": "2026-05-28T02:30:00.000Z",
+      "expiredSessionsBefore": "2026-06-26T02:30:00.000Z",
+      "auditEventsBefore": "2025-06-27T02:30:00.000Z"
+    },
+    "dashboardMetrics": {
+      "cleanupCandidates": 5,
+      "cleanupRemoved": 5,
+      "cleanupFailed": 0,
+      "cleanupRejected": 5,
+      "failedBucketCount": 0
+    },
+    "alerts": [
+      {
+        "code": "cleanup_rejections",
+        "severity": "warning",
+        "message": "Storage cleanup rejected unsafe or ineligible records; investigation history must be preserved."
+      }
+    ]
+  },
+  "note": "Provider proof builds failed/deleted/expired/reserved/finalized/active/unsafe/cross-workspace/duplicate/thumbnail upload cleanup records, runs planUploadStorageCleanup, deletes only planner-approved proof objects, verifies deleted objects are missing, and verifies rejected/finalized/active proof objects remain present. It does not prove durable scheduling, persisted retry/audit jobs, dashboard emission, scanner behavior, hosted runtime limits, or browser UX."
+}

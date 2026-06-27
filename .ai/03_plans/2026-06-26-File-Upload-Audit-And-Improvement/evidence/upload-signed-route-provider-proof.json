@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-06-27T03:46:32.164Z",
+  "mode": "upload-signed-route-provider-proof",
+  "proofBoundary": "linked-provider-signed-route-readback",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "provider": "supabase-storage",
+  "route": "component-attachment-direct-upload",
+  "uploadMode": "signed_single_part",
+  "sessionStatusFlow": [
+    "reserved",
+    "finalized"
+  ],
+  "signedUrlRecorded": false,
+  "tokenRecorded": false,
+  "uploadedWithAuthorizationHeader": false,
+  "assetShape": {
+    "surface": "component-attachment",
+    "bucket": "component-attachments",
+    "pathShape": "{workspaceId}/{userId}/signed-route-{proofId}.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 39
+  },
+  "objectHead": {
+    "contentType": "application/pdf",
+    "sizeBytes": 39,
+    "etagObserved": true,
+    "checksumObserved": false,
+    "validationProof": "etag"
+  },
+  "finalizedAssetRecorded": true,
+  "checks": [
+    {
+      "label": "route-provider-issued-signed-single-part-session",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "create-upload-session-rpc-records-reserved-session",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "reserved-session-readback-is-actor-workspace-bound",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "signed-route-upload-accepts-token-without-authorization-header",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": 200
+    },
+    {
+      "label": "signed-route-provider-object-head-validates-finalization",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "etag"
+    },
+    {
+      "label": "finalize-upload-session-rpc-records-asset-and-events",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "signed-route-metadata-does-not-record-url-or-token",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    }
+  ],
+  "failedChecks": [],
+  "note": "Provider proof exercises the same app-route session boundary: signed URL issuance, create_upload_session reserved readback, token-only upload, provider object-head validation, finalize_upload_session asset/event recording, and sanitized metadata. It does not prove browser/client integration or resumable/TUS/multipart flows.",
+  "cleanupErrors": []
+}

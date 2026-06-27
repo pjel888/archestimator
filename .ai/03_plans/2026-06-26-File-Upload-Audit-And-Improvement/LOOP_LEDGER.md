@@ -793,6 +793,374 @@ scan/download, cleanup, observability, and provider-portability phases defined i
   unauthenticated object read-denial operation proof and a non-empty publication
   snapshot migration exercise.
 
+### Iteration 24
+
+- Hypothesis: The remaining direct storage-denial blocker can be closed with a
+  live linked-provider operation proof that creates only temporary proof objects
+  and a temporary auth user, then deletes all provider-side proof state.
+- Action: Hardened `scripts/prove-upload-storage-denial-postgres.mjs` with an
+  Archestimator project-ref guard, opt-in proof-scoped env-file loading,
+  temporary Supabase Auth user creation/sign-in/deletion, anon/auth direct
+  insert/update/download checks for all upload buckets, and direct delete checks
+  backed by service-role readback that seeded objects remain when Storage
+  `remove()` reports success with zero deleted rows. Added
+  `tests/vitest/upload-storage-denial-proof.test.ts` to lock the live proof
+  artifact shape and secret-free evidence. Updated release gates with
+  `UPLOAD-GATE-PROVIDER-STORAGE-DENIAL-OPERATION-PROOF`, removed
+  `UPLOAD-GATE-PROVIDER-STORAGE-DENIAL` from closed-beta blockers, and narrowed
+  the component-image privacy blocker to the non-empty publication snapshot
+  migration exercise.
+- Files changed: storage-denial proof script, proof-script static test,
+  storage-denial proof evidence/test, release-gate evidence/test, and
+  plan/run/current-state ledgers.
+- Evidence:
+  - `ARCH_UPLOAD_STORAGE_PROOF=1 ARCH_UPLOAD_STORAGE_PROOF_ENV_FILE=.env.local node scripts/prove-upload-storage-denial-postgres.mjs`
+    exited 0 against project `ebxxqidacheyapmmzavr` with `proofBoundary:
+    linked-provider`, `passed: true`, `skipped: false`, `failedChecks: []`,
+    `cleanupErrors: []`, and `temporaryUserDeleted: true`.
+  - The provider proof covers anon/auth direct insert, update, download, and
+    delete denial for `project-images`, `component-images`, and
+    `component-attachments`. Delete denial is proven by service-role readback
+    after each direct delete attempt.
+  - `bunx vitest run tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+    passed 3 files / 5 tests.
+  - `bunx eslint scripts/prove-upload-storage-denial-postgres.mjs tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-release-gates.test.ts`
+    exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-storage-denial-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1`
+    passed 26 files / 165 tests.
+  - `bunx tsc --noEmit --pretty false` exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `git diff --check` exited 0.
+- Result: Direct provider storage operation denial is no longer a closed-beta
+  blocker. Component-image privacy remains blocked only for non-empty
+  publication snapshot migration exercise. Production/platform upload blockers
+  remain for scanner/CDR execution, cleanup observability/runtime proof, hosted
+  runtime evidence, and real signed/resumable provider implementation.
+
+### Iteration 25
+
+- Hypothesis: The final closed-beta component-image privacy blocker can be
+  closed by exercising publication snapshot migration classification against
+  non-empty representative snapshot data, paired with the linked-provider scan
+  that already found zero persisted publication/version snapshot image rows.
+- Action: Added `collectPublicationSnapshotImageReferences` to
+  `src/lib/uploads/component-image-backfill.ts` so stored publication snapshot
+  rows, including legacy v1.2 tab rows, can be classified through the same
+  backfill readiness path as component-library and estimate-row snapshots.
+  Added a non-empty publication snapshot fixture that preserves a legacy public
+  `component-images` URL through publication snapshot normalization and
+  classifies it as `backfill_to_private_resolver`, with a local derivative row
+  classified as ready. Added
+  `evidence/upload-component-image-publication-snapshot-migration-proof.json`
+  and updated release gates with
+  `UPLOAD-GATE-COMPONENT-IMAGE-PUBLICATION-SNAPSHOT-MIGRATION-LOCAL`.
+- Files changed: component-image backfill helper/test, publication snapshot
+  migration proof evidence, release-gate evidence/test, and
+  plan/run/current-state ledgers.
+- Evidence:
+  - `bunx vitest run tests/vitest/upload-component-image-backfill.test.ts --maxWorkers=1`
+    passed 1 file / 6 tests.
+  - `bunx eslint src/lib/uploads/component-image-backfill.ts tests/vitest/upload-component-image-backfill.test.ts`
+    exited 0.
+  - `node -e "JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-publication-snapshot-migration-proof.json','utf8')); console.log('json ok')"`
+    exited 0.
+  - `bunx vitest run tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+    passed 2 files / 8 tests.
+  - `bunx eslint src/lib/uploads/component-image-backfill.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-release-gates.test.ts`
+    exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-component-image-publication-snapshot-migration-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1`
+    passed 26 files / 167 tests.
+  - `bunx tsc --noEmit --pretty false` exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json','upload-component-image-publication-snapshot-migration-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `git diff --check` exited 0.
+- Result: Closed-beta upload release gate is now `ready` with no closed-beta
+  blockers. This does not claim production/platform readiness: scanner/CDR,
+  cleanup observability/runtime proof, hosted runtime proof, and real
+  signed/resumable provider implementation remain blocked.
+
+### Iteration 26
+
+- Hypothesis: The production cleanup/observability blocker can be narrowed by
+  proving linked-provider cleanup execution against temporary objects selected
+  by the upload-specific cleanup planner, without claiming durable production
+  scheduling, audit/retry jobs, dashboards, or runbooks.
+- Action: Added `scripts/prove-upload-cleanup-provider-postgres.ts` as an
+  opt-in Bun proof with Archestimator project-ref guard and proof-scoped
+  environment loading. The proof builds failed/deleted/expired/reserved/
+  finalized/active/unsafe/cross-workspace/duplicate/thumbnail
+  `UploadCleanupRecord` fixtures, runs `planUploadStorageCleanup`, deletes only
+  planner-approved temporary Supabase Storage objects, verifies deleted objects
+  read back missing, and verifies rejected/finalized/active seedable objects
+  remain present.
+- Adversarial review: A read-only `ce-adversarial-reviewer` lane flagged that a
+  raw storage `remove()` proof would bypass the upload planner, could overstate
+  deletion without readback, and must not mark production cleanup ready. The
+  implementation was adjusted before acceptance to import and exercise
+  `planUploadStorageCleanup`, verify before/after readbacks, and keep production
+  blocked.
+- Files changed: cleanup provider proof script, cleanup provider proof evidence
+  artifact, cleanup provider proof tests, release-gate evidence/test, and
+  plan/run/current-state ledgers.
+- Evidence:
+  - `ARCH_UPLOAD_CLEANUP_PROOF=1 ARCH_UPLOAD_CLEANUP_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-cleanup-provider-postgres.ts`
+    passed against linked Supabase project `ebxxqidacheyapmmzavr` with
+    `candidateCount=5`, `rejectedCount=5`, `removedCount=5`,
+    `readbackMissingCount=5`, `preservedReadbackCount=4`, `failedChecks=[]`,
+    and `cleanupErrors=[]`.
+  - `bunx vitest run tests/vitest/upload-cleanup.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+    passed 4 files / 13 tests.
+  - `bunx eslint scripts/prove-upload-cleanup-provider-postgres.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-release-gates.test.ts`
+    exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json','upload-component-image-publication-snapshot-migration-proof.json','upload-cleanup-provider-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1`
+    passed 28 files / 171 tests.
+  - `git diff --check` exited 0.
+  - `bunx tsc --noEmit --pretty false` was attempted and currently fails in
+    unrelated dirty estimate-row adjustment files with `adjustmentPercentage`
+    type mismatches; no upload cleanup proof files are implicated.
+- Result: Provider-backed temporary object cleanup execution/readback is now
+  proved for planner-approved upload cleanup candidates, with rejected and
+  finalized/active proof objects preserved. Production remains blocked for
+  durable scheduled TTL cleanup, persisted retry/audit job execution, real
+  dashboard emission, quota alerts, production backpressure hooks, hosted
+  runtime proof, scanner/CDR execution, and the retention runbook.
+
+### Iteration 27
+
+- Hypothesis: The production scanner blocker can be narrowed by proving the
+  linked provider executes the service-role scanner/override RPC lifecycle with
+  checksum-bound mutations and provider readback, without claiming that a real
+  scanner/CDR engine, queue worker, clean download flow, or operational override
+  workflow exists.
+- Action: Added `scripts/prove-upload-scan-rpc-provider-postgres.ts` as an
+  opt-in Bun proof guarded to Supabase project `ebxxqidacheyapmmzavr`. The first
+  provider run exposed remote drift: `record_upload_scan_result` still used an
+  older no-checksum signature, `upload_assets.scanned_at` was missing, and the
+  live session-consistency trigger compared `scan_status` against
+  `upload_sessions`, blocking scanner transitions. Applied forward-only repair
+  migrations and mirrored the connector ledger locally:
+  `20260627024155_upload_scan_rpc_checksum_contracts.sql`,
+  `20260627024318_upload_scan_lifecycle_scanned_at_readback.sql`, and
+  `20260627024438_upload_asset_session_consistency_scan_mutability.sql`.
+- Provider proof: The final live proof created a temporary auth user/workspace,
+  seeded seven temporary `upload_assets` records, recorded clean,
+  failed-transient, infected, failed-permanent, and unsupported scan outcomes
+  through the checksum-bound scanner RPC, verified checksum mismatch and
+  non-attachment scanner denials, approved permanent/unsupported overrides with
+  audit fields, read back scan statuses/events, and cleaned up the temporary
+  fixture.
+- Files changed: scan RPC provider proof script, three upload scan repair
+  migrations, scan provider proof evidence artifact, provider-readback evidence
+  artifact/test, scan provider proof tests, release-gate evidence/test, and
+  plan/run/current-state ledgers.
+- Evidence:
+  - Supabase connector readback confirmed checksum-bound
+    `record_upload_scan_result` and `approve_upload_scan_override` signatures,
+    service-role-only execute grants, `upload_assets.scanned_at`, and scan
+    mutability trigger repair in project `ebxxqidacheyapmmzavr`.
+  - `ARCH_UPLOAD_SCAN_RPC_PROOF=1 ARCH_UPLOAD_SCAN_RPC_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-scan-rpc-provider-postgres.ts`
+    passed with `assetFixtureCount=7`, clean/transient/infected/
+    permanent/unsupported outcomes, two `override_approved` readbacks,
+    checksum/non-attachment denials, scanner event readback, `failedChecks=[]`,
+    and `cleanupErrors=[]`.
+  - `bunx vitest run tests/vitest/upload-scanning.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-scan-rpc-provider-proof-script.test.ts tests/vitest/upload-scan-rpc-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+    passed 5 files / 14 tests.
+  - `bunx eslint scripts/prove-upload-scan-rpc-provider-postgres.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-scan-rpc-provider-proof-script.test.ts tests/vitest/upload-scan-rpc-provider-proof.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-release-gates.test.ts`
+    exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json','upload-component-image-publication-snapshot-migration-proof.json','upload-cleanup-provider-proof.json','upload-scan-rpc-provider-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-scan-rpc-provider-proof-script.test.ts tests/vitest/upload-scan-rpc-provider-proof.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1`
+    passed 30 files / 177 tests.
+  - `supabase db push --linked --dry-run` exited 0 and showed no pending upload
+    scan RPC repair migrations; it would push unrelated shared-worktree
+    migration `20260627123000_signed_quantity_and_row_adjustments.sql`.
+  - `git diff --check` exited 0.
+  - `bunx tsc --noEmit --pretty false` remains red in unrelated dirty
+    estimate-row adjustment work:
+    `src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts:857`
+    passes `adjustmentPercentage` to `UpdateEstimateRowInput`.
+- Result: Linked-provider scanner RPC execution/readback is now proved and the
+  production scanner blocker is narrowed. Production remains blocked for the
+  actual scanner/CDR provider, queue worker, provider-backed file scanning,
+  provider-backed clean download proof, operational override UI/runbook, hosted
+  runtime proof, durable cleanup scheduler/observability, and real
+  signed/resumable provider portability.
+
+## Iteration 28 - Supabase Signed Single-Part Provider Proof
+
+- Goal: Narrow the provider-portability blocker with a real linked Supabase
+  signed-upload proof while keeping app-route integration and resumable/TUS/
+  multipart provider flows explicitly blocked.
+- Action: Added `createSupabaseDirectUploadProvider` to
+  `src/lib/uploads/provider-portability.ts`. The adapter issues signed
+  single-part sessions through Supabase Storage, reads object metadata through
+  provider `info`, validates finalization with the existing provider-neutral
+  object-head guard, and fails closed for direct multipart/resumable methods
+  until a real TUS/multipart provider path exists.
+- Provider proof: Added `scripts/prove-upload-signed-provider-postgres.ts` as
+  an opt-in Bun proof guarded to Supabase project `ebxxqidacheyapmmzavr`. The
+  live proof creates a temporary auth user/workspace, asks the Supabase adapter
+  for a signed upload session, uploads PDF bytes with the signed token and no
+  Authorization header, reads back object metadata by provider `info`, validates
+  finalization by ETag, records the finalized `upload_assets` row through
+  `record_upload_asset`, proves path-mismatch validation fails closed, and
+  removes the temporary object/workspace/user fixture.
+- Evidence artifact:
+  `evidence/upload-signed-provider-proof.json` records
+  `proofBoundary=linked-provider-signed-upload-readback`, `provider=supabase-storage`,
+  `uploadMode=signed_single_part`, `resumableImplemented=false`,
+  `signedUrlRecorded=false`, `tokenRecorded=false`,
+  `uploadedWithAuthorizationHeader=false`, ETag-backed object-head validation,
+  `uploadAssetRecorded=true`, `failedChecks=[]`, and `cleanupErrors=[]`.
+- Release gates: Added
+  `UPLOAD-GATE-SUPABASE-SIGNED-UPLOAD-PROVIDER-READBACK` under platform
+  `localPasses`, while preserving `platform.status=blocked` for app-route
+  signed-upload integration and real resumable/TUS/multipart provider flows.
+- Evidence:
+  - `ARCH_UPLOAD_SIGNED_PROVIDER_PROOF=1 ARCH_UPLOAD_SIGNED_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-signed-provider-postgres.ts`
+    passed with Supabase signed URL issuance, token-only upload without
+    Authorization header, ETag-backed object-head finalization validation,
+    upload asset finalization recording, `failedChecks=[]`, and
+    `cleanupErrors=[]`.
+  - `bunx vitest run tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-signed-provider-proof-script.test.ts tests/vitest/upload-signed-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+    passed 4 files / 10 tests.
+  - `bunx eslint src/lib/uploads/provider-portability.ts scripts/prove-upload-signed-provider-postgres.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-signed-provider-proof-script.test.ts tests/vitest/upload-signed-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts`
+    exited 0.
+  - `node -e "for (const f of ['upload-release-gates.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json','upload-component-image-publication-snapshot-migration-proof.json','upload-cleanup-provider-proof.json','upload-scan-rpc-provider-proof.json','upload-signed-provider-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')"`
+    exited 0.
+  - `bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-scan-rpc-provider-proof-script.test.ts tests/vitest/upload-scan-rpc-provider-proof.test.ts tests/vitest/upload-signed-provider-proof-script.test.ts tests/vitest/upload-signed-provider-proof.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1`
+    passed 32 files / 183 tests.
+  - `supabase db push --linked --dry-run` exited 0 and showed no pending upload
+    signed-provider migrations; it would push unrelated shared-worktree
+    migration `20260627123000_signed_quantity_and_row_adjustments.sql`.
+  - `git diff --check` exited 0.
+  - `bunx tsc --noEmit --pretty false` exited 0.
+- Result: Supabase signed single-part upload/readback/finalization is now proved
+  against the linked provider. Platform remains blocked for app-route signed
+  upload integration and real resumable/TUS/multipart provider implementation;
+  production remains blocked for scanner/CDR execution, queue worker, clean
+  download proof, hosted runtime proof, and durable cleanup operations.
+
+## Iteration 29 - Signed App-Route Provider Session Proof
+
+- Goal: Narrow the platform provider-portability blocker by proving the
+  component attachment direct-upload route boundary against the linked Supabase
+  provider, while keeping browser/client UX and real resumable/TUS/multipart
+  provider flows explicitly blocked.
+- Action: Added
+  `src/app/api/component-library/attachments/direct-upload/route.ts` and
+  `src/lib/uploads/direct-upload-records.ts`. The route authenticates before
+  body parsing, keeps files up to 20 MB on the existing server-mediated route,
+  creates signed single-part sessions only for larger component attachments,
+  stores only reserved session metadata through service-role
+  `create_upload_session`, validates provider object-head proof before
+  finalization, and records the finalized upload through service-role
+  `finalize_upload_session`.
+- Provider repair: Applied linked Supabase direct-upload RPC repairs to project
+  `ebxxqidacheyapmmzavr` and aligned local migration filenames to provider
+  ledger versions `20260627032615`, `20260627034126`, `20260627034336`, and
+  `20260627034619`. The repairs reconcile the live `upload_sessions.file_name`,
+  `expires_at`, and `scan_status` schema, use `session_reserved` reservation
+  events, cast scan/finalization event CASE expressions to
+  `public.upload_event_type`, and keep direct-upload RPCs service-role-only.
+- Provider proof: Added
+  `scripts/prove-upload-signed-route-provider-postgres.ts` as an opt-in Bun
+  proof guarded to Supabase project `ebxxqidacheyapmmzavr`. The live proof
+  creates a temporary auth user/workspace, issues a signed single-part upload
+  session through the same provider/session helpers as the route, reads back the
+  reserved session with workspace/actor binding, uploads PDF bytes using only
+  the signed token, validates provider object-head readback by ETag, finalizes
+  through `finalize_upload_session`, verifies finalized asset/events, verifies
+  signed URL/token metadata is not recorded, and removes the temporary fixture.
+- Evidence artifact:
+  `evidence/upload-signed-route-provider-proof.json` records
+  `proofBoundary=linked-provider-signed-route-readback`,
+  `route=component-attachment-direct-upload`, `provider=supabase-storage`,
+  `uploadMode=signed_single_part`, `sessionStatusFlow=["reserved","finalized"]`,
+  `signedUrlRecorded=false`, `tokenRecorded=false`,
+  `uploadedWithAuthorizationHeader=false`, ETag-backed object-head validation,
+  `finalizedAssetRecorded=true`, `failedChecks=[]`, and `cleanupErrors=[]`.
+- Release gates: Added
+  `UPLOAD-GATE-SIGNED-UPLOAD-APP-ROUTE-PROVIDER-READBACK` under platform
+  `localPasses`, while preserving `platform.status=blocked` for browser/client
+  direct-upload UX integration and real resumable/TUS/multipart provider flows.
+- Evidence:
+  - `ARCH_UPLOAD_SIGNED_ROUTE_PROOF=1 ARCH_UPLOAD_SIGNED_ROUTE_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-signed-route-provider-postgres.ts`
+    passed with reserved session readback, token-only upload without
+    Authorization header, ETag-backed object-head finalization validation,
+    `finalize_upload_session` asset/event readback, sanitized metadata,
+    `failedChecks=[]`, and `cleanupErrors=[]`.
+  - Focused signed-route/readback/release-gate matrix passed 7 files / 21 tests.
+  - Scoped ESLint for the new route, helper, provider adapter, proof script,
+    provider-readback test, evidence tests, and release gates exited 0.
+  - Eleven-artifact upload evidence JSON parse exited 0.
+  - Expanded upload matrix passed 35 files / 193 tests.
+  - `supabase db push --linked --dry-run` exited 0 and showed no pending upload
+    signed-route migrations; it would push unrelated shared-worktree migration
+    `20260627123000_signed_quantity_and_row_adjustments.sql`.
+  - `git diff --check` exited 0.
+  - `bunx tsc --noEmit --pretty false` exited 0.
+- Result: The signed app-route session/finalization boundary is now proved
+  against the linked provider. Platform remains blocked for browser/client
+  direct-upload UX integration and real resumable/TUS/multipart provider flows;
+  production remains blocked for scanner/CDR execution, queue worker, clean
+  download proof, hosted runtime proof, and durable cleanup operations.
+
+## Iteration 30 - Browser Client Signed Direct Upload Integration
+
+- Goal: Narrow the remaining platform portability blocker by wiring the
+  component attachment browser/client flow to the signed direct-upload route for
+  files above the 20 MB server-mediated cap, without changing the small-file
+  FormData route or claiming resumable/multipart readiness.
+- Implementation: Added `src/lib/uploads/component-attachment-client.ts` with
+  a shared attachment validator/uploader. It resolves PDF/XLS/XLSX content
+  types by MIME or extension, keeps files at or below 20 MB on
+  `/api/component-library/attachments`, routes larger files below the 64 MB
+  multipart threshold through `/api/component-library/attachments/direct-upload`,
+  uploads the raw `File` to the provider signed URL without an Authorization
+  header, and finalizes the upload session. The Add Component modal now uses the
+  shared validator/uploader and shows signed-session upload copy for larger
+  attachments.
+- Cleanup: Removed the modal-local attachment upload helper and type constants.
+  While running scoped lint on the touched modal, fixed the existing
+  render-time `initialDraftRef.current` pattern by passing a memoized initializer
+  into `useReducer`.
+- Tests: Added `tests/vitest/upload-component-attachment-client.test.ts` to
+  prove small-file FormData route selection, signed direct-upload create/PUT/
+  finalize sequencing, no Authorization header on provider upload, extension
+  content-type inference, and fail-closed rejection for files at the unimplemented
+  multipart size.
+- Release gates: Added
+  `UPLOAD-GATE-SIGNED-UPLOAD-BROWSER-CLIENT-LOCAL` under platform `localPasses`.
+  `platform.status` remains blocked for real resumable/TUS/multipart provider
+  flows; production remains blocked for scanner/CDR execution, queue worker,
+  clean download proof, hosted runtime proof, and durable cleanup operations.
+- Evidence:
+  - `bunx vitest run tests/vitest/upload-component-attachment-client.test.ts --maxWorkers=1`
+    passed 1 file / 4 tests.
+  - `bunx eslint src/lib/uploads/component-attachment-client.ts src/components/workshop/component-library-manager/AddComponentModal.tsx tests/vitest/upload-component-attachment-client.test.ts`
+    exited 0.
+  - Eleven-artifact upload evidence JSON parse exited 0.
+  - `bunx vitest run tests/vitest/upload-component-attachment-client.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+    passed 2 files / 6 tests.
+  - `bunx eslint src/lib/uploads/component-attachment-client.ts src/components/workshop/component-library-manager/AddComponentModal.tsx tests/vitest/upload-component-attachment-client.test.ts tests/vitest/upload-release-gates.test.ts`
+    exited 0.
+  - Expanded upload matrix with the new client test passed 36 files / 197
+    tests.
+  - `bunx tsc --noEmit --pretty false` exited 0.
+  - `git diff --check` exited 0.
+- Result: Browser/client signed-direct route selection and finalization are
+  locally proved at the transport/helper boundary and wired into the Add
+  Component modal. Full browser/manual proof was intentionally not run; the
+  local claim is limited to client transport and modal integration.
+
 ## Stop Condition
 
 Stop only when the full objective is proven complete, a strict external blocker
@@ -803,21 +1171,37 @@ validation, review, QA, and archival gates.
 
 ## Proof Boundary
 
-Current proof boundary: `local-plus-linked-provider-readback`.
+Current proof boundary: `local-plus-linked-provider-operation-proof`.
 
 Linked-provider readback/dry-run proof is captured only for migration presence,
 upload catalog/RLS shape, enum labels, function grants, public upload table
 policies, known broad direct storage policy absence, provider migration ledger
 parity, aggregate component-image reference counts, and `component-images`
-bucket catalog/policy privacy state. Direct storage operation proof, auth-token
-row-level proof, provider read-denial proof, browser proof, manual proof, or
-production proof must be labeled separately and cannot be inferred from local
-tests.
+bucket catalog/policy privacy state. Direct storage operation proof is captured
+separately in `upload-storage-denial-proof.json` for anon/auth insert, update,
+download, and delete attempts on the three upload buckets. Cleanup execution
+proof is captured separately in `upload-cleanup-provider-proof.json` for
+planner-approved temporary object cleanup and service-role before/after
+readback. Supabase signed single-part upload proof is captured separately in
+`upload-signed-provider-proof.json` for signed URL issuance, token-only upload,
+object metadata readback, and upload asset finalization. Signed app-route
+session/finalization proof is captured separately in
+`upload-signed-route-provider-proof.json`. Browser/client signed-direct
+transport proof is captured in `tests/vitest/upload-component-attachment-client.test.ts`
+and release-gate evidence. Auth-token row-level proof, full browser/manual proof
+beyond focused client transport tests, hosted runtime proof, durable scheduled cleanup proof,
+persisted cleanup audit/retry job proof, real scanner/CDR worker proof,
+provider-backed file scanning/clean download proof, real resumable/TUS/multipart
+provider flows, or production proof
+must still be labeled separately and cannot be inferred from local tests,
+temporary-object provider proof, scanner RPC state/readback proof, signed
+single-part provider proof, or signed app-route provider proof.
 
 ## Remaining Risks
 
-- Provider-backed storage proof may require configured Supabase credentials and
-  a safe test harness.
+- Provider-backed direct storage denial is operation-proofed for the three upload
+  buckets, but this does not prove scanner status, browser UX, resumable/TUS/
+  multipart upload flows, or production runtime limits.
 - Upload-domain migration presence and provider catalog shape are read back from
   the linked provider, but auth-token proof-script scenarios remain skipped.
 - Estimate-row reference image asset finality is locally covered, but provider
@@ -825,13 +1209,20 @@ tests.
 - New brokered component images use a private resolver, linked-provider
   aggregate scan found no persisted legacy public component-image URLs, and
   linked-provider catalog readback confirms `component-images` is private with no
-  remaining storage policy references; direct unauthenticated object read-denial
-  operation proof and a non-empty publication snapshot migration exercise remain
-  open.
-- Attachment downloads now have a fail-closed audited broker locally, but
-  scanner/CDR, scan-clean state transitions, provider-backed clean download
-  proof, cleanup jobs, metrics/dashboard emission, hosted runtime proof, and
-  real signed/resumable provider portability remain open.
+  remaining storage policy references; direct storage operation proof now covers
+  component-image anon/auth download/delete denial, and a non-empty publication
+  snapshot migration exercise now proves legacy public publication image rows are
+  classified for private-resolver backfill. The public-share private image
+  renderer remains a separate platform/product design concern if future
+  publication snapshots need to render private component images instead of
+  omitting or backfilling legacy public URLs.
+- Attachment downloads now have a fail-closed audited broker locally, and
+  linked-provider scanner RPC state/readback is now proved for temporary
+  `upload_assets` rows, but the scanner/CDR provider, queue worker,
+  provider-backed file scanning, provider-backed clean download proof, durable
+  cleanup jobs, persisted cleanup audit/retry execution,
+  metrics/dashboard emission, hosted runtime proof, and real resumable/TUS/
+  multipart provider portability remain open.
 - The current worktree has unrelated dirty estimate-row/chart/publication changes;
   current upload-slice typecheck is green, while an attempted broader lint pass
   previously encountered pre-existing React lint errors in dirty row/sheet files

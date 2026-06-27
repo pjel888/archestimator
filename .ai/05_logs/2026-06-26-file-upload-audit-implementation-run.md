@@ -537,13 +537,251 @@ manual_qa_channel=none yet
   read-denial operation proof and a non-empty publication snapshot migration
   exercise.
 
+### Iteration 24 - Linked Provider Direct Storage Denial Operation Proof
+
+- Hardened `scripts/prove-upload-storage-denial-postgres.mjs` with an
+  Archestimator project-ref guard, proof-scoped opt-in `.env.local` loading,
+  temporary Supabase Auth user setup/cleanup, anon/auth direct insert, update,
+  download, and delete checks for all three upload buckets, and service-role
+  readback for delete attempts where Storage `remove()` can report success after
+  deleting zero rows.
+- Captured `evidence/upload-storage-denial-proof.json` from linked Supabase
+  project `ebxxqidacheyapmmzavr`: `proofBoundary=linked-provider`,
+  `passed=true`, `skipped=false`, `failedChecks=[]`, `cleanupErrors=[]`, and
+  `temporaryUserDeleted=true`.
+- Added `tests/vitest/upload-storage-denial-proof.test.ts` to verify the live
+  proof artifact covers all expected direct operation labels and contains no
+  temporary email/password/session material.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-PROVIDER-STORAGE-DENIAL-OPERATION-PROOF`, removed
+  `UPLOAD-GATE-PROVIDER-STORAGE-DENIAL` from closed-beta blockers, and narrowed
+  the component-image privacy blocker to only the non-empty publication snapshot
+  migration exercise.
+- Fresh verification passed: focused storage-proof/release-gate matrix 3 files /
+  5 tests, scoped ESLint, release-gate/storage-denial JSON parse, expanded
+  upload matrix 26 files / 165 tests, `bunx tsc --noEmit --pretty false`,
+  six-artifact JSON parse, and `git diff --check`.
+
+### Iteration 25 - Non-Empty Publication Snapshot Migration Proof
+
+- Added `collectPublicationSnapshotImageReferences` to
+  `src/lib/uploads/component-image-backfill.ts` so stored publication snapshot
+  rows, including legacy v1.2 tab rows, can be passed through component-image
+  backfill classification.
+- Added a non-empty publication snapshot fixture that builds a stored snapshot
+  row with a legacy public Supabase `component-images` URL, verifies publication
+  snapshot normalization preserves it, and classifies it as
+  `backfill_to_private_resolver`; a local derivative row is classified as ready.
+- Added
+  `evidence/upload-component-image-publication-snapshot-migration-proof.json`.
+  The artifact pairs the local non-empty migration exercise with linked-provider
+  scan evidence showing zero persisted publication/version snapshot image rows,
+  so no provider rows required mutation.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-COMPONENT-IMAGE-PUBLICATION-SNAPSHOT-MIGRATION-LOCAL` and marked
+  `closedBeta.status=ready` with no closed-beta blockers. Production/platform
+  blockers remain unchanged.
+- Fresh verification passed: focused component-image backfill test 1 file / 6
+  tests, focused publication-snapshot/release-gate matrix 2 files / 8 tests,
+  scoped ESLint, publication/release-gate JSON parse, expanded upload matrix
+  26 files / 167 tests, `bunx tsc --noEmit --pretty false`, seven-artifact JSON
+  parse, and `git diff --check`.
+
+### Iteration 26 - Linked Provider Upload Cleanup Execution Proof
+
+- Added `scripts/prove-upload-cleanup-provider-postgres.ts` as an opt-in Bun
+  proof guarded to Supabase project `ebxxqidacheyapmmzavr`.
+- The proof builds upload cleanup records for failed/deleted/expired/reserved
+  candidates plus finalized, active, cross-workspace, wrong-extension,
+  traversal, duplicate, and thumbnail cases; runs `planUploadStorageCleanup`;
+  deletes only planner-approved temporary objects; verifies removed objects read
+  back missing; and verifies rejected/finalized/active seedable objects remain
+  present.
+- A read-only adversarial subagent flagged the unsafe raw-delete proof shape;
+  the implementation was adjusted to exercise the upload planner and readback
+  every deleted/preserved fixture before accepting the proof.
+- Added `evidence/upload-cleanup-provider-proof.json` with
+  `proofBoundary=linked-provider-cleanup-execution-readback`, `passed=true`,
+  `candidateCount=5`, `rejectedCount=5`, `removedCount=5`,
+  `readbackMissingCount=5`, `preservedReadbackCount=4`, `failedChecks=[]`, and
+  `cleanupErrors=[]`.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-CLEANUP-PROVIDER-EXECUTION-READBACK` under production
+  `localPasses`, while keeping production blocked for durable scheduled TTL
+  cleanup, persisted retry/audit job execution, dashboard emission, quota
+  alerts, production backpressure hooks, hosted runtime proof, scanner/CDR, and
+  the retention runbook.
+- Fresh verification passed: live provider cleanup proof, focused
+  cleanup-provider/release-gate matrix 4 files / 13 tests, scoped ESLint,
+  eight-artifact JSON parse, expanded upload matrix 28 files / 171 tests, and
+  `git diff --check`.
+- Current validation gap: broad `bunx tsc --noEmit --pretty false` now fails in
+  unrelated dirty estimate-row adjustment files (`adjustmentPercentage` type
+  mismatches), outside this upload cleanup proof slice.
+
+### Iteration 27 - Linked Provider Scanner RPC State/Readback Proof
+
+- Added `scripts/prove-upload-scan-rpc-provider-postgres.ts` as an opt-in Bun
+  proof guarded to Supabase project `ebxxqidacheyapmmzavr`.
+- First live proof attempts exposed linked-provider drift: the scanner RPC still
+  had an older no-checksum signature, `upload_assets.scanned_at` was missing,
+  and the session-consistency trigger blocked `scan_status` transitions.
+- Applied and mirrored forward repair migrations:
+  `20260627024155_upload_scan_rpc_checksum_contracts.sql`,
+  `20260627024318_upload_scan_lifecycle_scanned_at_readback.sql`, and
+  `20260627024438_upload_asset_session_consistency_scan_mutability.sql`.
+- Captured `evidence/upload-scan-rpc-provider-proof.json` from the linked
+  provider: `proofBoundary=linked-provider-scan-rpc-readback`, `passed=true`,
+  `assetFixtureCount=7`, clean/transient/infected/permanent/unsupported
+  outcomes recorded, permanent/unsupported rows read back as
+  `override_approved`, checksum and non-attachment denials passed,
+  `failedChecks=[]`, and `cleanupErrors=[]`.
+- Refreshed `evidence/upload-provider-readback.json` with the scan RPC repair
+  migration ledger, `scanned_at` column, and checksum-bound service-role-only
+  function signatures.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-SCANNER-RPC-PROVIDER-READBACK` under production `localPasses`,
+  while keeping production blocked for the scanner/CDR provider, queue worker,
+  provider-backed file scanning, provider-backed clean download proof,
+  operational override UI/runbook, hosted runtime proof, cleanup scheduler/
+  observability, and real signed/resumable provider implementation.
+- Fresh verification passed: live provider scan RPC proof, focused
+  scanner/provider-readback/release-gate matrix 5 files / 14 tests, scoped
+  ESLint, nine-artifact JSON parse, expanded upload matrix 30 files / 177
+  tests, linked dry-run with no pending upload scan repair migrations, and
+  `git diff --check`.
+- Current validation gap: broad `bunx tsc --noEmit --pretty false` remains red
+  in unrelated dirty estimate-row adjustment work at
+  `src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts:857`
+  (`adjustmentPercentage` is not in `UpdateEstimateRowInput`).
+
+### Iteration 28 - Supabase Signed Single-Part Provider Proof
+
+- Added `createSupabaseDirectUploadProvider` in
+  `src/lib/uploads/provider-portability.ts`. The adapter issues Supabase
+  Storage signed single-part upload sessions, reads provider object metadata via
+  `info`, validates finalization with provider-neutral object-head checks, and
+  explicitly fails closed for direct multipart/resumable methods until a real
+  TUS/multipart provider path exists.
+- Added `scripts/prove-upload-signed-provider-postgres.ts` as an opt-in live
+  provider proof guarded to Supabase project `ebxxqidacheyapmmzavr`.
+- Captured `evidence/upload-signed-provider-proof.json` from the linked
+  provider: `proofBoundary=linked-provider-signed-upload-readback`,
+  `provider=supabase-storage`, `uploadMode=signed_single_part`,
+  `resumableImplemented=false`, `signedUrlRecorded=false`,
+  `tokenRecorded=false`, `uploadedWithAuthorizationHeader=false`,
+  ETag-backed object-head validation, upload asset recording,
+  `failedChecks=[]`, and `cleanupErrors=[]`.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-SUPABASE-SIGNED-UPLOAD-PROVIDER-READBACK` under platform
+  `localPasses`, while keeping `platform.status=blocked` for app-route signed
+  upload integration and real resumable/TUS/multipart provider flows.
+- Fresh verification passed: live signed-provider proof, focused
+  signed-provider/release-gate matrix 4 files / 10 tests, scoped ESLint,
+  ten-artifact JSON parse, expanded upload matrix 32 files / 183 tests,
+  `supabase db push --linked --dry-run` with only unrelated
+  `20260627123000_signed_quantity_and_row_adjustments.sql` pending,
+  `git diff --check`, and broad `bunx tsc --noEmit --pretty false`.
+
+### Iteration 29 - Signed App-Route Provider Session Proof
+
+- Added `src/app/api/component-library/attachments/direct-upload/route.ts` and
+  `src/lib/uploads/direct-upload-records.ts`. The route authenticates and checks
+  workspace editor access before body parsing, keeps files up to 20 MB on the
+  existing server-mediated route, creates signed single-part sessions for larger
+  component attachments, stores only reserved session metadata through
+  service-role `create_upload_session`, validates provider object-head proof
+  before finalization, and records finalized upload assets/events through
+  service-role `finalize_upload_session`.
+- Applied linked Supabase direct-upload RPC repairs to project
+  `ebxxqidacheyapmmzavr` and aligned local migration filenames to provider
+  ledger versions `20260627032615`, `20260627034126`, `20260627034336`, and
+  `20260627034619`. The repairs reconcile the provider
+  `upload_sessions.file_name`, `expires_at`, and `scan_status` schema, use
+  `session_reserved` reservation events, cast scan/finalization event CASE
+  expressions to `public.upload_event_type`, and keep direct-upload RPCs
+  service-role-only.
+- Added `scripts/prove-upload-signed-route-provider-postgres.ts` as an opt-in
+  live provider proof guarded to Supabase project `ebxxqidacheyapmmzavr`.
+- Captured `evidence/upload-signed-route-provider-proof.json` from the linked
+  provider: `proofBoundary=linked-provider-signed-route-readback`,
+  `route=component-attachment-direct-upload`, `provider=supabase-storage`,
+  `uploadMode=signed_single_part`, `sessionStatusFlow=["reserved","finalized"]`,
+  `signedUrlRecorded=false`, `tokenRecorded=false`,
+  `uploadedWithAuthorizationHeader=false`, ETag-backed object-head validation,
+  finalized asset/event readback, `failedChecks=[]`, and `cleanupErrors=[]`.
+- Refreshed `evidence/upload-provider-readback.json` with direct-upload
+  migration ledger versions, `expires_at`/`file_name`/`scan_status` session
+  columns, `session_reserved`/`scan_pending`/`asset_finalized` event labels,
+  service-role-only `create_upload_session` and `finalize_upload_session`
+  grants, and direct-upload RPC signatures.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-SIGNED-UPLOAD-APP-ROUTE-PROVIDER-READBACK` under platform
+  `localPasses`, while keeping `platform.status=blocked` for browser/client
+  direct-upload UX integration and real resumable/TUS/multipart provider flows.
+- Fresh verification passed: live signed-route proof, focused
+  signed-route/readback/release-gate matrix 7 files / 21 tests, scoped ESLint,
+  eleven-artifact JSON parse, expanded upload matrix 35 files / 193 tests,
+  `supabase db push --linked --dry-run` with only unrelated
+  `20260627123000_signed_quantity_and_row_adjustments.sql` pending,
+  `git diff --check`, and broad `bunx tsc --noEmit --pretty false`.
+
+### Iteration 30 - Browser Client Signed Direct Upload Integration
+
+- Added `src/lib/uploads/component-attachment-client.ts` with the shared
+  browser/client attachment validator and uploader. It keeps files within the
+  20 MB server-mediated cap on `/api/component-library/attachments`, routes
+  larger files under the 64 MB multipart threshold through
+  `/api/component-library/attachments/direct-upload`, uploads the raw `File` to
+  the provider signed URL without an Authorization header, then finalizes the
+  upload session.
+- Wired the Add Component modal attachment upload path to the shared validator/
+  uploader and changed the large-file progress copy to signed-session language.
+- Removed the modal-local attachment upload helper/constants. A scoped ESLint
+  pass on the touched modal exposed an existing render-time ref read; fixed it
+  by using a memoized reducer initializer instead of reading
+  `initialDraftRef.current` during render.
+- Added `tests/vitest/upload-component-attachment-client.test.ts`, covering
+  small-file FormData route selection, signed direct-upload create/PUT/finalize
+  sequencing, no Authorization header on provider upload, extension-based
+  content-type inference, and fail-closed rejection once the unimplemented
+  multipart threshold is reached.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-SIGNED-UPLOAD-BROWSER-CLIENT-LOCAL` under platform `localPasses`.
+  Platform remains blocked for real resumable/TUS/multipart provider flows, not
+  browser/client signed-direct integration.
+- Fresh verification passed: focused client test 1 file / 4 tests, scoped
+  ESLint for the helper/modal/test, eleven-artifact JSON parse, focused
+  client/release-gate matrix 2 files / 6 tests, scoped ESLint including the
+  release-gate test, expanded upload matrix 36 files / 197 tests,
+  `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+
 ## Proof Boundary
 
-Current evidence is `local-plus-linked-provider-readback`. Linked provider
-readback/dry-run proves upload migration presence, catalog shape, migration
-ledger parity, aggregate component-image reference counts, and the
-`component-images` bucket catalog/policy privacy state; it does not replace
-direct storage operation denial proof, auth-token RLS/RPC scenarios, direct
-provider object read-denial proof, browser/mobile proof, manual screen-reader
-proof, or production proof. Current focused typecheck and expanded upload matrix
-are green.
+Current evidence is `local-plus-linked-provider-operation-proof`. Linked
+provider readback/dry-run proves upload migration presence, catalog shape,
+migration ledger parity, aggregate component-image reference counts, and the
+`component-images` bucket catalog/policy privacy state. Direct storage operation
+proof is separately captured in `upload-storage-denial-proof.json` for anon/auth
+insert, update, download, and delete attempts on the three upload buckets.
+Cleanup execution proof is separately captured in
+`upload-cleanup-provider-proof.json` for planner-approved temporary object
+cleanup and service-role before/after readback. Scanner RPC state/readback proof
+is separately captured in `upload-scan-rpc-provider-proof.json` for temporary
+upload asset rows. Supabase signed single-part proof is separately captured in
+`upload-signed-provider-proof.json` for signed URL issuance, token-only upload,
+object metadata readback, and upload asset finalization. Signed app-route
+session/finalization proof is separately captured in
+`upload-signed-route-provider-proof.json`. Browser/client signed-direct
+transport proof is captured in
+`tests/vitest/upload-component-attachment-client.test.ts` and release-gate
+evidence. This still does not prove auth-token RLS/RPC scenarios, full browser/
+mobile proof beyond focused client transport tests, manual screen-reader proof,
+hosted runtime proof, durable scheduled cleanup, persisted cleanup audit/retry
+jobs, scanner/CDR worker execution, provider-backed file scanning/clean download
+proof, real resumable/TUS/multipart provider flows, or production proof.
+Closed-beta upload gates are ready; production/platform gates remain blocked
+until their provider/runtime work is implemented and verified. Current expanded
+upload matrix and broad typecheck are green as of the last full matrix recorded
+above; the Supabase dry-run still lists unrelated shared-worktree migration
+`20260627123000_signed_quantity_and_row_adjustments.sql`.

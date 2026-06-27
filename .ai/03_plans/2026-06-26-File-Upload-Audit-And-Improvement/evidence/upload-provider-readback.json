@@ -1,17 +1,24 @@
 {
   "artifact": "upload-provider-readback",
-  "generatedAt": "2026-06-27T00:17:50Z",
+  "generatedAt": "2026-06-27T03:49:15Z",
   "proofBoundary": "linked-provider-readback",
   "projectId": "ebxxqidacheyapmmzavr",
   "projectScope": "Archestimator only",
   "passed": true,
-  "source": "Supabase connector read-only migration ledger and catalog queries",
+  "source": "Supabase connector read-only migration ledger and catalog queries plus scan RPC and signed direct-upload repair readback",
   "migrationVersionsPresent": [
     "20260626183000_upload_storage_direct_write_containment",
     "20260626184000_freeze_unscanned_component_attachment_approval",
     "20260626190000_upload_domain_tables",
     "20260626194500_upload_scan_status_taxonomy",
-    "20260626200000_upload_scan_lifecycle_contracts"
+    "20260626200000_upload_scan_lifecycle_contracts",
+    "20260627024155_upload_scan_rpc_checksum_contracts",
+    "20260627024318_upload_scan_lifecycle_scanned_at_readback",
+    "20260627024438_upload_asset_session_consistency_scan_mutability",
+    "20260627032615_upload_direct_signed_session_rpcs",
+    "20260627034126_upload_direct_signed_session_schema_repair",
+    "20260627034336_upload_direct_signed_session_event_taxonomy_repair",
+    "20260627034619_upload_direct_signed_session_event_type_cast_repair"
   ],
   "uploadTables": [
     { "name": "upload_assets", "rlsEnabled": true },
@@ -35,28 +42,80 @@
     "unsupported"
   ],
   "scanLifecycleEventsPresent": [
+    "asset_finalized",
     "backpressure_denied",
     "cleanup_failed",
     "cleanup_queued",
     "cleanup_succeeded",
+    "scan_pending",
+    "scan_clean",
     "scan_failed_permanent",
     "scan_failed_transient",
     "scan_infected",
     "scan_override_approved",
     "scan_started",
-    "scan_unsupported"
+    "scan_unsupported",
+    "session_reserved"
   ],
   "functionGrants": [
     { "function": "approve_upload_scan_override", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
+    { "function": "create_upload_session", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
+    { "function": "finalize_upload_session", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
     { "function": "get_upload_asset_descriptor", "anonExecute": false, "authenticatedExecute": true, "serviceRoleExecute": true },
     { "function": "record_upload_asset", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
     { "function": "record_upload_scan_result", "anonExecute": false, "authenticatedExecute": false, "serviceRoleExecute": true },
     { "function": "validate_estimate_row_image_asset", "anonExecute": false, "authenticatedExecute": true, "serviceRoleExecute": true }
   ],
+  "directUploadSessionColumnsPresent": [
+    "expires_at",
+    "file_name",
+    "scan_status"
+  ],
+  "scanLifecycleColumnsPresent": [
+    "scan_override_actor_user_id",
+    "scan_override_checksum_sha256",
+    "scan_override_expires_at",
+    "scan_override_reason",
+    "scan_provider",
+    "scan_result",
+    "scanned_at"
+  ],
+  "scanRpcSignatures": [
+    {
+      "function": "approve_upload_scan_override",
+      "identityArgs": "target_asset_id uuid, override_actor_user_id uuid, override_reason text, override_expires_at timestamp with time zone, expected_checksum_sha256 text",
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceRoleExecute": true
+    },
+    {
+      "function": "record_upload_scan_result",
+      "identityArgs": "target_asset_id uuid, expected_checksum_sha256 text, scanner_provider text, scanner_status upload_scan_status, scanner_result jsonb",
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceRoleExecute": true
+    }
+  ],
+  "directUploadRpcSignatures": [
+    {
+      "function": "create_upload_session",
+      "identityArgs": "target_workspace_id uuid, actor_user_id uuid, upload_surface upload_surface, target_entity_type text, target_entity_id uuid, storage_bucket text, storage_path text, file_name text, content_type text, size_bytes bigint, checksum_sha256 text, session_expires_at timestamp with time zone, metadata jsonb",
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceRoleExecute": true
+    },
+    {
+      "function": "finalize_upload_session",
+      "identityArgs": "target_upload_session_id uuid, target_workspace_id uuid, actor_user_id uuid, observed_content_type text, observed_size_bytes bigint, observed_checksum_sha256 text, observed_etag text, scan_status upload_scan_status, metadata jsonb",
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceRoleExecute": true
+    }
+  ],
   "removedStoragePoliciesPresent": [],
   "evidenceLimitations": [
     "This readback proves linked-provider migration presence, table RLS, enum labels, function grants, public upload table policies, and removal of known broad direct storage policies.",
     "It does not replace auth-token proof-script scenarios for anon/authenticated row-level behavior.",
-    "It does not prove direct Supabase Storage operations fail for every client role or prove app-route/browser behavior."
+    "It does not prove direct Supabase Storage operations fail for every client role or prove browser/client direct-upload UX behavior."
   ]
 }

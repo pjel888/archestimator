@@ -1,0 +1,39 @@
+{
+  "artifact": "upload-component-image-publication-snapshot-migration-proof",
+  "generatedAt": "2026-06-27T01:50:00Z",
+  "proofBoundary": "local-non-empty-publication-snapshot-fixture",
+  "passed": true,
+  "providerProjectRef": "ebxxqidacheyapmmzavr",
+  "providerScanEvidence": "upload-component-image-provider-scan.json reports zero publication/version snapshot image rows in the linked provider, so this fixture exercises the migration path against non-empty representative snapshot data without provider mutation.",
+  "snapshot": {
+    "schemaVersion": 1,
+    "estimateCount": 1,
+    "rowCount": 2,
+    "nonEmptyImageRows": 2
+  },
+  "classifications": [
+    {
+      "id": "publication:estimate-1:row:legacy-public-component",
+      "context": "publication-snapshot",
+      "status": "legacy_public_component_image",
+      "action": "backfill_to_private_resolver",
+      "storagePath": "workspace-1/user-1/component-legacy.webp"
+    },
+    {
+      "id": "publication:estimate-1:row:local-thumbnail",
+      "context": "publication-snapshot",
+      "status": "local_derivative",
+      "action": "none"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "ready": 1,
+    "needsBackfill": 1,
+    "manualReview": 0,
+    "missing": 0,
+    "hasLegacyPublicReferences": true,
+    "hasManualReviewReferences": false
+  },
+  "note": "This proof exercises publication snapshot migration classification for non-empty data. It does not implement a public-share private image renderer or mutate provider publication rows."
+}

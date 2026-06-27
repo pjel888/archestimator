@@ -1,0 +1,148 @@
+{
+  "generatedAt": "2026-06-27T02:45:11.500Z",
+  "mode": "upload-scan-rpc-provider-proof",
+  "proofBoundary": "linked-provider-scan-rpc-readback",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "assetFixtureCount": 7,
+  "assetShapes": [
+    {
+      "label": "clean",
+      "surface": "component-attachment",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.pdf"
+    },
+    {
+      "label": "failed-transient",
+      "surface": "component-attachment",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.pdf"
+    },
+    {
+      "label": "infected",
+      "surface": "component-attachment",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.pdf"
+    },
+    {
+      "label": "failed-permanent",
+      "surface": "component-attachment",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.pdf"
+    },
+    {
+      "label": "unsupported",
+      "surface": "component-attachment",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.pdf"
+    },
+    {
+      "label": "checksum-mismatch",
+      "surface": "component-attachment",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.pdf"
+    },
+    {
+      "label": "non-attachment",
+      "surface": "component-image",
+      "pathShape": "{workspaceId}/{userId}/scan-rpc-{case}-{proofId}.webp"
+    }
+  ],
+  "assetStatusByLabel": {
+    "clean": {
+      "scanStatus": "clean",
+      "scanProvider": "proof-scanner",
+      "scanned": true,
+      "overrideAudited": false
+    },
+    "failed-transient": {
+      "scanStatus": "failed_transient",
+      "scanProvider": "proof-scanner",
+      "scanned": true,
+      "overrideAudited": false
+    },
+    "infected": {
+      "scanStatus": "infected",
+      "scanProvider": "proof-scanner",
+      "scanned": true,
+      "overrideAudited": false
+    },
+    "failed-permanent": {
+      "scanStatus": "override_approved",
+      "scanProvider": "proof-scanner",
+      "scanned": true,
+      "overrideAudited": true
+    },
+    "unsupported": {
+      "scanStatus": "override_approved",
+      "scanProvider": "proof-scanner",
+      "scanned": true,
+      "overrideAudited": true
+    },
+    "checksum-mismatch": {
+      "scanStatus": "pending",
+      "scanProvider": null,
+      "scanned": false,
+      "overrideAudited": false
+    },
+    "non-attachment": {
+      "scanStatus": "not_required",
+      "scanProvider": null,
+      "scanned": false,
+      "overrideAudited": false
+    }
+  },
+  "eventTypeCounts": {
+    "scan_pending": 6,
+    "asset_finalized": 1,
+    "scan_clean": 1,
+    "scan_failed_transient": 1,
+    "scan_infected": 1,
+    "scan_failed_permanent": 1,
+    "scan_unsupported": 1,
+    "scan_override_approved": 2
+  },
+  "deniedChecks": [
+    "record-scan-result-rejects-checksum-mismatch",
+    "record-scan-result-rejects-non-attachment",
+    "scan-override-rejects-checksum-mismatch"
+  ],
+  "checks": [
+    {
+      "label": "record-scan-result-rejects-checksum-mismatch",
+      "passed": true,
+      "errorMessage": "Scan result checksum does not match the uploaded asset.",
+      "statusCode": null
+    },
+    {
+      "label": "record-scan-result-rejects-non-attachment",
+      "passed": true,
+      "errorMessage": "Only component attachments can receive scanner results.",
+      "statusCode": null
+    },
+    {
+      "label": "scan-override-rejects-checksum-mismatch",
+      "passed": true,
+      "errorMessage": "Scan override checksum does not match the uploaded asset.",
+      "statusCode": null
+    },
+    {
+      "label": "provider-readback-statuses-match-scan-rpc-results",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "provider-readback-records-scan-events",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    }
+  ],
+  "failedChecks": [],
+  "note": "Provider proof exercises linked Supabase scanner RPC state transitions and override audit fields for temporary upload_assets rows. It does not run a scanner/CDR engine, queue worker, attachment download route, hosted runtime, or browser workflow.",
+  "cleanupErrors": []
+}

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-27T01:36:41.146Z",
+  "generatedAt": "2026-06-27T01:40:23.602Z",
   "mode": "upload-storage-denial-proof",
   "proofBoundary": "linked-provider",
-  "passed": false,
+  "passed": true,
   "skipped": false,
   "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
   "projectRef": "ebxxqidacheyapmmzavr",
@@ -18,18 +18,7 @@
     "names": [
       "NEXT_PUBLIC_SUPABASE_URL",
       "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      "DATABASE_URL",
-      "SUPABASE_SERVICE_ROLE_KEY",
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-      "ARCHESTIMATOR_DEV_AUTH_EMAIL",
-      "DEEPSEEK_API_KEY",
-      "RESEND_API_KEY",
-      "NEXT_PUBLIC_CLARITY_PROJECT_ID",
-      "NEXT_PUBLIC_GA_MEASUREMENT_ID",
-      "PROJECT_INVITE_ENTRY_ENABLED",
-      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
-      "NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED",
-      "GOOGLE_MAPS_API_KEY"
+      "SUPABASE_SERVICE_ROLE_KEY"
     ]
   },
   "checkedBuckets": [
@@ -82,15 +71,17 @@
     },
     {
       "label": "project-images:anon-direct-delete",
-      "denied": false,
+      "denied": true,
       "errorMessage": null,
-      "statusCode": null
+      "statusCode": null,
+      "proof": "object-still-present-after-direct-delete-attempt"
     },
     {
       "label": "project-images:authenticated-direct-delete",
-      "denied": false,
+      "denied": true,
       "errorMessage": null,
-      "statusCode": null
+      "statusCode": null,
+      "proof": "object-still-present-after-direct-delete-attempt"
     },
     {
       "label": "component-images:anon-direct-insert",
@@ -136,15 +127,17 @@
     },
     {
       "label": "component-images:anon-direct-delete",
-      "denied": false,
+      "denied": true,
       "errorMessage": null,
-      "statusCode": null
+      "statusCode": null,
+      "proof": "object-still-present-after-direct-delete-attempt"
     },
     {
       "label": "component-images:authenticated-direct-delete",
-      "denied": false,
+      "denied": true,
       "errorMessage": null,
-      "statusCode": null
+      "statusCode": null,
+      "proof": "object-still-present-after-direct-delete-attempt"
     },
     {
       "label": "component-attachments:anon-direct-insert",
@@ -190,25 +183,20 @@
     },
     {
       "label": "component-attachments:anon-direct-delete",
-      "denied": false,
+      "denied": true,
       "errorMessage": null,
-      "statusCode": null
+      "statusCode": null,
+      "proof": "object-still-present-after-direct-delete-attempt"
     },
     {
       "label": "component-attachments:authenticated-direct-delete",
-      "denied": false,
+      "denied": true,
       "errorMessage": null,
-      "statusCode": null
+      "statusCode": null,
+      "proof": "object-still-present-after-direct-delete-attempt"
     }
   ],
-  "failedChecks": [
-    "project-images:anon-direct-delete",
-    "project-images:authenticated-direct-delete",
-    "component-images:anon-direct-delete",
-    "component-images:authenticated-direct-delete",
-    "component-attachments:anon-direct-delete",
-    "component-attachments:authenticated-direct-delete"
-  ],
+  "failedChecks": [],
   "cleanupErrors": [],
   "note": "Provider proof only covers direct Supabase Storage operations for upload buckets. It does not prove app route behavior, scanner status, or browser UX."
 }
