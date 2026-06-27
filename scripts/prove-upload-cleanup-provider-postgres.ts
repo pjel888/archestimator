@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -12,6 +12,13 @@ import {
   summarizeUploadCleanup,
   type UploadCleanupRecord,
 } from "@/lib/uploads/cleanup";
+import {
+  createSupabaseUploadCleanupStorage,
+  createUploadCleanupEventWriter,
+  runUploadCleanupJob,
+  summarizeUploadCleanupJobResult,
+  type UploadCleanupJobRecord,
+} from "@/lib/uploads/cleanup-job";
 
 const DEFAULT_OUTPUT = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-cleanup-provider-proof.json";
 const EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr";
@@ -59,8 +66,17 @@ type EnvFileResult = {
   names?: string[];
 };
 
+type CleanupProofEventRow = {
+  event_type?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
 function readEnv(name: string) {
   return process.env[name]?.trim() || "";
+}
+
+function sha256Hex(bytes: Buffer | Uint8Array | string) {
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 function decodeEnvValue(rawValue: string) {
@@ -161,6 +177,47 @@ function refusedReport(reason: string, details: Record<string, unknown> = {}) {
     checkedBuckets: ["project-images", "component-images", "component-attachments"],
     ...details,
   };
+}
+
+async function createTemporaryAuthUser(serviceClient: SupabaseClient) {
+  const email = `upload-cleanup-proof-${randomUUID()}@example.invalid`;
+  const createResult = await serviceClient.auth.admin.createUser({
+    email,
+    password: randomUUID(),
+    email_confirm: true,
+  });
+
+  if (createResult.error || !createResult.data.user?.id) {
+    throw new Error(`Temporary auth user create failed: ${createResult.error?.message ?? "missing user id"}`);
+  }
+
+  return createResult.data.user.id;
+}
+
+async function createWorkspaceFixture(serviceClient: SupabaseClient, userId: string, suffix: string) {
+  const workspaceId = randomUUID();
+  const workspaceResult = await serviceClient.from("workspaces").insert({
+    id: workspaceId,
+    name: `Upload cleanup proof ${suffix.slice(0, 8)}`,
+    slug: `upload-cleanup-proof-${suffix.slice(0, 20)}`,
+    created_by: userId,
+  });
+
+  if (workspaceResult.error) {
+    throw new Error(`Temporary workspace create failed: ${workspaceResult.error.message}`);
+  }
+
+  const membershipResult = await serviceClient.from("workspace_members").upsert({
+    workspace_id: workspaceId,
+    user_id: userId,
+    role: "owner",
+  }, { onConflict: "workspace_id,user_id" });
+
+  if (membershipResult.error) {
+    throw new Error(`Temporary workspace membership create failed: ${membershipResult.error.message}`);
+  }
+
+  return workspaceId;
 }
 
 function targetKey(target: Pick<StorageCleanupTarget, "bucket" | "path">) {
@@ -486,6 +543,281 @@ async function cleanupLeftovers(serviceClient: Pick<SupabaseClient, "storage">, 
   return cleanupErrors;
 }
 
+async function cleanupAuditFixture(
+  serviceClient: SupabaseClient,
+  target: Pick<StorageCleanupTarget, "bucket" | "path"> | null,
+  workspaceId: string | null,
+  userId: string | null,
+) {
+  const cleanupErrors: Array<{ target: string; errorMessage: string; statusCode: string | number | null }> = [];
+
+  if (target) {
+    const removeResult = await serviceClient.storage.from(target.bucket).remove([target.path]);
+    if (removeResult.error) {
+      cleanupErrors.push({
+        target: `${target.bucket}:object`,
+        errorMessage: removeResult.error.message,
+        statusCode: removeResult.error.statusCode ?? removeResult.error.status ?? null,
+      });
+    }
+  }
+
+  if (workspaceId) {
+    const deleteWorkspace = await serviceClient.from("workspaces").delete().eq("id", workspaceId);
+    if (deleteWorkspace.error) {
+      cleanupErrors.push({
+        target: "workspaces",
+        errorMessage: deleteWorkspace.error.message,
+        statusCode: deleteWorkspace.error.code ?? null,
+      });
+    }
+  }
+
+  if (userId) {
+    const deleteUser = await serviceClient.auth.admin.deleteUser(userId);
+    if (deleteUser.error) {
+      cleanupErrors.push({
+        target: "auth.users",
+        errorMessage: deleteUser.error.message,
+        statusCode: deleteUser.error.status ?? null,
+      });
+    }
+  }
+
+  return cleanupErrors;
+}
+
+async function recordAuditProofAsset({
+  serviceClient,
+  workspaceId,
+  userId,
+  suffix,
+}: {
+  serviceClient: SupabaseClient;
+  workspaceId: string;
+  userId: string;
+  suffix: string;
+}) {
+  const path = `${workspaceId}/${userId}/cleanup-audit-${suffix}.pdf`;
+  const checksumSha256 = sha256Hex(PDF_BYTES);
+  const uploadResult = await serviceClient.storage.from("component-attachments").upload(path, PDF_BYTES, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+
+  if (uploadResult.error) {
+    throw new Error(`Audit proof object seed failed: ${uploadResult.error.message}`);
+  }
+
+  const result = await serviceClient.rpc("record_upload_asset", {
+    target_workspace_id: workspaceId,
+    actor_user_id: userId,
+    upload_surface: "component-attachment",
+    target_entity_type: "upload-cleanup-proof",
+    target_entity_id: null,
+    storage_bucket: "component-attachments",
+    storage_path: path,
+    thumbnail_path: null,
+    file_name: "cleanup-audit.pdf",
+    content_type: "application/pdf",
+    size_bytes: PDF_BYTES.byteLength,
+    checksum_sha256: checksumSha256,
+    scan_status: "pending",
+    metadata: { proof: "upload-cleanup-provider-proof", fixture: "retry-audit" },
+  });
+
+  if (result.error) {
+    throw new Error(`record_upload_asset failed for cleanup audit proof: ${result.error.message}`);
+  }
+
+  const data = result.data as { assetId?: string; uploadSessionId?: string } | null;
+  if (!data?.assetId || !data.uploadSessionId) {
+    throw new Error("record_upload_asset returned an invalid cleanup audit proof payload");
+  }
+
+  return {
+    assetId: data.assetId,
+    uploadSessionId: data.uploadSessionId,
+    bucket: "component-attachments",
+    path,
+    checksumSha256,
+  };
+}
+
+async function readCleanupEvents(serviceClient: SupabaseClient, assetId: string) {
+  const result = await serviceClient
+    .from("upload_events")
+    .select("event_type, metadata")
+    .eq("upload_asset_id", assetId)
+    .in("event_type", ["cleanup_queued", "cleanup_failed", "cleanup_succeeded"]);
+
+  if (result.error) {
+    throw new Error(`Could not read cleanup audit proof events: ${result.error.message}`);
+  }
+
+  return (result.data ?? []) as CleanupProofEventRow[];
+}
+
+async function runPersistedRetryAuditProof(serviceClient: SupabaseClient, suffix: string) {
+  const checks: ProofCheck[] = [];
+  let userId: string | null = null;
+  let workspaceId: string | null = null;
+  let target: Pick<StorageCleanupTarget, "bucket" | "path"> | null = null;
+  let cleanupErrors: Awaited<ReturnType<typeof cleanupAuditFixture>> = [];
+  let proofResult: {
+    checks: ProofCheck[];
+    objectShape: {
+      bucket: string;
+      pathShape: string;
+      contentType: string;
+      checksumSha256Observed: boolean;
+    } | null;
+    firstAttempt: unknown;
+    retryAttempt: unknown;
+    eventCounts: Record<string, number>;
+    eventMetadata: {
+      rawStoragePathRecorded: boolean;
+      storagePathHashObserved: boolean;
+    };
+  } | null = null;
+
+  try {
+    userId = await createTemporaryAuthUser(serviceClient);
+    workspaceId = await createWorkspaceFixture(serviceClient, userId, suffix);
+    const asset = await recordAuditProofAsset({ serviceClient, workspaceId, userId, suffix });
+    target = { bucket: asset.bucket, path: asset.path };
+
+    const cleanupRecord: UploadCleanupJobRecord = {
+      assetId: asset.assetId,
+      uploadAssetId: asset.assetId,
+      uploadSessionId: asset.uploadSessionId,
+      workspaceId,
+      actorUserId: userId,
+      surface: "component-attachment",
+      bucket: asset.bucket,
+      path: asset.path,
+      status: "deleted",
+    };
+    const eventWriter = createUploadCleanupEventWriter(serviceClient);
+    const forcedFailureStorage = {
+      remove: async (targets: readonly StorageCleanupTarget[]): Promise<StorageCleanupReport> => ({
+        removed: [],
+        rejected: [],
+        failed: targets.map((item) => ({
+          ...item,
+          message: "proof forced transient cleanup failure",
+        })),
+      }),
+    };
+
+    const failedRun = await runUploadCleanupJob({
+      records: [cleanupRecord],
+      storage: forcedFailureStorage,
+      eventWriter,
+      now: NOW,
+      runId: "upload-cleanup-proof-failed-run",
+    });
+    const presentAfterFailure = await serviceClient.storage.from(asset.bucket).download(asset.path);
+    checks.push({
+      label: "retry-audit-object-preserved-after-failed-attempt",
+      passed: !presentAfterFailure.error && Boolean(presentAfterFailure.data),
+      errorMessage: presentAfterFailure.error?.message ?? null,
+      statusCode: presentAfterFailure.error?.statusCode ?? presentAfterFailure.error?.status ?? null,
+    });
+
+    const retryRun = await runUploadCleanupJob({
+      records: [cleanupRecord],
+      storage: createSupabaseUploadCleanupStorage(serviceClient),
+      eventWriter,
+      now: NOW,
+      runId: "upload-cleanup-proof-retry-run",
+    });
+    const missingAfterRetry = await serviceClient.storage.from(asset.bucket).download(asset.path);
+    const missing = Boolean(missingAfterRetry.error) && !missingAfterRetry.data;
+    checks.push({
+      label: "retry-audit-object-missing-after-provider-retry",
+      passed: missing,
+      errorMessage: missing ? null : missingAfterRetry.error?.message ?? "Object still readable after retry cleanup",
+      statusCode: missingAfterRetry.error?.statusCode ?? missingAfterRetry.error?.status ?? null,
+    });
+
+    const eventRows = await readCleanupEvents(serviceClient, asset.assetId);
+    const eventCounts = eventRows.reduce<Record<string, number>>((accumulator, event) => {
+      const type = event.event_type ?? "unknown";
+      accumulator[type] = (accumulator[type] ?? 0) + 1;
+      return accumulator;
+    }, {});
+    const serializedEvents = JSON.stringify(eventRows);
+
+    checks.push({
+      label: "retry-audit-events-read-back",
+      passed: eventCounts.cleanup_queued === 2
+        && eventCounts.cleanup_failed === 1
+        && eventCounts.cleanup_succeeded === 1,
+      errorMessage: JSON.stringify(eventCounts),
+      statusCode: null,
+    });
+    checks.push({
+      label: "retry-audit-events-do-not-store-raw-path",
+      passed: !serializedEvents.includes(asset.path)
+        && eventRows.every((event) => event.metadata?.storagePathRecorded === false)
+        && eventRows.every((event) => typeof event.metadata?.storagePathSha256 === "string"),
+      errorMessage: null,
+      statusCode: null,
+    });
+    checks.push({
+      label: "retry-audit-run-summaries-match-expected-outcomes",
+      passed: failedRun.audit.failedCount === 1
+        && failedRun.operationalSnapshot.status === "blocked"
+        && retryRun.audit.succeededCount === 1
+        && retryRun.operationalSnapshot.status === "healthy",
+      errorMessage: null,
+      statusCode: null,
+    });
+
+    proofResult = {
+      checks,
+      objectShape: {
+        bucket: asset.bucket,
+        pathShape: "{workspaceId}/{userId}/cleanup-audit-{proofId}.pdf",
+        contentType: "application/pdf",
+        checksumSha256Observed: sha256Hex(PDF_BYTES) === asset.checksumSha256,
+      },
+      firstAttempt: summarizeUploadCleanupJobResult(failedRun),
+      retryAttempt: summarizeUploadCleanupJobResult(retryRun),
+      eventCounts,
+      eventMetadata: {
+        rawStoragePathRecorded: serializedEvents.includes(asset.path),
+        storagePathHashObserved: eventRows.every((event) => typeof event.metadata?.storagePathSha256 === "string"),
+      },
+    };
+  } finally {
+    cleanupErrors = await cleanupAuditFixture(serviceClient, target, workspaceId, userId);
+  }
+
+  if (!proofResult) {
+    return {
+      passed: false,
+      cleanupErrors,
+      checks,
+      objectShape: null,
+      firstAttempt: null,
+      retryAttempt: null,
+      eventCounts: {},
+      eventMetadata: {
+        rawStoragePathRecorded: false,
+        storagePathHashObserved: false,
+      },
+    };
+  }
+
+  return {
+    ...proofResult,
+    passed: checks.every((check) => check.passed) && cleanupErrors.length === 0,
+    cleanupErrors,
+  };
+}
+
 function labelForTarget(targets: ProofTarget[], target: StorageCleanupTarget) {
   return targets.find((item) => item.bucket === target.bucket && item.path === target.path)?.label ?? `${target.bucket}:unknown-target`;
 }
@@ -536,7 +868,8 @@ async function runProof() {
   const plan = planUploadStorageCleanup(fixtures.records, { now: NOW });
   const checks: ProofCheck[] = [];
   let cleanupReport: StorageCleanupReport = { removed: [], rejected: [], failed: [] };
-  let cleanupErrors: Awaited<ReturnType<typeof cleanupLeftovers>> = [];
+  let cleanupErrors: Array<Record<string, unknown>> = [];
+  let retryAuditProof: Awaited<ReturnType<typeof runPersistedRetryAuditProof>> | null = null;
 
   const candidateTargets = plan.candidates.map((candidate) => targetsByKey.get(targetKey(candidate.target))).filter((target): target is ProofTarget => Boolean(target));
   const candidateKeys = new Set(candidateTargets.map((target) => targetKey(target)));
@@ -610,6 +943,10 @@ async function runProof() {
     cleanupErrors = await cleanupLeftovers(serviceClient, seededTargets);
   }
 
+  retryAuditProof = await runPersistedRetryAuditProof(serviceClient, randomUUID());
+  checks.push(...retryAuditProof.checks);
+  cleanupErrors.push(...retryAuditProof.cleanupErrors);
+
   const metrics = summarizeUploadCleanup(plan, cleanupReport);
   const operationalSnapshot = buildUploadCleanupOperationalSnapshot(plan, metrics, { now: NOW });
   const failedChecks = checks.filter((check) => !check.passed).map((check) => check.label);
@@ -653,11 +990,19 @@ async function runProof() {
     failedBuckets: metrics.failedBuckets,
     readbackMissingCount,
     preservedReadbackCount,
+    retryAuditProof: retryAuditProof ? {
+      passed: retryAuditProof.passed,
+      objectShape: retryAuditProof.objectShape,
+      firstAttempt: retryAuditProof.firstAttempt,
+      retryAttempt: retryAuditProof.retryAttempt,
+      eventCounts: retryAuditProof.eventCounts,
+      eventMetadata: retryAuditProof.eventMetadata,
+    } : null,
     checks,
     failedChecks,
     cleanupErrors,
     operationalSnapshot,
-    note: "Provider proof builds failed/deleted/expired/reserved/finalized/active/unsafe/cross-workspace/duplicate/thumbnail upload cleanup records, runs planUploadStorageCleanup, deletes only planner-approved proof objects, verifies deleted objects are missing, and verifies rejected/finalized/active proof objects remain present. It does not prove durable scheduling, persisted retry/audit jobs, dashboard emission, scanner behavior, hosted runtime limits, or browser UX.",
+    note: "Provider proof builds failed/deleted/expired/reserved/finalized/active/unsafe/cross-workspace/duplicate/thumbnail upload cleanup records, runs planUploadStorageCleanup, deletes only planner-approved proof objects, verifies deleted objects are missing, and verifies rejected/finalized/active proof objects remain present. It also seeds a real temporary upload asset, persists cleanup_queued/cleanup_failed/cleanup_succeeded events across a failed attempt plus provider-backed retry, and verifies cleanup event metadata stores path hashes instead of raw object keys. It does not prove hosted scheduling, real dashboard emission, scanner behavior, hosted runtime limits, or browser UX.",
   };
 }
 
