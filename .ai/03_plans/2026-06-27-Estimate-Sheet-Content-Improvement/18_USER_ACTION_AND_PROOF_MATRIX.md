@@ -1,0 +1,70 @@
+# User Action And Proof Matrix
+
+Every MVP sheet action must have optimistic behavior, persistence ownership, recovery behavior, and proof. Status values describe current planning evidence, not implementation completion. The `Required Proof` column is planned proof, not proof already run.
+
+## UX/Security Proof Addendum
+
+| Action Class | UX/A11Y Proof | Security/DTO Proof | Cache/Route Proof | Visual/Responsive Proof |
+|---|---|---|---|---|
+| Route and selected-node actions | Loading/empty/error/focus-route announcement state tests | Safe route DTO and permission-denied state | Route-context process cache and reload proof | Skeleton count, no parent overlay, responsive fallback |
+| Tab/tree lifecycle | Keyboard reorder/delete/recovery proof | Server Action/RPC actor matrix | Tree/tab query plus route identity cache finalization | Dense tree controls and touch hit areas |
+| Row create/edit/delete | No routine global toast, local failure, row focus, conflict/offline states | Server Action/RPC authz, safe mutation DTO | Row query patch/invalidate and reload proof | Row height/status occlusion checks |
+| Row move/reorder | Drag plus keyboard/dialog path, cancellation focus, target announcement | Move RPC authz and direct action validation | Source/target node patch/refetch/revalidate matrix | Browser DnD proof and handle visibility |
+| Component/source/image actions | Picker/dialog focus, trust/failure messaging | Source snapshot allowlist, private image authz, DTO minimization | Row/component projection invalidation | Upload/progress controls do not block row editing |
+| Library/template/public/export actions | Insert/picker/search focus and error states | Public/export/share DTO redaction, token/revocation, rate limits | Snapshot/export cache rules | Public/export UI smoke only when changed |
+| Preference/filter/client-only actions | Stable keyboard controls and visible focus | No server mutation unless persisted preference path is used | Client-only state does not mutate authoritative data | Dense table remains primary under resized/filtered state |
+| Recovery/offline actions | Retry/revert/restore focus and live-region proof | Idempotency and actor-safe restore checks | Queue drain/reload freshness | Offline/degraded indicators do not occlude current work |
+
+| ID | User Action | Current Owner / Path | Target Optimistic Behavior | Persistence Path | Failure / Undo / Retry | Required Proof |
+|---|---|---|---|---|---|---|
+| ACT-ROUTE-001 | Load target estimate sheet route | `page.tsx`, `EstimateWorkspaceClient`, `EstimateSheetContent` | Skeleton limited to sheet surface; no parent overlay | `resolveEstimateTabRouteContext` | Retry route error state | Route perf readiness plus target-route smoke |
+| ACT-ROUTE-002 | Switch selected tree node / URL | `useEstimateWorkspaceSelection`, `EstimateSheetTree`, `EstimateSheetContent` | Instant center sheet update; URL sync without remount | Client state + route context on reload | Fallback to first available node | DOM test for stale selected node and reload |
+| ACT-TAB-001 | Create tab | `EstimateTabStrip.tsx:466-482` calls `createEstimateTab`; `actions.ts:2389-2401` calls `create_estimate_tab_with_history` | New tab appears immediately or with local pending state | Server action + DB RPC `create_estimate_tab_with_history` | Inline failure + retry; no stale active tab | DOM and server-action/RPC tests |
+| ACT-TAB-002 | Rename tab | `EstimateTabStrip.tsx:432-464` calls `renameEstimateTab`; `actions.ts:2404-2417` calls `rename_estimate_tab_with_history` | Inline rename remains focused | Server action + DB RPC `rename_estimate_tab_with_history` | Inline validation/error, revert | DOM test for focus and failed rename |
+| ACT-TAB-003 | Duplicate tab | `EstimateTabStrip.tsx:511-535` calls `duplicateEstimateTab`; `actions.ts:2441-2454` calls `duplicate_estimate_tab_with_history` | Pending duplicate does not block current sheet | Server action + DB RPC `duplicate_estimate_tab_with_history` | Retry/error state | Integration and route reload proof |
+| ACT-TAB-004 | Reorder tab | `EstimateTabStrip.tsx:537-562` calls `reorderEstimateTabs`; `actions.ts:2420-2438` calls `reorder_estimate_tabs_with_history` | Immediate order update with keyboard and drag paths | Server action + DB RPC `reorder_estimate_tabs_with_history` | Rollback on failure | Keyboard and drag DOM/e2e |
+| ACT-TAB-005 | Delete tab | `EstimateTabStrip.tsx:564-590` calls `deleteEstimateTab`; `actions.ts:2471-2482` calls `delete_estimate_tab_with_history` | Remove only after confirmation or undoable optimistic state | Server action + DB RPC `delete_estimate_tab_with_history` | Durable undo or confirmation | A11Y + destructive recovery test |
+| ACT-TREE-001 | Add area/node | `EstimateSheetTree.tsx:1005-1040` | Optimistic node selected and rename focused | `createEstimateNode` | Inline failure and rollback/remap | DOM tree add/rename tests |
+| ACT-TREE-002 | Rename area/node | `EstimateSheetTree` | Inline name updates without sheet block | Server action | Inline error, revert, focus restoration | DOM test for validation/failure |
+| ACT-TREE-003 | Reorder/reparent area | `EstimateSheetTree.tsx:863-924` | Optimistic local tree reorder | `reorderEstimateTreeNodes` | Rollback and local error | Existing tree DnD plus large-tree perf |
+| ACT-TREE-004 | Delete area | `EstimateSheetTree` | Optimistic removal with selected-node fallback | Delete RPC/action | Undo/restore beyond toast | DOM + provider/RPC test |
+| ACT-TREE-005 | Bulk delete areas | `EstimateSheetTree` | Optimistic batch removal and fallback selection | Bulk delete RPC/action | Undo/restore and partial-failure handling | DOM + RPC tests |
+| ACT-TREE-006 | Drop row item onto tree area | `row-table.tsx`, `EstimateSheetTree.tsx:963-971`, `EstimateSheetContent.tsx:1923-1928` | Row appears in target area and remains draggable | `moveEstimateRowItemWithHistory` | Local rollback/refetch; no global block | Browser bug-repro e2e and unit stale-index test |
+| ACT-ROW-001 | Add blank row | `drop-zones.tsx`, `use-estimate-row-handlers.ts:687-694` | Blank/express row appears and focuses | `insertEstimateRowItemFromLibrary` | Failed draft stays visible with retry/delete | DOM failure/retry test |
+| ACT-ROW-002 | Insert library row | `use-estimate-row-handlers.ts:606-654` | Row appears in selected node | `insert_estimate_row_item_with_history` | Rollback or express retry | DOM + server action test |
+| ACT-ROW-003 | Edit material/description/supplier/unit | `row-table.tsx:378-395`, handlers `432-504` | Local edit remains while mutation queues | `update_estimate_row_item_with_history` | Retry/revert on failure; stale refetch | Stale revision and offline queue tests |
+| ACT-ROW-004 | Edit quantity/base/add-on | `row-table.tsx:397-423`, `460-472` | Totals update locally within budget | Update row RPC | Revert invalid parse; retry persistence | DOM + perf budget |
+| ACT-ROW-005 | Edit contingency/adjustment/misc | `row-table.tsx:433-458`, `731-743` | Cell value and totals update locally | Update row RPC | Stale conflict and rollback | DOM + total parity test |
+| ACT-ROW-006 | Open row details/activity | `row-table.tsx:754-775`, row details dialog | Dialog opens with focus management | Read actions | Error state/retry | A11Y dialog test |
+| ACT-ROW-007 | Delete row | `use-estimate-row-handlers.ts:1096-1154` | Row disappears immediately | `delete_estimate_row_item_with_history` | Durable undo/restore; rollback on failure | DOM + restore RPC test |
+| ACT-ROW-008 | Bulk delete rows | `use-estimate-row-handlers.ts:1156-1240` | Selected rows disappear, toolbar clears | `delete_estimate_row_items_bulk_with_history` | Undo/restore selected rows; partial failure handling | Existing partial-failure plus restore tests |
+| ACT-ROW-009 | Reorder row within same area | `row-table.tsx:366-375`, `moveEstimateRowItemInTree` | Immediate reorder, focus retained | `move_estimate_row_item_with_history` | Rollback/refetch on conflict | Unit + e2e |
+| ACT-ROW-010 | Move row across areas in content | `row-table.tsx:961-969`, `moveRowItemToNode` | Immediate source removal and target insert | Move row RPC | Rollback/refetch | Unit + e2e |
+| ACT-ROW-011 | Move row by dialog | `EstimateSheetContent.tsx:2196-2267` | Dialog remains keyboard/touch path | Move row RPC | Inline failure, focus restore | Keyboard DOM and touch/manual proof |
+| ACT-ROW-012 | Select rows | `row-table.tsx:514-524`, bulk toolbar | Selection instant and stable through virtualization | Client state | Clear on delete/switch where needed | DOM test with virtual rows |
+| ACT-COMP-001 | Replace component | `use-estimate-row-handlers.ts:696-735` | Row content swaps locally | `replace_estimate_row_item_with_history` | Rollback and failure alert | DOM + RPC authz test |
+| ACT-COMP-002 | Clear component / make blank | `use-estimate-row-handlers.ts` clear path | Row becomes blank/editable | Update row RPC | Confirmation or undo; rollback | DOM destructive recovery test |
+| ACT-COMP-003 | Detach/make project-specific | `use-estimate-row-handlers.ts:931-949` | Link state changes locally | `unlink_estimate_row_item_from_library_with_history` | Rollback/failure | DOM + projection invalidation test |
+| ACT-COMP-004 | Promote to workspace library | `use-estimate-row-handlers.ts:873-929` | Pending local state, no global sheet block | Promote action + row cache patch | Failure visible; no lost row edits | DOM + library invalidation test |
+| ACT-COMP-005 | Move component between rows | `use-estimate-row-handlers.ts:951-1016` | Source becomes blank, target receives component | `move_estimate_row_component_with_history` | Atomic rollback of both rows | Unit + DOM stale-revision test |
+| ACT-COMP-006 | Upload/edit row image/source | `cells.tsx`, image routes, `updateEstimateRowItem` | Local upload state; row edit remains usable | Upload route + row update RPC | Cancel/retry; source snapshot validation | Security + upload route tests |
+| ACT-LIB-001 | Drag library component into row/sheet | Sidebar events, `ADD_LIBRARY_ITEM_EVENT`, row table/drop zones | Drop target highlights; insert accepted/rejected locally | Insert/replace RPC | Trust gate or retry | DOM drag/drop + trust gate tests |
+| ACT-LIB-002 | Insert template/source into tree | `EstimateSheetContent.tsx:1786-1846`, tree external drop | Non-blocking pending state; server tree authoritative | Template/source insertion action/RPC | Error toast/inline, no stale tree overwrite | Integration + route reload |
+| ACT-SHEET-001 | Edit sheet-level adjustment | `updateEstimateSheetAdjustment` | Totals update locally | Current direct table action; target history RPC | Stale conflict/retry | New RPC + contract tests |
+| ACT-PREF-001 | Resize columns | `useEstimateColumnResizeController.ts:35-155`, `EstimateSheetContent.tsx:1182-1236`, `estimate-column-widths-store.ts:59-112`, `user-preferences-actions.ts:65-109` | Width changes locally without row rerender storm | Local Zustand/localStorage immediately; debounced server action `saveEstimateSheetUserPreferences` to `estimate_sheet_user_preferences` | Pointer cancel/Escape restores current width; reset removes stored widths; server save failure is ignored today and target should expose scoped preference failure if needed | DOM/perf test plus preference persistence/reload test |
+| ACT-FILTER-001 | Search/filter/group sheet | `EstimateSheetContent.tsx:1173-1180` setters, `filterEstimateSheetNode`, `filterEstimateSheetNodeByFacets`, `reorderEstimateSheetNodeRows`, `displayedSheetNode` at `1388-1421`, header wiring at `2301-2397` | Immediate client filtering without mutating authoritative row/tree state | Client state only; intentionally non-persistent unless future product decision changes it | Clear filters via `setSheetFacets(EMPTY_SHEET_FACETS)` and search/group setters; no server rollback needed | DOM test for row visibility, selection stability, and no persisted write |
+| ACT-RECOVERY-001 | Recover after offline/failure | Future coordinator contract in `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md`; current partial paths include express draft retry/delete in `use-estimate-row-handlers.ts:530-591` and toast undo paths for row/tree delete | Drafts remain visible and queue drains in order | Stable mutation IDs, scoped queue entries, and action-specific retry/revert callbacks | Failure alert with Retry/Revert; local draft must survive slow/fail/offline states; destructive recovery must not depend only on toast timeout | Offline/degraded e2e |
+| ACT-CACHE-001 | Finalize mutation cache and route freshness | `use-estimate-row-mutations.ts`, `actions.ts`, `workspace-repository.ts`, route context cache | Mutation-specific client patch and scoped invalidation; no unnecessary route reload for routine edits | TanStack Query patch/invalidation, route process-cache clearing, conditional `revalidatePath` | Explicit refetch/failure when result rows are missing or route context may be stale | TEST-CACHE-ROUTE-001 plus reload/navigation proof |
+| ACT-SEC-001 | Direct Server Action/RPC/public/export abuse attempt | `actions.ts`, RPCs, share/export/image route handlers | Not user-visible except safe denial/failure state | Server Action, RPC, Route Handler, storage/public/export DTO path | Safe error, no persistence, no private DTO leakage, rate/backoff behavior | TEST-SEC-ACTION-001, TEST-SEC-PUBLIC-001, TEST-SEC-ABUSE-001 |
+
+## Matrix Completion Gate
+
+Future implementation is not complete until every row above has:
+
+- at least one automated proof path,
+- one manual/browser scenario when DOM-only evidence cannot prove the interaction,
+- verified persistence through reload/navigation for data-changing actions,
+- security proof for protected mutation/read surfaces,
+- performance budget coverage where the action is on the hot path.
+- UX/accessibility proof for keyboard/focus/screen-reader states when the action is user-facing.
+- cache-finalization proof for every data-changing action that can affect route/server context.

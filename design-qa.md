@@ -1,3 +1,46 @@
+## 2026-06-27 estimate sheet header/footer continuity QA
+
+source visual truth path:
+- Reference target: `/workshop/projects` in-app browser screenshot from the user's previous reference, where header, canvas, and footer read as one continuous shell.
+- Failure evidence: /var/folders/xg/_lqq86w138vctk9_ll6g8h840000gn/T/codex-clipboard-4ca32bf3-7b9a-4b56-a099-98248918d6ea.png
+
+implementation screenshot path:
+- blocked: current authenticated `http://localhost:3000/workshop/projects/0139e1e5-951d-4f2f-9081-6c953d288d8a/estimates/8080f04c-fe18-4314-a1d8-9222e62d1eed` cannot be captured from a fresh system Chrome context because it redirects to `/login`.
+
+viewport: desktop in-app browser screenshot, approximately 2048px wide.
+
+state: Estimate sheet with left estimate tree, center estimate grid, right Project library tab, and bottom running-total footer visible.
+
+full-view comparison evidence:
+- The failure screenshot shows a distinct top header strip, a separately painted center estimate well, and a distinct bottom totals footer strip.
+- Projects reference behavior is a single continuous shell material behind header/content/footer, without the header and footer reading as independent cards or bands.
+- Code evidence after patch: the estimate route marker `[data-workshop-page-shell-canvas][data-estimate-sheet-route="true"]` now paints `--estimate-glass-well-bg` once on `.workshop-workspace-glass-surface`, while `.estimate-glass-well` is transparent with no inset shadow.
+
+focused region comparison evidence:
+- Top seam: the prior header area used shell chrome over a different background than the estimate content well.
+- Bottom seam: the prior totals footer used shell chrome over a different background than the estimate content well.
+- Center estimate name: the prior estimate-name chip had its own `bg-white/70`, shadow, and backdrop blur; it now uses transparent background and no shadow.
+- A fresh focused screenshot comparison is blocked by authenticated in-app session access.
+
+findings:
+- [P1] Header and footer still read as separate bands in the supplied estimate-sheet screenshot.
+  Location: `WorkshopPageShell` estimate route shell, `.workshop-workspace-glass-surface`, `.estimate-glass-well`, and `ProjectEstimateMetadataStrip`.
+  Evidence: the user screenshot shows three background planes: header strip, estimate workspace well, footer strip.
+  Impact: the estimate sheet feels assembled from disconnected layers instead of matching the seamless projects-page shell.
+  Fix: paint the estimate well material once at the shared shell level for estimate routes, make the inner estimate well transparent, and remove the center header chip fill/shadow.
+
+patches made since previous QA pass:
+- Added `--estimate-glass-well-bg` token to `src/app/globals.css`.
+- Scoped estimate routes so `.workshop-workspace-glass-surface` uses `--estimate-glass-well-bg`.
+- Changed `.estimate-glass-well` to `background: transparent` and removed its inset shadow so it no longer creates a second plane.
+- Removed the estimate-name metadata chip's white background, shadow, and backdrop blur in `src/components/workshop/ProjectEstimateMetadataStrip.tsx`.
+
+verification:
+- `git diff --check -- src/app/globals.css src/components/workshop/ProjectEstimateMetadataStrip.tsx` passed.
+- `bunx tsc --noEmit --pretty false` is blocked by pre-existing schema/type errors around `adjustment_percentage` in estimate/publication repositories; these errors are unrelated to the touched CSS/header files.
+
+final result: blocked
+
 ## 2026-06-25 library toolbar background QA
 
 source visual truth path:
