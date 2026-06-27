@@ -27,9 +27,10 @@ Stable current truth (verify against git/source before relying on a detail):
 - Known pre-existing reds on `main` (NOT your change if you see them): full
   `bun run validate` is red in the repo-wide `test:dom` phase after
   type/lint/design/unit gates pass; the latest archive-readiness follow-up
-  found one failed suite plus 163 failed tests across unrelated auth, project,
-  publication, library, agent-payload, and contract areas. Use targeted DOM
-  matrices for the changed behavior.
+  found `131` failed tests across `36` files after focused local fixes; failures
+  remain in auth/beta, project groups/favorites, publication, library,
+  agent-payload/tooling, upload-proof, and project-list contract areas. Use
+  targeted DOM matrices for the changed behavior.
 - Codex/UI verification policy: do not automatically run Playwright/browser
   proof for every minor UI element tweak. Spacing, copy, color, icon, and
   class-only cosmetic edits can use static review plus focused type/LSP/lint or
@@ -43,6 +44,16 @@ To go deeper: `rg -n "<feature/keyword>" .ai/10_state/current-state.md` and
 read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
+
+**Estimate Sheet Content Improvement owner-gated closeout completed and archived (2026-06-27):**
+
+- Completed the owner-authorized local/provider closeout for `.ai/03_plans/2026-06-27-Estimate-Sheet-Content-Improvement` without any paid internet purchase, PITR enablement, hosted production deploy, or unrelated provider-project mutation.
+- Final provider state for Supabase project `ebxxqidacheyapmmzavr`: `20260627152000_fix_bulk_row_delete_uuid_first_row.sql` is applied, earlier dry-run evidence reported remote up to date, and fresh `supabase migration list --linked` readback shows local/remote migration ledgers match through `20260627152000`. A final `supabase db push --linked --dry-run` replay was not claimed because the CLI lacked `SUPABASE_DB_PASSWORD` for temp-role auth.
+- Full provider-backed target-route action matrix passed in Chromium. Artifact `.ai/09_archive/2026-06-27-Estimate-Sheet-Content-Improvement/evidence/estimate-sheet-full-action-matrix-local.json` records smoke steps 1-12 passed with no failures: route load, scalar/text edits, blank row typing while insert persists, library insert, component replace/detach/promote/move, single and bulk delete/restore, row movement, keyboard/touch move dialog, reload persistence, and viewer read-only mutation denial.
+- Load-limited movement guard passed. Artifact `.ai/09_archive/2026-06-27-Estimate-Sheet-Content-Improvement/evidence/estimate-sheet-load-limited-movement-local.json` records smoke step 13 passed with row movement disabled under row limit `4` and persisted before/after row location unchanged.
+- Focused closeout evidence passed: `bun run type-check`; scoped ESLint for touched estimate-sheet UI/E2E/fixture files; focused Vitest matrix (`6 files / 67 tests`); target-route smoke; full action matrix; load-limited Playwright proof; fresh provider migration ledger check; earlier provider dry-run evidence; and `git diff --check`.
+- Remaining boundary: hosted staging/production proof is not claimed, and full `bun run validate` remains red in the repo-wide `test:dom` phase from known non-estimate failures. This is not an archive blocker for this pre-launch local/provider estimate-sheet plan.
+- Plan folder archived to `.ai/09_archive/2026-06-27-Estimate-Sheet-Content-Improvement/`.
 
 **Upload plan production proof runbook deployment preflight added (2026-06-27):**
 
@@ -170,7 +181,7 @@ grep, don't linear-read).
 - Dedicated row interaction timing proof is implemented and browser-proved. Row drop flushes the optimistic tree update synchronously and defers persistence one animation frame so the visible move lands inside budget while the Server Action still persists. Artifact `.ai/03_plans/2026-06-27-Estimate-Sheet-Content-Improvement/evidence/estimate-sheet-interaction-performance-local.json` records hover p95 0.8 ms, hover worst 14.4 ms, drop-to-DOM 63.2 ms, Server Action ack 753 ms, active drag cleared, and exactly one row-move mutation request carrying the moved row id.
 - Browser proof passed with isolated Playwright commands: loading/security route proof (`PLAYWRIGHT_PORT=3000`, `5 passed`), target-route smoke (`PLAYWRIGHT_PORT=3037 ARCHESTIMATOR_E2E_ROW_MOVE=1 ... estimate-sheet-target-route-smoke.spec.ts --workers=1`, `1 passed`), offline/degraded proof (`PLAYWRIGHT_PORT=3036 ARCHESTIMATOR_E2E_ROW_MOVE=1 ... estimate-sheet-offline.spec.ts --workers=1`, `1 passed`), interaction timing proof (`PLAYWRIGHT_PORT=3039 ARCHESTIMATOR_E2E_ROW_MOVE=1 ... estimate-sheet-interaction-performance.spec.ts --workers=1`, `1 passed`), and existing row-move proof (`... estimate-row-move.spec.ts --workers=1`, `1 passed`). Keep offline/timing browser specs isolated or single-worker; a parallel two-worker combined run distorted provider/browser timing and is not the evidence shape.
 - Fresh evidence passed: focused cache/offline-same-session/auth/security/row-move matrix (`9 files / 134 tests`), isolated perf budget suite (`1 file / 3 tests`), target-route/offline/interaction/row-move/loading Playwright proof as listed above, `bunx vitest run tests/vitest/estimate-row-mutation-coordinator.test.tsx --reporter=verbose` (`1 file / 3 tests`), `bun run type-check`, scoped ESLint for touched React/E2E/unit files, `npx react-doctor@latest --verbose --scope changed` (`100/100`, no issues), `git diff --check`, provider migration list, provider dry-run, provider lint, and authenticated owner RPC row-update proof.
-- Archive-readiness follow-up evidence: `.ai/03_plans/2026-06-27-Estimate-Sheet-Content-Improvement/evidence/estimate-sheet-validation-followup-2026-06-27.json`. `bun run validate` was attempted and now passes type-check, repo ESLint, compact design-system lint, Impeccable design lint, and unit tests, then exits 1 in the repo-wide `test:dom` phase with one failed suite plus 163 failed tests across unrelated auth/project/publication/library/agent-payload/contract areas. Touched-file regressions from that run were fixed; focused UI primitive tests now pass (`2 files / 34 tests`).
+- Archive-readiness follow-up evidence: `.ai/03_plans/2026-06-27-Estimate-Sheet-Content-Improvement/evidence/estimate-sheet-validation-followup-2026-06-27.json`. `bun run validate` was attempted and now passes type-check, repo ESLint, compact design-system lint, Impeccable design lint, and unit tests, then exits 1 in the repo-wide `test:dom` phase. Focused follow-up now passes the touched UI primitive tests (`2 files / 34 tests`), estimate-focused DOM matrix (`19 files / 170 tests`), and New Project modal validation test (`1 file / 4 tests`). Fresh repo-wide DOM after local fixes still exits 1 with `3608` total tests, `3468` passed, `131` failed, `4` pending; `84` failed suites across `36` files.
 - Not claimed: staging/production proof, full repo-wide DOM validation, and the full manual target-route action matrix remain open release gates. The planning folder was not archived because those gates are still open.
 
 **Estimate Sheet Phase 3 row movement hardening is locally implemented (2026-06-27):**
