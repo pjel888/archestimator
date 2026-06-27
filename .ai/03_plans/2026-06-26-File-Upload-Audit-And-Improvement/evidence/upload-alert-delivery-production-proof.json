@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-06-27T10:36:51.064Z",
+  "mode": "upload-alert-delivery-production-proof",
+  "proofBoundary": "hosted-alert-delivery-proof-skipped",
+  "passed": false,
+  "skipped": true,
+  "target": {
+    "explicitProofOptIn": false,
+    "hostedObservationConfirmed": false,
+    "alertsEnabled": false,
+    "webhookConfigured": false,
+    "webhookHttps": false,
+    "tokenConfigured": false
+  },
+  "payload": {
+    "event": "upload_backpressure_rejected",
+    "severity": "warning",
+    "status": "blocked",
+    "telemetrySource": "admission-control",
+    "surface": "component-attachment",
+    "workspaceIdPresent": false,
+    "cleanupAlertCodes": [],
+    "scanAlertCodes": []
+  },
+  "delivery": {
+    "delivered": false,
+    "statusCode": null,
+    "reason": "ARCH_UPLOAD_ALERT_DELIVERY_PROOF is not set to 1.",
+    "secretRedacted": true,
+    "webhookUrlRedacted": true,
+    "payloadPathSafe": false
+  },
+  "checks": [
+    {
+      "label": "alert-delivery-explicit-proof-opt-in",
+      "passed": false
+    },
+    {
+      "label": "alert-delivery-hosted-observation-confirmed",
+      "passed": false
+    },
+    {
+      "label": "alert-delivery-alerts-enabled",
+      "passed": false
+    },
+    {
+      "label": "alert-delivery-https-webhook-configured",
+      "passed": false
+    },
+    {
+      "label": "alert-delivery-token-configured",
+      "passed": false
+    },
+    {
+      "label": "alert-delivery-observed",
+      "passed": false
+    },
+    {
+      "label": "alert-delivery-status-2xx",
+      "passed": false,
+      "proof": ""
+    },
+    {
+      "label": "alert-delivery-secret-redacted",
+      "passed": true
+    },
+    {
+      "label": "alert-delivery-webhook-url-redacted",
+      "passed": true
+    },
+    {
+      "label": "alert-delivery-payload-path-safe",
+      "passed": false
+    }
+  ],
+  "failedChecks": [
+    "alert-delivery-explicit-proof-opt-in",
+    "alert-delivery-hosted-observation-confirmed",
+    "alert-delivery-alerts-enabled",
+    "alert-delivery-https-webhook-configured",
+    "alert-delivery-token-configured",
+    "alert-delivery-observed",
+    "alert-delivery-status-2xx",
+    "alert-delivery-payload-path-safe"
+  ],
+  "envFile": {
+    "requested": false,
+    "loaded": false
+  },
+  "note": "This proof sends one synthetic warning-level upload operations alert through the existing alert sink only when explicit proof and hosted-observation gates are set. The report never records bearer tokens, raw webhook URLs, uploaded bytes, storage paths, filenames, provider paths, or customer/project data. It does not prove cleanup/scan hosted routes, live scanner/CDR execution, dashboard observation, backpressure traffic, retention runbooks, or hosted runtime limits."
+}

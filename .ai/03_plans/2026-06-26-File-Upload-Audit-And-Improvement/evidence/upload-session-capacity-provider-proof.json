@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-06-27T09:19:30.288Z",
+  "mode": "upload-session-capacity-provider-proof",
+  "proofBoundary": "linked-provider-create-upload-session-concurrency-proof",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "actorCap": {
+    "attempts": 8,
+    "admittedCount": 3,
+    "actorCapacityErrorCount": 5,
+    "workspaceCapacityErrorCount": 0,
+    "otherErrorCount": 0,
+    "otherErrorMessageHashes": [],
+    "readbackReservedCount": 3,
+    "expectedAdmittedCount": 3,
+    "expectedCapacityQuotaClass": "active_actor"
+  },
+  "workspaceCap": {
+    "attempts": 8,
+    "admittedCount": 6,
+    "actorCapacityErrorCount": 0,
+    "workspaceCapacityErrorCount": 2,
+    "otherErrorCount": 0,
+    "otherErrorMessageHashes": [],
+    "readbackReservedCount": 6,
+    "expectedAdmittedCount": 6,
+    "expectedCapacityQuotaClass": "active_workspace"
+  },
+  "checks": [
+    {
+      "label": "parallel-create-upload-session-actor-cap-admits-three",
+      "passed": true,
+      "errorMessage": null,
+      "proof": "8 parallel same-actor RPC attempts produced 3 reserved sessions by provider readback."
+    },
+    {
+      "label": "parallel-create-upload-session-actor-cap-rejects-overflow",
+      "passed": true,
+      "errorMessage": null,
+      "proof": "Overflow same-actor RPC attempts returned active_actor capacity errors."
+    },
+    {
+      "label": "parallel-create-upload-session-workspace-cap-admits-six",
+      "passed": true,
+      "errorMessage": null,
+      "proof": "8 parallel same-workspace/different-actor RPC attempts produced 6 reserved sessions by provider readback."
+    },
+    {
+      "label": "parallel-create-upload-session-workspace-cap-rejects-overflow",
+      "passed": true,
+      "errorMessage": null,
+      "proof": "Overflow same-workspace RPC attempts returned active_workspace capacity errors."
+    }
+  ],
+  "failedChecks": [],
+  "note": "Provider proof exercises live concurrent create_upload_session RPC calls under service_role against temporary workspace/user fixtures, then reads back reserved upload_sessions counts. Reports are sanitized: raw workspace/user/session IDs, storage paths, and tokens are omitted.",
+  "cleanupErrors": []
+}

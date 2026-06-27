@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-06-27T05:12:53.361Z",
+  "mode": "upload-clean-download-provider-proof",
+  "proofBoundary": "linked-provider-clean-download-readback",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "provider": "supabase-storage",
+  "routeBoundary": "component-attachment-download-broker",
+  "storageAccess": "service-role-private-download",
+  "directBrowserAuthorizationHeaderSent": false,
+  "signedUrlRecorded": false,
+  "tokenRecorded": false,
+  "rawStoragePathRecordedInProof": false,
+  "assetShape": {
+    "surface": "component-attachment",
+    "bucket": "component-attachments",
+    "pathShape": "{workspaceId}/{userId}/clean-download-provider-{proofId}.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 48
+  },
+  "attachmentEligibility": {
+    "reviewStatus": "approved",
+    "isCurrentApproved": true,
+    "uploadAssetStatus": "finalized",
+    "scanStatus": "clean",
+    "scannerProvider": "proof-scanner"
+  },
+  "auditEvent": {
+    "eventType": "download_url_issued",
+    "count": 1,
+    "metadataKeys": [
+      "attachmentId",
+      "storagePath",
+      "reviewStatus",
+      "isCurrentApproved"
+    ]
+  },
+  "responseHeaderContract": {
+    "cacheControl": "private, max-age=300",
+    "contentDisposition": "attachment; filename=\"clean-download-provider-proof.pdf\"",
+    "contentLength": "48",
+    "contentType": "application/pdf",
+    "xContentTypeOptions": "nosniff"
+  },
+  "objectReadback": {
+    "contentType": "application/pdf",
+    "sizeBytes": 48,
+    "checksumSha256Observed": true
+  },
+  "fixtureShape": {
+    "item": "{temporary-cost-library-item}",
+    "priceOption": "{temporary-cost-library-price-option}",
+    "attachment": "{temporary-approved-current-attachment}"
+  },
+  "checks": [
+    {
+      "label": "provider-storage-object-seeded",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "upload-asset-recorded-for-component-attachment",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "provider-readback-requires-approved-current-clean-finalized-attachment",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "approved-current-attachment-and-clean-finalized-upload-asset"
+    },
+    {
+      "label": "download-url-issued-event-recorded-before-provider-read",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "provider-clean-object-download-bytes-match",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "service-role-private-storage-download-readback"
+    },
+    {
+      "label": "download-response-header-contract-is-private-and-nosniff",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    }
+  ],
+  "failedChecks": [],
+  "note": "Provider proof seeds a temporary approved/current component attachment, records a pending upload asset, marks it clean through the scanner RPC, records the same download_url_issued audit event shape as the app route, downloads the private provider object, verifies bytes/headers contract, and cleans up. Local route tests prove the actual Next.js GET blocks unapproved, non-clean, non-finalized, and unaudited downloads.",
+  "cleanupErrors": []
+}

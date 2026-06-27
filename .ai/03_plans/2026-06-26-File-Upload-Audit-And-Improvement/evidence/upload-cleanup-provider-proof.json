@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-27T02:19:25.816Z",
+  "generatedAt": "2026-06-27T05:39:07.596Z",
   "mode": "upload-cleanup-provider-proof",
   "proofBoundary": "linked-provider-cleanup-execution-readback",
   "passed": true,
@@ -130,6 +130,128 @@
   "failedBuckets": [],
   "readbackMissingCount": 5,
   "preservedReadbackCount": 4,
+  "retryAuditProof": {
+    "passed": true,
+    "objectShape": {
+      "bucket": "component-attachments",
+      "pathShape": "{workspaceId}/{userId}/cleanup-audit-{proofId}.pdf",
+      "contentType": "application/pdf",
+      "checksumSha256Observed": true
+    },
+    "firstAttempt": {
+      "runId": "upload-cleanup-proof-failed-run",
+      "startedAt": "2026-06-27T02:30:00.000Z",
+      "completedAt": "2026-06-27T05:39:02.574Z",
+      "planner": {
+        "candidateCount": 1,
+        "rejectedCount": 0,
+        "rejectedReasons": {},
+        "candidateBuckets": [
+          "component-attachments"
+        ]
+      },
+      "storage": {
+        "removedCount": 0,
+        "failedCount": 1,
+        "rejectedCount": 0,
+        "failedBuckets": [
+          "component-attachments"
+        ]
+      },
+      "audit": {
+        "queuedCount": 1,
+        "succeededCount": 0,
+        "failedCount": 1,
+        "writeFailureCount": 0,
+        "eventTypes": {
+          "cleanup_queued": 1,
+          "cleanup_failed": 1,
+          "cleanup_succeeded": 0
+        }
+      },
+      "operationalSnapshot": {
+        "status": "blocked",
+        "retryAfterSeconds": 300,
+        "retentionCutoffs": {
+          "failedAssetsBefore": "2026-06-20T02:30:00.000Z",
+          "deletedAssetsBefore": "2026-05-28T02:30:00.000Z",
+          "expiredSessionsBefore": "2026-06-26T02:30:00.000Z",
+          "auditEventsBefore": "2025-06-27T02:30:00.000Z"
+        },
+        "dashboardMetrics": {
+          "cleanupCandidates": 1,
+          "cleanupRemoved": 0,
+          "cleanupFailed": 1,
+          "cleanupRejected": 0,
+          "failedBucketCount": 1
+        },
+        "alerts": [
+          {
+            "code": "cleanup_failures",
+            "severity": "critical",
+            "message": "Storage cleanup failed and must be retried before claiming production cleanup health."
+          }
+        ]
+      }
+    },
+    "retryAttempt": {
+      "runId": "upload-cleanup-proof-retry-run",
+      "startedAt": "2026-06-27T02:30:00.000Z",
+      "completedAt": "2026-06-27T05:39:05.452Z",
+      "planner": {
+        "candidateCount": 1,
+        "rejectedCount": 0,
+        "rejectedReasons": {},
+        "candidateBuckets": [
+          "component-attachments"
+        ]
+      },
+      "storage": {
+        "removedCount": 1,
+        "failedCount": 0,
+        "rejectedCount": 0,
+        "failedBuckets": []
+      },
+      "audit": {
+        "queuedCount": 1,
+        "succeededCount": 1,
+        "failedCount": 0,
+        "writeFailureCount": 0,
+        "eventTypes": {
+          "cleanup_queued": 1,
+          "cleanup_failed": 0,
+          "cleanup_succeeded": 1
+        }
+      },
+      "operationalSnapshot": {
+        "status": "healthy",
+        "retryAfterSeconds": null,
+        "retentionCutoffs": {
+          "failedAssetsBefore": "2026-06-20T02:30:00.000Z",
+          "deletedAssetsBefore": "2026-05-28T02:30:00.000Z",
+          "expiredSessionsBefore": "2026-06-26T02:30:00.000Z",
+          "auditEventsBefore": "2025-06-27T02:30:00.000Z"
+        },
+        "dashboardMetrics": {
+          "cleanupCandidates": 1,
+          "cleanupRemoved": 1,
+          "cleanupFailed": 0,
+          "cleanupRejected": 0,
+          "failedBucketCount": 0
+        },
+        "alerts": []
+      }
+    },
+    "eventCounts": {
+      "cleanup_queued": 2,
+      "cleanup_failed": 1,
+      "cleanup_succeeded": 1
+    },
+    "eventMetadata": {
+      "rawStoragePathRecorded": false,
+      "storagePathHashObserved": true
+    }
+  },
   "checks": [
     {
       "label": "planner-candidate-count",
@@ -346,6 +468,36 @@
       "errorMessage": null,
       "statusCode": null,
       "proof": "service-readback-present"
+    },
+    {
+      "label": "retry-audit-object-preserved-after-failed-attempt",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "retry-audit-object-missing-after-provider-retry",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": "404"
+    },
+    {
+      "label": "retry-audit-events-read-back",
+      "passed": true,
+      "errorMessage": "{\"cleanup_queued\":2,\"cleanup_failed\":1,\"cleanup_succeeded\":1}",
+      "statusCode": null
+    },
+    {
+      "label": "retry-audit-events-do-not-store-raw-path",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "retry-audit-run-summaries-match-expected-outcomes",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
     }
   ],
   "failedChecks": [],
@@ -374,5 +526,5 @@
       }
     ]
   },
-  "note": "Provider proof builds failed/deleted/expired/reserved/finalized/active/unsafe/cross-workspace/duplicate/thumbnail upload cleanup records, runs planUploadStorageCleanup, deletes only planner-approved proof objects, verifies deleted objects are missing, and verifies rejected/finalized/active proof objects remain present. It does not prove durable scheduling, persisted retry/audit jobs, dashboard emission, scanner behavior, hosted runtime limits, or browser UX."
+  "note": "Provider proof builds failed/deleted/expired/reserved/finalized/active/unsafe/cross-workspace/duplicate/thumbnail upload cleanup records, runs planUploadStorageCleanup, deletes only planner-approved proof objects, verifies deleted objects are missing, and verifies rejected/finalized/active proof objects remain present. It also seeds a real temporary upload asset, persists cleanup_queued/cleanup_failed/cleanup_succeeded events across a failed attempt plus provider-backed retry, and verifies cleanup event metadata stores path hashes instead of raw object keys. It does not prove hosted scheduling, real dashboard emission, scanner behavior, hosted runtime limits, or browser UX."
 }

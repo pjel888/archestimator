@@ -1161,6 +1161,724 @@ scan/download, cleanup, observability, and provider-portability phases defined i
   Component modal. Full browser/manual proof was intentionally not run; the
   local claim is limited to client transport and modal integration.
 
+### Iteration 31 - Supabase Signed TUS Resumable Upload Provider Flow
+
+- Implemented Supabase signed TUS resumable sessions in
+  `src/lib/uploads/provider-portability.ts`, including direct storage
+  `/storage/v1/upload/resumable/sign` endpoint derivation, fixed 6 MB chunk
+  metadata, and short-lived signed-token session output without adding a new
+  dependency.
+- Extended `/api/component-library/attachments/direct-upload` so attachment
+  files at or above the 64 MB single-part threshold reserve `tus_resumable`
+  upload sessions, return only the ephemeral TUS token/metadata to the browser
+  response, persist no token/upload location, and finalize resumable objects
+  with the larger session cap through provider object-head validation.
+- Extended the browser/client attachment helper so files above the signed
+  single-part threshold use TUS creation-with-upload plus sequential PATCH
+  chunks using `x-signature` and no Authorization header, then finalize through
+  the existing route. Add Component modal progress copy now distinguishes
+  resumable sessions.
+- Added `scripts/prove-upload-tus-provider-postgres.ts` plus focused
+  script/evidence tests. Linked provider proof against Supabase project
+  `ebxxqidacheyapmmzavr` passed: a temporary 6 MB + tail PDF uploaded through
+  signed TUS, provider object-head readback validated by ETag,
+  `finalize_upload_session` recorded asset/event readback, token/location
+  metadata stayed redacted, and cleanup returned `cleanupErrors=[]`.
+- Updated `evidence/upload-release-gates.json` so platform status is now
+  `ready`; production remains blocked for scanner/CDR provider, queue worker,
+  provider-backed clean download proof, durable cleanup scheduler/observability,
+  hosted runtime evidence, and operational override UI/runbook.
+- Fresh verification passed: linked TUS proof
+  `ARCH_UPLOAD_TUS_PROVIDER_PROOF=1 ARCH_UPLOAD_TUS_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-tus-provider-postgres.ts`,
+  focused provider/route/client/TUS-proof matrix 5 files / 21 tests,
+  release-gates/TUS evidence matrix 2 files / 4 tests, scoped ESLint, expanded
+  upload matrix 38 files / 205 tests, eleven-artifact JSON parse,
+  `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+
+### Iteration 32 - Provider-Backed Clean Attachment Download Proof
+
+- Hardened `/api/component-library/attachments` GET so the download broker now
+  requires the persisted attachment row to be `review_status = approved` and
+  `is_current_approved = true` before it checks the matching finalized,
+  scan-clean upload asset, records `download_url_issued`, or reads private
+  storage bytes.
+- Added route regression coverage for unapproved/current attachment rows and
+  updated static governance coverage so the approved/current download
+  requirement is pinned next to the existing cleanup governance checks.
+- Added `scripts/prove-upload-clean-download-provider-postgres.ts` plus focused
+  script/evidence tests. Linked provider proof against Supabase project
+  `ebxxqidacheyapmmzavr` passed: a temporary approved/current component
+  attachment was seeded, its upload asset was marked clean through
+  `record_upload_scan_result`, `download_url_issued` was recorded before
+  provider readback, private `component-attachments` bytes matched by checksum,
+  safe response-header semantics were recorded, and cleanup returned
+  `cleanupErrors=[]`.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-CLEAN-DOWNLOAD-PROVIDER-READBACK`. Production remains blocked for
+  scanner/CDR provider execution, queue worker, provider-backed file scanning,
+  durable cleanup scheduler/observability/runtime work, hosted runtime evidence,
+  and operational override UI/runbook.
+- Fresh verification passed: linked clean download proof
+  `ARCH_UPLOAD_CLEAN_DOWNLOAD_PROOF=1 ARCH_UPLOAD_CLEAN_DOWNLOAD_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-clean-download-provider-postgres.ts`,
+  focused route/governance/evidence/script matrix 5 files / 70 tests, scoped
+  ESLint for the changed route/proof/test files, twelve-artifact JSON parse,
+  expanded upload matrix 40 files / 216 tests, `bunx tsc --noEmit --pretty
+  false`, and `git diff --check`.
+
+### Iteration 33 - Cleanup Job Retry/Audit Proof
+
+- Added `src/lib/uploads/cleanup-job.ts` with a reusable cleanup executor that
+  records `cleanup_queued` before storage deletion, refuses unaudited deletes
+  when queue-event persistence fails, records `cleanup_failed` for failed
+  attempts, records `cleanup_succeeded` after retry success, summarizes
+  dashboard-safe job metrics, and stores storage path hashes instead of raw
+  object keys in cleanup event metadata.
+- Added secret-gated `GET`/`POST /api/internal/upload-cleanup` as the cron-safe
+  service-role wrapper. The route is `nodejs`, `force-dynamic`, accepts bounded
+  limits, fails closed when `UPLOAD_CLEANUP_JOB_SECRET`/`CRON_SECRET` is missing
+  or mismatched, and returns only sanitized cleanup summaries.
+- Upgraded `scripts/prove-upload-cleanup-provider-postgres.ts` so linked proof
+  now includes a real temporary upload asset retry/audit lane: first attempt
+  records `cleanup_queued` + `cleanup_failed` and leaves the provider object
+  present; the retry uses real Supabase Storage deletion, records
+  `cleanup_succeeded`, verifies the object reads back missing, and reads back
+  `cleanup_queued=2`, `cleanup_failed=1`, `cleanup_succeeded=1` with
+  `rawStoragePathRecorded=false`.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-CLEANUP-JOB-RETRY-AUDIT-READBACK`. Production remains blocked for
+  hosted scheduled TTL invocation, real dashboard emission, quota alerts,
+  production backpressure hooks, exercised retention runbook, scanner/CDR
+  provider/queue/file scanning, hosted runtime evidence, and operational
+  override UI/runbook.
+- Fresh verification passed: linked cleanup proof
+  `ARCH_UPLOAD_CLEANUP_PROOF=1 ARCH_UPLOAD_CLEANUP_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-cleanup-provider-postgres.ts`
+  with `failedChecks=[]` and `cleanupErrors=[]`; focused cleanup job/route/script
+  matrix 3 files / 8 tests; scoped ESLint for the cleanup job/route/proof files.
+
+### Iteration 34 - Cleanup Scheduler Config
+
+- Added Vercel Cron source config in `vercel.json` for daily
+  `/api/internal/upload-cleanup` invocation on the five-field schedule
+  `0 3 * * *`.
+- Hardened cleanup route authorization so the Vercel-native `CRON_SECRET`
+  bearer token is accepted even when the manual/internal
+  `UPLOAD_CLEANUP_JOB_SECRET` fallback is also configured.
+- Extended `scripts/check-vercel-env-readiness.ts` with a scheduled-jobs group
+  that requires `CRON_SECRET`; overall Vercel env readiness now fails if the
+  cron secret name is absent.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-CLEANUP-SCHEDULER-CONFIG-LOCAL`. Production remains blocked for
+  observed hosted cleanup invocation, real dashboard emission, quota alerts,
+  production backpressure hooks, exercised retention runbook, scanner/CDR
+  provider/queue/file scanning, hosted runtime evidence, and operational
+  override UI/runbook.
+- Fresh verification passed: focused cleanup cron config/route/env-readiness
+  matrix 4 files / 12 tests; scoped ESLint for the cron config route/readiness
+  files; twelve-artifact JSON parse; `bunx tsc --noEmit --pretty false`.
+
+### Iteration 35 - Upload Operational Telemetry Seam
+
+- Added `src/lib/uploads/operational-telemetry.ts` as an injectable,
+  non-blocking upload operations telemetry seam.
+- `runUploadCleanupJob` now emits one path-safe cleanup run event with status,
+  severity, retry-after guidance, cleanup counts, audit write failure count,
+  failed bucket count, and alert codes; `/api/internal/upload-cleanup` reaches
+  the same emitter from the cron route path.
+- `reserveUploadAdmission` now emits path-safe operational telemetry for
+  actor/client request-rate denials, actor quota denials, and workspace
+  active-upload backpressure denials without client IPs or storage paths.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL`. Production remains blocked for
+  observed hosted cleanup invocation, real dashboard emission, quota alert
+  delivery, production backpressure hooks, exercised retention runbook,
+  scanner/CDR provider/queue/file scanning, hosted runtime evidence, and
+  operational override UI/runbook.
+- Fresh verification passed: focused cleanup/admission telemetry matrix 3 files
+  / 16 tests; scoped ESLint for telemetry/cleanup/admission files and focused
+  tests; release-gate regression 1 file / 2 tests; `bunx tsc --noEmit --pretty
+  false`.
+
+### Iteration 36 - Attachment Status UX
+
+- Preserved upload response scan metadata in Add Component draft attachment
+  state.
+- Updated draft attachment rows to render non-color scan, review, and download
+  status badges plus blocked-state copy. Approval/download actions remain
+  unavailable unless scanner-clean and Library review/current approval exist.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-ATTACHMENT-STATUS-UX-LOCAL`. Production scanner/download gates
+  remain blocked for scanner/CDR provider execution, queue worker,
+  provider-backed file scanning, operational override UI/runbook, and hosted
+  production proof.
+- Fresh verification passed: Add Component attachment status DOM test 1 file /
+  7 tests; scoped ESLint for the Add Component modal and DOM test; release-gate
+  regression 1 file / 2 tests.
+
+### Iteration 37 - Upload Scan Job Runner Local Seam
+
+- Added `src/lib/uploads/scan-job.ts` with a local scan-job runner seam that
+  lists finalized pending/retryable component attachment upload assets,
+  downloads through an injectable storage adapter, invokes an injected scanner
+  provider, and records checksum-bound scan results through
+  `record_upload_scan_result`.
+- Storage and scanner exceptions now become path-safe `failed_transient`
+  scanner outcomes with hashed failure messages, not raw provider paths or file
+  details.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-SCAN-JOB-RUNNER-LOCAL`. Production remains blocked for real
+  scanner/CDR provider execution, deployed queue worker proof, provider-backed
+  file scanning proof, and operational override UI/runbook.
+- Fresh verification passed: scan job/scanner/release-gate matrix 3 files / 11
+  tests; scoped ESLint for scan-job source/tests and release-gate test;
+  twelve-artifact upload evidence JSON parse; `bunx tsc --noEmit --pretty
+  false`.
+
+### Iteration 38 - Upload Scan Override Route Local Seam
+
+- Added `src/lib/uploads/scan-override.ts` and
+  `POST /api/component-library/attachments/scan-override` as a thin
+  platform-admin route over the existing service-role
+  `approve_upload_scan_override` RPC.
+- The route authenticates and checks `ceo`/`admin` role before parsing request
+  JSON, validates the target asset id, expected SHA-256 checksum, documented
+  reason, and future expiry, passes the actor id to the audited RPC, and returns
+  generic failures without leaking asset ids or storage paths.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-SCAN-OVERRIDE-ROUTE-LOCAL`. Production remains blocked for real
+  scanner/CDR provider execution, deployed queue worker proof, provider-backed
+  file scanning proof, and operator-facing override UI/runbook rehearsal.
+- Fresh verification passed: scan override route test 1 file / 5 tests;
+  scanner/override/release-gate matrix 4 files / 16 tests; scoped ESLint for
+  override route/helper, scan job, and release-gate tests; twelve-artifact upload
+  evidence JSON parse; `bunx tsc --noEmit --pretty false`.
+
+### Iteration 39 - Upload Scan Operational Telemetry
+
+- Extended `src/lib/uploads/operational-telemetry.ts` with
+  `upload_scan_job_completed` telemetry for scan-job run status, result counts,
+  failure counts, outcome counts, and alert codes.
+- `runUploadScanJob` now emits one path-safe, non-blocking telemetry record per
+  scan run. The telemetry carries no raw storage path, file path, or client IP.
+- Updated `evidence/upload-release-gates.json` so
+  `UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL` covers cleanup, admission, and
+  scan-job telemetry. Production remains blocked for real dashboard emission,
+  quota alert delivery, production backpressure hooks, and retention runbook
+  exercise.
+- Fresh verification passed: scan telemetry/release-gate matrix 4 files / 19
+  tests; scoped ESLint for operational telemetry, scan job, focused tests, and
+  release-gate test; twelve-artifact upload evidence JSON parse; `bunx tsc
+  --noEmit --pretty false`.
+
+### Iteration 40 - Upload Operations Runbook Local Drill
+
+- Added `scripts/prove-upload-operations-runbook-local.ts` to generate a
+  provider-free local proof for the Orphan Cleanup Backlog and Scan Backlog
+  operational paths.
+- The drill simulates a cleanup provider-delete failure, verifies blocked retry
+  guidance, retries successfully with `cleanup_queued=2`, `cleanup_failed=1`,
+  and `cleanup_succeeded=1`, records one clean scan result plus one
+  `failed_transient` download failure, and verifies telemetry/report output does
+  not expose raw storage paths.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-OPERATIONS-RUNBOOK-DRILL-LOCAL`. Production remains blocked for
+  observed hosted cleanup invocation, real dashboard emission, quota alert
+  delivery, production backpressure hooks, production retention runbook
+  exercise, scanner/CDR provider execution, deployed queue worker proof,
+  provider-backed file scanning proof, hosted runtime evidence, and
+  operator-facing override UI/runbook rehearsal.
+- Fresh verification passed: local operations runbook proof script; runbook
+  proof tests 2 files / 4 tests; release-gate/runbook proof matrix 3 files / 6
+  tests; final upload operations matrix 9 files / 37 tests; scoped ESLint for
+  the upload operations proof/script/route/service/test files; thirteen-artifact
+  upload evidence JSON parse; `bunx tsc --noEmit --pretty false`; `git diff
+  --check`.
+
+### Iteration 41 - Upload Scan Worker Route Local Source Proof
+
+- Added `src/app/api/internal/upload-scan/route.ts` as a Node/dynamic internal
+  scan worker route using the same fail-closed bearer-secret pattern as upload
+  cleanup. It accepts `CRON_SECRET` or `UPLOAD_SCAN_JOB_SECRET`, creates the
+  service-role scan-job client, lists pending/retryable finalized attachment
+  assets, downloads provider bytes, and records checksum-bound scanner results.
+- Added `src/lib/uploads/policy-scanner.ts` as a local source-proof scanner for
+  clean PDF/XLS/XLSX fixtures, EICAR signature detection, active-content
+  rejection, unsupported types, and empty-file permanent failure. This is not a
+  replacement for a real AV/CDR provider.
+- Hardened the scan storage byte adapter to accept cross-realm
+  `ArrayBufferView` downloads, then source-configured `/api/internal/upload-scan`
+  as a daily Vercel Cron job in `vercel.json`.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-SCAN-WORKER-ROUTE-LOCAL`. Production remains blocked for observed
+  hosted scan worker invocation, real scanner/CDR provider execution,
+  provider-backed file scanning, and operator-facing override UI/runbook
+  rehearsal.
+- Fresh verification passed: scan worker route/config/release-gate matrix 4
+  files / 13 tests; scoped ESLint for the route, policy scanner, byte adapter,
+  cron config, and focused tests; thirteen-artifact upload evidence JSON parse;
+  `bunx tsc --noEmit --pretty false`; `git diff --check`.
+
+### Iteration 42 - ClamD Scanner Provider Source Protocol
+
+- Added `src/lib/uploads/clamd-scanner.ts` with an opt-in
+  `UPLOAD_SCAN_PROVIDER=clamd` scanner provider.
+- The provider implements ClamD INSTREAM TCP framing with `zINSTREAM`, 4-byte
+  chunk lengths, a zero-length terminator, timeout handling, OK/infected,
+  stream-limit, and unexpected-reply result mapping, and path-safe scanner
+  metadata.
+- Added fake-ClamD TCP tests covering clean, EICAR `FOUND`, stream-limit, and
+  configured-provider selection. The internal scan worker still falls back to
+  the local policy scanner unless `UPLOAD_SCAN_PROVIDER=clamd` is configured.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-CLAMD-SCANNER-PROVIDER-LOCAL`. Production remains blocked for
+  live scanner/CDR service execution and provider-backed file scanning proof.
+- Fresh verification passed: ClamD scanner provider/release-gate matrix 5 files
+  / 17 tests; scoped ESLint for ClamD provider, scan worker route, policy
+  scanner, byte adapter, cron config, release gate, and focused tests;
+  final focused scanner/operations matrix 12 files / 47 tests; thirteen-artifact
+  upload evidence JSON parse; `bunx tsc --noEmit --pretty false`; `git diff
+  --check`.
+
+### Iteration 43 - Upload Scan Override Operator Surface
+
+- Added `src/lib/uploads/scan-override-review.ts` and
+  `/workshop/settings/scan-overrides` as a platform-admin review surface for
+  failed/permanently failed and unsupported component-attachment scan outcomes.
+  The queue helper checks `ceo`/`admin` role before constructing a service-role
+  client and selects only review metadata, not storage paths.
+- Added `UploadScanOverridePanel` to submit the existing checksum-bound
+  `/api/component-library/attachments/scan-override` contract, keep the expected
+  SHA-256 readonly, require operator reason/expiry, show generic failure copy,
+  and avoid echoing asset ids or private paths on errors.
+- Updated Workshop Settings platform navigation to expose Scan overrides for
+  platform admins only. Updated component attachment download brokering to use
+  the shared scan gate, allowing finalized clean assets and unexpired
+  `override_approved` assets while leaving expired, pending, infected, and
+  unsupported states blocked.
+- Extended the local upload operations runbook proof with a Scan Override Review
+  rehearsal that parses the hosted API payload shape and records
+  `override_approved` as the target status without recording raw storage paths.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-SCAN-OVERRIDE-UI-RUNBOOK-LOCAL`. Production remains blocked for
+  observed hosted cleanup invocation, observed hosted scan worker invocation,
+  real dashboard emission, quota alert delivery, production backpressure hooks,
+  production retention runbook exercise, hosted runtime evidence, live
+  scanner/CDR service execution, and provider-backed file scanning.
+- Fresh verification passed: local operations runbook script; focused scan
+  override UI/runbook matrix 6 files / 22 tests; combined scan override/route
+  release matrix 8 files / 29 tests; scoped ESLint for touched source/tests;
+  `bunx tsc --noEmit --pretty false`; upload release-gate/runbook JSON parse.
+
+### Iteration 44 - Upload Operations Dashboard Query Local Proof
+
+- Added `src/lib/uploads/operations-dashboard.ts` as a server-only,
+  platform-admin upload operations metrics query. It reads through a service-role
+  client only after the same `ceo`/`admin` role gate used by override
+  operations.
+- The query aggregates upload outcomes by surface, content-type counts, size
+  buckets, scan queue backlog, blocked scan counts, scan provider counts,
+  cleanup backlog, retention cutoffs, cleanup event counts, and
+  download/override/backpressure/scan-failure event counts.
+- The helper intentionally selects only aggregate-safe fields from
+  `upload_assets`, `upload_sessions`, and `upload_events`: no storage paths,
+  filenames, metadata, signed-token fields, or provider object paths.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL`. Production remains blocked
+  for observed hosted cleanup invocation, observed hosted scan worker
+  invocation, real hosted dashboard emission, quota alert delivery, production
+  backpressure hooks, production retention runbook exercise, hosted runtime
+  evidence, and live scanner/CDR service execution.
+- Fresh verification passed: operations dashboard query test 1 file / 4 tests.
+
+### Iteration 45 - Upload Scan Worker Provider Readback Proof
+
+- Added `scripts/prove-upload-scan-worker-provider-postgres.ts` as an opt-in
+  linked-provider scan worker proof. It is gated by
+  `ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF=1`, can load scoped credentials from
+  `ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF_ENV_FILE`, and refuses any Supabase
+  project except Archestimator project `ebxxqidacheyapmmzavr`.
+- The proof creates a temporary auth user/workspace fixture, uploads clean PDF
+  bytes into the private `component-attachments` bucket, records a pending
+  finalized component-attachment upload asset through `record_upload_asset`,
+  verifies `listUploadScanJobRecords` sees the target asset, and runs
+  `runUploadScanJob` through the real Supabase storage adapter, local policy
+  scanner, and checksum-bound result writer.
+- The generated evidence reads back `scan_status=clean`, `scan_clean` event
+  persistence, and upload scan operational telemetry. The durable JSON records
+  only shape/presence evidence for provider ids and paths
+  (`rawStoragePathRecorded=false`; no UUIDs), then cleans up the temporary
+  storage object/workspace/user fixture.
+- Added focused proof script and evidence tests:
+  `tests/vitest/upload-scan-worker-provider-proof-script.test.ts` and
+  `tests/vitest/upload-scan-worker-provider-proof.test.ts`.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-SCAN-WORKER-PROVIDER-READBACK`. The production scanner blocker is
+  narrowed to observed hosted scan worker invocation and live scanner/CDR
+  service execution.
+- Fresh verification passed:
+  `ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF=1 ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-scan-worker-provider-postgres.ts`;
+  focused proof matrix 2 files / 6 tests; release/proof matrix 3 files / 8
+  tests; scoped ESLint for the proof script/tests; upload release-gate and scan
+  worker proof JSON parse.
+
+### Iteration 46 - Upload Operations Dashboard Settings Surface
+
+- Added `src/components/workshop/UploadOperationsDashboardPanel.tsx` as a
+  compact path-safe operator surface for the existing dashboard snapshot. It
+  renders the selected window, upload outcomes by surface, scan queue and
+  blocked counts, scan provider counts, cleanup backlog/events, download/scan
+  override/backpressure counters, and audit retention without raw storage paths,
+  filenames, metadata, signed tokens, or provider object paths.
+- Added `/workshop/settings/upload-operations` as a platform-admin settings
+  page. It calls `readUploadOperationsDashboardSnapshot` server-side, uses a
+  bounded `windowHours` selector, preserves generic unauthorized/error copy, and
+  renders the dashboard panel only for authorized platform admins.
+- Updated `WorkshopSettingsModalContentView` to expose Upload operations in the
+  platform Settings rail alongside Scan overrides.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL`. Production remains blocked
+  for observed hosted scheduled cleanup, real hosted dashboard emission, quota
+  alert delivery, production backpressure hooks, production retention runbook
+  exercise, hosted runtime proof, observed hosted scan worker invocation, and
+  live scanner/CDR service execution.
+- Fresh verification passed: upload dashboard query/page/settings matrix 3 files
+  / 11 tests; dashboard/release matrix 4 files / 13 tests; scoped ESLint for the
+  dashboard query, page, panel, settings rail, focused tests, and release-gate
+  test; upload release-gate/scan-worker/runbook JSON parse.
+
+### Iteration 47 - Upload Operational Alert Webhook Sink Local Proof
+
+- Extended `src/lib/uploads/operational-telemetry.ts` with an opt-in,
+  non-blocking upload operations alert sink. Warning and critical telemetry can
+  be delivered to an HTTPS webhook when
+  `UPLOAD_OPERATIONS_ALERTS_ENABLED=1`,
+  `UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL`, and
+  `UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN` are configured.
+- The alert payload is sanitized for operational use: it carries event,
+  severity, status, surface, workspace id, quota/backpressure details, cleanup
+  backlog counts, scan queue/failure counts, retry hints, and alert codes, but
+  omits storage paths, filenames, tokens, client IPs, and cleanup/scan run ids.
+- Updated `scripts/check-vercel-env-readiness.ts` so Vercel env readiness tracks
+  upload alert webhook names separately from the core closed-beta runtime and
+  scheduled-job gates. General Vercel readiness still does not claim alert
+  delivery.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-OPERATIONS-ALERT-WEBHOOK-SINK-LOCAL`. Production remains blocked
+  for observed hosted scheduled cleanup, observed hosted scan worker invocation,
+  real hosted dashboard emission, observed alert delivery, production
+  backpressure hooks, production retention runbook exercise, hosted runtime
+  proof, and live scanner/CDR service execution.
+- Fresh verification passed: operational alert/admission/readiness matrix 3
+  files / 16 tests; alert/admission/readiness/release matrix 4 files / 18
+  tests; scoped ESLint for the operational telemetry, admission-control, Vercel
+  readiness script, focused tests, and release-gate test; upload release-gate
+  and scan-worker proof JSON parse.
+
+### Iteration 48 - Direct Upload Reserved-Session Backpressure Local Proof
+
+- Added `readActiveUploadSessionCapacity` in
+  `src/lib/uploads/direct-upload-records.ts` to count unexpired reserved
+  `upload_sessions` for a workspace, actor, and upload surface using the
+  existing upload-domain records.
+- Updated `/api/component-library/attachments/direct-upload` so signed
+  single-part and TUS session creation checks durable reserved-session capacity
+  before issuing provider credentials. Actor and workspace caps return `429`
+  with `Retry-After`, emit path-safe quota/backpressure telemetry, and stop
+  before provider signed URL/TUS creation or `create_upload_session`.
+- Updated the local operations runbook proof note to distinguish local
+  backpressure drills from observed hosted backpressure exercise.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-DIRECT-UPLOAD-RESERVED-SESSION-BACKPRESSURE-LOCAL`. Production
+  remains blocked for observed hosted scheduled cleanup, observed hosted scan
+  worker invocation, real hosted dashboard emission, observed alert delivery,
+  observed hosted backpressure exercise, production retention runbook exercise,
+  hosted runtime proof, and live scanner/CDR service execution.
+- Fresh verification passed: signed direct-session backpressure/admission
+  matrix 2 files / 16 tests; direct-session/release/runbook matrix 5 files / 22
+  tests; scoped ESLint for direct upload records, direct-upload route, runbook
+  script, focused tests, and release-gate test; release-gate/runbook JSON parse;
+  `bunx tsc --noEmit --pretty false`.
+
+### Iteration 49 - Atomic Direct Upload Session Capacity Repair
+
+- Reviewer pass found the Iteration 48 route-level durable session check was
+  still check-then-create under concurrency: simultaneous signed/direct-upload
+  create requests could all observe under-cap `upload_sessions` before inserting
+  reservations.
+- Added forward-only migration
+  `20260627151000_upload_direct_session_atomic_capacity.sql`, replacing
+  service-role `create_upload_session` with the same signature/grants plus
+  component-attachment reserved-session capacity enforcement under a
+  workspace/surface `pg_advisory_xact_lock`. The count and reserved-session
+  insert now happen in the same locked transaction path.
+- Kept the route-level capacity read as an advisory fast-fail for already-full
+  actors/workspaces before provider credential creation, and mapped atomic RPC
+  capacity denials back to the same `429`/`Retry-After` path-safe telemetry
+  response.
+- Updated release-gate evidence to describe the atomic RPC gate instead of
+  overclaiming the route precheck as concurrency-safe hosted proof. Hosted
+  backpressure exercise and alert/dashboard observation remain production
+  blockers.
+- Applied `20260627151000_upload_direct_session_atomic_capacity.sql` to the
+  linked Archestimator Supabase project. A post-apply
+  `supabase db push --linked --dry-run` reported `Remote database is up to
+  date`; a later `supabase migration list --linked` attempt hit Supabase
+  temp-role auth/circuit-breaker retries, but Supabase connector read-only SQL
+  confirmed `migration_recorded=true` and live `create_upload_session` function
+  flags for `pg_advisory_xact_lock`, the `upload-session-capacity` namespace,
+  actor/workspace cap checks, and actor/workspace capacity errors.
+- Fresh verification passed: signed direct-session backpressure/admission
+  matrix 2 files / 18 tests; direct-session/release matrix 3 files / 20 tests;
+  scoped ESLint; `bunx tsc --noEmit --pretty false`; release-gate JSON parse;
+  `git diff --check`; linked migration apply; linked post-apply dry-run;
+  Supabase connector read-only SQL.
+
+## Iteration 49 - provider concurrency proof and hosted dry-run harness (2026-06-27)
+
+### Hypothesis
+
+Static migration-string checks and route mocks are not enough evidence for the
+atomic direct-upload capacity claim. The plan also needs a safe way to collect
+hosted upload cleanup/scan invocation evidence without accidentally deleting
+storage objects or writing scan/cleanup state during proof gathering.
+
+### Actions
+
+- Added secret-gated `dryRun=1` support to `/api/internal/upload-cleanup` and
+  `/api/internal/upload-scan`.
+  - Cleanup dry-run reads cleanup candidates and returns the same path-safe
+    planner/storage/audit/operational summary shape with zero storage removals
+    and zero cleanup audit writes.
+  - Scan dry-run reads pending/retryable scan queue records and returns a
+    path-safe queue summary with zero storage downloads, zero scanner provider
+    calls, and zero scan-result writes.
+  - All internal upload operation responses now carry no-store cache headers.
+- Added `scripts/verify-hosted-upload-operations.ts`.
+  - Without secrets it probes hosted cleanup/scan dry-run URLs for
+    fail-closed/no-store behavior.
+  - With scoped bearer secrets it can collect authenticated hosted dry-run proof
+    without recording the secrets and without mutating upload state.
+  - It explicitly does not claim live scanner/CDR execution, real alerts,
+    dashboard observation, hosted backpressure, retention-runbook completion, or
+    hosted runtime proof.
+- Added `scripts/prove-upload-session-capacity-provider-postgres.ts`.
+  - The script is opt-in, project-ref guarded to `ebxxqidacheyapmmzavr`, uses
+    temporary workspace/user fixtures, omits raw IDs/paths/tokens from evidence,
+    and cleans up fixtures.
+  - It fires 8 parallel same-actor `create_upload_session` RPC attempts and 8
+    parallel same-workspace/different-actor attempts against the linked provider.
+- Updated release-gate evidence/tests to treat atomic capacity as provider-proven
+  local/provider evidence, not a production blocker, while keeping observed
+  hosted backpressure as the production blocker.
+- Removed the stale superseded `bunx tsc --noEmit --pretty false` exit-2 entry
+  from the release-gate snapshot; later/current typechecks are green.
+
+### Evidence
+
+- Linked provider concurrency proof:
+  - `ARCH_UPLOAD_SESSION_CAPACITY_PROOF=1 ARCH_UPLOAD_SESSION_CAPACITY_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-session-capacity-provider-postgres.ts`
+  - Passed for project `ebxxqidacheyapmmzavr`.
+  - Same-actor scenario: 8 attempts, 3 admitted, 3 reserved sessions read back,
+    5 `active_actor` capacity rejections, 0 other errors.
+  - Same-workspace scenario: 8 attempts, 6 admitted, 6 reserved sessions read
+    back, 2 `active_workspace` capacity rejections, 0 other errors.
+  - `failedChecks=[]`, `cleanupErrors=[]`.
+  - Evidence file: `evidence/upload-session-capacity-provider-proof.json`.
+- Focused regression matrix:
+  - `bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1`
+  - 8 files / 40 tests passed.
+- Scoped lint:
+  - `bunx eslint src/app/api/internal/upload-cleanup/route.ts src/app/api/internal/upload-scan/route.ts scripts/verify-hosted-upload-operations.ts scripts/prove-upload-session-capacity-provider-postgres.ts src/lib/uploads/direct-upload-records.ts src/app/api/component-library/attachments/direct-upload/route.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts`
+  - No lint errors.
+- `bunx tsc --noEmit --pretty false` exited 0.
+- Upload evidence JSON parse passed for release gates, session-capacity provider
+  proof, cleanup proof, scan-worker proof, and clean-download proof.
+
+### Result
+
+The direct-upload reserved-session capacity claim is now backed by live
+concurrent Postgres/PostgREST provider proof, not only static SQL inspection and
+route mocks. Production remains blocked for observed hosted scheduled cleanup,
+observed hosted scan worker invocation, live scanner/CDR service execution, real
+hosted dashboard emission, observed alert delivery, observed hosted backpressure
+exercise, production retention runbook exercise, and hosted runtime proof.
+
+## Iteration 50 - live ClamD scanner proof harness (2026-06-27)
+
+### Hypothesis
+
+The remaining live scanner/CDR blocker cannot be closed from this session
+because no `UPLOAD_SCAN_PROVIDER=clamd` live service configuration is present,
+but the plan can still be advanced by making the live scanner proof executable,
+sanitized, and regression-covered.
+
+### Actions
+
+- Added `scripts/prove-upload-clamd-live.ts`.
+  - The script is opt-in through `ARCH_UPLOAD_CLAMD_LIVE_PROOF=1`.
+  - It refuses live proof unless `UPLOAD_SCAN_PROVIDER=clamd`.
+  - It scans generated clean and EICAR fixtures through the existing ClamD
+    INSTREAM provider.
+  - It requires clean-file success and EICAR infection detection.
+  - It writes sanitized evidence without raw network targets or fixture names.
+- Added `tests/vitest/upload-clamd-live-proof-script.test.ts` with a fake
+  ClamD-compatible TCP service covering clean/EICAR pass behavior, EICAR
+  failure behavior, opt-in/refusal markers, and sanitization.
+- Updated `upload-release-gates.json` and `upload-release-gates.test.ts` with
+  `UPLOAD-GATE-CLAMD-LIVE-PROOF-HARNESS-LOCAL`, explicitly leaving live
+  scanner/CDR execution as a production blocker until the script runs against a
+  real service.
+
+### Evidence
+
+- `bunx vitest run tests/vitest/upload-clamd-live-proof-script.test.ts --maxWorkers=1`
+  - 1 file / 3 tests passed.
+- `bunx vitest run tests/vitest/upload-clamd-live-proof-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+  - 2 files / 5 tests passed.
+- `bunx eslint scripts/prove-upload-clamd-live.ts tests/vitest/upload-clamd-live-proof-script.test.ts tests/vitest/upload-release-gates.test.ts`
+  - No lint errors.
+- `bunx tsc --noEmit --pretty false`
+  - No TypeScript errors.
+- Upload evidence JSON parse and `git diff --check` passed.
+
+### Result
+
+The live ClamD scanner proof path is now available and locally regression
+covered. Production remains blocked for observed hosted scan worker invocation
+and actual live scanner/CDR service execution because this session has no live
+ClamD configuration and no hosted scan-worker observation.
+
+## Iteration 51 - hosted upload runtime proof harness (2026-06-27)
+
+### Hypothesis
+
+The hosted runtime blocker cannot be closed without a deployed route invocation,
+but the repo can provide a safe, secret-gated proof surface for body-probe,
+memory, concurrency, route-duration, and storage-latency observations.
+
+### Actions
+
+- Added `/api/internal/upload-runtime`.
+  - The route is `runtime = "nodejs"`, `force-dynamic`, no-store, and
+    bearer-secret gated by `UPLOAD_RUNTIME_PROOF_SECRET` or `CRON_SECRET`.
+  - It fails closed before creating a service-role client when unconfigured,
+    unauthorized, or asked to read an oversized body probe.
+  - Authenticated GET returns sanitized Node runtime, configured limit facts,
+    memory snapshots, and Supabase Storage bucket-latency status.
+  - Authenticated POST reads only bounded probe bodies and returns byte counts
+    without echoing uploaded bytes.
+- Added `scripts/verify-hosted-upload-runtime.ts`.
+  - It collects hosted fail-closed proof without secrets.
+  - With a scoped bearer secret, it runs authenticated runtime, body, and
+    parallel reachability probes without recording the secret.
+  - It only marks `productionProofReady=true` when authenticated probes pass and
+    hosted configured limit facts are present in the route response.
+- Added route/script tests and updated release-gate evidence with
+  `UPLOAD-GATE-HOSTED-RUNTIME-PROOF-HARNESS-LOCAL`.
+
+### Evidence
+
+- `bunx vitest run tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts --maxWorkers=1`
+  - 2 files / 10 tests passed.
+- `bunx vitest run tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1`
+  - 3 files / 12 tests passed.
+- `bunx eslint src/app/api/internal/upload-runtime/route.ts scripts/verify-hosted-upload-runtime.ts tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts tests/vitest/upload-release-gates.test.ts`
+  - No lint errors.
+- `bunx tsc --noEmit --pretty false`
+  - No TypeScript errors.
+- Upload evidence JSON parse and `git diff --check` passed.
+
+### Result
+
+Hosted runtime proof now has an executable route and verifier harness. Production
+remains blocked until the route is deployed and authenticated hosted
+body-size/memory/duration/concurrency/storage-latency observations are collected
+from the real runtime.
+
+## Iteration 52 - upload production proof env preflight (2026-06-27)
+
+### Hypothesis
+
+The hosted/live production blockers still require deployed route and live
+provider observations, but the repo can fail closed earlier by checking that the
+required Vercel env names for those proof runs are present before operators run
+the hosted scanners and runtime harnesses.
+
+### Actions
+
+- Extended `scripts/check-vercel-env-readiness.ts` with separate hosted/live
+  upload proof groups.
+- Kept general `vercelEnvReady` tied to closed-beta runtime plus `CRON_SECRET`.
+- Added stricter `uploadProductionProofReady`, requiring `CRON_SECRET`, upload
+  alert webhook env names, `UPLOAD_RUNTIME_PROOF_SECRET`, hosted runtime
+  configured-limit fact names, and live ClamD scanner service env names.
+- Updated `upload-release-gates.json` with
+  `UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL` while preserving the
+  production blockers for hosted cleanup/scan/runtime observations, alert
+  delivery, dashboard/backpressure/runbook exercises, and real live scanner/CDR
+  proof.
+
+### Evidence
+
+- `bunx vitest run tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-operational-alerts.test.ts --maxWorkers=1`
+  - 4 files / 17 tests passed.
+- `bunx eslint scripts/check-vercel-env-readiness.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-operational-alerts.test.ts`
+  - No lint errors.
+- `bunx tsc --noEmit --pretty false`
+  - No TypeScript errors.
+- Upload evidence JSON parse and `git diff --check` passed.
+
+### Result
+
+Hosted/live upload production proof now has a variable-name readiness preflight.
+Production remains blocked because env-name readiness does not prove secret
+values, hosted route execution, alert delivery, dashboard observation, live
+scanner reachability, or runtime behavior.
+
+## Iteration 53 - hosted no-secret proof route observation (2026-06-27)
+
+### Hypothesis
+
+Even without deployment authority or hosted secrets, no-secret hosted proof
+probes can safely establish whether the internal proof routes are visible on the
+current public deployment and fail closed with the expected no-store responses.
+
+### Actions
+
+- Ran `scripts/verify-hosted-upload-runtime.ts` against
+  `https://www.archestimator.com` without a bearer secret and wrote
+  `evidence/upload-hosted-runtime-fail-closed-proof.json`.
+- Ran `scripts/verify-hosted-upload-operations.ts` against
+  `https://www.archestimator.com` without bearer secrets and wrote
+  `evidence/upload-hosted-operations-fail-closed-proof.json` plus the markdown
+  summary.
+- Updated `upload-release-gates.json` with a separate `hostedEvidence` section
+  for these read-only hosted observations and updated blocker wording to avoid
+  implying the proof routes are deployed.
+
+### Evidence
+
+- `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-runtime-fail-closed-proof.json bun run scripts/verify-hosted-upload-runtime.ts`
+  - Exited 1 after writing evidence: `/api/internal/upload-runtime` returned
+    `404` with public cache headers; `productionProofReady=false`.
+- `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.json MARKDOWN_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.md bun run scripts/verify-hosted-upload-operations.ts`
+  - Exited 1 after writing evidence: `/api/internal/upload-cleanup?limit=1&dryRun=1`
+    and `/api/internal/upload-scan?limit=1&dryRun=1` returned `404` with public
+    cache headers; `productionProofReady=false`.
+- `bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts --maxWorkers=1`
+  - 3 files / 14 tests passed.
+- `bunx eslint tests/vitest/upload-release-gates.test.ts scripts/verify-hosted-upload-operations.ts scripts/verify-hosted-upload-runtime.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts`
+  - No lint errors.
+- `bunx tsc --noEmit --pretty false`
+  - No TypeScript errors.
+- Upload evidence JSON parse and `git diff --check` passed.
+
+### Result
+
+The current public deployment has not been observed serving the hosted upload
+proof routes. Production remains blocked for deployed hosted cleanup/scan/runtime
+observations, alert delivery, dashboard/backpressure/runbook exercises, and live
+scanner/CDR proof.
+
 ## Stop Condition
 
 Stop only when the full objective is proven complete, a strict external blocker
@@ -1168,6 +1886,145 @@ prevents meaningful progress after non-blocked work is exhausted, or the user
 explicitly stops/cancels. Do not mark the active Codex goal complete until a
 requirement-by-requirement completion audit proves all required implementation,
 validation, review, QA, and archival gates.
+
+## Iteration 54 - production evidence bundle checker (2026-06-27)
+
+- Goal: Reduce false-readiness risk for the remaining production upload blockers
+  by adding a single fail-closed checker for the required hosted/live evidence
+  bundle, without deploying or mutating production.
+- Added `scripts/check-upload-production-proof-evidence.ts`, which validates
+  seven production evidence classes: hosted cleanup/scan authenticated dry-run
+  proof, hosted runtime authenticated body/concurrency/storage-latency proof,
+  live ClamD scanner proof, observed hosted alert delivery, observed hosted
+  dashboard metrics, observed hosted backpressure exercise, and production
+  retention runbook exercise.
+- Added `tests/vitest/upload-production-proof-evidence-checker.test.ts` for the
+  checker. The test matrix proves the checker fails closed against the current
+  incomplete plan evidence, passes only with a synthetic complete hosted/live
+  bundle, treats malformed/partial artifacts as not ready, and writes sanitized
+  output without bearer tokens.
+- Ran the checker against current evidence:
+  `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts`.
+  It intentionally exited `1` with `productionProofReady=false`,
+  `required=7`, `passed=0`, `failed=2`, `missing=5`, `invalid=0`.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL` while preserving
+  `production.status=blocked`. The checker local pass is source/harness proof
+  only; it does not supply the missing hosted/live evidence.
+- Fresh verification passed: production evidence checker/release-gate matrix
+  (`2 files / 8 tests`), scoped ESLint for the checker and release-gate tests,
+  `bunx tsc --noEmit --pretty false`, targeted upload evidence JSON parse, and
+  `git diff --check`.
+- Result: production readiness is harder to accidentally overclaim. Production
+  remains blocked until the checker receives passing hosted/live evidence for
+  cleanup/scan/runtime, live scanner/CDR, alert delivery, dashboard observation,
+  hosted backpressure, and retention runbook exercise.
+
+### Iteration 55 - Alert Delivery Production Proof Harness
+
+- Added `scripts/verify-upload-alert-delivery.ts` as the fail-closed production
+  alert-delivery proof harness for upload operations alerts.
+- The harness sends no webhook unless explicit proof opt-in and hosted
+  observation gates are satisfied. It requires
+  `ARCH_UPLOAD_ALERT_DELIVERY_PROOF=1`, Vercel production context or
+  `ARCH_UPLOAD_ALERT_DELIVERY_HOSTED_OBSERVED=1`, upload alert env config, HTTPS
+  webhook URL, bearer token, and observed 2xx delivery before it can pass.
+- Added `tests/vitest/upload-alert-delivery-proof-script.test.ts` to cover
+  no-opt-in refusal, hosted-context refusal, passing 2xx delivery through the
+  existing alert sink, non-2xx webhook rejection, and sanitized artifact writes.
+- Generated current fail-closed artifact:
+  `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-alert-delivery-production-proof.json bun run scripts/verify-upload-alert-delivery.ts`.
+  It intentionally exited `1` with `passed=false`,
+  `proofBoundary=hosted-alert-delivery-proof-skipped`, `delivered=false`,
+  secret and webhook URL redaction true, and payload path-safety unproven because
+  no hosted delivery occurred.
+- Regenerated `evidence/upload-production-proof-evidence-check.json`. It now
+  intentionally exits `1` with `productionProofReady=false`, `required=7`,
+  `passed=0`, `failed=3`, `missing=4`, and `invalid=0`. Failed artifacts are
+  hosted operations, hosted runtime, and alert delivery; missing artifacts are
+  live scanner, hosted dashboard, hosted backpressure, and retention runbook.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-ALERT-DELIVERY-PROOF-HARNESS-LOCAL` while preserving
+  `production.status=blocked`.
+- Fresh verification passed: alert proof/checker/release-gate matrix
+  (`3 files / 13 tests`), scoped ESLint for the alert proof script/checker/tests,
+  `bunx tsc --noEmit --pretty false`, targeted upload evidence JSON parse, and
+  `git diff --check`.
+- Result: alert delivery now has a deterministic, secret-safe production proof
+  path. Production remains blocked until a real hosted 2xx alert delivery is
+  observed and the bundle checker receives all remaining hosted/live artifacts.
+
+### Iteration 56 - Live ClamD Fail-Closed Artifact
+
+- Ran the existing live ClamD proof harness without production opt-in:
+  `bun run scripts/prove-upload-clamd-live.ts`.
+- The harness did not contact a scanner and wrote
+  `evidence/upload-clamd-live-proof.json` with `passed=false`, `skipped=true`,
+  `proofBoundary=live-clamd-proof-skipped`, and reason
+  `ARCH_UPLOAD_CLAMD_LIVE_PROOF is not set to 1`.
+- Regenerated `evidence/upload-production-proof-evidence-check.json`. It now
+  intentionally exits `1` with `productionProofReady=false`, `required=7`,
+  `passed=0`, `failed=4`, `missing=3`, and `invalid=0`. Failed artifacts are
+  hosted operations, hosted runtime, live ClamD, and alert delivery; missing
+  artifacts are hosted dashboard, hosted backpressure, and retention runbook.
+- Updated `evidence/upload-release-gates.json` and release-gate tests to treat
+  live scanner proof as failed/skipped rather than missing.
+- Result: the live scanner production gate has a current fail-closed artifact,
+  but production remains blocked until the harness runs with explicit opt-in
+  against the configured live ClamD/CDR service and observes clean plus EICAR
+  scan outcomes.
+
+### Iteration 57 - Production Observation Proof Harnesses
+
+- Added `scripts/verify-upload-production-observations.ts` as a fail-closed
+  serializer/validator for sanitized operator observations covering hosted
+  dashboard, hosted backpressure, and production retention runbook evidence.
+- The harness requires `ARCH_UPLOAD_PRODUCTION_OBSERVATIONS_PROOF=1` and a
+  sanitized observation input file before any artifact can pass. It rejects
+  observation string values containing URLs, storage paths, filenames, provider
+  paths, signed URLs, bearer/access tokens, or Supabase Storage URLs.
+- Added `tests/vitest/upload-production-observations-proof-script.test.ts` to
+  cover default skipped artifacts, complete path-safe hosted observations,
+  unsafe path rejection without echoing raw paths, and writing all three
+  checker-compatible artifacts.
+- Ran `bun run scripts/verify-upload-production-observations.ts`; it
+  intentionally exited `1` and wrote skipped fail-closed artifacts:
+  `upload-dashboard-production-proof.json`,
+  `upload-backpressure-production-proof.json`, and
+  `upload-retention-runbook-production-proof.json`.
+- Regenerated `evidence/upload-production-proof-evidence-check.json`. It now
+  intentionally exits `1` with `productionProofReady=false`, `required=7`,
+  `passed=0`, `failed=7`, `missing=0`, and `invalid=0`.
+- Updated `evidence/upload-release-gates.json` with
+  `UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL` and kept
+  `production.status=blocked`.
+- Fresh verification passed: alert/observation/checker/release-gate matrix
+  (`4 files / 17 tests`).
+- Result: every required production proof slot now has a current artifact, and
+  every artifact fails closed until real hosted/live evidence is collected.
+
+### Iteration 58 - Production Observation Operator Template
+
+- Added `UPLOAD_PRODUCTION_OBSERVATIONS_RUNBOOK.md` to document the hosted
+  dashboard, hosted backpressure, and production retention-runbook observation
+  workflow for `scripts/verify-upload-production-observations.ts`.
+- Added
+  `evidence/upload-production-observations-input.template.json` as the
+  machine-parseable sanitized input template. The template contains only
+  boolean/null status fields and no URLs, storage paths, filenames, provider
+  paths, signed URLs, bearer/access tokens, or customer/project data.
+- Extended `tests/vitest/upload-production-observations-proof-script.test.ts`
+  so the template is parsed from disk, remains fail-closed until filled, and a
+  filled path-safe copy satisfies the hosted observation harness contract.
+- Updated `evidence/upload-release-gates.json` and release-gate tests with
+  `UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL`, while keeping
+  `production.status=blocked`.
+- Fresh verification passed: alert/observation/checker/release-gate matrix
+  (`4 files / 18 tests`), scoped ESLint, targeted upload evidence JSON parse
+  including the template, `bunx tsc --noEmit --pretty false`, and
+  `git diff --check`.
+- Result: future hosted observation capture now has a durable sanitized input
+  contract, but no new hosted/live production proof was claimed.
 
 ## Proof Boundary
 
@@ -1182,26 +2039,90 @@ separately in `upload-storage-denial-proof.json` for anon/auth insert, update,
 download, and delete attempts on the three upload buckets. Cleanup execution
 proof is captured separately in `upload-cleanup-provider-proof.json` for
 planner-approved temporary object cleanup and service-role before/after
-readback. Supabase signed single-part upload proof is captured separately in
+readback plus persisted cleanup retry/audit events against a real temporary
+upload asset (`cleanup_queued=2`, `cleanup_failed=1`, `cleanup_succeeded=1`, no
+raw storage path recorded). Supabase signed single-part upload proof is captured separately in
 `upload-signed-provider-proof.json` for signed URL issuance, token-only upload,
 object metadata readback, and upload asset finalization. Signed app-route
 session/finalization proof is captured separately in
 `upload-signed-route-provider-proof.json`. Browser/client signed-direct
 transport proof is captured in `tests/vitest/upload-component-attachment-client.test.ts`
-and release-gate evidence. Auth-token row-level proof, full browser/manual proof
-beyond focused client transport tests, hosted runtime proof, durable scheduled cleanup proof,
-persisted cleanup audit/retry job proof, real scanner/CDR worker proof,
-provider-backed file scanning/clean download proof, real resumable/TUS/multipart
-provider flows, or production proof
-must still be labeled separately and cannot be inferred from local tests,
-temporary-object provider proof, scanner RPC state/readback proof, signed
-single-part provider proof, or signed app-route provider proof.
+and release-gate evidence. Supabase signed TUS resumable provider/session proof
+is captured separately in `upload-tus-provider-proof.json`. Provider-backed
+clean attachment download proof is captured separately in
+`upload-clean-download-provider-proof.json`. Auth-token row-level proof, full
+browser/manual proof beyond focused client transport tests, hosted runtime
+proof, observed hosted cleanup invocation, real dashboard/alert/backpressure
+runbook proof, real scanner/CDR worker execution, observed hosted scan worker
+invocation, or production proof must still be labeled separately and cannot be
+inferred from local tests, temporary-object provider proof, scanner RPC
+state/readback proof, signed single-part provider proof, signed app-route
+provider proof, signed TUS provider proof, clean download provider proof,
+cleanup retry/audit provider proof plus local Vercel Cron source config,
+provider-backed scan-worker storage readback proof in
+`upload-scan-worker-provider-proof.json`, or the local operations runbook drill
+in `upload-operations-runbook-local-proof.json`.
+The operator scan override settings page and runbook rehearsal prove only local
+source/DOM/API-contract behavior, not a hosted production override operation.
+The upload operations dashboard query proves only a local path-safe query
+artifact, and the upload operations settings page proves only local
+source/DOM rendering of that snapshot, not hosted dashboard emission or alert
+delivery. The upload operations alert webhook sink proves only local
+source/unit behavior for sanitized, opt-in, non-blocking webhook delivery and
+Vercel env-name readiness coverage; it does not prove a hosted webhook endpoint,
+provider delivery, alert routing ownership, paging policy, or production
+incident response. The alert delivery proof harness and current
+`upload-alert-delivery-production-proof.json` artifact prove only that a
+secret-safe hosted alert-delivery evidence path exists and fails closed locally;
+the current artifact is not observed alert delivery and does not prove a hosted
+2xx webhook delivery, alert routing ownership, paging policy, or production
+incident response. The direct-upload reserved-session backpressure hook proves
+local route/source behavior, local migration-contract coverage, linked provider
+migration application, and linked provider concurrent `create_upload_session`
+capacity enforcement; it does not prove hosted concurrent traffic behavior,
+provider edge throttling, production traffic shape, or observed alert/dashboard
+delivery for a live backpressure event. The hosted upload operations dry-run
+harness proves only local/source/test readiness for safe hosted cleanup/scan
+invocation probes; it does not prove hosted cron execution, scanner/CDR
+execution, alert delivery, dashboard observation, hosted backpressure, retention
+runbook completion, or hosted runtime limits. The secret-gated upload runtime
+route and `scripts/verify-hosted-upload-runtime.ts` prove only local/source/test
+readiness for collecting hosted runtime observations; they do not prove hosted
+body-size, memory, duration, concurrency, or storage-latency behavior until run
+against a deployed runtime with scoped secrets and configured limit facts.
+The upload production env-name preflight proves only sanitized Vercel transcript
+readiness for the needed cron, alert, hosted runtime proof, and live ClamD
+scanner variable names; it does not prove secret values, hosted route execution,
+alert delivery, live scanner reachability, dashboard observation, or production
+runtime behavior. The read-only hosted no-secret probes prove only that the
+current public deployment returned 404 for the internal proof routes at probe
+time; they do not prove fail-closed route behavior, authenticated dry-run
+behavior, scheduler invocation, scanner/CDR execution, alert delivery, dashboard
+observation, backpressure traffic, or runtime limits. The production evidence
+bundle checker proves only that the hosted/live proof artifacts are checked
+together and fail closed when incomplete; its current failing report is not
+production proof and does not replace any hosted/live observation. The
+production observation proof harness proves only that sanitized operator
+observations can be serialized into dashboard, backpressure, and retention
+runbook evidence artifacts and fail closed by default; the current skipped
+artifacts are not hosted observations and do not prove dashboard metrics,
+backpressure traffic, hosted cron, cleanup retry behavior, or alert observation.
+The local policy scanner
+and `/api/internal/upload-scan` source route prove only the in-process worker
+seam, not hosted worker invocation or real scanner/CDR engine execution. The
+provider-backed scan-worker proof proves the Supabase Storage byte-download/readback
+path only. The ClamD source provider proves protocol handling against a fake daemon only, and
+`scripts/prove-upload-clamd-live.ts` proves only that a sanitized live-service
+proof path exists until it is run with `ARCH_UPLOAD_CLAMD_LIVE_PROOF=1` against
+the configured ClamD service; neither source proof nor harness proof proves a
+live scanner service, scanner signatures, provider network reachability, or real
+file scanning in production by itself.
 
 ## Remaining Risks
 
 - Provider-backed direct storage denial is operation-proofed for the three upload
-  buckets, but this does not prove scanner status, browser UX, resumable/TUS/
-  multipart upload flows, or production runtime limits.
+  buckets, but this does not prove scanner status, full browser/manual UX, or
+  production runtime limits.
 - Upload-domain migration presence and provider catalog shape are read back from
   the linked provider, but auth-token proof-script scenarios remain skipped.
 - Estimate-row reference image asset finality is locally covered, but provider
@@ -1216,13 +2137,20 @@ single-part provider proof, or signed app-route provider proof.
   renderer remains a separate platform/product design concern if future
   publication snapshots need to render private component images instead of
   omitting or backfilling legacy public URLs.
-- Attachment downloads now have a fail-closed audited broker locally, and
-  linked-provider scanner RPC state/readback is now proved for temporary
-  `upload_assets` rows, but the scanner/CDR provider, queue worker,
-  provider-backed file scanning, provider-backed clean download proof, durable
-  cleanup jobs, persisted cleanup audit/retry execution,
-  metrics/dashboard emission, hosted runtime proof, and real resumable/TUS/
-  multipart provider portability remain open.
+- Attachment downloads now have a fail-closed audited broker locally,
+  approved/current attachment gating, linked-provider scanner RPC state/readback
+  for temporary `upload_assets` rows, and linked-provider clean download
+  readback proof. Cleanup scheduling is source-configured through Vercel Cron,
+  a local operations runbook drill covers cleanup failure/retry, scan
+  clean/transient paths, and scan override review, and an internal scan worker
+  route is source-configured for Vercel Cron. A path-safe operations dashboard
+  query and settings surface exist locally, and a non-blocking sanitized webhook
+  alert sink exists locally. Durable direct-upload reserved-session
+  backpressure hooks exist locally, but hosted cleanup/scan invocation has not
+  been observed. Provider-backed scan-worker storage download/readback is
+  proved, but live scanner/CDR service execution, real hosted dashboard
+  emission, observed alert delivery, observed hosted backpressure exercise,
+  production retention runbook exercise, and hosted runtime proof remain open.
 - The current worktree has unrelated dirty estimate-row/chart/publication changes;
   current upload-slice typecheck is green, while an attempted broader lint pass
   previously encountered pre-existing React lint errors in dirty row/sheet files

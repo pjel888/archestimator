@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-06-27T10:52:47.028Z",
+  "mode": "upload-dashboard-production-proof",
+  "proofBoundary": "hosted-dashboard-proof-skipped",
+  "passed": false,
+  "skipped": true,
+  "dashboard": {
+    "hostedObserved": false,
+    "pathSafe": false,
+    "backpressureMetricPresent": false,
+    "cleanupScanMetricsPresent": false
+  },
+  "checks": [
+    {
+      "label": "dashboard-explicit-proof-opt-in",
+      "passed": false
+    },
+    {
+      "label": "dashboard-input-loaded",
+      "passed": false
+    },
+    {
+      "label": "dashboard-hosted-observed",
+      "passed": false
+    },
+    {
+      "label": "dashboard-path-safe",
+      "passed": false
+    },
+    {
+      "label": "dashboard-backpressure-metric-present",
+      "passed": false
+    },
+    {
+      "label": "dashboard-cleanup-scan-metrics-present",
+      "passed": false
+    }
+  ],
+  "failedChecks": [
+    "dashboard-explicit-proof-opt-in",
+    "dashboard-input-loaded",
+    "dashboard-hosted-observed",
+    "dashboard-path-safe",
+    "dashboard-backpressure-metric-present",
+    "dashboard-cleanup-scan-metrics-present"
+  ],
+  "inputFile": {
+    "requested": false,
+    "loaded": false
+  },
+  "note": "This artifact records sanitized operator observation of the hosted upload operations dashboard. It must not include URLs, storage paths, filenames, provider paths, signed URLs, tokens, or customer/project data. It does not collect browser evidence, deploy code, query production, or prove alert/backpressure/runbook behavior by itself."
+}

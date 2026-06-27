@@ -1,0 +1,22 @@
+{
+  "dashboard": {
+    "hostedObserved": false,
+    "pathSafe": false,
+    "backpressureMetricPresent": false,
+    "cleanupScanMetricsPresent": false
+  },
+  "backpressure": {
+    "hosted": false,
+    "rejectionStatus": null,
+    "retryAfterPresent": false,
+    "telemetryObserved": false,
+    "pathSafe": false
+  },
+  "retentionRunbook": {
+    "hostedCronObserved": false,
+    "cleanupRetryObserved": false,
+    "dashboardObserved": false,
+    "alertObserved": false,
+    "noRawStoragePaths": false
+  }
+}

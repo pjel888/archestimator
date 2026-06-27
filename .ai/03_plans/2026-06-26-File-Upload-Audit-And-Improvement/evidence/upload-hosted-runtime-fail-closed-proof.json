@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-06-27T10:07:34.903Z",
+  "mode": "hosted-upload-runtime-proof",
+  "proofBoundary": "hosted-runtime-fail-closed-only",
+  "baseUrl": "https://www.archestimator.com",
+  "runs": 1,
+  "concurrency": 2,
+  "bodyProbeBytes": 1024,
+  "authenticated": false,
+  "passed": false,
+  "productionProofReady": false,
+  "missingAuthenticatedProbeSecrets": [
+    "HOSTED_UPLOAD_RUNTIME_SECRET"
+  ],
+  "note": "Hosted upload runtime proof never records bearer secrets or uploaded bytes. Authenticated probes call a secret-gated non-mutating route that reports runtime memory, bounded body-probe receipt, concurrency reachability, and Supabase Storage bucket latency. This does not prove real user upload UX, scanner/CDR execution, alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
+  "samples": [
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 1,
+      "status": 404,
+      "durationMs": 1329.14,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": false,
+      "setCookiePresent": false,
+      "contentType": "text/html; charset=utf-8",
+      "bodyBytes": 16958,
+      "bodySummary": {},
+      "passed": false
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-06-27T10:52:47.028Z",
+  "mode": "upload-retention-runbook-production-proof",
+  "proofBoundary": "production-retention-runbook-proof-skipped",
+  "passed": false,
+  "skipped": true,
+  "runbook": {
+    "hostedCronObserved": false,
+    "cleanupRetryObserved": false,
+    "dashboardObserved": false,
+    "alertObserved": false,
+    "noRawStoragePaths": false
+  },
+  "checks": [
+    {
+      "label": "retention-runbook-explicit-proof-opt-in",
+      "passed": false
+    },
+    {
+      "label": "retention-runbook-input-loaded",
+      "passed": false
+    },
+    {
+      "label": "retention-runbook-hosted-cron-observed",
+      "passed": false
+    },
+    {
+      "label": "retention-runbook-cleanup-retry-observed",
+      "passed": false
+    },
+    {
+      "label": "retention-runbook-dashboard-observed",
+      "passed": false
+    },
+    {
+      "label": "retention-runbook-alert-observed",
+      "passed": false
+    },
+    {
+      "label": "retention-runbook-path-safe",
+      "passed": false
+    }
+  ],
+  "failedChecks": [
+    "retention-runbook-explicit-proof-opt-in",
+    "retention-runbook-input-loaded",
+    "retention-runbook-hosted-cron-observed",
+    "retention-runbook-cleanup-retry-observed",
+    "retention-runbook-dashboard-observed",
+    "retention-runbook-alert-observed",
+    "retention-runbook-path-safe"
+  ],
+  "inputFile": {
+    "requested": false,
+    "loaded": false
+  },
+  "note": "This artifact records sanitized operator observation of the production upload retention runbook. It must show hosted cron execution, cleanup retry behavior, dashboard observation, alert observation, and no raw storage paths. It does not run cron, mutate production, query production, or prove scanner/runtime behavior by itself."
+}

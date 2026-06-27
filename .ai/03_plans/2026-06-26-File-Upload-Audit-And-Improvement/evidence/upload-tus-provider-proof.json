@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-06-27T04:51:47.522Z",
+  "mode": "upload-tus-provider-proof",
+  "proofBoundary": "linked-provider-tus-resumable-readback",
+  "passed": true,
+  "skipped": false,
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "expectedProjectRef": "ebxxqidacheyapmmzavr",
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  },
+  "provider": "supabase-storage",
+  "route": "component-attachment-direct-upload",
+  "uploadMode": "tus_resumable",
+  "sessionStatusFlow": [
+    "reserved",
+    "finalized"
+  ],
+  "chunkSizeBytes": 6291456,
+  "chunksUploaded": 2,
+  "signedUrlRecorded": false,
+  "tokenRecorded": false,
+  "uploadLocationRecorded": false,
+  "uploadedWithAuthorizationHeader": false,
+  "uploadedWithSignatureHeader": true,
+  "assetShape": {
+    "surface": "component-attachment",
+    "bucket": "component-attachments",
+    "pathShape": "{workspaceId}/{userId}/tus-provider-{proofId}.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 6291473
+  },
+  "objectHead": {
+    "contentType": "application/pdf",
+    "sizeBytes": 6291473,
+    "etagObserved": true,
+    "checksumObserved": false,
+    "validationProof": "etag"
+  },
+  "finalizedAssetRecorded": true,
+  "checks": [
+    {
+      "label": "provider-issued-signed-tus-resumable-session",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "create-upload-session-rpc-records-tus-reserved-session",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "tus-reserved-session-readback-is-actor-workspace-bound",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "signed-tus-upload-accepts-signature-without-authorization-header",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": 201
+    },
+    {
+      "label": "tus-provider-object-head-validates-finalization",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "etag"
+    },
+    {
+      "label": "finalize-upload-session-rpc-records-tus-asset-and-events",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "tus-metadata-does-not-record-token-url-or-location",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    }
+  ],
+  "failedChecks": [],
+  "note": "Provider proof exercises Supabase signed TUS resumable upload session issuance, token-only TUS create/PATCH requests with x-signature and no Authorization header, provider object-head validation, finalize_upload_session asset/event readback, sanitized metadata, and cleanup.",
+  "cleanupErrors": []
+}

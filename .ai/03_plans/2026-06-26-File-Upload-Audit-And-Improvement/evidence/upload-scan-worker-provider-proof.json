@@ -1,0 +1,123 @@
+{
+  "generatedAt": "2026-06-27T07:56:44.082Z",
+  "mode": "upload-scan-worker-provider-proof",
+  "proofBoundary": "linked-provider-operation-proof",
+  "projectUrl": "https://ebxxqidacheyapmmzavr.supabase.co",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "passed": true,
+  "failedChecks": [],
+  "checks": [
+    {
+      "label": "provider-storage-object-seeded",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null
+    },
+    {
+      "label": "pending-upload-asset-recorded",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "record_upload_asset returned asset/session ids"
+    },
+    {
+      "label": "scan-job-reader-listed-provider-asset",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "pending asset was visible through listUploadScanJobRecords"
+    },
+    {
+      "label": "scan-job-ran-provider-download",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "scanned=1;downloadFailures=0"
+    },
+    {
+      "label": "policy-scanner-recorded-clean-outcome",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "{\"clean\":1,\"infected\":0,\"unsupported\":0,\"failed_transient\":0,\"failed_permanent\":0}"
+    },
+    {
+      "label": "provider-scan-status-readback-clean",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "clean"
+    },
+    {
+      "label": "provider-scan-event-recorded",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "scan_pending,scan_clean"
+    },
+    {
+      "label": "scan-telemetry-emitted",
+      "passed": true,
+      "errorMessage": null,
+      "statusCode": null,
+      "proof": "1 telemetry event(s) captured"
+    }
+  ],
+  "scannerProvider": "archestimator-policy-scanner",
+  "uploadAssetIdPresent": true,
+  "uploadSessionIdPresent": true,
+  "objectPathShape": "{workspaceId}/{userId}/scan-worker-provider-proof-{proofId}.pdf",
+  "checksumSha256": "d05dfc4453f3636ea65aa93fd72b51aa02d4b468d7e93bd0beb11b382d75c94b",
+  "jobResult": {
+    "runIdShape": "scan-worker-provider-proof-{proofId}",
+    "scannedCount": 1,
+    "writeFailedCount": 0,
+    "downloadFailedCount": 0,
+    "scannerFailedCount": 0,
+    "outcomeCounts": {
+      "clean": 1,
+      "infected": 0,
+      "unsupported": 0,
+      "failed_transient": 0,
+      "failed_permanent": 0
+    }
+  },
+  "scanReadback": {
+    "status": "clean",
+    "provider": "archestimator-policy-scanner",
+    "scannedAtPresent": true,
+    "scanResultKeys": [
+      "checks",
+      "scanJobRunId",
+      "scannerVersion"
+    ],
+    "eventTypes": [
+      "scan_pending",
+      "scan_clean"
+    ]
+  },
+  "telemetry": [
+    {
+      "event": "upload_scan_job_completed",
+      "source": "scan-job",
+      "status": "healthy",
+      "severity": "info",
+      "scanResultsRecorded": 1,
+      "scanOutcomeCounts": {
+        "clean": 1,
+        "infected": 0,
+        "unsupported": 0,
+        "failed_transient": 0,
+        "failed_permanent": 0
+      }
+    }
+  ],
+  "rawStoragePathRecorded": false,
+  "cleanupErrors": [],
+  "envFile": {
+    "requested": true,
+    "loaded": true,
+    "path": ".env.local",
+    "names": []
+  }
+}

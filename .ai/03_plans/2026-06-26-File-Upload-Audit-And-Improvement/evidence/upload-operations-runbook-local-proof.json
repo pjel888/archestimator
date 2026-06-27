@@ -1,0 +1,180 @@
+{
+  "generatedAt": "2026-06-27T08:35:13.127Z",
+  "mode": "upload-operations-runbook-local-proof",
+  "proofBoundary": "local-in-memory-runbook-drill",
+  "passed": true,
+  "skipped": false,
+  "runbooksExercised": [
+    "Orphan Cleanup Backlog",
+    "Scan Backlog",
+    "Scan Override Review"
+  ],
+  "cleanupDrill": {
+    "firstAttempt": {
+      "runId": "runbook-cleanup-failed",
+      "startedAt": "2026-06-27T03:30:00.000Z",
+      "completedAt": "2026-06-27T08:35:13.124Z",
+      "planner": {
+        "candidateCount": 1,
+        "rejectedCount": 0,
+        "rejectedReasons": {},
+        "candidateBuckets": [
+          "component-attachments"
+        ]
+      },
+      "storage": {
+        "removedCount": 0,
+        "failedCount": 1,
+        "rejectedCount": 0,
+        "failedBuckets": [
+          "component-attachments"
+        ]
+      },
+      "audit": {
+        "queuedCount": 1,
+        "succeededCount": 0,
+        "failedCount": 1,
+        "writeFailureCount": 0,
+        "eventTypes": {
+          "cleanup_queued": 1,
+          "cleanup_failed": 1,
+          "cleanup_succeeded": 0
+        }
+      },
+      "operationalSnapshot": {
+        "status": "blocked",
+        "retryAfterSeconds": 300,
+        "retentionCutoffs": {
+          "failedAssetsBefore": "2026-06-20T03:30:00.000Z",
+          "deletedAssetsBefore": "2026-05-28T03:30:00.000Z",
+          "expiredSessionsBefore": "2026-06-26T03:30:00.000Z",
+          "auditEventsBefore": "2025-06-27T03:30:00.000Z"
+        },
+        "dashboardMetrics": {
+          "cleanupCandidates": 1,
+          "cleanupRemoved": 0,
+          "cleanupFailed": 1,
+          "cleanupRejected": 0,
+          "failedBucketCount": 1
+        },
+        "alerts": [
+          {
+            "code": "cleanup_failures",
+            "severity": "critical",
+            "message": "Storage cleanup failed and must be retried before claiming production cleanup health."
+          }
+        ]
+      }
+    },
+    "retryAttempt": {
+      "runId": "runbook-cleanup-retry",
+      "startedAt": "2026-06-27T03:30:00.000Z",
+      "completedAt": "2026-06-27T08:35:13.124Z",
+      "planner": {
+        "candidateCount": 1,
+        "rejectedCount": 0,
+        "rejectedReasons": {},
+        "candidateBuckets": [
+          "component-attachments"
+        ]
+      },
+      "storage": {
+        "removedCount": 1,
+        "failedCount": 0,
+        "rejectedCount": 0,
+        "failedBuckets": []
+      },
+      "audit": {
+        "queuedCount": 1,
+        "succeededCount": 1,
+        "failedCount": 0,
+        "writeFailureCount": 0,
+        "eventTypes": {
+          "cleanup_queued": 1,
+          "cleanup_failed": 0,
+          "cleanup_succeeded": 1
+        }
+      },
+      "operationalSnapshot": {
+        "status": "healthy",
+        "retryAfterSeconds": null,
+        "retentionCutoffs": {
+          "failedAssetsBefore": "2026-06-20T03:30:00.000Z",
+          "deletedAssetsBefore": "2026-05-28T03:30:00.000Z",
+          "expiredSessionsBefore": "2026-06-26T03:30:00.000Z",
+          "auditEventsBefore": "2025-06-27T03:30:00.000Z"
+        },
+        "dashboardMetrics": {
+          "cleanupCandidates": 1,
+          "cleanupRemoved": 1,
+          "cleanupFailed": 0,
+          "cleanupRejected": 0,
+          "failedBucketCount": 0
+        },
+        "alerts": []
+      }
+    },
+    "eventCounts": {
+      "cleanup_queued": 2,
+      "cleanup_failed": 1,
+      "cleanup_succeeded": 1
+    },
+    "rawStoragePathRecorded": false
+  },
+  "scanDrill": {
+    "runId": "runbook-scan-drill",
+    "scanResultsRecorded": 2,
+    "downloadFailedCount": 1,
+    "scannerFailedCount": 0,
+    "writeFailedCount": 0,
+    "outcomeCounts": {
+      "clean": 1,
+      "infected": 0,
+      "unsupported": 0,
+      "failed_transient": 1,
+      "failed_permanent": 0
+    },
+    "rawStoragePathRecorded": false
+  },
+  "overrideDrill": {
+    "route": "/workshop/settings/scan-overrides",
+    "apiRoute": "/api/component-library/attachments/scan-override",
+    "parsed": true,
+    "targetStatus": "override_approved",
+    "expectedChecksumSha256Recorded": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "rawStoragePathRecorded": false
+  },
+  "telemetry": {
+    "records": [
+      {
+        "event": "upload_cleanup_run_completed",
+        "source": "cleanup-job",
+        "status": "blocked",
+        "severity": "critical",
+        "cleanupAlertCodes": [
+          "cleanup_failures"
+        ]
+      },
+      {
+        "event": "upload_cleanup_run_completed",
+        "source": "cleanup-job",
+        "status": "healthy",
+        "severity": "info",
+        "cleanupAlertCodes": []
+      },
+      {
+        "event": "upload_scan_job_completed",
+        "source": "scan-job",
+        "status": "attention",
+        "severity": "warning",
+        "scanAlertCodes": [
+          "scan_download_failures",
+          "scan_transient_failures"
+        ]
+      }
+    ],
+    "rawStoragePathRecorded": false
+  },
+  "failedChecks": [],
+  "note": "Local in-memory drill only. This does not prove hosted cron invocation, production dashboard emission, observed alert delivery, observed hosted backpressure exercise, real scanner/CDR provider execution, provider-backed file scanning, or hosted override operation."
+}

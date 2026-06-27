@@ -1,113 +1,195 @@
 {
   "artifact": "upload-release-gates",
-  "generatedAt": "2026-06-27T04:15:01Z",
+  "generatedAt": "2026-06-27T11:09:43Z",
   "proofBoundary": "local-plus-linked-provider-operation-proof",
   "closedBeta": {
     "status": "ready",
     "localPasses": [
       {
         "id": "UPLOAD-GATE-APP-AUTHZ",
-        "requirements": ["UPLOAD-REQ-002"],
+        "requirements": [
+          "UPLOAD-REQ-002"
+        ],
         "evidence": "Route tests cover pre-body auth failure, library manager denial, project edit denial, estimate-row project/estimate edit denial, and no storage writes before denial."
       },
       {
         "id": "UPLOAD-GATE-UPLOAD-DOMAIN-CONTRACTS-LOCAL",
-        "requirements": ["UPLOAD-REQ-001", "UPLOAD-REQ-007", "UPLOAD-REQ-008"],
+        "requirements": [
+          "UPLOAD-REQ-001",
+          "UPLOAD-REQ-007",
+          "UPLOAD-REQ-008"
+        ],
         "evidence": "Policy registry, provider-neutral object key builder, upload asset/session RPC contract, provider adapter contract, path constraints, and narrow RLS/grants are covered by upload-domain and provider tests."
       },
       {
         "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL",
-        "requirements": ["UPLOAD-REQ-002", "UPLOAD-REQ-004", "UPLOAD-REQ-011", "UPLOAD-REQ-012", "UPLOAD-REQ-013", "UPLOAD-REQ-014"],
+        "requirements": [
+          "UPLOAD-REQ-002",
+          "UPLOAD-REQ-004",
+          "UPLOAD-REQ-011",
+          "UPLOAD-REQ-012",
+          "UPLOAD-REQ-013",
+          "UPLOAD-REQ-014"
+        ],
         "evidence": "Happy-path route tests now cover project image, component image, and estimate-row image storage plus atomic upload asset records. Malicious fixture tests cover oversized content-length, MIME/magic mismatch, empty files, fake XLSX, stale estimate rows, workspace-mismatched resolvers, and no storage/RPC work after rejection."
       },
       {
         "id": "UPLOAD-GATE-UPLOAD-DOMAIN-APPLIED-READBACK",
-        "requirements": ["UPLOAD-REQ-021"],
+        "requirements": [
+          "UPLOAD-REQ-021"
+        ],
         "evidence": "Linked Supabase provider readback for project ebxxqidacheyapmmzavr lists the five upload migrations, confirms upload_sessions/upload_assets/upload_events exist with RLS enabled, confirms authenticated-only upload table SELECT policies, confirms upload scan lifecycle enum labels and function grants, and finds none of the known broad direct storage policies present. See evidence/upload-provider-readback.json."
       },
       {
         "id": "UPLOAD-GATE-DIRECT-STORAGE-CONTAINMENT-STATIC",
-        "requirements": ["UPLOAD-REQ-003"],
+        "requirements": [
+          "UPLOAD-REQ-003"
+        ],
         "evidence": "Static migration contract drops broad direct project-image/component-image/component-attachment write/update/delete policies and pending component-attachment direct-read policy."
       },
       {
         "id": "UPLOAD-GATE-PROVIDER-STORAGE-DENIAL-OPERATION-PROOF",
-        "requirements": ["UPLOAD-REQ-003"],
+        "requirements": [
+          "UPLOAD-REQ-003"
+        ],
         "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr confirms anon and authenticated direct insert, update, download, and delete denial for project-images, component-images, and component-attachments; delete denial is verified by service-role readback that seeded objects remain. See evidence/upload-storage-denial-proof.json."
       },
       {
         "id": "UPLOAD-GATE-ATTACHMENT-SCAN-FREEZE",
-        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
-        "evidence": "Approval/supersede RPCs fail closed until scanning exists; attachment download broker exists but refuses files unless the matching upload asset is finalized and scan-clean."
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006"
+        ],
+        "evidence": "Approval/supersede RPCs fail closed until scanning exists; attachment download broker exists but refuses files unless the persisted attachment is approved/current and the matching upload asset is finalized and scan-clean."
       },
       {
         "id": "UPLOAD-GATE-ATTACHMENT-DOWNLOAD-BROKER-FAIL-CLOSED",
-        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
-        "evidence": "GET /api/component-library/attachments?id=... validates the attachment workspace, requires library-manager authorization, requires a matching finalized upload_assets row with scan_status=clean, audits download_url_issued before storage download, returns no-store failures, and never reaches storage for pending/unscanned assets."
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006"
+        ],
+        "evidence": "GET /api/component-library/attachments?id=... validates the attachment workspace, requires library-manager authorization, requires the attachment row to be approved/current, requires a matching finalized upload_assets row with scan_status=clean, audits download_url_issued before storage download, returns no-store failures, and never reaches storage for unapproved, pending, unscanned, or unaudited assets."
+      },
+      {
+        "id": "UPLOAD-GATE-ATTACHMENT-STATUS-UX-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-017"
+        ],
+        "evidence": "Add Component draft attachment rows preserve upload scan metadata and render non-color scan, review, and download status badges plus blocked-state copy after upload. The UI keeps approval/download unavailable until scanner-clean and Library review/current approval exist."
       },
       {
         "id": "UPLOAD-GATE-SCAN-STATUS-TAXONOMY-LOCAL",
-        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006"
+        ],
         "evidence": "Additive migration extends upload_scan_status with failed_transient, failed_permanent, and override_approved alongside existing pending, clean, infected, and unsupported states; current attachment downloads still allow only scan_status=clean."
       },
       {
         "id": "UPLOAD-GATE-ABUSE-CAPS-LOCAL",
-        "requirements": ["UPLOAD-REQ-022"],
+        "requirements": [
+          "UPLOAD-REQ-022"
+        ],
         "evidence": "In-process closed-beta rate and active-upload caps return 429 with Retry-After; actor-bound rate tests cover rotating x-forwarded-for attempts."
       },
       {
         "id": "UPLOAD-GATE-UPLOAD-CLEANUP-CORE-LOCAL",
-        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
         "evidence": "Upload cleanup planner only emits provider cleanup targets for failed/deleted/expired records or expired reserved sessions, rejects finalized assets and unsafe workspace/path/bucket shapes, dedupes thumbnails, and summarizes removed/failed/rejected counts without provider secrets."
       },
       {
         "id": "UPLOAD-GATE-CLEANUP-RETENTION-OBSERVABILITY-LOCAL",
-        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
         "evidence": "Cleanup operations now produce explicit failed/deleted/expired-session/audit retention cutoffs, retry-after guidance for failed provider deletes, dashboard-safe cleanup metrics, and warning/critical backlog alerts without exposing storage paths or provider internals."
       },
       {
         "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL",
-        "requirements": ["UPLOAD-REQ-011", "UPLOAD-REQ-012", "UPLOAD-REQ-013", "UPLOAD-REQ-014", "UPLOAD-REQ-017"],
+        "requirements": [
+          "UPLOAD-REQ-011",
+          "UPLOAD-REQ-012",
+          "UPLOAD-REQ-013",
+          "UPLOAD-REQ-014",
+          "UPLOAD-REQ-017"
+        ],
         "evidence": "Estimate-row reference image DOM tests cover estimate-scoped upload FormData, selected/uploading/error/cancel/retry states, stale abort isolation, Escape/overlay guard, alert/status roles, and returned URL commit."
       },
       {
         "id": "UPLOAD-GATE-ESTIMATE-ROW-ASSET-FINALITY",
-        "requirements": ["UPLOAD-REQ-004", "UPLOAD-REQ-025"],
+        "requirements": [
+          "UPLOAD-REQ-004",
+          "UPLOAD-REQ-025"
+        ],
         "evidence": "Estimate-row uploads require row scope, return imageAsset descriptors, commit descriptors through the row editor, validate/canonicalize descriptors through validate_estimate_row_image_asset before update_estimate_row_item_with_history, reject tampered descriptors, and carry descriptors through project-component projection metadata."
       },
       {
         "id": "UPLOAD-GATE-ESTIMATE-ROW-IMAGE-PRIVATE-BUCKET",
-        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010", "UPLOAD-REQ-025"],
+        "requirements": [
+          "UPLOAD-REQ-009",
+          "UPLOAD-REQ-010",
+          "UPLOAD-REQ-025"
+        ],
         "evidence": "Estimate-row reference images now write to the private project-images bucket under project-scoped project-images/{projectId}/estimate-row-images/{estimateId}/ paths, return /api/projects/images resolver URLs, and validate upload_assets as surface=project-image, target_entity_type=estimate-row, target_entity_id=projectId with row metadata."
       },
       {
         "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-RESOLVER-LOCAL",
-        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "requirements": [
+          "UPLOAD-REQ-009",
+          "UPLOAD-REQ-010"
+        ],
         "evidence": "New component-library image uploads return /api/component-library/images resolver URLs instead of Supabase public URLs; resolver tests cover workspace-gated private GET, workspace mismatch denial, no-store fail-closed malformed paths, and no .getPublicUrl(path) in broker routes."
       },
       {
         "id": "UPLOAD-GATE-COMPONENT-IMAGE-BACKFILL-READINESS-LOCAL",
-        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "requirements": [
+          "UPLOAD-REQ-009",
+          "UPLOAD-REQ-010"
+        ],
         "evidence": "Local backfill classifier distinguishes asset-backed descriptors, brokered private resolver URLs, local derivatives, legacy public component-images URLs needing private-resolver backfill, and unsafe/external references requiring manual review across component library, estimate-row source snapshots, and publication snapshots."
       },
       {
         "id": "UPLOAD-GATE-COMPONENT-IMAGE-PUBLICATION-SNAPSHOT-MIGRATION-LOCAL",
-        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "requirements": [
+          "UPLOAD-REQ-009",
+          "UPLOAD-REQ-010"
+        ],
         "evidence": "Non-empty publication snapshot fixture proof builds a stored snapshot row with a legacy public component-image URL, preserves it through publication snapshot normalization, classifies it as backfill_to_private_resolver, and summarizes one ready local derivative plus one legacy public reference needing backfill. Linked provider scan found zero persisted publication/version snapshot image rows, so no provider rows required mutation. See evidence/upload-component-image-publication-snapshot-migration-proof.json."
       },
       {
         "id": "UPLOAD-GATE-COMPONENT-IMAGE-PERSISTED-SCAN-READBACK",
-        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "requirements": [
+          "UPLOAD-REQ-009",
+          "UPLOAD-REQ-010"
+        ],
         "evidence": "Linked provider aggregate scan found zero persisted legacy public component-image URLs, zero upload_assets component-image records, and zero publication/version snapshot image rows in project ebxxqidacheyapmmzavr; three estimate-row image references remain non-provider/external snapshot references. See evidence/upload-component-image-provider-scan.json."
       },
       {
         "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-BUCKET-READBACK",
-        "requirements": ["UPLOAD-REQ-009", "UPLOAD-REQ-010"],
+        "requirements": [
+          "UPLOAD-REQ-009",
+          "UPLOAD-REQ-010"
+        ],
         "evidence": "Linked provider storage catalog readback confirms component-images public=false, the old component images are publicly readable SELECT policy is absent, and no remaining storage.objects policies reference component-images in project ebxxqidacheyapmmzavr. See evidence/upload-component-image-private-bucket-readback.json."
       },
       {
         "id": "UPLOAD-GATE-SCANNER-LIFECYCLE-CONTRACTS-LOCAL",
-        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006", "UPLOAD-REQ-022", "UPLOAD-REQ-023"],
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
         "evidence": "Scanner lifecycle module and migration contracts define attachment-only scan requirements, clean/pending/infected/unsupported/transient/permanent/override decisions, queue backpressure classification, service-role-only scanner-result RPC, and audited override RPC with actor, reason, expiry, and checksum requirements. The current download broker still only serves scan-clean files."
       }
     ],
@@ -118,86 +200,880 @@
     "localPasses": [
       {
         "id": "UPLOAD-GATE-CLEANUP-PROVIDER-EXECUTION-READBACK",
-        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
         "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr builds failed/deleted/expired/reserved/finalized/active/unsafe/cross-workspace/duplicate/thumbnail upload cleanup records, runs planUploadStorageCleanup, deletes only planner-approved temporary objects, verifies removed objects read back missing, and verifies rejected/finalized/active objects remain present. See evidence/upload-cleanup-provider-proof.json."
       },
       {
+        "id": "UPLOAD-GATE-CLEANUP-JOB-RETRY-AUDIT-READBACK",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Reusable upload cleanup job records cleanup_queued before deletion, refuses unaudited deletes when event persistence fails, records cleanup_failed on failed provider attempts, records cleanup_succeeded on retry success, and stores hashed storage paths in cleanup event metadata. Linked provider proof seeds a real temporary upload asset, captures one failed attempt plus one provider-backed retry, reads back cleanup_queued=2, cleanup_failed=1, cleanup_succeeded=1, verifies rawStoragePathRecorded=false, and cleans up the temporary object/workspace/user fixture. Internal /api/internal/upload-cleanup route is secret-gated for cron/scheduler invocation. See evidence/upload-cleanup-provider-proof.json."
+      },
+      {
+        "id": "UPLOAD-GATE-CLEANUP-SCHEDULER-CONFIG-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "vercel.json registers daily Vercel Cron path /api/internal/upload-cleanup on five-field schedule 0 3 * * *, the internal cleanup route accepts CRON_SECRET bearer authorization while retaining UPLOAD_CLEANUP_JOB_SECRET for manual/internal invocation, and the Vercel env readiness checker fails overall readiness unless CRON_SECRET is present. This is source/config proof only; hosted cron invocation and production logs are still required."
+      },
+      {
+        "id": "UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Upload cleanup jobs now emit path-safe operational telemetry for run status, cleanup counts, failed bucket count, alert codes, retry-after guidance, and scheduler route execution; upload scan jobs emit path-safe scan run status, result counts, failure counts, outcome counts, and alert codes; upload admission control emits path-safe rate-limit, quota, and workspace backpressure rejection telemetry without client IPs. The sink is injectable and non-blocking in local tests. This is a local source/test seam only; real dashboard emission, observed alert delivery, and production backpressure proof remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-DIRECT-UPLOAD-RESERVED-SESSION-BACKPRESSURE-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "Component attachment signed/direct-upload session creation now fast-fails already-full actor/workspace reserved upload_sessions before provider credential creation, and service-role create_upload_session also enforces the same component-attachment reserved-session caps atomically with a workspace/surface advisory transaction lock before inserting the reserved session. The atomic capacity migration 20260627151000_upload_direct_session_atomic_capacity.sql is applied to the linked Archestimator Supabase project, the post-apply linked dry-run reports the remote database is up to date, Supabase connector read-only SQL confirms migration_recorded=true plus the live create_upload_session body contains pg_advisory_xact_lock, the upload-session-capacity lock namespace, actor/workspace cap checks, and actor/workspace capacity errors, and linked-provider concurrency proof fired 8 same-actor plus 8 same-workspace parallel create_upload_session RPC attempts against temporary fixtures: actor cap admitted 3/read back 3 with 5 active_actor rejections, workspace cap admitted 6/read back 6 with 2 active_workspace rejections, failedChecks=[] and cleanupErrors=[]. Actor and workspace caps return 429 with Retry-After, emit path-safe quota/backpressure telemetry, and regression tests cover both preloaded-full route denial and atomic RPC race-denial mapping. This is local/source/provider-migration/provider-concurrency proof only; observed hosted backpressure exercise remains required."
+      },
+      {
+        "id": "UPLOAD-GATE-OPERATIONS-ALERT-WEBHOOK-SINK-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Upload operational telemetry now has an opt-in non-blocking webhook alert sink controlled by UPLOAD_OPERATIONS_ALERTS_ENABLED, UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL, and UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN. The sink only posts warning/critical records, requires HTTPS plus bearer token, sends sanitized quota/backpressure/cleanup/scan alert payloads without paths, tokens, client IPs, or run identifiers, and Vercel env readiness tracks the alert variable names separately. This is local adapter/source proof only; observed provider delivery and alert ownership remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-ALERT-DELIVERY-PROOF-HARNESS-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "scripts/verify-upload-alert-delivery.ts can collect fail-closed production alert-delivery proof. It requires explicit ARCH_UPLOAD_ALERT_DELIVERY_PROOF opt-in, hosted observation confirmation through Vercel production context or ARCH_UPLOAD_ALERT_DELIVERY_HOSTED_OBSERVED=1, enabled upload operation alerts, an HTTPS webhook URL, a bearer token, and a 2xx delivery of a synthetic warning-level upload operations alert. The report redacts bearer tokens and raw webhook URLs and rejects payloads containing storage paths, filenames, provider paths, signed URLs, or customer/project data. Current artifact evidence/upload-alert-delivery-production-proof.json intentionally fails closed locally; observed hosted alert delivery remains required."
+      },
+      {
+        "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Path-safe platform-admin upload operations dashboard query aggregates upload outcomes by surface, content-type and size buckets, scan queue backlog/blocked counts/provider counts, cleanup backlog and retention cutoffs, cleanup event counts, download/override/backpressure/scan-failure event counts, and never selects storage paths, filenames, metadata, signed tokens, or provider paths. Tests prove non-admin requests do not create a service-role client, selected columns remain safe, aggregate metrics are produced, and query errors return generic failures. This is a local query artifact only; hosted dashboard emission and alert delivery remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Platform-admin Settings now exposes /workshop/settings/upload-operations, reads the path-safe upload operations dashboard snapshot only after the server-side role gate, provides a bounded window selector, renders upload outcomes by surface, scan queue/blocked counts/provider counts, cleanup backlog/events, download/override/backpressure counters, and avoids storage paths, filenames, metadata, signed tokens, provider paths, and raw secrets. This is local source/DOM proof only; hosted dashboard emission, observed alert delivery, and observed hosted backpressure proof remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "scripts/verify-upload-production-observations.ts can serialize sanitized operator observations into the checker-compatible hosted dashboard, hosted backpressure, and production retention runbook artifacts. It requires explicit ARCH_UPLOAD_PRODUCTION_OBSERVATIONS_PROOF opt-in plus a sanitized observation input file before any artifact can pass, rejects URLs, storage paths, filenames, provider paths, signed URLs, tokens, and customer/project data, and writes fail-closed skipped artifacts by default. This is local harness proof only; hosted dashboard observation, hosted 429 backpressure exercise, and production retention runbook exercise remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "UPLOAD_PRODUCTION_OBSERVATIONS_RUNBOOK.md and evidence/upload-production-observations-input.template.json document the sanitized operator input contract for hosted dashboard, hosted backpressure, and production retention runbook observations. The template contains only booleans/null status fields, no URLs, storage paths, filenames, provider paths, signed URLs, tokens, or customer/project data; tests prove it parses, stays fail-closed until filled, and a filled path-safe copy satisfies the harness contract. This is operator-readiness proof only; hosted observations still must be collected."
+      },
+      {
+        "id": "UPLOAD-GATE-OPERATIONS-RUNBOOK-DRILL-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Local in-memory upload operations runbook drill exercises Orphan Cleanup Backlog, Scan Backlog, and Scan Override Review paths: cleanup delete failure blocks with retry guidance, retry succeeds with cleanup_queued/cleanup_failed/cleanup_succeeded audit counts, scan download failure records failed_transient beside a clean result, the override route/API payload parses with checksum/reason/expiry, and telemetry remains path-safe. See evidence/upload-operations-runbook-local-proof.json. This is not hosted cron, real dashboard, observed alert delivery, production backpressure, scanner/CDR, hosted scan worker execution, or hosted override-operation proof."
+      },
+      {
         "id": "UPLOAD-GATE-SCANNER-RPC-PROVIDER-READBACK",
-        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006", "UPLOAD-REQ-023"],
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-023"
+        ],
         "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr repairs and reads back checksum-bound service-role scanner/override RPC contracts, seeds temporary attachment/image upload assets, records clean/transient/infected/permanent/unsupported scan outcomes, verifies checksum and non-attachment denials, verifies override audit fields, and cleans up the temporary workspace/user fixture. See evidence/upload-scan-rpc-provider-proof.json."
+      },
+      {
+        "id": "UPLOAD-GATE-SCAN-JOB-RUNNER-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Local upload scan job runner lists finalized pending/retryable component attachment assets, downloads through an injectable storage adapter, calls an injected scanner provider, records checksum-bound results through record_upload_scan_result, and converts storage/scanner exceptions into path-safe transient scanner failures. This is local seam proof only; real scanner/CDR provider execution and observed hosted queue worker invocation remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-SCAN-WORKER-PROVIDER-READBACK",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr seeds a temporary component-attachments object and pending finalized component attachment upload asset, verifies listUploadScanJobRecords sees it, runs runUploadScanJob through Supabase Storage download, policy scanner, and checksum-bound result writer, records clean scan_status plus scan_clean event and path-safe telemetry, redacts raw provider identifiers and storage paths, and cleans up the temporary object/workspace/user fixture. See evidence/upload-scan-worker-provider-proof.json."
+      },
+      {
+        "id": "UPLOAD-GATE-SCAN-WORKER-ROUTE-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Internal /api/internal/upload-scan route is secret-gated, accepts CRON_SECRET or UPLOAD_SCAN_JOB_SECRET bearer authorization, runs the service-role scan-job reader/storage/result-writer path, uses a local policy scanner for EICAR/active-content/unsupported fixture classification, and is source-configured as a daily Vercel Cron job in vercel.json. This is source/local proof only; observed hosted invocation and real scanner/CDR provider execution remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-HOSTED-UPLOAD-OPERATIONS-DRY-RUN-HARNESS-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Internal upload cleanup and scan routes now expose secret-gated dryRun=1 no-store summaries that read provider queues without deleting storage, writing cleanup audit events, downloading upload bytes, invoking scanner providers, or writing scan results. scripts/verify-hosted-upload-operations.ts can collect credential-free hosted fail-closed proof and, when scoped bearer secrets are supplied, authenticated hosted dry-run invocation proof without recording secrets. This is local/source/test harness proof only; observed hosted cron execution, live scanner/CDR execution, real dashboard emission, observed alert delivery, observed hosted backpressure, production retention runbook, and hosted runtime proof remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-CLAMD-SCANNER-PROVIDER-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-022"
+        ],
+        "evidence": "Opt-in UPLOAD_SCAN_PROVIDER=clamd source path implements the ClamD INSTREAM TCP protocol with zINSTREAM framing, 4-byte chunk lengths, zero-length terminator, timeout handling, OK/infected/stream-limit/unexpected-reply result mapping, and path-safe result metadata. Fake-ClamD tests exercise clean, EICAR FOUND, stream-limit, and configured-provider selection. This is source/protocol proof only; live scanner service execution remains required."
+      },
+      {
+        "id": "UPLOAD-GATE-CLAMD-LIVE-PROOF-HARNESS-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-022"
+        ],
+        "evidence": "scripts/prove-upload-clamd-live.ts provides an explicit ARCH_UPLOAD_CLAMD_LIVE_PROOF=1 evidence path for a real UPLOAD_SCAN_PROVIDER=clamd service. The proof scans generated clean and EICAR fixtures, requires EICAR detection, records sanitized outcome metadata, and omits raw network targets and fixture filenames. This is a harness/source proof only until run against the live scanner service."
+      },
+      {
+        "id": "UPLOAD-GATE-SCAN-OVERRIDE-ROUTE-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "POST /api/component-library/attachments/scan-override is platform-admin scoped, authenticates before JSON parsing, validates asset id, expected checksum, documented reason, and future expiry, calls only the service-role approve_upload_scan_override RPC with the actor id, and returns generic failures without leaking asset ids or storage paths."
+      },
+      {
+        "id": "UPLOAD-GATE-SCAN-OVERRIDE-UI-RUNBOOK-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-017",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Platform-admin Settings now exposes /workshop/settings/scan-overrides, reads failed_permanent/unsupported component attachment upload assets through a service-role queue only after a ceo/admin role check, renders checksum-bound override controls without storage paths, posts the existing scan-override API JSON contract, shows generic failure copy, and the local operations runbook drill includes a credential-free Scan Override Review rehearsal. Attachment downloads now use the shared scan gate so clean or unexpired override_approved assets can pass while pending/infected/expired states remain blocked. This is local source/DOM/runbook proof only; hosted route execution and live scanner/CDR service execution remain required."
+      },
+      {
+        "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF-HARNESS-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "Secret-gated /api/internal/upload-runtime and scripts/verify-hosted-upload-runtime.ts provide a no-store hosted runtime proof path for bounded body-probe receipt, runtime memory snapshots, parallel authenticated reachability, configured limit facts, and Supabase Storage bucket latency without recording bearer secrets, uploaded bytes, object keys, or provider paths. This is local/source/test harness proof only; hosted body-size, memory, duration, concurrency, and storage-latency observations must still be collected from a deployed runtime."
+      },
+      {
+        "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "scripts/check-vercel-env-readiness.ts now exposes an uploadProductionProofReady preflight that requires CRON_SECRET, upload operation alert webhook names, UPLOAD_RUNTIME_PROOF_SECRET, hosted runtime configured-limit names, and live ClamD scanner service names before hosted production proof is considered env-ready. This checks variable names only and does not read secret values, prove hosted route execution, prove alert delivery, or prove live scanner reachability."
+      },
+      {
+        "id": "UPLOAD-GATE-CLEAN-DOWNLOAD-PROVIDER-READBACK",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-023"
+        ],
+        "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr seeds a temporary approved/current component attachment, records a finalized upload asset, marks it scan-clean through the checksum-bound scanner RPC, records download_url_issued before provider readback, downloads private component-attachments bytes, verifies the private/nosniff response header contract, and cleans up the temporary object/workspace/user fixture. See evidence/upload-clean-download-provider-proof.json."
+      },
+      {
+        "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "scripts/check-upload-production-proof-evidence.ts validates the required hosted/live production proof bundle as a fail-closed gate: hosted cleanup/scan dry-run proof, hosted runtime proof, live ClamD scanner proof, observed alert delivery, observed hosted dashboard, observed hosted backpressure, and production retention runbook exercise. Current artifact evidence/upload-production-proof-evidence-check.json intentionally reports productionProofReady=false with all 7 required artifacts present but failed closed; this is checker/source proof only and does not claim production readiness."
+      },
+      {
+        "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-022",
+          "UPLOAD-REQ-023",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "UPLOAD_PRODUCTION_PROOF_RUNBOOK.md maps all seven production evidence requirements to their expected passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria. It explicitly keeps production blocked until hosted routes are deployed, scoped proof secrets are available, live ClamD/CDR configuration exists, alert delivery is observed, and hosted dashboard/backpressure/retention observations are collected. This is operator-readiness documentation only, not production proof."
       }
     ],
     "blockers": [
       {
         "id": "UPLOAD-GATE-SCANNER",
-        "requirements": ["UPLOAD-REQ-005", "UPLOAD-REQ-006"],
-        "reason": "Fail-closed audited download broker, safe response headers, scan-status taxonomy, local scan lifecycle decisions, linked-provider checksum-bound scanner/override RPC state/readback proof, and service-role scanner/override RPC contracts exist, but the scanner/CDR provider, queue worker, provider-backed file scanning, provider-backed clean download proof, and operational override UI/runbook are not implemented."
+        "requirements": [
+          "UPLOAD-REQ-005",
+          "UPLOAD-REQ-006"
+        ],
+        "reason": "Fail-closed audited download broker, approved/current attachment gating, safe response headers, scan-status taxonomy, local scan lifecycle decisions, linked-provider checksum-bound scanner/override RPC state/readback proof, linked-provider scan-worker storage download/readback proof, linked-provider clean download readback proof, service-role scanner/override RPC contracts, a local injected scan job runner, a secret-gated internal scan worker route with Vercel Cron source config and local policy scanner, ClamD INSTREAM scanner provider source/protocol tests, an explicit live ClamD proof harness, upload production env-name preflight for the ClamD service config, a platform-admin scan override route, and an operator-facing scan override settings/runbook rehearsal exist. Current no-secret hosted proof against https://www.archestimator.com/api/internal/upload-scan?limit=1&dryRun=1 returns 404 with public cache headers, so the hosted scan proof route has not been observed deployed; observed hosted scan worker invocation and live scanner/CDR service execution are not complete."
       },
       {
         "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY",
-        "requirements": ["UPLOAD-REQ-015", "UPLOAD-REQ-016", "UPLOAD-REQ-020", "UPLOAD-REQ-023"],
-        "reason": "Local cleanup planning, retention cutoffs, retry guidance, dashboard-safe metrics, backlog alerts, scanner backpressure classifiers, and linked-provider temporary object cleanup/delete readback proof exist, but durable scheduled TTL cleanup, persisted retry/audit job execution, real dashboard emission, quota alerts, production backpressure hooks, and an exercised retention runbook are not complete."
+        "requirements": [
+          "UPLOAD-REQ-015",
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-020",
+          "UPLOAD-REQ-023"
+        ],
+        "reason": "Local cleanup planning, retention cutoffs, retry guidance, dashboard-safe metrics, backlog alerts, scanner backpressure classifiers, path-safe cleanup/admission/scan operational telemetry seam, source/local/provider-proven signed/direct-upload reserved-session backpressure, a non-blocking sanitized webhook alert sink with Vercel env-name readiness coverage, upload production env-name preflight for cron and alert configuration, a path-safe platform-admin operations dashboard query and settings surface, local cleanup/scan operations runbook drill, secret-gated internal cleanup job route, Vercel Cron source config, CRON_SECRET env-readiness coverage, hosted upload operations dry-run verifier harness, linked-provider temporary object cleanup/delete readback proof, and linked-provider persisted retry/audit proof exist. Current no-secret hosted proof against https://www.archestimator.com/api/internal/upload-cleanup?limit=1&dryRun=1 returns 404 with public cache headers, so the hosted cleanup proof route has not been observed deployed; observed hosted scheduled TTL invocation, real hosted dashboard emission, observed alert delivery, observed hosted backpressure exercise, and production retention runbook exercise are not complete."
       },
       {
         "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF",
-        "requirements": ["UPLOAD-REQ-016", "UPLOAD-REQ-024"],
-        "reason": "Only local Sharp smoke evidence exists; hosted body-size, memory, duration, concurrency, and storage-latency proof is still required."
+        "requirements": [
+          "UPLOAD-REQ-016",
+          "UPLOAD-REQ-024"
+        ],
+        "reason": "Local Sharp smoke evidence plus a secret-gated upload-runtime route, hosted runtime verifier harness, and upload production env-name preflight for the runtime proof secret/configured limit facts exist. Current no-secret hosted proof against https://www.archestimator.com/api/internal/upload-runtime returns 404 with public cache headers, so the hosted runtime proof route has not been observed deployed; hosted body-size, memory, duration, concurrency, and storage-latency observations from a deployed runtime are still required."
       }
     ]
   },
   "platform": {
-    "status": "blocked",
+    "status": "ready",
     "localPasses": [
       {
         "id": "UPLOAD-GATE-PROVIDER-ADAPTER-READ-PARITY-LOCAL",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019"
+        ],
         "evidence": "UploadStorageProvider now covers upload, remove, download, signed-read URL, and legacy public URL methods; fake-provider and Supabase-adapter tests prove provider-neutral read/remove behavior and fail-closed download/signing errors."
       },
       {
         "id": "UPLOAD-GATE-UPLOAD-SESSION-STRATEGY-LOCAL",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019"
+        ],
         "evidence": "Upload session strategy contract keeps current capped uploads server-mediated, routes future larger files to short-lived signed single-part or multipart resumable strategies, rejects unknown/oversize/policy-gap sessions, and requires finalize RPC, object existence, checksum/ETag, actor/workspace/surface binding, upload asset records, and scan-before-use for direct-provider flows."
       },
       {
         "id": "UPLOAD-GATE-PROVIDER-MIGRATION-DRY-RUN-READBACK",
-        "requirements": ["UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "requirements": [
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
         "evidence": "Linked Supabase dry-run proof reports Remote database is up to date after migration reconciliation. See evidence/upload-provider-migration-dry-run.json."
       },
       {
         "id": "UPLOAD-GATE-S3-LIKE-MULTIPART-PARITY-LOCAL",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019"
+        ],
         "evidence": "Provider-portability contracts validate fake S3-like signed single-part sessions, multipart part signing/completion/abort behavior, object-head checksum/ETag finalization, object-scope binding, size/content-type guards, missing-part failure, and abort cleanup."
       },
       {
         "id": "UPLOAD-GATE-ASSET-DESCRIPTOR-MIGRATION-PARITY-LOCAL",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
         "evidence": "Asset-descriptor migration parity contracts normalize upload asset descriptors, brokered private component/project image URLs, and legacy public component-image URLs into provider-neutral bucket/path locators; unsafe URLs and descriptor/URL mismatches remain manual-review only."
       },
       {
         "id": "UPLOAD-GATE-SUPABASE-SIGNED-UPLOAD-PROVIDER-READBACK",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
         "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr issues a Supabase signed single-part upload URL, uploads bytes without an Authorization header, validates provider object info via ETag, records an upload asset finalization row, and cleans up the temporary object/workspace/user fixture. See evidence/upload-signed-provider-proof.json."
       },
       {
         "id": "UPLOAD-GATE-SIGNED-UPLOAD-APP-ROUTE-PROVIDER-READBACK",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
         "evidence": "Component attachment direct-upload route coverage keeps files up to 20 MB on the existing server-mediated route, reserves larger signed single-part sessions through service-role create_upload_session, validates provider object-head proof before finalize_upload_session, records upload assets/events, and verifies linked Supabase readback without recording signed URLs or tokens. See evidence/upload-signed-route-provider-proof.json."
       },
       {
         "id": "UPLOAD-GATE-SIGNED-UPLOAD-BROWSER-CLIENT-LOCAL",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019", "UPLOAD-REQ-024"],
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
         "evidence": "Component attachment client transport keeps files within the 20 MB server-mediated cap on /api/component-library/attachments, routes larger files under the 64 MB multipart threshold through /api/component-library/attachments/direct-upload, uploads bytes to the provider signed URL without an Authorization header, finalizes the upload session, and the Add Component modal uses the shared validator/uploader for user-visible attachment uploads."
+      },
+      {
+        "id": "UPLOAD-GATE-TUS-RESUMABLE-APP-ROUTE-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "Component attachment direct-upload route now reserves signed TUS resumable sessions for attachments at or above the 64 MB multipart threshold, returns only the short-lived TUS token/metadata to the browser response, persists no token or upload location, and finalizes resumable objects through provider object-head validation."
+      },
+      {
+        "id": "UPLOAD-GATE-TUS-RESUMABLE-BROWSER-CLIENT-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "Component attachment browser/client transport now routes files above the signed single-part threshold through Supabase signed TUS creation-with-upload plus PATCH chunks, sends x-signature without an Authorization header, and finalizes the upload session through the existing direct-upload route."
+      },
+      {
+        "id": "UPLOAD-GATE-SUPABASE-TUS-RESUMABLE-PROVIDER-READBACK",
+        "requirements": [
+          "UPLOAD-REQ-018",
+          "UPLOAD-REQ-019",
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "Linked provider proof for project ebxxqidacheyapmmzavr issues a signed Supabase TUS resumable session, uploads a 6 MB chunk plus tail chunk through /storage/v1/upload/resumable/sign with x-signature and no Authorization header, validates provider object info by ETag, records finalize_upload_session asset/event readback, verifies token/upload-location metadata is not persisted, and cleans up the temporary object/workspace/user fixture. See evidence/upload-tus-provider-proof.json."
       }
     ],
-    "blockers": [
-      {
-        "id": "UPLOAD-GATE-PROVIDER-PORTABILITY",
-        "requirements": ["UPLOAD-REQ-018", "UPLOAD-REQ-019"],
-        "reason": "Provider adapter read/remove parity, upload-session strategy semantics, linked Supabase migration dry-run proof, local S3-like multipart parity contracts, local asset-descriptor migration parity, linked Supabase signed single-part upload/readback proof, linked signed app-route session/finalization proof, and local browser/client signed-direct upload integration have evidence, but real resumable/TUS/multipart provider flows are not implemented/proven."
-      }
-    ]
+    "blockers": []
   },
+  "hostedEvidence": [
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-runtime-fail-closed-proof.json bun run scripts/verify-hosted-upload-runtime.ts",
+      "exit": 1,
+      "result": "Read-only hosted no-secret runtime probe against https://www.archestimator.com returned 404 with public cache headers for /api/internal/upload-runtime; productionProofReady=false. See evidence/upload-hosted-runtime-fail-closed-proof.json.",
+      "artifact": "evidence/upload-hosted-runtime-fail-closed-proof.json"
+    },
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.json MARKDOWN_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.md bun run scripts/verify-hosted-upload-operations.ts",
+      "exit": 1,
+      "result": "Read-only hosted no-secret cleanup/scan dry-run probes against https://www.archestimator.com returned 404 with public cache headers for /api/internal/upload-cleanup?limit=1&dryRun=1 and /api/internal/upload-scan?limit=1&dryRun=1; productionProofReady=false. See evidence/upload-hosted-operations-fail-closed-proof.json and evidence/upload-hosted-operations-fail-closed-proof.md.",
+      "artifact": "evidence/upload-hosted-operations-fail-closed-proof.json"
+    }
+  ],
   "localEvidence": [
+    {
+      "command": "bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 14 tests passed after adding the production proof runbook alignment test"
+    },
+    {
+      "command": "bunx eslint scripts/check-upload-production-proof-evidence.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload production proof checker, production observation, and release-gate lint passed with no errors after production proof runbook updates"
+    },
+    {
+      "command": "node -e \"const fs = require('node:fs'); const dir = '.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-production-proof-evidence-check.json','upload-production-observations-input.template.json']) JSON.parse(fs.readFileSync(dir + '/' + file, 'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, production evidence checker, and production observation template JSON parsed successfully after production proof runbook updates"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload production proof runbook updates"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload production observation runbook/template updates"
+    },
+    {
+      "command": "node -e \"const fs = require('node:fs'); const dir = '.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json', 'upload-production-proof-evidence-check.json', 'upload-alert-delivery-production-proof.json', 'upload-clamd-live-proof.json', 'upload-dashboard-production-proof.json', 'upload-backpressure-production-proof.json', 'upload-retention-runbook-production-proof.json', 'upload-hosted-runtime-fail-closed-proof.json', 'upload-hosted-operations-fail-closed-proof.json', 'upload-production-observations-input.template.json']) JSON.parse(fs.readFileSync(dir + '/' + file, 'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, production evidence checker, alert delivery, live ClamD, dashboard, backpressure, retention runbook, hosted runtime, hosted operations, and production observation template JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload production observation runbook/template updates"
+    },
+    {
+      "command": "bunx eslint scripts/verify-upload-alert-delivery.ts scripts/verify-upload-production-observations.ts scripts/check-upload-production-proof-evidence.ts tests/vitest/upload-alert-delivery-proof-script.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload alert delivery proof, production observation proof, production evidence checker, and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-alert-delivery-proof-script.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "4 files, 18 tests passed"
+    },
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
+      "exit": 1,
+      "result": "Expected fail-closed upload production evidence bundle check: productionProofReady=false with required=7, passed=0, failed=7 fail-closed artifacts, missing=0, invalid=0. See evidence/upload-production-proof-evidence-check.json."
+    },
+    {
+      "command": "bun run scripts/verify-upload-production-observations.ts",
+      "exit": 1,
+      "result": "Expected fail-closed production observation proofs: dashboard, backpressure, and retention runbook artifacts were written as skipped because ARCH_UPLOAD_PRODUCTION_OBSERVATIONS_PROOF/input were absent; production remains blocked."
+    },
+    {
+      "command": "bun run scripts/prove-upload-clamd-live.ts",
+      "exit": 0,
+      "result": "Expected fail-closed live ClamD proof skipped because ARCH_UPLOAD_CLAMD_LIVE_PROOF is not set; no scanner was contacted, productionProofReady remains false, and evidence/upload-clamd-live-proof.json records skipped=true."
+    },
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-alert-delivery-production-proof.json bun run scripts/verify-upload-alert-delivery.ts",
+      "exit": 1,
+      "result": "Expected fail-closed upload alert delivery proof: passed=false because explicit proof opt-in, hosted observation confirmation, alert env config, and observed 2xx delivery are absent. The artifact is sanitized and production remains blocked. See evidence/upload-alert-delivery-production-proof.json."
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload production evidence checker updates"
+    },
+    {
+      "command": "node -e \"const fs = require(\"node:fs\"); const dir = \".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence\"; for (const file of [\"upload-release-gates.json\", \"upload-production-proof-evidence-check.json\", \"upload-hosted-runtime-fail-closed-proof.json\", \"upload-hosted-operations-fail-closed-proof.json\"]) JSON.parse(fs.readFileSync(`${dir}/${file}`, \"utf8\")); console.log(\"json ok\")\"",
+      "exit": 0,
+      "result": "Upload release-gate, production evidence checker, hosted runtime, and hosted operations evidence JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload production evidence checker updates"
+    },
+    {
+      "command": "bunx eslint scripts/check-upload-production-proof-evidence.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload production evidence checker and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 8 tests passed"
+    },
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
+      "exit": 1,
+      "result": "Expected fail-closed upload production evidence bundle check: productionProofReady=false with required=7, passed=0, failed=2 hosted proof artifacts, missing=5 live/observed artifacts, invalid=0. See evidence/upload-production-proof-evidence-check.json."
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 14 tests passed"
+    },
+    {
+      "command": "bunx eslint tests/vitest/upload-release-gates.test.ts scripts/verify-hosted-upload-operations.ts scripts/verify-hosted-upload-runtime.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts",
+      "exit": 0,
+      "result": "Scoped hosted upload proof verifier, hosted evidence, and release-gate lint passed with no errors"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-hosted-runtime-fail-closed-proof.json','upload-hosted-operations-fail-closed-proof.json','upload-session-capacity-provider-proof.json','upload-scan-worker-provider-proof.json','upload-clean-download-provider-proof.json','upload-operations-runbook-local-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, hosted runtime/operations fail-closed, session-capacity, scan-worker, clean-download, and operations-runbook evidence JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after hosted no-secret proof evidence updates"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after hosted no-secret proof evidence updates"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-operational-alerts.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "4 files, 17 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/check-vercel-env-readiness.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-operational-alerts.test.ts",
+      "exit": 0,
+      "result": "Scoped Vercel env upload production proof preflight, cron/alert readiness, and release-gate lint passed with no errors"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-session-capacity-provider-proof.json','upload-scan-worker-provider-proof.json','upload-clean-download-provider-proof.json','upload-operations-runbook-local-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, session-capacity, scan-worker, clean-download, and operations-runbook evidence JSON parsed successfully"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload production proof env preflight updates"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 11 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/check-vercel-env-readiness.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped Vercel env upload production proof preflight and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload production proof env preflight updates"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-session-capacity-provider-proof.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "5 files, 20 tests passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after hosted upload dry-run and provider capacity proof updates"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "8 files, 40 tests passed"
+    },
+    {
+      "command": "bunx eslint src/app/api/internal/upload-cleanup/route.ts src/app/api/internal/upload-scan/route.ts scripts/verify-hosted-upload-operations.ts scripts/prove-upload-session-capacity-provider-postgres.ts src/lib/uploads/direct-upload-records.ts src/app/api/component-library/attachments/direct-upload/route.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts",
+      "exit": 0,
+      "result": "No lint errors for upload hosted dry-run, provider capacity proof, release gates, and direct-session tests"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after hosted upload dry-run and provider capacity proof updates"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-session-capacity-provider-proof.json','upload-cleanup-provider-proof.json','upload-scan-worker-provider-proof.json','upload-clean-download-provider-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, session-capacity provider proof, cleanup, scan-worker, and clean-download evidence JSON parsed successfully"
+    },
+    {
+      "command": "bunx eslint src/app/api/internal/upload-cleanup/route.ts src/app/api/internal/upload-scan/route.ts scripts/verify-hosted-upload-operations.ts scripts/prove-upload-session-capacity-provider-postgres.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts",
+      "exit": 0,
+      "result": "No lint errors for upload operations dry-run routes, hosted verifier, and session capacity provider proof script after removing unused helper"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "4 files, 17 tests passed"
+    },
+    {
+      "command": "ARCH_UPLOAD_SESSION_CAPACITY_PROOF=1 ARCH_UPLOAD_SESSION_CAPACITY_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-session-capacity-provider-postgres.ts",
+      "exit": 0,
+      "result": "Linked provider create_upload_session concurrency proof passed for project ebxxqidacheyapmmzavr: 8 same-actor attempts admitted/read back exactly 3 reserved sessions with 5 active_actor capacity rejections; 8 same-workspace/different-actor attempts admitted/read back exactly 6 reserved sessions with 2 active_workspace capacity rejections; failedChecks=[] and cleanupErrors=[]. See evidence/upload-session-capacity-provider-proof.json"
+    },
+    {
+      "command": "ARCH_UPLOAD_CLEANUP_PROOF=1 ARCH_UPLOAD_CLEANUP_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-cleanup-provider-postgres.ts",
+      "exit": 0,
+      "result": "Linked provider upload cleanup proof passed through planUploadStorageCleanup with candidateCount=5, rejectedCount=5, removedCount=5, readbackMissingCount=5, preservedReadbackCount=4, retryAudit cleanup_queued=2, cleanup_failed=1, cleanup_succeeded=1, rawStoragePathRecorded=false, failedChecks=[] and cleanupErrors=[]. See evidence/upload-cleanup-provider-proof.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-cleanup-route.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 8 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/prove-upload-cleanup-provider-postgres.ts src/lib/uploads/cleanup-job.ts src/app/api/internal/upload-cleanup/route.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts",
+      "exit": 0,
+      "result": "Scoped upload cleanup job/route/proof lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "4 files, 12 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/check-vercel-env-readiness.ts src/app/api/internal/upload-cleanup/route.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload cleanup cron config, route auth, env readiness, and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 16 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/operational-telemetry.ts src/lib/uploads/cleanup-job.ts src/lib/uploads/admission-control.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-abuse-caps.test.ts",
+      "exit": 0,
+      "result": "Scoped upload operational telemetry, cleanup job, admission control, and focused test lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-operational-alerts.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/vercel-env-readiness-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 16 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/operational-telemetry.ts src/lib/uploads/admission-control.ts scripts/check-vercel-env-readiness.ts tests/vitest/upload-operational-alerts.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/vercel-env-readiness-script.test.ts",
+      "exit": 0,
+      "result": "Scoped upload operational alert sink, admission control, Vercel env readiness, and focused tests lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 18 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 20 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/direct-upload-records.ts src/app/api/component-library/attachments/direct-upload/route.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts",
+      "exit": 0,
+      "result": "Scoped upload direct-session backpressure lint passed with no errors"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/direct-upload-records.ts src/app/api/component-library/attachments/direct-upload/route.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-abuse-caps.test.ts",
+      "exit": 0,
+      "result": "Scoped upload direct-session atomic capacity and release-gate lint passed with no errors"
+    },
+    {
+      "command": "supabase db push --linked",
+      "exit": 0,
+      "result": "Applied 20260627151000_upload_direct_session_atomic_capacity.sql to linked Archestimator Supabase project ebxxqidacheyapmmzavr"
+    },
+    {
+      "command": "supabase db push --linked --dry-run",
+      "exit": 0,
+      "result": "Remote database is up to date after atomic direct-session capacity migration"
+    },
+    {
+      "command": "Supabase connector read-only SQL against project ebxxqidacheyapmmzavr",
+      "exit": 0,
+      "result": "migration_recorded=true and live create_upload_session contains pg_advisory_xact_lock, upload-session-capacity namespace, actor/workspace cap checks, and actor/workspace capacity errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-job.test.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 17 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/operational-telemetry.ts src/lib/uploads/scan-job.ts tests/vitest/upload-scan-job.test.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-abuse-caps.test.ts",
+      "exit": 0,
+      "result": "Scoped upload scan operational telemetry lint passed with no errors"
+    },
+    {
+      "command": "ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF=1 ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-scan-worker-provider-postgres.ts",
+      "exit": 0,
+      "result": "Linked provider scan worker proof passed with pending provider asset readback, listUploadScanJobRecords visibility, Supabase Storage byte download through runUploadScanJob, clean policy-scanner outcome persisted by checksum-bound result writer, scan_clean event and telemetry readback, rawStoragePathRecorded=false, failedChecks=[] and cleanupErrors=[]. See evidence/upload-scan-worker-provider-proof.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-worker-provider-proof-script.test.ts tests/vitest/upload-scan-worker-provider-proof.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 6 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/prove-upload-scan-worker-provider-postgres.ts tests/vitest/upload-scan-worker-provider-proof-script.test.ts tests/vitest/upload-scan-worker-provider-proof.test.ts",
+      "exit": 0,
+      "result": "Scoped upload scan worker provider proof lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-operations-dashboard.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 4 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/operations-dashboard.ts tests/vitest/upload-operations-dashboard.test.ts",
+      "exit": 0,
+      "result": "Scoped upload operations dashboard query lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-operations-dashboard.test.ts tests/vitest/upload-operations-dashboard-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 11 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/operations-dashboard.ts src/components/workshop/UploadOperationsDashboardPanel.tsx src/app/workshop/settings/upload-operations/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx tests/vitest/upload-operations-dashboard.test.ts tests/vitest/upload-operations-dashboard-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx",
+      "exit": 0,
+      "result": "Scoped upload operations dashboard page, panel, query, settings rail, and focused tests lint passed with no errors"
+    },
+    {
+      "command": "bun run scripts/prove-upload-operations-runbook-local.ts",
+      "exit": 0,
+      "result": "Local upload operations runbook proof passed with cleanup failure/retry, scan clean/transient outcomes, scan override review rehearsal, path-safe telemetry, failedChecks=[]; see evidence/upload-operations-runbook-local-proof.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 4 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/prove-upload-operations-runbook-local.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts",
+      "exit": 0,
+      "result": "Scoped upload operations runbook local proof lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/library-add-component-modal-a11y.test.tsx --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 7 tests passed"
+    },
+    {
+      "command": "bunx eslint src/components/workshop/component-library-manager/AddComponentModal.tsx tests/vitest/library-add-component-modal-a11y.test.tsx",
+      "exit": 0,
+      "result": "Scoped Add Component attachment status UX lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-job.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 4 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/scan-job.ts tests/vitest/upload-scan-job.test.ts",
+      "exit": 0,
+      "result": "Scoped upload scan job runner lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-override-route.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 5 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/scan-override.ts src/app/api/component-library/attachments/scan-override/route.ts tests/vitest/upload-scan-override-route.test.ts",
+      "exit": 0,
+      "result": "Scoped upload scan override route/helper lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 11 tests passed"
+    },
+    {
+      "command": "bunx eslint src/app/api/internal/upload-scan/route.ts src/lib/uploads/policy-scanner.ts src/lib/uploads/scan-job.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts",
+      "exit": 0,
+      "result": "Scoped upload scan worker route, policy scanner, byte adapter, cron config, and focused tests lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-clamd-scanner.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "5 files, 17 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/clamd-scanner.ts src/app/api/internal/upload-scan/route.ts src/lib/uploads/policy-scanner.ts src/lib/uploads/scan-job.ts tests/vitest/upload-clamd-scanner.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload ClamD scanner provider, scan worker route, policy scanner, byte adapter, cron config, release gate, and focused tests lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-clamd-live-proof-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 3 tests passed"
+    },
+    {
+      "command": "bunx eslint scripts/prove-upload-clamd-live.ts tests/vitest/upload-clamd-live-proof-script.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped live ClamD proof harness and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 10 tests passed"
+    },
+    {
+      "command": "bunx eslint src/app/api/internal/upload-runtime/route.ts scripts/verify-hosted-upload-runtime.ts tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped hosted upload runtime proof route, verifier, and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "6 files, 22 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-scan-override-route.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "8 files, 29 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/scan-override-review.ts src/components/workshop/UploadScanOverridePanel.tsx src/app/workshop/settings/scan-overrides/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx src/app/api/component-library/attachments/route.ts scripts/prove-upload-operations-runbook-local.ts tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped scan override operator UI, download gate, runbook, and release-gate lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run <expanded upload matrix including cleanup job route/proof> --maxWorkers=1",
+      "exit": 0,
+      "result": "42 files, 223 tests passed"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-clean-download-provider-proof.test.ts tests/vitest/upload-clean-download-provider-proof-script.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "5 files, 70 tests passed"
+    },
+    {
+      "command": "bunx eslint src/app/api/component-library/attachments/route.ts scripts/prove-upload-clean-download-provider-postgres.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-clean-download-provider-proof-script.test.ts tests/vitest/upload-clean-download-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload clean-download route/proof lint passed with no errors"
+    },
+    {
+      "command": "bunx vitest run <expanded upload matrix including clean-download provider proof> --maxWorkers=1",
+      "exit": 0,
+      "result": "40 files, 216 tests passed"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-clean-download-provider-proof.json','upload-tus-provider-proof.json','upload-signed-route-provider-proof.json','upload-signed-provider-proof.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json','upload-cleanup-provider-proof.json','upload-scan-rpc-provider-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Twelve upload evidence JSON artifacts parsed successfully"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors"
+    },
+    {
+      "command": "ARCH_UPLOAD_CLEAN_DOWNLOAD_PROOF=1 ARCH_UPLOAD_CLEAN_DOWNLOAD_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-clean-download-provider-postgres.ts",
+      "exit": 0,
+      "result": "Linked provider clean attachment download proof passed with approved/current attachment eligibility, scan-clean finalized upload asset readback, download_url_issued audit event, private provider byte readback, safe header contract, failedChecks=[] and cleanupErrors=[]. See evidence/upload-clean-download-provider-proof.json"
+    },
     {
       "command": "Supabase connector: apply upload scan RPC checksum/scan mutability repair migrations and read back catalog for project ebxxqidacheyapmmzavr",
       "exit": 0,
@@ -222,6 +1098,41 @@
       "command": "ARCH_UPLOAD_SIGNED_ROUTE_PROOF=1 ARCH_UPLOAD_SIGNED_ROUTE_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-signed-route-provider-postgres.ts",
       "exit": 0,
       "result": "Linked provider signed app-route proof passed with reserved session readback, token-only upload without Authorization header, provider object-head validation by ETag, finalize_upload_session asset/event readback, sanitized metadata, failedChecks=[] and cleanupErrors=[]. See evidence/upload-signed-route-provider-proof.json"
+    },
+    {
+      "command": "ARCH_UPLOAD_TUS_PROVIDER_PROOF=1 ARCH_UPLOAD_TUS_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-tus-provider-postgres.ts",
+      "exit": 0,
+      "result": "Linked provider signed TUS resumable proof passed with reserved session readback, 6 MB creation-with-upload plus tail PATCH through /storage/v1/upload/resumable/sign, x-signature without Authorization header, provider object-head validation by ETag, finalize_upload_session asset/event readback, sanitized metadata, failedChecks=[] and cleanupErrors=[]. See evidence/upload-tus-provider-proof.json"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-component-attachment-client.test.ts tests/vitest/upload-tus-provider-proof-script.test.ts tests/vitest/upload-tus-provider-proof.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "5 files, 21 tests passed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-tus-provider-proof.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 4 tests passed"
+    },
+    {
+      "command": "bunx eslint src/lib/uploads/provider-portability.ts src/lib/uploads/component-attachment-client.ts src/app/api/component-library/attachments/direct-upload/route.ts src/components/workshop/component-library-manager/AddComponentModal.tsx scripts/prove-upload-tus-provider-postgres.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-component-attachment-client.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-tus-provider-proof-script.test.ts tests/vitest/upload-tus-provider-proof.test.ts",
+      "exit": 0,
+      "result": "No lint errors for Supabase signed TUS provider/session/client route, Add Component modal copy, proof script, release-gate test, and focused TUS tests"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-provider-readback.test.ts tests/vitest/upload-provider-migration-dry-run.test.ts tests/vitest/upload-component-image-provider-scan.test.ts tests/vitest/upload-component-image-private-bucket-readback.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-asset-descriptor-migration.test.ts tests/vitest/upload-client-state.test.ts tests/vitest/upload-component-attachment-client.test.ts tests/vitest/upload-cleanup.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-scan-rpc-provider-proof-script.test.ts tests/vitest/upload-scan-rpc-provider-proof.test.ts tests/vitest/upload-signed-provider-proof-script.test.ts tests/vitest/upload-signed-provider-proof.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-signed-route-proof-script.test.ts tests/vitest/upload-signed-route-provider-proof.test.ts tests/vitest/upload-tus-provider-proof-script.test.ts tests/vitest/upload-tus-provider-proof.test.ts tests/vitest/upload-component-image-backfill.test.ts tests/vitest/upload-session-strategy.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/upload-domain-proof-script.test.ts tests/vitest/upload-storage-provider.test.ts tests/vitest/upload-storage-proof-script.test.ts tests/vitest/upload-storage-denial-proof.test.ts tests/vitest/upload-runtime-profile-script.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-direct-storage-proof-contract.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/estimate-component-drag.test.tsx tests/vitest/project-component-projection.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "38 files, 205 tests passed"
+    },
+    {
+      "command": "node -e \"for (const f of ['upload-release-gates.json','upload-tus-provider-proof.json','upload-signed-route-provider-proof.json','upload-signed-provider-proof.json','upload-provider-readback.json','upload-provider-migration-dry-run.json','upload-component-image-provider-scan.json','upload-component-image-private-bucket-readback.json','upload-storage-denial-proof.json','upload-cleanup-provider-proof.json','upload-scan-rpc-provider-proof.json']) JSON.parse(require('node:fs').readFileSync('.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/'+f,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Release-gate, TUS proof, signed proof, provider readback, migration dry-run, component-image, storage-denial, cleanup, and scanner RPC evidence JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors"
     },
     {
       "command": "bunx vitest run tests/vitest/upload-signed-route.test.ts tests/vitest/upload-signed-route-proof-script.test.ts tests/vitest/upload-signed-route-provider-proof.test.ts tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-session-strategy.test.ts --maxWorkers=1",
@@ -369,14 +1280,9 @@
       "result": "No whitespace errors"
     },
     {
-      "command": "bunx tsc --noEmit --pretty false",
-      "exit": 2,
-      "result": "Broad TypeScript remains red in unrelated shared-worktree estimate-row adjustment code: src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts(857,9) adjustmentPercentage is not in UpdateEstimateRowInput."
-    },
-    {
       "command": "ARCH_UPLOAD_CLEANUP_PROOF=1 ARCH_UPLOAD_CLEANUP_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-cleanup-provider-postgres.ts",
       "exit": 0,
-      "result": "Linked provider upload cleanup proof passed through planUploadStorageCleanup with candidateCount=5, rejectedCount=5, removedCount=5, readbackMissingCount=5, preservedReadbackCount=4, failedChecks=[] and cleanupErrors=[]. See evidence/upload-cleanup-provider-proof.json"
+      "result": "Linked provider upload cleanup proof passed through planUploadStorageCleanup with candidateCount=5, rejectedCount=5, removedCount=5, readbackMissingCount=5, preservedReadbackCount=4, retryAudit cleanup_queued=2, cleanup_failed=1, cleanup_succeeded=1, rawStoragePathRecorded=false, failedChecks=[] and cleanupErrors=[]. See evidence/upload-cleanup-provider-proof.json"
     },
     {
       "command": "bunx vitest run tests/vitest/upload-cleanup.test.ts tests/vitest/upload-cleanup-provider-proof-script.test.ts tests/vitest/upload-cleanup-provider-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",

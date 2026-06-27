@@ -1,0 +1,355 @@
+{
+  "generatedAt": "2026-06-27T10:52:56.997Z",
+  "mode": "upload-production-proof-evidence-check",
+  "proofBoundary": "fail-closed-production-evidence-bundle",
+  "evidenceDir": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence",
+  "passed": false,
+  "productionProofReady": false,
+  "totals": {
+    "required": 7,
+    "passed": 0,
+    "failed": 7,
+    "missing": 0,
+    "invalid": 0
+  },
+  "requirements": [
+    {
+      "key": "hostedUploadOperations",
+      "label": "Hosted cleanup and scan dry-run routes",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.json",
+      "checks": [
+        {
+          "label": "hosted-operations-mode",
+          "passed": true
+        },
+        {
+          "label": "hosted-operations-passed",
+          "passed": false
+        },
+        {
+          "label": "hosted-operations-production-proof-ready",
+          "passed": false
+        },
+        {
+          "label": "hosted-operations-authenticated-boundary",
+          "passed": false
+        },
+        {
+          "label": "hosted-cleanup-dry-run-observed",
+          "passed": false,
+          "proof": ""
+        },
+        {
+          "label": "hosted-scan-dry-run-observed",
+          "passed": false,
+          "proof": ""
+        },
+        {
+          "label": "hosted-operations-secrets-present-but-not-recorded",
+          "passed": false
+        }
+      ],
+      "failedChecks": [
+        "hosted-operations-passed",
+        "hosted-operations-production-proof-ready",
+        "hosted-operations-authenticated-boundary",
+        "hosted-cleanup-dry-run-observed",
+        "hosted-scan-dry-run-observed",
+        "hosted-operations-secrets-present-but-not-recorded"
+      ],
+      "note": "Requires authenticated hosted dry-run proof for both cleanup and scan routes."
+    },
+    {
+      "key": "hostedUploadRuntime",
+      "label": "Hosted runtime body, concurrency, and storage-latency proof",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-runtime-fail-closed-proof.json",
+      "checks": [
+        {
+          "label": "hosted-runtime-mode",
+          "passed": true
+        },
+        {
+          "label": "hosted-runtime-passed",
+          "passed": false
+        },
+        {
+          "label": "hosted-runtime-production-proof-ready",
+          "passed": false
+        },
+        {
+          "label": "hosted-runtime-authenticated",
+          "passed": false
+        },
+        {
+          "label": "hosted-runtime-authenticated-boundary",
+          "passed": false
+        },
+        {
+          "label": "hosted-runtime-body-probe-observed",
+          "passed": false,
+          "proof": "unauthenticated-fail-closed"
+        },
+        {
+          "label": "hosted-runtime-concurrency-probe-observed",
+          "passed": false,
+          "proof": "unauthenticated-fail-closed"
+        },
+        {
+          "label": "hosted-runtime-secrets-present-but-not-recorded",
+          "passed": false
+        }
+      ],
+      "failedChecks": [
+        "hosted-runtime-passed",
+        "hosted-runtime-production-proof-ready",
+        "hosted-runtime-authenticated",
+        "hosted-runtime-authenticated-boundary",
+        "hosted-runtime-body-probe-observed",
+        "hosted-runtime-concurrency-probe-observed",
+        "hosted-runtime-secrets-present-but-not-recorded"
+      ],
+      "note": "Requires authenticated hosted runtime proof with configured limit facts."
+    },
+    {
+      "key": "liveScanner",
+      "label": "Live ClamD scanner service proof",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-clamd-live-proof.json",
+      "checks": [
+        {
+          "label": "live-scanner-mode",
+          "passed": true
+        },
+        {
+          "label": "live-scanner-boundary",
+          "passed": false
+        },
+        {
+          "label": "live-scanner-passed",
+          "passed": false
+        },
+        {
+          "label": "live-scanner-not-skipped",
+          "passed": false
+        },
+        {
+          "label": "live-scanner-provider-clamd",
+          "passed": true
+        },
+        {
+          "label": "live-scanner-clean-fixture",
+          "passed": false
+        },
+        {
+          "label": "live-scanner-eicar-detected",
+          "passed": false
+        },
+        {
+          "label": "live-scanner-failed-checks-empty",
+          "passed": true
+        }
+      ],
+      "failedChecks": [
+        "live-scanner-boundary",
+        "live-scanner-passed",
+        "live-scanner-not-skipped",
+        "live-scanner-clean-fixture",
+        "live-scanner-eicar-detected"
+      ],
+      "note": "Requires a real ClamD-compatible service to scan generated clean and EICAR fixtures."
+    },
+    {
+      "key": "alertDelivery",
+      "label": "Observed hosted alert delivery",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-alert-delivery-production-proof.json",
+      "checks": [
+        {
+          "label": "alert-delivery-mode",
+          "passed": true
+        },
+        {
+          "label": "alert-delivery-boundary",
+          "passed": false
+        },
+        {
+          "label": "alert-delivery-passed",
+          "passed": false
+        },
+        {
+          "label": "alert-delivery-observed",
+          "passed": false
+        },
+        {
+          "label": "alert-delivery-status-2xx",
+          "passed": false,
+          "proof": ""
+        },
+        {
+          "label": "alert-delivery-secret-redacted",
+          "passed": true
+        },
+        {
+          "label": "alert-delivery-payload-path-safe",
+          "passed": false
+        }
+      ],
+      "failedChecks": [
+        "alert-delivery-boundary",
+        "alert-delivery-passed",
+        "alert-delivery-observed",
+        "alert-delivery-status-2xx",
+        "alert-delivery-payload-path-safe"
+      ],
+      "note": "Requires observed 2xx delivery of a sanitized hosted upload operations alert."
+    },
+    {
+      "key": "dashboardObservation",
+      "label": "Observed hosted operations dashboard",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-dashboard-production-proof.json",
+      "checks": [
+        {
+          "label": "dashboard-mode",
+          "passed": true
+        },
+        {
+          "label": "dashboard-boundary",
+          "passed": false
+        },
+        {
+          "label": "dashboard-passed",
+          "passed": false
+        },
+        {
+          "label": "dashboard-hosted-observed",
+          "passed": false
+        },
+        {
+          "label": "dashboard-path-safe",
+          "passed": false
+        },
+        {
+          "label": "dashboard-backpressure-metric-present",
+          "passed": false
+        },
+        {
+          "label": "dashboard-cleanup-scan-metrics-present",
+          "passed": false
+        }
+      ],
+      "failedChecks": [
+        "dashboard-boundary",
+        "dashboard-passed",
+        "dashboard-hosted-observed",
+        "dashboard-path-safe",
+        "dashboard-backpressure-metric-present",
+        "dashboard-cleanup-scan-metrics-present"
+      ],
+      "note": "Requires hosted dashboard observation of path-safe cleanup, scan, and backpressure metrics."
+    },
+    {
+      "key": "hostedBackpressure",
+      "label": "Observed hosted backpressure exercise",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-backpressure-production-proof.json",
+      "checks": [
+        {
+          "label": "backpressure-mode",
+          "passed": true
+        },
+        {
+          "label": "backpressure-boundary",
+          "passed": false
+        },
+        {
+          "label": "backpressure-passed",
+          "passed": false
+        },
+        {
+          "label": "backpressure-hosted-exercised",
+          "passed": false
+        },
+        {
+          "label": "backpressure-429-observed",
+          "passed": false
+        },
+        {
+          "label": "backpressure-retry-after-observed",
+          "passed": false
+        },
+        {
+          "label": "backpressure-telemetry-observed",
+          "passed": false
+        },
+        {
+          "label": "backpressure-path-safe",
+          "passed": false
+        }
+      ],
+      "failedChecks": [
+        "backpressure-boundary",
+        "backpressure-passed",
+        "backpressure-hosted-exercised",
+        "backpressure-429-observed",
+        "backpressure-retry-after-observed",
+        "backpressure-telemetry-observed",
+        "backpressure-path-safe"
+      ],
+      "note": "Requires a hosted 429 backpressure exercise with retry-after and telemetry observation."
+    },
+    {
+      "key": "retentionRunbook",
+      "label": "Production retention runbook exercise",
+      "status": "failed",
+      "artifact": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-retention-runbook-production-proof.json",
+      "checks": [
+        {
+          "label": "retention-runbook-mode",
+          "passed": true
+        },
+        {
+          "label": "retention-runbook-boundary",
+          "passed": false
+        },
+        {
+          "label": "retention-runbook-passed",
+          "passed": false
+        },
+        {
+          "label": "retention-runbook-hosted-cron-observed",
+          "passed": false
+        },
+        {
+          "label": "retention-runbook-cleanup-retry-observed",
+          "passed": false
+        },
+        {
+          "label": "retention-runbook-dashboard-observed",
+          "passed": false
+        },
+        {
+          "label": "retention-runbook-alert-observed",
+          "passed": false
+        },
+        {
+          "label": "retention-runbook-path-safe",
+          "passed": false
+        }
+      ],
+      "failedChecks": [
+        "retention-runbook-boundary",
+        "retention-runbook-passed",
+        "retention-runbook-hosted-cron-observed",
+        "retention-runbook-cleanup-retry-observed",
+        "retention-runbook-dashboard-observed",
+        "retention-runbook-alert-observed",
+        "retention-runbook-path-safe"
+      ],
+      "note": "Requires hosted cron, cleanup retry, dashboard, and alert observations from the production runbook exercise."
+    }
+  ],
+  "note": "This checker validates the required hosted/live production upload proof artifacts as a bundle. It does not collect evidence, deploy routes, read secrets, mutate provider state, or turn on production uploads. Any missing, invalid, fail-closed, local-only, or partial artifact keeps productionProofReady=false."
+}

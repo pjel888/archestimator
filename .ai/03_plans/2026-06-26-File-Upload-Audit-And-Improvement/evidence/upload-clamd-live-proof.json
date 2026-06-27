@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-06-27T10:44:55.648Z",
+  "mode": "upload-clamd-live-proof",
+  "proofBoundary": "live-clamd-proof-skipped",
+  "scannerProvider": "clamd",
+  "passed": false,
+  "skipped": true,
+  "reason": "ARCH_UPLOAD_CLAMD_LIVE_PROOF is not set to 1.",
+  "missingEnv": [],
+  "envFile": {
+    "requested": false,
+    "loaded": false
+  },
+  "note": "Live ClamD proof requires explicit opt-in. It must scan a clean fixture and the EICAR antivirus test string against a real ClamD service before the live scanner/CDR gate can be reduced."
+}

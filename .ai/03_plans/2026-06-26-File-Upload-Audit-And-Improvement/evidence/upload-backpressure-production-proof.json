@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-27T10:52:47.028Z",
+  "mode": "upload-backpressure-production-proof",
+  "proofBoundary": "hosted-backpressure-proof-skipped",
+  "passed": false,
+  "skipped": true,
+  "exercise": {
+    "hosted": false,
+    "rejectionStatus": null,
+    "retryAfterPresent": false,
+    "telemetryObserved": false,
+    "pathSafe": false
+  },
+  "checks": [
+    {
+      "label": "backpressure-explicit-proof-opt-in",
+      "passed": false
+    },
+    {
+      "label": "backpressure-input-loaded",
+      "passed": false
+    },
+    {
+      "label": "backpressure-hosted-exercised",
+      "passed": false
+    },
+    {
+      "label": "backpressure-429-observed",
+      "passed": false,
+      "proof": ""
+    },
+    {
+      "label": "backpressure-retry-after-observed",
+      "passed": false
+    },
+    {
+      "label": "backpressure-telemetry-observed",
+      "passed": false
+    },
+    {
+      "label": "backpressure-path-safe",
+      "passed": false
+    }
+  ],
+  "failedChecks": [
+    "backpressure-explicit-proof-opt-in",
+    "backpressure-input-loaded",
+    "backpressure-hosted-exercised",
+    "backpressure-429-observed",
+    "backpressure-retry-after-observed",
+    "backpressure-telemetry-observed",
+    "backpressure-path-safe"
+  ],
+  "inputFile": {
+    "requested": false,
+    "loaded": false
+  },
+  "note": "This artifact records sanitized operator observation of a hosted upload backpressure exercise. It must show a hosted 429 response, Retry-After, telemetry observation, and path-safe evidence. It does not create traffic, deploy code, query production, or prove dashboard/alert/runbook behavior by itself."
+}
