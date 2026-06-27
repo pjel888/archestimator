@@ -8,6 +8,14 @@ import { createClient } from "@supabase/supabase-js";
 const DEFAULT_OUTPUT = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-storage-denial-proof.json";
 const EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr";
 const ENV_FILE_VAR = "ARCH_UPLOAD_STORAGE_PROOF_ENV_FILE";
+const PROOF_ENV_FILE_NAMES = new Set([
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "ARCH_UPLOAD_PROOF_AUTH_TOKEN",
+  "ARCH_UPLOAD_PROOF_WORKSPACE_ID",
+  "ARCH_UPLOAD_PROOF_USER_ID",
+]);
 const BUCKET_CASES = [
   {
     bucket: "project-images",
@@ -66,6 +74,10 @@ function loadProofEnvFile() {
     }
 
     const [, name, rawValue] = match;
+    if (!PROOF_ENV_FILE_NAMES.has(name)) {
+      continue;
+    }
+
     if (!process.env[name]) {
       process.env[name] = decodeEnvValue(rawValue);
       names.push(name);
@@ -129,6 +141,27 @@ async function expectDenied({ label, operation }) {
       statusCode: null,
     };
   }
+}
+
+async function expectDeleteDenied({ label, bucket, path, actorClient, serviceClient }) {
+  let removeResult = null;
+  let removeException = null;
+  try {
+    removeResult = await actorClient.storage.from(bucket).remove([path]);
+  } catch (error) {
+    removeException = error instanceof Error ? error.message : String(error);
+  }
+
+  const readback = await serviceClient.storage.from(bucket).download(path);
+  const objectStillPresent = !readback.error && Boolean(readback.data);
+
+  return {
+    label,
+    denied: objectStillPresent,
+    errorMessage: removeException ?? removeResult?.error?.message ?? (objectStillPresent ? null : readback.error?.message ?? "Object was removed"),
+    statusCode: removeResult?.error?.statusCode ?? removeResult?.error?.status ?? readback.error?.statusCode ?? readback.error?.status ?? null,
+    proof: objectStillPresent ? "object-still-present-after-direct-delete-attempt" : "service-readback-missing-after-direct-delete-attempt",
+  };
 }
 
 function projectRefFromUrl(url) {
@@ -388,9 +421,12 @@ async function runProof() {
       serviceClient,
     });
     if (seededForAnonDelete) {
-      checks.push(await expectDenied({
+      checks.push(await expectDeleteDenied({
         label: `${bucketCase.bucket}:anon-direct-delete`,
-        operation: () => anonClient.storage.from(bucketCase.bucket).remove([anonDeleteSeededPath]),
+        bucket: bucketCase.bucket,
+        path: anonDeleteSeededPath,
+        actorClient: anonClient,
+        serviceClient,
       }));
     }
 
@@ -402,9 +438,12 @@ async function runProof() {
       serviceClient,
     });
     if (seededForAuthDelete) {
-      checks.push(await expectDenied({
+      checks.push(await expectDeleteDenied({
         label: `${bucketCase.bucket}:authenticated-direct-delete`,
-        operation: () => authClient.storage.from(bucketCase.bucket).remove([authDeleteSeededPath]),
+        bucket: bucketCase.bucket,
+        path: authDeleteSeededPath,
+        actorClient: authClient,
+        serviceClient,
       }));
     }
   }
