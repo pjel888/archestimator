@@ -473,7 +473,8 @@ function buildRowInsert({
     unit,
     quantity: row.quantity,
     unit_cost: unitCost,
-    contingency_percentage: row.contingencyPercentage,
+    contingency_percentage: 0,
+    adjustment_percentage: row.contingencyPercentage,
     misc_cost: miscCost,
     discipline: "",
     designation: row.sourceType === "allowance" ? "AI allowance" : "",
@@ -533,7 +534,8 @@ function buildTemplateRowCopyInsert({
     unit: copy.unit,
     quantity: copy.quantity,
     unit_cost: copy.unitCost,
-    contingency_percentage: copy.contingencyPercentage,
+    contingency_percentage: 0,
+    adjustment_percentage: copy.contingencyPercentage,
     misc_cost: copy.miscCost,
     discipline: "",
     designation: "AI template row",
@@ -584,7 +586,8 @@ function buildRowReplacementPayload({
     unit,
     quantity: replacement.quantity,
     unitCost,
-    contingencyPercentage: replacement.contingencyPercentage,
+    contingencyPercentage: 0,
+    adjustmentPercentage: replacement.adjustmentPercentage ?? replacement.contingencyPercentage,
     miscCost,
     discipline: "",
     designation: "",
@@ -661,6 +664,7 @@ function toEstimateRowInsertPayload(rowInsert: TablesInsert<"estimate_row_items"
     quantity: rowInsert.quantity,
     unitCost: rowInsert.unit_cost,
     contingencyPercentage: rowInsert.contingency_percentage,
+    adjustmentPercentage: rowInsert.adjustment_percentage,
     miscCost: rowInsert.misc_cost,
     discipline: rowInsert.discipline,
     designation: rowInsert.designation,
@@ -965,7 +969,15 @@ async function readNextSortOrdersByNode({
 }
 
 function toRowUpdatePatch(update: PackageBuilderRowUpdateDraft) {
-  return Object.fromEntries(Object.entries(update.patch).filter(([, value]) => value !== undefined));
+  const {
+    contingencyPercentage,
+    adjustmentPercentage,
+    ...patch
+  } = update.patch;
+  return Object.fromEntries(Object.entries({
+    ...patch,
+    adjustmentPercentage: adjustmentPercentage ?? contingencyPercentage,
+  }).filter(([, value]) => value !== undefined));
 }
 
 async function applyFillCurrentEstimateDraft({
@@ -1174,7 +1186,7 @@ async function applyFillCurrentEstimateDraft({
       idempotencyKey: input.idempotencyKey,
     });
     const rowSubtotal = Number(rowInsert.quantity ?? 0) * Number(rowInsert.unit_cost ?? 0);
-    total += rowSubtotal + Number(rowInsert.misc_cost ?? 0) + (rowSubtotal * Number(rowInsert.contingency_percentage ?? 0)) / 100;
+    total += rowSubtotal + Number(rowInsert.misc_cost ?? 0) + (rowSubtotal * Number(rowInsert.adjustment_percentage ?? 0)) / 100;
 
     const correlationId = deterministicUuid(`${input.userContext.workspaceId}:${input.userContext.userId}:${input.draftHash}:${input.idempotencyKey}:template-row:${copy.clientDraftId}`);
     const { data, error } = await asEstimateRowInsertRpcClient(supabase).rpc("insert_estimate_row_item_with_history", {
@@ -1210,7 +1222,7 @@ async function applyFillCurrentEstimateDraft({
       idempotencyKey: input.idempotencyKey,
     });
     const rowSubtotal = Number(rowInsert.quantity ?? 0) * Number(rowInsert.unit_cost ?? 0);
-    total += rowSubtotal + Number(rowInsert.misc_cost ?? 0) + (rowSubtotal * Number(rowInsert.contingency_percentage ?? 0)) / 100;
+    total += rowSubtotal + Number(rowInsert.misc_cost ?? 0) + (rowSubtotal * Number(rowInsert.adjustment_percentage ?? 0)) / 100;
 
     const correlationId = deterministicUuid(`${input.userContext.workspaceId}:${input.userContext.userId}:${input.draftHash}:${input.idempotencyKey}:${row.clientDraftId}`);
     const { data, error } = await asEstimateRowInsertRpcClient(supabase).rpc("insert_estimate_row_item_with_history", {

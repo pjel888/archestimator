@@ -994,7 +994,7 @@ function buildTemplateAllowanceRow({
     unit: row.unit,
     unitCost: row.unitCost,
     miscCost: row.miscCost,
-    contingencyPercentage: row.contingencyPercentage,
+    contingencyPercentage: row.adjustmentPercentage ?? row.contingencyPercentage,
     confidence: "requires-user-review",
     assumption: `Used estimate template row from ${template.name} as a reviewed allowance precedent.`,
     warnings: ["Template row is not a live supplier-priced component; review before purchase."],
@@ -1034,7 +1034,7 @@ function buildComparableAllowanceRow({
     unit: row.unit,
     unitCost: row.unitCost,
     miscCost: row.miscCost,
-    contingencyPercentage: row.contingencyPercentage,
+    contingencyPercentage: row.adjustmentPercentage ?? row.contingencyPercentage,
     confidence: "requires-user-review",
     assumption: `Used comparable prior estimate row from ${packageMatch.projectName} as a reviewed allowance precedent.`,
     warnings: ["Comparable estimate precedent is not a live supplier-priced component; review before purchase."],
@@ -1313,7 +1313,7 @@ function buildRowReplacementDrafts(message: string, readData: PackageBuilderRead
         unit: component.unit,
         unitCost: component.unitCost,
         miscCost: row.miscCost ?? component.miscCost,
-        contingencyPercentage: row.contingencyPercentage ?? 0,
+        contingencyPercentage: row.adjustmentPercentage ?? row.contingencyPercentage ?? 0,
         category: component.category,
         categoryPath: component.categoryPath,
         supplierId: component.supplierId ?? null,
@@ -1584,7 +1584,7 @@ function buildTemplateRowCopyDrafts({
         unit: match.row.unit,
         unitCost: match.row.unitCost,
         miscCost: match.row.miscCost,
-        contingencyPercentage: match.row.contingencyPercentage,
+        contingencyPercentage: match.row.adjustmentPercentage ?? match.row.contingencyPercentage,
         warnings: ["Review the template row before Apply; it is copied from a reusable template preview."],
         applyEligible: true,
         sourceSnapshot: {
@@ -1852,7 +1852,7 @@ function buildOperations({
 
 function calculateTemplateRowPreviewTotal(row: PackageBuilderTemplateRowPreview) {
   const base = row.quantity * row.unitCost;
-  return base + row.miscCost + (base * row.contingencyPercentage) / 100;
+  return base + row.miscCost + (base * (row.adjustmentPercentage ?? row.contingencyPercentage)) / 100;
 }
 
 function calculateRowLikeTotal(row: Pick<PackageBuilderRowDraft, "quantity" | "unitCost" | "miscCost" | "contingencyPercentage">) {
@@ -2193,6 +2193,7 @@ function compactTemplateRowPreview(row: PackageBuilderTemplateRowPreview) {
     unitCost: row.unitCost,
     miscCost: row.miscCost,
     contingencyPercentage: row.contingencyPercentage,
+    adjustmentPercentage: row.adjustmentPercentage,
     total: typeof row.total === "number" ? row.total : calculateTemplateRowPreviewTotal(row),
   };
 }

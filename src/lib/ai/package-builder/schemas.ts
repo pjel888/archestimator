@@ -83,6 +83,7 @@ export type PackageBuilderRowDraft = {
   unitCost: number;
   miscCost: number;
   contingencyPercentage: number;
+  adjustmentPercentage?: number;
   confidence: PackageBuilderConfidence;
   assumption: string;
   warnings: string[];
@@ -94,6 +95,7 @@ export type PackageBuilderRowUpdatePatch = {
   quantity?: number;
   miscCost?: number;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
 };
 
 export type PackageBuilderRowUpdateDraft = {
@@ -120,6 +122,7 @@ export type PackageBuilderRowReplacementDraft = {
   unitCost: number;
   miscCost: number;
   contingencyPercentage: number;
+  adjustmentPercentage?: number;
   category: string;
   categoryPath: string[];
   supplierId?: string | null;
@@ -174,6 +177,7 @@ export type PackageBuilderTemplateRowCopyDraft = {
   unitCost: number;
   miscCost: number;
   contingencyPercentage: number;
+  adjustmentPercentage?: number;
   warnings: string[];
   applyEligible: boolean;
   sourceSnapshot?: Record<string, unknown> | null;
@@ -226,6 +230,7 @@ export type PackageBuilderTemplateMatch = {
     unitCost: number;
     miscCost: number;
     contingencyPercentage: number;
+    adjustmentPercentage?: number;
     total: number;
   }>;
 };
@@ -402,6 +407,29 @@ function readOptionalNonNegativeNumber(value: unknown, label: string) {
   return value === undefined ? undefined : readNonNegativeNumber(value, label);
 }
 
+function readOptionalNumber(value: unknown, label: string) {
+  return value === undefined ? undefined : readNumber(value, label);
+}
+
+function readOptionalAdjustmentAlias(record: Record<string, unknown>, label: string) {
+  const legacyAdjustment = readOptionalNumber(record.contingencyPercentage, `${label} contingency percentage`);
+  const explicitAdjustment = readOptionalNumber(record.adjustmentPercentage, `${label} adjustment percentage`);
+  if (
+    legacyAdjustment !== undefined
+    && explicitAdjustment !== undefined
+    && legacyAdjustment !== explicitAdjustment
+  ) {
+    throw new Error(`${label} cannot include conflicting contingencyPercentage and adjustmentPercentage values.`);
+  }
+  return explicitAdjustment ?? legacyAdjustment;
+}
+
+function readAdjustmentAlias(record: Record<string, unknown>, label: string) {
+  const adjustment = readOptionalAdjustmentAlias(record, label);
+  if (adjustment === undefined) throw new Error(`${label} adjustment percentage is required.`);
+  return adjustment;
+}
+
 function readInteger(value: unknown, label: string) {
   const parsed = readNumber(value, label);
   if (!Number.isInteger(parsed)) throw new Error(`${label} must be an integer.`);
@@ -496,6 +524,7 @@ function parseRowDraft(value: unknown): PackageBuilderRowDraft {
       "unitCost",
       "miscCost",
       "contingencyPercentage",
+      "adjustmentPercentage",
       "confidence",
       "assumption",
       "warnings",
@@ -504,6 +533,7 @@ function parseRowDraft(value: unknown): PackageBuilderRowDraft {
     ],
     "Row draft",
   );
+  const adjustmentPercentage = readAdjustmentAlias(record, "Row");
   return {
     clientDraftId: readString(record.clientDraftId, "Row client draft id", 120),
     targetAreaClientDraftId: readString(record.targetAreaClientDraftId, "Target area client draft id", 120),
@@ -519,7 +549,8 @@ function parseRowDraft(value: unknown): PackageBuilderRowDraft {
     unit: readString(record.unit, "Row unit", 40),
     unitCost: readNonNegativeNumber(record.unitCost, "Row unit cost"),
     miscCost: readNonNegativeNumber(record.miscCost, "Row misc cost"),
-    contingencyPercentage: readNonNegativeNumber(record.contingencyPercentage, "Row contingency percentage"),
+    contingencyPercentage: adjustmentPercentage,
+    adjustmentPercentage,
     confidence: readEnum(record.confidence, PACKAGE_BUILDER_CONFIDENCE_VALUES, "Unsupported package-builder row confidence."),
     assumption: readString(record.assumption, "Row assumption", 400),
     warnings: readStringArray(record.warnings, "Row warnings"),
@@ -530,13 +561,14 @@ function parseRowDraft(value: unknown): PackageBuilderRowDraft {
 
 function parseRowUpdatePatch(value: unknown): PackageBuilderRowUpdatePatch {
   const record = readRecord(value, "Row update patch");
-  assertAllowedKeys(record, ["quantity", "miscCost", "contingencyPercentage"], "Row update patch");
+  assertAllowedKeys(record, ["quantity", "miscCost", "contingencyPercentage", "adjustmentPercentage"], "Row update patch");
+  const adjustmentPercentage = readOptionalAdjustmentAlias(record, "Row update");
   const patch = {
     quantity: readOptionalNonNegativeNumber(record.quantity, "Row update quantity"),
     miscCost: readOptionalNonNegativeNumber(record.miscCost, "Row update misc cost"),
-    contingencyPercentage: readOptionalNonNegativeNumber(record.contingencyPercentage, "Row update contingency percentage"),
+    adjustmentPercentage,
   };
-  if (patch.quantity === undefined && patch.miscCost === undefined && patch.contingencyPercentage === undefined) {
+  if (patch.quantity === undefined && patch.miscCost === undefined && patch.adjustmentPercentage === undefined) {
     throw new Error("Row update patch must include at least one editable field.");
   }
   return Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as PackageBuilderRowUpdatePatch;
@@ -574,6 +606,7 @@ function parseRowReplacementDraft(value: unknown): PackageBuilderRowReplacementD
       "unitCost",
       "miscCost",
       "contingencyPercentage",
+      "adjustmentPercentage",
       "category",
       "categoryPath",
       "supplierId",
@@ -585,6 +618,7 @@ function parseRowReplacementDraft(value: unknown): PackageBuilderRowReplacementD
     ],
     "Row replacement draft",
   );
+  const adjustmentPercentage = readAdjustmentAlias(record, "Replacement");
   return {
     clientDraftId: readString(record.clientDraftId, "Row replacement client draft id", 120),
     targetRowId: readString(record.targetRowId, "Replacement target row id", 80),
@@ -599,7 +633,8 @@ function parseRowReplacementDraft(value: unknown): PackageBuilderRowReplacementD
     unit: readString(record.unit, "Replacement unit", 40),
     unitCost: readNonNegativeNumber(record.unitCost, "Replacement unit cost"),
     miscCost: readNonNegativeNumber(record.miscCost, "Replacement misc cost"),
-    contingencyPercentage: readNonNegativeNumber(record.contingencyPercentage, "Replacement contingency percentage"),
+    contingencyPercentage: adjustmentPercentage,
+    adjustmentPercentage,
     category: readString(record.category, "Replacement category", 120),
     categoryPath: record.categoryPath === undefined ? [] : readStringArray(record.categoryPath, "Replacement category path"),
     supplierId: readNullableString(record.supplierId, "Replacement supplier id", 80),
@@ -687,12 +722,14 @@ function parseTemplateRowCopyDraft(value: unknown): PackageBuilderTemplateRowCop
       "unitCost",
       "miscCost",
       "contingencyPercentage",
+      "adjustmentPercentage",
       "warnings",
       "applyEligible",
       "sourceSnapshot",
     ],
     "Template row copy draft",
   );
+  const adjustmentPercentage = readAdjustmentAlias(record, "Template row copy");
   return {
     clientDraftId: readString(record.clientDraftId, "Template row copy client draft id", 120),
     sourceTemplateId: readString(record.sourceTemplateId, "Template row copy source template id", 80),
@@ -707,7 +744,8 @@ function parseTemplateRowCopyDraft(value: unknown): PackageBuilderTemplateRowCop
     unit: readString(record.unit, "Template row copy unit", 40),
     unitCost: readNonNegativeNumber(record.unitCost, "Template row copy unit cost"),
     miscCost: readNonNegativeNumber(record.miscCost, "Template row copy misc cost"),
-    contingencyPercentage: readNonNegativeNumber(record.contingencyPercentage, "Template row copy contingency percentage"),
+    contingencyPercentage: adjustmentPercentage,
+    adjustmentPercentage,
     warnings: readStringArray(record.warnings, "Template row copy warnings"),
     applyEligible: readBoolean(record.applyEligible, "Template row copy apply eligibility"),
     sourceSnapshot: readOptionalObject(record.sourceSnapshot, "Template row copy source snapshot"),
@@ -788,7 +826,7 @@ function parseTemplateMatch(value: unknown): PackageBuilderTemplateMatch {
       const row = readRecord(item, "Template row preview");
       assertAllowedKeys(
         row,
-        ["areaName", "material", "description", "supplier", "quantity", "unit", "unitCost", "miscCost", "contingencyPercentage", "total"],
+        ["areaName", "material", "description", "supplier", "quantity", "unit", "unitCost", "miscCost", "contingencyPercentage", "adjustmentPercentage", "total"],
         "Template row preview",
       );
       return {
@@ -801,6 +839,7 @@ function parseTemplateMatch(value: unknown): PackageBuilderTemplateMatch {
         unitCost: readNonNegativeNumber(row.unitCost, "Template row unit cost"),
         miscCost: readNonNegativeNumber(row.miscCost, "Template row misc cost"),
         contingencyPercentage: readNonNegativeNumber(row.contingencyPercentage, "Template row contingency percentage"),
+        adjustmentPercentage: row.adjustmentPercentage === undefined ? undefined : readNumber(row.adjustmentPercentage, "Template row adjustment percentage"),
         total: readNonNegativeNumber(row.total, "Template row total"),
       };
     }),
@@ -1015,6 +1054,7 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
       update.patch.quantity === undefined
       && update.patch.miscCost === undefined
       && update.patch.contingencyPercentage === undefined
+      && update.patch.adjustmentPercentage === undefined
     ) {
       errors.push(`Row update ${update.clientDraftId} must include at least one editable field.`);
     }
