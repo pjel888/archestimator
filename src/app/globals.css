@@ -81,6 +81,18 @@
     ),
     linear-gradient(155deg, #eceeef 0%, #e6e7e7 48%, #dedbd8 100%);
   --grad-canvas-wash-fallback: #e6e7e7;
+  --estimate-glass-well-bg:
+    radial-gradient(
+      120% 96% at 100% 100%,
+      color-mix(in srgb, var(--brand-peach) 16%, transparent) 0%,
+      color-mix(in srgb, var(--brand-amber) 11%, transparent) 30%,
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(230, 228, 228, 0.62),
+      rgba(216, 213, 214, 0.56)
+    );
   --workshop-glass-backdrop-wash:
     radial-gradient(560px circle at 0% 1%, rgba(70, 82, 104, 0.05), transparent 460px),
     radial-gradient(840px circle at 100% 100%, rgba(242, 68, 5, 0.022), transparent 700px),
@@ -1486,6 +1498,13 @@ input[type="number"] {
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
 }
 
+/* Estimate routes have their own filled three-pane workspace inside the shell.
+   Paint that material once on the shared shell so header/content/footer share
+   one visual plane instead of three disconnected bands. */
+[data-workshop-page-shell-canvas][data-estimate-sheet-route="true"] .workshop-workspace-glass-surface {
+  background: var(--estimate-glass-well-bg);
+}
+
 /* Liquid-glass chrome buttons: no child backdrop blur, just translucent fill,
    bright edge relief, and soft shadow so they sit cleanly inside glass bars. */
 .workshop-liquid-button {
@@ -1991,19 +2010,8 @@ input[type="number"] {
      well so the workspace reads as ONE floating shell with inset panes rather
      than four things stacked. Warm stops stay low so the dark grid ink (which
      sits on the paper, not the well) is unaffected. */
-  background:
-    radial-gradient(
-      120% 96% at 100% 100%,
-      color-mix(in srgb, var(--brand-peach) 16%, transparent) 0%,
-      color-mix(in srgb, var(--brand-amber) 11%, transparent) 30%,
-      transparent 72%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(230, 228, 228, 0.62),
-      rgba(216, 213, 214, 0.56)
-    );
-  box-shadow: inset 0 1px 3px rgba(30, 35, 50, 0.06);
+  background: transparent;
+  box-shadow: none;
 }
 
 /* Side rails (estimate tree, component library): frosted, slightly recessed

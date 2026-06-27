@@ -79,10 +79,39 @@ const BUDGET_HEALTH_SEGMENT_COUNT = 144;
 const BUDGET_HEALTH_SEGMENT_CLASSES = {
   inactive: "bg-[#E7E9EC]",
 } as const;
-const BUDGET_HEALTH_MISSING_SEGMENT = {
-  color: "#A8C2DD",
-  tone: "missing",
-} as const;
+const BUDGET_HEALTH_OVERRUN_START = "#D96565";
+const BUDGET_HEALTH_OVERRUN_END = "#7B1B32";
+
+function interpolateBudgetHealthChannel(start: number, end: number, amount: number) {
+  return Math.round(start + (end - start) * amount);
+}
+
+function interpolateBudgetHealthHexColor(from: string, to: string, amount: number) {
+  const normalizedStart = from.replace("#", "");
+  const normalizedEnd = to.replace("#", "");
+  const start = Number.parseInt(normalizedStart, 16);
+  const end = Number.parseInt(normalizedEnd, 16);
+  const clampedAmount = Math.min(1, Math.max(0, amount));
+  const color = {
+    r: interpolateBudgetHealthChannel((start >> 16) & 255, (end >> 16) & 255, clampedAmount),
+    g: interpolateBudgetHealthChannel((start >> 8) & 255, (end >> 8) & 255, clampedAmount),
+    b: interpolateBudgetHealthChannel(start & 255, end & 255, clampedAmount),
+  };
+
+  return `#${[color.r, color.g, color.b].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function getBudgetHealthSegmentStop(segmentUsagePercent: number, meterMax: number) {
+  if (segmentUsagePercent <= 100 || meterMax <= 100) {
+    return getBudgetHealthGradientStop(segmentUsagePercent / 100);
+  }
+
+  const overrunRatio = (segmentUsagePercent - 100) / (meterMax - 100);
+  return {
+    color: interpolateBudgetHealthHexColor(BUDGET_HEALTH_OVERRUN_START, BUDGET_HEALTH_OVERRUN_END, overrunRatio),
+    tone: overrunRatio > 0.85 ? "maroon" : "overbudget",
+  };
+}
 
 function getBudgetHealthState(usagePercent: number, hasBudget: boolean, total: number): BudgetHealthState {
   if (!hasBudget) return "missing";
@@ -130,19 +159,15 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
   const textClassName = budgetHealthTextClass(state);
   const meterValue = Math.round(usagePercent);
   const meterMax = Math.max(100, meterValue);
-  const hasUnbudgetedCost = !hasBudget && safeTotal > 0;
   const activeSegmentCount =
-    hasUnbudgetedCost
-      ? BUDGET_HEALTH_SEGMENT_COUNT
-      : hasBudget && safeTotal > 0
-      ? Math.min(BUDGET_HEALTH_SEGMENT_COUNT, Math.ceil((usagePercent / 100) * BUDGET_HEALTH_SEGMENT_COUNT))
+    hasBudget && safeTotal > 0
+      ? Math.min(BUDGET_HEALTH_SEGMENT_COUNT, Math.ceil((usagePercent / meterMax) * BUDGET_HEALTH_SEGMENT_COUNT))
       : 0;
   const segments = Array.from({ length: BUDGET_HEALTH_SEGMENT_COUNT }, (_, index) => {
     const isActive = index < activeSegmentCount;
+    const segmentUsagePercent = ((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT) * meterMax;
     const gradientStop = isActive
-      ? hasUnbudgetedCost
-        ? BUDGET_HEALTH_MISSING_SEGMENT
-        : getBudgetHealthGradientStop((index + 1) / BUDGET_HEALTH_SEGMENT_COUNT)
+      ? getBudgetHealthSegmentStop(segmentUsagePercent, meterMax)
       : null;
     return { index, isActive, color: gradientStop?.color, tone: gradientStop?.tone ?? "inactive" };
   });
@@ -165,14 +190,14 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         aria-valuetext={fullStatusText}
       />
       <div
-        className="flex h-1.5 items-center gap-px overflow-hidden"
+        className="flex h-2 items-stretch gap-px overflow-hidden"
         aria-hidden="true"
         data-budget-health-meter
       >
         {segments.map((segment) => (
           <span
             key={segment.index}
-            className={`block aspect-square h-1.5 min-h-1.5 w-1.5 min-w-1.5 shrink-0 rounded-xs ${
+            className={`block h-full min-w-0 flex-1 ${
               segment.isActive ? "" : BUDGET_HEALTH_SEGMENT_CLASSES.inactive
             }`}
             style={segment.color ? { backgroundColor: segment.color } : undefined}

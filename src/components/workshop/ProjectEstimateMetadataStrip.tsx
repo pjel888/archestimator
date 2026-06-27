@@ -109,7 +109,7 @@ function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataS
 
   return (
     <div
-      className="grid h-full place-items-center rounded-xs bg-white/70 px-2 text-[10px] font-medium tracking-normal text-ink shadow-[0_2px_8px_rgba(30,35,50,0.10)] backdrop-blur-sm"
+      className="grid h-full place-items-center rounded-xs bg-transparent px-2 text-[10px] font-medium tracking-normal text-ink shadow-none"
       data-workshop-layout="project-estimate-metadata-row"
     >
       <EstimateSheetNameCell key={estimateNameKey} metadata={metadata} />
