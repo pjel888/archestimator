@@ -2026,6 +2026,29 @@ validation, review, QA, and archival gates.
 - Result: future hosted observation capture now has a durable sanitized input
   contract, but no new hosted/live production proof was claimed.
 
+### Iteration 59 - Production Proof Runbook
+
+- Added `UPLOAD_PRODUCTION_PROOF_RUNBOOK.md` as the consolidated
+  seven-artifact production proof collection checklist.
+- The runbook maps `hostedUploadOperations`, `hostedUploadRuntime`,
+  `liveScanner`, `alertDelivery`, `dashboardObservation`,
+  `hostedBackpressure`, and `retentionRunbook` to their expected passing
+  artifacts, safe collection commands, and proof-boundary strings.
+- Updated `UPLOAD_PRODUCTION_OBSERVATIONS_RUNBOOK.md` to point operators to the
+  full seven-artifact checklist for the broader production proof flow.
+- Extended `tests/vitest/upload-production-proof-evidence-checker.test.ts` so
+  the runbook is contract-checked against the production evidence checker and
+  denied secret/path evidence strings.
+- Updated `evidence/upload-release-gates.json` and release-gate tests with
+  `UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL`, while keeping
+  `production.status=blocked`.
+- Fresh verification passed: production proof checker/observation/release-gate
+  matrix (`3 files / 14 tests`), alert/observation/checker/release-gate matrix
+  (`4 files / 19 tests`), scoped ESLint, targeted upload JSON parse,
+  `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+- Result: production proof collection is now documented end to end for the seven
+  required artifacts, but no hosted/live proof was claimed.
+
 ## Proof Boundary
 
 Current proof boundary: `local-plus-linked-provider-operation-proof`.
@@ -2102,6 +2125,9 @@ observation, backpressure traffic, or runtime limits. The production evidence
 bundle checker proves only that the hosted/live proof artifacts are checked
 together and fail closed when incomplete; its current failing report is not
 production proof and does not replace any hosted/live observation. The
+production proof runbook proves only operator-readiness for collecting the seven
+hosted/live artifacts; it does not replace deployed-route, live-scanner, alert,
+dashboard, backpressure, or retention-runbook observations. The
 production observation proof harness proves only that sanitized operator
 observations can be serialized into dashboard, backpressure, and retention
 runbook evidence artifacts and fail closed by default; the current skipped

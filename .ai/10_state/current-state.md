@@ -44,6 +44,14 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Upload plan production proof runbook added (2026-06-27):**
+
+- `UPLOAD_PRODUCTION_PROOF_RUNBOOK.md` now maps all seven production evidence requirements to their passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria.
+- The runbook explicitly does not prove readiness by existing; it keeps production blocked until hosted cleanup/scan/runtime routes are deployed and authenticated, live ClamD/CDR proof is run, alert delivery is observed, and hosted dashboard/backpressure/retention observations are collected.
+- `tests/vitest/upload-production-proof-evidence-checker.test.ts` now asserts that the runbook stays aligned with the production evidence checker contract and does not include denied secret/path evidence strings.
+- Fresh evidence passed: production proof checker/observation/release-gate matrix (`3 files / 14 tests`), alert/observation/checker/release-gate matrix (`4 files / 19 tests`), scoped ESLint, targeted upload JSON parse, `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+- Gate readback remains `closedBeta=ready`, `platform=ready`, `production=blocked`, with production proof totals `required=7`, `passed=0`, `failed=7`, `missing=0`, `invalid=0`.
+
 **Upload plan production observation operator template added (2026-06-27):**
 
 - `UPLOAD_PRODUCTION_OBSERVATIONS_RUNBOOK.md` now documents the sanitized operator workflow for collecting hosted upload dashboard, hosted backpressure, and production retention-runbook observations.
