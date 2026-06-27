@@ -421,7 +421,7 @@ describe("estimate sheet cost inputs", () => {
     await user.type(adjustmentInput, "10");
     await user.tab();
 
-    await screen.findByText("₱ 63,360.00");
+    await screen.findByText("₱ 5,760.00");
     expect(screen.getByText("₱ 93,360.00")).toBeInTheDocument();
     expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveValue("48");
   });
@@ -436,7 +436,7 @@ describe("estimate sheet cost inputs", () => {
     await user.type(discountInput, "10");
     await user.tab();
 
-    await screen.findByText("₱ 51,840.00");
+    await screen.findByText("-₱ 5,760.00");
     expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
     expect(screen.getByLabelText("Hardwood Oak Flooring contingency percentage")).toHaveValue(0);
     expect(discountInput).toHaveValue(10);
@@ -610,6 +610,9 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(firstQuantity);
     await user.keyboard("{ArrowRight}{ArrowRight}");
+    expect(screen.getByLabelText("Hardwood Oak Flooring discount percentage")).toHaveFocus();
+
+    await user.keyboard("{ArrowRight}");
     expect(screen.getByLabelText("Hardwood Oak Flooring misc cost")).toHaveFocus();
 
     await user.keyboard("{Enter}");
