@@ -73,6 +73,36 @@ export type DirectUploadProvider = {
   headObject: (input: { bucket: string; path: string }) => Promise<ProviderObjectHead>;
 };
 
+type SupabaseStorageError = { message?: string | null };
+
+type SupabaseSignedUploadClient = {
+  storage: {
+    from: (bucket: string) => {
+      createSignedUploadUrl: (path: string, options?: { upsert: boolean }) => PromiseLike<{
+        data: { signedUrl: string; token: string; path: string } | null;
+        error: SupabaseStorageError | null;
+      }>;
+      info: (path: string) => PromiseLike<{
+        data: {
+          size?: number | null;
+          contentType?: string | null;
+          content_type?: string | null;
+          etag?: string | null;
+          metadata?: {
+            size?: number | null;
+            contentLength?: number | null;
+            content_length?: number | null;
+            mimetype?: string | null;
+            eTag?: string | null;
+            etag?: string | null;
+          } | null;
+        } | null;
+        error: SupabaseStorageError | null;
+      }>;
+    };
+  };
+};
+
 export type ProviderFinalizeValidation =
   | { ok: true; proof: "checksum" | "etag" }
   | {
@@ -156,4 +186,81 @@ export function validateMultipartUploadedParts(
 
   if (totalSizeBytes !== session.constraints.sizeBytes) return { ok: false, reason: "size_mismatch" };
   return { ok: true, totalSizeBytes, expectedPartCount: expectedParts };
+}
+
+function assertDirectUploadConstraints(input: DirectUploadObjectConstraints) {
+  if (!input.bucket.trim()) throw new Error("Direct upload bucket is required.");
+  if (!input.path.trim() || input.path.startsWith("/") || input.path.includes("..") || input.path.includes("//")) {
+    throw new Error("Direct upload path is unsafe.");
+  }
+  if (!input.contentType.trim()) throw new Error("Direct upload content type is required.");
+  if (!Number.isFinite(input.sizeBytes) || input.sizeBytes <= 0) throw new Error("Direct upload size must be positive.");
+  if (!Number.isFinite(input.maxBytes) || input.maxBytes <= 0) throw new Error("Direct upload max bytes must be positive.");
+  if (input.sizeBytes > input.maxBytes) throw new Error("Direct upload size exceeds max bytes.");
+}
+
+function signedUploadExpiresAt(expiresInSeconds: number) {
+  return new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+}
+
+function sizeFromSupabaseInfo(data: Awaited<ReturnType<ReturnType<SupabaseSignedUploadClient["storage"]["from"]>["info"]>>["data"]) {
+  return data?.size ?? data?.metadata?.size ?? data?.metadata?.contentLength ?? data?.metadata?.content_length ?? 0;
+}
+
+function contentTypeFromSupabaseInfo(data: Awaited<ReturnType<ReturnType<SupabaseSignedUploadClient["storage"]["from"]>["info"]>>["data"]) {
+  return data?.contentType ?? data?.content_type ?? data?.metadata?.mimetype ?? null;
+}
+
+function etagFromSupabaseInfo(data: Awaited<ReturnType<ReturnType<SupabaseSignedUploadClient["storage"]["from"]>["info"]>>["data"]) {
+  return data?.etag ?? data?.metadata?.eTag ?? data?.metadata?.etag ?? null;
+}
+
+export function createSupabaseDirectUploadProvider(supabase: SupabaseSignedUploadClient): DirectUploadProvider {
+  return {
+    async createSignedUploadSession(input) {
+      assertDirectUploadConstraints(input);
+      const { data, error } = await supabase.storage.from(input.bucket).createSignedUploadUrl(input.path, { upsert: false });
+      if (error || !data?.signedUrl) throw new Error(error?.message ?? "Supabase signed upload URL creation failed.");
+
+      return {
+        kind: "signed_single_part",
+        uploadUrl: data.signedUrl,
+        method: "PUT",
+        expiresAt: signedUploadExpiresAt(input.expiresInSeconds),
+        requiresFinalizeRpc: true,
+        constraints: {
+          bucket: input.bucket,
+          path: input.path,
+          contentType: input.contentType,
+          sizeBytes: input.sizeBytes,
+          maxBytes: input.maxBytes,
+          checksumSha256: input.checksumSha256 ?? null,
+        },
+      };
+    },
+    async createMultipartUploadSession() {
+      throw new Error("Supabase Storage direct multipart/resumable uploads are not implemented by this adapter.");
+    },
+    async signMultipartPart() {
+      throw new Error("Supabase Storage direct multipart/resumable uploads are not implemented by this adapter.");
+    },
+    async completeMultipartUpload() {
+      throw new Error("Supabase Storage direct multipart/resumable uploads are not implemented by this adapter.");
+    },
+    async abortMultipartUpload() {
+      throw new Error("Supabase Storage direct multipart/resumable uploads are not implemented by this adapter.");
+    },
+    async headObject(input) {
+      const { data, error } = await supabase.storage.from(input.bucket).info(input.path);
+      if (error || !data) throw new Error(error?.message ?? "Supabase object info lookup failed.");
+
+      return {
+        bucket: input.bucket,
+        path: input.path,
+        contentType: contentTypeFromSupabaseInfo(data),
+        sizeBytes: sizeFromSupabaseInfo(data),
+        etag: etagFromSupabaseInfo(data),
+      };
+    },
+  };
 }

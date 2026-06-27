@@ -1,3 +1,5 @@
+import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
+
 export type UploadImageReferenceContext =
   | "component-library"
   | "estimate-row-source-snapshot"
@@ -154,4 +156,32 @@ export function summarizeUploadComponentImageBackfillReadiness(
     hasLegacyPublicReferences: needsBackfill > 0,
     hasManualReviewReferences: manualReview > 0,
   };
+}
+
+export function collectPublicationSnapshotImageReferences(
+  snapshot: ProjectPublicationSnapshot,
+): UploadImageReferenceRecord[] {
+  const records: UploadImageReferenceRecord[] = [];
+
+  for (const estimate of snapshot.estimates ?? []) {
+    for (const row of estimate.rows ?? []) {
+      records.push({
+        id: `publication:${estimate.id}:row:${row.id}`,
+        context: "publication-snapshot",
+        imageUrl: row.imageUrl ?? null,
+      });
+    }
+
+    for (const tab of estimate.tabs ?? []) {
+      for (const row of tab.rows ?? []) {
+        records.push({
+          id: `publication:${estimate.id}:tab:${tab.id}:row:${row.id}`,
+          context: "publication-snapshot",
+          imageUrl: row.imageUrl ?? null,
+        });
+      }
+    }
+  }
+
+  return records;
 }
