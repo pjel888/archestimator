@@ -7,7 +7,7 @@ type RpcClient = {
   rpc: (
     functionName: string,
     args: Record<string, unknown>,
-  ) => PromiseLike<{ data: unknown; error: { message?: string | null } | null }>;
+  ) => PromiseLike<{ data: unknown; error: { message?: string | null; code?: string | null } | null }>;
 };
 
 type UploadSessionQuery<T> = {
@@ -18,6 +18,20 @@ type UploadSessionQuery<T> = {
 
 type UploadSessionReadClient = {
   from: (table: "upload_sessions") => UploadSessionQuery<UploadSessionForFinalize>;
+};
+
+type ActiveUploadSessionQuery = {
+  select: (columns: string) => ActiveUploadSessionQuery;
+  eq: (column: string, value: unknown) => ActiveUploadSessionQuery;
+  gt: (column: string, value: unknown) => PromiseLike<{ data: ActiveUploadSessionRow[] | null; error: { message?: string | null } | null }>;
+};
+
+type ActiveUploadSessionReadClient = {
+  from: (table: "upload_sessions") => ActiveUploadSessionQuery;
+};
+
+type ActiveUploadSessionRow = {
+  expires_at: string | null;
 };
 
 export type RecordPendingUploadSessionInput = {
@@ -39,6 +53,25 @@ export type RecordPendingUploadSessionInput = {
 export type PendingUploadSessionRecord = {
   uploadSessionId: string;
   expiresAt: string;
+};
+
+export type UploadSessionCapacityQuotaClass = "active_actor" | "active_workspace";
+
+export class UploadSessionCapacityExceededError extends Error {
+  readonly quotaClass: UploadSessionCapacityQuotaClass;
+
+  constructor(quotaClass: UploadSessionCapacityQuotaClass, message?: string | null) {
+    super(message ?? "Upload direct session capacity exceeded.");
+    this.name = "UploadSessionCapacityExceededError";
+    this.quotaClass = quotaClass;
+  }
+}
+
+export type ActiveUploadSessionCapacity = {
+  actorCount: number;
+  workspaceCount: number;
+  actorRetryAfterSeconds: number;
+  workspaceRetryAfterSeconds: number;
 };
 
 export type UploadSessionForFinalize = {
@@ -87,6 +120,79 @@ function isRecordedUploadAsset(value: unknown): value is RecordedUploadAsset {
   );
 }
 
+function capacityQuotaClassFromRpcError(error: { message?: string | null } | null) {
+  const message = error?.message ?? "";
+  if (message.includes("Upload direct session actor capacity exceeded.")) return "active_actor" as const;
+  if (message.includes("Upload direct session workspace capacity exceeded.")) return "active_workspace" as const;
+  return null;
+}
+
+export function isUploadSessionCapacityExceededError(error: unknown): error is UploadSessionCapacityExceededError {
+  return error instanceof UploadSessionCapacityExceededError;
+}
+
+function retryAfterSeconds(rows: readonly ActiveUploadSessionRow[], now: Date) {
+  const soonestExpiry = rows
+    .map((row) => (row.expires_at ? Date.parse(row.expires_at) : Number.NaN))
+    .filter(Number.isFinite)
+    .sort((left, right) => left - right)[0];
+
+  if (soonestExpiry === undefined) return 60;
+  return Math.max(1, Math.ceil((soonestExpiry - now.getTime()) / 1000));
+}
+
+async function readReservedUploadSessions(
+  client: unknown,
+  input: {
+    workspaceId: string;
+    actorUserId?: string;
+    surface: UploadSurface;
+    now: Date;
+  },
+) {
+  let query = (client as ActiveUploadSessionReadClient)
+    .from("upload_sessions")
+    .select("expires_at")
+    .eq("workspace_id", input.workspaceId)
+    .eq("surface", input.surface)
+    .eq("status", "reserved");
+
+  if (input.actorUserId) {
+    query = query.eq("actor_user_id", input.actorUserId);
+  }
+
+  const { data, error } = await query.gt("expires_at", input.now.toISOString());
+  if (error) throw new Error(error.message ?? "Could not read active upload sessions.");
+  return data ?? [];
+}
+
+export async function readActiveUploadSessionCapacity(
+  client: unknown,
+  input: {
+    workspaceId: string;
+    actorUserId: string;
+    surface: UploadSurface;
+    now?: Date;
+  },
+): Promise<ActiveUploadSessionCapacity> {
+  const now = input.now ?? new Date();
+  const [actorRows, workspaceRows] = await Promise.all([
+    readReservedUploadSessions(client, { ...input, now }),
+    readReservedUploadSessions(client, {
+      workspaceId: input.workspaceId,
+      surface: input.surface,
+      now,
+    }),
+  ]);
+
+  return {
+    actorCount: actorRows.length,
+    workspaceCount: workspaceRows.length,
+    actorRetryAfterSeconds: retryAfterSeconds(actorRows, now),
+    workspaceRetryAfterSeconds: retryAfterSeconds(workspaceRows, now),
+  };
+}
+
 export async function recordPendingUploadSession(
   client: unknown,
   input: RecordPendingUploadSessionInput,
@@ -107,7 +213,11 @@ export async function recordPendingUploadSession(
     metadata: input.metadata ?? {},
   });
 
-  if (error) throw new Error(error.message ?? "Could not create upload session.");
+  if (error) {
+    const quotaClass = capacityQuotaClassFromRpcError(error);
+    if (quotaClass) throw new UploadSessionCapacityExceededError(quotaClass, error.message);
+    throw new Error(error.message ?? "Could not create upload session.");
+  }
   if (!isPendingUploadSessionRecord(data)) throw new Error("Upload session response was invalid.");
   return data;
 }

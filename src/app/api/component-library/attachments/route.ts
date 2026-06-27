@@ -8,6 +8,7 @@ import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository"
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { decideUploadScanGate, type UploadScanStatus } from "@/lib/uploads/scanning";
 import { recordUploadAsset } from "@/lib/uploads/upload-records";
 
 export const runtime = "nodejs";
@@ -139,12 +140,19 @@ type UploadAssetScanRow = {
   storage_path: string;
   status: string;
   scan_status: string;
+  scan_override_expires_at?: string | null;
 };
 
 type AttachmentDownloadQuery<T> = {
   select: (columns: string) => AttachmentDownloadQuery<T>;
   eq: (column: string, value: unknown) => AttachmentDownloadQuery<T>;
   maybeSingle: () => PromiseLike<{ data: T | null; error: { message?: string | null } | null }>;
+};
+
+type AttachmentDownloadLookupResult = {
+  attachment: AttachmentDownloadRow | null;
+  lookupFailed: boolean;
+  unavailableReason?: "not_approved";
 };
 
 type UploadEventInsertQuery = {
@@ -180,6 +188,19 @@ function safeUploadName(name: string) {
   return stem || "component-attachment";
 }
 
+function isUploadScanStatus(value: string): value is UploadScanStatus {
+  return [
+    "not_required",
+    "pending",
+    "clean",
+    "infected",
+    "unsupported",
+    "failed_transient",
+    "failed_permanent",
+    "override_approved",
+  ].includes(value);
+}
+
 async function createStorageSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -212,7 +233,11 @@ async function canManageLibrary(workspaceId: string) {
   return data === true;
 }
 
-async function readAttachmentDownloadRecord(client: unknown, attachmentId: string, workspaceId: string) {
+async function readAttachmentDownloadRecord(
+  client: unknown,
+  attachmentId: string,
+  workspaceId: string,
+): Promise<AttachmentDownloadLookupResult> {
   const downloadClient = client as AttachmentDownloadClient;
   const { data, error } = await downloadClient
     .from("cost_library_item_variant_attachments")
@@ -230,6 +255,9 @@ async function readAttachmentDownloadRecord(client: unknown, attachmentId: strin
   if (data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET || !ALLOWED_MIME_TYPES.has(data.content_type)) {
     return { attachment: null, lookupFailed: false };
   }
+  if (data.review_status !== "approved" || data.is_current_approved !== true) {
+    return { attachment: null, lookupFailed: false, unavailableReason: "not_approved" };
+  }
   return { attachment: data, lookupFailed: false };
 }
 
@@ -237,7 +265,7 @@ async function readCleanUploadAsset(client: unknown, attachment: AttachmentDownl
   const downloadClient = client as AttachmentDownloadClient;
   const { data, error } = await downloadClient
     .from("upload_assets")
-    .select("id, upload_session_id, workspace_id, surface, storage_bucket, storage_path, status, scan_status")
+    .select("id, upload_session_id, workspace_id, surface, storage_bucket, storage_path, status, scan_status, scan_override_expires_at")
     .eq("workspace_id", attachment.workspace_id)
     .eq("storage_bucket", COMPONENT_ATTACHMENT_BUCKET)
     .eq("storage_path", attachment.storage_path)
@@ -255,10 +283,17 @@ async function readCleanUploadAsset(client: unknown, attachment: AttachmentDownl
     || data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET
     || data.storage_path !== attachment.storage_path
     || data.status !== "finalized"
-    || data.scan_status !== "clean"
+    || !isUploadScanStatus(data.scan_status)
   ) {
     return { uploadAsset: null, lookupFailed: false };
   }
+
+  const scanDecision = decideUploadScanGate({
+    surface: "component-attachment",
+    scanStatus: data.scan_status,
+    overrideExpiresAt: data.scan_override_expires_at ?? null,
+  });
+  if (!scanDecision.allowed) return { uploadAsset: null, lookupFailed: false };
 
   return { uploadAsset: data, lookupFailed: false };
 }
@@ -304,8 +339,13 @@ export async function GET(request: Request) {
   }
 
   const storageSupabase = await createStorageSupabaseClient();
-  const { attachment, lookupFailed: attachmentLookupFailed } = await readAttachmentDownloadRecord(storageSupabase, attachmentId, workspace.id);
+  const {
+    attachment,
+    lookupFailed: attachmentLookupFailed,
+    unavailableReason: attachmentUnavailableReason,
+  } = await readAttachmentDownloadRecord(storageSupabase, attachmentId, workspace.id);
   if (attachmentLookupFailed) return jsonError("Could not verify attachment.", 500, { "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL });
+  if (attachmentUnavailableReason === "not_approved") return privateAttachmentUnavailable("Attachment is not available until approval is complete.");
   if (!attachment) return privateAttachmentNotFound();
 
   const { uploadAsset, lookupFailed: uploadAssetLookupFailed } = await readCleanUploadAsset(storageSupabase, attachment);

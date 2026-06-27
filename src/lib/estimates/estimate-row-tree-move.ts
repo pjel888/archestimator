@@ -22,6 +22,13 @@ export type EstimateRowItemMoveResultUpdate = {
   rowRevision?: number;
 };
 
+export type EstimateRowItemMoveResultReconciliation = {
+  status: "applied" | "empty-result" | "missing-rows";
+  tree: EstimateTreeNode[];
+  appliedRowIds: string[];
+  missingRowIds: string[];
+};
+
 export type MoveEstimateRowItemInTreeResult = {
   status: "moved" | "noop" | "not-found" | "invalid-target";
   tree: EstimateTreeNode[];
@@ -213,7 +220,22 @@ export function applyEstimateRowItemMoveResultToTree(
   tree: EstimateTreeNode[],
   updates: EstimateRowItemMoveResultUpdate[],
 ): EstimateTreeNode[] {
-  if (updates.length === 0) return tree;
+  const reconciliation = reconcileEstimateRowItemMoveResultToTree(tree, updates);
+  return reconciliation.status === "applied" ? reconciliation.tree : tree;
+}
+
+export function reconcileEstimateRowItemMoveResultToTree(
+  tree: EstimateTreeNode[],
+  updates: EstimateRowItemMoveResultUpdate[],
+): EstimateRowItemMoveResultReconciliation {
+  if (updates.length === 0) {
+    return {
+      status: "empty-result",
+      tree,
+      appliedRowIds: [],
+      missingRowIds: [],
+    };
+  }
 
   const updateByRowId = new Map<string, EstimateRowItemMoveResultUpdate>();
   const updatesByNodeId = new Map<string, EstimateRowItemMoveResultUpdate[]>();
@@ -225,13 +247,43 @@ export function applyEstimateRowItemMoveResultToTree(
     updatesByNodeId.set(update.nodeId, nodeUpdates);
   }
 
-  if (updateByRowId.size === 0) return tree;
+  if (updateByRowId.size === 0) {
+    return {
+      status: "empty-result",
+      tree,
+      appliedRowIds: [],
+      missingRowIds: [],
+    };
+  }
+
+  const missingTargetNode = Array.from(updatesByNodeId.keys()).some((nodeId) => !findNode(tree, nodeId));
+  if (missingTargetNode) {
+    return {
+      status: "missing-rows",
+      tree,
+      appliedRowIds: [],
+      missingRowIds: Array.from(updateByRowId.keys()),
+    };
+  }
 
   const rowById = new Map<string, EstimateRowItem>();
   const strippedTree = stripMoveResultRows(tree, updateByRowId, rowById);
-  if (rowById.size === 0) return tree;
+  const missingRowIds = Array.from(updateByRowId.keys()).filter((rowId) => !rowById.has(rowId));
+  if (missingRowIds.length > 0) {
+    return {
+      status: "missing-rows",
+      tree,
+      appliedRowIds: Array.from(rowById.keys()),
+      missingRowIds,
+    };
+  }
 
-  return insertMoveResultRows(strippedTree, updatesByNodeId, rowById);
+  return {
+    status: "applied",
+    tree: insertMoveResultRows(strippedTree, updatesByNodeId, rowById),
+    appliedRowIds: Array.from(rowById.keys()),
+    missingRowIds: [],
+  };
 }
 
 export function moveEstimateRowItemInTree(input: MoveEstimateRowItemInTreeInput): MoveEstimateRowItemInTreeResult {

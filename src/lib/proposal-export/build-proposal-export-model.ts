@@ -517,7 +517,7 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
     settings,
     summaryRows: buildSummaryRows(proposalRows),
     proposalRows,
-    sourceBreakdownRows: buildSourceBreakdownRows(proposalRows),
+    sourceBreakdownRows: settings.includeSourceBreakdownSheet ? buildSourceBreakdownRows(proposalRows) : [],
     validationIssues,
     totals: buildTotals(proposalRows, settings),
     generatedAt: input.generatedAt ?? new Date().toISOString(),

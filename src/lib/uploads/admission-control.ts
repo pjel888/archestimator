@@ -1,4 +1,5 @@
-type UploadSurface = "project-image" | "component-image" | "component-attachment";
+import type { UploadSurface } from "./policy";
+import { reportUploadAdmissionRejected } from "./operational-telemetry";
 
 type UploadAdmissionInput = {
   surface: UploadSurface;
@@ -73,6 +74,12 @@ export function reserveUploadAdmission(input: UploadAdmissionInput): UploadAdmis
   const workspaceKey = `${input.surface}:${input.workspaceId}`;
   const actorActive = activeByActor.get(actorKey) ?? 0;
   if (actorActive >= MAX_ACTIVE_PER_ACTOR) {
+    reportUploadAdmissionRejected({
+      surface: input.surface,
+      workspaceId: input.workspaceId,
+      quotaClass: "active_actor",
+      retryAfterSeconds: ACTIVE_RETRY_AFTER_SECONDS,
+    });
     return {
       allowed: false,
       message: "Too many uploads are already running. Wait for one to finish and try again.",
@@ -82,6 +89,12 @@ export function reserveUploadAdmission(input: UploadAdmissionInput): UploadAdmis
 
   const workspaceActive = activeByWorkspace.get(workspaceKey) ?? 0;
   if (workspaceActive >= MAX_ACTIVE_PER_WORKSPACE) {
+    reportUploadAdmissionRejected({
+      surface: input.surface,
+      workspaceId: input.workspaceId,
+      quotaClass: "active_workspace",
+      retryAfterSeconds: ACTIVE_RETRY_AFTER_SECONDS,
+    });
     return {
       allowed: false,
       message: "Upload capacity is busy for this workspace. Wait for an upload to finish and try again.",
@@ -91,11 +104,27 @@ export function reserveUploadAdmission(input: UploadAdmissionInput): UploadAdmis
 
   const now = Date.now();
   const actorRateLimit = checkRequestWindow(`${actorKey}:actor`, now);
-  if (actorRateLimit) return actorRateLimit;
+  if (actorRateLimit) {
+    reportUploadAdmissionRejected({
+      surface: input.surface,
+      workspaceId: input.workspaceId,
+      quotaClass: "request_rate_actor",
+      retryAfterSeconds: actorRateLimit.retryAfter,
+    });
+    return actorRateLimit;
+  }
 
   const ip = getClientIp(input.request.headers as Headers);
   const clientRateLimit = checkRequestWindow(`${actorKey}:client:${ip}`, now);
-  if (clientRateLimit) return clientRateLimit;
+  if (clientRateLimit) {
+    reportUploadAdmissionRejected({
+      surface: input.surface,
+      workspaceId: input.workspaceId,
+      quotaClass: "request_rate_client",
+      retryAfterSeconds: clientRateLimit.retryAfter,
+    });
+    return clientRateLimit;
+  }
 
   let released = false;
   increment(activeByActor, actorKey);

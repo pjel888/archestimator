@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
@@ -10,6 +10,7 @@ import {
   deleteEstimateRowItem,
   deleteEstimateRowItemsBulk,
   detachEstimateRowItemFromLibrary,
+  fetchEstimateTabTree,
   fetchEstimateTree,
   insertEstimateRowItemFromLibrary,
   moveEstimateRowComponentWithHistory,
@@ -25,7 +26,7 @@ import {
   type RestoreDeletedEstimateRowsResult,
   type UpdateEstimateRowItemResult,
 } from "@/lib/estimates/actions";
-import { applyEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
+import { reconcileEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import { estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
@@ -41,7 +42,32 @@ export type EstimateRowMutationError = {
   retryable: boolean;
 };
 
+export type EstimateRowMutationStatus = {
+  phase: "pending" | "failed";
+  label: string;
+  mutationId?: string;
+  message?: string;
+  startedAt: number;
+};
+
+export type EstimateRowMutationStatusMap = Record<string, EstimateRowMutationStatus>;
+
 const ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE = "This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.";
+const ESTIMATE_ROW_OFFLINE_MESSAGE = "You appear to be offline. Row change kept locally; reconnect and try again.";
+const ROW_MUTATION_NETWORK_MODE = "always" as const;
+
+function isBrowserOffline() {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return true;
+  }
+  return false;
+}
+
+function assertBrowserOnline() {
+  if (isBrowserOffline()) {
+    throw new Error(ESTIMATE_ROW_OFFLINE_MESSAGE);
+  }
+}
 
 function readMutationErrorCode(error: Error) {
   const code = (error as Error & { code?: unknown }).code;
@@ -51,6 +77,10 @@ function readMutationErrorCode(error: Error) {
 
 function isRowRevisionConflictError(error: Error) {
   return readMutationErrorCode(error) === ESTIMATE_ROW_REVISION_CONFLICT_CODE;
+}
+
+function isEstimateRowOfflineError(error: Error) {
+  return error.message === ESTIMATE_ROW_OFFLINE_MESSAGE || /offline/i.test(error.message);
 }
 
 function toEstimateRowMutationError(error: Error, input?: { rowId?: string }): EstimateRowMutationError {
@@ -181,17 +211,15 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   onError?: (error: Error) => void;
 };
 
-type RollbackInput = {
-  estimateId: string;
-  rowId: string;
-  rollback?: () => void;
-  onSuccess?: (result?: unknown) => void;
-  onError?: (error: Error) => void;
+type UpdateMutationContext = {
+  operationIds: Record<string, number>;
+  rowIds: string[];
+  previousPatch?: EstimateRowItemPatch;
 };
 
-type UpdateMutationContext = {
-  operationId: number;
-  previousPatch?: EstimateRowItemPatch;
+type ScopedMutationContext = {
+  operationIds: Record<string, number>;
+  rowIds: string[];
 };
 
 function readSnapshotRecord(value: Json | null | undefined): Record<string, unknown> {
@@ -341,6 +369,14 @@ function withoutClientCallbacks<T extends { onError?: unknown; onSuccess?: unkno
   return next;
 }
 
+function runEstimateRowServerAction<T>(action: () => Promise<T>) {
+  return new Promise<T>((resolve, reject) => {
+    startTransition(() => {
+      void action().then(resolve, reject);
+    });
+  });
+}
+
 export function useEstimateRowMutations(
   estimateId?: string,
   estimateTabId?: string,
@@ -353,40 +389,97 @@ export function useEstimateRowMutations(
   const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
   const rowOperationIdsRef = useRef<Record<string, number>>({});
   const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
+  const [rowMutationStatuses, setRowMutationStatuses] = useState<EstimateRowMutationStatusMap>({});
+  const rowMutationStatusesRef = useRef(rowMutationStatuses);
+  useEffect(() => {
+    rowMutationStatusesRef.current = rowMutationStatuses;
+  }, [rowMutationStatuses]);
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
   const treeQueryKey = estimateId ? (estimateTabId ? estimateQueryKeys.tabTree(estimateId, estimateTabId) : estimateQueryKeys.areaTree(estimateId)) : undefined;
   const invalidateTreeAfterMutationError = useCallback((error: Error) => {
+    const refetchType = isRowRevisionConflictError(error) ? "active" : "none";
     if (!treeQueryKey) return;
     void queryClient.invalidateQueries({
       queryKey: treeQueryKey,
-      refetchType: isRowRevisionConflictError(error) ? "active" : "none",
+      refetchType,
     });
-  }, [queryClient, treeQueryKey]);
+    if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
+  }, [detailQueryKey, queryClient, treeQueryKey]);
 
-  const mutationOptions = useMemo(
-    () => ({
-      onMutate: () => markSaving(),
-      onSuccess: (result: unknown, input: RollbackInput) => {
-        markSaved();
-        input.onSuccess?.(result);
-        void queryClient.invalidateQueries({ queryKey: estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
-        if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
-      },
-      onError: (error: Error, input: RollbackInput) => {
-        input.rollback?.();
-        input.onError?.(error);
-        markFailed(error, input);
-        invalidateTreeAfterMutationError(error);
-      },
-    }),
-    [detailQueryKey, estimateTabId, invalidateTreeAfterMutationError, markFailed, markSaved, markSaving, queryClient],
-  );
+  const beginScopedRowMutation = useCallback((rowIds: readonly string[], label: string, mutationId?: string): ScopedMutationContext => {
+    const uniqueRowIds = [...new Set(rowIds.filter(Boolean))];
+    const operationIds: Record<string, number> = {};
+    uniqueRowIds.forEach((rowId) => {
+      const operationId = (rowOperationIdsRef.current[rowId] ?? 0) + 1;
+      rowOperationIdsRef.current[rowId] = operationId;
+      operationIds[rowId] = operationId;
+    });
+    if (uniqueRowIds.length > 0) {
+      const status: EstimateRowMutationStatus = {
+        phase: "pending",
+        label,
+        mutationId,
+        startedAt: Date.now(),
+      };
+      setRowMutationStatuses((current) => {
+        const next = { ...current };
+        uniqueRowIds.forEach((rowId) => {
+          next[rowId] = status;
+        });
+        return next;
+      });
+    }
+    return { operationIds, rowIds: uniqueRowIds };
+  }, []);
+
+  const isLatestScopedRow = useCallback((rowId: string, context?: ScopedMutationContext) => {
+    if (!context) return true;
+    const operationId = context.operationIds[rowId];
+    return operationId === undefined || rowOperationIdsRef.current[rowId] === operationId;
+  }, []);
+
+  const finishScopedRowMutation = useCallback((context: ScopedMutationContext | undefined, error?: Error) => {
+    if (!context || context.rowIds.length === 0) return;
+    const nextError = error ? toEstimateRowMutationError(error) : null;
+    setRowMutationStatuses((current) => {
+      let didChange = false;
+      const next = { ...current };
+      context.rowIds.forEach((rowId) => {
+        if (!isLatestScopedRow(rowId, context)) return;
+        if (nextError) {
+          next[rowId] = {
+            phase: "failed",
+            label: nextError.message,
+            message: nextError.message,
+            mutationId: current[rowId]?.mutationId,
+            startedAt: current[rowId]?.startedAt ?? Date.now(),
+          };
+        } else if (next[rowId]) {
+          delete next[rowId];
+        }
+        didChange = true;
+      });
+      return didChange ? next : current;
+    });
+  }, [isLatestScopedRow]);
+
+  const hasPendingRowMutation = useCallback((rowIds: readonly string[]) =>
+    rowIds.some((rowId) => Boolean(rowUpdateQueuesRef.current[rowId]) || rowMutationStatusesRef.current[rowId]?.phase === "pending"),
+  []);
 
   const insertMutation = useMutation({
-    mutationFn: (input: InsertEstimateRowInput) => insertEstimateRowItemFromLibrary(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: InsertEstimateRowInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => insertEstimateRowItemFromLibrary(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation([input.rowId], "Creating row", input.mutationId);
+    },
     onSuccess: (result: UpdateEstimateRowItemResult | undefined, input) => {
       markSaved();
+      finishScopedRowMutation({ rowIds: [input.rowId], operationIds: {} });
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       if (result) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
@@ -416,136 +509,248 @@ export function useEstimateRowMutations(
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error, input);
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const replaceMutation = useMutation({
-    mutationFn: (input: ReplaceEstimateRowInput) => replaceEstimateRowItemWithLibrary(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result: UpdateEstimateRowItemResult, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: ReplaceEstimateRowInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => replaceEstimateRowItemWithLibrary(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation([input.rowId], "Replacing component", input.mutationId);
+    },
+    onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
+      markSaved();
+      finishScopedRowMutation(context);
+      if (!isLatestScopedRow(input.rowId, context)) return;
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, estimateRowMutationResultToPatch(result)) : currentTree,
       );
-      markSaved();
       input.onSuccess?.(result);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
+      if (!isLatestScopedRow(input.rowId, context)) {
+        markSaved();
+        return;
+      }
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error, input);
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (input: DeleteEstimateRowInput) => deleteEstimateRowItem(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result: DeleteEstimateRowItemResult, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: DeleteEstimateRowInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => deleteEstimateRowItem(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation([input.rowId], "Deleting row", input.mutationId);
+    },
+    onSuccess: (result: DeleteEstimateRowItemResult, input, context) => {
       markSaved();
+      finishScopedRowMutation(context);
       input.onSuccess?.(result);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error, input);
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const moveMutation = useMutation({
-    mutationFn: (input: MoveEstimateRowsInput) => moveEstimateRowComponentWithHistory(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result: MoveEstimateRowComponentResult, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: MoveEstimateRowsInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => moveEstimateRowComponentWithHistory(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation([input.sourceRowId, input.targetRowId], "Moving component", input.mutationId);
+    },
+    onSuccess: (result: MoveEstimateRowComponentResult, input, context) => {
+      markSaved();
+      finishScopedRowMutation(context);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) => {
         if (!currentTree) return currentTree;
-        const sourcePatchedTree = patchEstimateRowItemInTree(currentTree, result.sourceRow.rowId, estimateRowMutationResultToPatch(result.sourceRow));
-        return patchEstimateRowItemInTree(sourcePatchedTree, result.targetRow.rowId, estimateRowMutationResultToPatch(result.targetRow));
+        let nextTree = currentTree;
+        if (isLatestScopedRow(result.sourceRow.rowId, context)) {
+          nextTree = patchEstimateRowItemInTree(nextTree, result.sourceRow.rowId, estimateRowMutationResultToPatch(result.sourceRow));
+        }
+        if (isLatestScopedRow(result.targetRow.rowId, context)) {
+          nextTree = patchEstimateRowItemInTree(nextTree, result.targetRow.rowId, estimateRowMutationResultToPatch(result.targetRow));
+        }
+        return nextTree;
       });
-      markSaved();
-      input.onSuccess?.(result);
+      if (isLatestScopedRow(input.sourceRowId, context) && isLatestScopedRow(input.targetRowId, context)) input.onSuccess?.(result);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
+      if (!isLatestScopedRow(input.sourceRowId, context) || !isLatestScopedRow(input.targetRowId, context)) {
+        markSaved();
+        return;
+      }
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error);
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const moveRowItemMutation = useMutation({
-    mutationFn: (input: MoveEstimateRowItemInput) => moveEstimateRowItemWithHistory(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result: MoveEstimateRowItemWithHistoryResult, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: MoveEstimateRowItemInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => moveEstimateRowItemWithHistory(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation(input.updates.map((update) => update.rowId), "Moving row", input.mutationId);
+    },
+    onSuccess: async (result: MoveEstimateRowItemWithHistoryResult, input, context) => {
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
-      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-        currentTree ? applyEstimateRowItemMoveResultToTree(currentTree, result.rows) : currentTree,
-      );
-      markSaved();
-      input.onSuccess?.(result);
+      const latestRows = result.rows.filter((row) => isLatestScopedRow(row.rowId, context));
+      const hasStaleRows = latestRows.length !== result.rows.length;
+      let reconciliationStatus: "applied" | "empty-result" | "missing-rows" = latestRows.length === 0 ? "empty-result" : "missing-rows";
+
+      if (latestRows.length > 0) {
+        queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) => {
+          if (!currentTree) return currentTree;
+          const reconciliation = reconcileEstimateRowItemMoveResultToTree(currentTree, latestRows);
+          reconciliationStatus = reconciliation.status;
+          return reconciliation.status === "applied" ? reconciliation.tree : currentTree;
+        });
+      }
+
+      if (hasStaleRows || reconciliationStatus !== "missing-rows") {
+        markSaved();
+        finishScopedRowMutation(context);
+        if (!hasStaleRows) input.onSuccess?.(result);
+        void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+        if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+        return;
+      }
+
+      try {
+        const recoveredTree = estimateTabId
+          ? await fetchEstimateTabTree({ projectId: input.projectId, estimateId: input.estimateId, tabId: estimateTabId })
+          : await fetchEstimateTree({ projectId: input.projectId, estimateId: input.estimateId });
+        queryClient.setQueryData<EstimateTreeNode[]>(queryKey, recoveredTree);
+        markSaved();
+        finishScopedRowMutation(context);
+      } catch (error) {
+        const recoveryError = error instanceof Error
+          ? error
+          : new Error("Row move saved, but the sheet could not refresh. Reload before moving rows again.");
+        finishScopedRowMutation(context, recoveryError);
+        markFailed(recoveryError, { rowId: input.movedRowId });
+        void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
+        if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+        return;
+      }
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
+      if (!isLatestScopedRow(input.movedRowId, context)) {
+        markSaved();
+        return;
+      }
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error, { rowId: input.movedRowId });
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const deleteRowsMutation = useMutation({
-    mutationFn: (input: DeleteEstimateRowsInput) => deleteEstimateRowItemsBulk(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result: DeleteEstimateRowItemsBulkResult, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: DeleteEstimateRowsInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => deleteEstimateRowItemsBulk(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation(input.rowIds, "Deleting rows", input.mutationId);
+    },
+    onSuccess: (result: DeleteEstimateRowItemsBulkResult, input, context) => {
       markSaved();
+      finishScopedRowMutation(context);
       input.onSuccess?.(result);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error);
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const restoreDeletedRowsMutation = useMutation({
-    mutationFn: (input: RestoreDeletedRowsInput) => restoreDeletedEstimateRows(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result: RestoreDeletedEstimateRowsResult, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: RestoreDeletedRowsInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => restoreDeletedEstimateRows(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation(input.rowIds ?? [], "Restoring rows", input.mutationId);
+    },
+    onSuccess: (result: RestoreDeletedEstimateRowsResult, input, context) => {
       markSaved();
+      finishScopedRowMutation(context);
       input.onSuccess?.(result);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error);
       invalidateTreeAfterMutationError(error);
     },
   });
 
   const detachMutation = useMutation({
-    mutationFn: (input: DetachEstimateRowInput) => detachEstimateRowItemFromLibrary(withoutClientCallbacks(input)),
-    onMutate: async (input): Promise<{ previousPatch?: EstimateRowItemPatch }> => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: DetachEstimateRowInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => detachEstimateRowItemFromLibrary(withoutClientCallbacks(input)));
+    },
+    onMutate: async (input): Promise<UpdateMutationContext> => {
       markSaving();
+      const scopedMutation = beginScopedRowMutation([input.rowId], "Making project component", input.mutationId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
@@ -568,14 +773,16 @@ export function useEstimateRowMutations(
           }),
         );
       }
-      return { previousPatch };
+      return { ...scopedMutation, previousPatch };
     },
-    onSuccess: (result: UpdateEstimateRowItemResult, input) => {
+    onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
+      markSaved();
+      finishScopedRowMutation(context);
+      if (!isLatestScopedRow(input.rowId, context)) return;
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toDetachedRowPatch(result)) : currentTree,
       );
-      markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       broadcastRowUpdate?.({
@@ -589,6 +796,10 @@ export function useEstimateRowMutations(
       input.onSuccess?.(result);
     },
     onError: (_error: Error, input, context) => {
+      if (!isLatestScopedRow(input.rowId, context)) {
+        markSaved();
+        return;
+      }
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       if (context?.previousPatch) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
@@ -596,20 +807,32 @@ export function useEstimateRowMutations(
         );
       } else input.rollback?.();
       input.onError?.(_error);
+      finishScopedRowMutation(context, _error);
       markFailed(_error, input);
-      void queryClient.invalidateQueries({ queryKey, refetchType: isRowRevisionConflictError(_error) ? "active" : "none" });
+      const refetchType = isRowRevisionConflictError(_error) ? "active" : "none";
+      void queryClient.invalidateQueries({ queryKey, refetchType });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
     },
   });
 
   const promoteMutation = useMutation({
-    mutationFn: (input: PromoteEstimateRowInput) => promoteEstimateRowToLibraryComponent(withoutClientCallbacks(input)),
-    onMutate: () => markSaving(),
-    onSuccess: (result, input) => {
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: PromoteEstimateRowInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => promoteEstimateRowToLibraryComponent(withoutClientCallbacks(input)));
+    },
+    onMutate: (input): ScopedMutationContext => {
+      markSaving();
+      return beginScopedRowMutation([input.rowId], "Promoting component", input.mutationId);
+    },
+    onSuccess: (result, input, context) => {
+      markSaved();
+      finishScopedRowMutation(context);
+      if (!isLatestScopedRow(input.rowId, context)) return;
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toPromotedRowPatch(result)) : currentTree,
       );
-      markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "active" });
       if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
@@ -623,20 +846,28 @@ export function useEstimateRowMutations(
       }
       input.onSuccess?.(result);
     },
-    onError: (error: Error, input) => {
+    onError: (error: Error, input, context) => {
+      if (!isLatestScopedRow(input.rowId, context)) {
+        markSaved();
+        return;
+      }
       input.rollback?.();
       input.onError?.(error);
+      finishScopedRowMutation(context, error);
       markFailed(error, input);
       if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "active" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (input: UpdateEstimateRowInput) => updateEstimateRowItem(withoutClientCallbacks(input)),
+    networkMode: ROW_MUTATION_NETWORK_MODE,
+    mutationFn: (input: UpdateEstimateRowInput) => {
+      assertBrowserOnline();
+      return runEstimateRowServerAction(() => updateEstimateRowItem(withoutClientCallbacks(input)));
+    },
     onMutate: async (input): Promise<UpdateMutationContext> => {
       markSaving();
-      const operationId = (rowOperationIdsRef.current[input.rowId] ?? 0) + 1;
-      rowOperationIdsRef.current[input.rowId] = operationId;
+      const scopedMutation = beginScopedRowMutation([input.rowId], "Saving row changes", input.mutationId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
@@ -666,30 +897,40 @@ export function useEstimateRowMutations(
           patchEstimateRowItemInTree(previousTree, input.rowId, toOptimisticRowPatch(input)),
         );
       }
-      return { operationId, previousPatch };
+      return { ...scopedMutation, previousPatch };
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
-      if (rowOperationIdsRef.current[input.rowId] !== context.operationId) return;
+      markSaved();
+      finishScopedRowMutation(context);
+      if (!isLatestScopedRow(input.rowId, context)) return;
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toServerRowPatch(result, input)) : currentTree,
       );
-      markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       input.onSuccess?.(result);
     },
     onError: (_error: Error, input, context) => {
-      if (!context || rowOperationIdsRef.current[input.rowId] !== context.operationId) return;
+      if (!context || !isLatestScopedRow(input.rowId, context)) {
+        markSaved();
+        return;
+      }
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
-      if (context.previousPatch) {
+      const offlineError = isEstimateRowOfflineError(_error);
+      // Keep the user's same-session draft visible on offline failure; provider
+      // state remains unchanged until the next retry.
+      if (!offlineError && context.previousPatch) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
           currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
         );
-      } else input.rollback?.();
+      } else if (!offlineError) input.rollback?.();
       input.onError?.(_error);
+      finishScopedRowMutation(context, _error);
       markFailed(_error, input);
-      void queryClient.invalidateQueries({ queryKey, refetchType: isRowRevisionConflictError(_error) ? "active" : "none" });
+      const refetchType = isRowRevisionConflictError(_error) ? "active" : "none";
+      void queryClient.invalidateQueries({ queryKey, refetchType });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
     },
   });
 
@@ -755,6 +996,20 @@ export function useEstimateRowMutations(
   }
 
   function enqueueRowUpdate(input: UpdateEstimateRowInput) {
+    if (isBrowserOffline()) {
+      const normalizedInput = withMutationIdentity(input);
+      markSaving();
+      const context = beginScopedRowMutation([normalizedInput.rowId], "Saving row changes", normalizedInput.mutationId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(normalizedInput.estimateId, estimateTabId) : estimateQueryKeys.areaTree(normalizedInput.estimateId);
+      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+        currentTree ? patchEstimateRowItemInTree(currentTree, normalizedInput.rowId, toOptimisticRowPatch(normalizedInput)) : currentTree,
+      );
+      const offlineError = new Error(ESTIMATE_ROW_OFFLINE_MESSAGE);
+      normalizedInput.onError?.(offlineError);
+      finishScopedRowMutation(context, offlineError);
+      markFailed(offlineError, normalizedInput);
+      return;
+    }
     enqueueRowMutation(input.rowId, () => updateMutation.mutateAsync(withMutationIdentity(input)));
   }
 
@@ -762,6 +1017,8 @@ export function useEstimateRowMutations(
     saveState,
     activeMutationCount,
     rowMutationError,
+    rowMutationStatuses,
+    hasPendingRowMutation,
     clearRowMutationError,
     markRowDirty,
     fetchTree: fetchEstimateTree,

@@ -9,10 +9,13 @@ import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
   finalizeUploadSessionAsset,
+  isUploadSessionCapacityExceededError,
+  readActiveUploadSessionCapacity,
   readUploadSessionForFinalize,
   recordPendingUploadSession,
 } from "@/lib/uploads/direct-upload-records";
 import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
+import { reportUploadAdmissionRejected } from "@/lib/uploads/operational-telemetry";
 import {
   createSupabaseDirectUploadProvider,
   validateProviderObjectHead,
@@ -25,6 +28,10 @@ const COMPONENT_ATTACHMENT_BUCKET = "component-attachments";
 const FINALIZE_ROUTE = "/api/component-library/attachments/direct-upload";
 const MULTIPART_THRESHOLD_BYTES = 64 * 1024 * 1024;
 const SIGNED_SINGLE_PART_MAX_BYTES = MULTIPART_THRESHOLD_BYTES - 1;
+const RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES = 512 * 1024 * 1024;
+const DIRECT_UPLOAD_SESSION_EXPIRES_SECONDS = 300;
+const MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_ACTOR = 3;
+const MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_WORKSPACE = 6;
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "application/vnd.ms-excel",
@@ -87,8 +94,88 @@ function readSizeBytes(value: unknown) {
   return sizeBytes;
 }
 
+function uploadModeFromSessionMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "signed_single_part";
+  const uploadMode = (metadata as { uploadMode?: unknown }).uploadMode;
+  return uploadMode === "tus_resumable" ? "tus_resumable" : "signed_single_part";
+}
+
 async function readJsonBody(request: Request) {
   return request.json().catch(() => null) as Promise<Record<string, unknown> | null>;
+}
+
+function directUploadCapacityMessage(quotaClass: "active_actor" | "active_workspace") {
+  if (quotaClass === "active_actor") {
+    return "Too many attachment upload sessions are already reserved. Finish or retry after one expires.";
+  }
+  return "Attachment upload capacity is busy for this workspace. Wait for an upload session to finish or expire.";
+}
+
+function directUploadCapacityResponse(input: {
+  workspaceId: string;
+  quotaClass: "active_actor" | "active_workspace";
+  retryAfterSeconds: number;
+}) {
+  reportUploadAdmissionRejected({
+    surface: "component-attachment",
+    workspaceId: input.workspaceId,
+    quotaClass: input.quotaClass,
+    retryAfterSeconds: input.retryAfterSeconds,
+  });
+  return jsonError(directUploadCapacityMessage(input.quotaClass), 429, {
+    "Retry-After": String(input.retryAfterSeconds),
+  });
+}
+
+async function checkDurableDirectUploadCapacity(client: unknown, input: { workspaceId: string; userId: string }) {
+  const capacity = await readActiveUploadSessionCapacity(client, {
+    workspaceId: input.workspaceId,
+    actorUserId: input.userId,
+    surface: "component-attachment",
+  });
+
+  if (capacity.actorCount >= MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_ACTOR) {
+    return {
+      allowed: false,
+      response: directUploadCapacityResponse({
+        workspaceId: input.workspaceId,
+        quotaClass: "active_actor",
+        retryAfterSeconds: capacity.actorRetryAfterSeconds,
+      }),
+    } as const;
+  }
+
+  if (capacity.workspaceCount >= MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_WORKSPACE) {
+    return {
+      allowed: false,
+      response: directUploadCapacityResponse({
+        workspaceId: input.workspaceId,
+        quotaClass: "active_workspace",
+        retryAfterSeconds: capacity.workspaceRetryAfterSeconds,
+      }),
+    } as const;
+  }
+
+  return { allowed: true } as const;
+}
+
+async function recordPendingDirectUploadSession(
+  client: unknown,
+  input: Parameters<typeof recordPendingUploadSession>[1],
+) {
+  try {
+    return { ok: true, session: await recordPendingUploadSession(client, input) } as const;
+  } catch (error) {
+    if (!isUploadSessionCapacityExceededError(error)) throw error;
+    return {
+      ok: false,
+      response: directUploadCapacityResponse({
+        workspaceId: input.workspaceId,
+        quotaClass: error.quotaClass,
+        retryAfterSeconds: DIRECT_UPLOAD_SESSION_EXPIRES_SECONDS,
+      }),
+    } as const;
+  }
 }
 
 async function createSignedUpload(
@@ -121,9 +208,6 @@ async function createSignedUpload(
     if (strategy.kind === "server_mediated") {
       return jsonError("Use the standard attachment upload for files up to 20 MB.", 409);
     }
-    if (strategy.kind === "multipart_resumable") {
-      return jsonError("Resumable attachment uploads are not implemented yet.", 501);
-    }
     if (strategy.kind === "rejected") {
       return jsonError("Attachment upload is too large or missing required size information.", 413);
     }
@@ -140,6 +224,69 @@ async function createSignedUpload(
     });
     const supabase = await createStorageSupabaseClient();
     const provider = createSupabaseDirectUploadProvider(supabase);
+    const durableCapacity = await checkDurableDirectUploadCapacity(supabase, { workspaceId, userId });
+    if (!durableCapacity.allowed) {
+      return durableCapacity.response;
+    }
+
+    if (strategy.kind === "multipart_resumable") {
+      if (!provider.createTusResumableUploadSession) {
+        return jsonError("Resumable attachment uploads are not supported by this storage provider.", 501);
+      }
+
+      const tusSession = await provider.createTusResumableUploadSession({
+        bucket: COMPONENT_ATTACHMENT_BUCKET,
+        path,
+        contentType,
+        sizeBytes,
+        maxBytes: RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES,
+        checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
+        expiresInSeconds: DIRECT_UPLOAD_SESSION_EXPIRES_SECONDS,
+      });
+      const pendingSessionResult = await recordPendingDirectUploadSession(supabase, {
+        workspaceId,
+        actorUserId: userId,
+        surface: "component-attachment",
+        targetEntityType: "component-library",
+        targetEntityId: null,
+        bucket: COMPONENT_ATTACHMENT_BUCKET,
+        path,
+        fileName,
+        contentType,
+        sizeBytes,
+        checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
+        expiresAt: tusSession.expiresAt,
+        metadata: {
+          provider: "supabase-storage",
+          uploadMode: "tus_resumable",
+          route: "component-attachment-direct-upload",
+          chunkSizeBytes: tusSession.chunkSizeBytes,
+        },
+      });
+      if (!pendingSessionResult.ok) return pendingSessionResult.response;
+      const pendingSession = pendingSessionResult.session;
+
+      return NextResponse.json({
+        provider: "supabase-storage",
+        uploadMode: "tus_resumable",
+        uploadSessionId: pendingSession.uploadSessionId,
+        bucket: COMPONENT_ATTACHMENT_BUCKET,
+        path,
+        fileName,
+        contentType,
+        sizeBytes,
+        checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
+        endpoint: tusSession.endpoint,
+        uploadToken: tusSession.uploadToken,
+        uploadMetadata: tusSession.uploadMetadata,
+        chunkSizeBytes: tusSession.chunkSizeBytes,
+        expiresAt: pendingSession.expiresAt,
+        requiresFinalizeRpc: true,
+        finalizeUrl: FINALIZE_ROUTE,
+        scanStatus: "pending",
+      });
+    }
+
     const signedSession = await provider.createSignedUploadSession({
       bucket: COMPONENT_ATTACHMENT_BUCKET,
       path,
@@ -149,7 +296,7 @@ async function createSignedUpload(
       checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
       expiresInSeconds: strategy.expiresInSeconds,
     });
-    const pendingSession = await recordPendingUploadSession(supabase, {
+    const pendingSessionResult = await recordPendingDirectUploadSession(supabase, {
       workspaceId,
       actorUserId: userId,
       surface: "component-attachment",
@@ -168,6 +315,8 @@ async function createSignedUpload(
         route: "component-attachment-direct-upload",
       },
     });
+    if (!pendingSessionResult.ok) return pendingSessionResult.response;
+    const pendingSession = pendingSessionResult.session;
 
     return NextResponse.json({
       provider: "supabase-storage",
@@ -236,12 +385,13 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
   const provider = createSupabaseDirectUploadProvider(supabase);
   const head = await provider.headObject({ bucket: session.storage_bucket, path: session.storage_path }).catch(() => null);
   if (!head) return jsonError("Uploaded object could not be finalized.", 409);
+  const uploadMode = uploadModeFromSessionMetadata(session.metadata);
   const validation = validateProviderObjectHead({
     bucket: session.storage_bucket,
     path: session.storage_path,
     contentType: session.content_type,
     sizeBytes: session.size_bytes,
-    maxBytes: SIGNED_SINGLE_PART_MAX_BYTES,
+    maxBytes: uploadMode === "tus_resumable" ? RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES : SIGNED_SINGLE_PART_MAX_BYTES,
     checksumSha256: session.checksum_sha256,
   }, head);
   if (!validation.ok) return jsonError("Uploaded object could not be finalized.", 409);
@@ -257,7 +407,7 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
     scanStatus: "pending",
     metadata: {
       provider: "supabase-storage",
-      uploadMode: "signed_single_part",
+      uploadMode,
       providerFinalizeProof: validation.proof,
     },
   });

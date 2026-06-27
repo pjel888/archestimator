@@ -18,6 +18,7 @@ export const runtime = "nodejs";
 const PROJECT_IMAGE_BUCKET = "project-images";
 const PROJECT_IMAGE_ROUTE = "/api/projects/images";
 const PROJECT_IMAGE_PATH_SEGMENT = "project-images";
+const ESTIMATE_ROW_IMAGE_PATH_SEGMENT = "estimate-row-images";
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 24_000_000;
 const MAX_IMAGE_EDGE = 1600;
@@ -123,7 +124,13 @@ function parseProjectImageStoragePath(path: string) {
   if (!isUuid(workspaceId) || !isUuid(ownerUserId) || !isUuid(projectId)) return null;
   if (segments.some((segment) => segment.length === 0)) return null;
 
-  return { workspaceId, ownerUserId, projectId, path: normalized };
+  if (segments[4] !== ESTIMATE_ROW_IMAGE_PATH_SEGMENT) {
+    return { workspaceId, ownerUserId, projectId, estimateId: null, path: normalized };
+  }
+
+  const estimateId = segments[5];
+  if (segments.length < 7 || !estimateId || !isUuid(estimateId)) return null;
+  return { workspaceId, ownerUserId, projectId, estimateId, path: normalized };
 }
 
 async function createStorageSupabaseClient() {
@@ -175,6 +182,28 @@ async function canEditProject(projectId: string, supabase: Awaited<ReturnType<ty
   return data === true;
 }
 
+async function canAccessProject(projectId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  const { data, error } = await supabase.rpc("can_access_project", {
+    target_project_id: projectId,
+  });
+  if (error) {
+    console.error("Project image access check failed", error);
+    return false;
+  }
+  return data === true;
+}
+
+async function canAccessEstimate(estimateId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  const { data, error } = await supabase.rpc("can_access_estimate", {
+    target_estimate_id: estimateId,
+  });
+  if (error) {
+    console.error("Project image estimate access check failed", error);
+    return false;
+  }
+  return data === true;
+}
+
 function isOwnedUploadPath(path: string, workspaceId: string, userId: string) {
   const parsed = parseProjectImageStoragePath(path);
   return Boolean(parsed && parsed.workspaceId === workspaceId && parsed.ownerUserId === userId);
@@ -207,6 +236,25 @@ export async function GET(request: Request) {
   if (projectError) throw projectError;
   if (!project || project.workspace_id !== parsedPath.workspaceId) {
     return privateImageNotFound();
+  }
+
+  if (parsedPath.estimateId) {
+    const { data: estimate, error: estimateError } = await serverSupabase
+      .from("estimates")
+      .select("id")
+      .eq("id", parsedPath.estimateId)
+      .eq("project_id", parsedPath.projectId)
+      .maybeSingle();
+
+    if (estimateError) throw estimateError;
+    if (!estimate) return privateImageNotFound();
+  }
+
+  const hasProjectAccess = await canAccessProject(parsedPath.projectId, serverSupabase);
+  if (!hasProjectAccess) {
+    if (!parsedPath.estimateId) return privateImageNotFound();
+    const hasEstimateAccess = await canAccessEstimate(parsedPath.estimateId, serverSupabase);
+    if (!hasEstimateAccess) return privateImageNotFound();
   }
 
   const storageSupabase = await createStorageSupabaseClient();
@@ -362,10 +410,9 @@ export async function DELETE(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const body = await request.json().catch(() => null);
   const parsedPaths = readStoragePaths(body)
+    .filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId))
     .map(parseProjectImageStoragePath)
-    .filter((parsed): parsed is NonNullable<ReturnType<typeof parseProjectImageStoragePath>> => (
-      Boolean(parsed && parsed.workspaceId === workspace.id && parsed.ownerUserId === currentUser.userId)
-    ));
+    .filter((parsed): parsed is NonNullable<ReturnType<typeof parseProjectImageStoragePath>> => Boolean(parsed));
   const paths = parsedPaths.map((parsed) => parsed.path);
   if (paths.length === 0) return jsonError("No removable image paths were provided.");
 

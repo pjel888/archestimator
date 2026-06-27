@@ -25,6 +25,17 @@ export type SignedSinglePartUploadSession = {
   constraints: DirectUploadObjectConstraints;
 };
 
+export type TusResumableUploadSession = {
+  kind: "tus_resumable";
+  endpoint: string;
+  uploadToken: string;
+  uploadMetadata: string;
+  chunkSizeBytes: number;
+  expiresAt: string;
+  requiresFinalizeRpc: true;
+  constraints: DirectUploadObjectConstraints;
+};
+
 export type MultipartUploadSession = {
   kind: "multipart_resumable";
   uploadId: string;
@@ -55,6 +66,10 @@ export type DirectUploadProvider = {
   createSignedUploadSession: (input: DirectUploadObjectConstraints & {
     expiresInSeconds: number;
   }) => Promise<SignedSinglePartUploadSession>;
+  createTusResumableUploadSession?: (input: DirectUploadObjectConstraints & {
+    expiresInSeconds: number;
+    cacheControlSeconds?: number;
+  }) => Promise<TusResumableUploadSession>;
   createMultipartUploadSession: (input: DirectUploadObjectConstraints & {
     partSizeBytes: number;
     maxParts: number;
@@ -102,6 +117,10 @@ type SupabaseSignedUploadClient = {
     };
   };
 };
+
+export const SUPABASE_TUS_CHUNK_SIZE_BYTES = 6 * 1024 * 1024;
+
+const SUPABASE_TUS_RESUMABLE_SIGN_PATH = "/storage/v1/upload/resumable/sign";
 
 export type ProviderFinalizeValidation =
   | { ok: true; proof: "checksum" | "etag" }
@@ -203,6 +222,33 @@ function signedUploadExpiresAt(expiresInSeconds: number) {
   return new Date(Date.now() + expiresInSeconds * 1000).toISOString();
 }
 
+function projectRefFromSupabaseHost(hostname: string) {
+  if (hostname.endsWith(".storage.supabase.co")) return hostname.slice(0, -".storage.supabase.co".length);
+  if (hostname.endsWith(".supabase.co")) return hostname.slice(0, -".supabase.co".length);
+  return "";
+}
+
+export function buildSupabaseTusResumableSignEndpoint(sourceUrl: string) {
+  const url = new URL(sourceUrl);
+  const projectRef = projectRefFromSupabaseHost(url.hostname);
+  if (!projectRef) throw new Error("Supabase TUS endpoint requires a Supabase project URL.");
+  return `https://${projectRef}.storage.supabase.co${SUPABASE_TUS_RESUMABLE_SIGN_PATH}`;
+}
+
+function encodeTusMetadataValue(value: string) {
+  return Buffer.from(value, "utf8").toString("base64");
+}
+
+export function encodeTusUploadMetadata(metadata: Record<string, string>) {
+  return Object.entries(metadata)
+    .filter(([, value]) => value.trim().length > 0)
+    .map(([key, value]) => {
+      if (!/^[A-Za-z0-9_-]+$/.test(key)) throw new Error(`Unsafe TUS metadata key: ${key}`);
+      return `${key} ${encodeTusMetadataValue(value)}`;
+    })
+    .join(",");
+}
+
 function sizeFromSupabaseInfo(data: Awaited<ReturnType<ReturnType<SupabaseSignedUploadClient["storage"]["from"]>["info"]>>["data"]) {
   return data?.size ?? data?.metadata?.size ?? data?.metadata?.contentLength ?? data?.metadata?.content_length ?? 0;
 }
@@ -226,6 +272,36 @@ export function createSupabaseDirectUploadProvider(supabase: SupabaseSignedUploa
         kind: "signed_single_part",
         uploadUrl: data.signedUrl,
         method: "PUT",
+        expiresAt: signedUploadExpiresAt(input.expiresInSeconds),
+        requiresFinalizeRpc: true,
+        constraints: {
+          bucket: input.bucket,
+          path: input.path,
+          contentType: input.contentType,
+          sizeBytes: input.sizeBytes,
+          maxBytes: input.maxBytes,
+          checksumSha256: input.checksumSha256 ?? null,
+        },
+      };
+    },
+    async createTusResumableUploadSession(input) {
+      assertDirectUploadConstraints(input);
+      const { data, error } = await supabase.storage.from(input.bucket).createSignedUploadUrl(input.path, { upsert: false });
+      if (error || !data?.signedUrl || !data.token) {
+        throw new Error(error?.message ?? "Supabase resumable signed upload token creation failed.");
+      }
+
+      return {
+        kind: "tus_resumable",
+        endpoint: buildSupabaseTusResumableSignEndpoint(data.signedUrl),
+        uploadToken: data.token,
+        uploadMetadata: encodeTusUploadMetadata({
+          bucketName: input.bucket,
+          objectName: input.path,
+          contentType: input.contentType,
+          cacheControl: String(input.cacheControlSeconds ?? 3600),
+        }),
+        chunkSizeBytes: SUPABASE_TUS_CHUNK_SIZE_BYTES,
         expiresAt: signedUploadExpiresAt(input.expiresInSeconds),
         requiresFinalizeRpc: true,
         constraints: {

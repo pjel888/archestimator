@@ -4353,6 +4353,18 @@ export type Database = {
         Args: { target_correlation_id: string; target_estimate_id: string }
         Returns: Json
       }
+      update_estimate_sheet_adjustment_with_history: {
+        Args: {
+          acting_user_id?: string | null
+          adjustment_mode: string
+          adjustment_percentage: number
+          correlation_id?: string
+          expected_row_revision?: number | null
+          target_estimate_id: string
+          target_project_id: string
+        }
+        Returns: Json
+      }
       estimate_sheet_snapshot: {
         Args: { target_estimate_id: string }
         Returns: Json

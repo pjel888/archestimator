@@ -20,23 +20,38 @@ type SignedUploadCreateResponse = UploadedComponentAttachment & {
   requiresFinalizeRpc?: boolean;
 };
 
+type TusResumableCreateResponse = UploadedComponentAttachment & {
+  provider: string;
+  uploadMode: "tus_resumable";
+  uploadSessionId: string;
+  endpoint: string;
+  uploadToken: string;
+  uploadMetadata: string;
+  chunkSizeBytes: number;
+  finalizeUrl?: string;
+  expiresAt?: string;
+  requiresFinalizeRpc?: boolean;
+};
+
 type UploadComponentAttachmentOptions = {
   fetchImpl?: typeof fetch;
   serverMediatedMaxBytes?: number;
   signedDirectMaxBytes?: number;
+  resumableMaxBytes?: number;
 };
 
 type AttachmentValidationResult =
-  | { ok: true; contentType: string; uploadMode: "server_mediated" | "signed_single_part" }
+  | { ok: true; contentType: string; uploadMode: "server_mediated" | "signed_single_part" | "tus_resumable" }
   | { ok: false; message: string };
 
 export const COMPONENT_ATTACHMENT_UPLOAD_ROUTE = "/api/component-library/attachments";
 export const COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE = "/api/component-library/attachments/direct-upload";
 export const SERVER_MEDIATED_COMPONENT_ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024;
 export const SIGNED_DIRECT_COMPONENT_ATTACHMENT_MAX_BYTES = 64 * 1024 * 1024 - 1;
+export const RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES = 512 * 1024 * 1024;
 
 const ATTACHMENT_TYPE_ERROR = "Use a PDF, XLS, or XLSX file.";
-const ATTACHMENT_SIZE_ERROR = "Choose an attachment under 64 MB.";
+const ATTACHMENT_SIZE_ERROR = "Choose an attachment no larger than 512 MB.";
 const ALLOWED_ATTACHMENT_EXTENSION_PATTERN = /\.(pdf|xls|xlsx)$/i;
 const CONTENT_TYPE_BY_EXTENSION = new Map([
   ["pdf", "application/pdf"],
@@ -50,6 +65,7 @@ function getAttachmentThresholds(options: UploadComponentAttachmentOptions = {})
   return {
     serverMediatedMaxBytes: options.serverMediatedMaxBytes ?? SERVER_MEDIATED_COMPONENT_ATTACHMENT_MAX_BYTES,
     signedDirectMaxBytes: options.signedDirectMaxBytes ?? SIGNED_DIRECT_COMPONENT_ATTACHMENT_MAX_BYTES,
+    resumableMaxBytes: options.resumableMaxBytes ?? RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES,
   };
 }
 
@@ -98,6 +114,29 @@ function asSignedUploadCreateResponse(value: unknown): SignedUploadCreateRespons
   return result as SignedUploadCreateResponse;
 }
 
+function asTusResumableCreateResponse(value: unknown): TusResumableCreateResponse {
+  const result = asUploadedComponentAttachment(value);
+  if (!isRecord(value)) throw new Error("Resumable upload session response was incomplete.");
+  const uploadSessionId = typeof value.uploadSessionId === "string" ? value.uploadSessionId : "";
+  const endpoint = typeof value.endpoint === "string" ? value.endpoint : "";
+  const uploadToken = typeof value.uploadToken === "string" ? value.uploadToken : "";
+  const uploadMetadata = typeof value.uploadMetadata === "string" ? value.uploadMetadata : "";
+  const uploadMode = typeof value.uploadMode === "string" ? value.uploadMode : "";
+  const chunkSizeBytes = typeof value.chunkSizeBytes === "number" ? value.chunkSizeBytes : Number.NaN;
+  if (
+    !uploadSessionId
+    || !endpoint
+    || !uploadToken
+    || !uploadMetadata
+    || uploadMode !== "tus_resumable"
+    || !Number.isSafeInteger(chunkSizeBytes)
+    || chunkSizeBytes <= 0
+  ) {
+    throw new Error("Resumable upload session response was incomplete.");
+  }
+  return result as TusResumableCreateResponse;
+}
+
 export function hasAllowedComponentAttachmentExtension(name: string) {
   return ALLOWED_ATTACHMENT_EXTENSION_PATTERN.test(name);
 }
@@ -115,13 +154,17 @@ export function validateComponentAttachmentFile(
   const contentType = resolveComponentAttachmentContentType(file);
   if (!contentType) return { ok: false, message: ATTACHMENT_TYPE_ERROR };
 
-  const { serverMediatedMaxBytes, signedDirectMaxBytes } = getAttachmentThresholds(options);
-  if (file.size > signedDirectMaxBytes) return { ok: false, message: ATTACHMENT_SIZE_ERROR };
+  const { serverMediatedMaxBytes, signedDirectMaxBytes, resumableMaxBytes } = getAttachmentThresholds(options);
+  if (file.size > resumableMaxBytes) return { ok: false, message: ATTACHMENT_SIZE_ERROR };
 
   return {
     ok: true,
     contentType,
-    uploadMode: file.size <= serverMediatedMaxBytes ? "server_mediated" : "signed_single_part",
+    uploadMode: file.size <= serverMediatedMaxBytes
+      ? "server_mediated"
+      : file.size <= signedDirectMaxBytes
+        ? "signed_single_part"
+        : "tus_resumable",
   };
 }
 
@@ -139,6 +182,26 @@ async function uploadServerMediatedAttachment(
     throw new Error(await readErrorMessage(response, "Could not upload attachment."));
   }
   return asUploadedComponentAttachment(await readJsonRecord(response));
+}
+
+async function finalizeDirectUploadAttachment(
+  fetchImpl: typeof fetch,
+  uploadSessionId: string,
+  finalizeUrl?: string,
+): Promise<UploadedComponentAttachment> {
+  const finalizeResponse = await fetchImpl(finalizeUrl ?? COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "finalize",
+      uploadSessionId,
+    }),
+  });
+  if (!finalizeResponse.ok) {
+    throw new Error(await readErrorMessage(finalizeResponse, "Could not finalize attachment upload."));
+  }
+
+  return asUploadedComponentAttachment(await readJsonRecord(finalizeResponse));
 }
 
 async function uploadSignedDirectAttachment(
@@ -170,19 +233,76 @@ async function uploadSignedDirectAttachment(
     throw new Error("Could not upload attachment to storage.");
   }
 
-  const finalizeResponse = await fetchImpl(createResult.finalizeUrl ?? COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE, {
+  return finalizeDirectUploadAttachment(fetchImpl, createResult.uploadSessionId, createResult.finalizeUrl);
+}
+
+function resolveTusUploadLocation(endpoint: string, location: string) {
+  const trimmed = location.trim();
+  if (!trimmed) throw new Error("Resumable upload did not return an upload location.");
+  return new URL(trimmed, endpoint).toString();
+}
+
+async function uploadTusResumableAttachment(
+  file: File,
+  fetchImpl: typeof fetch,
+  contentType: string,
+): Promise<UploadedComponentAttachment> {
+  const createResponse = await fetchImpl(COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      action: "finalize",
-      uploadSessionId: createResult.uploadSessionId,
+      action: "create",
+      fileName: file.name,
+      contentType,
+      sizeBytes: file.size,
     }),
   });
-  if (!finalizeResponse.ok) {
-    throw new Error(await readErrorMessage(finalizeResponse, "Could not finalize attachment upload."));
+  if (!createResponse.ok) {
+    throw new Error(await readErrorMessage(createResponse, "Could not create attachment upload session."));
   }
 
-  return asUploadedComponentAttachment(await readJsonRecord(finalizeResponse));
+  const createResult = asTusResumableCreateResponse(await readJsonRecord(createResponse));
+  const firstChunkEnd = Math.min(createResult.chunkSizeBytes, file.size);
+  const tusCreateResponse = await fetchImpl(createResult.endpoint, {
+    method: "POST",
+    headers: {
+      "Tus-Resumable": "1.0.0",
+      "Upload-Length": String(file.size),
+      "Upload-Metadata": createResult.uploadMetadata,
+      "Content-Type": "application/offset+octet-stream",
+      "x-signature": createResult.uploadToken,
+      "x-upsert": "false",
+    },
+    body: file.slice(0, firstChunkEnd),
+  });
+  if (!tusCreateResponse.ok) {
+    throw new Error("Could not create resumable storage upload.");
+  }
+
+  const location = resolveTusUploadLocation(createResult.endpoint, tusCreateResponse.headers.get("Location") ?? "");
+  const initialOffset = Number(tusCreateResponse.headers.get("Upload-Offset") ?? firstChunkEnd);
+  let offset = Number.isSafeInteger(initialOffset) && initialOffset > 0 ? initialOffset : firstChunkEnd;
+  while (offset < file.size) {
+    const end = Math.min(offset + createResult.chunkSizeBytes, file.size);
+    const chunkResponse = await fetchImpl(location, {
+      method: "PATCH",
+      headers: {
+        "Tus-Resumable": "1.0.0",
+        "Upload-Offset": String(offset),
+        "Content-Type": "application/offset+octet-stream",
+        "x-signature": createResult.uploadToken,
+      },
+      body: file.slice(offset, end),
+    });
+    if (!chunkResponse.ok) {
+      throw new Error("Could not upload resumable attachment chunk.");
+    }
+
+    const nextOffset = Number(chunkResponse.headers.get("Upload-Offset") ?? end);
+    offset = Number.isSafeInteger(nextOffset) && nextOffset > offset ? nextOffset : end;
+  }
+
+  return finalizeDirectUploadAttachment(fetchImpl, createResult.uploadSessionId, createResult.finalizeUrl);
 }
 
 export async function uploadComponentAttachment(
@@ -195,6 +315,9 @@ export async function uploadComponentAttachment(
   const fetchImpl = options.fetchImpl ?? fetch;
   if (validation.uploadMode === "server_mediated") {
     return uploadServerMediatedAttachment(file, fetchImpl);
+  }
+  if (validation.uploadMode === "tus_resumable") {
+    return uploadTusResumableAttachment(file, fetchImpl, validation.contentType);
   }
 
   return uploadSignedDirectAttachment(file, fetchImpl, validation.contentType);
