@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
+import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import {
   classifyUploadImageReference,
+  collectPublicationSnapshotImageReferences,
   summarizeUploadComponentImageBackfillReadiness,
   type UploadImageReferenceRecord,
 } from "@/lib/uploads/component-image-backfill";
@@ -142,6 +147,143 @@ describe("component image backfill readiness", () => {
       missing: 1,
       hasLegacyPublicReferences: true,
       hasManualReviewReferences: true,
+    });
+  });
+
+  it("exercises non-empty publication snapshot component-image migration classification", () => {
+    const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+
+    try {
+      const legacyPublicUrl = "https://example.supabase.co/storage/v1/object/public/component-images/workspace-1/user-1/component-legacy.webp";
+      const snapshot = buildProjectPublicationSnapshot({
+        generatedAt: "2026-06-27T01:50:00.000Z",
+        project: {
+          id: "project-1",
+          name: "Publication Image Proof",
+          projectCode: "PIP-001",
+          clientName: "Client Family",
+          location: "Quezon City",
+          currencyCode: "PHP",
+        },
+        estimates: [
+          {
+            id: "estimate-1",
+            name: "Main Estimate",
+            sheetCode: "ES-001",
+            updatedAt: "2026-06-27T01:50:00.000Z",
+            rows: [
+              {
+                id: "legacy-public-component",
+                description: "Legacy public component image row",
+                designation: "PUB-01",
+                discipline: "Joinery",
+                material: "Cabinet",
+                quantity: 1,
+                unit: "pc",
+                unitCost: 1,
+                miscCost: 0,
+                contingencyPercentage: 0,
+                imageUrl: legacyPublicUrl,
+              },
+              {
+                id: "local-thumbnail",
+                description: "Local publication thumbnail row",
+                designation: "PUB-02",
+                discipline: "Joinery",
+                material: "Handle",
+                quantity: 1,
+                unit: "pc",
+                unitCost: 1,
+                miscCost: 0,
+                contingencyPercentage: 0,
+                imageUrl: "/component-thumbnails/cabinet.webp",
+              },
+            ],
+          },
+        ],
+      });
+
+      const references = collectPublicationSnapshotImageReferences(snapshot);
+      const classifications = references.map(classifyUploadImageReference);
+
+      expect(snapshot.estimates[0]?.rows.map((row) => row.imageUrl)).toEqual([
+        legacyPublicUrl,
+        "/component-thumbnails/cabinet.webp",
+      ]);
+      expect(classifications).toEqual([
+        {
+          id: "publication:estimate-1:row:legacy-public-component",
+          context: "publication-snapshot",
+          status: "legacy_public_component_image",
+          action: "backfill_to_private_resolver",
+          storagePath: "workspace-1/user-1/component-legacy.webp",
+        },
+        {
+          id: "publication:estimate-1:row:local-thumbnail",
+          context: "publication-snapshot",
+          status: "local_derivative",
+          action: "none",
+        },
+      ]);
+      expect(summarizeUploadComponentImageBackfillReadiness(classifications)).toEqual({
+        total: 2,
+        ready: 1,
+        needsBackfill: 1,
+        manualReview: 0,
+        missing: 0,
+        hasLegacyPublicReferences: true,
+        hasManualReviewReferences: false,
+      });
+    } finally {
+      if (originalSupabaseUrl === undefined) {
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      } else {
+        process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;
+      }
+    }
+  });
+
+  it("records the non-empty publication snapshot migration proof artifact", () => {
+    const evidence = JSON.parse(readFileSync(join(
+      process.cwd(),
+      ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-publication-snapshot-migration-proof.json",
+    ), "utf8"));
+
+    expect(evidence).toEqual(expect.objectContaining({
+      proofBoundary: "local-non-empty-publication-snapshot-fixture",
+      passed: true,
+      providerProjectRef: "ebxxqidacheyapmmzavr",
+    }));
+    expect(evidence.snapshot).toEqual({
+      schemaVersion: 1,
+      estimateCount: 1,
+      rowCount: 2,
+      nonEmptyImageRows: 2,
+    });
+    expect(evidence.classifications).toEqual([
+      {
+        id: "publication:estimate-1:row:legacy-public-component",
+        context: "publication-snapshot",
+        status: "legacy_public_component_image",
+        action: "backfill_to_private_resolver",
+        storagePath: "workspace-1/user-1/component-legacy.webp",
+      },
+      {
+        id: "publication:estimate-1:row:local-thumbnail",
+        context: "publication-snapshot",
+        status: "local_derivative",
+        action: "none",
+      },
+    ]);
+    expect(evidence.summary).toEqual({
+      total: 2,
+      ready: 1,
+      needsBackfill: 1,
+      manualReview: 0,
+      missing: 0,
+      hasLegacyPublicReferences: true,
+      hasManualReviewReferences: false,
     });
   });
 });

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
+  createSupabaseDirectUploadProvider,
   type DirectUploadObjectConstraints,
   type DirectUploadProvider,
   type MultipartPartUploadUrl,
@@ -150,6 +151,66 @@ function createFakeS3LikeDirectUploadProvider() {
   return { provider, putSignedObject, uploadPart };
 }
 
+function createFakeSupabaseSignedUploadClient() {
+  const signedPaths = new Set<string>();
+  const objects = new Map<string, {
+    size: number;
+    contentType: string;
+    etag: string;
+  }>();
+  const keyFor = (bucket: string, path: string) => `${bucket}:${path}`;
+
+  return {
+    client: {
+      storage: {
+        from: (bucket: string) => ({
+          async createSignedUploadUrl(path: string, options?: { upsert: boolean }) {
+            expect(options).toEqual({ upsert: false });
+            signedPaths.add(keyFor(bucket, path));
+            return {
+              data: {
+                signedUrl: `https://example.supabase.co/storage/v1/object/upload/sign/${bucket}/${path}?token=fake-token`,
+                token: "fake-token",
+                path,
+              },
+              error: null,
+            };
+          },
+          async info(path: string) {
+            const object = objects.get(keyFor(bucket, path));
+            if (!object) {
+              return { data: null, error: { message: "object was not found" } };
+            }
+
+            return {
+              data: {
+                size: object.size,
+                contentType: object.contentType,
+                etag: object.etag,
+                metadata: {
+                  size: object.size,
+                  mimetype: object.contentType,
+                  eTag: object.etag,
+                },
+              },
+              error: null,
+            };
+          },
+        }),
+      },
+    },
+    putViaSignedUrl(session: SignedSinglePartUploadSession, body: Buffer, contentType: string) {
+      const key = keyFor(session.constraints.bucket, session.constraints.path);
+      if (!signedPaths.has(key)) throw new Error("signed upload URL was not issued");
+      objects.set(key, {
+        size: body.byteLength,
+        contentType,
+        etag: `"${sha256Hex(body).slice(0, 16)}"`,
+      });
+    },
+  };
+}
+
 describe("upload provider portability contracts", () => {
   it("validates S3-like signed single-part finalization with object scope and checksum proof", async () => {
     const body = Buffer.from("image-bytes");
@@ -224,5 +285,56 @@ describe("upload provider portability contracts", () => {
     await provider.abortMultipartUpload({ uploadId: abortSession.uploadId });
     await expect(provider.signMultipartPart({ uploadId: abortSession.uploadId, partNumber: 1, expiresInSeconds: 60 }))
       .rejects.toThrow("multipart upload was not found");
+  });
+
+  it("creates Supabase signed single-part sessions and validates provider object info", async () => {
+    const body = Buffer.from("signed-upload-provider-proof");
+    const { client, putViaSignedUrl } = createFakeSupabaseSignedUploadClient();
+    const provider = createSupabaseDirectUploadProvider(client);
+    const session = await provider.createSignedUploadSession({
+      bucket: "component-attachments",
+      path: "workspace-1/user-1/signed-proof.pdf",
+      contentType: "application/pdf",
+      sizeBytes: body.byteLength,
+      maxBytes: body.byteLength,
+      checksumSha256: sha256Hex(body),
+      expiresInSeconds: 300,
+    });
+
+    putViaSignedUrl(session, body, "application/pdf");
+    const head = await provider.headObject({ bucket: "component-attachments", path: "workspace-1/user-1/signed-proof.pdf" });
+
+    expect(session.kind).toBe("signed_single_part");
+    expect(session.method).toBe("PUT");
+    expect(session.requiresFinalizeRpc).toBe(true);
+    expect(session.uploadUrl).toContain("/object/upload/sign/component-attachments/workspace-1/user-1/signed-proof.pdf");
+    expect(validateProviderObjectHead(session.constraints, head)).toEqual({ ok: true, proof: "etag" });
+    expect(validateProviderObjectHead(session.constraints, { ...head, sizeBytes: body.byteLength - 1 }))
+      .toEqual({ ok: false, reason: "size_mismatch" });
+    await expect(provider.createSignedUploadSession({
+      bucket: "component-attachments",
+      path: "../escape.pdf",
+      contentType: "application/pdf",
+      sizeBytes: body.byteLength,
+      maxBytes: body.byteLength,
+      checksumSha256: sha256Hex(body),
+      expiresInSeconds: 300,
+    })).rejects.toThrow("Direct upload path is unsafe.");
+  });
+
+  it("keeps Supabase resumable direct uploads explicitly unsupported until a real TUS provider is wired", async () => {
+    const { client } = createFakeSupabaseSignedUploadClient();
+    const provider = createSupabaseDirectUploadProvider(client);
+
+    await expect(provider.createMultipartUploadSession({
+      bucket: "component-attachments",
+      path: "workspace-1/user-1/spec.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 10,
+      maxBytes: 20,
+      partSizeBytes: 5,
+      maxParts: 2,
+      expiresInSeconds: 300,
+    })).rejects.toThrow("Supabase Storage direct multipart/resumable uploads are not implemented");
   });
 });

@@ -9,6 +9,7 @@ describe("upload storage provider proof script", () => {
 
     expect(script).toContain('readEnv("ARCH_UPLOAD_STORAGE_PROOF") !== "1"');
     expect(script).toContain("ARCH_UPLOAD_STORAGE_PROOF_ENV_FILE");
+    expect(script).toContain("PROOF_ENV_FILE_NAMES");
     expect(script).toContain('EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr"');
     expect(script).toContain("provider-proof-skipped");
     expect(script).toContain("provider-proof-refused");
@@ -24,6 +25,8 @@ describe("upload storage provider proof script", () => {
     expect(script).toContain("authenticated-direct-download");
     expect(script).toContain("anon-direct-delete");
     expect(script).toContain("authenticated-direct-delete");
+    expect(script).toContain("object-still-present-after-direct-delete-attempt");
+    expect(script).toContain("service-readback-missing-after-direct-delete-attempt");
     expect(script).toContain("project-images");
     expect(script).toContain("component-images");
     expect(script).toContain("component-attachments");
