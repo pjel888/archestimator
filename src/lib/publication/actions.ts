@@ -80,6 +80,8 @@ type EstimateRowSource = Pick<
   | "misc_cost"
   | "node_id"
   | "quantity"
+  | "quantity_base"
+  | "quantity_contingency_amount"
   | "unit"
   | "unit_cost"
 > & {
@@ -427,7 +429,7 @@ async function buildSnapshotForProject(
     const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
       context.admin
         .from("estimate_row_items")
-        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, imageUrl:source_snapshot->>imageUrl")
+        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, imageUrl:source_snapshot->>imageUrl")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
       context.admin
@@ -496,6 +498,8 @@ async function buildSnapshotForProject(
           discipline: row.discipline,
           material: row.material,
           quantity: Number(row.quantity),
+          quantityBase: row.quantity_base === null ? null : Number(row.quantity_base),
+          quantityContingencyAmount: row.quantity_base === null ? null : Number(row.quantity_contingency_amount ?? 0),
           unit: row.unit,
           unitCost: Number(row.unit_cost),
           miscCost: Number(row.misc_cost),

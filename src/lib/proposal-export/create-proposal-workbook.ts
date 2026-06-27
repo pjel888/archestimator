@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 
 import type { ProposalExportMetadata, ProposalExportModel, ProposalExportSettings, ProposalExportTotals, ProposalExportWorkbookTab, ProposalSourceBreakdownRow, ProposalTabbedWorkbookModel } from "./types";
-import { applyAudiencePolicy, resolveProjectCharges } from "./build-proposal-export-model";
+import { applyAudiencePolicy, resolveProjectCharges, resolveSheetAdjustment } from "./build-proposal-export-model";
 import { quoteWorksheetCellReference } from "./worksheet-name";
 
 function roundMoney(value: number) {
@@ -419,17 +419,36 @@ function writeSummaryTotalsBlock(
   worksheet: ExcelJS.Worksheet,
   totalsStartRow: number,
   directCostFormula: string,
-  totals: Pick<ProposalExportTotals, "grandTotal" | "projectContingencyAmount" | "vatAmount" | "grandTotalWithTaxes">,
+  totals: Pick<ProposalExportTotals, "grandTotal" | "sheetAdjustmentAmount" | "adjustedDirectCost" | "projectContingencyAmount" | "vatAmount" | "grandTotalWithTaxes">,
   settings: ProposalExportSettings,
   grossFloorArea: number | null,
 ) {
   const includeFormulas = settings.includeFormulas;
-  const contingencyRow = totalsStartRow + 1;
-  const vatRow = totalsStartRow + 2;
-  const grandTotalRow = totalsStartRow + 3;
+  const hasSheetAdjustment = totals.sheetAdjustmentAmount !== 0;
+  const sheetAdjustmentRow = hasSheetAdjustment ? totalsStartRow + 1 : null;
+  const adjustedDirectCostRow = hasSheetAdjustment ? totalsStartRow + 2 : totalsStartRow;
+  const contingencyRow = hasSheetAdjustment ? totalsStartRow + 3 : totalsStartRow + 1;
+  const vatRow = contingencyRow + 1;
+  const grandTotalRow = vatRow + 1;
 
   worksheet.getCell(`A${totalsStartRow}`).value = "Direct Cost";
   worksheet.getCell(`B${totalsStartRow}`).value = formulaCell(includeFormulas, directCostFormula, totals.grandTotal);
+
+  if (sheetAdjustmentRow) {
+    const sign = settings.sheetAdjustmentMode === "discount" ? "-" : "";
+    worksheet.getCell(`A${sheetAdjustmentRow}`).value = `${settings.sheetAdjustmentMode === "discount" ? "Discount" : "Adjustment"} (${settings.sheetAdjustmentRate}%)`;
+    worksheet.getCell(`B${sheetAdjustmentRow}`).value = formulaCell(
+      includeFormulas,
+      `${sign}B${totalsStartRow}*${rateDecimal(settings.sheetAdjustmentRate)}`,
+      totals.sheetAdjustmentAmount,
+    );
+    worksheet.getCell(`A${adjustedDirectCostRow}`).value = "Adjusted Direct Cost";
+    worksheet.getCell(`B${adjustedDirectCostRow}`).value = formulaCell(
+      includeFormulas,
+      `B${totalsStartRow}+B${sheetAdjustmentRow}`,
+      totals.adjustedDirectCost,
+    );
+  }
 
   const contingencyIncluded = settings.contingencyMode === "included";
   worksheet.getCell(`A${contingencyRow}`).value = contingencyIncluded
@@ -437,18 +456,18 @@ function writeSummaryTotalsBlock(
     : `Contingency (${settings.contingencyRate}%)`;
   worksheet.getCell(`B${contingencyRow}`).value = contingencyIncluded
     ? formulaCell(includeFormulas, "0", 0)
-    : formulaCell(includeFormulas, `B${totalsStartRow}*${rateDecimal(settings.contingencyRate)}`, totals.projectContingencyAmount);
+    : formulaCell(includeFormulas, `B${adjustedDirectCostRow}*${rateDecimal(settings.contingencyRate)}`, totals.projectContingencyAmount);
 
   const vatIncluded = settings.vatMode === "included";
   worksheet.getCell(`A${vatRow}`).value = vatIncluded ? "VAT (INCLUDED)" : `VAT (${settings.vatRate}%)`;
   worksheet.getCell(`B${vatRow}`).value = vatIncluded
     ? formulaCell(includeFormulas, "0", 0)
-    : formulaCell(includeFormulas, `(B${totalsStartRow}+B${contingencyRow})*${rateDecimal(settings.vatRate)}`, totals.vatAmount);
+    : formulaCell(includeFormulas, `(B${adjustedDirectCostRow}+B${contingencyRow})*${rateDecimal(settings.vatRate)}`, totals.vatAmount);
 
   worksheet.getCell(`A${grandTotalRow}`).value = "Grand Total";
   worksheet.getCell(`B${grandTotalRow}`).value = formulaCell(
     includeFormulas,
-    `B${totalsStartRow}+B${contingencyRow}+B${vatRow}`,
+    `B${adjustedDirectCostRow}+B${contingencyRow}+B${vatRow}`,
     totals.grandTotalWithTaxes,
   );
 
@@ -482,7 +501,8 @@ function writeSummaryTotalsBlock(
   wordsCell.numFmt = TEXT_FORMAT;
   wordsCell.font = { italic: true, size: 10, color: { argb: "FF4B5563" } };
 
-  [totalsStartRow, contingencyRow, vatRow, grandTotalRow].forEach((rowNumber) => {
+  [totalsStartRow, sheetAdjustmentRow, adjustedDirectCostRow, contingencyRow, vatRow, grandTotalRow].forEach((rowNumber) => {
+    if (!rowNumber) return;
     const row = worksheet.getRow(rowNumber);
     row.getCell(1).font = { bold: rowNumber === grandTotalRow, size: 10, color: { argb: "FF111827" } };
     row.getCell(2).numFmt = PHP_FORMAT;
@@ -598,7 +618,14 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
   const totalsStartRow = worksheet.rowCount + 2;
   const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
   const directCost = roundMoney(tabRanges.reduce((total, { tab }) => total + tab.model.totals.grandTotal, 0));
-  const tabbedTotals = { grandTotal: directCost, ...resolveProjectCharges(directCost, input.settings) };
+  const sheetAdjustmentAmount = resolveSheetAdjustment(directCost, input.settings);
+  const adjustedDirectCost = roundMoney(directCost + sheetAdjustmentAmount);
+  const tabbedTotals = {
+    grandTotal: directCost,
+    sheetAdjustmentAmount,
+    adjustedDirectCost,
+    ...resolveProjectCharges(adjustedDirectCost, input.settings),
+  };
   writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings, input.metadata.grossFloorArea ?? null);
   setPrintLayout(worksheet);
   return worksheet;

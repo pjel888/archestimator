@@ -19,6 +19,7 @@ export type ProposalValidationSeverity = "info" | "warning" | "error";
 // "percentage" applies the rate to the running total; "included" treats the charge as
 // already baked into the line rates (shown as 0, labelled INCLUDED). F-02/D2.
 export type ProposalChargeMode = "percentage" | "included";
+export type ProposalSheetAdjustmentMode = "contingency" | "discount";
 
 export type ProposalExportMetadata = {
   projectId: string;
@@ -50,6 +51,8 @@ export type ProposalExportSettings = {
   includeExcludedRows: boolean;
   showSupplierInRemarks: boolean;
   // Project-level charges applied in the Summary totals block (rates are percentages, 0–100).
+  sheetAdjustmentRate: number;
+  sheetAdjustmentMode: ProposalSheetAdjustmentMode;
   contingencyRate: number;
   contingencyMode: ProposalChargeMode;
   vatRate: number;
@@ -88,6 +91,8 @@ export type ProposalNormalizedSourceRow = {
   tag: string;
   particulars: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unit: string;
   materialUnitCost: number;
   laborUnitCost: number;
@@ -109,6 +114,8 @@ export type ProposalExportSourceReference = {
   areaPathIds: string[];
   areaPathLabel: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   materialSubtotal: number;
   laborSubtotal: number;
   contingencySubtotal: number;
@@ -124,6 +131,8 @@ export type ProposalExportRow = {
   tag: string;
   particulars: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unit: string;
   materialUnitCost: number;
   laborUnitCost: number;
@@ -176,10 +185,12 @@ export type ProposalExportTotals = {
   laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
-  grandTotal: number; // Direct Cost — sum of line cost amounts (pre project contingency/VAT)
-  projectContingencyAmount: number; // F-02: project-level contingency on Direct Cost
-  vatAmount: number; // VAT on (Direct Cost + project contingency)
-  grandTotalWithTaxes: number; // Direct Cost + project contingency + VAT
+  grandTotal: number; // Direct Cost — sum of line cost amounts before sheet/project charges.
+  sheetAdjustmentAmount: number; // Estimate totals-area adjustment applied once to Direct Cost.
+  adjustedDirectCost: number; // Direct Cost + sheet adjustment.
+  projectContingencyAmount: number; // F-02: project-level contingency on adjusted Direct Cost.
+  vatAmount: number; // VAT on (adjusted Direct Cost + project contingency).
+  grandTotalWithTaxes: number; // adjusted Direct Cost + project contingency + VAT.
 };
 
 export type ProposalExportModel = {

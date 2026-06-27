@@ -7,6 +7,8 @@ export type EstimateRowItemPatch = {
   supplier?: string;
   unit?: string;
   quantity?: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   itemCost?: number;
   contingencyPercentage?: number;
   miscCost?: number;
@@ -26,6 +28,8 @@ type EstimateRowMutationResultPatchInput = {
   supplier: string;
   unit: string;
   quantity: number;
+  quantityBase: number | null;
+  quantityContingencyAmount: number | null;
   itemCost: number;
   contingencyPercentage: number;
   miscCost: number;
@@ -61,6 +65,8 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     supplier: result.supplier,
     unit: result.unit,
     quantity: result.quantity,
+    quantityBase: result.quantityBase,
+    quantityContingencyAmount: result.quantityContingencyAmount,
     itemCost: result.itemCost,
     contingencyPercentage: result.contingencyPercentage,
     miscCost: result.miscCost,
@@ -75,14 +81,23 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
 
 export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: EstimateRowItemPatch) {
   const quantity = patch.quantity ?? item.quantity;
+  const quantityBase = patch.quantityBase !== undefined ? patch.quantityBase : item.quantityBase ?? null;
+  const quantityContingencyAmount = patch.quantityContingencyAmount !== undefined
+    ? patch.quantityContingencyAmount
+    : item.quantityContingencyAmount ?? null;
   const itemCost = patch.itemCost ?? item.itemCost;
-  const contingencyPercentage = patch.contingencyPercentage ?? item.contingencyPercentage ?? 0;
   const miscCost = patch.miscCost ?? item.miscCost;
   const subTotal = itemCost * quantity;
-  const contingencyValue = (subTotal * contingencyPercentage) / 100;
+  const isQuantityContingency = quantityBase !== null;
+  const contingencyPercentage = isQuantityContingency
+    ? quantityBase > 0 ? ((quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0
+    : patch.contingencyPercentage ?? item.contingencyPercentage ?? 0;
+  const contingencyValue = isQuantityContingency ? 0 : (subTotal * contingencyPercentage) / 100;
   return {
     ...item,
     quantity,
+    quantityBase,
+    quantityContingencyAmount,
     itemCost,
     subTotal,
     contingencyPercentage,

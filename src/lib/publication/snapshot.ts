@@ -29,6 +29,8 @@ type SnapshotRowInput = {
   discipline: string;
   material: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unit: string;
   unitCost: number;
   miscCost: number;
@@ -202,7 +204,7 @@ function calculateRowTotal(row: SnapshotRowInput) {
   const miscCost = toFiniteNumber(row.miscCost);
   const contingencyPercentage = toFiniteNumber(row.contingencyPercentage);
   const subtotal = quantity * unitCost;
-  return subtotal + miscCost + (subtotal * contingencyPercentage) / 100;
+  return subtotal + miscCost + (row.quantityBase === null || row.quantityBase === undefined ? (subtotal * contingencyPercentage) / 100 : 0);
 }
 
 function buildSnapshotRow(row: SnapshotRowInput, tabId?: string | null): PublicationSnapshotRow {

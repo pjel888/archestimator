@@ -30,6 +30,8 @@ export const defaultProposalExportSettings: ProposalExportSettings = {
   includeZeroRows: false,
   includeExcludedRows: true,
   showSupplierInRemarks: true,
+  sheetAdjustmentRate: 0,
+  sheetAdjustmentMode: "contingency",
   contingencyRate: 10, // D2: default 10% project contingency
   contingencyMode: "percentage",
   vatRate: 12, // D2: Philippine VAT 12%
@@ -119,12 +121,16 @@ function normalizeScope(value: string | null | undefined): ProposalScopeStatus {
 function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, settings: ProposalExportSettings): ProposalNormalizedSourceRow {
   const sourceRow = flatRow.sourceRow;
   const quantity = roundQuantity(sourceRow.quantity);
+  const quantityBase = sourceRow.quantityBase ?? null;
+  const quantityContingencyAmount = quantityBase === null ? null : sourceRow.quantityContingencyAmount ?? 0;
   const materialUnitCost = roundMoney(sourceRow.itemCost);
   // P3-T1: interim labor rate from row metadata (else 0, with a visible disclaimer).
   const laborUnitCost = roundMoney(sourceRow.laborUnitCost ?? 0);
   const materialSubtotal = roundMoney(materialUnitCost * quantity);
   const laborSubtotal = roundMoney(laborUnitCost * quantity);
-  const contingencySubtotal = roundMoney((materialSubtotal * (sourceRow.contingencyPercentage ?? 0)) / 100);
+  const contingencySubtotal = quantityBase === null
+    ? roundMoney((materialSubtotal * (sourceRow.contingencyPercentage ?? 0)) / 100)
+    : 0;
   const miscSubtotal = roundMoney(sourceRow.miscCost);
   const costAmount = roundMoney(materialSubtotal + laborSubtotal + contingencySubtotal + miscSubtotal);
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
@@ -144,6 +150,8 @@ function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, set
     tag: normalizeWhitespace(sourceRow.designation) || normalizeWhitespace(sourceRow.discipline) || sectionLabel,
     particulars: buildParticulars(sourceRow),
     quantity,
+    quantityBase,
+    quantityContingencyAmount,
     unit: normalizeWhitespace(sourceRow.unit) || "unit",
     materialUnitCost,
     laborUnitCost,
@@ -182,6 +190,8 @@ function createSourceReference(row: ProposalNormalizedSourceRow): ProposalExport
     areaPathIds: row.areaPathIds,
     areaPathLabel: row.areaPathLabel,
     quantity: row.quantity,
+    quantityBase: row.quantityBase,
+    quantityContingencyAmount: row.quantityContingencyAmount,
     materialSubtotal: row.materialSubtotal,
     laborSubtotal: row.laborSubtotal,
     contingencySubtotal: row.contingencySubtotal,
@@ -273,6 +283,8 @@ function buildSourceBreakdownRows(proposalRows: ProposalExportRow[]): ProposalSo
       areaPathLabel: source.areaPathLabel,
       particulars: proposalRow.particulars,
       quantity: source.quantity,
+      quantityBase: source.quantityBase,
+      quantityContingencyAmount: source.quantityContingencyAmount,
       unit: proposalRow.unit,
       materialUnitCost: proposalRow.materialUnitCost,
       laborUnitCost: proposalRow.laborUnitCost,
@@ -329,6 +341,11 @@ export function resolveProjectCharges(directCost: number, settings: ProposalExpo
   return { projectContingencyAmount, vatAmount, grandTotalWithTaxes };
 }
 
+export function resolveSheetAdjustment(directCost: number, settings: ProposalExportSettings) {
+  const magnitude = roundMoney((directCost * settings.sheetAdjustmentRate) / 100);
+  return settings.sheetAdjustmentMode === "discount" ? -magnitude : magnitude;
+}
+
 function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExportSettings): ProposalExportTotals {
   const base = proposalRows.reduce(
     (totals, row) => {
@@ -349,7 +366,14 @@ function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExport
       grandTotal: 0,
     },
   );
-  return { ...base, ...resolveProjectCharges(base.grandTotal, settings) };
+  const sheetAdjustmentAmount = resolveSheetAdjustment(base.grandTotal, settings);
+  const adjustedDirectCost = roundMoney(base.grandTotal + sheetAdjustmentAmount);
+  return {
+    ...base,
+    sheetAdjustmentAmount,
+    adjustedDirectCost,
+    ...resolveProjectCharges(adjustedDirectCost, settings),
+  };
 }
 
 export function flattenEstimateTree(nodes: EstimateTreeNode[]): ProposalFlatSourceRow<EstimateRowItem>[] {
@@ -411,6 +435,8 @@ export function consolidateProposalRows(
         tag: normalizedRow.tag,
         particulars: normalizedRow.particulars,
         quantity: normalizedRow.quantity,
+        quantityBase: normalizedRow.quantityBase,
+        quantityContingencyAmount: normalizedRow.quantityContingencyAmount,
         unit: normalizedRow.unit,
         materialUnitCost: normalizedRow.materialUnitCost,
         laborUnitCost: normalizedRow.laborUnitCost,
@@ -430,6 +456,13 @@ export function consolidateProposalRows(
     }
 
     current.quantity = roundQuantity(current.quantity + normalizedRow.quantity);
+    if (current.quantityBase !== null && current.quantityBase !== undefined && normalizedRow.quantityBase !== null && normalizedRow.quantityBase !== undefined) {
+      current.quantityBase = roundQuantity(current.quantityBase + normalizedRow.quantityBase);
+      current.quantityContingencyAmount = roundQuantity((current.quantityContingencyAmount ?? 0) + (normalizedRow.quantityContingencyAmount ?? 0));
+    } else {
+      current.quantityBase = null;
+      current.quantityContingencyAmount = null;
+    }
     current.materialSubtotal = roundMoney(current.materialSubtotal + normalizedRow.materialSubtotal);
     current.laborSubtotal = roundMoney(current.laborSubtotal + normalizedRow.laborSubtotal);
     current.contingencySubtotal = roundMoney(current.contingencySubtotal + normalizedRow.contingencySubtotal);
