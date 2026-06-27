@@ -1,0 +1,521 @@
+{
+  "id": "ESTIMATE-SHEET-FULL-ACTION-MATRIX-LOCAL-001",
+  "date": "2026-06-27T13:21:28.407Z",
+  "environment": "local-browser-provider-fixture",
+  "browser": "chromium",
+  "route": "/workshop/projects/e8d98221-b7fb-48d1-935d-b338e4bbd957/estimates/4dcc777c-a921-47d9-a859-60028c330615",
+  "coveredSmokeSteps": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "failedSmokeSteps": [],
+  "steps": [
+    {
+      "step": 1,
+      "name": "load target route",
+      "status": "passed",
+      "evidence": {
+        "sourceRoute": "/workshop/projects/e8d98221-b7fb-48d1-935d-b338e4bbd957/estimates/4dcc777c-a921-47d9-a859-60028c330615",
+        "targetRoute": "/workshop/projects/e8d98221-b7fb-48d1-935d-b338e4bbd957/estimates/bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+        "rootRoute": "/workshop/projects/e8d98221-b7fb-48d1-935d-b338e4bbd957/estimates/6c2542a9-5615-4288-90fc-767bccd5c7d7"
+      },
+      "completedAt": "2026-06-27T13:21:42.186Z"
+    },
+    {
+      "step": 2,
+      "name": "edit quantity, misc cost, adjustment, material, and description",
+      "status": "passed",
+      "evidence": {
+        "numericRow": {
+          "id": "accc58d5-8faa-4215-900a-645600f52138",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 0,
+          "row_revision": 4,
+          "quantity": 3,
+          "material": "E2E movable row mqwe2d2g",
+          "description": "E2E movable row mqwe2d2g browser fixture",
+          "misc_cost": 123,
+          "adjustment_percentage": 5,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        },
+        "textRow": {
+          "id": "9707cf8c-0821-4b75-98c1-c296ef0cb89f",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 4,
+          "row_revision": 4,
+          "quantity": 1,
+          "material": "E2E text edit row mqwe2d2g edited",
+          "description": "E2E text edit row mqwe2d2g full matrix description",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        }
+      },
+      "completedAt": "2026-06-27T13:22:16.491Z"
+    },
+    {
+      "step": 3,
+      "name": "add blank row and type while insert persists",
+      "status": "passed",
+      "evidence": {
+        "blankRowId": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+        "persistedRow": {
+          "id": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 5,
+          "row_revision": 2,
+          "quantity": 1,
+          "material": "E2E typed blank mqwe3acs",
+          "description": "E2E typed blank mqwe3acs description",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        }
+      },
+      "completedAt": "2026-06-27T13:22:25.790Z"
+    },
+    {
+      "step": 4,
+      "name": "insert library row",
+      "status": "passed",
+      "evidence": {
+        "insertedLibraryRowId": "badf650d-fc0a-4107-9903-002552280e3e",
+        "persistedRow": {
+          "id": "badf650d-fc0a-4107-9903-002552280e3e",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 6,
+          "row_revision": 1,
+          "quantity": 1,
+          "material": "E2E replacement component mqwe2d2g",
+          "description": "E2E replacement component mqwe2d2g inserted from owner-gated matrix",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": "922f28bb-4eb8-4d20-ba2a-0f7be70c9508",
+          "link_state": "linked-clean"
+        },
+        "sourceReviewConfirmed": true
+      },
+      "completedAt": "2026-06-27T13:22:32.135Z"
+    },
+    {
+      "step": 5,
+      "name": "replace, detach, promote, and move component between rows",
+      "status": "passed",
+      "evidence": {
+        "componentTargetRow": {
+          "id": "bc80a603-4a2a-4cc1-a742-99dbc33ff889",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 3,
+          "row_revision": 5,
+          "quantity": 1,
+          "material": "E2E replacement component mqwe2d2g",
+          "description": "E2E replacement component mqwe2d2g browser fixture library component",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": "641a0b9c-8941-4965-aff8-5bfd6b9e86f0",
+          "link_state": "linked-clean"
+        },
+        "sourceReplacementReviewConfirmed": false
+      },
+      "completedAt": "2026-06-27T13:22:48.545Z"
+    },
+    {
+      "step": 6,
+      "name": "delete one row and restore it",
+      "status": "passed",
+      "evidence": {
+        "restoredRow": {
+          "id": "badf650d-fc0a-4107-9903-002552280e3e",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 6,
+          "row_revision": 2,
+          "quantity": 1,
+          "material": "E2E replacement component mqwe2d2g",
+          "description": "E2E replacement component mqwe2d2g inserted from owner-gated matrix",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": "922f28bb-4eb8-4d20-ba2a-0f7be70c9508",
+          "link_state": "linked-clean"
+        }
+      },
+      "completedAt": "2026-06-27T13:23:03.264Z"
+    },
+    {
+      "step": 7,
+      "name": "bulk delete rows and restore them",
+      "status": "passed",
+      "evidence": {
+        "restoredRows": [
+          {
+            "id": "9c47365d-ad21-44c1-aa73-826f0ab62b09",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 1,
+            "row_revision": 2,
+            "quantity": 1,
+            "material": "E2E source sibling mqwe2d2g",
+            "description": "E2E source sibling mqwe2d2g browser fixture",
+            "misc_cost": 0,
+            "adjustment_percentage": 0,
+            "source_library_item_id": null,
+            "link_state": "unlinked"
+          },
+          {
+            "id": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 5,
+            "row_revision": 3,
+            "quantity": 1,
+            "material": "E2E typed blank mqwe3acs",
+            "description": "E2E typed blank mqwe3acs description",
+            "misc_cost": 0,
+            "adjustment_percentage": 0,
+            "source_library_item_id": null,
+            "link_state": "unlinked"
+          }
+        ]
+      },
+      "completedAt": "2026-06-27T13:23:12.524Z"
+    },
+    {
+      "step": 8,
+      "name": "move row within same node",
+      "status": "passed",
+      "evidence": {
+        "persistedRows": [
+          {
+            "id": "accc58d5-8faa-4215-900a-645600f52138",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 0,
+            "row_revision": 4,
+            "quantity": 3
+          },
+          {
+            "id": "44ded373-7ace-44b4-8198-5947de870434",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 1,
+            "row_revision": 3,
+            "quantity": 1
+          },
+          {
+            "id": "bc80a603-4a2a-4cc1-a742-99dbc33ff889",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 2,
+            "row_revision": 6,
+            "quantity": 1
+          },
+          {
+            "id": "9707cf8c-0821-4b75-98c1-c296ef0cb89f",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 3,
+            "row_revision": 6,
+            "quantity": 1
+          },
+          {
+            "id": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 4,
+            "row_revision": 4,
+            "quantity": 1
+          },
+          {
+            "id": "9c47365d-ad21-44c1-aa73-826f0ab62b09",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 5,
+            "row_revision": 3,
+            "quantity": 1
+          },
+          {
+            "id": "badf650d-fc0a-4107-9903-002552280e3e",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 6,
+            "row_revision": 2,
+            "quantity": 1
+          },
+          {
+            "id": "bbc29bde-dfab-49d7-b7ba-0e5612809f02",
+            "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+            "sort_order": 0,
+            "row_revision": 1,
+            "quantity": 1
+          }
+        ]
+      },
+      "completedAt": "2026-06-27T13:23:15.640Z"
+    },
+    {
+      "step": 9,
+      "name": "drag row from content to tree target node, then reorder target siblings",
+      "status": "passed",
+      "evidence": {
+        "persistedRows": [
+          {
+            "id": "accc58d5-8faa-4215-900a-645600f52138",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 0,
+            "row_revision": 4,
+            "quantity": 3
+          },
+          {
+            "id": "44ded373-7ace-44b4-8198-5947de870434",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 1,
+            "row_revision": 3,
+            "quantity": 1
+          },
+          {
+            "id": "bc80a603-4a2a-4cc1-a742-99dbc33ff889",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 2,
+            "row_revision": 6,
+            "quantity": 1
+          },
+          {
+            "id": "9707cf8c-0821-4b75-98c1-c296ef0cb89f",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 3,
+            "row_revision": 6,
+            "quantity": 1
+          },
+          {
+            "id": "9c47365d-ad21-44c1-aa73-826f0ab62b09",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 4,
+            "row_revision": 4,
+            "quantity": 1
+          },
+          {
+            "id": "badf650d-fc0a-4107-9903-002552280e3e",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 5,
+            "row_revision": 3,
+            "quantity": 1
+          },
+          {
+            "id": "bbc29bde-dfab-49d7-b7ba-0e5612809f02",
+            "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+            "sort_order": 0,
+            "row_revision": 1,
+            "quantity": 1
+          },
+          {
+            "id": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+            "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+            "sort_order": 1,
+            "row_revision": 5,
+            "quantity": 1
+          }
+        ]
+      },
+      "completedAt": "2026-06-27T13:23:25.508Z"
+    },
+    {
+      "step": 10,
+      "name": "use move row dialog for keyboard and touch path",
+      "status": "passed",
+      "evidence": {
+        "movedRow": {
+          "id": "9c47365d-ad21-44c1-aa73-826f0ab62b09",
+          "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+          "sort_order": 2,
+          "row_revision": 5,
+          "quantity": 1,
+          "material": "E2E source sibling mqwe2d2g",
+          "description": "E2E source sibling mqwe2d2g browser fixture",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        }
+      },
+      "completedAt": "2026-06-27T13:23:31.661Z"
+    },
+    {
+      "step": 11,
+      "name": "reload route and verify row order and totals persist",
+      "status": "passed",
+      "evidence": {
+        "persistedRows": [
+          {
+            "id": "accc58d5-8faa-4215-900a-645600f52138",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 0,
+            "row_revision": 4,
+            "quantity": 3
+          },
+          {
+            "id": "44ded373-7ace-44b4-8198-5947de870434",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 1,
+            "row_revision": 3,
+            "quantity": 1
+          },
+          {
+            "id": "bc80a603-4a2a-4cc1-a742-99dbc33ff889",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 2,
+            "row_revision": 6,
+            "quantity": 1
+          },
+          {
+            "id": "9707cf8c-0821-4b75-98c1-c296ef0cb89f",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 3,
+            "row_revision": 6,
+            "quantity": 1
+          },
+          {
+            "id": "badf650d-fc0a-4107-9903-002552280e3e",
+            "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+            "sort_order": 4,
+            "row_revision": 4,
+            "quantity": 1
+          },
+          {
+            "id": "bbc29bde-dfab-49d7-b7ba-0e5612809f02",
+            "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+            "sort_order": 0,
+            "row_revision": 1,
+            "quantity": 1
+          },
+          {
+            "id": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+            "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+            "sort_order": 1,
+            "row_revision": 5,
+            "quantity": 1
+          },
+          {
+            "id": "9c47365d-ad21-44c1-aa73-826f0ab62b09",
+            "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+            "sort_order": 2,
+            "row_revision": 5,
+            "quantity": 1
+          }
+        ],
+        "editedRow": {
+          "id": "accc58d5-8faa-4215-900a-645600f52138",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 0,
+          "row_revision": 4,
+          "quantity": 3,
+          "material": "E2E movable row mqwe2d2g",
+          "description": "E2E movable row mqwe2d2g browser fixture",
+          "misc_cost": 123,
+          "adjustment_percentage": 5,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        },
+        "editedTextRow": {
+          "id": "9707cf8c-0821-4b75-98c1-c296ef0cb89f",
+          "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+          "sort_order": 3,
+          "row_revision": 6,
+          "quantity": 1,
+          "material": "E2E text edit row mqwe2d2g edited",
+          "description": "E2E text edit row mqwe2d2g full matrix description",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        }
+      },
+      "completedAt": "2026-06-27T13:23:36.838Z"
+    },
+    {
+      "step": 12,
+      "name": "test viewer read-only access denial for mutation controls",
+      "status": "passed",
+      "evidence": {
+        "viewerRoute": "/workshop/projects/e8d98221-b7fb-48d1-935d-b338e4bbd957/estimates/6c2542a9-5615-4288-90fc-767bccd5c7d7",
+        "viewerUserId": "613a56c3-1879-4661-951b-ec9e49bf08ed"
+      },
+      "completedAt": "2026-06-27T13:23:38.808Z"
+    }
+  ],
+  "browserConsoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": [],
+  "finalPersistedRows": [
+    {
+      "id": "accc58d5-8faa-4215-900a-645600f52138",
+      "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+      "sort_order": 0,
+      "row_revision": 4,
+      "quantity": 3
+    },
+    {
+      "id": "44ded373-7ace-44b4-8198-5947de870434",
+      "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+      "sort_order": 1,
+      "row_revision": 3,
+      "quantity": 1
+    },
+    {
+      "id": "bc80a603-4a2a-4cc1-a742-99dbc33ff889",
+      "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+      "sort_order": 2,
+      "row_revision": 6,
+      "quantity": 1
+    },
+    {
+      "id": "9707cf8c-0821-4b75-98c1-c296ef0cb89f",
+      "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+      "sort_order": 3,
+      "row_revision": 6,
+      "quantity": 1
+    },
+    {
+      "id": "badf650d-fc0a-4107-9903-002552280e3e",
+      "node_id": "4dcc777c-a921-47d9-a859-60028c330615",
+      "sort_order": 4,
+      "row_revision": 4,
+      "quantity": 1
+    },
+    {
+      "id": "bbc29bde-dfab-49d7-b7ba-0e5612809f02",
+      "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+      "sort_order": 0,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "e35d447c-bc38-4ee5-8a76-3d8ece21e78c",
+      "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+      "sort_order": 1,
+      "row_revision": 5,
+      "quantity": 1
+    },
+    {
+      "id": "9c47365d-ad21-44c1-aa73-826f0ab62b09",
+      "node_id": "bda35258-7627-4f2c-bce5-7bd8e77a79cf",
+      "sort_order": 2,
+      "row_revision": 5,
+      "quantity": 1
+    }
+  ]
+}

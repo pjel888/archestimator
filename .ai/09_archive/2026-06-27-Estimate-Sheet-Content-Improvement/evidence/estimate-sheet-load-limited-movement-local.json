@@ -1,0 +1,94 @@
+{
+  "id": "ESTIMATE-SHEET-LOAD-LIMITED-MOVEMENT-LOCAL-001",
+  "date": "2026-06-27T13:24:00.060Z",
+  "environment": "local-browser-provider-fixture-load-limited",
+  "browser": "chromium",
+  "route": "/workshop/projects/82dcaf7e-45f5-4169-b8f4-e615f5463def/estimates/49abe0c2-a175-48f1-8114-34a3bbc1594f",
+  "coveredSmokeSteps": [
+    13
+  ],
+  "failedSmokeSteps": [],
+  "steps": [
+    {
+      "step": 13,
+      "name": "test load-limited state disables row movement and explains why",
+      "status": "passed",
+      "evidence": {
+        "maxRowItemCount": "4",
+        "before": {
+          "id": "19180c13-4e94-4abf-aa3c-abb9de160dd1",
+          "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+          "sort_order": 0,
+          "row_revision": 1,
+          "quantity": 1,
+          "material": "E2E movable row mqwe5j2h",
+          "description": "E2E movable row mqwe5j2h browser fixture",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        },
+        "after": {
+          "id": "19180c13-4e94-4abf-aa3c-abb9de160dd1",
+          "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+          "sort_order": 0,
+          "row_revision": 1,
+          "quantity": 1,
+          "material": "E2E movable row mqwe5j2h",
+          "description": "E2E movable row mqwe5j2h browser fixture",
+          "misc_cost": 0,
+          "adjustment_percentage": 0,
+          "source_library_item_id": null,
+          "link_state": "unlinked"
+        }
+      },
+      "completedAt": "2026-06-27T13:24:10.638Z"
+    }
+  ],
+  "browserConsoleErrors": [],
+  "pageErrors": [],
+  "finalPersistedRows": [
+    {
+      "id": "12225f91-5994-48e9-9cac-8a193956e302",
+      "node_id": "5415e138-eb39-47b2-8abc-05341bf391c6",
+      "sort_order": 0,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "19180c13-4e94-4abf-aa3c-abb9de160dd1",
+      "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+      "sort_order": 0,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "1c4a5b85-051d-4c1d-82cd-8403e3f27882",
+      "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+      "sort_order": 1,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "128d4c19-de6e-4dc3-9fbd-5fde0017c0c3",
+      "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+      "sort_order": 2,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "388a1b3a-3900-4301-92a7-4fc33cc64ee8",
+      "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+      "sort_order": 3,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "907a2ef5-9f28-4d60-b2e1-0e65fee29a5c",
+      "node_id": "d7038c3c-3f0f-4960-80b2-e5db1de92838",
+      "sort_order": 4,
+      "row_revision": 1,
+      "quantity": 1
+    }
+  ]
+}

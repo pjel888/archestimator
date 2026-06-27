@@ -1,0 +1,432 @@
+{
+  "id": "TARGET-ROUTE-SMOKE-PARTIAL-001",
+  "date": "2026-06-27T13:24:29.317Z",
+  "environment": "local-browser-provider-fixture",
+  "browser": "chromium",
+  "routeLoaded": true,
+  "editedFieldsPersisted": true,
+  "moveDialogPersisted": true,
+  "reloadPersistenceVerified": true,
+  "coveredSmokeSteps": [
+    1,
+    2,
+    10,
+    11
+  ],
+  "partiallyCoveredSmokeSteps": [
+    9
+  ],
+  "openSmokeSteps": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    12,
+    13
+  ],
+  "route": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+  "reloadRoute": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/1edfbf38-0994-452c-bfb2-1091b29099ee",
+  "movedRowId": "1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5",
+  "targetNodeId": "1edfbf38-0994-452c-bfb2-1091b29099ee",
+  "inlineFieldsAvailable": false,
+  "finalPersistedRow": {
+    "id": "1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5",
+    "node_id": "1edfbf38-0994-452c-bfb2-1091b29099ee",
+    "sort_order": 1,
+    "row_revision": 5,
+    "quantity": 3,
+    "material": "E2E movable row mqwe68x7",
+    "description": "E2E movable row mqwe68x7 browser fixture",
+    "misc_cost": 123,
+    "adjustment_percentage": 5,
+    "source_library_item_id": null,
+    "link_state": "unlinked"
+  },
+  "finalPersistedRows": [
+    {
+      "id": "85d1ca7e-33c0-4fb5-9ab0-22aa8a53bdc6",
+      "node_id": "1edfbf38-0994-452c-bfb2-1091b29099ee",
+      "sort_order": 0,
+      "row_revision": 1,
+      "quantity": 1
+    },
+    {
+      "id": "1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5",
+      "node_id": "1edfbf38-0994-452c-bfb2-1091b29099ee",
+      "sort_order": 1,
+      "row_revision": 5,
+      "quantity": 3
+    },
+    {
+      "id": "7d6987f9-daf5-4ac9-a883-378fe8ca61e7",
+      "node_id": "9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "sort_order": 0,
+      "row_revision": 2,
+      "quantity": 1
+    },
+    {
+      "id": "f8d34599-7460-4c63-8390-276e8f4296b4",
+      "node_id": "9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "sort_order": 1,
+      "row_revision": 2,
+      "quantity": 1
+    },
+    {
+      "id": "8a7b043e-f9e1-4e73-b45a-3c5221ca002c",
+      "node_id": "9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "sort_order": 2,
+      "row_revision": 2,
+      "quantity": 1
+    },
+    {
+      "id": "07bc2e13-51b5-4e15-aa47-a4b7ad46c15e",
+      "node_id": "9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "sort_order": 3,
+      "row_revision": 2,
+      "quantity": 1
+    }
+  ],
+  "editCheckpoints": [
+    {
+      "label": "quantity-before",
+      "inputValue": "1",
+      "rowMutationStatus": null,
+      "rowMutationLabel": null,
+      "persistedRow": {
+        "id": "1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5",
+        "node_id": "9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+        "sort_order": 0,
+        "row_revision": 1,
+        "quantity": 1,
+        "material": "E2E movable row mqwe68x7",
+        "description": "E2E movable row mqwe68x7 browser fixture",
+        "misc_cost": 0,
+        "adjustment_percentage": 0,
+        "source_library_item_id": null,
+        "link_state": "unlinked"
+      },
+      "sameOriginPostRequestCount": 1,
+      "sameOriginPostResponseCount": 0,
+      "activeElement": {
+        "tagName": "BODY",
+        "ariaLabel": null,
+        "rowId": null,
+        "cellIndex": null
+      }
+    },
+    {
+      "label": "quantity-after-enter",
+      "inputValue": "3",
+      "rowMutationStatus": "pending",
+      "rowMutationLabel": "Saving row changes",
+      "persistedRow": {
+        "id": "1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5",
+        "node_id": "9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+        "sort_order": 0,
+        "row_revision": 1,
+        "quantity": 1,
+        "material": "E2E movable row mqwe68x7",
+        "description": "E2E movable row mqwe68x7 browser fixture",
+        "misc_cost": 0,
+        "adjustment_percentage": 0,
+        "source_library_item_id": null,
+        "link_state": "unlinked"
+      },
+      "sameOriginPostRequestCount": 1,
+      "sameOriginPostResponseCount": 0,
+      "activeElement": {
+        "tagName": "BODY",
+        "ariaLabel": null,
+        "rowId": null,
+        "cellIndex": null
+      }
+    }
+  ],
+  "sameOriginPostRequests": [
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": true
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/1edfbf38-0994-452c-bfb2-1091b29099ee",
+      "resourceType": "fetch",
+      "hasNextAction": true,
+      "hasMovedRowId": false
+    }
+  ],
+  "sameOriginPostResponses": [
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"rowId\":\"1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"material\":\"E2E movable row mqwe68x7\",\"description\":\"E2E movable row mqwe68x7 browser fixture\",\"supplier\":\"E2E Supplier\",\"unit\":\"pc\",\"quantity\":3,\"quantityBase\":null,\"quantityContingencyAmount\":null,\"itemCost\":100,\"contingencyPercentage\":0,\"contingencyValue\":0,\"adjustmentPercentage\":0,\"adjustmentValue\":0,\"miscCost\":0,\"sourceSnapshot\":null,\"metadata\":{\"e2e\":true,\"source\":\"estimate-row-fixture\"},\"linkState\":\"unlinked\",\"rowRevision\":2}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"rowId\":\"1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"material\":\"E2E movable row mqwe68x7\",\"description\":\"E2E movable row mqwe68x7 browser fixture\",\"supplier\":\"E2E Supplier\",\"unit\":\"pc\",\"quantity\":3,\"quantityBase\":null,\"quantityContingencyAmount\":null,\"itemCost\":100,\"contingencyPercentage\":0,\"contingencyValue\":0,\"adjustmentPercentage\":5,\"adjustmentValue\":15,\"miscCost\":0,\"sourceSnapshot\":null,\"metadata\":{\"e2e\":true,\"source\":\"estimate-row-fixture\"},\"linkState\":\"unlinked\",\"rowRevision\":3}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"rowId\":\"1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"material\":\"E2E movable row mqwe68x7\",\"description\":\"E2E movable row mqwe68x7 browser fixture\",\"supplier\":\"E2E Supplier\",\"unit\":\"pc\",\"quantity\":3,\"quantityBase\":null,\"quantityContingencyAmount\":null,\"itemCost\":100,\"contingencyPercentage\":0,\"contingencyValue\":0,\"adjustmentPercentage\":5,\"adjustmentValue\":15,\"miscCost\":123,\"sourceSnapshot\":null,\"metadata\":{\"e2e\":true,\"source\":\"estimate-row-fixture\"},\"linkState\":\"unlinked\",\"rowRevision\":4}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "[non-row-action omitted]",
+      "textError": null,
+      "hasMovedRowId": false,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    },
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "status": 200,
+      "hasNextAction": true,
+      "contentType": "text/x-component",
+      "textSnippet": "0:{\"a\":\"$@1\",\"f\":\"\",\"q\":\"\",\"i\":true,\"b\":\"development\"}\n1:D\"$2\"\n1:{\"eventId\":\"005b8a7e-0252-4e12-8b01-1c5953cd8121\",\"updatedRowCount\":5,\"rows\":[{\"rowId\":\"85d1ca7e-33c0-4fb5-9ab0-22aa8a53bdc6\",\"nodeId\":\"1edfbf38-0994-452c-bfb2-1091b29099ee\",\"sortOrder\":0,\"rowRevision\":1},{\"rowId\":\"1b5fbd8e-898f-42a3-b32b-21dc5f0c1ff5\",\"nodeId\":\"1edfbf38-0994-452c-bfb2-1091b29099ee\",\"sortOrder\":1,\"rowRevision\":5},{\"rowId\":\"7d6987f9-daf5-4ac9-a883-378fe8ca61e7\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"sortOrder\":0,\"rowRevision\":2},{\"rowId\":\"f8d34599-7460-4c63-8390-276e8f4296b4\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"sortOrder\":1,\"rowRevision\":2},{\"rowId\":\"8a7b043e-f9e1-4e73-b45a-3c5221ca002c\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"sortOrder\":2,\"rowRevision\":2},{\"rowId\":\"07bc2e13-51b5-4e15-aa47-a4b7ad46c15e\",\"nodeId\":\"9e5dea9f-9657-4a0f-b116-0a0bcef612e2\",\"sortOrder\":3,\"rowRevision\":2}]}\n",
+      "textError": null,
+      "hasMovedRowId": true,
+      "hasEstimateMutationError": false,
+      "hasRevisionConflict": false
+    }
+  ],
+  "sameOriginPostFailures": [
+    {
+      "pathname": "/workshop/projects/a1bc5b8f-28b4-46d5-b544-ac198476f4dc/estimates/9e5dea9f-9657-4a0f-b116-0a0bcef612e2",
+      "failureText": "net::ERR_ABORTED",
+      "hasNextAction": true
+    }
+  ],
+  "browserConsoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": []
+}

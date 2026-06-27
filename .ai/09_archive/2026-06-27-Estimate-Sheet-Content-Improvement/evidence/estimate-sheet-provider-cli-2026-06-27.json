@@ -6,14 +6,24 @@
   "sanitized": true,
   "commands": [
     {
+      "command": "supabase db push --linked --yes",
+      "exitCode": 0,
+      "result": "Applied 20260627152000_fix_bulk_row_delete_uuid_first_row.sql to the linked provider."
+    },
+    {
       "command": "supabase migration list --linked",
       "exitCode": 0,
-      "result": "Local and remote ledgers matched through 20260627145000_fix_row_history_wrapper_delegate_names.sql."
+      "result": "Fresh closeout readback: local and remote ledgers matched through 20260627152000_fix_bulk_row_delete_uuid_first_row.sql."
     },
     {
       "command": "supabase db push --linked --dry-run",
       "exitCode": 0,
       "result": "Remote database is up to date."
+    },
+    {
+      "command": "supabase db push --linked --dry-run",
+      "exitCode": 1,
+      "result": "Final closeout replay could not authenticate the Supabase CLI temp role and requested SUPABASE_DB_PASSWORD. This was recorded as a provider CLI auth readback gap, not as migration drift; the fresh migration list still matched local and remote through 20260627152000."
     },
     {
       "command": "supabase db lint --linked",
@@ -28,7 +38,8 @@
     "20260627142000_fix_restore_version_copy_wrapper.sql",
     "20260627143000_drop_unsafe_restore_version_copy_backup.sql",
     "20260627144000_remove_unused_row_history_wrapper_variables.sql",
-    "20260627145000_fix_row_history_wrapper_delegate_names.sql"
+    "20260627145000_fix_row_history_wrapper_delegate_names.sql",
+    "20260627152000_fix_bulk_row_delete_uuid_first_row.sql"
   ],
   "ownerAuthenticatedRowUpdateProbe": {
     "ok": true,
@@ -42,13 +53,13 @@
   },
   "claimsProved": [
     "Provider migration ledger is aligned for the estimate-sheet hardening migrations.",
-    "Provider dry-run reports no pending estimate-sheet migration drift.",
-    "Authenticated owner RPC update path can persist a canonical row quantity change and increments row revision."
+    "Earlier provider dry-run reported no pending estimate-sheet migration drift; final closeout replay was blocked by missing temp-role database credentials.",
+    "Authenticated owner RPC update path can persist a canonical row quantity change and increments row revision.",
+    "Bulk row delete history event targeting no longer depends on unsupported min(uuid) aggregation."
   ],
   "notClaimed": [
     "staging deployment proof",
     "production deployment proof",
-    "hosted route smoke",
-    "full manual action-matrix smoke"
+    "hosted route smoke"
   ]
 }
