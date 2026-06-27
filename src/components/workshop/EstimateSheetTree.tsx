@@ -77,7 +77,16 @@ import {
 } from "./component-library/templates";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "./estimate-sheet/drag-types";
-import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, type RequestEstimateTreeNodeCreateEventDetail } from "./estimate-sheet/events";
+import {
+  REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT,
+  REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT,
+  type RequestEstimateRowItemMoveEventDetail,
+  type RequestEstimateTreeNodeCreateEventDetail,
+} from "./estimate-sheet/events";
+import {
+  ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
+  readEstimateRowItemDragPayload,
+} from "./estimate-sheet/rows/constants";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
 type EstimateSheetTreeProps = {
@@ -934,19 +943,34 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   // children now, so there is no group gate and no area-wrap path. (Drops are
   // still "inside" only — no root or between-row placement here.)
   const treeExternalDrop = useMemo<TreeExternalDropOptions>(() => ({
-    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE],
+    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE, ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE],
+    dropEffect: (types) => types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE) ? "move" : "copy",
     canDrop: (types, targetId, position) => {
       if (position !== "inside") return false;
       if (isOptimisticEstimateNodeId(targetId)) return false;
       const targetNode = findEstimateNode(localNodes, targetId);
       if (!targetNode) return false;
       // Any existing node is a valid drop target for both templates and
-      // project sources now.
-      return types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE) || types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE);
+      // project sources now; row-item drops append to the target node's rows.
+      return types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)
+        || types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE)
+        || types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE);
     },
     onDrop: (event, targetId) => {
       const targetNode = findEstimateNode(localNodes, targetId);
       if (!targetNode) return;
+
+      const rowItemPayload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
+      if (rowItemPayload) {
+        suppressPrimaryActionAfterDrag();
+        const detail: RequestEstimateRowItemMoveEventDetail = {
+          rowItemId: rowItemPayload.rowItemId,
+          targetNodeId: targetId,
+          targetIndex: targetNode.estimateRowItems?.length ?? 0,
+        };
+        window.dispatchEvent(new CustomEvent<RequestEstimateRowItemMoveEventDetail>(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, { detail }));
+        return;
+      }
 
       // The sheet owns insertion (tree update + action); hand the drop over via a
       // window event instead of duplicating that flow here.

@@ -9,6 +9,8 @@ import { Modal } from "@/components/ui/modal";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { classifyEstimateRowSource, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { cn } from "@/lib/ui/cn";
+import { getUploadClientErrorMessage, isUploadAbortError, postUploadFormData } from "@/lib/uploads/client-upload";
+import { getUploadClientStatusRole, IDLE_UPLOAD_CLIENT_STATE, isUploadClientBusy, isUploadClientRetryable, reduceUploadClientState, type UploadClientState } from "@/lib/uploads/client-state";
 import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import {
   getComponentImageUrl as getMaterialCardImageUrl,
@@ -25,7 +27,7 @@ import {
   type EstimateComponentDragPayload,
 } from "./constants";
 import { canMakeProjectSpecific, canPromoteEstimateRowToLibrary } from "./cells-model";
-import { formatEditableMoney, type EditableRowValue } from "./editable-row-model";
+import { formatEditableMoney, type EditableRowValue, type EstimateRowImageAssetDescriptor } from "./editable-row-model";
 
 export type ExpressInsertDraftState = "creating" | "failed";
 
@@ -38,18 +40,13 @@ const MATERIAL_TEXT_RESERVE_CLASS = "min-w-0 pr-[136px]";
 const ESTIMATE_IMAGE_UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
 const ESTIMATE_IMAGE_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
-type EstimateImageUploadState =
-  | { state: "idle"; message: string }
-  | { state: "uploading"; message: string }
-  | { state: "error"; message: string };
-
 type EstimateImageModalState = {
   open: boolean;
   imageUrlDraft: string;
   imageUrlDraftDirty: boolean;
   selectedImage: File | null;
   selectedImagePreview: string;
-  uploadState: EstimateImageUploadState;
+  uploadState: UploadClientState;
 };
 
 type EstimateImageModalAction =
@@ -59,7 +56,8 @@ type EstimateImageModalAction =
   | { type: "file:selected"; file: File; previewUrl: string }
   | { type: "file:error"; message: string }
   | { type: "upload:start" }
-  | { type: "upload:error"; message: string };
+  | { type: "upload:error"; message: string }
+  | { type: "upload:cancelled" };
 
 const INITIAL_ESTIMATE_IMAGE_MODAL_STATE: EstimateImageModalState = {
   open: false,
@@ -67,7 +65,7 @@ const INITIAL_ESTIMATE_IMAGE_MODAL_STATE: EstimateImageModalState = {
   imageUrlDraftDirty: false,
   selectedImage: null,
   selectedImagePreview: "",
-  uploadState: { state: "idle", message: "" },
+  uploadState: IDLE_UPLOAD_CLIENT_STATE,
 };
 
 function estimateImageModalReducer(state: EstimateImageModalState, action: EstimateImageModalAction): EstimateImageModalState {
@@ -87,7 +85,7 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
         imageUrlDraftDirty: true,
         selectedImage: null,
         selectedImagePreview: "",
-        uploadState: { state: "idle", message: "" },
+        uploadState: reduceUploadClientState(state.uploadState, { type: "reset" }),
       };
     case "file:selected":
       return {
@@ -95,24 +93,29 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
         imageUrlDraftDirty: false,
         selectedImage: action.file,
         selectedImagePreview: action.previewUrl,
-        uploadState: { state: "idle", message: "" },
+        uploadState: reduceUploadClientState(state.uploadState, { type: "select", message: `${action.file.name} selected.` }),
       };
     case "file:error":
       return {
         ...state,
         selectedImage: null,
         selectedImagePreview: "",
-        uploadState: { state: "error", message: action.message },
+        uploadState: reduceUploadClientState(state.uploadState, { type: "blocking-error", message: action.message }),
       };
     case "upload:start":
       return {
         ...state,
-        uploadState: { state: "uploading", message: "Uploading image..." },
+        uploadState: reduceUploadClientState(state.uploadState, { type: "uploading", message: "Uploading image..." }),
       };
     case "upload:error":
       return {
         ...state,
-        uploadState: { state: "error", message: action.message },
+        uploadState: reduceUploadClientState(state.uploadState, { type: "retryable-error", message: action.message }),
+      };
+    case "upload:cancelled":
+      return {
+        ...state,
+        uploadState: reduceUploadClientState(state.uploadState, { type: "cancelled" }),
       };
   }
 }
@@ -120,20 +123,26 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
 type UploadedEstimateImage = {
   url: string;
   thumbnailUrl?: string;
+  imageAsset?: EstimateRowImageAssetDescriptor;
 };
 
-async function uploadEstimateReferenceImage(file: File): Promise<UploadedEstimateImage> {
-  const formData = new FormData();
-  formData.set("file", file);
-  const response = await fetch("/api/component-library/images", {
-    method: "POST",
-    body: formData,
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(result && typeof result.error === "string" ? result.error : "Could not upload image.");
+async function uploadEstimateReferenceImage(
+  file: File,
+  options: { signal?: AbortSignal; projectId?: string; estimateId?: string; rowItemId?: string } = {},
+): Promise<UploadedEstimateImage> {
+  if (!options.projectId || !options.estimateId) {
+    throw new Error("Project and estimate are required to upload a reference image.");
   }
-  return result as UploadedEstimateImage;
+  const formData = new FormData();
+  formData.set("projectId", options.projectId);
+  formData.set("estimateId", options.estimateId);
+  if (options.rowItemId) formData.set("rowItemId", options.rowItemId);
+  formData.set("file", file);
+  return postUploadFormData<UploadedEstimateImage>("/api/estimate-row-images", formData, {
+    signal: options.signal,
+    fallbackMessage: "Could not upload image.",
+    timeoutMessage: "Image upload timed out. Try again.",
+  });
 }
 
 function validateEstimateReferenceImage(file: File) {
@@ -280,6 +289,8 @@ function ExpressMaterialImageEditor({
   imageStyle,
   imageUrl,
   itemId,
+  projectId,
+  estimateId,
   onActiveChange,
   onCommitImageUrl,
 }: {
@@ -288,16 +299,22 @@ function ExpressMaterialImageEditor({
   imageStyle?: CSSProperties;
   imageUrl: string;
   itemId: string;
+  projectId?: string;
+  estimateId?: string;
   onActiveChange: (active: boolean) => void;
-  onCommitImageUrl: (nextImageUrl: string) => void;
+  onCommitImageUrl: (nextImageUrl: string, imageAsset?: EstimateRowImageAssetDescriptor | null) => void;
 }) {
   const imageInputId = useId();
   const [imageModal, dispatchImageModal] = useReducer(estimateImageModalReducer, INITIAL_ESTIMATE_IMAGE_MODAL_STATE);
   const selectedImagePreviewRef = useRef("");
+  const imageUploadAbortRef = useRef<AbortController | null>(null);
+  const imageUploadAttemptRef = useRef(0);
   const { imageUrlDraft, imageUrlDraftDirty, open: imageModalOpen, selectedImage, selectedImagePreview, uploadState: imageUploadState } = imageModal;
-  const imageModalBusy = imageUploadState.state === "uploading";
+  const imageModalBusy = isUploadClientBusy(imageUploadState);
 
   useEffect(() => () => {
+    imageUploadAttemptRef.current += 1;
+    imageUploadAbortRef.current?.abort();
     if (selectedImagePreviewRef.current) URL.revokeObjectURL(selectedImagePreviewRef.current);
   }, []);
 
@@ -314,13 +331,26 @@ function ExpressMaterialImageEditor({
   }
 
   function closeImageModal() {
+    imageUploadAttemptRef.current += 1;
+    imageUploadAbortRef.current?.abort();
+    imageUploadAbortRef.current = null;
     replaceSelectedImagePreview("");
     dispatchImageModal({ type: "close" });
     onActiveChange(false);
   }
 
+  function cancelImageUpload() {
+    imageUploadAttemptRef.current += 1;
+    imageUploadAbortRef.current?.abort();
+    imageUploadAbortRef.current = null;
+    dispatchImageModal({ type: "upload:cancelled" });
+  }
+
   function handleImageFileChange(file: File | null | undefined) {
     if (!file) return;
+    imageUploadAttemptRef.current += 1;
+    imageUploadAbortRef.current?.abort();
+    imageUploadAbortRef.current = null;
     const validationMessage = validateEstimateReferenceImage(file);
     if (validationMessage) {
       replaceSelectedImagePreview("");
@@ -335,19 +365,34 @@ function ExpressMaterialImageEditor({
   async function saveImageDraft() {
     if (imageModalBusy) return;
     if (selectedImage) {
+      const attemptId = imageUploadAttemptRef.current + 1;
+      imageUploadAttemptRef.current = attemptId;
+      const abortController = new AbortController();
+      imageUploadAbortRef.current = abortController;
       dispatchImageModal({ type: "upload:start" });
       try {
-        const uploadedImage = await uploadEstimateReferenceImage(selectedImage);
-        onCommitImageUrl(uploadedImage.url);
+        const uploadedImage = await uploadEstimateReferenceImage(selectedImage, {
+          signal: abortController.signal,
+          projectId,
+          estimateId,
+          rowItemId: itemId,
+        });
+        if (imageUploadAttemptRef.current !== attemptId) return;
+        onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
         replaceSelectedImagePreview("");
         dispatchImageModal({ type: "close" });
         onActiveChange(false);
       } catch (error) {
-        dispatchImageModal({ type: "upload:error", message: error instanceof Error ? error.message : "Could not upload image." });
+        if (imageUploadAttemptRef.current !== attemptId) return;
+        dispatchImageModal(isUploadAbortError(error)
+          ? { type: "upload:cancelled" }
+          : { type: "upload:error", message: getUploadClientErrorMessage(error, "Could not upload image.") });
+      } finally {
+        if (imageUploadAbortRef.current === abortController) imageUploadAbortRef.current = null;
       }
       return;
     }
-    if (imageUrlDraftDirty) onCommitImageUrl(imageUrlDraft);
+    if (imageUrlDraftDirty) onCommitImageUrl(imageUrlDraft, null);
     closeImageModal();
   }
 
@@ -393,8 +438,8 @@ function ExpressMaterialImageEditor({
         closeOnOverlayClick={!imageModalBusy}
         footer={(
           <>
-            <Button type="button" variant="secondary" size="sm" onClick={closeImageModal} disabled={imageModalBusy}>
-              Cancel
+            <Button type="button" variant="secondary" size="sm" onClick={imageModalBusy ? cancelImageUpload : closeImageModal}>
+              {imageModalBusy ? "Cancel upload" : "Cancel"}
             </Button>
             <Button type="button" variant="primary" size="sm" onClick={saveImageDraft} disabled={imageModalBusy}>
               {imageModalBusy ? "Uploading..." : "Save image"}
@@ -452,6 +497,9 @@ function ExpressMaterialImageEditor({
               placeholder="https://..."
               disabled={imageModalBusy}
               onChange={(event) => {
+                imageUploadAttemptRef.current += 1;
+                imageUploadAbortRef.current?.abort();
+                imageUploadAbortRef.current = null;
                 replaceSelectedImagePreview("");
                 dispatchImageModal({ type: "url:change", value: event.target.value });
               }}
@@ -464,12 +512,19 @@ function ExpressMaterialImageEditor({
             />
           </div>
           {imageUploadState.message ? (
-            <p
-              className={cn("text-[10px] font-medium leading-4", imageUploadState.state === "error" ? "text-danger" : "text-secondary")}
-              role={imageUploadState.state === "error" ? "alert" : "status"}
-            >
-              {imageUploadState.message}
-            </p>
+            <div className="space-y-1">
+              <p
+                className={cn("text-[10px] font-medium leading-4", getUploadClientStatusRole(imageUploadState) === "alert" ? "text-danger" : "text-secondary")}
+                role={getUploadClientStatusRole(imageUploadState)}
+              >
+                {imageUploadState.message}
+              </p>
+              {selectedImage && isUploadClientRetryable(imageUploadState) ? (
+                <Button type="button" variant="secondary" size="xs" className="h-6 rounded-xs px-2 text-[9px]" onClick={saveImageDraft}>
+                  Retry upload
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </Modal>
@@ -480,6 +535,8 @@ function ExpressMaterialImageEditor({
 function ExpressMaterialEditor({
   item,
   editableRow,
+  projectId,
+  estimateId,
   onChange,
   onCommit,
   onRevert,
@@ -490,6 +547,8 @@ function ExpressMaterialEditor({
 }: {
   item: EstimateRowItem;
   editableRow: EditableRowValue;
+  projectId?: string;
+  estimateId?: string;
   onChange: (values: Partial<EditableRowValue>) => void;
   onCommit: (values: Partial<EditableRowValue>) => void;
   onRevert: (field: ExpressEditableField) => void;
@@ -554,11 +613,14 @@ function ExpressMaterialEditor({
             imageStyle={imageStyle}
             imageUrl={imageUrl}
             itemId={item.id}
+            projectId={projectId}
+            estimateId={estimateId}
             onActiveChange={onActiveChange}
-            onCommitImageUrl={(nextImageUrl) => {
+            onCommitImageUrl={(nextImageUrl, imageAsset) => {
               const normalizedImageUrl = nextImageUrl.trim();
-              onChange({ imageUrl: normalizedImageUrl });
-              onCommit({ imageUrl: normalizedImageUrl });
+              const imagePatch = { imageUrl: normalizedImageUrl, imageAsset: imageAsset ?? null };
+              onChange(imagePatch);
+              onCommit(imagePatch);
             }}
           />
         )}
@@ -664,6 +726,8 @@ function ExpressMaterialEditor({
 export function EstimateMaterialCell({
   item,
   editableRow,
+  projectId,
+  estimateId,
   isReplaceTarget,
   onExpressEditorActiveChange,
   onExpressFieldChange,
@@ -686,6 +750,8 @@ export function EstimateMaterialCell({
 }: {
   item: EstimateRowItem;
   editableRow: EditableRowValue;
+  projectId?: string;
+  estimateId?: string;
   isReplaceTarget: boolean;
   onExpressEditorActiveChange: (active: boolean) => void;
   onExpressFieldChange: (values: Partial<EditableRowValue>) => void;
@@ -894,6 +960,8 @@ export function EstimateMaterialCell({
           key={`${item.id}:${editableRow.imageUrl}`}
           item={item}
           editableRow={editableRow}
+          projectId={projectId}
+          estimateId={estimateId}
           onChange={onExpressFieldChange}
           onCommit={onExpressFieldCommit}
           onRevert={onExpressFieldRevert}

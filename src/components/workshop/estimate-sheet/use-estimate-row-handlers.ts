@@ -5,6 +5,7 @@ import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateA
 import type { useEstimateRowMutations, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
+import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
 import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
@@ -21,10 +22,9 @@ import {
   canPromoteEstimateRowToLibrary,
 } from "./rows/cells-model";
 import {
-  calculateContingencyValue,
   collectEditableRows,
+  getEditableRowAmounts,
   getInitialEditableRow,
-  parseEditableContingencyPercentage,
   parseNonNegativeEditableNumber,
   type EditableRowValue,
 } from "./rows/editable-row-model";
@@ -81,9 +81,11 @@ type EstimateRowItemLocation = {
 
 type UseEstimateRowHandlersInput = {
   canEditEstimate: boolean;
+  canMoveRowItems?: boolean;
   projectId?: string;
   workspaceId?: string;
   estimateId?: string;
+  activeTabId?: string | null;
   estimateTree: EstimateTreeNode[];
   editableRows: Record<string, EditableRowValue>;
   saveState: EstimateSaveState;
@@ -97,6 +99,7 @@ type UseEstimateRowHandlersInput = {
   insertRow: EstimateRowMutations["insertRow"];
   replaceRow: EstimateRowMutations["replaceRow"];
   moveRows: EstimateRowMutations["moveRows"];
+  moveRowItem: EstimateRowMutations["moveRowItem"];
   detachRow: EstimateRowMutations["detachRow"];
   promoteRow: EstimateRowMutations["promoteRow"];
   deleteRow: EstimateRowMutations["deleteRow"];
@@ -255,20 +258,18 @@ function getActiveExpressEditorRowId() {
 function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
   if (!editableRow) return libraryItem;
 
-  const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
-  const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-  const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
-  const subTotal = libraryItem.itemCost * quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
+  const amounts = getEditableRowAmounts(libraryItem, editableRow);
 
   return {
     ...libraryItem,
-    quantity,
-    subTotal,
-    contingencyPercentage,
-    contingencyValue,
-    miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
+    quantity: amounts.quantity,
+    quantityBase: amounts.quantityBase,
+    quantityContingencyAmount: amounts.quantityContingencyAmount,
+    subTotal: amounts.subTotal,
+    contingencyPercentage: amounts.contingencyPercentage,
+    contingencyValue: amounts.contingencyValue,
+    miscCost: amounts.miscCost,
+    totalItemCosts: amounts.totalItemCosts,
   };
 }
 
@@ -284,20 +285,19 @@ function getClearedEstimateRowMetadata(metadata: EstimateRowItem["metadata"]): E
 }
 
 function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateRowItem): EstimateRowItem {
-  const quantity = libraryItem.quantity || 1;
-  const contingencyPercentage = libraryItem.contingencyPercentage ?? 0;
-  const miscCost = libraryItem.miscCost ?? 0;
-  const subTotal = libraryItem.itemCost * quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
+  const normalizedLibraryItem = { ...libraryItem, quantity: libraryItem.quantity || 1 };
+  const amounts = getEditableRowAmounts(normalizedLibraryItem, getInitialEditableRow(normalizedLibraryItem));
   return {
-    ...libraryItem,
+    ...normalizedLibraryItem,
     id: rowItemId,
-    quantity,
-    subTotal,
-    contingencyPercentage,
-    contingencyValue,
-    miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
+    quantity: amounts.quantity,
+    quantityBase: amounts.quantityBase,
+    quantityContingencyAmount: amounts.quantityContingencyAmount,
+    subTotal: amounts.subTotal,
+    contingencyPercentage: amounts.contingencyPercentage,
+    contingencyValue: amounts.contingencyValue,
+    miscCost: amounts.miscCost,
+    totalItemCosts: amounts.totalItemCosts,
   };
 }
 
@@ -307,9 +307,11 @@ function resolveSetStateAction<T>(current: T, value: SetStateAction<T>): T {
 
 export function useEstimateRowHandlers({
   canEditEstimate,
+  canMoveRowItems = true,
   projectId,
   workspaceId,
   estimateId,
+  activeTabId,
   estimateTree,
   editableRows,
   saveState,
@@ -323,6 +325,7 @@ export function useEstimateRowHandlers({
   insertRow,
   replaceRow,
   moveRows,
+  moveRowItem: persistMoveRowItem,
   detachRow,
   promoteRow,
   deleteRow,
@@ -434,6 +437,9 @@ export function useEstimateRowHandlers({
       imageUrl: values.imageUrl ?? currentEditableRow?.imageUrl ?? "",
       sourceUrl: values.sourceUrl ?? currentEditableRow?.sourceUrl ?? "",
       quantity: values.quantity ?? currentEditableRow?.quantity ?? "0",
+      quantityExpression: values.quantityExpression ?? currentEditableRow?.quantityExpression ?? "",
+      quantityBase: values.quantityBase ?? currentEditableRow?.quantityBase ?? "",
+      quantityContingencyAmount: values.quantityContingencyAmount ?? currentEditableRow?.quantityContingencyAmount ?? "",
       contingencyMode: values.contingencyMode ?? currentEditableRow?.contingencyMode ?? "contingency",
       contingencyPercentage: values.contingencyPercentage ?? currentEditableRow?.contingencyPercentage ?? "0",
       miscCost: values.miscCost ?? currentEditableRow?.miscCost ?? "0",
@@ -442,13 +448,20 @@ export function useEstimateRowHandlers({
     if (expressFieldNames.length > 0) {
       recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
     }
-    const sourceSnapshotPatch = values.imageUrl !== undefined || values.sourceUrl !== undefined
+    const sourceSnapshotPatch = values.imageUrl !== undefined || values.sourceUrl !== undefined || values.imageAsset !== undefined
       ? {
           ...(values.imageUrl !== undefined ? { imageUrl: values.imageUrl.trim() || null } : {}),
+          ...(values.imageAsset !== undefined ? { imageAsset: values.imageAsset ?? null } : {}),
           ...(values.sourceUrl !== undefined ? { sourceUrl: values.sourceUrl.trim() || null } : {}),
         }
       : undefined;
     const shouldPromoteLegacyBlankToExpress = Boolean(currentRowItem && isBlankEstimateRowItem(currentRowItem));
+    const nextAmounts = currentRowItem ? getEditableRowAmounts(currentRowItem, nextEditableRow) : null;
+    const shouldPatchQuantity = values.quantity !== undefined
+      || values.quantityExpression !== undefined
+      || values.quantityBase !== undefined
+      || values.quantityContingencyAmount !== undefined;
+    const shouldPatchContingency = values.contingencyPercentage !== undefined || values.contingencyMode !== undefined || shouldPatchQuantity;
 
     updateRow({
       projectId,
@@ -460,8 +473,12 @@ export function useEstimateRowHandlers({
       ...(values.unit !== undefined ? { unit: values.unit } : {}),
       ...(values.unitCost !== undefined ? { unitCost: parseNonNegativeEditableNumber(values.unitCost) } : {}),
       ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
-      ...(values.quantity !== undefined ? { quantity: parseNonNegativeEditableNumber(values.quantity) } : {}),
-      ...(values.contingencyPercentage !== undefined || values.contingencyMode !== undefined ? { contingencyPercentage: parseEditableContingencyPercentage(nextEditableRow) } : {}),
+      ...(shouldPatchQuantity && nextAmounts ? {
+        quantity: nextAmounts.quantity,
+        quantityBase: nextAmounts.quantityBase,
+        quantityContingencyAmount: nextAmounts.quantityContingencyAmount,
+      } : {}),
+      ...(shouldPatchContingency && nextAmounts ? { contingencyPercentage: nextAmounts.contingencyPercentage } : {}),
       ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
       ...(shouldPromoteLegacyBlankToExpress ? {
         metadata: withExpressComponentMetadata(currentRowItem?.metadata, {
@@ -984,6 +1001,70 @@ export function useEstimateRowHandlers({
     }
   });
 
+  const moveRowItemToNode = useStableCallback((rowItemId: string, targetNodeId: string, targetIndex: number) => {
+    if (!canEditEstimate) {
+      recordReadOnlyLibraryMutationAttempt("move_row_item");
+      return false;
+    }
+    if (!canMoveRowItems) {
+      toast({ tone: "error", message: "Load the full estimate before moving rows." });
+      return false;
+    }
+    if (saveState === "dirty" || saveState === "saving") {
+      toast({ tone: "error", message: "Finish saving row edits before moving rows." });
+      return false;
+    }
+
+    const sourceLocation = findEstimateRowItemLocation(estimateTree, rowItemId);
+    if (!sourceLocation) {
+      return false;
+    }
+
+    const moveResult = moveEstimateRowItemInTree({
+      tree: estimateTree,
+      rowItemId,
+      sourceNodeId: sourceLocation.nodeId,
+      targetNodeId,
+      targetIndex,
+    });
+
+    if (moveResult.status === "noop") {
+      return true;
+    }
+    if (moveResult.status !== "moved" || !moveResult.sourceNodeId || !moveResult.targetNodeId || moveResult.affectedRowUpdates.length === 0) {
+      toast({ tone: "error", message: "Couldn't move the row to that location." });
+      return false;
+    }
+
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
+    const rollbackRevision = getEstimateTreeRevision();
+    const nextRevision = setEstimateTree(() => moveResult.tree);
+    requestPendingRowFocus(rowItemId);
+
+    if (projectId && estimateId) {
+      persistMoveRowItem({
+        projectId,
+        estimateId,
+        activeTabId: activeTabId ?? null,
+        movedRowId: rowItemId,
+        sourceNodeId: moveResult.sourceNodeId,
+        targetNodeId: moveResult.targetNodeId,
+        updates: moveResult.affectedRowUpdates,
+        rollback: () => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision),
+        onSuccess: (result) => {
+          setEstimateTree((current) => applyEstimateRowItemMoveResultToTree(current, result.rows));
+          refetchProjectComponentProjection();
+        },
+        onError: () => {
+          toast({ tone: "error", message: "Couldn't move the row. Try again." });
+        },
+      });
+    }
+
+    return true;
+  });
+
   const replaceFromComponentPicker = useStableCallback((libraryItem: EstimateRowItem) => {
     if (!rowComponentPicker || rowComponentPicker.mode !== "replace") return;
     const accepted = replaceRowItem(rowComponentPicker.rowItemId, libraryItem);
@@ -1158,6 +1239,7 @@ export function useEstimateRowHandlers({
     markRowDirty,
     moveFromComponentPicker,
     moveRowComponent,
+    moveRowItemToNode,
     promoteRowToLibrary,
     replaceFromComponentPicker,
     replaceRowItem,

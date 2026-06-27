@@ -12,8 +12,10 @@ import {
 import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import {
+  ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
   LIBRARY_ITEM_DRAG_MIME_TYPE,
   readEstimateLibraryItemDragPayload,
+  readEstimateRowItemDragPayload,
 } from "./constants";
 
 const DROP_SLOT_SURFACE_CLASS =
@@ -77,23 +79,29 @@ export function ComponentDropTarget({
   empty,
   onInsertLibraryItem,
   onAddBlankRow,
+  onMoveRowItem,
+  rowDropIndex = 0,
 }: {
   nodeId: string;
   nodeName: string;
   empty: boolean;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onAddBlankRow: (targetNodeId: string) => void;
+  onMoveRowItem?: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
+  rowDropIndex?: number;
 }) {
   const activeDrag = useEstimateWorkshopDrag();
   const [dragCount, setDragCount] = useState(0);
   const componentDragActive = activeDrag?.kind === "library-item";
+  const rowItemDragActive = activeDrag?.kind === "estimate-row-item";
+  const compatibleDragActive = componentDragActive || rowItemDragActive;
   const isDragOver = dragCount > 0;
 
   // A cancelled drag never delivers the balancing dragleave; adjust the
   // stale counter during render once the drag store empties.
-  if (!componentDragActive && dragCount !== 0) setDragCount(0);
+  if (!compatibleDragActive && dragCount !== 0) setDragCount(0);
 
-  if (!componentDragActive) {
+  if (!compatibleDragActive) {
     return (
       <div className={cn("py-1", empty ? "py-1.5" : null)}>
         <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
@@ -107,6 +115,11 @@ export function ComponentDropTarget({
       onDragEnter={() => setDragCount((c) => c + 1)}
       onDragLeave={() => setDragCount((c) => Math.max(0, c - 1))}
       onDragOver={(event) => {
+        if (event.dataTransfer.types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          return;
+        }
         if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
           event.preventDefault();
           event.dataTransfer.dropEffect = "copy";
@@ -114,6 +127,14 @@ export function ComponentDropTarget({
       }}
       onDrop={(event) => {
         setDragCount(0);
+        const rowItemPayload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
+        if (rowItemPayload && onMoveRowItem) {
+          event.preventDefault();
+          event.stopPropagation();
+          onMoveRowItem(rowItemPayload.rowItemId, nodeId, rowDropIndex);
+          return;
+        }
+
         const result = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
         if (!result.ok) return;
         event.preventDefault();
@@ -121,7 +142,7 @@ export function ComponentDropTarget({
       }}
     >
       <EstimateDropZone
-        label={`Drag and drop estimate component into ${nodeName}`}
+        label={rowItemDragActive ? `Move row to ${nodeName}` : `Drag and drop estimate component into ${nodeName}`}
         isDragOver={isDragOver}
         empty={empty}
       />

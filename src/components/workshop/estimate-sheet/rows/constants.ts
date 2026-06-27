@@ -7,6 +7,7 @@ import type { EstimateRowItem } from "../../estimate-tree-data";
 export const EMPTY_ESTIMATE_ROW_ITEMS: EstimateRowItem[] = [];
 export const LIBRARY_ITEM_DRAG_MIME_TYPE = "application/x-archestimator-library-item";
 export const ESTIMATE_COMPONENT_DRAG_MIME_TYPE = "application/x-archestimator-estimate-component";
+export const ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE = "application/x-archestimator-estimate-row-item";
 export const ADD_LIBRARY_ITEM_EVENT = "archestimator:add-library-item";
 
 export type EstimateLibraryItemPayloadRejectReason =
@@ -29,6 +30,12 @@ export type AddLibraryItemEventDetail = {
 export type EstimateComponentDragPayload = {
   rowItemId: string;
   item: EstimateRowItem;
+};
+
+export type EstimateRowItemDragPayload = {
+  rowItemId: string;
+  sourceNodeId: string;
+  label?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -116,6 +123,24 @@ export function readEstimateComponentDragPayload(event: DragEvent<HTMLElement>):
     const parsed = JSON.parse(payload) as Partial<EstimateComponentDragPayload>;
     if (typeof parsed.rowItemId !== "string" || !parsed.item) return null;
     return parsed as EstimateComponentDragPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function readEstimateRowItemDragPayload(rawPayload: string): EstimateRowItemDragPayload | null {
+  if (!rawPayload) return null;
+
+  try {
+    const parsed = JSON.parse(rawPayload);
+    if (!isRecord(parsed)) return null;
+    if (typeof parsed.rowItemId !== "string" || parsed.rowItemId.length === 0) return null;
+    if (typeof parsed.sourceNodeId !== "string" || parsed.sourceNodeId.length === 0) return null;
+    return {
+      rowItemId: parsed.rowItemId,
+      sourceNodeId: parsed.sourceNodeId,
+      label: typeof parsed.label === "string" ? parsed.label : undefined,
+    };
   } catch {
     return null;
   }

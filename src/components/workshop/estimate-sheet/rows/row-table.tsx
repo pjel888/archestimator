@@ -2,11 +2,11 @@
 
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowsOutSimple, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { ControlInput } from "@/components/ui/control-input";
-import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
@@ -21,21 +21,29 @@ import { cn } from "@/lib/ui/cn";
 import { estimateSurfaceClass } from "../../estimate-surface-class";
 import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
-import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history-model";
+import { beginEstimateWorkshopDrag } from "../../estimate-workshop-drag";
+import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type RowDetailTab } from "../activity-history-model";
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { useEstimateColumnResizeController } from "../columns/use-estimate-column-resize-controller";
-import { LIBRARY_ITEM_DRAG_MIME_TYPE, readEstimateLibraryItemDragPayload } from "./constants";
+import {
+  ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
+  LIBRARY_ITEM_DRAG_MIME_TYPE,
+  readEstimateLibraryItemDragPayload,
+  readEstimateRowItemDragPayload,
+  type EstimateRowItemDragPayload,
+} from "./constants";
 import { EstimateRowColumnResizeHandle } from "./column-resize-handle";
 import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState } from "./cells";
 import { focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import {
-  COST_ADJUSTMENT_MODE_OPTIONS,
-  calculateContingencyValue,
+  buildEditableQuantityContingencyPatch,
+  buildEditableQuantityContingencyPercentagePatch,
+  getEditableQuantityInputValue,
+  getEditableRowAmounts,
   getInitialEditableRow,
-  parseCostAdjustmentPercentage,
-  parseEditableContingencyPercentage,
+  parseEditableQuantityExpression,
   parseNonNegativeEditableNumber,
   toEditableContingencyPercentage,
   updateEditableRowValue,
@@ -46,6 +54,8 @@ export type EstimateRowItemsTableProps = {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
+  projectId?: string;
+  estimateId?: string;
   targetNodeId: string;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
@@ -58,6 +68,8 @@ export type EstimateRowItemsTableProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
+  onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
   onOpenReplaceComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   onOpenMoveComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
@@ -91,6 +103,8 @@ export type EstimateTableColumnResizeConfig = {
 function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, next: EstimateRowItemsTableProps) {
   if (
     prev.items !== next.items ||
+    prev.projectId !== next.projectId ||
+    prev.estimateId !== next.estimateId ||
     prev.targetNodeId !== next.targetNodeId ||
     prev.setEditableRows !== next.setEditableRows ||
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
@@ -104,6 +118,8 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
     prev.promotingRowId !== next.promotingRowId ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.onMoveRowItem !== next.onMoveRowItem ||
+    prev.onOpenMoveRowItemDialog !== next.onOpenMoveRowItemDialog ||
     prev.onOpenReplaceComponentPicker !== next.onOpenReplaceComponentPicker ||
     prev.onOpenMoveComponentPicker !== next.onOpenMoveComponentPicker ||
     prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
@@ -154,6 +170,8 @@ function findScrollParent(element: HTMLElement | null): HTMLElement | null {
 type EstimateRowItemTableRowProps = {
   item: EstimateRowItem;
   editableRow: EditableRowValue | undefined;
+  projectId?: string;
+  estimateId?: string;
   rowIndex: number;
   selected: boolean;
   activeCellIndex: number | null;
@@ -171,12 +189,15 @@ type EstimateRowItemTableRowProps = {
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
+  onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
   onOpenReplaceComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   onOpenMoveComponentPicker?: (rowItemId: string, opener: HTMLElement) => void;
   expressDraftState?: ExpressInsertDraftState;
   onRetryExpressDraft: (rowItemId: string) => void;
   onDeleteExpressDraft: (rowItemId: string) => void;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
+  targetNodeId: string;
   rowIds: readonly string[];
   onRequestFocusByRowId: (rowId: string, cellIndex: number) => void;
   onExpressEditorActiveChange: (rowId: string, active: boolean) => void;
@@ -186,6 +207,8 @@ type EstimateRowItemTableRowProps = {
 const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   item,
   editableRow,
+  projectId,
+  estimateId,
   rowIndex,
   selected,
   activeCellIndex,
@@ -203,12 +226,15 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onPromoteRowToLibrary,
   promotingRowId,
   onMoveRowComponent,
+  onMoveRowItem,
+  onOpenMoveRowItemDialog,
   onOpenReplaceComponentPicker,
   onOpenMoveComponentPicker,
   expressDraftState,
   onRetryExpressDraft,
   onDeleteExpressDraft,
   onToggleRowSelection,
+  targetNodeId,
   rowIds,
   onRequestFocusByRowId,
   onExpressEditorActiveChange,
@@ -216,18 +242,17 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
 }: EstimateRowItemTableRowProps) {
   reportEstimateRowItemRender(item.id);
   const isInlineEditableComponentRow = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
+  const [quantityBreakdownOpen, setQuantityBreakdownOpen] = useState(false);
   const computedItem = useMemo(() => {
     const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
-    const itemCost = isInlineEditableComponentRow ? parseNonNegativeEditableNumber(resolvedEditableRow.unitCost) : item.itemCost;
-    const quantity = parseNonNegativeEditableNumber(resolvedEditableRow.quantity);
-    const contingencyPercentage = parseEditableContingencyPercentage(resolvedEditableRow);
-    const miscCost = parseNonNegativeEditableNumber(resolvedEditableRow.miscCost);
-    const subTotal = itemCost * quantity;
-    const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
+    const amountEditableRow = isInlineEditableComponentRow ? resolvedEditableRow : { ...resolvedEditableRow, unitCost: String(item.itemCost) };
+    const amounts = getEditableRowAmounts(item, amountEditableRow);
     return {
       ...item,
-      itemCost,
+      itemCost: amounts.itemCost,
       storedQuantity: item.quantity,
+      storedQuantityBase: item.quantityBase ?? null,
+      storedQuantityContingencyAmount: item.quantityContingencyAmount ?? null,
       storedMaterial: item.material,
       storedDescription: item.description,
       storedSupplier: item.supplier,
@@ -243,21 +268,66 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       storedContingencyPercentage: item.contingencyPercentage ?? 0,
       storedMiscCost: item.miscCost,
       editableQuantity: resolvedEditableRow.quantity,
+      editableQuantityExpression: resolvedEditableRow.quantityExpression,
+      editableQuantityBase: resolvedEditableRow.quantityBase,
+      editableQuantityContingencyAmount: resolvedEditableRow.quantityContingencyAmount,
+      editableQuantityInput: getEditableQuantityInputValue(resolvedEditableRow),
       editableContingencyMode: resolvedEditableRow.contingencyMode,
       editableContingencyPercentage: resolvedEditableRow.contingencyPercentage,
       editableMiscCost: resolvedEditableRow.miscCost,
-      quantity,
-      contingencyPercentage,
-      contingencyValue,
-      miscCost,
-      subTotal,
-      totalItemCosts: subTotal + miscCost + contingencyValue,
+      quantity: amounts.quantity,
+      quantityBase: amounts.quantityBase,
+      quantityContingencyAmount: amounts.quantityContingencyAmount,
+      contingencyPercentage: amounts.contingencyPercentage,
+      contingencyValue: amounts.contingencyValue,
+      miscCost: amounts.miscCost,
+      subTotal: amounts.subTotal,
+      totalItemCosts: amounts.totalItemCosts,
+      isQuantityContingency: amounts.isQuantityContingency,
     };
   }, [editableRow, isInlineEditableComponentRow, item]);
   const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
   const computedItemLabel = isInlineEditableComponentRow
     ? computedItem.editableName || "Project Component"
     : computedItem.material || "component";
+  const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
+
+  function handleRowItemDragStart(event: DragEvent<HTMLButtonElement>) {
+    const payload: EstimateRowItemDragPayload = {
+      rowItemId: computedItem.id,
+      sourceNodeId: targetNodeId,
+      label: computedItemLabel,
+    };
+    event.stopPropagation();
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE, JSON.stringify(payload));
+    event.dataTransfer.setData("text/plain", computedItemLabel);
+    beginEstimateWorkshopDrag({
+      kind: "estimate-row-item",
+      rowItemId: computedItem.id,
+      rowLabel: computedItemLabel,
+      sourceNodeId: targetNodeId,
+    });
+  }
+
+  function handleRowItemDragOver(event: DragEvent<HTMLTableRowElement>) {
+    if (!event.dataTransfer.types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    const rect = event.currentTarget.getBoundingClientRect();
+    setRowDropEdge(event.clientY < rect.top + rect.height / 2 ? "before" : "after");
+  }
+
+  function handleRowItemDrop(event: DragEvent<HTMLTableRowElement>) {
+    const payload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
+    setRowDropEdge(null);
+    if (!payload) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    onMoveRowItem(payload.rowItemId, targetNodeId, rowDropEdge === "after" ? rowIndex + 1 : rowIndex);
+  }
 
   function updateExpressEditableRow(values: Partial<EditableRowValue>) {
     setEditableRows((current) => updateEditableRowValue(current, item, values));
@@ -273,8 +343,61 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     if (values.unit !== undefined && nextValues.unit !== item.unit) patch.unit = nextValues.unit;
     if (values.unitCost !== undefined && parseNonNegativeEditableNumber(nextValues.unitCost) !== item.itemCost) patch.unitCost = nextValues.unitCost;
     if (values.imageUrl !== undefined && nextValues.imageUrl !== (item.imageUrl ?? "")) patch.imageUrl = nextValues.imageUrl;
+    if (values.imageAsset !== undefined) patch.imageAsset = values.imageAsset;
     if (values.sourceUrl !== undefined && nextValues.sourceUrl !== (item.sourceUrl ?? "")) patch.sourceUrl = nextValues.sourceUrl;
     if (Object.keys(patch).length > 0) onUpdateRowItem(item.id, patch);
+  }
+
+  function updateQuantityFields(values: Partial<EditableRowValue>) {
+    setEditableRows((current) => updateEditableRowValue(current, computedItem, values));
+    onMarkRowDirty(computedItem.id);
+  }
+
+  function updateQuantityDraft(value: string) {
+    const parsed = parseEditableQuantityExpression(item, value);
+    if (parsed.ok) updateQuantityFields(parsed.patch);
+    else updateQuantityFields({ quantityExpression: value });
+  }
+
+  function commitQuantityFields(values: Partial<EditableRowValue>) {
+    const nextRow = { ...resolvedEditableRow, ...values };
+    const nextQuantity = parseNonNegativeEditableNumber(nextRow.quantity);
+    const nextQuantityBase = nextRow.quantityBase.trim() === "" ? null : parseNonNegativeEditableNumber(nextRow.quantityBase);
+    const nextQuantityContingencyAmount = nextRow.quantityContingencyAmount.trim() === ""
+      ? null
+      : parseNonNegativeEditableNumber(nextRow.quantityContingencyAmount);
+    const didQuantityChange = nextQuantity !== computedItem.storedQuantity
+      || nextQuantityBase !== computedItem.storedQuantityBase
+      || nextQuantityContingencyAmount !== computedItem.storedQuantityContingencyAmount;
+    if (!didQuantityChange) return;
+    onUpdateRowItem(computedItem.id, {
+      quantity: nextRow.quantity,
+      quantityExpression: nextRow.quantityExpression,
+      quantityBase: nextRow.quantityBase,
+      quantityContingencyAmount: nextRow.quantityContingencyAmount,
+      contingencyMode: nextRow.contingencyMode,
+      contingencyPercentage: nextRow.contingencyPercentage,
+    });
+  }
+
+  function updateQuantityBreakdown(field: "base" | "contingency", value: string) {
+    const patch = buildEditableQuantityContingencyPatch(
+      field === "base" ? value : computedItem.editableQuantityBase,
+      field === "contingency" ? value : computedItem.editableQuantityContingencyAmount,
+    );
+    updateQuantityFields(patch);
+  }
+
+  function commitContingencyPercentage() {
+    const nextContingencyPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(computedItem.editableContingencyPercentage));
+    const storedContingencyPercentage = toEditableContingencyPercentage(computedItem.storedContingencyPercentage);
+    setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: nextContingencyPercentage }));
+    if (nextContingencyPercentage === storedContingencyPercentage) return;
+
+    const baseQuantityValue = computedItem.editableQuantityBase || computedItem.editableQuantity;
+    const patch = buildEditableQuantityContingencyPercentagePatch(baseQuantityValue, nextContingencyPercentage);
+    setEditableRows((current) => updateEditableRowValue(current, computedItem, patch));
+    onUpdateRowItem(computedItem.id, patch);
   }
 
 
@@ -284,18 +407,37 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         "group/estimate-row grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50",
         !isInlineEditableComponentRow && "[contain-intrinsic-size:96px] [content-visibility:auto]",
         activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
+        rowDropEdge === "before" && "shadow-[inset_0_2px_0_rgba(37,99,235,0.85)]",
+        rowDropEdge === "after" && "shadow-[inset_0_-2px_0_rgba(37,99,235,0.85)]",
       )}
       style={{ ...style, gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}
       data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
       data-estimate-row-id={computedItem.id}
+      data-estimate-row-drop-edge={rowDropEdge ?? undefined}
+      onDragOver={handleRowItemDragOver}
+      onDragLeave={() => setRowDropEdge(null)}
+      onDrop={handleRowItemDrop}
     >
-      <td className="flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
-        {String(rowIndex + 1).padStart(2, "0")}
+      <td className="relative flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
+        <span className="transition-opacity group-hover/estimate-row:opacity-0 group-focus-within/estimate-row:opacity-0">
+          {String(rowIndex + 1).padStart(2, "0")}
+        </span>
+        <Tooltip label="Move row" side="right" contentClassName="z-[1200]">
+          <button
+            type="button"
+            draggable
+            className="absolute inset-0 grid cursor-grab place-items-center text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+            aria-label={`Move row ${computedItemLabel}`}
+            aria-haspopup="dialog"
+            data-estimate-row-drag-handle=""
+            onDragStart={handleRowItemDragStart}
+            onClick={(event) => onOpenMoveRowItemDialog?.(computedItem.id, event.currentTarget)}
+          >
+            <DotsSixVertical size={14} weight="regular" aria-hidden="true" />
+          </button>
+        </Tooltip>
       </td>
       <td className="flex items-center justify-center border-r border-hairline text-tertiary">
-        {/* No row-reorder grip: row reorder isn't implemented (no drag
-            handler, no reorder RPC), so a draggable-looking handle was
-            a false affordance + false a11y announcement (OD-13/D5). */}
         <SelectionCheckbox
           checked={selected}
           ariaLabel={`Select ${computedItemLabel}`}
@@ -312,6 +454,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         <EstimateMaterialCell
           item={computedItem}
           editableRow={resolvedEditableRow}
+          projectId={projectId}
+          estimateId={estimateId}
           isReplaceTarget={isReplaceTarget}
           onExpressEditorActiveChange={(active) => onExpressEditorActiveChange(computedItem.id, active)}
           onExpressFieldChange={updateExpressEditableRow}
@@ -327,6 +471,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             onReplaceRowItem(computedItem.id, {
               ...libraryItem,
               quantity: computedItem.quantity,
+              quantityBase: computedItem.quantityBase,
+              quantityContingencyAmount: computedItem.quantityContingencyAmount,
               contingencyPercentage: computedItem.contingencyPercentage,
               contingencyValue: computedItem.contingencyValue,
               miscCost: computedItem.miscCost,
@@ -356,18 +502,30 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         data-estimate-cell-active={activeCellIndex === 0 ? "true" : undefined}
       >
         <ControlInput
-          type="number"
-          min="0"
-          step="0.01"
-          value={computedItem.editableQuantity}
+          type="text"
+          inputMode="decimal"
+          value={computedItem.editableQuantityInput}
           onChange={(event) => {
-            setEditableRows((current) => updateEditableRowValue(current, computedItem, { quantity: event.target.value }));
-            onMarkRowDirty(computedItem.id);
+            updateQuantityDraft(event.target.value);
           }}
           onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
           onBlur={() => {
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
-            if (computedItem.quantity !== computedItem.storedQuantity) onUpdateRowItem(computedItem.id, { quantity: computedItem.editableQuantity });
+            const parsed = parseEditableQuantityExpression(item, computedItem.editableQuantityInput);
+            if (!parsed.ok) {
+              const initialRow = getInitialEditableRow(item);
+              updateQuantityFields({
+                quantity: initialRow.quantity,
+                quantityExpression: initialRow.quantityExpression,
+                quantityBase: initialRow.quantityBase,
+                quantityContingencyAmount: initialRow.quantityContingencyAmount,
+                contingencyMode: initialRow.contingencyMode,
+                contingencyPercentage: initialRow.contingencyPercentage,
+              });
+              return;
+            }
+            updateQuantityFields(parsed.patch);
+            commitQuantityFields(parsed.patch);
           }}
           onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0, rowIds, onRequestFocusByRowId)}
           data-estimate-row-index={rowIndex}
@@ -377,9 +535,46 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           align="center"
           className="text-[10px] tabular-nums"
         />
+        {computedItem.quantityContingencyAmount && computedItem.quantityContingencyAmount > 0 ? (
+          <Chip
+            tone="accent"
+            active={quantityBreakdownOpen}
+            className="absolute bottom-4 max-w-[calc(100%-8px)] px-1"
+            aria-label={`${computedItemLabel} quantity contingency breakdown`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setQuantityBreakdownOpen((current) => !current)}
+          >
+            +{computedItem.quantityContingencyAmount} ({toEditableContingencyPercentage(computedItem.contingencyPercentage)}%)
+          </Chip>
+        ) : null}
+        {quantityBreakdownOpen ? (
+          <div className="absolute left-1 top-8 z-20 grid w-40 grid-cols-2 gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
+            <ControlInput
+              type="number"
+              min="0"
+              step="0.01"
+              value={computedItem.editableQuantityBase}
+              aria-label={`${computedItemLabel} base quantity`}
+              align="center"
+              className="h-6 text-[10px] tabular-nums"
+              onChange={(event) => updateQuantityBreakdown("base", event.target.value)}
+              onBlur={(event) => commitQuantityFields(buildEditableQuantityContingencyPatch(event.currentTarget.value, computedItem.editableQuantityContingencyAmount))}
+            />
+            <ControlInput
+              type="number"
+              min="0"
+              step="0.01"
+              value={computedItem.editableQuantityContingencyAmount}
+              aria-label={`${computedItemLabel} contingency quantity`}
+              align="center"
+              className="h-6 text-[10px] tabular-nums"
+              onChange={(event) => updateQuantityBreakdown("contingency", event.target.value)}
+              onBlur={(event) => commitQuantityFields(buildEditableQuantityContingencyPatch(computedItem.editableQuantityBase, event.currentTarget.value))}
+            />
+          </div>
+        ) : null}
         <p className="absolute top-18 right-1 text-[10px] font-medium leading-3 text-tertiary">/ {computedItem.unit}</p>
       </td>
-      <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.subTotal).replace("₱", "₱ ")}</td>
       <td
         className={cn(
           "relative flex items-center justify-center border-r border-hairline px-1 py-1 text-center",
@@ -387,52 +582,37 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         )}
         data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
       >
-        <div className="absolute left-1.5 top-1.5 w-[74px]">
-          <DropdownSelect
-            value={computedItem.editableContingencyMode}
-            aria-label={`${computedItemLabel} adjustment type`}
-            options={COST_ADJUSTMENT_MODE_OPTIONS}
-            className="h-3.5 border-0 bg-transparent pl-0 pr-0 text-left !text-[8px] leading-[10px] text-secondary"
-            onValueChange={(nextValue) => {
-              const nextMode = nextValue as CostAdjustmentMode;
-              setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyMode: nextMode }));
-              onMarkRowDirty(computedItem.id);
-              const nextContingencyPercentage = parseCostAdjustmentPercentage(computedItem.editableContingencyPercentage, nextMode);
-              if (nextContingencyPercentage !== computedItem.storedContingencyPercentage) {
-                onUpdateRowItem(computedItem.id, { contingencyMode: nextMode, contingencyPercentage: computedItem.editableContingencyPercentage });
-              }
-            }}
-          />
-        </div>
-        <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 pt-2">
+        <div className="flex min-w-0 flex-col items-center justify-center gap-0.5">
           <div className="flex h-5 items-baseline justify-center leading-none">
-            <ControlInput
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={computedItem.editableContingencyPercentage}
-              onChange={(event) => {
-                setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: event.target.value }));
-                onMarkRowDirty(computedItem.id);
-              }}
-              onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 1 })}
-              onBlur={() => {
-                setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 1 ? null : current));
-                const nextContingencyPercentage = toEditableContingencyPercentage(computedItem.contingencyPercentage);
-                setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: nextContingencyPercentage }));
-                if (computedItem.contingencyPercentage !== computedItem.storedContingencyPercentage) {
-                  onUpdateRowItem(computedItem.id, { contingencyMode: computedItem.editableContingencyMode, contingencyPercentage: nextContingencyPercentage });
-                }
-              }}
-              onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1, rowIds, onRequestFocusByRowId)}
-              data-estimate-row-index={rowIndex}
-              data-estimate-row-id={computedItem.id}
-              data-estimate-cell-index={1}
-              aria-label={`${computedItemLabel} adjustment percentage`}
-              align="center"
-              className="h-5 w-9 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            />
+            {computedItem.quantityContingencyAmount && computedItem.quantityContingencyAmount > 0 ? (
+              <span className="text-[10px] font-medium tabular-nums text-ink">
+                {toEditableContingencyPercentage(computedItem.contingencyPercentage)}
+              </span>
+            ) : (
+              <ControlInput
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={computedItem.editableContingencyPercentage}
+                onChange={(event) => {
+                  setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: event.target.value }));
+                  onMarkRowDirty(computedItem.id);
+                }}
+                onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 1 })}
+                onBlur={() => {
+                  setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 1 ? null : current));
+                  commitContingencyPercentage();
+                }}
+                onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1, rowIds, onRequestFocusByRowId)}
+                data-estimate-row-index={rowIndex}
+                data-estimate-row-id={computedItem.id}
+                data-estimate-cell-index={1}
+                aria-label={`${computedItemLabel} contingency percentage`}
+                align="center"
+                className="h-5 w-9 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            )}
             <span className="text-[10px] font-medium leading-none tabular-nums text-ink" aria-hidden="true">%</span>
           </div>
           <p className="max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums text-tertiary">
@@ -440,6 +620,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           </p>
         </div>
       </td>
+      <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.subTotal).replace("₱", "₱ ")}</td>
       <td
         className={cn(
           "flex items-center justify-center border-r border-hairline px-1",
@@ -469,7 +650,25 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td className="flex items-center justify-end border-r border-hairline px-1 text-right">
         <p className="text-[10px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
       </td>
-      <td className="flex flex-col items-center justify-between py-2 text-tertiary">
+      <td className="grid grid-cols-2 place-content-center gap-1 py-2 text-tertiary">
+        {onOpenMoveRowItemDialog ? (
+          <Tooltip label="Move row" side="left" contentClassName="z-[1200]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              draggable
+              className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              aria-label={`Move row ${computedItemLabel}`}
+              aria-haspopup="dialog"
+              data-estimate-row-move-action=""
+              onDragStart={handleRowItemDragStart}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenMoveRowItemDialog(computedItem.id, event.currentTarget)}
+            >
+              <DotsSixVertical size={14} weight="regular" aria-hidden="true" />
+            </Button>
+          </Tooltip>
+        ) : null}
         <Tooltip label="Row details" side="left" contentClassName="z-[1200]">
           <Button
             type="button"
@@ -511,7 +710,13 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   );
 });
 
-function handleLibraryItemDragOver(event: DragEvent) {
+function handleTableDragOver(event: DragEvent) {
+  if (event.dataTransfer.types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE)) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    return;
+  }
+
   if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
@@ -522,6 +727,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   items,
   editableRows,
   setEditableRows,
+  projectId,
+  estimateId,
   targetNodeId,
   onInsertLibraryItem,
   onReplaceRowItem,
@@ -534,6 +741,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onPromoteRowToLibrary,
   promotingRowId,
   onMoveRowComponent,
+  onMoveRowItem,
+  onOpenMoveRowItemDialog,
   onOpenReplaceComponentPicker,
   onOpenMoveComponentPicker,
   expressInsertDraftStates = {},
@@ -668,6 +877,15 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   if (!items.length) return null;
 
   function handleDrop(event: DragEvent) {
+    const rowItemPayload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
+    if (rowItemPayload) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "move";
+      onMoveRowItem(rowItemPayload.rowItemId, targetNodeId, items.length);
+      return;
+    }
+
     const result = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
     if (!result.ok) return;
     event.preventDefault();
@@ -687,7 +905,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       ref={scrollRootRef}
       className={cn("overflow-hidden border-x border-b border-hairline", estimateSurfaceClass(surfaceVariant, "gridTableRoot"))}
       data-estimate-row-table-root={targetNodeId}
-      onDragOver={handleLibraryItemDragOver}
+      onDragOver={handleTableDragOver}
       onDrop={handleDrop}
     >
       <table className="w-full border-collapse text-[10px] text-ink">
@@ -722,13 +940,13 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               Qty
               {columnResize ? <EstimateRowColumnResizeHandle columnId="quantity" resizeController={columnResizeController} /> : null}
             </th>
+            <th scope="col" className={headerCellClassName("contingency", "text-center")}>
+              Contingency
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="contingency" resizeController={columnResizeController} /> : null}
+            </th>
             <th scope="col" className={headerCellClassName("subTotal")}>
               Subtotal
               {columnResize ? <EstimateRowColumnResizeHandle columnId="subTotal" resizeController={columnResizeController} /> : null}
-            </th>
-            <th scope="col" className={headerCellClassName("adjustment", "text-center")}>
-              Adjustment
-              {columnResize ? <EstimateRowColumnResizeHandle columnId="adjustment" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("miscCost", "text-center")}>
               Misc Cost
@@ -759,6 +977,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 key={item.id}
                 item={item}
                 editableRow={editableRows[item.id]}
+                projectId={projectId}
+                estimateId={estimateId}
                 rowIndex={virtualRow.index}
                 selected={selectedRowIds.has(item.id)}
                 activeCellIndex={focusedCell?.rowId === item.id ? focusedCell.cellIndex : null}
@@ -777,12 +997,15 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
                 onMoveRowComponent={onMoveRowComponent}
+                onMoveRowItem={onMoveRowItem}
+                onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}
                 onOpenReplaceComponentPicker={onOpenReplaceComponentPicker}
                 onOpenMoveComponentPicker={onOpenMoveComponentPicker}
                 expressDraftState={expressInsertDraftStates[item.id]}
                 onRetryExpressDraft={onRetryExpressDraft}
                 onDeleteExpressDraft={onDeleteExpressDraft}
                 onToggleRowSelection={onToggleRowSelection}
+                targetNodeId={targetNodeId}
                 rowIds={selectableRowIds}
                 onRequestFocusByRowId={requestFocusByRowId}
                 style={virtualEnabled ? {

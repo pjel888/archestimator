@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { EstimateSheetRouteSkeleton } from "@/components/workshop/EstimateSheetRouteSkeleton";
+import type { EstimateSheetAdjustment } from "@/lib/estimates/types";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
-import { resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
+import { resolveEstimateEditCapability, resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 import type { Json } from "@/lib/supabase/types";
 
@@ -25,6 +26,7 @@ type EstimateWorkspaceResolvedProps = {
   tabs: EstimateRouteContext["tabs"];
   prefetchedCanEditEstimate: EstimateRouteContext["canEditEstimate"];
   loadLimitState: EstimateRouteContext["loadLimitState"];
+  sheetAdjustment?: EstimateSheetAdjustment;
   proposalExportMetadata: {
     projectId: string;
     estimateId: string;
@@ -67,9 +69,12 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
   const estimateTreeResult = await withPerfTraceRequest("workshop.estimate-sheet", () =>
     traced("estimate-sheet.route-context", () => resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)),
   );
-  const { project, estimate, selectedNodeId, tree, tab, tabs, canEditEstimate: prefetchedCanEditEstimate, loadLimitState } = estimateTreeResult;
+  const { project, estimate, selectedNodeId, tree, tab, tabs, canEditEstimate: prefetchedCanEditEstimate, loadLimitState, sheetAdjustment } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
+  const resolvedCanEditEstimate = prefetchedCanEditEstimate === true
+    ? true
+    : await traced("estimate-sheet.edit-capability", () => resolveEstimateEditCapability(estimate.id));
 
   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
   const proposalExportMetadata = {
@@ -92,8 +97,9 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
       tree={tree}
       tab={tab}
       tabs={tabs}
-      prefetchedCanEditEstimate={prefetchedCanEditEstimate}
+      prefetchedCanEditEstimate={resolvedCanEditEstimate}
       loadLimitState={loadLimitState}
+      sheetAdjustment={sheetAdjustment}
       proposalExportMetadata={proposalExportMetadata}
     />
   );
@@ -108,6 +114,7 @@ function EstimateWorkspaceResolved({
   tabs,
   prefetchedCanEditEstimate,
   loadLimitState,
+  sheetAdjustment,
   proposalExportMetadata,
 }: EstimateWorkspaceResolvedProps) {
   // The route-context resolver already returns the tab list on the dominant
@@ -129,6 +136,7 @@ function EstimateWorkspaceResolved({
       estimateTabs={estimateTabs}
       activeTabId={tab?.id ?? null}
       loadLimitState={loadLimitState}
+      sheetAdjustment={sheetAdjustment}
       canEditEstimate={prefetchedCanEditEstimate === true}
       proposalExportMetadata={proposalExportMetadata}
       surfaceVariant="glass"

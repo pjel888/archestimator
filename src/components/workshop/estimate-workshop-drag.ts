@@ -23,6 +23,12 @@ export type EstimateWorkshopDrag =
   | {
       kind: "project-source";
       sourceName: string;
+    }
+  | {
+      kind: "estimate-row-item";
+      rowItemId: string;
+      rowLabel: string;
+      sourceNodeId: string;
     };
 
 type EstimateWorkshopDragState = {

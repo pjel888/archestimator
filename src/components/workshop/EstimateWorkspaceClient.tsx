@@ -17,7 +17,7 @@ import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import { estimateQueryKeys, useEstimateEditCapabilityQuery, useEstimateTabsQuery } from "@/hooks/use-estimate-query";
 import { useEstimateActiveTab } from "@/hooks/use-estimate-workspace-state";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
-import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
@@ -44,6 +44,7 @@ type EstimateWorkspaceClientProps = {
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string | null;
   loadLimitState?: EstimateTreeLoadLimitState;
+  sheetAdjustment?: EstimateSheetAdjustment;
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
   canEditEstimate?: boolean;
   collaborationUserId?: string | null;
@@ -83,6 +84,7 @@ export function EstimateWorkspaceClient({
   estimateTabs = EMPTY_ESTIMATE_TABS,
   activeTabId = null,
   loadLimitState,
+  sheetAdjustment,
   canEditEstimate = false,
   collaborationUserId,
   collaborationDisplayName,
@@ -119,7 +121,7 @@ export function EstimateWorkspaceClient({
     projectId,
     estimateId,
     initialCanEdit: canEditEstimate,
-    enabled: tabQueriesEnabled,
+    enabled: true,
   });
   const resolvedCanEditEstimate = canEditEstimate === true || editCapabilityQuery.canEditEstimate;
   const defaultTabId = activeTabId ?? queryTabs.find((tab) => tab.isDefault)?.id ?? queryTabs[0]?.id;
@@ -189,6 +191,7 @@ export function EstimateWorkspaceClient({
         activeTabId={displayActiveTabId}
         dataTabId={resolvedActiveTabId}
         loadLimitState={loadLimitState}
+        sheetAdjustment={sheetAdjustment}
         canEditEstimate={resolvedCanEditEstimate}
         initialTabId={activeTabId ?? undefined}
         disableRouteSync={disableRouteSync}

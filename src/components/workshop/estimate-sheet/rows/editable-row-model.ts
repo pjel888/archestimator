@@ -8,11 +8,32 @@ import {
   type FlattenedEstimateRow,
 } from "../activity-history-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
+import { formatQuantityExpression, parseQuantityExpression } from "@/lib/estimates/parse-quantity-expression";
 import {
   reportEstimateNodeTotalCompute,
   reportEstimateNodeTotalsCompute,
 } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
+
+export type EstimateRowImageAssetDescriptor = {
+  kind: "upload-asset";
+  schemaVersion: 1;
+  assetId: string;
+  uploadSessionId: string;
+  bucket: string;
+  path: string;
+  thumbnailPath?: string | null;
+  url?: string | null;
+  thumbnailUrl?: string | null;
+  fileName?: string | null;
+  contentType: string;
+  sizeBytes: number;
+  scanStatus: string;
+  width?: number | null;
+  height?: number | null;
+  thumbnailWidth?: number | null;
+  thumbnailHeight?: number | null;
+};
 
 function toEditableNumber(value: number) {
   return Number.isInteger(value) ? String(value) : String(value);
@@ -22,8 +43,14 @@ export function calculateContingencyValue(subTotal: number, contingencyPercentag
   return (subTotal * contingencyPercentage) / 100;
 }
 
-function calculateRowTotal(subTotal: number, miscCost: number, contingencyPercentage: number) {
-  return subTotal + miscCost + calculateContingencyValue(subTotal, contingencyPercentage);
+export function isQuantityContingencyRow(item: Pick<EstimateRowItem, "quantityBase">) {
+  return item.quantityBase !== null && item.quantityBase !== undefined;
+}
+
+export function calculateQuantityContingencyPercentage(baseQuantity: number, contingencyAmount: number) {
+  if (!Number.isFinite(baseQuantity) || baseQuantity <= 0) return 0;
+  if (!Number.isFinite(contingencyAmount) || contingencyAmount <= 0) return 0;
+  return (contingencyAmount / baseQuantity) * 100;
 }
 
 export function updateEditableRowValue(
@@ -36,8 +63,11 @@ export function updateEditableRowValue(
     ...current,
     [item.id]: {
       quantity: currentRow?.quantity ?? toEditableNumber(item.quantity),
-      contingencyMode: currentRow?.contingencyMode ?? toEditableContingencyMode(item.contingencyPercentage ?? 0),
-      contingencyPercentage: currentRow?.contingencyPercentage ?? toEditableContingencyPercentage(item.contingencyPercentage ?? 0),
+      quantityExpression: currentRow?.quantityExpression ?? getEditableQuantityExpression(item),
+      quantityBase: currentRow?.quantityBase ?? toEditableQuantityBase(item),
+      quantityContingencyAmount: currentRow?.quantityContingencyAmount ?? toEditableQuantityContingencyAmount(item),
+      contingencyMode: currentRow?.contingencyMode ?? (isQuantityContingencyRow(item) ? "contingency" : toEditableContingencyMode(item.contingencyPercentage ?? 0)),
+      contingencyPercentage: currentRow?.contingencyPercentage ?? toEditableContingencyPercentage(getEditableContingencyPercentage(item)),
       miscCost: currentRow?.miscCost ?? toEditableNumber(item.miscCost),
       name: currentRow?.name ?? item.material,
       description: currentRow?.description ?? item.description,
@@ -53,6 +83,9 @@ export function updateEditableRowValue(
 
 export type EditableRowValue = {
   quantity: string;
+  quantityExpression: string;
+  quantityBase: string;
+  quantityContingencyAmount: string;
   contingencyMode: CostAdjustmentMode;
   contingencyPercentage: string;
   miscCost: string;
@@ -62,13 +95,9 @@ export type EditableRowValue = {
   unit: string;
   unitCost: string;
   imageUrl: string;
+  imageAsset?: EstimateRowImageAssetDescriptor | null;
   sourceUrl: string;
 };
-
-export const COST_ADJUSTMENT_MODE_OPTIONS: readonly { value: CostAdjustmentMode; label: string }[] = [
-  { value: "contingency", label: "Contingency" },
-  { value: "discount", label: "Discount" },
-];
 
 function parseEditableNumber(value: string) {
   const parsed = Number(value.replace(/[^0-9.-]/g, ""));
@@ -77,6 +106,11 @@ function parseEditableNumber(value: string) {
 
 export function parseNonNegativeEditableNumber(value: string) {
   return Math.max(0, parseEditableNumber(value));
+}
+
+function parseNullableNonNegativeEditableNumber(value: string) {
+  if (value.trim() === "") return null;
+  return parseNonNegativeEditableNumber(value);
 }
 
 function clampCostAdjustmentMagnitude(value: number) {
@@ -101,6 +135,137 @@ export function formatEditableMoney(value: string) {
   return pesoFormatter.format(parseNonNegativeEditableNumber(value)).replace("₱", "₱ ");
 }
 
+function toEditableQuantityBase(item: EstimateRowItem) {
+  return isQuantityContingencyRow(item) ? toEditableNumber(item.quantityBase ?? 0) : "";
+}
+
+function toEditableQuantityContingencyAmount(item: EstimateRowItem) {
+  return isQuantityContingencyRow(item) ? toEditableNumber(item.quantityContingencyAmount ?? 0) : "";
+}
+
+function getEditableQuantityExpression(item: EstimateRowItem) {
+  if (!isQuantityContingencyRow(item)) return "";
+  const contingencyAmount = item.quantityContingencyAmount ?? 0;
+  return contingencyAmount > 0 ? formatQuantityExpression(item.quantityBase ?? item.quantity, contingencyAmount) : "";
+}
+
+function getEditableContingencyPercentage(item: EstimateRowItem) {
+  if (!isQuantityContingencyRow(item)) return item.contingencyPercentage ?? 0;
+  return calculateQuantityContingencyPercentage(item.quantityBase ?? 0, item.quantityContingencyAmount ?? 0);
+}
+
+export type EditableRowAmounts = {
+  quantity: number;
+  itemCost: number;
+  quantityBase: number | null;
+  quantityContingencyAmount: number | null;
+  contingencyPercentage: number;
+  contingencyValue: number;
+  miscCost: number;
+  subTotal: number;
+  totalItemCosts: number;
+  isQuantityContingency: boolean;
+};
+
+export function parseEditableQuantityExpression(
+  item: EstimateRowItem,
+  value: string,
+): { ok: true; patch: Partial<EditableRowValue> } | { ok: false; error: string } {
+  const result = parseQuantityExpression(value);
+  if (!result.isValid) return { ok: false, error: result.error ?? "Enter a valid quantity." };
+
+  const shouldUseQuantityContingency = result.hasContingencyExpression || isQuantityContingencyRow(item);
+  if (!shouldUseQuantityContingency) {
+    return {
+      ok: true,
+      patch: {
+        quantity: toEditableNumber(result.totalQuantity),
+        quantityExpression: "",
+        quantityBase: "",
+        quantityContingencyAmount: "",
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    patch: {
+      quantity: toEditableNumber(result.totalQuantity),
+      quantityExpression: result.hasContingency ? result.expression : "",
+      quantityBase: toEditableNumber(result.baseQuantity),
+      quantityContingencyAmount: toEditableNumber(result.contingencyAmount),
+      contingencyMode: "contingency",
+      contingencyPercentage: toEditableContingencyPercentage(result.contingencyPercentage),
+    },
+  };
+}
+
+export function getEditableQuantityInputValue(editableRow: EditableRowValue) {
+  return editableRow.quantityExpression || editableRow.quantity;
+}
+
+export function buildEditableQuantityContingencyPatch(baseValue: string, contingencyAmountValue: string): Partial<EditableRowValue> {
+  const baseQuantity = parseNonNegativeEditableNumber(baseValue);
+  const contingencyAmount = parseNonNegativeEditableNumber(contingencyAmountValue);
+  const totalQuantity = baseQuantity + contingencyAmount;
+  const contingencyPercentage = calculateQuantityContingencyPercentage(baseQuantity, contingencyAmount);
+
+  return {
+    quantity: toEditableNumber(totalQuantity),
+    quantityExpression: contingencyAmount > 0 ? formatQuantityExpression(baseQuantity, contingencyAmount) : "",
+    quantityBase: toEditableNumber(baseQuantity),
+    quantityContingencyAmount: toEditableNumber(contingencyAmount),
+    contingencyMode: "contingency",
+    contingencyPercentage: toEditableContingencyPercentage(contingencyPercentage),
+  };
+}
+
+export function buildEditableQuantityContingencyPercentagePatch(baseValue: string, percentageValue: string): Partial<EditableRowValue> {
+  const baseQuantity = parseNonNegativeEditableNumber(baseValue);
+  const percentage = clampCostAdjustmentMagnitude(parseEditableNumber(percentageValue));
+  const contingencyAmount = baseQuantity * percentage / 100;
+  return buildEditableQuantityContingencyPatch(toEditableNumber(baseQuantity), toEditableNumber(contingencyAmount));
+}
+
+export function getEditableRowAmounts(item: EstimateRowItem, editableRow: EditableRowValue): EditableRowAmounts {
+  const itemCost = parseNonNegativeEditableNumber(editableRow.unitCost);
+  const storedQuantityMode = isQuantityContingencyRow(item);
+  const parsedQuantityBase = parseNullableNonNegativeEditableNumber(editableRow.quantityBase);
+  const parsedQuantityContingencyAmount = parseNullableNonNegativeEditableNumber(editableRow.quantityContingencyAmount);
+  const isQuantityContingency = parsedQuantityBase !== null || storedQuantityMode;
+
+  const quantityBase = isQuantityContingency
+    ? parsedQuantityBase ?? parseNonNegativeEditableNumber(editableRow.quantity)
+    : null;
+  const quantityContingencyAmount = isQuantityContingency
+    ? parsedQuantityContingencyAmount ?? 0
+    : null;
+  const resolvedQuantityBase = quantityBase ?? 0;
+  const resolvedQuantityContingencyAmount = quantityContingencyAmount ?? 0;
+  const quantity = isQuantityContingency
+    ? resolvedQuantityBase + resolvedQuantityContingencyAmount
+    : parseNonNegativeEditableNumber(editableRow.quantity);
+  const subTotal = itemCost * quantity;
+  const contingencyPercentage = isQuantityContingency
+    ? calculateQuantityContingencyPercentage(resolvedQuantityBase, resolvedQuantityContingencyAmount)
+    : parseEditableContingencyPercentage(editableRow);
+  const contingencyValue = isQuantityContingency ? 0 : calculateContingencyValue(subTotal, contingencyPercentage);
+  const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
+
+  return {
+    quantity,
+    itemCost,
+    quantityBase,
+    quantityContingencyAmount,
+    contingencyPercentage,
+    contingencyValue,
+    miscCost,
+    subTotal,
+    totalItemCosts: subTotal + miscCost + contingencyValue,
+    isQuantityContingency,
+  };
+}
+
 export function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
   const isEmptyInlineComponent = isBlankEstimateRowItem(item) || (isExpressComponentRow(item) && item.material === "Untitled component");
   const editableName = isEmptyInlineComponent || item.material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL ? "" : item.material;
@@ -108,8 +273,11 @@ export function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
 
   return {
     quantity: toEditableNumber(item.quantity),
-    contingencyMode: toEditableContingencyMode(item.contingencyPercentage ?? 0),
-    contingencyPercentage: toEditableContingencyPercentage(item.contingencyPercentage ?? 0),
+    quantityExpression: getEditableQuantityExpression(item),
+    quantityBase: toEditableQuantityBase(item),
+    quantityContingencyAmount: toEditableQuantityContingencyAmount(item),
+    contingencyMode: isQuantityContingencyRow(item) ? "contingency" : toEditableContingencyMode(item.contingencyPercentage ?? 0),
+    contingencyPercentage: toEditableContingencyPercentage(getEditableContingencyPercentage(item)),
     miscCost: toEditableNumber(item.miscCost),
     name: editableName,
     description: item.description,
@@ -144,12 +312,7 @@ export function collectEditableRows(nodes: EstimateTreeNode[]) {
 
 export function computeEditableRowTotal(item: EstimateRowItem, editableRows: Record<string, Partial<EditableRowValue>>) {
   const editableRow = getEditableRowValue(item, editableRows);
-  const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
-  const itemCost = parseNonNegativeEditableNumber(editableRow.unitCost);
-  const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-  const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
-  const subTotal = itemCost * quantity;
-  return calculateRowTotal(subTotal, miscCost, contingencyPercentage);
+  return getEditableRowAmounts(item, editableRow).totalItemCosts;
 }
 
 export function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, Partial<EditableRowValue>>): number {
@@ -190,12 +353,7 @@ export function materializeEditableEstimateTree(nodes: EstimateTreeNode[], edita
       if (!editableRowPatch) return item;
 
       const editableRow = getEditableRowValue(item, editableRows);
-      const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
-      const itemCost = parseNonNegativeEditableNumber(editableRow.unitCost);
-      const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-      const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
-      const subTotal = itemCost * quantity;
-      const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
+      const amounts = getEditableRowAmounts(item, editableRow);
 
       return {
         ...item,
@@ -203,15 +361,17 @@ export function materializeEditableEstimateTree(nodes: EstimateTreeNode[], edita
         description: editableRow.description,
         supplier: editableRow.supplier,
         unit: editableRow.unit,
-        itemCost,
+        itemCost: amounts.itemCost,
         imageUrl: editableRow.imageUrl || undefined,
         sourceUrl: editableRow.sourceUrl || undefined,
-        quantity,
-        contingencyPercentage,
-        contingencyValue,
-        miscCost,
-        subTotal,
-        totalItemCosts: subTotal + miscCost + contingencyValue,
+        quantity: amounts.quantity,
+        quantityBase: amounts.quantityBase,
+        quantityContingencyAmount: amounts.quantityContingencyAmount,
+        contingencyPercentage: amounts.contingencyPercentage,
+        contingencyValue: amounts.contingencyValue,
+        miscCost: amounts.miscCost,
+        subTotal: amounts.subTotal,
+        totalItemCosts: amounts.totalItemCosts,
       };
     }),
     children: node.children ? materializeEditableEstimateTree(node.children, editableRows) : node.children,
@@ -225,12 +385,7 @@ export function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Rec
     const nodePath = [...path, node.name];
     node.estimateRowItems?.forEach((item) => {
       const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
-      const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
-      const itemCost = parseNonNegativeEditableNumber(editableRow.unitCost);
-      const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-      const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
-      const subTotal = itemCost * quantity;
-      const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
+      const amounts = getEditableRowAmounts(item, editableRow);
       rows.push({
         item: {
           ...item,
@@ -238,17 +393,19 @@ export function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Rec
           description: editableRow.description,
           supplier: editableRow.supplier,
           unit: editableRow.unit,
-          itemCost,
+          itemCost: amounts.itemCost,
           imageUrl: editableRow.imageUrl || undefined,
           sourceUrl: editableRow.sourceUrl || undefined,
+          quantityBase: amounts.quantityBase,
+          quantityContingencyAmount: amounts.quantityContingencyAmount,
         },
         nodeId: node.id,
         nodePath,
-        quantity,
-        contingencyPercentage,
-        contingencyValue,
-        miscCost,
-        lineTotal: subTotal + miscCost + contingencyValue,
+        quantity: amounts.quantity,
+        contingencyPercentage: amounts.contingencyPercentage,
+        contingencyValue: amounts.contingencyValue,
+        miscCost: amounts.miscCost,
+        lineTotal: amounts.totalItemCosts,
       });
     });
     node.children?.forEach((child) => visit(child, nodePath));

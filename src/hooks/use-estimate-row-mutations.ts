@@ -13,18 +13,23 @@ import {
   fetchEstimateTree,
   insertEstimateRowItemFromLibrary,
   moveEstimateRowComponentWithHistory,
+  moveEstimateRowItemWithHistory,
   replaceEstimateRowItemWithLibrary,
   restoreDeletedEstimateRows,
   updateEstimateRowItem,
   type DeleteEstimateRowItemResult,
   type DeleteEstimateRowItemsBulkResult,
   type MoveEstimateRowComponentResult,
+  type MoveEstimateRowItemUpdateInput,
+  type MoveEstimateRowItemWithHistoryResult,
   type RestoreDeletedEstimateRowsResult,
   type UpdateEstimateRowItemResult,
 } from "@/lib/estimates/actions";
+import { applyEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import { estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
+import type { EstimateRowUpdateBroadcastFields } from "./use-estimate-row-update-broadcast";
 import { estimateQueryKeys } from "./use-estimate-query";
 
 export type EstimateSaveState = "idle" | "dirty" | "saving" | "saved" | "failed";
@@ -123,6 +128,18 @@ type MoveEstimateRowsInput = SharedMutationInput & {
   onError?: (error: Error) => void;
 };
 
+type MoveEstimateRowItemInput = SharedMutationInput & {
+  activeTabId?: string | null;
+  movedRowId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  updates: MoveEstimateRowItemUpdateInput[];
+  mutationId?: string;
+  rollback?: () => void;
+  onSuccess?: (result: MoveEstimateRowItemWithHistoryResult) => void;
+  onError?: (error: Error) => void;
+};
+
 type DetachEstimateRowInput = SharedMutationInput & {
   rowId: string;
   mutationId?: string;
@@ -150,6 +167,8 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   unit?: string;
   unitCost?: number;
   quantity?: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   contingencyPercentage?: number;
   miscCost?: number;
   sourceSnapshot?: Json | null;
@@ -192,6 +211,8 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
     ...(input.unit !== undefined ? { unit: input.unit } : {}),
     ...(input.unitCost !== undefined ? { itemCost: input.unitCost } : {}),
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+    ...(input.quantityBase !== undefined ? { quantityBase: input.quantityBase } : {}),
+    ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: input.quantityContingencyAmount } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: input.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: input.miscCost } : {}),
     ...(input.sourceSnapshot !== undefined ? {
@@ -212,6 +233,8 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
     itemCost: result.itemCost,
     rowRevision: result.rowRevision,
     ...(input.quantity !== undefined ? { quantity: result.quantity } : {}),
+    ...(input.quantityBase !== undefined ? { quantityBase: result.quantityBase } : {}),
+    ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: result.quantityContingencyAmount } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: result.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
     ...(input.sourceSnapshot !== undefined ? {
@@ -246,6 +269,14 @@ function createMutationId() {
   return `00000000-0000-4000-8000-${suffix}`;
 }
 
+function deferSaveStateTransition(callback: () => void) {
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(callback);
+    return;
+  }
+  setTimeout(callback, 0);
+}
+
 function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: EstimateRowMutationError | null) => void) {
   const [saveState, setSaveState] = useState<EstimateSaveState>("idle");
   const [activeMutationCount, setActiveMutationCount] = useState(0);
@@ -275,7 +306,7 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
     setActiveMutationCount((count) => {
       const nextCount = Math.max(0, count - 1);
       if (nextCount > 0) return nextCount;
-      transitionTo("saved", null);
+      deferSaveStateTransition(() => transitionTo("saved", null));
       return nextCount;
     });
   }, [transitionTo]);
@@ -285,8 +316,10 @@ function useSaveState(onSaveStateChange?: (state: EstimateSaveState, error: Esti
       const nextCount = Math.max(0, count - 1);
       if (nextCount === 0) {
         const nextError = error ? toEstimateRowMutationError(error, input) : rowMutationError;
-        setRowMutationError(nextError);
-        transitionTo("failed", nextError);
+        deferSaveStateTransition(() => {
+          setRowMutationError(nextError);
+          transitionTo("failed", nextError);
+        });
       }
       return nextCount;
     });
@@ -311,6 +344,7 @@ export function useEstimateRowMutations(
   workspaceId?: string,
   projectId?: string,
   onSaveStateChange?: (state: EstimateSaveState, error: EstimateRowMutationError | null) => void,
+  broadcastRowUpdate?: (fields: EstimateRowUpdateBroadcastFields) => void,
 ) {
   const queryClient = useQueryClient();
   const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
@@ -360,6 +394,8 @@ export function useEstimateRowMutations(
                 supplier: result.supplier,
                 unit: result.unit,
                 quantity: result.quantity,
+                quantityBase: result.quantityBase,
+                quantityContingencyAmount: result.quantityContingencyAmount,
                 itemCost: result.itemCost,
                 contingencyPercentage: result.contingencyPercentage,
                 miscCost: result.miscCost,
@@ -447,6 +483,27 @@ export function useEstimateRowMutations(
     },
   });
 
+  const moveRowItemMutation = useMutation({
+    mutationFn: (input: MoveEstimateRowItemInput) => moveEstimateRowItemWithHistory(withoutClientCallbacks(input)),
+    onMutate: () => markSaving(),
+    onSuccess: (result: MoveEstimateRowItemWithHistoryResult, input) => {
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+        currentTree ? applyEstimateRowItemMoveResultToTree(currentTree, result.rows) : currentTree,
+      );
+      markSaved();
+      input.onSuccess?.(result);
+      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+    },
+    onError: (error: Error, input) => {
+      input.rollback?.();
+      input.onError?.(error);
+      markFailed(error, { rowId: input.movedRowId });
+      invalidateTreeAfterMutationError(error);
+    },
+  });
+
   const deleteRowsMutation = useMutation({
     mutationFn: (input: DeleteEstimateRowsInput) => deleteEstimateRowItemsBulk(withoutClientCallbacks(input)),
     onMutate: () => markSaving(),
@@ -518,6 +575,14 @@ export function useEstimateRowMutations(
       markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+      broadcastRowUpdate?.({
+        rowId: result.rowId,
+        rowRevision: result.rowRevision,
+        quantity: result.quantity,
+        quantityBase: result.quantityBase ?? null,
+        quantityContingencyAmount: result.quantityBase === null || result.quantityBase === undefined ? null : result.quantityContingencyAmount ?? 0,
+        contingencyPercentage: result.contingencyPercentage,
+      });
       input.onSuccess?.(result);
     },
     onError: (_error: Error, input, context) => {
@@ -583,6 +648,8 @@ export function useEstimateRowMutations(
             ...(input.supplier !== undefined ? { supplier: previousRow.supplier } : {}),
             ...(input.unit !== undefined ? { unit: previousRow.unit } : {}),
             ...(input.quantity !== undefined ? { quantity: previousRow.quantity } : {}),
+            ...(input.quantityBase !== undefined ? { quantityBase: previousRow.quantityBase ?? null } : {}),
+            ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: previousRow.quantityContingencyAmount ?? null } : {}),
             ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: previousRow.contingencyPercentage ?? 0 } : {}),
             ...(input.miscCost !== undefined ? { miscCost: previousRow.miscCost } : {}),
             ...(input.sourceSnapshot !== undefined ? { sourceSnapshot: previousRowJson?.sourceSnapshot ?? null } : {}),
@@ -652,6 +719,14 @@ export function useEstimateRowMutations(
     };
   }
 
+  function withMoveRowItemMutationIdentity(input: MoveEstimateRowItemInput): MoveEstimateRowItemInput {
+    return {
+      ...input,
+      activeTabId: input.activeTabId ?? estimateTabId ?? null,
+      mutationId: input.mutationId ?? createMutationId(),
+    };
+  }
+
   function withDeleteRowsMutationIdentity(input: DeleteEstimateRowsInput): DeleteEstimateRowsInput {
     return {
       ...input,
@@ -689,6 +764,7 @@ export function useEstimateRowMutations(
     insertRow: (input: InsertEstimateRowInput) => insertMutation.mutate(withInsertMutationIdentity(input)),
     replaceRow: (input: ReplaceEstimateRowInput) => enqueueRowMutation(input.rowId, () => replaceMutation.mutateAsync(withMutationIdentity(input))),
     moveRows: (input: MoveEstimateRowsInput) => moveMutation.mutate(withMoveMutationIdentity(input)),
+    moveRowItem: (input: MoveEstimateRowItemInput) => moveRowItemMutation.mutate(withMoveRowItemMutationIdentity(input)),
     detachRow: (input: DetachEstimateRowInput) => enqueueRowMutation(input.rowId, () => detachMutation.mutateAsync(withMutationIdentity(input))),
     promoteRow: (input: PromoteEstimateRowInput) => enqueueRowMutation(input.rowId, () => promoteMutation.mutateAsync({
       ...input,

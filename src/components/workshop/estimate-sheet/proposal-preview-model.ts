@@ -1,3 +1,4 @@
+import type { EstimateSheetAdjustment } from "@/lib/estimates/types";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 
 import { reportEstimateProposalPreviewSignatureCompute } from "../estimate-sheet-render-probe";
@@ -20,9 +21,13 @@ export function createProposalPreviewSignature(
   nodes: EstimateTreeNode[],
   editableRows: Record<string, EditableRowValue>,
   metadata: ProposalExportMetadata | null,
+  sheetAdjustment?: EstimateSheetAdjustment | null,
 ) {
   reportEstimateProposalPreviewSignatureCompute();
   const parts: string[] = [metadata ? `${metadata.projectId}|${metadata.estimateId}|${metadata.projectName}|${metadata.estimateName}|${metadata.versionLabel}|${metadata.currency}` : "no-metadata"];
+  if (sheetAdjustment) {
+    parts.push(`sheet-adjustment:${sheetAdjustment.mode}|${sheetAdjustment.percentage}|${sheetAdjustment.rowRevision}`);
+  }
 
   function visit(node: EstimateTreeNode) {
     parts.push(`node:${node.id}|${node.kind}|${node.name}`);
@@ -89,13 +94,15 @@ export function appendProposalExportSettingsParams(
   if (settings.includeInternalBreakdown) params.set("audience", "internal");
 }
 
-export function proposalPreviewModelSettings(settings: ProposalExportUserSettings) {
+export function proposalPreviewModelSettings(settings: ProposalExportUserSettings, sheetAdjustment?: EstimateSheetAdjustment | null) {
   return {
     contingencyRate: settings.contingencyRate,
     vatRate: settings.vatRate,
     contingencyMode: settings.contingencyIncluded ? ("included" as const) : ("percentage" as const),
     vatMode: settings.vatIncluded ? ("included" as const) : ("percentage" as const),
     includeFormulas: settings.includeFormulas,
+    sheetAdjustmentMode: sheetAdjustment?.mode ?? ("contingency" as const),
+    sheetAdjustmentRate: sheetAdjustment?.percentage ?? 0,
   };
 }
 

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, type Dispatch, type SetStateAction } from
 
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
-import type { EstimateTabSummary } from "@/lib/estimates/types";
+import type { EstimateSheetAdjustment, EstimateTabSummary } from "@/lib/estimates/types";
 
 import type { EstimateTreeNode } from "../estimate-tree-data";
 import type { ProposalExportPreviewScope, ProposalExportUserSettings } from "../ProposalExportPreviewDialog";
@@ -30,6 +30,7 @@ type UseEstimateProposalPreviewInput = {
   estimateTabs: EstimateTabSummary[];
   estimateTree: EstimateTreeNode[];
   editableRows: Record<string, EditableRowValue>;
+  sheetAdjustment?: EstimateSheetAdjustment | null;
   resolvedProposalExportMetadata: ProposalExportMetadata | null;
   isProposalPreviewOpen: boolean;
   proposalPreviewScope: ProposalExportPreviewScope;
@@ -55,6 +56,7 @@ export function useEstimateProposalPreview({
   estimateTabs,
   estimateTree,
   editableRows,
+  sheetAdjustment,
   resolvedProposalExportMetadata,
   isProposalPreviewOpen,
   proposalPreviewScope,
@@ -89,13 +91,13 @@ export function useEstimateProposalPreview({
   );
   const getProposalPreviewSignature = useCallback(
     (scope: ProposalExportPreviewScope) => [
-      createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
+      createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata, sheetAdjustment),
       dataTabId ?? "legacy",
       tabScopeSignature,
       scope,
-      JSON.stringify(proposalPreviewModelSettings(proposalExportSettings)),
+      JSON.stringify(proposalPreviewModelSettings(proposalExportSettings, sheetAdjustment)),
     ].join("::"),
-    [dataTabId, editableRows, estimateTree, proposalExportSettings, resolvedProposalExportMetadata, tabScopeSignature],
+    [dataTabId, editableRows, estimateTree, proposalExportSettings, resolvedProposalExportMetadata, sheetAdjustment, tabScopeSignature],
   );
   const currentProposalPreviewSignature = useMemo(
     () => (proposalPreviewModel ? getProposalPreviewSignature(proposalPreviewScope) : ""),
@@ -120,12 +122,12 @@ export function useEstimateProposalPreview({
     const model = buildProposalExportModel({
       metadata: resolvedProposalExportMetadata,
       nodes: materializeEditableEstimateTree(estimateTree, editableRows),
-      settings: proposalPreviewModelSettings(proposalExportSettings),
+      settings: proposalPreviewModelSettings(proposalExportSettings, sheetAdjustment),
     });
     setProposalPreviewModel(model);
     setProposalPreviewSignature(getProposalPreviewSignature(scope));
     return model;
-  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata, setProposalPreviewModel, setProposalPreviewSignature]);
+  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata, setProposalPreviewModel, setProposalPreviewSignature, sheetAdjustment]);
 
   const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
     setProposalPreviewScope(scope);

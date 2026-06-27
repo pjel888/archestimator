@@ -190,6 +190,13 @@ export type TreeRootDropZonesOption =
 export interface TreeExternalDropOptions {
   /** dataTransfer MIME types accepted from outside this tree instance. */
   types: string[];
+  /** DataTransfer drop effect for an accepted external drop. Defaults to copy. */
+  dropEffect?: (
+    types: readonly string[],
+    targetId: string,
+    position: TreeDropPosition,
+    node: TreeNode
+  ) => DataTransfer["dropEffect"];
   /**
    * Domain validation for an external payload hovering a row. Drag payloads
    * are unreadable during dragover (HTML5 DnD protected mode), so validation
@@ -945,7 +952,9 @@ export function Tree({
             return;
           }
           event.preventDefault();
-          if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = externalDrop?.dropEffect?.(externalTypes, intent.id, intent.position, flat.node) ?? "copy";
+          }
           dispatchTreeState({ type: "setDropTarget", value: (current) =>
             current?.id === intent.id && current.position === intent.position ? current : intent
           });
@@ -969,7 +978,7 @@ export function Tree({
         });
         dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
       },
-      [draggable, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, isDropAllowed, isDropIntentForRow]
+      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, isDropAllowed, isDropIntentForRow]
     );
 
     const handleDragLeave = useCallback(

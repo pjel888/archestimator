@@ -16,6 +16,7 @@ import { dispatchProjectTotalChange } from "@/components/workshop/project-total-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations, type EstimateRowMutationError, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
+import { useEstimateRowUpdateBroadcast } from "@/hooks/use-estimate-row-update-broadcast";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
 import { loadEstimateSheetUserPreferences, saveEstimateSheetUserPreferences } from "@/lib/estimate-sheet/user-preferences-actions";
@@ -26,7 +27,7 @@ import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hoo
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
-import type { EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { updateEstimateSheetAdjustment, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
@@ -74,7 +75,11 @@ import {
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
-import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "./estimate-sheet/events";
+import {
+  REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT,
+  REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT,
+  readRequestEstimateRowItemMoveEventDetail,
+} from "./estimate-sheet/events";
 import type { ProposalExportPreviewScope, ProposalExportUserSettings } from "./ProposalExportPreviewDialog";
 // Interaction-gated overlay: only mounts when its `open` prop is true, so it
 // contributes nothing to first paint. Code-split out of the initial bundle.
@@ -82,7 +87,7 @@ const ProposalExportPreviewDialog = dynamic(
   () => import("./ProposalExportPreviewDialog").then((mod) => mod.ProposalExportPreviewDialog),
   { ssr: false },
 );
-import type { EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import type { EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import {
   DEFAULT_ACTIVITY_FILTERS,
   // Aliased: the helpers barrel re-exported below also has a
@@ -189,6 +194,7 @@ type EstimateSheetContentProps = {
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string;
   loadLimitState?: EstimateTreeLoadLimitState;
+  sheetAdjustment?: EstimateSheetAdjustment;
   /** Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17. */
   dataTabId?: string;
   /** Server-resolved edit capability (UX gating only; default false fails closed). */
@@ -220,6 +226,25 @@ const EMPTY_SELECTED_NODE_PRESENTATION = {
   nodeCode: "",
   ancestorPath: EMPTY_BREADCRUMB_NODES,
 };
+
+function createDefaultSheetAdjustment(estimateId: string): EstimateSheetAdjustment {
+  return {
+    estimateId,
+    mode: "contingency",
+    percentage: 0,
+    rowRevision: 0,
+    updatedBy: null,
+  };
+}
+
+function resolveSheetAdjustment(estimateId: string, adjustment: EstimateSheetAdjustment | undefined): EstimateSheetAdjustment {
+  return adjustment ?? createDefaultSheetAdjustment(estimateId);
+}
+
+function calculateSheetAdjustmentValue(subtotal: number, adjustment: Pick<EstimateSheetAdjustment, "mode" | "percentage">) {
+  const value = subtotal * adjustment.percentage / 100;
+  return adjustment.mode === "discount" ? -value : value;
+}
 function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTreeNode[] {
   reportEstimateSelectedNodePresentationCompute("path");
   for (const node of nodes) {
@@ -464,6 +489,21 @@ type EstimateCreateTabState = {
   pending: boolean;
 };
 
+type RowMoveDialogState = {
+  rowItemId: string;
+  opener: HTMLElement | null;
+  targetNodeId: string;
+  position: string;
+};
+
+type RowMoveNodeOption = {
+  id: string;
+  name: string;
+  path: string;
+  depth: number;
+  rowCount: number;
+};
+
 type EstimateSheetContentState = {
   editableRows: Record<string, EditableRowValue>;
   expressInsertDrafts: Record<string, ExpressInsertDraft>;
@@ -541,6 +581,53 @@ function createInitialEstimateSheetContentState(nodes: EstimateTreeNode[]): Esti
     sheetFacets: EMPTY_SHEET_FACETS,
     sheetGroupMode: "default",
   };
+}
+
+function collectRowMoveNodeOptions(
+  nodes: EstimateTreeNode[],
+  path: string[] = [],
+  depth = 0,
+  into: RowMoveNodeOption[] = [],
+): RowMoveNodeOption[] {
+  for (const node of nodes) {
+    const nextPath = [...path, node.name];
+    into.push({
+      id: node.id,
+      name: node.name,
+      path: nextPath.join(" / "),
+      depth,
+      rowCount: node.estimateRowItems?.length ?? 0,
+    });
+    collectRowMoveNodeOptions(node.children ?? [], nextPath, depth + 1, into);
+  }
+  return into;
+}
+
+function findRowItemNodeContext(
+  nodes: EstimateTreeNode[],
+  rowItemId: string,
+  path: string[] = [],
+): { nodeId: string; nodePath: string[]; index: number } | null {
+  for (const node of nodes) {
+    const nextPath = [...path, node.name];
+    const rowIndex = (node.estimateRowItems ?? []).findIndex((item) => item.id === rowItemId);
+    if (rowIndex >= 0) return { nodeId: node.id, nodePath: nextPath, index: rowIndex };
+    const child = findRowItemNodeContext(node.children ?? [], rowItemId, nextPath);
+    if (child) return child;
+  }
+  return null;
+}
+
+function resolveRowMoveDialogTargetIndex(position: string, targetNode: EstimateTreeNode | null): number {
+  const targetRows = targetNode?.estimateRowItems ?? [];
+  if (position === "start") return 0;
+  if (position === "end") return targetRows.length;
+  if (position.startsWith("after:")) {
+    const rowId = position.slice("after:".length);
+    const rowIndex = targetRows.findIndex((item) => item.id === rowId);
+    return rowIndex >= 0 ? rowIndex + 1 : targetRows.length;
+  }
+  return targetRows.length;
 }
 
 function estimateSheetContentReducer(
@@ -841,6 +928,7 @@ export function EstimateSheetContent({
   estimateTabs = EMPTY_ESTIMATE_TABS,
   activeTabId,
   loadLimitState,
+  sheetAdjustment,
   dataTabId,
   canEditEstimate = false,
   initialTabId,
@@ -915,19 +1003,42 @@ export function EstimateSheetContent({
     },
     [estimateId, projectId, workspaceId],
   );
+  const broadcastRowUpdate = useEstimateRowUpdateBroadcast({ estimateId, tabId: dataTabId });
   const {
     saveState,
     markRowDirty: markRowDirtyNow,
     insertRow,
     replaceRow,
     moveRows,
+    moveRowItem,
     detachRow,
     promoteRow,
     deleteRow,
     deleteRows,
     restoreDeletedRows,
     updateRow,
-  } = useEstimateRowMutations(estimateId, dataTabId, workspaceId, projectId, notifySaveState);
+  } = useEstimateRowMutations(
+    estimateId,
+    dataTabId,
+    workspaceId,
+    projectId,
+    notifySaveState,
+    broadcastRowUpdate,
+  );
+  const resolvedSheetAdjustment = useMemo(
+    () => resolveSheetAdjustment(estimateId ?? "local-estimate", sheetAdjustment),
+    [estimateId, sheetAdjustment],
+  );
+  const [sheetAdjustmentState, setSheetAdjustmentState] = useState<EstimateSheetAdjustment>(resolvedSheetAdjustment);
+  const [sheetAdjustmentSaveState, setSheetAdjustmentSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [sheetAdjustmentError, setSheetAdjustmentError] = useState<string | null>(null);
+  /* eslint-disable react-hooks/set-state-in-effect -- Sheet adjustment keeps editable draft state that must reset when server data changes. */
+  useEffect(() => {
+    setSheetAdjustmentState(resolvedSheetAdjustment);
+    setSheetAdjustmentSaveState("idle");
+    setSheetAdjustmentError(null);
+  }, [resolvedSheetAdjustment]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   const legacyTreeQuery = useEstimateAreaTreeQuery({
     projectId,
     estimateId,
@@ -945,6 +1056,7 @@ export function EstimateSheetContent({
   const activeInitialLoadLimitState = dataTabId === initialTabId ? loadLimitState : undefined;
   const didTruncateInitialTree =
     Boolean(activeInitialLoadLimitState?.didExceedNodeLimit || activeInitialLoadLimitState?.didExceedRowItemLimit);
+  const canMoveRowItems = !didTruncateInitialTree;
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
@@ -990,6 +1102,7 @@ export function EstimateSheetContent({
     sheetGroupMode,
   } = contentState;
   const [sourcesDrawerOpen, setSourcesDrawerOpen] = useState(false);
+  const [rowMoveDialog, setRowMoveDialog] = useState<RowMoveDialogState | null>(null);
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
     dispatchContentState(estimateSheetContentFieldAction("editableRows", value));
   });
@@ -1254,6 +1367,7 @@ export function EstimateSheetContent({
     estimateTabs,
     estimateTree,
     editableRows,
+    sheetAdjustment: sheetAdjustmentState,
     resolvedProposalExportMetadata,
     isProposalPreviewOpen,
     proposalPreviewScope,
@@ -1405,6 +1519,44 @@ export function EstimateSheetContent({
     () => estimateTree.reduce((total, node) => total + (estimateNodeTotals.get(node.id) ?? 0), 0),
     [estimateNodeTotals, estimateTree],
   );
+  const sheetAdjustmentValue = useMemo(
+    () => calculateSheetAdjustmentValue(projectTotal, sheetAdjustmentState),
+    [projectTotal, sheetAdjustmentState],
+  );
+  const adjustedProjectTotal = projectTotal + sheetAdjustmentValue;
+  const persistSheetAdjustment = useStableCallback(async (patch: Partial<Pick<EstimateSheetAdjustment, "mode" | "percentage">>) => {
+    if (!projectId || !estimateId || !canEditEstimate) return;
+    const previousAdjustment = sheetAdjustmentState;
+    const nextAdjustment: EstimateSheetAdjustment = {
+      ...previousAdjustment,
+      ...patch,
+      mode: (patch.mode ?? previousAdjustment.mode) as EstimateSheetAdjustmentMode,
+      percentage: patch.percentage ?? previousAdjustment.percentage,
+    };
+
+    setSheetAdjustmentState(nextAdjustment);
+    setSheetAdjustmentSaveState("saving");
+    setSheetAdjustmentError(null);
+
+    try {
+      const savedAdjustment = await updateEstimateSheetAdjustment({
+        projectId,
+        estimateId,
+        mode: nextAdjustment.mode,
+        percentage: nextAdjustment.percentage,
+        expectedRowRevision: previousAdjustment.rowRevision,
+      });
+      setSheetAdjustmentState(savedAdjustment);
+      setSheetAdjustmentSaveState("saved");
+      toast({ id: "estimate-sheet-adjustment-save", tone: "success", message: "Adjustment saved." });
+    } catch (error) {
+      setSheetAdjustmentState(previousAdjustment);
+      setSheetAdjustmentSaveState("failed");
+      const message = error instanceof Error ? error.message : "Could not save adjustment.";
+      setSheetAdjustmentError(message);
+      toast({ id: "estimate-sheet-adjustment-save", tone: "error", message });
+    }
+  });
   const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || projectSpecificRowId || rowComponentPicker?.mode === "move");
   const currentRows = useMemo(
     () => (shouldBuildFlattenedRows ? flattenEstimateRows(estimateTree, editableRows) : EMPTY_FLATTENED_ESTIMATE_ROWS),
@@ -1536,8 +1688,8 @@ export function EstimateSheetContent({
   }, [rowComponentPicker?.opener, setRowComponentPicker, setRowComponentPickerQuery]);
 
   useEffect(() => {
-    dispatchProjectTotalChange(projectTotal);
-  }, [projectTotal]);
+    dispatchProjectTotalChange(adjustedProjectTotal);
+  }, [adjustedProjectTotal]);
 
   useEffect(() => {
     if (!estimateId || activeSelectedNodeId === resolvedSelectedNodeId) return;
@@ -1576,6 +1728,7 @@ export function EstimateSheetContent({
     markRowDirty,
     moveFromComponentPicker,
     moveRowComponent,
+    moveRowItemToNode,
     promoteRowToLibrary,
     replaceFromComponentPicker,
     replaceRowItem,
@@ -1584,9 +1737,11 @@ export function EstimateSheetContent({
     updateRowItem,
   } = useEstimateRowHandlers({
     canEditEstimate,
+    canMoveRowItems,
     projectId,
     workspaceId,
     estimateId,
+    activeTabId: dataTabId,
     estimateTree,
     editableRows,
     saveState,
@@ -1600,6 +1755,7 @@ export function EstimateSheetContent({
     insertRow,
     replaceRow,
     moveRows,
+    moveRowItem,
     detachRow,
     promoteRow,
     deleteRow,
@@ -1622,6 +1778,56 @@ export function EstimateSheetContent({
     recordReadOnlyLibraryMutationAttempt,
     toast,
   });
+
+  const rowMoveNodeOptions = useMemo(() => collectRowMoveNodeOptions(estimateTree), [estimateTree]);
+  const rowMoveSourceItem = useMemo(
+    () => (rowMoveDialog ? findEstimateRowItem(estimateTree, rowMoveDialog.rowItemId) : null),
+    [estimateTree, rowMoveDialog],
+  );
+  const rowMoveSourceContext = useMemo(
+    () => (rowMoveDialog ? findRowItemNodeContext(estimateTree, rowMoveDialog.rowItemId) : null),
+    [estimateTree, rowMoveDialog],
+  );
+  const rowMoveTargetNode = useMemo(
+    () => (rowMoveDialog ? findEstimateNode(estimateTree, rowMoveDialog.targetNodeId) : null),
+    [estimateTree, rowMoveDialog],
+  );
+  const rowMovePositionOptions = useMemo(() => {
+    const targetRows = rowMoveTargetNode?.estimateRowItems ?? [];
+    if (targetRows.length === 0) return [{ value: "end", label: "Empty area" }];
+    return [
+      { value: "start", label: "Top of area" },
+      ...targetRows
+        .filter((item) => item.id !== rowMoveDialog?.rowItemId)
+        .map((item) => ({
+          value: `after:${item.id}`,
+          label: `After ${item.material || item.name || "row"}`,
+        })),
+      { value: "end", label: "Bottom of area" },
+    ];
+  }, [rowMoveDialog?.rowItemId, rowMoveTargetNode]);
+  const closeRowMoveDialog = useCallback(() => {
+    const opener = rowMoveDialog?.opener;
+    setRowMoveDialog(null);
+    window.requestAnimationFrame(() => opener?.focus());
+  }, [rowMoveDialog?.opener]);
+  const openMoveRowItemDialog = useCallback((rowItemId: string, opener: HTMLElement) => {
+    const sourceContext = findRowItemNodeContext(estimateTree, rowItemId);
+    const targetNodeId = sourceContext?.nodeId ?? resolvedSelectedNodeId ?? estimateTree[0]?.id ?? "";
+    if (!targetNodeId) return;
+    setRowMoveDialog({
+      rowItemId,
+      opener,
+      targetNodeId,
+      position: "end",
+    });
+  }, [estimateTree, resolvedSelectedNodeId]);
+  const confirmRowMoveDialog = useCallback(() => {
+    if (!rowMoveDialog || !rowMoveTargetNode) return;
+    const targetIndex = resolveRowMoveDialogTargetIndex(rowMoveDialog.position, rowMoveTargetNode);
+    const moved = moveRowItemToNode(rowMoveDialog.rowItemId, rowMoveDialog.targetNodeId, targetIndex);
+    if (moved !== false) closeRowMoveDialog();
+  }, [closeRowMoveDialog, moveRowItemToNode, rowMoveDialog, rowMoveTargetNode]);
 
   const {
     insertTemplateIntoSelectedGroup,
@@ -1759,6 +1965,16 @@ export function EstimateSheetContent({
     window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
     return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
   }, [insertProjectSourceIntoParentById, libraryEnableReusableProjectSources]);
+
+  useEffect(() => {
+    function handleMoveRowItemEvent(event: Event) {
+      const detail = readRequestEstimateRowItemMoveEventDetail((event as CustomEvent<unknown>).detail);
+      if (!detail) return;
+      moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex);
+    }
+    window.addEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, handleMoveRowItemEvent);
+    return () => window.removeEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, handleMoveRowItemEvent);
+  }, [moveRowItemToNode]);
 
   const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
   const activeTreeErrorMessage = activeTreeQuery.isError
@@ -2023,6 +2239,78 @@ export function EstimateSheetContent({
           </div>
         </Modal>
       ) : null}
+      {rowMoveDialog ? (
+        <Modal
+          open
+          title="Move row"
+          description="Target area and insertion point."
+          size="sm"
+          closeLabel="Close move row dialog"
+          onOpenChange={(open) => {
+            if (!open) closeRowMoveDialog();
+          }}
+        >
+          <div className="grid gap-3 text-[10px] leading-4">
+            <div className="grid gap-1 rounded-xs border border-hairline bg-surfaceMuted p-2">
+              <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Current row</p>
+              <p className="font-medium text-ink">{rowMoveSourceItem?.material || rowMoveSourceItem?.name || "Selected row"}</p>
+              <p className="text-tertiary">{rowMoveSourceContext?.nodePath.join(" / ") || "Current area"}</p>
+            </div>
+            <label className="grid gap-1">
+              <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Target area</span>
+              <select
+                aria-label="Target area"
+                value={rowMoveDialog.targetNodeId}
+                onChange={(event) => {
+                  const targetNodeId = event.currentTarget.value;
+                  setRowMoveDialog((current) => current ? { ...current, targetNodeId, position: "end" } : current);
+                }}
+                className="h-8 rounded-xs border border-hairline bg-white px-2 text-[11px] font-medium text-ink outline-none transition hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40"
+              >
+                {rowMoveNodeOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {`${"  ".repeat(option.depth)}${option.name} (${option.rowCount})`}
+                  </option>
+                ))}
+              </select>
+              <span className="truncate text-[9px] leading-3 text-tertiary">
+                {rowMoveNodeOptions.find((option) => option.id === rowMoveDialog.targetNodeId)?.path || ""}
+              </span>
+            </label>
+            <label className="grid gap-1">
+              <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Position</span>
+              <select
+                aria-label="Insertion position"
+                value={rowMoveDialog.position}
+                disabled={!rowMoveTargetNode}
+                onChange={(event) => {
+                  const position = event.currentTarget.value;
+                  setRowMoveDialog((current) => current ? { ...current, position } : current);
+                }}
+                className="h-8 rounded-xs border border-hairline bg-white px-2 text-[11px] font-medium text-ink outline-none transition hover:border-tertiary focus:border-tertiary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40 disabled:cursor-not-allowed disabled:bg-surfaceMuted disabled:text-tertiary"
+              >
+                {rowMovePositionOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={closeRowMoveDialog}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={!rowMoveTargetNode}
+                onClick={confirmRowMoveDialog}
+              >
+                Move
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
       {projectSpecificRow ? (
         <dialog
           ref={projectSpecificDialogRef}
@@ -2237,6 +2525,8 @@ export function EstimateSheetContent({
                       ancestorPath={selectedNodePresentation.ancestorPath}
                       editableRows={editableRows}
                       setEditableRows={setEditableRows}
+                      projectId={projectId}
+                      estimateId={estimateId}
                       onInsertLibraryItem={insertLibraryItem}
                       onInsertTemplates={insertTemplatesIntoParentById}
                       onInsertTemplateNode={insertTemplateNodeIntoParentById}
@@ -2251,6 +2541,8 @@ export function EstimateSheetContent({
                       onPromoteRowToLibrary={promoteRowToLibrary}
                       promotingRowId={promotingRowId}
                       onMoveRowComponent={moveRowComponent}
+                      onMoveRowItem={moveRowItemToNode}
+                      onOpenMoveRowItemDialog={openMoveRowItemDialog}
                       onOpenReplaceComponentPicker={openReplaceComponentPicker}
                       onOpenMoveComponentPicker={openMoveComponentPicker}
                       expressInsertDraftStates={expressInsertDraftStates}
@@ -2261,6 +2553,14 @@ export function EstimateSheetContent({
                       onToggleRowsSelection={toggleRowsSelection}
                       columnResize={estimateColumnResizeConfig}
                       nodeTotals={displayedNodeTotals}
+                      sheetAdjustment={sheetAdjustmentState}
+                      sheetSubtotal={projectTotal}
+                      sheetAdjustmentValue={sheetAdjustmentValue}
+                      adjustedSheetTotal={adjustedProjectTotal}
+                      canEditSheetAdjustment={canEditEstimate}
+                      sheetAdjustmentSaveState={sheetAdjustmentSaveState}
+                      sheetAdjustmentError={sheetAdjustmentError}
+                      onUpdateSheetAdjustment={persistSheetAdjustment}
                     />
                   </EstimateSheetExpansionContext.Provider>
                 ) : null}
