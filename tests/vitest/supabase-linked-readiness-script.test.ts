@@ -49,10 +49,10 @@ const failingRows = [
   {
     category: "storage",
     check_name: "storage.buckets.component-images:public",
-    expected: "bucket should be public for approved component thumbnails",
-    actual: "public",
+    expected: "bucket should be private unless explicitly approved",
+    actual: "private",
     passed: true,
-    details: { bucket: "component-images", public: true },
+    details: { bucket: "component-images", public: false },
   },
   {
     category: "storage",
@@ -70,7 +70,7 @@ const passingRows = [
   { category: "table", check_name: "public.closed_beta_allowed_emails", expected: "rls", actual: "exists_rls_enabled", passed: true, details: {} },
   { category: "grant", check_name: "public.closed_beta_allowed_emails:anon_select", expected: "deny", actual: "anon_cannot_select", passed: true, details: {} },
   { category: "function", check_name: "public.check_closed_beta_access", expected: "deny anon", actual: "exists_anon_cannot_execute", passed: true, details: {} },
-  { category: "storage", check_name: "storage.buckets.component-images:public", expected: "public", actual: "public", passed: true, details: {} },
+  { category: "storage", check_name: "storage.buckets.component-images:public", expected: "private", actual: "private", passed: true, details: {} },
   { category: "storage", check_name: "storage.buckets.project-images:public", expected: "private", actual: "private", passed: true, details: {} },
 ];
 

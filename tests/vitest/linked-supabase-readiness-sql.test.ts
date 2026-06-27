@@ -30,7 +30,7 @@ describe("linked Supabase launch readiness SQL", () => {
     expect(sql).toContain("has_table_privilege('anon'");
     expect(sql).toContain("has_function_privilege('anon'");
     expect(sql).toContain("storage.buckets");
-    expect(sql).toContain("('component-images', true)");
+    expect(sql).toContain("('component-images', false)");
     expect(sql).toContain("('project-images', false)");
     expect(sql).toContain("launch_readiness_passed");
   });

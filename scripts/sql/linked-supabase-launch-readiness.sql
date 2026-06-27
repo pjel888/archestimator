@@ -26,9 +26,10 @@ required_functions(schema_name, function_name) as (
 ),
 required_buckets(bucket_name, should_be_public) as (
   values
-    -- Component thumbnails are intentionally public WebP assets; project/client
-    -- covers are isolated in the private project-images bucket.
-    ('component-images', true),
+    -- Component images and project/client covers are brokered through app routes
+    -- unless a future product/security exception explicitly approves public
+    -- derivatives.
+    ('component-images', false),
     ('project-images', false)
 ),
 migration_checks as (
@@ -115,7 +116,7 @@ bucket_checks as (
     'storage'::text as category,
     'storage.buckets.' || required_buckets.bucket_name || ':public' as check_name,
     case
-      when required_buckets.should_be_public then 'bucket should be public for approved component thumbnails'
+      when required_buckets.should_be_public then 'bucket should be public by explicit product/security exception'
       else 'bucket should be private unless explicitly approved'
     end as expected,
     case
