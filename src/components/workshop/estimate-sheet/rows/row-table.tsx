@@ -402,11 +402,11 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     onMarkRowDirty(computedItem.id);
   }
 
-  function commitRowAdjustmentPercentage(mode: "contingency" | "discount") {
-    const sourceValue = mode === "contingency" ? editableContingencyColumnPercentage : editableDiscountColumnPercentage;
-    if (resolvedEditableRow.contingencyMode !== mode && parseNonNegativeEditableNumber(sourceValue) === 0) return;
+  function commitRowAdjustmentPercentage(mode: "contingency" | "discount", sourceValue?: string) {
+    const adjustmentPercentageValue = sourceValue ?? (mode === "contingency" ? editableContingencyColumnPercentage : editableDiscountColumnPercentage);
+    if (resolvedEditableRow.contingencyMode !== mode && parseNonNegativeEditableNumber(adjustmentPercentageValue) === 0) return;
 
-    const nextAdjustmentPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(sourceValue));
+    const nextAdjustmentPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(adjustmentPercentageValue));
     const storedAdjustmentMode = computedItem.storedContingencyPercentage < 0 ? "discount" : "contingency";
     const storedAdjustmentPercentage = toEditableContingencyPercentage(computedItem.storedContingencyPercentage);
     setEditableRows((current) => updateEditableRowValue(current, computedItem, {
@@ -421,13 +421,13 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     });
   }
 
-  function commitContingencyPercentage() {
+  function commitContingencyPercentage(sourceValue?: string) {
     if (!computedItem.isQuantityContingency) {
-      commitRowAdjustmentPercentage("contingency");
+      commitRowAdjustmentPercentage("contingency", sourceValue);
       return;
     }
 
-    const nextContingencyPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(computedItem.editableContingencyPercentage));
+    const nextContingencyPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(sourceValue ?? computedItem.editableContingencyPercentage));
     const storedContingencyPercentage = toEditableContingencyPercentage(computedItem.storedContingencyPercentage);
     setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: nextContingencyPercentage }));
     if (nextContingencyPercentage === storedContingencyPercentage) return;
@@ -637,9 +637,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                 value={editableContingencyColumnPercentage}
                 onChange={(event) => updateAdjustmentPercentageDraft("contingency", event.target.value)}
                 onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 1 })}
-                onBlur={() => {
+                onBlur={(event) => {
                   setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 1 ? null : current));
-                  commitContingencyPercentage();
+                  commitContingencyPercentage(event.currentTarget.value);
                 }}
                 onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1, rowIds, onRequestFocusByRowId)}
                 data-estimate-row-index={rowIndex}
@@ -675,9 +675,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               value={computedItem.isQuantityContingency ? "0" : editableDiscountColumnPercentage}
               onChange={(event) => updateAdjustmentPercentageDraft("discount", event.target.value)}
               onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 2 })}
-              onBlur={() => {
+              onBlur={(event) => {
                 setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 2 ? null : current));
-                commitRowAdjustmentPercentage("discount");
+                commitRowAdjustmentPercentage("discount", event.currentTarget.value);
               }}
               onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2, rowIds, onRequestFocusByRowId)}
               data-estimate-row-index={rowIndex}
