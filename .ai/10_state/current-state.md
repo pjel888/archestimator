@@ -44,6 +44,37 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Upload plan production proof runbook deployment preflight added (2026-06-27):**
+
+- `UPLOAD_PRODUCTION_PROOF_RUNBOOK.md` now includes a deployment readback preflight before authenticated hosted proof collection.
+- The runbook points to `evidence/upload-hosted-deployment-readback.json` and keeps it outside the seven passing production proof artifacts.
+- Production remains blocked while `hostedProofRoutesObservedDeployed=false` or `productionDeploymentPredatesUploadProofRoutes=true`, and no production deployment should be attempted from proof collection unless explicitly authorized.
+- Fresh evidence passed: production proof checker/release-gate/requirement coverage matrix (`3 files / 14 tests`), scoped ESLint, targeted upload JSON parse, `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+
+**Upload plan hosted deployment readback recorded (2026-06-27):**
+
+- Read-only Vercel inspection recorded production deployment `dpl_8ymooyEM51amXCJ7xNstAHEkTeGq` aliasing `www.archestimator.com` and `archestimator.com` at commit `8c611d1333210838f201b4c91deb74fe656f5902` from June 20, 2026.
+- Current source `main` is `2ff0ddf308cbe8d4470cf483d350a596cd01b9e8`; the upload cleanup/scan/runtime proof routes are present locally and were added after the production deployment commit.
+- `evidence/upload-hosted-deployment-readback.json` records `passed=false`, `productionProofReady=false`, source routes present, production deployment predating the upload proof route commit, and no matching production runtime logs for upload proof route queries in the inspected 24-hour window.
+- Production remains blocked; this is blocker evidence only and does not deploy, read secret values, invoke authenticated proof routes, or replace hosted cleanup/scan/runtime, live ClamD/CDR, alert, dashboard, backpressure, or retention-runbook observations.
+- Fresh evidence passed: upload release-gate/requirement coverage matrix (`2 files / 9 tests`), scoped ESLint, targeted upload JSON parse, `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+
+**Upload plan production proof bundle refreshed (2026-06-27):**
+
+- `evidence/upload-production-proof-evidence-check.json` was regenerated after the requirement coverage audit and release-gate timestamp update.
+- The bundle remains fail-closed: `productionProofReady=false`, `required=7`, `passed=0`, `failed=7`, `missing=0`, and `invalid=0`.
+- Failed production proof keys remain `hostedUploadOperations`, `hostedUploadRuntime`, `liveScanner`, `alertDelivery`, `dashboardObservation`, `hostedBackpressure`, and `retentionRunbook`.
+- Production remains blocked; this refresh records current evidence only and does not replace hosted cleanup/scan/runtime routes, live ClamD/CDR, alert delivery, hosted dashboard, hosted backpressure, or retention-runbook observations.
+- Fresh evidence passed: production proof checker/requirement coverage/release-gate matrix (`3 files / 14 tests`), scoped ESLint, targeted upload JSON parse, `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+
+**Upload plan requirement coverage audit added (2026-06-27):**
+
+- `scripts/check-upload-requirement-coverage.ts` now audits every `UPLOAD-REQ-*` row in `04_REQUIREMENTS_SPECIFICATION.md` against release-gate local-pass/blocker references.
+- `evidence/upload-requirement-coverage-audit.json` reports `traceabilityReady=true`, `productionReady=false`, `requirements=25`, `mapped=25`, `missing=0`, `blocked=7`, and `unknownReferences=0`.
+- `tests/vitest/upload-requirement-coverage-audit.test.ts` covers current 25-requirement mapping, missing requirement mappings, unknown requirement references, and sanitized compact artifact output.
+- Production remains blocked; this is traceability proof only and does not replace hosted/live scanner, cleanup, runtime, alert, dashboard, backpressure, or retention-runbook evidence.
+- Fresh evidence passed: requirement coverage audit/release-gate matrix (`2 files / 9 tests`), scoped ESLint, targeted upload JSON parse, `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+
 **Upload plan production proof runbook added (2026-06-27):**
 
 - `UPLOAD_PRODUCTION_PROOF_RUNBOOK.md` now maps all seven production evidence requirements to their passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria.

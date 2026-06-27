@@ -8,6 +8,29 @@ This runbook is the production proof collection checklist for the upload release
 - Use scoped proof secrets only for the relevant hosted proof command.
 - Keep fail-closed artifacts when a route is not deployed, a secret is missing, live scanner configuration is unavailable, or hosted observations have not been performed.
 - Do not mark production ready from local tests, source review, provider fixture proof, no-secret 404 probes, or env-name readiness alone.
+- Do not attempt a production deployment from a proof-collection session unless that deployment is explicitly authorized for the current session.
+
+## Deployment Readback Preflight
+
+Before running authenticated hosted proof commands, verify that the production
+deployment actually contains the upload cleanup, scan, and runtime proof routes.
+The current read-only preflight artifact is
+`evidence/upload-hosted-deployment-readback.json`.
+
+The deployment preflight is not one of the seven passing production proof
+artifacts, and it does not prove readiness. It exists to prevent false
+investigation of hosted `404` probe results when production is simply behind
+source. Production hosted proof remains blocked while
+`hostedProofRoutesObservedDeployed=false` or the preflight reports
+`productionDeploymentPredatesUploadProofRoutes=true`.
+
+Current preflight status:
+
+- `proofBoundary=read-only-vercel-deployment-inspection`
+- `passed=false`
+- `productionProofReady=false`
+- `productionDeploymentRequired=true`
+- `productionDeploymentAttemptedFromThisSession=false`
 
 ## Required Artifacts
 

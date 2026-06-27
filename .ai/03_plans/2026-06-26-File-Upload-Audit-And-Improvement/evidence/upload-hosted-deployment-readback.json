@@ -1,0 +1,74 @@
+{
+  "mode": "upload-hosted-deployment-readback",
+  "generatedAt": "2026-06-27T11:51:29Z",
+  "passed": false,
+  "productionProofReady": false,
+  "proofBoundary": "read-only-vercel-deployment-inspection",
+  "project": {
+    "teamId": "team_eRuwqQwhMbYYDmvgIgpQW1GS",
+    "projectId": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E",
+    "name": "archestimator",
+    "framework": "nextjs"
+  },
+  "currentRepository": {
+    "branch": "main",
+    "head": "2ff0ddf308cbe8d4470cf483d350a596cd01b9e8",
+    "originHead": "2ff0ddf308cbe8d4470cf483d350a596cd01b9e8",
+    "routeCommit": "a6548ebfa",
+    "routeCommitSubject": "feat: add upload operations verification scripts, internal API, and settings pages"
+  },
+  "sourceRoutes": {
+    "present": true,
+    "paths": [
+      "src/app/api/internal/upload-cleanup/route.ts",
+      "src/app/api/internal/upload-scan/route.ts",
+      "src/app/api/internal/upload-runtime/route.ts",
+      "vercel.json"
+    ]
+  },
+  "latestProductionDeployment": {
+    "id": "dpl_8ymooyEM51amXCJ7xNstAHEkTeGq",
+    "url": "archestimator-nv4too3w0-philipjonlewis-projects.vercel.app",
+    "state": "READY",
+    "target": "production",
+    "createdAt": "2026-06-20T12:19:01.395Z",
+    "readyAt": "2026-06-20T12:20:04.026Z",
+    "commitSha": "8c611d1333210838f201b4c91deb74fe656f5902",
+    "commitMessage": "perf(workshop): virtualize the estimates list table for scale",
+    "aliases": [
+      "www.archestimator.com",
+      "archestimator.com",
+      "archestimator.vercel.app",
+      "archestimator-philipjonlewis-projects.vercel.app",
+      "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+    ]
+  },
+  "deploymentGap": {
+    "sourceRoutesPresentLocally": true,
+    "productionDeploymentPredatesUploadProofRoutes": true,
+    "routeCommitAfterProductionDeployment": true,
+    "hostedProofRoutesObservedDeployed": false,
+    "productionDeploymentRequired": true,
+    "productionDeploymentAttemptedFromThisSession": false
+  },
+  "runtimeLogReadback": {
+    "environment": "production",
+    "query": "upload-runtime upload-cleanup upload-scan",
+    "timeRange": {
+      "since": "2026-06-26T11:50:59.173Z",
+      "until": "2026-06-27T11:50:59.172Z"
+    },
+    "uploadProofLogsFound": false,
+    "result": "No logs found for the specified criteria."
+  },
+  "failedChecks": [
+    "hosted-proof-routes-not-observed-deployed",
+    "production-deployment-predates-upload-proof-route-commit",
+    "no-production-runtime-log-evidence-for-upload-proof-routes",
+    "production-deployment-not-authorized-from-this-session"
+  ],
+  "notes": [
+    "This read-only Vercel inspection records deployment state only; it does not deploy, read secret values, invoke authenticated proof routes, or prove production readiness.",
+    "The hosted upload cleanup, scan, and runtime proof blockers remain open until the source routes are deployed to production and authenticated hosted proof artifacts pass."
+  ]
+}

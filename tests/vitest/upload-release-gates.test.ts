@@ -33,6 +33,28 @@ const hostedOperationsFailClosedProof = JSON.parse(readFileSync(join(
   results: Array<{ samples: Array<{ status: number; hasNoStoreCacheControl: boolean }> }>;
 };
 
+const hostedDeploymentReadback = JSON.parse(readFileSync(join(
+  process.cwd(),
+  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-deployment-readback.json",
+), "utf8")) as {
+  passed: boolean;
+  productionProofReady: boolean;
+  proofBoundary: string;
+  sourceRoutes: { present: boolean };
+  currentRepository: { head: string; routeCommit: string };
+  latestProductionDeployment: { id: string; target: string; state: string; commitSha: string; aliases: string[] };
+  deploymentGap: {
+    sourceRoutesPresentLocally: boolean;
+    productionDeploymentPredatesUploadProofRoutes: boolean;
+    routeCommitAfterProductionDeployment: boolean;
+    hostedProofRoutesObservedDeployed: boolean;
+    productionDeploymentRequired: boolean;
+    productionDeploymentAttemptedFromThisSession: boolean;
+  };
+  runtimeLogReadback: { uploadProofLogsFound: boolean; result: string };
+  failedChecks: string[];
+};
+
 const productionProofEvidenceCheck = JSON.parse(readFileSync(join(
   process.cwd(),
   ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json",
@@ -41,6 +63,23 @@ const productionProofEvidenceCheck = JSON.parse(readFileSync(join(
   productionProofReady: boolean;
   totals: { required: number; passed: number; failed: number; missing: number; invalid: number };
   requirements: Array<{ key: string; status: string; failedChecks: string[] }>;
+};
+
+const requirementCoverageAudit = JSON.parse(readFileSync(join(
+  process.cwd(),
+  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-requirement-coverage-audit.json",
+), "utf8")) as {
+  passed: boolean;
+  traceabilityReady: boolean;
+  productionReady: boolean;
+  totals: { requirements: number; mapped: number; missing: number; blocked: number; unknownReferences: number };
+  releaseGateStatuses: { closedBeta: string; production: string; platform: string };
+  requirements: Array<{
+    id: string;
+    status: string;
+    evidenceRefs: Array<{ id: string }>;
+    blockerRefs: Array<{ id: string }>;
+  }>;
 };
 
 const alertDeliveryProof = JSON.parse(readFileSync(join(
@@ -128,6 +167,32 @@ describe("upload release gates", () => {
     expect(hostedOperationsFailClosedProof.passed).toBe(false);
     expect(hostedOperationsFailClosedProof.productionProofReady).toBe(false);
     expect(hostedOperationsFailClosedProof.results.flatMap((result) => result.samples.map((sample) => sample.status))).toEqual([404, 404]);
+    expect(hostedDeploymentReadback.passed).toBe(false);
+    expect(hostedDeploymentReadback.productionProofReady).toBe(false);
+    expect(hostedDeploymentReadback.proofBoundary).toBe("read-only-vercel-deployment-inspection");
+    expect(hostedDeploymentReadback.sourceRoutes.present).toBe(true);
+    expect(hostedDeploymentReadback.currentRepository.routeCommit).toBe("a6548ebfa");
+    expect(hostedDeploymentReadback.latestProductionDeployment).toEqual(expect.objectContaining({
+      id: "dpl_8ymooyEM51amXCJ7xNstAHEkTeGq",
+      target: "production",
+      state: "READY",
+      commitSha: "8c611d1333210838f201b4c91deb74fe656f5902",
+    }));
+    expect(hostedDeploymentReadback.latestProductionDeployment.aliases).toEqual(expect.arrayContaining([
+      "www.archestimator.com",
+      "archestimator.com",
+    ]));
+    expect(hostedDeploymentReadback.deploymentGap).toEqual(expect.objectContaining({
+      sourceRoutesPresentLocally: true,
+      productionDeploymentPredatesUploadProofRoutes: true,
+      routeCommitAfterProductionDeployment: true,
+      hostedProofRoutesObservedDeployed: false,
+      productionDeploymentRequired: true,
+      productionDeploymentAttemptedFromThisSession: false,
+    }));
+    expect(hostedDeploymentReadback.runtimeLogReadback.uploadProofLogsFound).toBe(false);
+    expect(hostedDeploymentReadback.runtimeLogReadback.result).toContain("No logs found");
+    expect(hostedDeploymentReadback.failedChecks).toContain("production-deployment-predates-upload-proof-route-commit");
     expect(JSON.stringify(releaseGates.production.blockers)).toContain("hosted scan proof route has not been observed deployed");
     expect(JSON.stringify(releaseGates.production.blockers)).toContain("hosted cleanup proof route has not been observed deployed");
     expect(JSON.stringify(releaseGates.production.blockers)).toContain("hosted runtime proof route has not been observed deployed");
@@ -137,9 +202,12 @@ describe("upload release gates", () => {
     expect(releaseGates.production.status).toBe("blocked");
     expect(releaseGates.production.localPasses?.map((pass) => pass.id)).toContain("UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL");
     expect(releaseGates.production.localPasses?.map((pass) => pass.id)).toContain("UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL");
+    expect(releaseGates.production.localPasses?.map((pass) => pass.id)).toContain("UPLOAD-GATE-REQUIREMENT-COVERAGE-AUDIT-LOCAL");
     expect(JSON.stringify(releaseGates.production.localPasses)).toContain("scripts/check-upload-production-proof-evidence.ts");
     expect(JSON.stringify(releaseGates.production.localPasses)).toContain("UPLOAD_PRODUCTION_PROOF_RUNBOOK.md");
     expect(JSON.stringify(releaseGates.production.localPasses)).toContain("productionProofReady=false");
+    expect(JSON.stringify(releaseGates.production.localPasses)).toContain("scripts/check-upload-requirement-coverage.ts");
+    expect(JSON.stringify(releaseGates.production.localPasses)).toContain("traceabilityReady=true");
 
     expect(productionProofEvidenceCheck.passed).toBe(false);
     expect(productionProofEvidenceCheck.productionProofReady).toBe(false);
@@ -190,8 +258,125 @@ describe("upload release gates", () => {
     expect(retentionRunbookProductionProof.runbook.noRawStoragePaths).toBe(false);
   });
 
+  it("records the requirement coverage audit without claiming production readiness", () => {
+    expect(requirementCoverageAudit.passed).toBe(true);
+    expect(requirementCoverageAudit.traceabilityReady).toBe(true);
+    expect(requirementCoverageAudit.productionReady).toBe(false);
+    expect(requirementCoverageAudit.releaseGateStatuses).toEqual({
+      closedBeta: "ready",
+      production: "blocked",
+      platform: "ready",
+    });
+    expect(requirementCoverageAudit.totals).toEqual({
+      requirements: 25,
+      mapped: 25,
+      missing: 0,
+      blocked: 7,
+      unknownReferences: 0,
+    });
+    expect(requirementCoverageAudit.requirements.every((requirement) => requirement.evidenceRefs.length > 0)).toBe(true);
+    expect(requirementCoverageAudit.requirements.find((requirement) => requirement.id === "UPLOAD-REQ-024")?.status).toBe("blocked");
+    expect(requirementCoverageAudit.requirements.find((requirement) => requirement.id === "UPLOAD-REQ-024")?.blockerRefs.map((ref) => ref.id)).toContain("UPLOAD-GATE-HOSTED-RUNTIME-PROOF");
+    expect(releaseGates.production.status).toBe("blocked");
+  });
+
   it("records the latest upload validation evidence without claiming production readiness", () => {
     expect(releaseGates.localEvidence).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        command: "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-requirement-coverage-audit.json bun run scripts/check-upload-requirement-coverage.ts",
+        exit: 0,
+        result: "Upload requirement coverage audit passed with traceabilityReady=true, productionReady=false, requirements=25, mapped=25, missing=0, blocked=7, unknownReferences=0. See evidence/upload-requirement-coverage-audit.json.",
+      }),
+      expect.objectContaining({
+        command: "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
+        exit: 1,
+        result: "Expected refreshed fail-closed upload production evidence bundle check after requirement coverage audit: productionProofReady=false with required=7, passed=0, failed=7, missing=0, invalid=0. Failed keys: hostedUploadOperations, hostedUploadRuntime, liveScanner, alertDelivery, dashboardObservation, hostedBackpressure, retentionRunbook. Production remains blocked.",
+      }),
+      expect.objectContaining({
+        command: "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
+        exit: 0,
+        result: "2 files, 9 tests passed after upload hosted deployment readback evidence",
+      }),
+      expect.objectContaining({
+        command: "bunx eslint tests/vitest/upload-release-gates.test.ts scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts",
+        exit: 0,
+        result: "Scoped upload release-gate deployment readback and requirement coverage lint passed with no errors or warnings",
+      }),
+      expect.objectContaining({
+        command: "node -e \"const fs=require('node:fs'); const dir='.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-requirement-coverage-audit.json','upload-production-proof-evidence-check.json','upload-hosted-deployment-readback.json']) JSON.parse(fs.readFileSync(dir+'/'+file,'utf8')); console.log('json ok')\"",
+        exit: 0,
+        result: "Upload release-gate, requirement coverage audit, production proof bundle, and hosted deployment readback JSON parsed successfully",
+      }),
+      expect.objectContaining({
+        command: "bunx tsc --noEmit --pretty false",
+        exit: 0,
+        result: "No TypeScript errors after upload hosted deployment readback evidence",
+      }),
+      expect.objectContaining({
+        command: "git diff --check",
+        exit: 0,
+        result: "No whitespace errors after upload hosted deployment readback evidence",
+      }),
+      expect.objectContaining({
+        command: "bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
+        exit: 0,
+        result: "3 files, 14 tests passed after upload production proof runbook deployment preflight update",
+      }),
+      expect.objectContaining({
+        command: "bunx eslint tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts scripts/check-upload-production-proof-evidence.ts scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts",
+        exit: 0,
+        result: "Scoped upload production proof runbook preflight, release-gate, and requirement coverage lint passed with no errors or warnings",
+      }),
+      expect.objectContaining({
+        command: "node -e \"const fs=require('node:fs'); const dir='.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-requirement-coverage-audit.json','upload-production-proof-evidence-check.json','upload-hosted-deployment-readback.json']) JSON.parse(fs.readFileSync(dir+'/'+file,'utf8')); console.log('json ok')\"",
+        exit: 0,
+        result: "Upload release-gate, requirement coverage audit, production proof bundle, and hosted deployment readback JSON parsed successfully after production proof runbook preflight update",
+      }),
+      expect.objectContaining({
+        command: "bunx tsc --noEmit --pretty false",
+        exit: 0,
+        result: "No TypeScript errors after upload production proof runbook deployment preflight update",
+      }),
+      expect.objectContaining({
+        command: "git diff --check",
+        exit: 0,
+        result: "No whitespace errors after upload production proof runbook deployment preflight update",
+      }),
+      expect.objectContaining({
+        command: "bunx vitest run tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
+        exit: 0,
+        result: "1 file, 4 tests passed for upload requirement coverage audit",
+      }),
+      expect.objectContaining({
+        command: "bunx eslint scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts",
+        exit: 0,
+        result: "Scoped upload requirement coverage audit script and tests linted with no errors or warnings",
+      }),
+      expect.objectContaining({
+        command: "bunx vitest run tests/vitest/upload-requirement-coverage-audit.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+        exit: 0,
+        result: "2 files, 9 tests passed after upload requirement coverage audit updates",
+      }),
+      expect.objectContaining({
+        command: "bunx eslint scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts tests/vitest/upload-release-gates.test.ts",
+        exit: 0,
+        result: "Scoped upload requirement coverage audit and release-gate lint passed with no errors or warnings",
+      }),
+      expect.objectContaining({
+        command: "node -e \"const fs=require('node:fs'); const dir='.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-requirement-coverage-audit.json','upload-production-proof-evidence-check.json']) JSON.parse(fs.readFileSync(dir+'/'+file,'utf8')); console.log('json ok')\"",
+        exit: 0,
+        result: "Upload release-gate, requirement coverage audit, and production proof bundle JSON parsed successfully",
+      }),
+      expect.objectContaining({
+        command: "bunx tsc --noEmit --pretty false",
+        exit: 0,
+        result: "No TypeScript errors after upload requirement coverage audit updates",
+      }),
+      expect.objectContaining({
+        command: "git diff --check",
+        exit: 0,
+        result: "No whitespace errors after upload requirement coverage audit updates",
+      }),
       expect.objectContaining({
         command: "bunx vitest run tests/vitest/upload-alert-delivery-proof-script.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
         exit: 0,
@@ -440,6 +625,14 @@ describe("upload release gates", () => {
         command: "bunx vitest run tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/hosted-upload-operations-proof-script.test.ts tests/vitest/upload-session-capacity-provider-proof-script.test.ts --maxWorkers=1",
         exit: 0,
         result: "4 files, 17 tests passed",
+      }),
+    ]));
+    expect(releaseGates.hostedEvidence).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        command: "Vercel MCP read-only list_deployments/get_deployment/get_runtime_logs for project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E",
+        exit: 0,
+        result: "Production deployment dpl_8ymooyEM51amXCJ7xNstAHEkTeGq aliases www.archestimator.com/archestimator.com at commit 8c611d1333210838f201b4c91deb74fe656f5902 from 2026-06-20. Current source HEAD 2ff0ddf308cbe8d4470cf483d350a596cd01b9e8 contains upload proof routes added in a6548ebfa after that production commit. No production runtime logs matched upload proof route queries for 2026-06-26T11:50:59.173Z through 2026-06-27T11:50:59.172Z. Hosted proof routes remain deployment-blocked; no production readiness claimed.",
+        artifact: "evidence/upload-hosted-deployment-readback.json",
       }),
     ]));
     expect(releaseGates.localEvidence).not.toEqual(expect.arrayContaining([

@@ -2049,6 +2049,91 @@ validation, review, QA, and archival gates.
 - Result: production proof collection is now documented end to end for the seven
   required artifacts, but no hosted/live proof was claimed.
 
+### Iteration 60 - Requirement Coverage Audit
+
+- Added `scripts/check-upload-requirement-coverage.ts` to parse
+  `04_REQUIREMENTS_SPECIFICATION.md` and verify every `UPLOAD-REQ-*` maps to
+  release-gate local-pass or blocker evidence.
+- Added `tests/vitest/upload-requirement-coverage-audit.test.ts` for current
+  25-requirement coverage, missing mapping failure, unknown reference failure,
+  and sanitized compact artifact output.
+- Generated `evidence/upload-requirement-coverage-audit.json`; it reports
+  `traceabilityReady=true`, `productionReady=false`, `requirements=25`,
+  `mapped=25`, `missing=0`, `blocked=7`, and `unknownReferences=0`.
+- Updated `evidence/upload-release-gates.json` and release-gate tests with
+  `UPLOAD-GATE-REQUIREMENT-COVERAGE-AUDIT-LOCAL`, while keeping
+  `production.status=blocked`.
+- Fresh verification passed: requirement coverage audit/release-gate matrix
+  (`2 files / 9 tests`), scoped ESLint, targeted upload JSON parse,
+  `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+- Result: requirement-by-requirement release-gate traceability is now executable
+  evidence, but no hosted/live production proof was claimed.
+
+### Iteration 61 - Production Proof Bundle Refresh
+
+- Refreshed `evidence/upload-production-proof-evidence-check.json` after the
+  requirement coverage audit and release-gate timestamp update.
+- The checker still exits 1 as expected and reports
+  `productionProofReady=false`, `required=7`, `passed=0`, `failed=7`,
+  `missing=0`, and `invalid=0`.
+- Failed production proof keys remain `hostedUploadOperations`,
+  `hostedUploadRuntime`, `liveScanner`, `alertDelivery`,
+  `dashboardObservation`, `hostedBackpressure`, and `retentionRunbook`.
+- Updated `evidence/upload-release-gates.json` local evidence and release-gate
+  tests to record the refreshed fail-closed proof bundle while keeping
+  `production.status=blocked`.
+- Fresh verification passed: production proof checker/requirement
+  coverage/release-gate matrix (`3 files / 14 tests`), scoped ESLint, targeted
+  upload JSON parse, `bunx tsc --noEmit --pretty false`, and
+  `git diff --check`.
+- Result: fail-closed production proof evidence is current after traceability
+  updates, but no hosted/live production proof was claimed.
+
+### Iteration 62 - Hosted Deployment Readback Evidence
+
+- Added `evidence/upload-hosted-deployment-readback.json` from read-only Vercel
+  `list_deployments`, `get_deployment`, and production runtime log inspection.
+- The artifact records production deployment
+  `dpl_8ymooyEM51amXCJ7xNstAHEkTeGq` aliasing `www.archestimator.com` and
+  `archestimator.com` at commit `8c611d1333210838f201b4c91deb74fe656f5902`.
+- Current source `main` is
+  `2ff0ddf308cbe8d4470cf483d350a596cd01b9e8`, the upload cleanup/scan/runtime
+  proof routes are present locally, and the route commit `a6548ebfa` is after
+  the production deployment commit.
+- The artifact reports `passed=false`, `productionProofReady=false`,
+  `hostedProofRoutesObservedDeployed=false`, no matching production runtime log
+  entries for upload proof route queries in the inspected 24-hour window, and
+  no production deployment attempted from this session.
+- Updated `evidence/upload-release-gates.json`, the requirement coverage
+  artifact, and release-gate tests with this hosted blocker evidence while
+  keeping `production.status=blocked`.
+- Fresh verification passed: upload release-gate/requirement coverage matrix
+  (`2 files / 9 tests`), scoped ESLint, targeted upload JSON parse,
+  `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+- Result: the hosted route blocker is now grounded in deployment readback, but
+  no production deployment, authenticated route proof, live scanner, alert,
+  dashboard, backpressure, or retention-runbook observation was claimed.
+
+### Iteration 63 - Production Proof Runbook Deployment Preflight
+
+- Updated `UPLOAD_PRODUCTION_PROOF_RUNBOOK.md` with a deployment readback
+  preflight before authenticated hosted proof collection.
+- The runbook now points to `evidence/upload-hosted-deployment-readback.json`
+  and explicitly says that deployment preflight is not one of the seven passing
+  production proof artifacts.
+- It keeps production blocked while `hostedProofRoutesObservedDeployed=false`
+  or `productionDeploymentPredatesUploadProofRoutes=true`, and warns not to
+  deploy from a proof-collection session unless production deployment is
+  explicitly authorized.
+- Updated `evidence/upload-release-gates.json`, the requirement coverage
+  artifact, and production proof checker tests to preserve that distinction.
+- Fresh verification passed: production proof checker/release-gate/requirement
+  coverage matrix (`3 files / 14 tests`), scoped ESLint, targeted upload JSON
+  parse, `bunx tsc --noEmit --pretty false`, and `git diff --check`.
+- Result: production proof operators now have the deployment-readback
+  prerequisite in the runbook, but no production deployment or hosted/live proof
+  was claimed.
+
 ## Proof Boundary
 
 Current proof boundary: `local-plus-linked-provider-operation-proof`.
@@ -2127,7 +2212,10 @@ together and fail closed when incomplete; its current failing report is not
 production proof and does not replace any hosted/live observation. The
 production proof runbook proves only operator-readiness for collecting the seven
 hosted/live artifacts; it does not replace deployed-route, live-scanner, alert,
-dashboard, backpressure, or retention-runbook observations. The
+dashboard, backpressure, or retention-runbook observations. The requirement
+coverage audit proves only release-gate traceability from the 25 plan
+requirements to local-pass/blocker references; it does not prove production
+readiness or replace any hosted/live observation. The
 production observation proof harness proves only that sanitized operator
 observations can be serialized into dashboard, backpressure, and retention
 runbook evidence artifacts and fail closed by default; the current skipped

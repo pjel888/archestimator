@@ -1,0 +1,1259 @@
+{
+  "generatedAt": "2026-06-27T12:09:12.480Z",
+  "mode": "upload-requirement-coverage-audit",
+  "proofBoundary": "traceability-only",
+  "requirementsFile": ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/04_REQUIREMENTS_SPECIFICATION.md",
+  "releaseGatesFile": ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-release-gates.json",
+  "releaseGateGeneratedAt": "2026-06-27T12:08:32Z",
+  "releaseGateStatuses": {
+    "closedBeta": "ready",
+    "production": "blocked",
+    "platform": "ready"
+  },
+  "passed": true,
+  "traceabilityReady": true,
+  "productionReady": false,
+  "totals": {
+    "requirements": 25,
+    "mapped": 25,
+    "missing": 0,
+    "blocked": 7,
+    "unknownReferences": 0
+  },
+  "requirements": [
+    {
+      "id": "UPLOAD-REQ-001",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-DOMAIN-CONTRACTS-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-002",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-APP-AUTHZ"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-003",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-DIRECT-STORAGE-CONTAINMENT-STATIC"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PROVIDER-STORAGE-DENIAL-OPERATION-PROOF"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-004",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-ROW-ASSET-FINALITY"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-005",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-SCAN-FREEZE"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-DOWNLOAD-BROKER-FAIL-CLOSED"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-STATUS-UX-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-STATUS-TAXONOMY-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-LIFECYCLE-CONTRACTS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-RPC-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-JOB-RUNNER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLAMD-SCANNER-PROVIDER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLAMD-LIVE-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-UI-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEAN-DOWNLOAD-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-SCANNER"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-SCANNER"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-006",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-SCAN-FREEZE"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-DOWNLOAD-BROKER-FAIL-CLOSED"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-STATUS-UX-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-STATUS-TAXONOMY-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-LIFECYCLE-CONTRACTS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-RPC-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-JOB-RUNNER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLAMD-SCANNER-PROVIDER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLAMD-LIVE-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-UI-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEAN-DOWNLOAD-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-SCANNER"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-SCANNER"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-007",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-DOMAIN-CONTRACTS-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-008",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-DOMAIN-CONTRACTS-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-009",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-ROW-IMAGE-PRIVATE-BUCKET"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-RESOLVER-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-BACKFILL-READINESS-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PUBLICATION-SNAPSHOT-MIGRATION-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PERSISTED-SCAN-READBACK"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-BUCKET-READBACK"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-010",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-ROW-IMAGE-PRIVATE-BUCKET"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-RESOLVER-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-BACKFILL-READINESS-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PUBLICATION-SNAPSHOT-MIGRATION-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PERSISTED-SCAN-READBACK"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-BUCKET-READBACK"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-011",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-012",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-013",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-014",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ROUTE-CONTRACTS-AND-MALICIOUS-FIXTURES-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-015",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-CLEANUP-CORE-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-RETENTION-OBSERVABILITY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-PROVIDER-EXECUTION-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-JOB-RETRY-AUDIT-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-SCHEDULER-CONFIG-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-RUNBOOK-DRILL-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-016",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-CLEANUP-CORE-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-RETENTION-OBSERVABILITY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-PROVIDER-EXECUTION-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-JOB-RETRY-AUDIT-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-SCHEDULER-CONFIG-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-ALERT-WEBHOOK-SINK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ALERT-DELIVERY-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-RUNBOOK-DRILL-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-HOSTED-UPLOAD-OPERATIONS-DRY-RUN-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-017",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ATTACHMENT-STATUS-UX-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-REFERENCE-IMAGE-UX-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-UI-RUNBOOK-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-018",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-DIRECT-UPLOAD-RESERVED-SESSION-BACKPRESSURE-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PROVIDER-ADAPTER-READ-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-SESSION-STRATEGY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-S3-LIKE-MULTIPART-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ASSET-DESCRIPTOR-MIGRATION-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SUPABASE-SIGNED-UPLOAD-PROVIDER-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SIGNED-UPLOAD-APP-ROUTE-PROVIDER-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SIGNED-UPLOAD-BROWSER-CLIENT-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-TUS-RESUMABLE-APP-ROUTE-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-TUS-RESUMABLE-BROWSER-CLIENT-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SUPABASE-TUS-RESUMABLE-PROVIDER-READBACK"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-019",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-DIRECT-UPLOAD-RESERVED-SESSION-BACKPRESSURE-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PROVIDER-ADAPTER-READ-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-SESSION-STRATEGY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PROVIDER-MIGRATION-DRY-RUN-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-S3-LIKE-MULTIPART-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ASSET-DESCRIPTOR-MIGRATION-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SUPABASE-SIGNED-UPLOAD-PROVIDER-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SIGNED-UPLOAD-APP-ROUTE-PROVIDER-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SIGNED-UPLOAD-BROWSER-CLIENT-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-TUS-RESUMABLE-APP-ROUTE-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-TUS-RESUMABLE-BROWSER-CLIENT-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SUPABASE-TUS-RESUMABLE-PROVIDER-READBACK"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-020",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-CLEANUP-CORE-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-RETENTION-OBSERVABILITY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-PROVIDER-EXECUTION-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-JOB-RETRY-AUDIT-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-SCHEDULER-CONFIG-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-ALERT-WEBHOOK-SINK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ALERT-DELIVERY-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-RUNBOOK-DRILL-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-HOSTED-UPLOAD-OPERATIONS-DRY-RUN-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-021",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-DOMAIN-APPLIED-READBACK"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-022",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ABUSE-CAPS-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-LIFECYCLE-CONTRACTS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-DIRECT-UPLOAD-RESERVED-SESSION-BACKPRESSURE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-ALERT-WEBHOOK-SINK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ALERT-DELIVERY-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-HOSTED-UPLOAD-OPERATIONS-DRY-RUN-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLAMD-SCANNER-PROVIDER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLAMD-LIVE-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        }
+      ],
+      "blockerRefs": []
+    },
+    {
+      "id": "UPLOAD-REQ-023",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-UPLOAD-CLEANUP-CORE-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-RETENTION-OBSERVABILITY-LOCAL"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-LIFECYCLE-CONTRACTS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-PROVIDER-EXECUTION-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-JOB-RETRY-AUDIT-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEANUP-SCHEDULER-CONFIG-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONAL-TELEMETRY-SEAM-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-ALERT-WEBHOOK-SINK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ALERT-DELIVERY-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-QUERY-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-DASHBOARD-SURFACE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-PROOF-HARNESSES-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-OBSERVATION-RUNBOOK-TEMPLATE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-OPERATIONS-RUNBOOK-DRILL-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCANNER-RPC-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-JOB-RUNNER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-WORKER-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-HOSTED-UPLOAD-OPERATIONS-DRY-RUN-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-ROUTE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SCAN-OVERRIDE-UI-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-CLEAN-DOWNLOAD-PROVIDER-READBACK"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-024",
+      "status": "blocked",
+      "evidenceRefs": [
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-DIRECT-UPLOAD-RESERVED-SESSION-BACKPRESSURE-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF-HARNESS-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-ENV-PREFLIGHT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-EVIDENCE-BUNDLE-CHECKER-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-REQUIREMENT-COVERAGE-AUDIT-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-PROVIDER-MIGRATION-DRY-RUN-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ASSET-DESCRIPTOR-MIGRATION-PARITY-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SUPABASE-SIGNED-UPLOAD-PROVIDER-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SIGNED-UPLOAD-APP-ROUTE-PROVIDER-READBACK"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SIGNED-UPLOAD-BROWSER-CLIENT-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-TUS-RESUMABLE-APP-ROUTE-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-TUS-RESUMABLE-BROWSER-CLIENT-LOCAL"
+        },
+        {
+          "scope": "platform",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-SUPABASE-TUS-RESUMABLE-PROVIDER-READBACK"
+        }
+      ],
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+        }
+      ]
+    },
+    {
+      "id": "UPLOAD-REQ-025",
+      "status": "mapped",
+      "evidenceRefs": [
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-ROW-ASSET-FINALITY"
+        },
+        {
+          "scope": "closedBeta",
+          "kind": "localPass",
+          "id": "UPLOAD-GATE-ESTIMATE-ROW-IMAGE-PRIVATE-BUCKET"
+        }
+      ],
+      "blockerRefs": []
+    }
+  ],
+  "unknownRequirementReferences": [],
+  "note": "This artifact audits release-gate traceability for the upload plan. It does not prove production readiness, collect hosted evidence, read secrets, deploy routes, or replace hosted/live production observations."
+}

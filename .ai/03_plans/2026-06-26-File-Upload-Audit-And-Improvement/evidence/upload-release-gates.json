@@ -1,6 +1,6 @@
 {
   "artifact": "upload-release-gates",
-  "generatedAt": "2026-06-27T11:09:43Z",
+  "generatedAt": "2026-06-27T12:08:32Z",
   "proofBoundary": "local-plus-linked-provider-operation-proof",
   "closedBeta": {
     "status": "ready",
@@ -461,7 +461,14 @@
           "UPLOAD-REQ-023",
           "UPLOAD-REQ-024"
         ],
-        "evidence": "UPLOAD_PRODUCTION_PROOF_RUNBOOK.md maps all seven production evidence requirements to their expected passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria. It explicitly keeps production blocked until hosted routes are deployed, scoped proof secrets are available, live ClamD/CDR configuration exists, alert delivery is observed, and hosted dashboard/backpressure/retention observations are collected. This is operator-readiness documentation only, not production proof."
+        "evidence": "UPLOAD_PRODUCTION_PROOF_RUNBOOK.md maps all seven production evidence requirements to their expected passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria. It also calls out evidence/upload-hosted-deployment-readback.json as a read-only deployment preflight for hosted route presence, while explicitly keeping production blocked until hosted routes are deployed, scoped proof secrets are available, live ClamD/CDR configuration exists, alert delivery is observed, and hosted dashboard/backpressure/retention observations are collected. This is operator-readiness documentation only, not production proof."
+      },
+      {
+        "id": "UPLOAD-GATE-REQUIREMENT-COVERAGE-AUDIT-LOCAL",
+        "requirements": [
+          "UPLOAD-REQ-024"
+        ],
+        "evidence": "scripts/check-upload-requirement-coverage.ts audits every requirement from 04_REQUIREMENTS_SPECIFICATION.md against upload-release-gates.json local pass and blocker references. Current artifact evidence/upload-requirement-coverage-audit.json reports traceabilityReady=true with requirements=25, mapped=25, missing=0, unknownReferences=0, productionReady=false, and production.status=blocked. This is traceability proof only and does not claim production readiness."
       }
     ],
     "blockers": [
@@ -606,9 +613,110 @@
       "exit": 1,
       "result": "Read-only hosted no-secret cleanup/scan dry-run probes against https://www.archestimator.com returned 404 with public cache headers for /api/internal/upload-cleanup?limit=1&dryRun=1 and /api/internal/upload-scan?limit=1&dryRun=1; productionProofReady=false. See evidence/upload-hosted-operations-fail-closed-proof.json and evidence/upload-hosted-operations-fail-closed-proof.md.",
       "artifact": "evidence/upload-hosted-operations-fail-closed-proof.json"
+    },
+    {
+      "command": "Vercel MCP read-only list_deployments/get_deployment/get_runtime_logs for project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E",
+      "exit": 0,
+      "result": "Production deployment dpl_8ymooyEM51amXCJ7xNstAHEkTeGq aliases www.archestimator.com/archestimator.com at commit 8c611d1333210838f201b4c91deb74fe656f5902 from 2026-06-20. Current source HEAD 2ff0ddf308cbe8d4470cf483d350a596cd01b9e8 contains upload proof routes added in a6548ebfa after that production commit. No production runtime logs matched upload proof route queries for 2026-06-26T11:50:59.173Z through 2026-06-27T11:50:59.172Z. Hosted proof routes remain deployment-blocked; no production readiness claimed.",
+      "artifact": "evidence/upload-hosted-deployment-readback.json"
     }
   ],
   "localEvidence": [
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-requirement-coverage-audit.json bun run scripts/check-upload-requirement-coverage.ts",
+      "exit": 0,
+      "result": "Upload requirement coverage audit passed with traceabilityReady=true, productionReady=false, requirements=25, mapped=25, missing=0, blocked=7, unknownReferences=0. See evidence/upload-requirement-coverage-audit.json."
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "1 file, 4 tests passed for upload requirement coverage audit"
+    },
+    {
+      "command": "bunx eslint scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts",
+      "exit": 0,
+      "result": "Scoped upload requirement coverage audit script and tests linted with no errors or warnings"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-requirement-coverage-audit.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 9 tests passed after upload requirement coverage audit updates"
+    },
+    {
+      "command": "bunx eslint scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts tests/vitest/upload-release-gates.test.ts",
+      "exit": 0,
+      "result": "Scoped upload requirement coverage audit and release-gate lint passed with no errors or warnings"
+    },
+    {
+      "command": "node -e \"const fs=require('node:fs'); const dir='.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-requirement-coverage-audit.json','upload-production-proof-evidence-check.json']) JSON.parse(fs.readFileSync(dir+'/'+file,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, requirement coverage audit, and production proof bundle JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload requirement coverage audit updates"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload requirement coverage audit updates"
+    },
+    {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
+      "exit": 1,
+      "result": "Expected refreshed fail-closed upload production evidence bundle check after requirement coverage audit: productionProofReady=false with required=7, passed=0, failed=7, missing=0, invalid=0. Failed keys: hostedUploadOperations, hostedUploadRuntime, liveScanner, alertDelivery, dashboardObservation, hostedBackpressure, retentionRunbook. Production remains blocked."
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "2 files, 9 tests passed after upload hosted deployment readback evidence"
+    },
+    {
+      "command": "bunx eslint tests/vitest/upload-release-gates.test.ts scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts",
+      "exit": 0,
+      "result": "Scoped upload release-gate deployment readback and requirement coverage lint passed with no errors or warnings"
+    },
+    {
+      "command": "node -e \"const fs=require('node:fs'); const dir='.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-requirement-coverage-audit.json','upload-production-proof-evidence-check.json','upload-hosted-deployment-readback.json']) JSON.parse(fs.readFileSync(dir+'/'+file,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, requirement coverage audit, production proof bundle, and hosted deployment readback JSON parsed successfully"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload hosted deployment readback evidence"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload hosted deployment readback evidence"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "3 files, 14 tests passed after upload production proof runbook deployment preflight update"
+    },
+    {
+      "command": "bunx eslint tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts scripts/check-upload-production-proof-evidence.ts scripts/check-upload-requirement-coverage.ts tests/vitest/upload-requirement-coverage-audit.test.ts",
+      "exit": 0,
+      "result": "Scoped upload production proof runbook preflight, release-gate, and requirement coverage lint passed with no errors or warnings"
+    },
+    {
+      "command": "node -e \"const fs=require('node:fs'); const dir='.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence'; for (const file of ['upload-release-gates.json','upload-requirement-coverage-audit.json','upload-production-proof-evidence-check.json','upload-hosted-deployment-readback.json']) JSON.parse(fs.readFileSync(dir+'/'+file,'utf8')); console.log('json ok')\"",
+      "exit": 0,
+      "result": "Upload release-gate, requirement coverage audit, production proof bundle, and hosted deployment readback JSON parsed successfully after production proof runbook preflight update"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "exit": 0,
+      "result": "No TypeScript errors after upload production proof runbook deployment preflight update"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload production proof runbook deployment preflight update"
+    },
     {
       "command": "bunx vitest run tests/vitest/upload-alert-delivery-proof-script.test.ts tests/vitest/upload-production-observations-proof-script.test.ts tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
       "exit": 0,
