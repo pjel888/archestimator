@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
+import type { EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
@@ -107,6 +107,8 @@ type UpdateEstimateRowItemInput = {
   unit?: string;
   unitCost?: number;
   quantity?: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   contingencyPercentage?: number;
   miscCost?: number;
   sourceSnapshot?: Json | null;
@@ -115,12 +117,43 @@ type UpdateEstimateRowItemInput = {
   expectedRowRevision?: number;
 };
 
+type EstimateRowImageAssetDescriptor = {
+  kind: "upload-asset";
+  schemaVersion: 1;
+  assetId: string;
+  uploadSessionId: string;
+  bucket: string;
+  path: string;
+  thumbnailPath?: string | null;
+  fileName?: string | null;
+  contentType: string;
+  sizeBytes: number;
+  scanStatus: string;
+  width?: number | null;
+  height?: number | null;
+  thumbnailWidth?: number | null;
+  thumbnailHeight?: number | null;
+};
+
+type UploadAssetValidationRpc = (
+  functionName: string,
+  args: Record<string, unknown>,
+) => PromiseLike<{ data: unknown; error: { message?: string | null } | null }>;
+
 type DetachEstimateRowItemInput = {
   projectId: string;
   estimateId: string;
   rowId: string;
   reason?: string;
   mutationId?: string;
+  expectedRowRevision?: number;
+};
+
+type UpdateEstimateSheetAdjustmentInput = {
+  projectId: string;
+  estimateId: string;
+  mode: EstimateSheetAdjustmentMode;
+  percentage: number;
   expectedRowRevision?: number;
 };
 
@@ -132,6 +165,8 @@ export type UpdateEstimateRowItemResult = {
   supplier: string;
   unit: string;
   quantity: number;
+  quantityBase: number | null;
+  quantityContingencyAmount: number | null;
   itemCost: number;
   contingencyPercentage: number;
   contingencyValue: number;
@@ -141,6 +176,8 @@ export type UpdateEstimateRowItemResult = {
   linkState: Tables<"estimate_row_items">["link_state"];
   rowRevision: number;
 };
+
+export type UpdateEstimateSheetAdjustmentResult = EstimateSheetAdjustment;
 
 type ReplaceEstimateRowItemInput = {
   projectId: string;
@@ -180,6 +217,37 @@ type MoveEstimateRowComponentInput = {
 export type MoveEstimateRowComponentResult = {
   sourceRow: UpdateEstimateRowItemResult;
   targetRow: UpdateEstimateRowItemResult;
+};
+
+export type MoveEstimateRowItemUpdateInput = {
+  rowId: string;
+  nodeId: string;
+  sortOrder: number;
+  expectedRowRevision: number;
+};
+
+type MoveEstimateRowItemWithHistoryInput = {
+  projectId: string;
+  estimateId: string;
+  activeTabId?: string | null;
+  movedRowId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  updates: MoveEstimateRowItemUpdateInput[];
+  mutationId?: string;
+};
+
+export type MoveEstimateRowItemWithHistoryResultRow = {
+  rowId: string;
+  nodeId: string;
+  sortOrder: number;
+  rowRevision: number;
+};
+
+export type MoveEstimateRowItemWithHistoryResult = {
+  eventId: string;
+  updatedRowCount: number;
+  rows: MoveEstimateRowItemWithHistoryResultRow[];
 };
 
 type DeleteEstimateRowItemsBulkInput = {
@@ -422,6 +490,12 @@ function assertNotOptimisticEstimateNodeId(nodeId: string, label: string) {
   if (nodeId.startsWith("optimistic-")) throw new Error(`${label} id is invalid.`);
 }
 
+function assertPersistedUuid(value: string, label: string) {
+  const id = value.trim();
+  if (!isUuid(id) || id.startsWith("optimistic-") || id.startsWith("temp-")) throw new Error(`${label} id is invalid.`);
+  return id;
+}
+
 function readNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -437,6 +511,8 @@ type EstimateHistoryRowRpcResult = {
     supplier?: unknown;
     unit?: unknown;
     quantity?: unknown;
+    quantityBase?: unknown;
+    quantityContingencyAmount?: unknown;
     unitCost?: unknown;
     contingencyPercentage?: unknown;
     contingencyValue?: unknown;
@@ -475,6 +551,8 @@ function readHistoryRowResult(value: unknown) {
     supplier: typeof row.supplier === "string" ? row.supplier : "",
     unit: typeof row.unit === "string" ? row.unit : "unit",
     quantity: readNumber(row.quantity),
+    quantityBase: row.quantityBase === null || row.quantityBase === undefined ? null : readNumber(row.quantityBase),
+    quantityContingencyAmount: row.quantityContingencyAmount === null || row.quantityContingencyAmount === undefined ? null : readNumber(row.quantityContingencyAmount),
     itemCost: readNumber(row.unitCost),
     contingencyPercentage: readNumber(row.contingencyPercentage),
     contingencyValue: readNumber(row.contingencyValue),
@@ -496,6 +574,34 @@ function readMovedRowResult(value: unknown): MoveEstimateRowComponentResult {
   return {
     sourceRow: readHistoryRowResult({ row: sourceRow }),
     targetRow: readHistoryRowResult({ row: targetRow }),
+  };
+}
+
+function readMovedRowItemResultRow(value: unknown): MoveEstimateRowItemWithHistoryResultRow {
+  if (!value || typeof value !== "object") throw new Error("Row reorganization RPC returned an invalid row result.");
+  const row = value as Record<string, unknown>;
+  const rowId = typeof row.rowId === "string" ? row.rowId : typeof row.id === "string" ? row.id : "";
+  const nodeId = typeof row.nodeId === "string" ? row.nodeId : typeof row.node_id === "string" ? row.node_id : "";
+  const sortOrder = readNumber(row.sortOrder ?? row.sort_order, Number.NaN);
+  const rowRevision = readNumber(row.rowRevision ?? row.row_revision, Number.NaN);
+  if (!rowId || !nodeId || !Number.isInteger(sortOrder) || sortOrder < 0 || !Number.isInteger(rowRevision) || rowRevision < 1) {
+    throw new Error("Row reorganization RPC returned an incomplete row result.");
+  }
+
+  return { rowId, nodeId, sortOrder, rowRevision };
+}
+
+function readMovedRowItemResult(value: unknown): MoveEstimateRowItemWithHistoryResult {
+  if (!value || typeof value !== "object") throw new Error("Row reorganization RPC returned an invalid result.");
+  const result = value as Record<string, unknown>;
+  const payload = result.payload && typeof result.payload === "object" ? result.payload as Record<string, unknown> : {};
+  const rowsValue = result.rows ?? payload.rows;
+  const rows = Array.isArray(rowsValue) ? rowsValue.map(readMovedRowItemResultRow) : [];
+
+  return {
+    eventId: readStringResult(result.eventId ?? payload.eventId, "Row reorganization RPC did not return a history event id."),
+    updatedRowCount: readNumber(result.updatedRowCount ?? payload.updatedRowCount, rows.length),
+    rows,
   };
 }
 
@@ -578,6 +684,30 @@ async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createS
   const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
   if (error) throw error;
   if (data !== true) throw new Error("Estimate edit access denied.");
+}
+
+function normalizeEstimateSheetAdjustmentMode(value: EstimateSheetAdjustmentMode): EstimateSheetAdjustmentMode {
+  if (value === "contingency" || value === "discount") return value;
+  throw new Error("Estimate adjustment mode is invalid.");
+}
+
+function normalizeEstimateSheetAdjustmentPercentage(value: number) {
+  const percentage = Number(value);
+  if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+    throw new Error("Estimate adjustment percentage must be between 0 and 100.");
+  }
+  return percentage;
+}
+
+function toEstimateSheetAdjustment(row: Tables<"estimate_sheet_adjustments">): EstimateSheetAdjustment {
+  return {
+    estimateId: row.estimate_id,
+    mode: row.mode,
+    percentage: Number(row.percentage ?? 0),
+    rowRevision: row.row_revision,
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by,
+  };
 }
 
 // Project-scoped edit guard for sheet creation (no estimate id exists yet). RLS
@@ -1017,8 +1147,12 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
   }) as Json;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function readJsonObject(value: unknown): Record<string, Json | undefined> {
-  return value && typeof value === "object" && !Array.isArray(value)
+  return isPlainRecord(value)
     ? { ...(value as Record<string, Json | undefined>) }
     : {};
 }
@@ -1028,6 +1162,70 @@ function mergeJsonObject(value: unknown, patch: Record<string, Json | undefined>
     ...readJsonObject(value),
     ...patch,
   } as Json;
+}
+
+function readDescriptorText(record: Record<string, unknown>, key: keyof EstimateRowImageAssetDescriptor) {
+  const value = record[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function isEstimateRowImageAssetDescriptor(value: unknown): value is EstimateRowImageAssetDescriptor {
+  if (!isPlainRecord(value)) return false;
+  return (
+    value.kind === "upload-asset"
+    && value.schemaVersion === 1
+    && readDescriptorText(value, "assetId") !== null
+    && readDescriptorText(value, "uploadSessionId") !== null
+    && readDescriptorText(value, "bucket") !== null
+    && readDescriptorText(value, "path") !== null
+    && readDescriptorText(value, "contentType") !== null
+    && typeof value.sizeBytes === "number"
+    && Number.isFinite(value.sizeBytes)
+    && value.sizeBytes > 0
+    && readDescriptorText(value, "scanStatus") !== null
+  );
+}
+
+async function validateEstimateRowImageAssetPatch({
+  supabase,
+  projectId,
+  estimateId,
+  rowId,
+  sourceSnapshotPatch,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  projectId: string;
+  estimateId: string;
+  rowId: string;
+  sourceSnapshotPatch: Record<string, Json | undefined>;
+}) {
+  if (!Object.prototype.hasOwnProperty.call(sourceSnapshotPatch, "imageAsset")) return sourceSnapshotPatch;
+  const candidate = sourceSnapshotPatch.imageAsset;
+  if (candidate === null || candidate === undefined) return sourceSnapshotPatch;
+  if (!isPlainRecord(candidate)) throw new Error("Reference image asset is invalid.");
+
+  const assetId = readDescriptorText(candidate, "assetId");
+  const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
+  if (!assetId || !uploadSessionId) throw new Error("Reference image asset is invalid.");
+
+  const rpc = supabase.rpc as UploadAssetValidationRpc;
+  const { data, error } = await rpc("validate_estimate_row_image_asset", {
+    target_asset_id: assetId,
+    target_upload_session_id: uploadSessionId,
+    target_project_id: projectId,
+    target_estimate_id: estimateId,
+    target_row_id: rowId,
+  });
+
+  if (error) throw new Error(error.message ?? "Could not validate reference image asset.");
+  if (!isEstimateRowImageAssetDescriptor(data)) {
+    throw new Error("Reference image asset is not valid for this estimate row.");
+  }
+
+  return {
+    ...sourceSnapshotPatch,
+    imageAsset: data as Json,
+  };
 }
 
 function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
@@ -1068,6 +1266,8 @@ function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
 
 function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
   const quantity = libraryItem.quantity || 1;
+  const quantityBase = libraryItem.quantityBase ?? null;
+  const quantityContingencyAmount = quantityBase === null ? null : libraryItem.quantityContingencyAmount ?? 0;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
 
   return {
@@ -1080,6 +1280,8 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
     supplier: libraryItem.supplier,
     unit: libraryItem.unit,
     quantity,
+    quantityBase,
+    quantityContingencyAmount,
     unitCost: libraryItem.itemCost,
     contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
     miscCost: libraryItem.miscCost,
@@ -1903,6 +2105,8 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
       misc_cost: row.misc_cost,
       node_id: nodeId,
       quantity: row.quantity,
+      quantity_base: row.quantity_base,
+      quantity_contingency_amount: row.quantity_contingency_amount,
       sort_order: row.sort_order,
       source_library_item_id: row.source_library_item_id,
       source_snapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot) as Json | null,
@@ -2692,6 +2896,8 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   await assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem);
 
   const quantity = libraryItem.quantity || 1;
+  const quantityBase = libraryItem.quantityBase ?? null;
+  const quantityContingencyAmount = quantityBase === null ? null : libraryItem.quantityContingencyAmount ?? 0;
   const sourceSnapshot = getSourceSnapshot(libraryItem);
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
@@ -2711,6 +2917,8 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
       supplier: libraryItem.supplier,
       unit: libraryItem.unit,
       quantity,
+      quantityBase,
+      quantityContingencyAmount,
       unitCost: libraryItem.itemCost,
       contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
       miscCost: libraryItem.miscCost,
@@ -2727,14 +2935,101 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   return insertData ? readHistoryRowResult(insertData) : undefined;
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, contingencyPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateSheetAdjustment({
+  projectId,
+  estimateId,
+  mode,
+  percentage,
+  expectedRowRevision,
+}: UpdateEstimateSheetAdjustmentInput): Promise<UpdateEstimateSheetAdjustmentResult> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
+  const currentUser = await requireCurrentUserContext();
+  const normalizedMode = normalizeEstimateSheetAdjustmentMode(mode);
+  const normalizedPercentage = normalizeEstimateSheetAdjustmentPercentage(percentage);
+
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+  if (estimateError) throw estimateError;
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  const { data: currentAdjustment, error: currentError } = await supabase
+    .from("estimate_sheet_adjustments")
+    .select("*")
+    .eq("estimate_id", estimate.id)
+    .maybeSingle();
+  if (currentError) throw currentError;
+
+  if (currentAdjustment) {
+    if (expectedRowRevision !== undefined && currentAdjustment.row_revision !== expectedRowRevision) {
+      throw new EstimateRowRevisionConflictError();
+    }
+
+    const { data: updatedAdjustment, error: updateError } = await supabase
+      .from("estimate_sheet_adjustments")
+      .update({
+        mode: normalizedMode,
+        percentage: normalizedPercentage,
+        row_revision: currentAdjustment.row_revision + 1,
+        updated_by: currentUser.userId,
+      })
+      .eq("estimate_id", estimate.id)
+      .eq("row_revision", currentAdjustment.row_revision)
+      .select("*")
+      .maybeSingle();
+    if (updateError) throw updateError;
+    if (!updatedAdjustment) throw new EstimateRowRevisionConflictError();
+
+    clearEstimateRouteContextProcessCache(project.id);
+    revalidateProjectEstimatePaths(project.id);
+    return toEstimateSheetAdjustment(updatedAdjustment);
+  }
+
+  if (expectedRowRevision !== undefined && expectedRowRevision > 0) {
+    throw new EstimateRowRevisionConflictError();
+  }
+
+  const { data: insertedAdjustment, error: insertError } = await supabase
+    .from("estimate_sheet_adjustments")
+    .insert({
+      estimate_id: estimate.id,
+      mode: normalizedMode,
+      percentage: normalizedPercentage,
+      row_revision: 1,
+      updated_by: currentUser.userId,
+    })
+    .select("*")
+    .single();
+  if (insertError) throw insertError;
+
+  clearEstimateRouteContextProcessCache(project.id);
+  revalidateProjectEstimatePaths(project.id);
+  return toEstimateSheetAdjustment(insertedAdjustment);
+}
+
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  const sourceSnapshotPatch = sourceSnapshot === undefined
-    ? undefined
-    : sourceSnapshot === null
-      ? null
-      : mergeJsonObject(row.source_snapshot, readJsonObject(sourceSnapshot));
+  let sourceSnapshotPatch: Json | null | undefined;
+  if (sourceSnapshot === null) {
+    sourceSnapshotPatch = null;
+  } else if (sourceSnapshot !== undefined) {
+    const sourceSnapshotInput = await validateEstimateRowImageAssetPatch({
+      supabase,
+      projectId: project.id,
+      estimateId,
+      rowId: row.id,
+      sourceSnapshotPatch: readJsonObject(sourceSnapshot),
+    });
+    sourceSnapshotPatch = mergeJsonObject(row.source_snapshot, sourceSnapshotInput);
+  }
   const rowPatch = {
     ...(material !== undefined ? { material } : {}),
     ...(description !== undefined ? { description } : {}),
@@ -2742,6 +3037,8 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     ...(unit !== undefined ? { unit } : {}),
     ...(unitCost !== undefined ? { unitCost } : {}),
     ...(quantity !== undefined ? { quantity } : {}),
+    ...(quantityBase !== undefined ? { quantityBase } : {}),
+    ...(quantityContingencyAmount !== undefined ? { quantityContingencyAmount } : {}),
     ...(contingencyPercentage !== undefined ? { contingencyPercentage } : {}),
     ...(miscCost !== undefined ? { miscCost } : {}),
     ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
@@ -2858,6 +3155,67 @@ export async function moveEstimateRowComponentWithHistory({
 
   if (error) throwEstimateRowMutationError(error);
   return readMovedRowResult(data);
+}
+
+function normalizeEstimateRowMoveUpdates(updates: MoveEstimateRowItemUpdateInput[]) {
+  if (!Array.isArray(updates) || updates.length === 0) throw new Error("At least one row order update is required.");
+  if (updates.length > 1_000) throw new Error("Row reorganization is limited to 1000 affected rows at a time.");
+
+  const seenRowIds = new Set<string>();
+  return updates.map((update) => {
+    const rowId = assertPersistedUuid(String(update.rowId ?? ""), "Estimate row");
+    const nodeId = assertPersistedUuid(String(update.nodeId ?? ""), "Target node");
+    const sortOrder = Number(update.sortOrder);
+    const expectedRowRevision = Number(update.expectedRowRevision);
+    if (seenRowIds.has(rowId)) throw new Error("Row reorganization updates must not contain duplicate row ids.");
+    if (!Number.isInteger(sortOrder) || sortOrder < 0) throw new Error("Row reorganization sort order is invalid.");
+    if (!Number.isInteger(expectedRowRevision) || expectedRowRevision < 1) throw new Error("Row reorganization row revision is invalid.");
+    seenRowIds.add(rowId);
+    return { rowId, nodeId, sortOrder, expectedRowRevision };
+  });
+}
+
+export async function moveEstimateRowItemWithHistory({
+  projectId,
+  estimateId,
+  activeTabId,
+  movedRowId,
+  sourceNodeId,
+  targetNodeId,
+  updates,
+  mutationId,
+}: MoveEstimateRowItemWithHistoryInput): Promise<MoveEstimateRowItemWithHistoryResult> {
+  const moveUpdates = normalizeEstimateRowMoveUpdates(updates);
+  const normalizedMovedRowId = assertPersistedUuid(movedRowId, "Moved estimate row");
+  const normalizedSourceNodeId = assertPersistedUuid(sourceNodeId, "Source node");
+  const normalizedTargetNodeId = assertPersistedUuid(targetNodeId, "Target node");
+  const normalizedActiveTabId = activeTabId ? assertPersistedUuid(activeTabId, "Active tab") : null;
+
+  if (!moveUpdates.some((update) => update.rowId === normalizedMovedRowId && update.nodeId === normalizedTargetNodeId)) {
+    throw new Error("Moved estimate row must be included in the target row order updates.");
+  }
+
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
+
+  const { data, error } = await supabase.rpc("move_estimate_row_item_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_active_tab_id: normalizedActiveTabId,
+    move_updates: moveUpdates,
+    moved_row_id: normalizedMovedRowId,
+    source_node_id: normalizedSourceNodeId,
+    target_node_id: normalizedTargetNodeId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (error) throwEstimateRowMutationError(error);
+  const result = readMovedRowItemResult(data);
+  clearEstimateRouteContextProcessCache(project.id);
+  return result;
 }
 
 function normalizeEstimateRowIdSelection(rowIds: string[]) {

@@ -2,6 +2,16 @@ import type { EstimateRowMetadata } from "@/lib/estimates/express-components";
 
 export type EstimateRowItemSource = "project" | "supplier" | "library";
 export type EstimateRowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "detached" | "source-changed";
+export type EstimateSheetAdjustmentMode = "contingency" | "discount";
+
+export type EstimateSheetAdjustment = {
+  estimateId: string;
+  mode: EstimateSheetAdjustmentMode;
+  percentage: number;
+  rowRevision: number;
+  updatedAt?: string;
+  updatedBy?: string | null;
+};
 
 export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
 
@@ -82,6 +92,7 @@ export type ComponentHistoryEntry = {
 
 export type EstimateRowItem = {
   id: string;
+  sortOrder?: number;
   material: string;
   name?: string;
   description: string;
@@ -92,6 +103,8 @@ export type EstimateRowItem = {
   price?: number;
   currency?: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   subTotal: number;
   contingencyPercentage?: number;
   contingencyValue?: number;

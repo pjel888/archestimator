@@ -37,6 +37,8 @@ export type EstimateRowItem = {
   supplier: string;
   unit: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unitCost: number;
   contingencyPercentage?: number;
   miscCost: number;
