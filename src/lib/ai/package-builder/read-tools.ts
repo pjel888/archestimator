@@ -66,6 +66,8 @@ export type PackageBuilderCompactAreaRow = {
   nodeId: string;
   material: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unit: string;
   unitCost: number;
   miscCost?: number;
@@ -350,9 +352,9 @@ function buildSearchOrFilter(columns: string[], terms: string[]) {
     .join(",");
 }
 
-function calculateRowTotal(row: { quantity: number; unit_cost: number; misc_cost: number; contingency_percentage: number }) {
+function calculateRowTotal(row: { quantity: number; quantity_base?: number | null; unit_cost: number; misc_cost: number; contingency_percentage: number }) {
   const base = Number(row.quantity) * Number(row.unit_cost);
-  return base + Number(row.misc_cost) + (base * Number(row.contingency_percentage)) / 100;
+  return base + Number(row.misc_cost) + (row.quantity_base === null || row.quantity_base === undefined ? (base * Number(row.contingency_percentage)) / 100 : 0);
 }
 
 function compactEstimateTree({
@@ -393,6 +395,8 @@ function compactEstimateTree({
         nodeId: node.id,
         material: row.material,
         quantity: row.quantity,
+        quantityBase: row.quantity_base ?? null,
+        quantityContingencyAmount: row.quantity_base === null || row.quantity_base === undefined ? null : row.quantity_contingency_amount ?? 0,
         unit: row.unit,
         unitCost: row.unit_cost,
         miscCost: row.misc_cost,
@@ -519,6 +523,8 @@ type AiEstimateRowSearchRow = {
   description?: string;
   supplier?: string | null;
   quantity: number;
+  quantity_base?: number | null;
+  quantity_contingency_amount?: number | null;
   unit: string;
   unit_cost: number;
   contingency_percentage: number;
@@ -612,7 +618,7 @@ async function listScopedEstimateSummaries({
       .limit(DEFAULT_TREE_LIMIT),
     supabase
       .from("estimate_row_items")
-      .select("estimate_id, quantity, unit_cost, contingency_percentage, misc_cost")
+      .select("estimate_id, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, misc_cost")
       .in("estimate_id", estimateIds)
       .limit(DEFAULT_ROW_LIMIT),
   ]);
@@ -620,7 +626,7 @@ async function listScopedEstimateSummaries({
   if (rowsResult.error) throw rowsResult.error;
 
   const nodes = (nodesResult.data ?? []) as Pick<AiEstimateNodeSearchRow, "id" | "estimate_id" | "kind" | "sort_order">[];
-  const rows = (rowsResult.data ?? []) as Pick<AiEstimateRowSearchRow, "estimate_id" | "quantity" | "unit_cost" | "contingency_percentage" | "misc_cost">[];
+  const rows = (rowsResult.data ?? []) as Pick<AiEstimateRowSearchRow, "estimate_id" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "misc_cost">[];
   const firstNodeByEstimateId = new Map<string, string>();
   const nodeCountByEstimateId = new Map<string, number>();
   const rowCountByEstimateId = new Map<string, number>();
@@ -720,7 +726,7 @@ async function readScopedEstimateTree({
   const scopedNodeIds = new Set(nodes.map((node) => node.id));
   const rowsQuery = supabase
     .from("estimate_row_items")
-    .select("id, estimate_id, node_id, material, quantity, unit, unit_cost, contingency_percentage, misc_cost, row_revision, source_library_item_id")
+    .select("id, estimate_id, node_id, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, misc_cost, row_revision, source_library_item_id")
     .eq("estimate_id", estimate.id);
   if (resolvedActiveTabId) rowsQuery.in("node_id", Array.from(scopedNodeIds));
 
@@ -930,7 +936,7 @@ async function searchScopedHistoricalEstimateRows({
       .limit(DEFAULT_TREE_LIMIT),
     supabase
       .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, description, supplier, quantity, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id, updated_at")
+      .select("id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id, updated_at")
       .in("estimate_id", historicalEstimateIds)
       .or(buildSearchOrFilter(["material", "description", "supplier"], terms))
       .order("updated_at", { ascending: false })
@@ -1120,7 +1126,7 @@ async function searchScopedComparableEstimatePackages({
       .limit(DEFAULT_COMPARABLE_TREE_LIMIT),
     supabase
       .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, description, supplier, quantity, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id, updated_at")
+      .select("id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id, updated_at")
       .in("estimate_id", comparableEstimateIds)
       .order("updated_at", { ascending: false })
       .order("sort_order", { ascending: true })

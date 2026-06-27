@@ -69,6 +69,8 @@ type AiAskCurrentEstimateRow = {
   tabName?: string | null;
   material: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unit: string;
   unitCost: number;
   total: number;
@@ -346,6 +348,8 @@ type AiAskEstimateRowItemRow = {
   node_id: string;
   material: string;
   quantity: number;
+  quantity_base?: number | null;
+  quantity_contingency_amount?: number | null;
   unit: string;
   unit_cost: number;
   contingency_percentage: number;
@@ -375,6 +379,8 @@ type AiAskTemplateRowItemRow = {
   description: string | null;
   supplier: string | null;
   quantity: number;
+  quantity_base?: number | null;
+  quantity_contingency_amount?: number | null;
   unit: string;
   unit_cost: number;
   contingency_percentage: number;
@@ -432,6 +438,8 @@ type AiAskChartRowItemRow = {
   supplier: string | null;
   source_snapshot: unknown;
   quantity: number;
+  quantity_base: number | null;
+  quantity_contingency_amount: number | null;
   unit_cost: number;
   contingency_percentage: number | null;
   misc_cost: number;
@@ -738,9 +746,9 @@ function scoreTemplateMatch(template: AiAskProviderTemplate, terms: string[]) {
   return terms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0);
 }
 
-function calculateEstimateRowTotal(row: { quantity: number; unit_cost: number; contingency_percentage: number; misc_cost: number }) {
+function calculateEstimateRowTotal(row: { quantity: number; quantity_base?: number | null; unit_cost: number; contingency_percentage: number; misc_cost: number }) {
   const base = Number(row.quantity) * Number(row.unit_cost);
-  return base + Number(row.misc_cost) + (base * Number(row.contingency_percentage)) / 100;
+  return base + Number(row.misc_cost) + (row.quantity_base === null || row.quantity_base === undefined ? (base * Number(row.contingency_percentage)) / 100 : 0);
 }
 
 function readJsonRecord(value: unknown): Record<string, unknown> {
@@ -1063,7 +1071,7 @@ async function readAskProjectChartSummary({
   const [rowsResult, nodesResult, categoriesResult, suppliersResult] = await Promise.all([
     supabase
       .from("estimate_row_items")
-      .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, unit_cost, contingency_percentage, misc_cost")
+      .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, misc_cost")
       .in("estimate_id", estimateIds)
       .limit(ASK_READ_CONTEXT_CHART_ROW_LIMIT),
     supabase
@@ -1105,6 +1113,8 @@ async function readAskProjectChartSummary({
       sourceSupplierId: supplierId,
       sourceSupplierName: readString(sourceSnapshot.supplier),
       quantity: finiteNumber(Number(row.quantity)),
+      quantityBase: row.quantity_base === null ? null : finiteNumber(Number(row.quantity_base)),
+      quantityContingencyAmount: row.quantity_base === null ? null : finiteNumber(Number(row.quantity_contingency_amount ?? 0)),
       unitCost: finiteNumber(Number(row.unit_cost)),
       contingencyPercentage: finiteNumber(Number(row.contingency_percentage ?? 0)),
       miscCost: finiteNumber(Number(row.misc_cost)),
@@ -1227,6 +1237,8 @@ function compactCurrentEstimateTreeAndRows({
       tabName,
       material: row.material,
       quantity: row.quantity,
+      quantityBase: row.quantity_base ?? null,
+      quantityContingencyAmount: row.quantity_base === null || row.quantity_base === undefined ? null : row.quantity_contingency_amount ?? 0,
       unit: row.unit,
       unitCost: row.unit_cost,
       total: calculateEstimateRowTotal(row),
@@ -1365,7 +1377,7 @@ async function searchAskHistoricalRows({
       .limit(ASK_READ_CONTEXT_HISTORICAL_NODE_READ_LIMIT),
     supabase
       .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, description, supplier, quantity, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id, updated_at")
+      .select("id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id, updated_at")
       .in("estimate_id", estimateIds)
       .or(buildHistoricalRowSearchOrFilter(terms))
       .order("updated_at", { ascending: false })
@@ -1918,7 +1930,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
             .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT),
           supabase
             .from("estimate_row_items")
-            .select("id, estimate_id, node_id, material, quantity, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id")
+            .select("id, estimate_id, node_id, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, misc_cost, source_library_item_id")
             .eq("estimate_id", compactCurrentEstimate.id)
             .order("sort_order", { ascending: true })
             .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT),
