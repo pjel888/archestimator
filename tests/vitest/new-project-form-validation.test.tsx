@@ -104,7 +104,7 @@ describe("NewProjectForm validation", () => {
       "justify-center",
     );
     const tray = dialog.querySelector("[data-create-project-modal-tray]");
-    expect(tray).toHaveClass("overflow-hidden", "rounded-[8px]", "bg-white");
+    expect(tray).toHaveClass("overflow-hidden", "rounded-xs", "border", "border-white/70", "bg-white");
 
     const form = dialog.querySelector("form");
     expect(form).toHaveClass(

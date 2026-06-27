@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildSupabaseTusResumableSignEndpoint,
   createSupabaseDirectUploadProvider,
+  encodeTusUploadMetadata,
+  SUPABASE_TUS_CHUNK_SIZE_BYTES,
   type DirectUploadObjectConstraints,
   type DirectUploadProvider,
   type MultipartPartUploadUrl,
@@ -21,6 +24,13 @@ function sha256Hex(bytes: Buffer) {
 
 function bufferFromParts(parts: Buffer[]) {
   return Buffer.concat(parts);
+}
+
+function decodeTusUploadMetadata(metadata: string) {
+  return Object.fromEntries(metadata.split(",").map((entry) => {
+    const [key, encodedValue] = entry.split(" ");
+    return [key, Buffer.from(encodedValue ?? "", "base64").toString("utf8")];
+  }));
 }
 
 function createFakeS3LikeDirectUploadProvider() {
@@ -322,19 +332,51 @@ describe("upload provider portability contracts", () => {
     })).rejects.toThrow("Direct upload path is unsafe.");
   });
 
-  it("keeps Supabase resumable direct uploads explicitly unsupported until a real TUS provider is wired", async () => {
+  it("creates Supabase TUS resumable sessions with signed-token metadata and direct storage endpoint", async () => {
     const { client } = createFakeSupabaseSignedUploadClient();
     const provider = createSupabaseDirectUploadProvider(client);
 
-    await expect(provider.createMultipartUploadSession({
+    expect(buildSupabaseTusResumableSignEndpoint("https://example.supabase.co/storage/v1/object/upload/sign/bucket/path?token=redacted"))
+      .toBe("https://example.storage.supabase.co/storage/v1/upload/resumable/sign");
+    expect(decodeTusUploadMetadata(encodeTusUploadMetadata({
+      bucketName: "component-attachments",
+      objectName: "workspace-1/user-1/spec.pdf",
+      contentType: "application/pdf",
+    }))).toEqual({
+      bucketName: "component-attachments",
+      objectName: "workspace-1/user-1/spec.pdf",
+      contentType: "application/pdf",
+    });
+
+    const session = await provider.createTusResumableUploadSession?.({
       bucket: "component-attachments",
       path: "workspace-1/user-1/spec.pdf",
       contentType: "application/pdf",
       sizeBytes: 10,
       maxBytes: 20,
-      partSizeBytes: 5,
-      maxParts: 2,
       expiresInSeconds: 300,
-    })).rejects.toThrow("Supabase Storage direct multipart/resumable uploads are not implemented");
+    });
+
+    expect(session).toMatchObject({
+      kind: "tus_resumable",
+      endpoint: "https://example.storage.supabase.co/storage/v1/upload/resumable/sign",
+      uploadToken: "fake-token",
+      chunkSizeBytes: SUPABASE_TUS_CHUNK_SIZE_BYTES,
+      requiresFinalizeRpc: true,
+      constraints: {
+        bucket: "component-attachments",
+        path: "workspace-1/user-1/spec.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 10,
+        maxBytes: 20,
+        checksumSha256: null,
+      },
+    });
+    expect(decodeTusUploadMetadata(session?.uploadMetadata ?? "")).toEqual({
+      bucketName: "component-attachments",
+      objectName: "workspace-1/user-1/spec.pdf",
+      contentType: "application/pdf",
+      cacheControl: "3600",
+    });
   });
 });

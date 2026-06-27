@@ -34,14 +34,16 @@ describe("Codex implementation and seed-data hardening contracts", () => {
   });
 
   it("keeps estimate quantity and misc edits nonnegative before totals and persistence", () => {
-    const estimateSheet = read("src/components/workshop/EstimateSheetContent.tsx");
+    const estimateRowHandlers = read("src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts");
 
-    expect(estimateSheet).toContain("parseNonNegativeEditableNumber,");
+    expect(estimateRowHandlers).toContain("parseNonNegativeEditableNumber,");
     const editableRowModel = read("src/components/workshop/estimate-sheet/rows/editable-row-model.ts");
     expect(editableRowModel).toContain("function parseNonNegativeEditableNumber");
     expect(editableRowModel).toContain("Math.max(0, parseEditableNumber(value))");
-    expect(estimateSheet).toContain("quantity: parseNonNegativeEditableNumber(values.quantity)");
-    expect(estimateSheet).toContain("miscCost: parseNonNegativeEditableNumber(values.miscCost)");
+    expect(estimateRowHandlers).toContain("unitCost: parseNonNegativeEditableNumber(values.unitCost)");
+    expect(estimateRowHandlers).toContain("quantity: nextAmounts.quantity");
+    expect(estimateRowHandlers).toContain("miscCost: parseNonNegativeEditableNumber(values.miscCost)");
+    const estimateSheet = read("src/components/workshop/EstimateSheetContent.tsx");
     expect(estimateSheet).not.toContain("applyEstimateGridEdit");
     expect(estimateSheet).not.toContain("DataEditor");
   });

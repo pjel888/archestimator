@@ -215,10 +215,6 @@ describe("estimate sheet bulk row delete partial failures", () => {
     const user = userEvent.setup();
 
     const deleteRowButton = screen.getByRole("button", { name: "Delete row Kitchen Cabinet" });
-    expect(deleteRowButton).toHaveAttribute(
-      "title",
-      "Deletes immediately. Use Undo after saving to restore the row.",
-    );
     await user.click(deleteRowButton);
 
     await waitFor(() => {

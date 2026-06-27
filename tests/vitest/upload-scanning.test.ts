@@ -10,6 +10,7 @@ import {
   getUploadScanPolicy,
   scanStatusFromProviderOutcome,
 } from "@/lib/uploads/scanning";
+import { createUploadPolicyScannerProvider } from "@/lib/uploads/policy-scanner";
 
 const scanLifecycleMigration = readFileSync(
   join(process.cwd(), "supabase/migrations/20260626200000_upload_scan_lifecycle_contracts.sql"),
@@ -89,6 +90,48 @@ describe("upload scanner lifecycle contracts", () => {
       now: new Date("2026-06-26T20:00:00Z"),
       maxQueueAgeMs: 60_000,
     })).toEqual({ allowed: false, reason: "queue_age", retryAfterSeconds: 60 });
+  });
+
+  it("runs the local policy scanner without exposing file paths", async () => {
+    const scanner = createUploadPolicyScannerProvider();
+
+    await expect(scanner.scan({
+      assetId: "11111111-1111-4111-8111-111111111111",
+      fileName: "clean.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 8,
+      bytes: new TextEncoder().encode("%PDF-1.7"),
+    })).resolves.toEqual(expect.objectContaining({
+      outcome: "clean",
+      provider: "archestimator-policy-scanner",
+    }));
+
+    const infected = await scanner.scan({
+      assetId: "22222222-2222-4222-8222-222222222222",
+      fileName: "eicar.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 68,
+      bytes: new TextEncoder().encode("X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"),
+    });
+    expect(infected).toEqual(expect.objectContaining({
+      outcome: "infected",
+      provider: "archestimator-policy-scanner",
+      signature: "Eicar-Test-Signature",
+    }));
+
+    const unsupported = await scanner.scan({
+      assetId: "33333333-3333-4333-8333-333333333333",
+      fileName: "macro.xlsm",
+      contentType: "application/vnd.ms-excel.sheet.macroenabled.12",
+      sizeBytes: 4,
+      bytes: new Uint8Array([1, 2, 3, 4]),
+    });
+    expect(unsupported).toEqual(expect.objectContaining({
+      outcome: "unsupported",
+      provider: "archestimator-policy-scanner",
+      reason: "active_content_unsupported",
+    }));
+    expect(JSON.stringify([infected, unsupported])).not.toContain("/storage/");
   });
 
   it("adds service-role-only scanner result and audited override RPC contracts", () => {

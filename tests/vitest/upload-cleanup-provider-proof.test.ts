@@ -33,6 +33,30 @@ const proof = JSON.parse(readFileSync(join(
   failedBuckets: string[];
   readbackMissingCount: number;
   preservedReadbackCount: number;
+  retryAuditProof: {
+    passed: boolean;
+    objectShape: {
+      bucket: string;
+      pathShape: string;
+      contentType: string;
+      checksumSha256Observed: boolean;
+    };
+    firstAttempt: {
+      storage: { removedCount: number; failedCount: number; failedBuckets: string[] };
+      audit: { queuedCount: number; failedCount: number; succeededCount: number; writeFailureCount: number };
+      operationalSnapshot: { status: string; retryAfterSeconds: number | null };
+    };
+    retryAttempt: {
+      storage: { removedCount: number; failedCount: number; failedBuckets: string[] };
+      audit: { queuedCount: number; failedCount: number; succeededCount: number; writeFailureCount: number };
+      operationalSnapshot: { status: string; retryAfterSeconds: number | null };
+    };
+    eventCounts: Record<string, number>;
+    eventMetadata: {
+      rawStoragePathRecorded: boolean;
+      storagePathHashObserved: boolean;
+    };
+  };
   failedChecks: string[];
   cleanupErrors: unknown[];
   operationalSnapshot: {
@@ -109,5 +133,60 @@ describe("upload cleanup provider proof evidence", () => {
     expect(serialized).not.toContain("refresh_token");
     expect(serialized).not.toContain("Bearer ");
     expect(serialized).not.toContain("password");
+  });
+
+  it("proves persisted cleanup retry/audit events against a real temporary upload asset", () => {
+    expect(proof.retryAuditProof).toMatchObject({
+      passed: true,
+      objectShape: {
+        bucket: "component-attachments",
+        pathShape: "{workspaceId}/{userId}/cleanup-audit-{proofId}.pdf",
+        contentType: "application/pdf",
+        checksumSha256Observed: true,
+      },
+      firstAttempt: {
+        storage: {
+          removedCount: 0,
+          failedCount: 1,
+          failedBuckets: ["component-attachments"],
+        },
+        audit: {
+          queuedCount: 1,
+          failedCount: 1,
+          succeededCount: 0,
+          writeFailureCount: 0,
+        },
+        operationalSnapshot: {
+          status: "blocked",
+          retryAfterSeconds: 300,
+        },
+      },
+      retryAttempt: {
+        storage: {
+          removedCount: 1,
+          failedCount: 0,
+          failedBuckets: [],
+        },
+        audit: {
+          queuedCount: 1,
+          failedCount: 0,
+          succeededCount: 1,
+          writeFailureCount: 0,
+        },
+        operationalSnapshot: {
+          status: "healthy",
+          retryAfterSeconds: null,
+        },
+      },
+      eventCounts: {
+        cleanup_queued: 2,
+        cleanup_failed: 1,
+        cleanup_succeeded: 1,
+      },
+      eventMetadata: {
+        rawStoragePathRecorded: false,
+        storagePathHashObserved: true,
+      },
+    });
   });
 });

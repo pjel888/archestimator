@@ -7,7 +7,7 @@ function renderSettings(canManagePlatform = true) {
   return render(
     <WorkshopSettingsModalContentView
       canManagePlatform={canManagePlatform}
-      signOutControl={<button type="button">Real sign out action</button>}
+      renderSignOutControl={() => <button type="button">Real sign out action</button>}
     />,
   );
 }
@@ -39,7 +39,7 @@ describe("WorkshopSettingsModalContentView", () => {
       "border-hairline",
       "pt-2",
     );
-    expect(within(rail).getByText("Beta operations").closest("section")).toHaveClass(
+    expect(within(rail).getByText("Access operations").closest("section")).toHaveClass(
       "border-t",
       "border-hairline",
       "pt-2",
@@ -50,6 +50,32 @@ describe("WorkshopSettingsModalContentView", () => {
     expect(workspaceRow).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("main", { name: "Workspace settings" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Workspace" })).toBeInTheDocument();
+  });
+
+  it("shows upload operations only to platform admins", () => {
+    renderSettings();
+
+    const rail = screen.getByRole("complementary", { name: "Settings navigation" });
+    const uploadOperationsRow = within(rail).getByRole("button", { name: "Show Upload operations settings" });
+    const scanOverrideRow = within(rail).getByRole("button", { name: "Show Scan overrides settings" });
+
+    fireEvent.click(uploadOperationsRow);
+
+    expect(screen.getByRole("main", { name: "Upload operations settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload operations" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open page/i })).toHaveAttribute(
+      "href",
+      "/workshop/settings/upload-operations",
+    );
+
+    fireEvent.click(scanOverrideRow);
+
+    expect(screen.getByRole("main", { name: "Scan overrides settings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scan overrides" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open page/i })).toHaveAttribute(
+      "href",
+      "/workshop/settings/scan-overrides",
+    );
   });
 
   it("uses email-specific copy for support mail links", () => {
@@ -65,12 +91,14 @@ describe("WorkshopSettingsModalContentView", () => {
     );
   });
 
-  it("keeps real sign-out content and hides beta operations from non-admin users", () => {
+  it("keeps real sign-out content and hides platform operations from non-admin users", () => {
     renderSettings(false);
 
     const rail = screen.getByRole("complementary", { name: "Settings navigation" });
-    expect(within(rail).queryByText("Beta operations")).not.toBeInTheDocument();
-    expect(within(rail).queryByRole("button", { name: "Show Beta users settings" })).not.toBeInTheDocument();
+    expect(within(rail).queryByText("Access operations")).not.toBeInTheDocument();
+    expect(within(rail).queryByRole("button", { name: "Show Users settings" })).not.toBeInTheDocument();
+    expect(within(rail).queryByRole("button", { name: "Show Upload operations settings" })).not.toBeInTheDocument();
+    expect(within(rail).queryByRole("button", { name: "Show Scan overrides settings" })).not.toBeInTheDocument();
 
     fireEvent.click(within(rail).getByRole("button", { name: "Show Sign out settings" }));
 

@@ -75,6 +75,16 @@ describe("component library attachment lifecycle governance", () => {
     expect(attachmentRoute).toContain("isMissingAttachmentGovernanceColumnError");
   });
 
+  it("requires approved current attachments before private download brokering", () => {
+    expect(attachmentRoute).toContain('.select("id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved")');
+    expect(attachmentRoute).toContain('data.review_status !== "approved"');
+    expect(attachmentRoute).toContain("data.is_current_approved !== true");
+    expect(attachmentRoute).toContain('privateAttachmentUnavailable("Attachment is not available until approval is complete.")');
+    expect(attachmentRoute).toContain("decideUploadScanGate");
+    expect(attachmentRoute).toContain("scan_override_expires_at");
+    expect(attachmentRoute).toContain('event_type: "download_url_issued"');
+  });
+
   it("keeps generated Supabase types aligned with attachment governance", () => {
     expect(supabaseTypes).toContain("cost_library_attachment_review_status:");
     expect(supabaseTypes).toContain("cost_library_attachment_review_event_type:");

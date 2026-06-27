@@ -5,8 +5,11 @@ const ESTIMATE_ID = "22222222-2222-4222-8222-222222222222";
 const ROW_ID = "33333333-3333-4333-8333-333333333333";
 const FOLDER_ID = "44444444-4444-4444-8444-444444444444";
 
-const authMocks = vi.hoisted(() => ({ requireCurrentUserContext: vi.fn() }));
-const repositoryMocks = vi.hoisted(() => ({ getCurrentWorkspaceProject: vi.fn() }));
+const authMocks = vi.hoisted(() => ({ requireAuth: vi.fn(), requireCurrentUserContext: vi.fn() }));
+const repositoryMocks = vi.hoisted(() => ({
+  clearEstimateRouteContextProcessCache: vi.fn(),
+  getCurrentWorkspaceProject: vi.fn(),
+}));
 const supabaseMocks = vi.hoisted(() => ({ createSupabaseServerClient: vi.fn() }));
 const cacheMocks = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 
@@ -19,6 +22,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.EXPRESS_COMPONENT_PROMOTION_ENABLED = "true";
+    authMocks.requireAuth.mockResolvedValue(undefined);
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "55555555-5555-4555-8555-555555555555" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: PROJECT_ID, workspace_id: "ws-1" } });
   });
@@ -51,6 +55,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library/components");
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/components`);
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/estimates/${ESTIMATE_ID}`);
+    expect(repositoryMocks.clearEstimateRouteContextProcessCache).toHaveBeenCalledWith(PROJECT_ID);
   });
 
   it("is feature-flag gated before provider mutation", async () => {

@@ -8,6 +8,7 @@ describe("design-system enforcer - public brand surface allowlist", () => {
     expect(isLandingApprovedPath("src/app/signup/page.tsx")).toBe(true);
     expect(isLandingApprovedPath("src/app/trust/page.tsx")).toBe(true);
     expect(isLandingApprovedPath("src/components/auth/AuthGlassPanel.tsx")).toBe(true);
+    expect(isLandingApprovedPath("src/components/landing-v3/ArchestimatorLandingPage.tsx")).toBe(true);
 
     expect(isLandingApprovedPath("src/app/workshop/projects/page.tsx")).toBe(false);
     expect(isLandingApprovedPath("src/components/workshop/project-data/EstimateColumn.tsx")).toBe(false);

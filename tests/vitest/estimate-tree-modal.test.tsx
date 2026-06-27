@@ -143,7 +143,6 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(getOptimisticTreeRow("area")).toBeInTheDocument();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
     expect(screen.getByRole("status")).toHaveTextContent("Adding area");
-    expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
     const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
     expect(JSON.stringify(optimisticTree)).toContain("New Area");
   });

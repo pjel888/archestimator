@@ -58,14 +58,18 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(sidebarSource).toContain('label: "Retry"');
   });
 
-  it("routes transient estimate sheet save status through toast instead of an inline bar", () => {
+  it("keeps routine estimate sheet save status quiet while preserving failure toasts", () => {
     const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
     const tabStripSource = source("src/components/workshop/estimate-sheet/EstimateTabStrip.tsx");
 
     expect(sheetSource).not.toContain("Saving...</");
     expect(sheetSource).not.toContain("Could not save</");
     expect(sheetSource).not.toContain("Dismiss row save error");
+    expect(sheetSource).not.toContain("Saving row changes...");
+    expect(sheetSource).not.toContain('message: error?.message.includes("refreshed") ? "Saved. Recovered edit." : "Saved."');
+    expect(sheetSource).toContain("data-estimate-row-save-status");
     expect(sheetSource).toContain('id: "estimate-row-save"');
+    expect(sheetSource).toContain('toast({ id: "estimate-row-save", tone: "error"');
     expect(tabStripSource).not.toContain('{error ? <p role="alert"');
     expect(tabStripSource).toContain("ESTIMATE_TAB_STRIP_ERROR_TOAST_ID");
     expect(tabStripSource).toContain("toast({");

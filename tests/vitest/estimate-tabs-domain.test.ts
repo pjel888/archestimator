@@ -67,11 +67,11 @@ describe("estimate tab repository compatibility wrappers", () => {
     expect(routeSource).toContain("const estimateTabs = tabs ?? []");
     expect(routeSource).not.toContain("tab ? await getEstimateTabs(project.id, estimate.id) : []");
     expect(routeSource).not.toContain("Promise.all([");
-    // Routing Page Optimization P26: selected-node route context and the page
-    // both leave edit capability to client-side hydration so first paint is not
-    // gated on the UI affordance RPC; server writes still use authoritative
-    // RLS/RPC checks.
-    expect(routeSource).not.toContain("resolveEstimateEditCapability");
+    // Routing Page Optimization P26: selected-node route context may omit edit
+    // capability, so the page resolves it in a named post-context phase before
+    // enabling edit controls; server writes still use authoritative RLS/RPC checks.
+    expect(routeSource).toContain("resolveEstimateEditCapability");
+    expect(routeSource).toContain('traced("estimate-sheet.edit-capability"');
     expect(routeSource).toContain("canEditEstimate={prefetchedCanEditEstimate === true}");
     expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
     expect(repositorySource).toContain('.eq("id", routeSegment)');

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 
@@ -116,6 +116,10 @@ describe("AddComponentModal quick add contract", () => {
     });
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("exposes the canonical required fields with required and invalid semantics", async () => {
     renderAddModal();
 
@@ -218,6 +222,42 @@ describe("AddComponentModal quick add contract", () => {
       ],
     }));
     await waitFor(() => expect(props.onComponentCreated).toHaveBeenCalledTimes(1));
+  });
+
+  it("renders scan, review, and download blocked states for uploaded attachments", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      bucket: "component-attachments",
+      path: "workspace-1/user-1/spec.pdf",
+      fileName: "spec.pdf",
+      contentType: "application/pdf",
+      sizeBytes: 2048,
+      uploadSessionId: "session-attachment-1",
+      assetId: "asset-attachment-1",
+      scanStatus: "pending",
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderAddModal();
+
+    const dialog = await getAddDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Advanced catalog details" }));
+
+    const file = new File(["%PDF-1.7"], "spec.pdf", { type: "application/pdf" });
+    fireEvent.change(within(dialog).getByLabelText("Upload attachment"), {
+      target: { files: [file] },
+    });
+
+    await screen.findByText("Stored spec.pdf (2 KB).");
+    expect(within(dialog).getByText("spec.pdf")).toBeInTheDocument();
+    expect(within(dialog).getByText("Scan pending")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Attachment scan status: Scan pending")).toBeInTheDocument();
+    expect(within(dialog).getByText("Review blocked")).toBeInTheDocument();
+    expect(within(dialog).getByText("Download blocked")).toBeInTheDocument();
+    expect(within(dialog).getByText(
+      "Download blocked until scanner marks this attachment clean and Library review marks it current.",
+    )).toBeInTheDocument();
   });
 
   it("shows a non-blocking duplicate warning after the name blur check", async () => {

@@ -18,7 +18,7 @@ describe("component attachment scan freeze", () => {
     expect(migration).not.toContain("is_current_approved = true");
   });
 
-  it("exposes a component attachment download broker only behind scan-clean gating", () => {
+  it("exposes a component attachment download broker only behind scan-clean or active audited override gating", () => {
     const route = read("src/app/api/component-library/attachments/route.ts");
 
     expect(route).toContain("export async function GET");
@@ -26,7 +26,9 @@ describe("component attachment scan freeze", () => {
     expect(route).toContain("export async function DELETE");
     expect(route).toContain('.from("cost_library_item_variant_attachments")');
     expect(route).toContain('.from("upload_assets")');
-    expect(route).toContain('data.scan_status !== "clean"');
+    expect(route).toContain("decideUploadScanGate");
+    expect(route).toContain("scan_override_expires_at");
+    expect(route).toContain('"override_approved"');
     expect(route).toContain('event_type: "download_url_issued"');
     expect(route).toContain(".storage.from(COMPONENT_ATTACHMENT_BUCKET).download");
   });

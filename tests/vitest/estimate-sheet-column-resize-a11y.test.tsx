@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EstimateColumnRuler } from "@/components/workshop/estimate-sheet/columns/EstimateColumnRuler";
+import { RESIZABLE_ESTIMATE_COLUMN_IDS } from "@/lib/estimate-sheet/column-model";
 
 function renderRuler(widths = { material: 240 }) {
   const onCommitWidths = vi.fn();
@@ -16,9 +17,10 @@ describe("EstimateColumnRuler", () => {
     renderRuler();
 
     const handles = screen.getAllByRole("separator");
-    expect(handles).toHaveLength(6);
+    expect(handles).toHaveLength(RESIZABLE_ESTIMATE_COLUMN_IDS.length);
     expect(screen.getByRole("separator", { name: "Resize Materials column" })).toHaveAttribute("aria-valuemin", "160");
     expect(screen.getByRole("separator", { name: "Resize Materials column" })).toHaveAttribute("aria-valuenow", "240");
+    expect(screen.getByRole("separator", { name: "Resize Adjustment column" })).toHaveAttribute("aria-valuemin", "76");
     expect(screen.queryByRole("separator", { name: "Resize # column" })).not.toBeInTheDocument();
     expect(screen.queryByRole("separator", { name: "Resize Select column" })).not.toBeInTheDocument();
     expect(screen.queryByRole("separator", { name: "Resize Actions column" })).not.toBeInTheDocument();

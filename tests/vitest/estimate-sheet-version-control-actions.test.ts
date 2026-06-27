@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const repositoryMocks = vi.hoisted(() => ({
+  clearEstimateRouteContextProcessCache: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));

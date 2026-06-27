@@ -150,6 +150,8 @@ function mockStorageClient(
 }
 
 function createRpcMock(options: {
+  canAccessProject?: boolean;
+  canAccessEstimate?: boolean;
   canEditProject?: boolean;
   canEditEstimate?: boolean;
   canManageLibrary?: boolean;
@@ -157,6 +159,8 @@ function createRpcMock(options: {
 } = {}) {
   return vi.fn(async (name: string) => {
     if (options.rpcError) return { data: null, error: options.rpcError };
+    if (name === "can_access_project") return { data: options.canAccessProject ?? true, error: null };
+    if (name === "can_access_estimate") return { data: options.canAccessEstimate ?? true, error: null };
     if (name === "can_edit_project") return { data: options.canEditProject ?? true, error: null };
     if (name === "can_edit_estimate") return { data: options.canEditEstimate ?? true, error: null };
     if (name === "is_workspace_editor") return { data: options.canManageLibrary ?? true, error: null };
@@ -173,19 +177,29 @@ function mockServerRpc(options: Parameters<typeof createRpcMock>[0] = {}) {
 function mockProjectLookup(
   data: { id: string; workspace_id: string } | null = null,
   options: Parameters<typeof createRpcMock>[0] = {},
+  estimateData: { id: string } | null = null,
 ) {
   const rpc = createRpcMock(options);
   const maybeSingle = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
   const single = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
+  const resolvedEstimateData = estimateData ?? (data ? { id: "estimate-1" } : null);
   const query = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     maybeSingle,
     single,
   };
-  const from = vi.fn(() => query);
+  const estimateMaybeSingle = vi.fn(async () => ({ data: resolvedEstimateData, error: resolvedEstimateData ? null : null }));
+  const estimateSingle = vi.fn(async () => ({ data: resolvedEstimateData, error: resolvedEstimateData ? null : { message: "not found" } }));
+  const estimateQuery = {
+    select: vi.fn(() => estimateQuery),
+    eq: vi.fn(() => estimateQuery),
+    maybeSingle: estimateMaybeSingle,
+    single: estimateSingle,
+  };
+  const from = vi.fn((table: string) => (table === "estimates" ? estimateQuery : query));
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, maybeSingle, single, rpc };
+  return { from, maybeSingle, single, estimateMaybeSingle, estimateSingle, rpc };
 }
 
 beforeEach(() => {
@@ -850,8 +864,8 @@ describe("sensitive API auth boundaries", () => {
         file_name: "spec.pdf",
         content_type: "application/pdf",
         size_bytes: 8,
-        review_status: "uploaded",
-        is_current_approved: false,
+        review_status: "approved",
+        is_current_approved: true,
       },
       uploadAssetLookupRow: {
         id: "22222222-2222-4222-8222-222222222222",
@@ -875,6 +889,51 @@ describe("sensitive API auth boundaries", () => {
     });
     expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
     expect(storage.dbFrom).toHaveBeenCalledWith("upload_assets");
+    expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["uploaded draft", "uploaded", false],
+    ["approved but not current", "approved", false],
+    ["rejected", "rejected", false],
+  ])("refuses component attachment downloads until attachment review is approved/current for %s", async (_caseName, reviewStatus, isCurrentApproved) => {
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
+    const storage = mockStorageClient([], {
+      attachmentLookupRow: {
+        id: attachmentId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        file_name: "spec.pdf",
+        content_type: "application/pdf",
+        size_bytes: 8,
+        review_status: reviewStatus,
+        is_current_approved: isCurrentApproved,
+      },
+      uploadAssetLookupRow: {
+        id: "22222222-2222-4222-8222-222222222222",
+        upload_session_id: "33333333-3333-4333-8333-333333333333",
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        surface: "component-attachment",
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        status: "finalized",
+        scan_status: "clean",
+      },
+    });
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/attachments?id=${attachmentId}`));
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Attachment is not available until approval is complete.",
+    });
+    expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
+    expect(storage.dbFrom).not.toHaveBeenCalledWith("upload_assets");
     expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
     expect(storage.download).not.toHaveBeenCalled();
   });
@@ -1095,8 +1154,68 @@ describe("sensitive API auth boundaries", () => {
     expect(response.headers.get("content-type")).toBe("image/webp");
     expect(projectLookup.from).toHaveBeenCalledWith("projects");
     expect(projectLookup.maybeSingle).toHaveBeenCalled();
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_project", {
+      target_project_id: projectId,
+    });
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
+  it("serves estimate row images when estimate access resolves without project-wide access", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const ownerUserId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const estimateId = "44444444-4444-4444-8444-444444444444";
+    const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/estimate-row-images/${estimateId}/image.webp`;
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup(
+      { id: projectId, workspace_id: workspaceId },
+      { canAccessProject: false, canAccessEstimate: true },
+      { id: estimateId },
+    );
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/projects/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(projectLookup.from).toHaveBeenCalledWith("projects");
+    expect(projectLookup.from).toHaveBeenCalledWith("estimates");
+    expect(projectLookup.estimateMaybeSingle).toHaveBeenCalled();
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_project", {
+      target_project_id: projectId,
+    });
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_estimate", {
+      target_estimate_id: estimateId,
+    });
+    expect(storage.from).toHaveBeenCalledWith("project-images");
+    expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
+  it("denies private project image downloads when the user lacks project access", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const ownerUserId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup(
+      { id: projectId, workspace_id: workspaceId },
+      { canAccessProject: false },
+    );
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/projects/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Image could not be found.",
+    });
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_project", {
+      target_project_id: projectId,
+    });
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
   });
 
   it("fails closed with no-store for malformed project image paths before auth", async () => {

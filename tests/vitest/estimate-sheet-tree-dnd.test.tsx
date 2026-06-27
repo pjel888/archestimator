@@ -288,6 +288,12 @@ function renderedIds() {
   );
 }
 
+function toastViewport() {
+  const viewport = document.querySelector("[data-toast-viewport='true']");
+  if (!(viewport instanceof HTMLElement)) throw new Error("Toast viewport was not rendered.");
+  return viewport;
+}
+
 function mockDataTransfer() {
   const transferStore = new Map<string, string>();
   return {
@@ -380,7 +386,7 @@ describe("estimate sheet tree drag/drop", () => {
     });
     await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree()));
     expect(screen.getByRole("status")).toHaveTextContent("Saving tree order");
-    expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
+    expect(toastViewport()).not.toHaveTextContent("Saving tree order");
     expect(routerMock.push).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
 
@@ -390,6 +396,7 @@ describe("estimate sheet tree drag/drop", () => {
     });
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    expect(toastViewport()).not.toHaveTextContent("Tree order saved");
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]);
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree());
   });
@@ -415,6 +422,8 @@ describe("estimate sheet tree drag/drop", () => {
       await dropOnto("kitchen", "site-works");
     });
 
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(toastViewport()).not.toHaveTextContent("Saving tree order");
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Database rejected reorder."));
     expect(screen.getByRole("alert").closest("[data-toast-viewport='true']")).not.toBeNull();
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);

@@ -66,6 +66,8 @@ describe("estimate sheet extracted models", () => {
       contingencyMode: "percentage",
       vatMode: "percentage",
       includeFormulas: true,
+      sheetAdjustmentMode: "contingency",
+      sheetAdjustmentRate: 0,
     });
   });
 
@@ -111,7 +113,9 @@ describe("estimate sheet extracted models", () => {
     expect(clonedRow?.id).not.toBe("template-row");
     expect(clonedRow?.material).toBe("Oak flooring");
     expect(clonedRow?.subTotal).toBe(600);
-    expect(clonedRow?.contingencyValue).toBe(30);
+    expect(clonedRow?.contingencyValue).toBe(0);
+    expect(clonedRow?.adjustmentPercentage).toBe(5);
+    expect(clonedRow?.adjustmentValue).toBe(30);
     expect(clonedRow?.totalItemCosts).toBe(650);
   });
 

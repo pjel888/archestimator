@@ -17,6 +17,8 @@ describe("upload cleanup provider proof script", () => {
     expect(script).toContain("planUploadStorageCleanup");
     expect(script).toContain("buildUploadCleanupOperationalSnapshot");
     expect(script).toContain("summarizeUploadCleanup");
+    expect(script).toContain("runUploadCleanupJob");
+    expect(script).toContain("createUploadCleanupEventWriter");
     expect(script).not.toContain("cleanupStorageTargets(");
     expect(script).not.toContain("@/lib/mass-deletion/storage-cleanup");
   });
@@ -36,5 +38,10 @@ describe("upload cleanup provider proof script", () => {
     expect(script).toContain("service-readback-missing-after-delete");
     expect(script).toContain("service-readback-preserved-after-cleanup");
     expect(script).toContain("provider-deletes-only-planner-candidates");
+    expect(script).toContain("retry-audit-events-read-back");
+    expect(script).toContain("retry-audit-events-do-not-store-raw-path");
+    expect(script).toContain("cleanup_queued");
+    expect(script).toContain("cleanup_failed");
+    expect(script).toContain("cleanup_succeeded");
   });
 });

@@ -165,7 +165,12 @@ describe("proposal export model", () => {
       [row({ id: "bed-b-tile", quantity: 10, miscCost: 300 })],
     );
 
-    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const model = buildProposalExportModel({
+      metadata,
+      nodes,
+      settings: { audience: "internal" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
 
     expect(model.metadata).toEqual(metadata);
     expect(model.generatedAt).toBe("2026-05-23T00:00:00.000Z");
@@ -201,6 +206,18 @@ describe("proposal export model", () => {
         code: "cost_split_compatibility_mode",
       }),
     );
+  });
+
+  it("omits source breakdown DTO rows for client-audience exports", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([row({ id: "private-source-row" })], []),
+      settings: { audience: "client" },
+      generatedAt: "2026-06-27T00:00:00.000Z",
+    });
+
+    expect(model.settings.includeSourceBreakdownSheet).toBe(false);
+    expect(model.sourceBreakdownRows).toEqual([]);
   });
 
   it("carries express component rows through fallback proposal grouping and totals", () => {
@@ -248,7 +265,12 @@ describe("proposal export model", () => {
       [],
     );
 
-    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const model = buildProposalExportModel({
+      metadata,
+      nodes,
+      settings: { audience: "internal" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
 
     expect(model.proposalRows[0]).toMatchObject({
       materialSubtotal: 2_000,

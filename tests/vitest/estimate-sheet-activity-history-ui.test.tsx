@@ -6,7 +6,9 @@ import {
   RowDetailsModal,
 } from "@/components/workshop/estimate-sheet/activity-history";
 import { DEFAULT_ACTIVITY_FILTERS, type FlattenedEstimateRow } from "@/components/workshop/estimate-sheet/activity-history-model";
+import type { EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import { makeEstimateEvent } from "./fixtures/activity-events";
 
 const actionMocks = vi.hoisted(() => ({
   fetchEstimateSheetVersionControl: vi.fn(),
@@ -62,11 +64,17 @@ beforeEach(() => {
 });
 
 function renderModal({
+  historyData = null,
   onActivityFiltersChange = vi.fn(),
   onClose = vi.fn(),
+  onRestoreDeletedNodes,
+  onRestoreDeletedRows,
 }: {
+  historyData?: EstimateSheetVersionControlData | null;
   onActivityFiltersChange?: ReturnType<typeof vi.fn>;
   onClose?: ReturnType<typeof vi.fn>;
+  onRestoreDeletedNodes?: ReturnType<typeof vi.fn>;
+  onRestoreDeletedRows?: ReturnType<typeof vi.fn>;
 } = {}) {
   render(
     <ActivityHistoryModal
@@ -74,7 +82,7 @@ function renderModal({
       scopeItems={[]}
       selectedScopeItem={null}
       metadata={null}
-      historyData={null}
+      historyData={historyData}
       activityFilters={DEFAULT_ACTIVITY_FILTERS}
       isHistoryLoading={false}
       isHistoryLoadingMore={false}
@@ -85,6 +93,8 @@ function renderModal({
       onRetry={vi.fn()}
       onLoadMore={vi.fn()}
       onScopeSelect={vi.fn()}
+      onRestoreDeletedNodes={onRestoreDeletedNodes}
+      onRestoreDeletedRows={onRestoreDeletedRows}
     />,
   );
   return { onActivityFiltersChange, onClose };
@@ -146,6 +156,85 @@ describe("activity history modal filters", () => {
     fireEvent.pointerDown(backdrop);
     fireEvent.mouseDown(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("activity history destructive recovery", () => {
+  it("offers a persistent restore action for deleted row events", async () => {
+    const onRestoreDeletedRows = vi.fn().mockResolvedValue(undefined);
+    const deletedRow = makeEstimateEvent("row_deleted", {
+      id: "delete-row-event-1",
+      targetRowId: rowId,
+      payload: { rowId },
+    });
+    renderModal({
+      historyData: {
+        events: [deletedRow],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      },
+      onRestoreDeletedRows,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore deleted row" }));
+
+    await waitFor(() => expect(onRestoreDeletedRows).toHaveBeenCalledWith({
+      sourceEventId: "delete-row-event-1",
+      rowIds: [rowId],
+    }));
+  });
+
+  it("offers a persistent restore action for deleted Area events", async () => {
+    const onRestoreDeletedNodes = vi.fn().mockResolvedValue(undefined);
+    const deletedNode = makeEstimateEvent("node_deleted_with_children", {
+      id: "delete-node-event-1",
+      estimateNodeId: "55555555-5555-4555-8555-555555555561",
+      payload: {
+        deletedNodeIds: ["55555555-5555-4555-8555-555555555561", "55555555-5555-4555-8555-555555555562"],
+        deletedRootNodeIds: ["55555555-5555-4555-8555-555555555561"],
+      },
+    });
+    renderModal({
+      historyData: {
+        events: [deletedNode],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      },
+      onRestoreDeletedNodes,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore deleted Area" }));
+
+    await waitFor(() => expect(onRestoreDeletedNodes).toHaveBeenCalledWith({
+      sourceEventId: "delete-node-event-1",
+      nodeIds: ["55555555-5555-4555-8555-555555555561"],
+    }));
+  });
+
+  it("omits history restore actions when no restore handler is available", () => {
+    const deletedRow = makeEstimateEvent("row_deleted", {
+      id: "delete-row-event-1",
+      targetRowId: rowId,
+      payload: { rowId },
+    });
+    renderModal({
+      historyData: {
+        events: [deletedRow],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      },
+    });
+
+    expect(screen.queryByRole("button", { name: "Restore deleted row" })).not.toBeInTheDocument();
   });
 });
 

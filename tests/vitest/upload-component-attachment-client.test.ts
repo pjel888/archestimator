@@ -136,7 +136,122 @@ describe("component attachment client upload transport", () => {
     expect(fetchMock).not.toHaveBeenCalledWith(COMPONENT_ATTACHMENT_UPLOAD_ROUTE, expect.anything());
   });
 
-  it("keeps resumable-sized files blocked until multipart provider flow exists", async () => {
+  it("uses signed TUS resumable upload chunks and finalize for very large attachments", async () => {
+    const file = new File(["12345678901"], "large.pdf", { type: "application/pdf" });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE) {
+        const body = JSON.parse(String(init?.body));
+        if (body.action === "create") {
+          return jsonResponse({
+            provider: "supabase-storage",
+            uploadMode: "tus_resumable",
+            uploadSessionId: "session-2",
+            bucket: "component-attachments",
+            path: "workspace/user/large.pdf",
+            fileName: "large.pdf",
+            contentType: "application/pdf",
+            sizeBytes: file.size,
+            endpoint: "https://storage.example/storage/v1/upload/resumable/sign",
+            uploadToken: "tus-token",
+            uploadMetadata: "bucketName Y29tcG9uZW50LWF0dGFjaG1lbnRz,objectName d29ya3NwYWNlL3VzZXIvbGFyZ2UucGRm,contentType YXBwbGljYXRpb24vcGRm",
+            chunkSizeBytes: 5,
+            finalizeUrl: COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE,
+            scanStatus: "pending",
+          });
+        }
+        if (body.action === "finalize") {
+          return jsonResponse({
+            bucket: "component-attachments",
+            uploadSessionId: body.uploadSessionId,
+            assetId: "asset-2",
+            scanStatus: "pending",
+            path: "workspace/user/large.pdf",
+            fileName: "large.pdf",
+            contentType: "application/pdf",
+            sizeBytes: file.size,
+          });
+        }
+      }
+      if (url === "https://storage.example/storage/v1/upload/resumable/sign") {
+        return new Response(null, {
+          status: 201,
+          headers: {
+            Location: "/storage/v1/upload/resumable/sign/upload-1",
+            "Upload-Offset": "5",
+          },
+        });
+      }
+      if (url === "https://storage.example/storage/v1/upload/resumable/sign/upload-1") {
+        const offset = Number((init?.headers as Record<string, string>)["Upload-Offset"]);
+        return new Response(null, {
+          status: 204,
+          headers: { "Upload-Offset": String(Math.min(offset + 5, file.size)) },
+        });
+      }
+      return jsonResponse({ error: `Unexpected fetch ${url}` }, { status: 500 });
+    });
+
+    const uploaded = await uploadComponentAttachment(file, {
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      serverMediatedMaxBytes: 5,
+      signedDirectMaxBytes: 10,
+      resumableMaxBytes: 100,
+    });
+
+    expect(uploaded).toMatchObject({
+      bucket: "component-attachments",
+      uploadSessionId: "session-2",
+      assetId: "asset-2",
+      scanStatus: "pending",
+      path: "workspace/user/large.pdf",
+      fileName: "large.pdf",
+      contentType: "application/pdf",
+      sizeBytes: file.size,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(COMPONENT_ATTACHMENT_DIRECT_UPLOAD_ROUTE);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      action: "create",
+      fileName: "large.pdf",
+      contentType: "application/pdf",
+      sizeBytes: file.size,
+    });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("https://storage.example/storage/v1/upload/resumable/sign");
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(expect.objectContaining({
+      method: "POST",
+      headers: expect.objectContaining({
+        "Tus-Resumable": "1.0.0",
+        "Upload-Length": String(file.size),
+        "Content-Type": "application/offset+octet-stream",
+        "x-signature": "tus-token",
+        "x-upsert": "false",
+      }),
+      body: expect.any(Blob),
+    }));
+    expect(fetchMock.mock.calls[1]?.[1]?.headers).not.toHaveProperty("Authorization");
+    for (const callIndex of [2, 3]) {
+      expect(fetchMock.mock.calls[callIndex]?.[0]).toBe("https://storage.example/storage/v1/upload/resumable/sign/upload-1");
+      expect(fetchMock.mock.calls[callIndex]?.[1]).toEqual(expect.objectContaining({
+        method: "PATCH",
+        headers: expect.objectContaining({
+          "Tus-Resumable": "1.0.0",
+          "Content-Type": "application/offset+octet-stream",
+          "x-signature": "tus-token",
+        }),
+      }));
+      expect(fetchMock.mock.calls[callIndex]?.[1]?.headers).not.toHaveProperty("Authorization");
+    }
+    expect((fetchMock.mock.calls[2]?.[1]?.headers as Record<string, string>)["Upload-Offset"]).toBe("5");
+    expect((fetchMock.mock.calls[3]?.[1]?.headers as Record<string, string>)["Upload-Offset"]).toBe("10");
+    expect(JSON.parse(String(fetchMock.mock.calls[4]?.[1]?.body))).toEqual({
+      action: "finalize",
+      uploadSessionId: "session-2",
+    });
+    expect(fetchMock).not.toHaveBeenCalledWith(COMPONENT_ATTACHMENT_UPLOAD_ROUTE, expect.anything());
+  });
+
+  it("rejects files above the resumable attachment cap before making requests", async () => {
     const file = new File(["12345678901"], "oversize.pdf", { type: "application/pdf" });
     const fetchMock = vi.fn();
 
@@ -144,7 +259,8 @@ describe("component attachment client upload transport", () => {
       fetchImpl: fetchMock as unknown as typeof fetch,
       serverMediatedMaxBytes: 5,
       signedDirectMaxBytes: 10,
-    })).rejects.toThrow("Choose an attachment under 64 MB.");
+      resumableMaxBytes: 10,
+    })).rejects.toThrow("Choose an attachment no larger than 512 MB.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

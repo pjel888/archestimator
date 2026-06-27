@@ -117,7 +117,7 @@ describe("express component estimate-row helpers", () => {
 
     expect(repository).toContain("metadata");
     expect(repository).toContain("readEstimateRowMetadata(row.metadata)");
-    expect(repository).toContain("metadata: readEstimateRowMetadata(row.metadata) as Json");
+    expect(repository).toContain("metadata: readEstimateRowMetadata(row.metadata)");
   });
 
   it("keeps copied express-row rekeying in the database insert path", () => {

@@ -68,11 +68,11 @@ describe("estimate node route server concurrency", () => {
     expect(estimateNodePageSource).not.toContain("requireCurrentUserContext");
   });
 
-  it("keeps tab fallback and edit capability out of the blocking route tail", () => {
+  it("keeps tab fallback out of the route tail while tracing edit capability separately", () => {
     expect(estimateNodePageSource).not.toContain('withPerfTraceRequest("workshop.estimate-sheet-tail"');
     expect(estimateNodePageSource).not.toContain('traced("estimate-sheet.tabs"');
-    expect(estimateNodePageSource).not.toContain('traced("estimate-sheet.edit-capability"');
-    expect(estimateNodePageSource).not.toContain("resolveEstimateEditCapability");
+    expect(estimateNodePageSource).toContain('traced("estimate-sheet.edit-capability"');
+    expect(estimateNodePageSource).toContain("resolveEstimateEditCapability");
     expect(estimateNodePageSource).not.toContain("getEstimateTabs");
     expect(estimateNodePageSource).toContain("const estimateTabs = tabs ?? []");
     expect(estimateNodePageSource).toContain("canEditEstimate={prefetchedCanEditEstimate === true}");

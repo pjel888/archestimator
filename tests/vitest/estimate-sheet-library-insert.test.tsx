@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
+import { REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
 import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
+import { ToastProvider } from "@/components/ui/toast";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
@@ -23,6 +25,7 @@ const actionMocks = vi.hoisted(() => ({
   insertEstimateTemplateNodeIntoEstimate: vi.fn(),
   insertEstimateTemplatesIntoEstimate: vi.fn(),
   moveEstimateRowComponentWithHistory: vi.fn(),
+  moveEstimateRowItemWithHistory: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
@@ -41,8 +44,10 @@ const projectId = "22222222-2222-4222-8222-222222222222";
 const estimateId = "77777777-7777-4777-8777-777777777719";
 const targetNodeId = "55555555-5555-4555-8555-555555555561";
 const groupNodeId = "55555555-5555-4555-8555-555555555560";
+const livingNodeId = "55555555-5555-4555-8555-555555555562";
 const cabinetRowId = "66666666-6666-4666-8666-666666666661";
 const sinkRowId = "66666666-6666-4666-8666-666666666662";
+const vanityRowId = "66666666-6666-4666-8666-666666666663";
 
 const nodes: EstimateTreeNode[] = [
   {
@@ -166,6 +171,49 @@ const nodesWithRow: EstimateTreeNode[] = [
       },
     ],
     children: [],
+  },
+];
+
+const nodesWithRowsInSeparateAreas: EstimateTreeNode[] = [
+  {
+    ...nodesWithRow[0],
+    estimateRowItems: [nodesWithRow[0].estimateRowItems![0]],
+  },
+  {
+    id: livingNodeId,
+    name: "Living",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [nodesWithRow[0].estimateRowItems![1]],
+    children: [],
+  },
+];
+
+const nodesWithThreeRows: EstimateTreeNode[] = [
+  {
+    ...nodesWithRow[0],
+    estimateRowItems: [
+      ...nodesWithRow[0].estimateRowItems!,
+      {
+        id: vanityRowId,
+        material: "Kitchen Vanity",
+        description: "Powder room vanity",
+        supplier: "Local supplier",
+        source: "project",
+        unit: "pc",
+        itemCost: 400,
+        quantity: 1,
+        subTotal: 400,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 0,
+        totalItemCosts: 400,
+        rowRevision: 2,
+        category: "Millwork",
+        pricingSource: "Estimate row snapshot",
+        pricingDate: "2026-05-22",
+      },
+    ],
   },
 ];
 
@@ -329,8 +377,8 @@ function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRev
   };
 }
 
-async function dragCabinetOntoSink() {
-  renderPersistedEstimateSheet(nodesWithRow);
+async function dragCabinetOntoSink(sheetNodes = nodesWithRow) {
+  renderPersistedEstimateSheet(sheetNodes);
 
   const sourceCell = screen.getByLabelText("Kitchen Cabinet replaceable estimate component");
   const targetCell = screen.getByLabelText("Kitchen Sink replaceable estimate component");
@@ -371,6 +419,30 @@ function renderPersistedEstimateSheet(sheetNodes = nodes) {
       />
     </QueryClientProvider>,
   );
+}
+
+function renderPersistedEstimateSheetWithToasts(sheetNodes = nodes) {
+  const queryClient = makeQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <EstimateSheetContent
+          selectedNodeId={targetNodeId}
+          nodes={sheetNodes}
+          projectId={projectId}
+          estimateId={estimateId}
+          canEditEstimate={true}
+          renderSidebar={false}
+        />
+      </ToastProvider>
+    </QueryClientProvider>,
+  );
+}
+
+function toastViewport() {
+  const viewport = document.querySelector("[data-toast-viewport='true']");
+  if (!(viewport instanceof HTMLElement)) throw new Error("Toast viewport was not rendered.");
+  return viewport;
 }
 
 describe("estimate sheet library insertion persistence", () => {
@@ -414,6 +486,18 @@ describe("estimate sheet library insertion persistence", () => {
         miscCost: 0,
         totalItemCosts: 100,
       }, 4),
+    });
+    actionMocks.moveEstimateRowItemWithHistory.mockResolvedValue({
+      eventId: "event-move-row",
+      updatedRowCount: 1,
+      rows: [
+        {
+          rowId: sinkRowId,
+          nodeId: targetNodeId,
+          sortOrder: 1,
+          rowRevision: 4,
+        },
+      ],
     });
     actionMocks.updateEstimateRowItem.mockResolvedValue({
       rowId: cabinetRowId,
@@ -1102,6 +1186,68 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).queryByText("Save failed")).not.toBeInTheDocument();
   });
 
+  it("keeps routine row save progress and success out of global notifications", async () => {
+    const user = userEvent.setup();
+    const save = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(save.promise);
+    renderPersistedEstimateSheetWithToasts(nodesWithRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const quantityInput = within(kitchenSection).getByLabelText("Kitchen Cabinet quantity") as HTMLInputElement;
+
+    await user.click(quantityInput);
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "7");
+    fireEvent.blur(quantityInput);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(toastViewport()).not.toHaveTextContent("Saving row changes");
+
+    await act(async () => {
+      save.resolve({
+        rowId: cabinetRowId,
+        nodeId: targetNodeId,
+        quantity: 7,
+        itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 10,
+        linkState: "linked-overridden",
+        rowRevision: 8,
+      });
+      await save.promise;
+    });
+
+    await waitFor(() => expect(quantityInput.value).toBe("7"));
+    expect(toastViewport()).not.toHaveTextContent("Saved.");
+  });
+
+  it("keeps row save failures visible without a routine saving notification", async () => {
+    const user = userEvent.setup();
+    const save = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(save.promise);
+    renderPersistedEstimateSheetWithToasts(nodesWithRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const quantityInput = within(kitchenSection).getByLabelText("Kitchen Cabinet quantity") as HTMLInputElement;
+
+    await user.click(quantityInput);
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "7");
+    fireEvent.blur(quantityInput);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(toastViewport()).not.toHaveTextContent("Saving row changes");
+
+    await act(async () => {
+      save.reject(new Error("Permission denied"));
+      await save.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Permission denied"));
+    expect(screen.getByRole("alert").closest("[data-toast-viewport='true']")).not.toBeNull();
+  });
+
   it("persists component moves through one atomic row move action", async () => {
     const move = deferred<{
       sourceRow: ReturnType<typeof makeCanonicalReplaceResult>;
@@ -1132,6 +1278,119 @@ describe("estimate sheet library insertion persistence", () => {
       expect(within(targetRow).getByLabelText("Kitchen Cabinet replaceable estimate component")).toBeInTheDocument();
     });
     expect(within(targetRow).queryByLabelText("Kitchen Sink replaceable estimate component")).not.toBeInTheDocument();
+  });
+
+  it("marks source and target rows pending while moving a component", async () => {
+    const move = deferred<{
+      sourceRow: ReturnType<typeof makeCanonicalReplaceResult>;
+      targetRow: ReturnType<typeof makeCanonicalReplaceResult>;
+    }>();
+    actionMocks.moveEstimateRowComponentWithHistory.mockReturnValueOnce(move.promise);
+    const { sourceRow, targetRow } = await dragCabinetOntoSink(nodesWithThreeRows);
+    const unrelatedRow = screen.getByLabelText("Kitchen Vanity replaceable estimate component").closest("tr");
+    expect(unrelatedRow).not.toBeNull();
+
+    await waitFor(() => expect(sourceRow).toHaveAttribute("aria-busy", "true"));
+    expect(targetRow).toHaveAttribute("aria-busy", "true");
+    expect(unrelatedRow as HTMLElement).not.toHaveAttribute("aria-busy");
+    expect(within(sourceRow).getByRole("status", { name: /mutation status/i })).toHaveTextContent("Moving component");
+    expect(within(targetRow).getByRole("status", { name: /mutation status/i })).toHaveTextContent("Moving component");
+    expect(within(unrelatedRow as HTMLElement).queryByRole("status", { name: /mutation status/i })).not.toBeInTheDocument();
+
+    const input = actionMocks.moveEstimateRowComponentWithHistory.mock.calls[0][0];
+    await act(async () => {
+      move.resolve({
+        sourceRow: makeCanonicalReplaceResult(cabinetRowId, input.sourceLibraryItem, 8),
+        targetRow: makeCanonicalReplaceResult(sinkRowId, input.targetLibraryItem, 4),
+      });
+      await move.promise;
+    });
+
+    await waitFor(() => expect(sourceRow).not.toHaveAttribute("aria-busy"));
+    expect(targetRow).not.toHaveAttribute("aria-busy");
+  });
+
+  it("allows moving an unrelated row while a different row save is pending", async () => {
+    const user = userEvent.setup();
+    const cabinetSave = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(cabinetSave.promise);
+    renderPersistedEstimateSheetWithToasts(nodesWithRowsInSeparateAreas);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const cabinetQuantity = within(kitchenSection).getByLabelText("Kitchen Cabinet quantity") as HTMLInputElement;
+    await user.click(cabinetQuantity);
+    await user.clear(cabinetQuantity);
+    await user.type(cabinetQuantity, "7");
+    fireEvent.blur(cabinetQuantity);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, {
+        detail: {
+          rowItemId: sinkRowId,
+          targetNodeId,
+          targetIndex: 1,
+        },
+      }));
+    });
+
+    await waitFor(() => expect(actionMocks.moveEstimateRowItemWithHistory).toHaveBeenCalledTimes(1));
+    expect(actionMocks.moveEstimateRowItemWithHistory).toHaveBeenCalledWith(expect.objectContaining({
+      projectId,
+      estimateId,
+      movedRowId: sinkRowId,
+      sourceNodeId: livingNodeId,
+      targetNodeId,
+      mutationId: expect.any(String),
+    }));
+    expect(toastViewport()).not.toHaveTextContent("Finish saving row edits before moving rows.");
+
+    await act(async () => {
+      cabinetSave.resolve({
+        rowId: cabinetRowId,
+        nodeId: targetNodeId,
+        quantity: 7,
+        itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 10,
+        linkState: "linked-overridden",
+        rowRevision: 8,
+      });
+      await cabinetSave.promise;
+    });
+  });
+
+  it("appends tree-initiated row drops against the current content tree when the tree index is stale", async () => {
+    renderPersistedEstimateSheetWithToasts(nodesWithRowsInSeparateAreas);
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, {
+        detail: {
+          rowItemId: sinkRowId,
+          targetNodeId,
+          targetIndex: 0,
+          targetPlacement: "end",
+        },
+      }));
+    });
+
+    await waitFor(() => expect(actionMocks.moveEstimateRowItemWithHistory).toHaveBeenCalledTimes(1));
+    expect(actionMocks.moveEstimateRowItemWithHistory).toHaveBeenCalledWith(expect.objectContaining({
+      movedRowId: sinkRowId,
+      sourceNodeId: livingNodeId,
+      targetNodeId,
+      updates: [
+        {
+          rowId: sinkRowId,
+          nodeId: targetNodeId,
+          sortOrder: 1,
+          expectedRowRevision: 3,
+        },
+      ],
+    }));
+    expect(toastViewport()).not.toHaveTextContent("Couldn't move the row to that location.");
   });
 
   it("rolls back both rows when an atomic component move fails", async () => {

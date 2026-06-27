@@ -34,7 +34,7 @@ describe("estimate sheet center atomic mutation contracts", () => {
 
   it("persists row reorganization through the dedicated row-item move mutation path", () => {
     expect(estimateRowMutations).toContain("moveEstimateRowItemWithHistory");
-    expect(estimateRowMutations).toContain("applyEstimateRowItemMoveResultToTree");
+    expect(estimateRowMutations).toContain("reconcileEstimateRowItemMoveResultToTree");
 
     const moveRowItemMutationSource = sourceBetween(
       estimateRowMutations,
@@ -43,7 +43,8 @@ describe("estimate sheet center atomic mutation contracts", () => {
     );
 
     expect(moveRowItemMutationSource).toContain("moveEstimateRowItemWithHistory(withoutClientCallbacks(input))");
-    expect(moveRowItemMutationSource).toContain("applyEstimateRowItemMoveResultToTree(currentTree, result.rows)");
+    expect(moveRowItemMutationSource).toContain("reconcileEstimateRowItemMoveResultToTree(currentTree, latestRows)");
+    expect(moveRowItemMutationSource).toContain("fetchEstimateTree({ projectId: input.projectId, estimateId: input.estimateId })");
     expect(moveRowItemMutationSource).not.toContain("moveEstimateRowComponentWithHistory");
   });
 
@@ -67,13 +68,14 @@ describe("estimate sheet center atomic mutation contracts", () => {
 
     expect(estimateSheetEvents).toContain("REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT");
     expect(estimateSheetContent).toContain("readRequestEstimateRowItemMoveEventDetail");
-    expect(estimateSheetContent).toContain("moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex)");
+    expect(estimateSheetContent).toContain("moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex, { targetPlacement: detail.targetPlacement })");
     expect(estimateSheetContent).toContain("const [rowMoveDialog, setRowMoveDialog]");
     expect(estimateSheetContent).toContain('title="Move row"');
     expect(estimateSheetContent).toContain("resolveRowMoveDialogTargetIndex");
     expect(estimateSheetTree).toContain("ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE");
     expect(estimateSheetTree).toContain("REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT");
     expect(estimateSheetTree).toContain("targetIndex: targetNode.estimateRowItems?.length ?? 0");
+    expect(estimateSheetTree).toContain('targetPlacement: "end"');
     expect(uiTree).toContain("dropEffect?:");
     expect(uiTree).toContain('?? "copy"');
   });

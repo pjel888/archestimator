@@ -327,7 +327,9 @@ describe("workspace repository estimate tree projection", () => {
       rowRevision: 3,
       tags: ["wet-area"],
       subTotal: 200,
-      contingencyValue: 20,
+      contingencyValue: 0,
+      adjustmentPercentage: 10,
+      adjustmentValue: 20,
       miscCost: 50,
       totalItemCosts: 270,
     });

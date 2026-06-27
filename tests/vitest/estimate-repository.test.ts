@@ -1,46 +1,40 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import type { EstimateRowItem } from "@/lib/domain/estimate-tree";
-import type { InsertEstimateRowItemInput } from "@/lib/repositories/estimate-repository";
+import { estimateRepository } from "@/lib/repositories/estimate-repository";
 
-function makeRow(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
-  return {
-    id: "row-1",
-    estimateId: "estimate-1",
-    nodeId: "area-1",
-    sortOrder: 1,
-    sourceLibraryItemId: null,
-    sourceSnapshot: null,
-    material: "Concrete",
-    description: "Ready-mix concrete",
-    supplier: "Supplier A",
-    unit: "cu.m",
-    quantity: 1,
-    unitCost: 100,
-    miscCost: 0,
-    discipline: "Structural",
-    designation: "STR",
-    linkState: "manual",
-    ...overrides,
-  };
+const repositorySource = readFileSync("src/lib/repositories/estimate-repository.ts", "utf8");
+const estimateRowItemWritePattern = /\.from\(\s*["']estimate_row_items["']\s*\)[\s\S]{0,400}?\.(?:insert|upsert|update|delete)\s*\(/;
+
+function sourceFiles(root: string): string[] {
+  return readdirSync(root).flatMap((entry) => {
+    const path = join(root, entry);
+    const stat = statSync(path);
+    if (stat.isDirectory()) return sourceFiles(path);
+    return /\.(?:ts|tsx)$/.test(path) && !path.endsWith(".d.ts") ? [path] : [];
+  });
 }
 
 describe("estimate repository row-item contract", () => {
-  it("accepts insert inputs without estimateId and can still form a complete row", () => {
-    const input: InsertEstimateRowItemInput = {
-      ...makeRow({ id: "row-new" }),
-      id: "row-new",
-    };
-
-    expect(input.id).toBe("row-new");
-    expect(input.nodeId).toBe("area-1");
+  it("exposes read-only browser methods for estimate trees", () => {
+    expect(Object.keys(estimateRepository).sort()).toEqual(["getEstimateTabTree", "getEstimateTree"]);
+    expect("moveEstimateRowItem" in estimateRepository).toBe(false);
+    expect("insertEstimateRowItem" in estimateRepository).toBe(false);
+    expect("updateEstimateRowItem" in estimateRepository).toBe(false);
+    expect("deleteEstimateRowItem" in estimateRepository).toBe(false);
   });
 
-  it("supports partial row value updates for spreadsheet-speed edits", () => {
-    const current = makeRow();
-    const next = { ...current, quantity: 3, unitCost: 125 };
+  it("does not contain direct browser writes to estimate row items", () => {
+    expect(repositorySource).not.toMatch(/\.from\("estimate_row_items"\)\.(?:insert|upsert|update|delete)/);
+  });
 
-    expect(next.quantity * next.unitCost).toBe(375);
-    expect(next.description).toBe(current.description);
+  it("keeps production browser clients from directly writing estimate row items", () => {
+    const directBrowserWriters = sourceFiles("src").filter((path) => {
+      const source = readFileSync(path, "utf8");
+      return source.includes("createSupabaseBrowserClient") && estimateRowItemWritePattern.test(source);
+    });
+
+    expect(directBrowserWriters).toEqual([]);
   });
 });

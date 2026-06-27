@@ -1,0 +1,289 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PropsWithChildren } from "react";
+
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
+import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+
+const actionMocks = vi.hoisted(() => ({
+  deleteEstimateRowItem: vi.fn(),
+  deleteEstimateRowItemsBulk: vi.fn(),
+  detachEstimateRowItemFromLibrary: vi.fn(),
+  fetchEstimateTree: vi.fn(),
+  insertEstimateRowItemFromLibrary: vi.fn(),
+  moveEstimateRowComponentWithHistory: vi.fn(),
+  moveEstimateRowItemWithHistory: vi.fn(),
+  replaceEstimateRowItemWithLibrary: vi.fn(),
+  restoreDeletedEstimateRows: vi.fn(),
+  updateEstimateRowItem: vi.fn(),
+}));
+
+const promotionMocks = vi.hoisted(() => ({
+  promoteEstimateRowToLibraryComponent: vi.fn(),
+}));
+
+vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
+
+const projectId = "22222222-2222-4222-8222-222222222222";
+const estimateId = "77777777-7777-4777-8777-777777777719";
+const targetNodeId = "55555555-5555-4555-8555-555555555561";
+const cabinetRowId = "66666666-6666-4666-8666-666666666661";
+const sinkRowId = "66666666-6666-4666-8666-666666666662";
+
+const cabinetRow: EstimateRowItem = {
+  id: cabinetRowId,
+  material: "Kitchen Cabinet",
+  description: "Base cabinet",
+  supplier: "Local supplier",
+  source: "project",
+  unit: "lm",
+  itemCost: 100,
+  quantity: 2,
+  subTotal: 200,
+  contingencyPercentage: 0,
+  contingencyValue: 0,
+  miscCost: 10,
+  totalItemCosts: 210,
+  rowRevision: 7,
+  category: "Cabinetry",
+  pricingSource: "Estimate row snapshot",
+  pricingDate: "2026-05-22",
+};
+
+const sinkRow: EstimateRowItem = {
+  id: sinkRowId,
+  material: "Kitchen Sink",
+  description: "Single bowl sink",
+  supplier: "Local supplier",
+  source: "project",
+  unit: "pc",
+  itemCost: 250,
+  quantity: 1,
+  subTotal: 250,
+  contingencyPercentage: 0,
+  contingencyValue: 0,
+  miscCost: 0,
+  totalItemCosts: 250,
+  rowRevision: 3,
+  category: "Plumbing Fixtures",
+  pricingSource: "Estimate row snapshot",
+  pricingDate: "2026-05-22",
+};
+
+const nodesWithRow: EstimateTreeNode[] = [
+  {
+    id: targetNodeId,
+    name: "Kitchen",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [cabinetRow, sinkRow],
+    children: [],
+  },
+];
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      mutations: { gcTime: Infinity, retry: false },
+      queries: { gcTime: Infinity, retry: false },
+    },
+  });
+}
+
+function makeWrapper(queryClient: QueryClient) {
+  return function Wrapper({ children }: PropsWithChildren) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
+}
+
+function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRevision: number) {
+  return {
+    rowId,
+    nodeId: targetNodeId,
+    material: item.material,
+    description: item.description,
+    supplier: item.supplier,
+    unit: item.unit,
+    quantity: item.quantity,
+    itemCost: item.itemCost,
+    contingencyPercentage: item.contingencyPercentage ?? 0,
+    contingencyValue: item.contingencyValue ?? 0,
+    miscCost: item.miscCost ?? 0,
+    sourceSnapshot: item.sourceSnapshot ?? null,
+    metadata: item.metadata ?? {},
+    linkState: item.linkState ?? "unlinked",
+    rowRevision,
+  };
+}
+
+function findCachedRow(queryClient: QueryClient, rowId: string) {
+  const tree = queryClient.getQueryData<EstimateTreeNode[]>(estimateQueryKeys.areaTree(estimateId));
+  return tree?.flatMap((node) => node.estimateRowItems ?? []).find((item) => item.id === rowId) ?? null;
+}
+
+describe("estimate row mutation coordinator", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("suppresses an older component move response after a newer target-row replacement settles", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const move = deferred<{
+      sourceRow: ReturnType<typeof makeCanonicalReplaceResult>;
+      targetRow: ReturnType<typeof makeCanonicalReplaceResult>;
+    }>();
+    actionMocks.moveEstimateRowComponentWithHistory.mockReturnValueOnce(move.promise);
+    actionMocks.replaceEstimateRowItemWithLibrary.mockResolvedValueOnce(makeCanonicalReplaceResult(sinkRowId, {
+      ...sinkRow,
+      material: "New Sink Component",
+    }, 4));
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.moveRows({
+        projectId,
+        estimateId,
+        sourceRowId: cabinetRowId,
+        targetRowId: sinkRowId,
+        sourceLibraryItem: { ...cabinetRow, material: "Project Component" },
+        targetLibraryItem: cabinetRow,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.moveEstimateRowComponentWithHistory).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.replaceRow({
+        projectId,
+        estimateId,
+        rowId: sinkRowId,
+        libraryItem: { ...sinkRow, material: "New Sink Component" },
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(findCachedRow(queryClient, sinkRowId)?.material).toBe("New Sink Component"));
+
+    const moveInput = actionMocks.moveEstimateRowComponentWithHistory.mock.calls[0][0];
+    await act(async () => {
+      move.resolve({
+        sourceRow: makeCanonicalReplaceResult(cabinetRowId, moveInput.sourceLibraryItem, 8),
+        targetRow: makeCanonicalReplaceResult(sinkRowId, moveInput.targetLibraryItem, 5),
+      });
+      await move.promise;
+    });
+
+    expect(findCachedRow(queryClient, sinkRowId)?.material).toBe("New Sink Component");
+  });
+
+  it("refetches the active tree and suppresses local success when move rows are absent from cache", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData<EstimateTreeNode[]>(estimateQueryKeys.areaTree(estimateId), [
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Stale Area",
+        kind: "area",
+        total: "PHP 0.00",
+        estimateRowItems: [],
+        children: [],
+      },
+    ]);
+    const recoveredTree: EstimateTreeNode[] = [{
+      ...nodesWithRow[0],
+      estimateRowItems: [
+        { ...cabinetRow, rowRevision: 8 },
+        { ...sinkRow, rowRevision: 4 },
+      ],
+    }];
+    actionMocks.moveEstimateRowItemWithHistory.mockResolvedValueOnce({
+      eventId: "event-move-row",
+      updatedRowCount: 2,
+      rows: [
+        { rowId: cabinetRowId, nodeId: targetNodeId, sortOrder: 0, rowRevision: 8 },
+        { rowId: sinkRowId, nodeId: targetNodeId, sortOrder: 1, rowRevision: 4 },
+      ],
+    });
+    actionMocks.fetchEstimateTree.mockResolvedValueOnce(recoveredTree);
+    const onSuccess = vi.fn();
+    const saveStates: string[] = [];
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, undefined, undefined, (state) => saveStates.push(state)),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.moveRowItem({
+        projectId,
+        estimateId,
+        movedRowId: sinkRowId,
+        sourceNodeId: "44444444-4444-4444-8444-444444444445",
+        targetNodeId,
+        updates: [
+          { rowId: cabinetRowId, nodeId: targetNodeId, sortOrder: 0, expectedRowRevision: 7 },
+          { rowId: sinkRowId, nodeId: targetNodeId, sortOrder: 1, expectedRowRevision: 3 },
+        ],
+        onSuccess,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.moveEstimateRowItemWithHistory).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(actionMocks.fetchEstimateTree).toHaveBeenCalledWith({ projectId, estimateId }));
+    await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree(estimateId))).toEqual(recoveredTree));
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(saveStates).toContain("saved");
+  });
+
+  it("fails row updates fast when the browser is offline instead of leaving the row pending", async () => {
+    const onlineSpy = vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const saveStates: string[] = [];
+
+    try {
+      const { result } = renderHook(
+        () => useEstimateRowMutations(estimateId, undefined, undefined, undefined, (state) => saveStates.push(state)),
+        { wrapper: makeWrapper(queryClient) },
+      );
+
+      act(() => {
+        result.current.updateRow({
+          projectId,
+          estimateId,
+          rowId: cabinetRowId,
+          quantity: 7,
+        });
+      });
+
+      await waitFor(() => expect(result.current.rowMutationStatuses[cabinetRowId]?.phase).toBe("failed"));
+      expect(result.current.rowMutationStatuses[cabinetRowId]?.message).toMatch(/offline/i);
+      expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+      expect(saveStates).toContain("failed");
+      expect(findCachedRow(queryClient, cabinetRowId)?.quantity).toBe(7);
+    } finally {
+      onlineSpy.mockRestore();
+    }
+  });
+});

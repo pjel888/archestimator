@@ -108,6 +108,55 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(hardeningMigration).toContain("grant execute on function public.delete_estimate_nodes_bulk_with_history(uuid, uuid, uuid[], uuid, uuid) to authenticated");
   });
 
+  it("keeps the latest row update and replace RPC definitions estimate-edit gated", () => {
+    const delegateNames = {
+      update_estimate_row_item_with_history: "update_estimate_row_item_with_history_unsafe_workspace_gate_20260627",
+      replace_estimate_row_item_with_history: "replace_estimate_row_item_with_history_unsafe_workspace_gate_20260627",
+    };
+
+    for (const [functionName, delegateName] of Object.entries(delegateNames)) {
+      const functionSource = latestFunction(functionName);
+      expect(functionSource).toContain("perform public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+      expect(functionSource).toContain(`return public.${delegateName}(`);
+      expect(functionSource).not.toContain("resolved_workspace_id");
+      expect(functionSource).not.toContain("resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);");
+      expect(functionSource).not.toContain("unsafe_workspace_gate_202(");
+      expect(functionSource).not.toContain("unsafe_workspace_gate_20(");
+    }
+  });
+
+  it("requires estimate edit access before restoring a version snapshot as a copy", () => {
+    const restoreAsCopyRpc = latestFunction("restore_estimate_sheet_version_as_copy");
+    const dropUnsafeRestoreBackup = latestMigrationBySuffix("_drop_unsafe_restore_version_copy_backup.sql");
+
+    expect(restoreAsCopyRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, source_version.estimate_id, acting_user_id)");
+    expect(restoreAsCopyRpc).toContain("requested_correlation_id uuid := correlation_id");
+    expect(restoreAsCopyRpc).toContain("event.correlation_id = requested_correlation_id");
+    expect(restoreAsCopyRpc).not.toContain("resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, source_version.estimate_id, acting_user_id);");
+    expect(restoreAsCopyRpc).not.toContain("event.correlation_id = correlation_id");
+    expect(restoreAsCopyRpc).not.toContain("::public.estimate_sheet_adjustment_mode");
+    expect(dropUnsafeRestoreBackup).toContain("drop function if exists public.restore_estimate_sheet_version_as_copy_unsafe_workspace_gate_20260627");
+  });
+
+  it("routes sheet adjustment writes through a history-aware estimate-edit RPC", () => {
+    const estimateActions = read("src/lib/estimates/actions.ts");
+    const adjustmentAction = sourceBlock(
+      estimateActions,
+      "export async function updateEstimateSheetAdjustment",
+      "export async function updateEstimateRowItem",
+    );
+    const adjustmentRpc = latestFunction("update_estimate_sheet_adjustment_with_history");
+    const adjustmentHardening = latestMigrationBySuffix("_harden_estimate_sheet_adjustment_writes.sql");
+
+    expect(adjustmentAction).toContain('supabase.rpc("update_estimate_sheet_adjustment_with_history"');
+    expect(adjustmentAction).not.toContain('.from("estimate_sheet_adjustments")');
+    expect(adjustmentRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(adjustmentRpc).toContain("public.estimate_sheet_event_result(target_estimate_id, correlation_id)");
+    expect(adjustmentRpc).toContain("'sheet_adjustment_updated'");
+    expect(adjustmentHardening).toContain("revoke insert, update, delete on table public.estimate_sheet_adjustments from authenticated");
+    expect(adjustmentHardening).toContain("grant execute on function public.update_estimate_sheet_adjustment_with_history");
+  });
+
   it("keeps template-node subtree inserts transactional and estimate-edit gated", () => {
     const estimateActions = read("src/lib/estimates/actions.ts");
     const insertNodeAction = sourceBlock(
@@ -165,6 +214,21 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(metadataStrip).toContain("canEditEstimate: canEditEstimate === true");
     expect(metadataStrip).toContain("if (!metadata || !canEditEstimate) return;");
     expect(metadataStrip).toContain("disabled={!metadata || !canEditEstimate || isPending}");
+  });
+
+  it("scopes estimate sheet version history reads to estimate access instead of workspace membership", () => {
+    const eventRlsHardening = read("supabase/migrations/20260619105250_project_dashboard_activity_location.sql");
+    const versionRlsHardening = latestMigrationBySuffix("_harden_estimate_sheet_versions_rls.sql");
+
+    expect(eventRlsHardening).toContain('create policy "estimate activity sheet readers can read events"');
+    expect(eventRlsHardening).toContain("using (public.can_access_estimate(estimate_id))");
+    expect(versionRlsHardening).toContain("alter table public.estimate_sheet_versions enable row level security");
+    expect(versionRlsHardening).toContain("drop policy if exists estimate_sheet_versions_select_authenticated");
+    expect(versionRlsHardening).toContain('create policy "estimate version sheet readers can read versions"');
+    expect(versionRlsHardening).toContain("using (public.can_access_estimate(estimate_id))");
+    expect(versionRlsHardening).toContain("revoke all on public.estimate_sheet_versions from public, anon, authenticated");
+    expect(versionRlsHardening).toContain("grant select on public.estimate_sheet_versions to authenticated");
+    expect(versionRlsHardening).not.toContain("is_workspace_member(workspace_id)");
   });
 
   it("prevents estimate-only collaborators from inheriting project-wide estimate access", () => {

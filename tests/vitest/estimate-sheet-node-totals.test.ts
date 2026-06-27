@@ -55,12 +55,14 @@ describe("estimate sheet node totals", () => {
         quantity: "3",
         contingencyMode: "contingency",
         contingencyPercentage: "10",
+        adjustmentPercentage: "10",
         miscCost: "1",
       },
       "child-row": {
         quantity: "4",
         contingencyMode: "discount",
         contingencyPercentage: "25",
+        adjustmentPercentage: "-25",
         miscCost: "2",
       },
     };

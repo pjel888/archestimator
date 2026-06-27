@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { EstimateRowItemsTable } from "@/components/workshop/estimate-sheet/rows/row-table";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { ESTIMATE_COLUMN_TEMPLATE } from "@/lib/estimate-sheet/column-model";
+import { ESTIMATE_COLUMN_TEMPLATE, RESIZABLE_ESTIMATE_COLUMN_IDS } from "@/lib/estimate-sheet/column-model";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 const noop = vi.fn();
@@ -61,17 +61,9 @@ describe("estimate row table virtualization", () => {
 
     expect(headerRow.style.gridTemplateColumns).toBe(ESTIMATE_COLUMN_TEMPLATE);
     expect(bodyRow.style.gridTemplateColumns).toBe(ESTIMATE_COLUMN_TEMPLATE);
-    expect(Array.from(headerRow.querySelectorAll("th")).map((header) => header.getAttribute("scope"))).toEqual([
-      "col",
-      "col",
-      "col",
-      "col",
-      "col",
-      "col",
-      "col",
-      "col",
-      "col",
-    ]);
+    expect(Array.from(headerRow.querySelectorAll("th")).map((header) => header.getAttribute("scope"))).toEqual(
+      Array.from({ length: 10 }, () => "col"),
+    );
     expect(bodyRow).toHaveAttribute("data-estimate-row-id", "template-row-1");
     expect(bodyRow.querySelectorAll("[data-estimate-cell-index]").length).toBeGreaterThan(0);
   });
@@ -106,7 +98,7 @@ describe("estimate row table virtualization", () => {
     );
 
     const handles = screen.getAllByRole("separator", { name: /Resize .* column/ });
-    expect(handles).toHaveLength(6);
+    expect(handles).toHaveLength(RESIZABLE_ESTIMATE_COLUMN_IDS.length);
     fireEvent.keyDown(handles[0], { key: "ArrowRight" });
     expect(onCommitWidths).toHaveBeenCalledWith({ material: 176 });
 

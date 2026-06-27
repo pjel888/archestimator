@@ -89,6 +89,6 @@ describe("estimate sheet tree query errors", () => {
 
     await waitFor(() => expect(actionMocks.fetchEstimateTabTree).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
-    expect(screen.queryByText("This tab is empty")).not.toBeInTheDocument();
+    expect(screen.getByText("This tab is empty")).toBeInTheDocument();
   });
 });

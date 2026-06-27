@@ -126,7 +126,7 @@ describe("shared modal and toolbar tooltip primitives", () => {
     expect(expiryInput).toHaveAttribute("aria-invalid", "true");
     expect(expiryInput.getAttribute("aria-describedby")).toContain(screen.getByText("Expiry is required").id);
     expect(screen.getByText("Expiry is required")).toHaveAttribute("role", "alert");
-    expect(screen.getByTestId("section-label")).toHaveClass("text-[10px]", "text-secondary", "tracking-normal");
+    expect(screen.getByTestId("section-label")).toHaveClass("text-[9px]", "text-secondary", "tracking-normal");
   });
 
   it("keeps only the top stacked modal interactive and closes only the top modal on Escape", () => {

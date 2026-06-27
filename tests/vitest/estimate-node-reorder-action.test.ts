@@ -815,7 +815,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
       "Estimate tree node not found in the current project: other-node.",
     );
 
-    expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
+    expect(authMocks.requireCurrentUserContext).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
     expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).not.toHaveBeenCalledWith("delete_estimate_nodes_bulk_with_history", expect.anything());

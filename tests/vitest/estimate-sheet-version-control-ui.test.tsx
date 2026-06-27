@@ -179,8 +179,8 @@ describe("estimate sheet version control UI", () => {
               supplier: "Elegant Floors Inc.",
               unit: "sqm",
               quantity: 48,
-              contingencyPercentage: 0,
-              contingencyValue: 0,
+              adjustmentPercentage: 0,
+              adjustmentValue: 0,
               miscCost: 0,
               unitCost: 1200,
             },
@@ -192,13 +192,13 @@ describe("estimate sheet version control UI", () => {
               supplier: "Elegant Floors Inc.",
               unit: "sqm",
               quantity: 50,
-              contingencyPercentage: 10,
-              contingencyValue: 6000,
+              adjustmentPercentage: 10,
+              adjustmentValue: 6000,
               miscCost: 1200,
               unitCost: 1200,
             },
           },
-          changedFields: ["quantity", "contingencyPercentage", "miscCost"],
+          changedFields: ["quantity", "adjustmentPercentage", "miscCost"],
           totalDelta: 7200,
           payload: {},
           correlationId: "row-history-2",
@@ -251,8 +251,8 @@ describe("estimate sheet version control UI", () => {
     expect(within(scalarCard).getByText("48 sqm")).toBeInTheDocument();
     expect(within(scalarCard).getByText("50 sqm")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Adjustment percentage")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("Contingency 0% (₱ 0.00)")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("Contingency 10% (₱ 6,000.00)")).toBeInTheDocument();
+    expect(within(scalarCard).getByText("0% (₱ 0.00)")).toBeInTheDocument();
+    expect(within(scalarCard).getByText("+10% (₱ 6,000.00)")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Misc cost")).toBeInTheDocument();
     expect(within(scalarCard).getByText(/₱\s?1,200\.00/)).toBeInTheDocument();
     expect(scalarCard.querySelector("[data-audit-component-snapshots]")).not.toBeInTheDocument();

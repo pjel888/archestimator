@@ -295,7 +295,7 @@ describe("estimate sheet row details and CRUD entry points", () => {
 
     await waitFor(() => {
       expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({ rowId: projectSpecificRowId, quantity: 4 }));
-      expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({ rowId: projectSpecificRowId, contingencyPercentage: 8 }));
+      expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({ rowId: projectSpecificRowId, adjustmentPercentage: 8 }));
       expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({ rowId: projectSpecificRowId, miscCost: 375 }));
     });
 

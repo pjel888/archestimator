@@ -12,6 +12,7 @@ const revalidatePath = vi.hoisted(() => vi.fn());
 const redirect = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
+  clearEstimateRouteContextProcessCache: vi.fn(),
   getCurrentWorkspaceProject,
   getEstimateTabTree: vi.fn(),
   getEstimateTabs: vi.fn(),
@@ -102,11 +103,11 @@ function createQuery(table: string, inserts: InsertCall[]) {
   return query;
 }
 
-function createSupabaseMock() {
+function createSupabaseMock({ canEditProject = true }: { canEditProject?: boolean } = {}) {
   const inserts: InsertCall[] = [];
   const from = vi.fn((table: string) => createQuery(table, inserts));
   const rpc = vi.fn(async (fn: string) => {
-    if (fn === "can_edit_project") return { data: true, error: null };
+    if (fn === "can_edit_project") return { data: canEditProject, error: null };
     return { data: null, error: null };
   });
 
@@ -158,6 +159,20 @@ describe("estimate sheet empty-tree creation", () => {
 
     expect(supabase.inserts.map((call) => call.table)).toEqual(["estimates", "estimate_tabs"]);
     expect(supabase.inserts.some((call) => call.table === "estimate_nodes")).toBe(false);
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
     expect(redirect).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/estimates/${ESTIMATE_ID}`);
+  });
+
+  it("denies legacy form creates for project viewers before any estimate writes", async () => {
+    const supabase = createSupabaseMock({ canEditProject: false });
+    createSupabaseServerClient.mockResolvedValue(supabase.client);
+    const formData = new FormData();
+    formData.set("name", "Viewer Attempt");
+
+    await expect(createEstimate(PROJECT_ID, formData)).rejects.toThrow(/edit access denied/i);
+
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
+    expect(supabase.inserts).toEqual([]);
+    expect(redirect).not.toHaveBeenCalled();
   });
 });

@@ -89,19 +89,25 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import {
+  archiveEstimateTab,
+  createEstimateTab,
   createEstimateSheetDraft,
   createEstimateNode,
   deleteEstimateNode,
   deleteEstimateNodesBulk,
   deleteEstimateRowItem,
   deleteEstimateRowItemsBulk,
+  deleteEstimateTab,
   duplicateEstimateSheet,
+  duplicateEstimateTab,
   insertEstimateRowItemFromLibrary,
   moveEstimateRowComponentWithHistory,
   moveEstimateRowItemWithHistory,
   regenerateEstimateSheetCode,
+  renameEstimateTab,
   replaceEstimateRowItemWithLibrary,
   renameEstimateNode,
+  reorderEstimateTabs,
   reorderEstimateTreeNodes,
   updateEstimateDetails,
   updateEstimateRowItem,
@@ -237,6 +243,27 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     assertNoWrite();
   });
 
+  it("tab mutation actions deny a viewer before tab history RPCs", async () => {
+    await expect(createEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, name: "Page 002" })).rejects.toThrow(/edit access denied/i);
+    await expect(renameEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID, name: "Renamed Page" })).rejects.toThrow(/edit access denied/i);
+    await expect(reorderEstimateTabs({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      updates: [{ id: ACTIVE_TAB_ID, sortOrder: 2 }],
+    })).rejects.toThrow(/edit access denied/i);
+    await expect(duplicateEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
+    await expect(archiveEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
+    await expect(deleteEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
+
+    expect(rpcSpy).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
+    expect(rpcSpy).not.toHaveBeenCalledWith("create_estimate_tab_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("rename_estimate_tab_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("reorder_estimate_tabs_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("duplicate_estimate_tab_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("archive_estimate_tab_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_tab_with_history", expect.anything());
+  });
+
   it("updateEstimateRowItem omits sourceSnapshot and metadata for routine edits", async () => {
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
@@ -294,7 +321,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
     rpcSpy.mockImplementation((fn: string) => {
       if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
-      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({ sourceSnapshot: { category: "Cabinetry", sourceUrl: "https://example.com/original", imageUrl: "https://example.com/new.jpg" } }), error: null });
+      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow({ sourceSnapshot: { category: "Cabinetry", sourceUrl: "https://example.com/original", imageUrl: "/component-thumbnails/reference.webp" } }), error: null });
       return Promise.resolve({ data: null, error: null });
     });
 
@@ -302,14 +329,120 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
       rowId: ROW_ID,
-      sourceSnapshot: { imageUrl: "https://example.com/new.jpg" },
+      sourceSnapshot: { imageUrl: "/component-thumbnails/reference.webp" },
     });
     const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
 
     expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
       category: "Cabinetry",
       sourceUrl: "https://example.com/original",
-      imageUrl: "https://example.com/new.jpg",
+      imageUrl: "/component-thumbnails/reference.webp",
+    });
+  });
+
+  it("updateEstimateRowItem strips unsafe source snapshot patch fields before writing JSON", async () => {
+    fromSpy.mockImplementation((table: string) => {
+      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
+      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+      if (table === "estimate_row_items") {
+        return chain({
+          id: ROW_ID,
+          node_id: NODE_ID,
+          estimate_id: ESTIMATE_ID,
+          source_library_item_id: null,
+          source_snapshot: {
+            category: "Cabinetry",
+            sourceUrl: "https://example.com/original",
+            signedUrl: "https://storage.example/signed-token",
+            storagePath: "workspace/private/path.webp",
+            tags: ["built-in", "\u0000bad"],
+            componentVersionNumber: 3,
+          },
+          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+          link_state: "unlinked",
+          row_revision: 4,
+        });
+      }
+      return chain(null);
+    });
+    rpcSpy.mockImplementation((fn: string) => {
+      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
+      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    await updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      sourceSnapshot: {
+        imageUrl: "https://tracker.example/pixel.svg?viewer=1",
+        sourceUrl: "javascript:alert(1)",
+        signedUrl: "https://evil.example/signed-token",
+        storagePath: "workspace/private/other.webp",
+        path: "provider/private/path.webp",
+        pricingSource: "x".repeat(2050),
+        unexpectedPrivateKey: "secret",
+      },
+    });
+    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
+
+    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+      category: "Cabinetry",
+      sourceUrl: null,
+      tags: ["built-in"],
+      componentVersionNumber: 3,
+      imageUrl: null,
+    });
+  });
+
+  it("updateEstimateRowItem drops tainted existing image asset descriptors before re-saving source snapshots", async () => {
+    const taintedDescriptor = canonicalImageAssetDescriptor({ path: "workspace-evil/user-evil/tampered.webp" });
+    fromSpy.mockImplementation((table: string) => {
+      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
+      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+      if (table === "estimate_row_items") {
+        return chain({
+          id: ROW_ID,
+          node_id: NODE_ID,
+          estimate_id: ESTIMATE_ID,
+          source_library_item_id: null,
+          source_snapshot: {
+            category: "Cabinetry",
+            imageAsset: taintedDescriptor,
+          },
+          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+          link_state: "unlinked",
+          row_revision: 4,
+        });
+      }
+      return chain(null);
+    });
+    rpcSpy.mockImplementation((fn: string) => {
+      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
+      if (fn === "validate_estimate_row_image_asset") return Promise.resolve({ data: null, error: null });
+      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    await updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      sourceSnapshot: { sourceUrl: "https://example.com/reference" },
+    });
+
+    expect(rpcSpy).toHaveBeenCalledWith("validate_estimate_row_image_asset", {
+      target_asset_id: UPLOAD_ASSET_ID,
+      target_upload_session_id: UPLOAD_SESSION_ID,
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: ROW_ID,
+    });
+    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
+    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+      category: "Cabinetry",
+      sourceUrl: "https://example.com/reference",
     });
   });
 
@@ -340,7 +473,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
           data: canonicalRow({
             sourceSnapshot: {
               category: "Cabinetry",
-              imageUrl: "https://assets.example.test/reference.webp",
+              imageUrl: "/component-thumbnails/reference.webp",
               imageAsset: canonicalDescriptor,
             },
           }),
@@ -355,7 +488,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       estimateId: ESTIMATE_ID,
       rowId: ROW_ID,
       sourceSnapshot: {
-        imageUrl: "https://assets.example.test/reference.webp",
+        imageUrl: "/component-thumbnails/reference.webp",
         imageAsset: {
           ...canonicalDescriptor,
           path: "workspace-evil/user-evil/tampered.webp",
@@ -373,7 +506,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
     expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
       category: "Cabinetry",
-      imageUrl: "https://assets.example.test/reference.webp",
+      imageUrl: "/component-thumbnails/reference.webp",
       imageAsset: canonicalDescriptor,
     });
   });
