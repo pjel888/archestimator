@@ -65,8 +65,8 @@ export function useDeferredNotificationQueryEnabled(force = false) {
   useEffect(() => {
     if (enabled) return undefined;
     if (force) {
-      setEnabled(true);
-      return undefined;
+      const frameId = window.requestAnimationFrame(() => setEnabled(true));
+      return () => window.cancelAnimationFrame(frameId);
     }
 
     let cancelled = false;
