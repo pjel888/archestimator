@@ -60,8 +60,13 @@ export function beginEstimateWorkshopDrag(drag: EstimateWorkshopDrag) {
   const handleDragFinished = () => {
     window.removeEventListener("dragend", handleDragFinished);
     window.removeEventListener("drop", handleDragFinished);
+    window.removeEventListener("keydown", handleKeyDown);
     endEstimateWorkshopDrag();
+  };
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") handleDragFinished();
   };
   window.addEventListener("dragend", handleDragFinished);
   window.addEventListener("drop", handleDragFinished);
+  window.addEventListener("keydown", handleKeyDown);
 }

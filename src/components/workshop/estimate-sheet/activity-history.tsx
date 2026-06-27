@@ -28,16 +28,13 @@ import {
   getActivityScopeKey,
   getComponentImageUrl,
   isBlankEstimateRowItem,
-  pesoFormatter,
   toEditableContingencyMode,
   type ActivityFilterState,
   type ActivityScopeTreeItem,
-  type CostAdjustmentMode,
   type EstimateActivityScope,
   type EstimateMaterialCardItem,
   type FlattenedEstimateRow,
   type RowDetailTab,
-  type RowDetailsState,
 } from "./activity-history-model";
 
 const ACTIVITY_FILTER_EVENT_TYPES = [
@@ -220,6 +217,8 @@ const ROW_HISTORY_COMPONENT_EVENT_TYPES = new Set(["row_added", "row_replaced", 
 const ROW_HISTORY_COMPONENT_FIELDS = new Set(["linkState", "sourceLibraryItemId", "sourceSnapshot"]);
 const ROW_HISTORY_SCALAR_FIELDS = new Set(["quantity", "contingencyPercentage", "adjustmentPercentage", "miscCost"]);
 const AUDIT_DETAIL_LIMIT = 5;
+const RESTORABLE_ROW_DELETE_EVENT_TYPES = new Set(["row_deleted", "rows_bulk_deleted"]);
+const RESTORABLE_NODE_DELETE_EVENT_TYPES = new Set(["node_deleted_with_children", "nodes_bulk_deleted_with_children"]);
 
 const ROW_REPLACED_DETAIL_FIELDS = ["material", "supplier", "unitCost", "unit", "quantity", "contingencyPercentage", "adjustmentPercentage", "miscCost"];
 const HIDDEN_AUDIT_FIELDS = new Set(["metadata"]);
@@ -279,6 +278,11 @@ function formatAuditSnapshotMoney(value: number | null) {
 function readOptionalNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readStringArrayValue(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
 }
 
 function formatAuditNumber(value: number) {
@@ -478,6 +482,79 @@ function getAuditSupportingSummary(event: EstimateSheetHistoryEvent, summary: st
   return summary;
 }
 
+type RestoreDeletedRowsFromHistory = (input: {
+  sourceEventId: string;
+  rowIds: string[];
+}) => Promise<void> | void;
+
+type RestoreDeletedNodesFromHistory = (input: {
+  sourceEventId: string;
+  nodeIds: string[];
+}) => Promise<void> | void;
+
+type DeletedHistoryRestoreAction =
+  | {
+    ariaLabel: "Restore deleted row";
+    label: string;
+    restoringLabel: string;
+    restore: () => Promise<void> | void;
+  }
+  | {
+    ariaLabel: "Restore deleted Area";
+    label: string;
+    restoringLabel: string;
+    restore: () => Promise<void> | void;
+  };
+
+function getRestorableDeletedRowIds(event: EstimateSheetHistoryEvent) {
+  if (!RESTORABLE_ROW_DELETE_EVENT_TYPES.has(event.eventType)) return [];
+  const deletedRowIds = readStringArrayValue(event.payload.deletedRowIds);
+  if (deletedRowIds.length > 0) return deletedRowIds;
+  const deletedRowId = readStringValue(event.payload.rowId);
+  if (deletedRowId) return [deletedRowId];
+  return event.targetRowId ? [event.targetRowId] : [];
+}
+
+function getRestorableDeletedNodeIds(event: EstimateSheetHistoryEvent) {
+  if (!RESTORABLE_NODE_DELETE_EVENT_TYPES.has(event.eventType)) return [];
+  const deletedRootNodeIds = readStringArrayValue(event.payload.deletedRootNodeIds);
+  if (deletedRootNodeIds.length > 0) return deletedRootNodeIds;
+  if (event.estimateNodeId) return [event.estimateNodeId];
+  return readStringArrayValue(event.payload.deletedNodeIds);
+}
+
+function getDeletedHistoryRestoreAction({
+  event,
+  onRestoreDeletedNodes,
+  onRestoreDeletedRows,
+}: {
+  event: EstimateSheetHistoryEvent;
+  onRestoreDeletedNodes?: RestoreDeletedNodesFromHistory;
+  onRestoreDeletedRows?: RestoreDeletedRowsFromHistory;
+}): DeletedHistoryRestoreAction | null {
+  const rowIds = getRestorableDeletedRowIds(event);
+  if (onRestoreDeletedRows && rowIds.length > 0) {
+    return {
+      ariaLabel: "Restore deleted row",
+      label: rowIds.length === 1 ? "Restore row" : "Restore rows",
+      restoringLabel: rowIds.length === 1 ? "Restoring row..." : "Restoring rows...",
+      restore: () => onRestoreDeletedRows({ sourceEventId: event.id, rowIds }),
+    };
+  }
+
+  const nodeIds = getRestorableDeletedNodeIds(event);
+  if (onRestoreDeletedNodes && nodeIds.length > 0) {
+    return {
+      ariaLabel: "Restore deleted Area",
+      label: nodeIds.length === 1 ? "Restore Area" : "Restore Areas",
+      restoringLabel: nodeIds.length === 1 ? "Restoring Area..." : "Restoring Areas...",
+      restore: () => onRestoreDeletedNodes({ sourceEventId: event.id, nodeIds }),
+    };
+  }
+
+  return null;
+}
+
 function hasActivityFilters(filters: ActivityFilterState) {
   return createActivityFilterKey(filters) !== createActivityFilterKey(DEFAULT_ACTIVITY_FILTERS);
 }
@@ -617,10 +694,15 @@ function AuditComponentSnapshotCard({ snapshot }: { snapshot: AuditComponentSnap
 function AuditEventCard({
   event,
   componentSnapshots,
+  onRestoreDeletedNodes,
+  onRestoreDeletedRows,
 }: {
   event: EstimateSheetHistoryEvent;
   componentSnapshots?: AuditComponentSnapshot[];
+  onRestoreDeletedNodes?: RestoreDeletedNodesFromHistory;
+  onRestoreDeletedRows?: RestoreDeletedRowsFromHistory;
 }) {
+  const [isRestoring, setIsRestoring] = useState(false);
   const title = getEventLabel(event);
   const summary = getEventSummary(event);
   const details = getAuditChangeDetails(event);
@@ -631,6 +713,18 @@ function AuditEventCard({
   const actorLabel = getActorLabel(event);
   const eventAriaLabel = `${getLegacyEventAccessibilityLabel(event.eventType)} audit event for ${getAuditTargetLabel(event)} at ${formatShortDateTime(event.createdAt)} by ${actorLabel}: ${description}`;
   const snapshots = componentSnapshots ?? [];
+  const restoreAction = getDeletedHistoryRestoreAction({ event, onRestoreDeletedNodes, onRestoreDeletedRows });
+  const restoreDeletedEvent = async () => {
+    if (!restoreAction || isRestoring) return;
+    setIsRestoring(true);
+    try {
+      await restoreAction.restore();
+    } catch {
+      // The owner callback is responsible for visible failure feedback.
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   return (
     <article
@@ -655,6 +749,23 @@ function AuditEventCard({
         <p className="mt-3 break-words text-[10px] font-medium leading-5 text-secondary" title={changeLabel}>{description}</p>
         {supportingSummary ? (
           <p className="mt-1.5 break-words text-[10px] leading-5 text-tertiary">{supportingSummary}</p>
+        ) : null}
+        {restoreAction ? (
+          <div className="mt-3 flex justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-7 rounded-xs text-[10px]"
+              aria-label={restoreAction.ariaLabel}
+              disabled={isRestoring}
+              onClick={() => {
+                void restoreDeletedEvent();
+              }}
+            >
+              {isRestoring ? restoreAction.restoringLabel : restoreAction.label}
+            </Button>
+          </div>
         ) : null}
       </div>
       {details.length ? (
@@ -767,8 +878,12 @@ function ActivityTimelineItem({ children }: { children: ReactNode }) {
 
 function AuditEventGroup({
   events,
+  onRestoreDeletedNodes,
+  onRestoreDeletedRows,
 }: {
   events: EstimateSheetHistoryEvent[];
+  onRestoreDeletedNodes?: RestoreDeletedNodesFromHistory;
+  onRestoreDeletedRows?: RestoreDeletedRowsFromHistory;
 }) {
   const firstEvent = events[0];
   const eventTypes = Array.from(new Set(events.map((event) => getEventLabel(event)))).join(", ");
@@ -790,7 +905,13 @@ function AuditEventGroup({
       </summary>
       <div className="space-y-3 bg-surfaceMuted/25 p-3">
         {events.map((event) => (
-          <AuditEventCard key={event.id} event={event} componentSnapshots={getAuditComponentSnapshots(event)} />
+          <AuditEventCard
+            key={event.id}
+            event={event}
+            componentSnapshots={getAuditComponentSnapshots(event)}
+            onRestoreDeletedNodes={onRestoreDeletedNodes}
+            onRestoreDeletedRows={onRestoreDeletedRows}
+          />
         ))}
       </div>
     </details>
@@ -808,6 +929,8 @@ function EventList({
   isLoadingMore = false,
   loadMoreLabel = "Load more activity",
   onLoadMore,
+  onRestoreDeletedNodes,
+  onRestoreDeletedRows,
 }: {
   events: EstimateSheetHistoryEvent[];
   isLoading: boolean;
@@ -819,6 +942,8 @@ function EventList({
   isLoadingMore?: boolean;
   loadMoreLabel?: string;
   onLoadMore?: () => void;
+  onRestoreDeletedNodes?: RestoreDeletedNodesFromHistory;
+  onRestoreDeletedRows?: RestoreDeletedRowsFromHistory;
 }) {
   if (isLoading) {
     return (
@@ -866,14 +991,23 @@ function EventList({
               if (item.kind === "group") {
                 return (
                   <ActivityTimelineItem key={item.correlationId}>
-                    <AuditEventGroup events={item.events} />
+                    <AuditEventGroup
+                      events={item.events}
+                      onRestoreDeletedNodes={onRestoreDeletedNodes}
+                      onRestoreDeletedRows={onRestoreDeletedRows}
+                    />
                   </ActivityTimelineItem>
                 );
               }
 
               return (
                 <ActivityTimelineItem key={item.event.id}>
-                  <AuditEventCard event={item.event} componentSnapshots={getAuditComponentSnapshots(item.event)} />
+                  <AuditEventCard
+                    event={item.event}
+                    componentSnapshots={getAuditComponentSnapshots(item.event)}
+                    onRestoreDeletedNodes={onRestoreDeletedNodes}
+                    onRestoreDeletedRows={onRestoreDeletedRows}
+                  />
                 </ActivityTimelineItem>
               );
             })}
@@ -1538,6 +1672,8 @@ export function ActivityHistoryModal({
   onRetry,
   onLoadMore,
   onScopeSelect,
+  onRestoreDeletedNodes,
+  onRestoreDeletedRows,
 }: {
   scope: EstimateActivityScope;
   scopeItems: ActivityScopeTreeItem[];
@@ -1554,6 +1690,8 @@ export function ActivityHistoryModal({
   onRetry: () => void;
   onLoadMore: () => void;
   onScopeSelect: (scope: EstimateActivityScope) => void;
+  onRestoreDeletedNodes?: RestoreDeletedNodesFromHistory;
+  onRestoreDeletedRows?: RestoreDeletedRowsFromHistory;
 }) {
   const dialogRef = useNativeModalDialog(onClose);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -1670,6 +1808,8 @@ export function ActivityHistoryModal({
                 isLoadingMore={isHistoryLoadingMore}
                 loadMoreLabel={loadMoreLabel}
                 onLoadMore={onLoadMore}
+                onRestoreDeletedNodes={onRestoreDeletedNodes}
+                onRestoreDeletedRows={onRestoreDeletedRows}
               />
             </div>
           </div>

@@ -66,7 +66,7 @@ export function NewProjectModal({
             <DialogBody className="min-h-0 overflow-hidden p-0">
               <div
                 data-create-project-modal-tray
-                className="min-h-0 overflow-hidden rounded-[8px] border border-white/70 bg-white"
+                className="min-h-0 overflow-hidden rounded-xs border border-white/70 bg-white"
               >
                 <NewProjectForm
                   showHeader={false}

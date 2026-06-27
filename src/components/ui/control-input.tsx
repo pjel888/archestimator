@@ -124,7 +124,7 @@ export function ControlField({
 
   return (
     <FieldTag className={cn("flex min-w-0 flex-col gap-1", className)} {...fieldProps}>
-      <span id={labelId} className="block min-h-3 truncate text-[10px] font-medium uppercase leading-3 tracking-normal text-secondary">
+      <span id={labelId} className="block min-h-3 truncate text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">
         {label}
         {required ? <span aria-hidden="true" className="ml-0.5 text-danger">*</span> : null}
       </span>

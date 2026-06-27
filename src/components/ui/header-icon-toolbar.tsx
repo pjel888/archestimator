@@ -58,7 +58,7 @@ type HeaderIconToolbarProps = {
 
 const EMPTY_HEADER_ACTIONS: HeaderIconToolbarAddAction[] = [];
 export const HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME =
-  "mx-0.5 h-4 w-px shrink-0 rounded-full bg-[linear-gradient(180deg,transparent_0%,currentColor_22%,currentColor_78%,transparent_100%)] text-tertiary";
+  "mx-0.5 h-4 w-px shrink-0 rounded-xs bg-[linear-gradient(180deg,transparent_0%,currentColor_22%,currentColor_78%,transparent_100%)] text-tertiary";
 
 export function HeaderIconToolbar({
   ariaLabel,

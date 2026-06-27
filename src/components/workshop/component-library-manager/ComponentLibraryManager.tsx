@@ -2227,11 +2227,14 @@ export function ComponentLibraryManager({
   const inspectorItemId = routeComponentIsValid ? routeComponentId : null;
   const inspectorItem = inspectorItemId ? localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null : null;
   const inspectorItemRef = useRef<EstimateRowItem | null>(null);
-  inspectorItemRef.current = inspectorItem;
   const updateLocalLibraryItemsRef = useRef(updateLocalLibraryItems);
-  updateLocalLibraryItemsRef.current = updateLocalLibraryItems;
   const syncLibraryItemsCacheRef = useRef(syncLibraryItemsCache);
-  syncLibraryItemsCacheRef.current = syncLibraryItemsCache;
+
+  useEffect(() => {
+    inspectorItemRef.current = inspectorItem;
+    updateLocalLibraryItemsRef.current = updateLocalLibraryItems;
+    syncLibraryItemsCacheRef.current = syncLibraryItemsCache;
+  }, [inspectorItem, syncLibraryItemsCache, updateLocalLibraryItems]);
 
   useEffect(() => {
     const itemId = inspectorItemId;

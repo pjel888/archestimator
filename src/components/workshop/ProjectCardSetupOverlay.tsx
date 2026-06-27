@@ -41,7 +41,7 @@ export function ProjectCardSetupOverlay({
         {setupBusy ? (
           <Spinner size="xs" decorative className="shrink-0" />
         ) : (
-          <span className="size-2 shrink-0 rounded-full bg-danger" aria-hidden="true" />
+          <span className="size-2 shrink-0 rounded-xs bg-danger" aria-hidden="true" />
         )}
         <span className="min-w-0 text-balance">{setupStatus.message}</span>
       </div>

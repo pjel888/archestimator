@@ -679,8 +679,8 @@ function LiveProjectCardImpl({
         </div>
       </div>
 
-      {/* INSET translucent inner panel: thumbnail + content. The image is its
-          own rounded layer so the information area reads underneath it. */}
+      {/* INSET translucent inner panel: thumbnail + content. The image keeps
+          its own corner layer so the information area reads underneath it. */}
       <div
         data-project-card-inner=""
         className="workshop-project-card-inner flex min-w-0 flex-1 flex-col"

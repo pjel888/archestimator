@@ -4,6 +4,7 @@ import Image from "next/image";
 import { type RefObject, useEffect, useId, useMemo, useReducer, useRef, useTransition } from "react";
 import { CaretDown, ImageSquare, Plus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CONTROL_INPUT_SURFACE_CLASS,
@@ -119,6 +120,11 @@ type VariantAttachmentDraft = {
   fileName: string;
   contentType: string;
   sizeBytes: number;
+  uploadSessionId?: string;
+  assetId?: string;
+  scanStatus?: string | null;
+  reviewStatus?: string | null;
+  isCurrentApproved?: boolean;
 };
 
 type VariantCostEntryDraft = {
@@ -616,6 +622,60 @@ function getVariantImage(draft: ComponentDraft, variant: VariantDraft | undefine
 
 function getAttachmentKind(contentType: string): "pdf" | "excel" {
   return contentType === "application/pdf" ? "pdf" : "excel";
+}
+
+function getAttachmentScanBadge(attachment: VariantAttachmentDraft) {
+  switch (attachment.scanStatus) {
+    case "clean":
+      return { label: "Scan clean", tone: "success" as const };
+    case "infected":
+    case "failed_permanent":
+    case "unsupported":
+      return { label: "Scan blocked", tone: "danger" as const };
+    case "failed_transient":
+      return { label: "Scan retry", tone: "warning" as const };
+    case "override_approved":
+      return { label: "Override blocked", tone: "warning" as const };
+    case "pending":
+    case undefined:
+    case null:
+    default:
+      return { label: "Scan pending", tone: "warning" as const };
+  }
+}
+
+function getAttachmentReviewBadge(attachment: VariantAttachmentDraft) {
+  if (attachment.reviewStatus === "approved" && attachment.isCurrentApproved) {
+    return { label: "Review approved", tone: "success" as const };
+  }
+  return { label: "Review blocked", tone: "neutral" as const };
+}
+
+function isAttachmentDownloadAvailable(attachment: VariantAttachmentDraft) {
+  return attachment.scanStatus === "clean" && attachment.reviewStatus === "approved" && attachment.isCurrentApproved === true;
+}
+
+function getAttachmentDownloadBadge(attachment: VariantAttachmentDraft) {
+  return isAttachmentDownloadAvailable(attachment)
+    ? { label: "Download ready", tone: "success" as const }
+    : { label: "Download blocked", tone: "neutral" as const };
+}
+
+function getAttachmentBlockedCopy(attachment: VariantAttachmentDraft) {
+  if (isAttachmentDownloadAvailable(attachment)) return "Download is available after audit logging.";
+  if (attachment.scanStatus === "clean") {
+    return "Download blocked until Library review marks this attachment current.";
+  }
+  if (attachment.scanStatus === "infected") {
+    return "Download blocked because scanning flagged this attachment.";
+  }
+  if (attachment.scanStatus === "failed_transient") {
+    return "Download blocked while scanner retry is pending.";
+  }
+  if (attachment.scanStatus === "failed_permanent" || attachment.scanStatus === "unsupported") {
+    return "Download blocked until a documented security override is available.";
+  }
+  return "Download blocked until scanner marks this attachment clean and Library review marks it current.";
 }
 
 function buildImageMetadata(image: VariantImageDraft | null): Json {
@@ -1177,24 +1237,61 @@ function AddComponentAdvancedDetails({
           </label>
         </div>
         <ul className="m-0 mt-2 grid list-none gap-1 p-0">
-          {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => (
-            <li
-              key={attachment.id}
-              className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2 rounded-xs border border-hairline bg-surfaceMuted px-2"
-            >
-              <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
-              <span className="shrink-0 text-[9px] font-medium text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
-              <button
-                type="button"
-                aria-label={`Remove attachment ${attachment.fileName}`}
-                title="Remove attachment"
-                onClick={() => onRemoveAttachment(attachment.id)}
-                className="grid size-7 place-items-center rounded-xs text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => {
+            const scanBadge = getAttachmentScanBadge(attachment);
+            const reviewBadge = getAttachmentReviewBadge(attachment);
+            const downloadBadge = getAttachmentDownloadBadge(attachment);
+
+            return (
+              <li
+                key={attachment.id}
+                className="grid min-h-16 gap-1 rounded-xs border border-hairline bg-surfaceMuted px-2 py-2"
               >
-                <Trash size={11} weight="regular" aria-hidden="true" />
-              </button>
-            </li>
-          )) : (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2">
+                  <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
+                  <span className="shrink-0 text-[9px] font-medium text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove attachment ${attachment.fileName}`}
+                    title="Remove attachment"
+                    onClick={() => onRemoveAttachment(attachment.id)}
+                    className="grid size-7 place-items-center rounded-xs text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  >
+                    <Trash size={11} weight="regular" aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-1">
+                  <Badge
+                    size="xs"
+                    tone={scanBadge.tone}
+                    className="min-w-0"
+                    aria-label={`Attachment scan status: ${scanBadge.label}`}
+                  >
+                    {scanBadge.label}
+                  </Badge>
+                  <Badge
+                    size="xs"
+                    tone={reviewBadge.tone}
+                    className="min-w-0"
+                    aria-label={`Attachment review status: ${reviewBadge.label}`}
+                  >
+                    {reviewBadge.label}
+                  </Badge>
+                  <Badge
+                    size="xs"
+                    tone={downloadBadge.tone}
+                    className="min-w-0"
+                    aria-label={`Attachment download status: ${downloadBadge.label}`}
+                  >
+                    {downloadBadge.label}
+                  </Badge>
+                </div>
+                <p className="m-0 text-[9px] font-medium leading-3 text-tertiary">
+                  {getAttachmentBlockedCopy(attachment)}
+                </p>
+              </li>
+            );
+          }) : (
             <li className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
               No attachments
             </li>
@@ -1672,9 +1769,11 @@ function OpenAddComponentModal({
     setError("");
     setAttachmentUpload({
       state: "uploading",
-      message: validation.uploadMode === "signed_single_part"
-        ? "Uploading attachment with a signed storage session..."
-        : "Uploading attachment to Supabase Storage...",
+      message: validation.uploadMode === "tus_resumable"
+        ? "Uploading attachment with a resumable storage session..."
+        : validation.uploadMode === "signed_single_part"
+          ? "Uploading attachment with a signed storage session..."
+          : "Uploading attachment to Supabase Storage...",
     });
 
     try {
@@ -1689,6 +1788,11 @@ function OpenAddComponentModal({
             fileName: uploaded.fileName,
             contentType: uploaded.contentType,
             sizeBytes: uploaded.sizeBytes,
+            uploadSessionId: uploaded.uploadSessionId,
+            assetId: uploaded.assetId,
+            scanStatus: uploaded.scanStatus ?? "pending",
+            reviewStatus: "pending",
+            isCurrentApproved: false,
           },
         ],
       });

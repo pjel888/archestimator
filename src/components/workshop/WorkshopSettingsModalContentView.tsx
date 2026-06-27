@@ -3,9 +3,11 @@
 import {
   ArrowSquareOut,
   Buildings,
+  ChartLineUp,
   EnvelopeSimple,
   FileText,
   Lifebuoy,
+  ShieldCheck,
   SignOut,
   UserCircle,
   UsersThree,
@@ -108,6 +110,24 @@ const platformSettings = [
     id: "feedback-triage",
     notes: ["Authenticated feedback", "Triage status", "Workflow evidence"],
     title: "Feedback triage",
+  },
+  {
+    category: "Upload operations",
+    description: "Review upload throughput, scan queue health, cleanup backlog, and operational event counters.",
+    href: "/workshop/settings/upload-operations",
+    icon: <ChartLineUp size={15} weight="regular" aria-hidden="true" />,
+    id: "upload-operations",
+    notes: ["Upload throughput", "Scan backlog", "Cleanup backlog", "Quota and backpressure signals"],
+    title: "Upload operations",
+  },
+  {
+    category: "Upload operations",
+    description: "Review failed or unsupported attachment scans before approving temporary overrides.",
+    href: "/workshop/settings/scan-overrides",
+    icon: <ShieldCheck size={15} weight="regular" aria-hidden="true" />,
+    id: "scan-overrides",
+    notes: ["Failed scans", "Checksum-bound approvals", "Override expiry"],
+    title: "Scan overrides",
   },
 ] as const satisfies readonly SettingsPage[];
 

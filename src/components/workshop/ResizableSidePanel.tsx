@@ -143,7 +143,8 @@ export function ResizableSidePanel({
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    setCollapsed(persistedCollapsed);
+    const frameId = window.requestAnimationFrame(() => setCollapsed(persistedCollapsed));
+    return () => window.cancelAnimationFrame(frameId);
   }, [persistedCollapsed]);
 
   useEffect(() => {
@@ -352,7 +353,9 @@ export function ResizableSidePanel({
   }, [drawerOpen]);
 
   useEffect(() => {
-    if (!compactViewport && drawerOpen) setDrawerOpen(false);
+    if (compactViewport || !drawerOpen) return;
+    const frameId = window.requestAnimationFrame(() => setDrawerOpen(false));
+    return () => window.cancelAnimationFrame(frameId);
   }, [compactViewport, drawerOpen]);
 
   if (compactViewport && !compactDrawer) {
@@ -374,7 +377,7 @@ export function ResizableSidePanel({
           aria-expanded={drawerOpen}
           aria-haspopup="dialog"
           className={cn(
-            "inline-flex h-full min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-none border-hairline bg-surface px-2 text-[10px] font-medium text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden",
+            "inline-flex h-full min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xs border-hairline bg-surface px-2 text-[10px] font-medium text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden",
             triggerSideClass,
           )}
           onClick={openDrawer}

@@ -130,7 +130,12 @@ export function DropdownSelect({
   const optionsRef = React.useRef(options);
   const onValueChangeRef = React.useRef(onValueChange);
   const currentValueRef = React.useRef(currentValue);
-  React.useEffect(() => {
+  const openOptionsStateRef = React.useRef<{
+    currentValue: string | undefined;
+    open: boolean;
+    options: readonly DropdownSelectOption[];
+  }>({ currentValue, open: false, options });
+  React.useLayoutEffect(() => {
     optionsRef.current = options;
     onValueChangeRef.current = onValueChange;
     currentValueRef.current = currentValue;
@@ -196,19 +201,22 @@ export function DropdownSelect({
     if (panel && item) scrollPopupItemIntoView(panel, item);
   }, [activeIndex, open, panelRef, position]);
 
-  // Options can change while the listbox is open (realtime refetch); the
-  // index-based highlight must re-anchor on the selected value or the
-  // visible highlight silently shifts to whatever occupies the old index.
-  // Render-time state adjustment (React's derive-from-props pattern), not
-  // an effect, so no extra committed frame shows the stale highlight.
-  if (optionsRef.current !== options) {
-    optionsRef.current = options;
-    if (open) {
+  // Options can change while the listbox is open (realtime refetch); re-anchor
+  // the virtual highlight without reading refs during render.
+  React.useEffect(() => {
+    const previous = openOptionsStateRef.current;
+    openOptionsStateRef.current = { currentValue, open, options };
+    if (!open) return;
+    if (!previous.open) return;
+    if (previous.options === options && previous.currentValue === currentValue) return;
+
+    const frameId = window.requestAnimationFrame(() => {
       const selected = options.findIndex((option) => option.value === currentValue && !option.disabled);
       const fallback = options.findIndex((option) => !option.disabled);
       setActiveIndex(selected >= 0 ? selected : fallback);
-    }
-  }
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [currentValue, open, options]);
 
   // Form resets (including React 19's post-action reset) must resync the
   // visible trigger with the hidden control or the next submit posts a

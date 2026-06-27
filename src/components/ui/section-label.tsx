@@ -6,7 +6,7 @@ export function SectionLabel({ className, ...props }: HTMLAttributes<HTMLSpanEle
   return (
     <span
       className={cn(
-        "block min-h-3 truncate text-[10px] font-medium uppercase leading-3 tracking-normal text-secondary",
+        "block min-h-3 truncate text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary",
         className,
       )}
       {...props}

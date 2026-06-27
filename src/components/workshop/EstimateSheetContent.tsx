@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type SetStateAction } from "react";
-import { FunnelSimple, SidebarSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type SetStateAction } from "react";
+import { FunnelSimple, SidebarSimple, StackPlus, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hoo
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
-import type { EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { restoreDeletedEstimateNodes, restoreDeletedEstimateRows, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
@@ -126,7 +126,6 @@ import {
   computeEditableRowTotal,
   computeNodeTotals,
   flattenEstimateRows,
-  getInitialEditableRow,
   type EditableRowValue,
 } from "./estimate-sheet/rows/editable-row-model";
 import {
@@ -606,8 +605,10 @@ function findRowItemNodeContext(
 ): { nodeId: string; nodePath: string[]; index: number } | null {
   for (const node of nodes) {
     const nextPath = [...path, node.name];
-    const rowIndex = (node.estimateRowItems ?? []).findIndex((item) => item.id === rowItemId);
-    if (rowIndex >= 0) return { nodeId: node.id, nodePath: nextPath, index: rowIndex };
+    const rowItems = node.estimateRowItems ?? [];
+    for (let rowIndex = 0; rowIndex < rowItems.length; rowIndex += 1) {
+      if (rowItems[rowIndex]?.id === rowItemId) return { nodeId: node.id, nodePath: nextPath, index: rowIndex };
+    }
     const child = findRowItemNodeContext(node.children ?? [], rowItemId, nextPath);
     if (child) return child;
   }
@@ -950,27 +951,16 @@ export function EstimateSheetContent({
   const surfaceVariant = useEstimateSurfaceVariant();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : undefined;
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
-  // Toast for save transitions is fired from the transition event itself (the
-  // callback below) rather than from an effect spying on saveState, so it runs
-  // at the real source without an extra render.
-  const { toast } = useToast();
+  const { toast, dismissToast } = useToast();
   const notifySaveState = useCallback((state: EstimateSaveState, error: EstimateRowMutationError | null) => {
-    if (state === "saving") {
-      toast({ id: "estimate-row-save", tone: "loading", message: "Saving row changes..." });
-      return;
-    }
-    if (state === "saved") {
-      toast({
-        id: "estimate-row-save",
-        tone: "success",
-        message: error?.message.includes("refreshed") ? "Saved. Recovered edit." : "Saved.",
-      });
+    if (state === "saving" || state === "saved" || state === "idle") {
+      dismissToast("estimate-row-save");
       return;
     }
     if (state === "failed") {
       toast({ id: "estimate-row-save", tone: "error", message: error?.message ?? "Could not save." });
     }
-  }, [toast]);
+  }, [dismissToast, toast]);
   const recordLibraryInsertPayloadRejected = useCallback(
     (reason: EstimateLibraryItemPayloadRejectReason, surface: LibraryInsertPayloadSurface, field?: string) => {
       recordLibraryEvent("insert_payload_rejected", {
@@ -1002,6 +992,8 @@ export function EstimateSheetContent({
   const broadcastRowUpdate = useEstimateRowUpdateBroadcast({ estimateId, tabId: dataTabId });
   const {
     saveState,
+    rowMutationStatuses,
+    hasPendingRowMutation,
     markRowDirty: markRowDirtyNow,
     insertRow,
     replaceRow,
@@ -1021,16 +1013,16 @@ export function EstimateSheetContent({
     notifySaveState,
     broadcastRowUpdate,
   );
+  const rowSaveStatusMessage =
+    saveState === "saving"
+      ? "Saving row changes"
+      : saveState === "saved"
+        ? "Row changes saved"
+        : "";
   const resolvedSheetAdjustment = useMemo(
     () => resolveSheetAdjustment(estimateId ?? "local-estimate", sheetAdjustment),
     [estimateId, sheetAdjustment],
   );
-  const [sheetAdjustmentState, setSheetAdjustmentState] = useState<EstimateSheetAdjustment>(resolvedSheetAdjustment);
-  /* eslint-disable react-hooks/set-state-in-effect -- Proposal/export state follows server-provided sheet adjustment while worksheet rows expose per-item adjustments. */
-  useEffect(() => {
-    setSheetAdjustmentState(resolvedSheetAdjustment);
-  }, [resolvedSheetAdjustment]);
-  /* eslint-enable react-hooks/set-state-in-effect */
   const legacyTreeQuery = useEstimateAreaTreeQuery({
     projectId,
     estimateId,
@@ -1050,6 +1042,7 @@ export function EstimateSheetContent({
     Boolean(activeInitialLoadLimitState?.didExceedNodeLimit || activeInitialLoadLimitState?.didExceedRowItemLimit);
   const canMoveRowItems = !didTruncateInitialTree;
   const {
+    refetch: refetchActiveTree,
     tree: estimateTree,
     setTree: setEstimateTreeData,
     restore: restoreEstimateTree,
@@ -1359,7 +1352,7 @@ export function EstimateSheetContent({
     estimateTabs,
     estimateTree,
     editableRows,
-    sheetAdjustment: sheetAdjustmentState,
+    sheetAdjustment: resolvedSheetAdjustment,
     resolvedProposalExportMetadata,
     isProposalPreviewOpen,
     proposalPreviewScope,
@@ -1668,6 +1661,121 @@ export function EstimateSheetContent({
     setEditableRows(previousRows);
   }, [restoreEstimateTree, setEditableRows]);
 
+  const restoreDeletedRowsFromHistory = useCallback(async ({
+    sourceEventId,
+    rowIds,
+  }: {
+    sourceEventId: string;
+    rowIds: string[];
+  }) => {
+    if (!projectId || !estimateId) throw new Error("Estimate context is required to restore deleted rows.");
+    const restoreToastId = `estimate-history-row-restore-${sourceEventId}`;
+    toast({
+      id: restoreToastId,
+      tone: "loading",
+      message: rowIds.length === 1 ? "Restoring row..." : "Restoring rows...",
+      durationMs: null,
+    });
+
+    try {
+      const restoreResult = await restoreDeletedEstimateRows({
+        projectId,
+        estimateId,
+        sourceEventId,
+        rowIds,
+      });
+      const refreshedTree = await refetchActiveTree();
+      const nextTree = refreshedTree.data;
+      if (Array.isArray(nextTree)) {
+        setEstimateTree(() => nextTree);
+        setEditableRows(collectEditableRows(nextTree));
+      }
+      refetchProjectComponentProjection();
+      reloadVersionControl();
+      toast({
+        id: restoreToastId,
+        tone: "success",
+        message: `${restoreResult.restoredRowCount} ${restoreResult.restoredRowCount === 1 ? "row" : "rows"} restored.`,
+      });
+    } catch (error) {
+      toast({
+        id: restoreToastId,
+        tone: "error",
+        message: error instanceof Error ? error.message : "Couldn't restore deleted rows. Try again.",
+      });
+      throw error;
+    }
+  }, [
+    estimateId,
+    projectId,
+    refetchActiveTree,
+    refetchProjectComponentProjection,
+    reloadVersionControl,
+    setEditableRows,
+    setEstimateTree,
+    toast,
+  ]);
+
+  const restoreDeletedNodesFromHistory = useCallback(async ({
+    sourceEventId,
+    nodeIds,
+  }: {
+    sourceEventId: string;
+    nodeIds: string[];
+  }) => {
+    if (!projectId || !estimateId) throw new Error("Estimate context is required to restore deleted Areas.");
+    const restoreToastId = `estimate-history-node-restore-${sourceEventId}`;
+    toast({
+      id: restoreToastId,
+      tone: "loading",
+      message: nodeIds.length === 1 ? "Restoring Area..." : "Restoring Areas...",
+      durationMs: null,
+    });
+
+    try {
+      const restoreResult = await restoreDeletedEstimateNodes({
+        projectId,
+        estimateId,
+        sourceEventId,
+        nodeIds,
+        targetTabId: dataTabId,
+      });
+      setEstimateTree(() => restoreResult.tree);
+      setEditableRows(collectEditableRows(restoreResult.tree));
+      const restoredNodeId = restoreResult.restoredRootNodeIds[0] ?? restoreResult.restoredNodeIds[0] ?? null;
+      if (!resolvedSelectedNodeId && restoredNodeId) {
+        setSelectedNodeId(restoredNodeId);
+        syncActiveTabRouteUrl(restoredNodeId);
+      }
+      refetchProjectComponentProjection();
+      reloadVersionControl();
+      toast({
+        id: restoreToastId,
+        tone: "success",
+        message: `${restoreResult.restoredNodeCount} ${restoreResult.restoredNodeCount === 1 ? "Area" : "Areas"} restored.`,
+      });
+    } catch (error) {
+      toast({
+        id: restoreToastId,
+        tone: "error",
+        message: error instanceof Error ? error.message : "Couldn't restore deleted Areas. Try again.",
+      });
+      throw error;
+    }
+  }, [
+    dataTabId,
+    estimateId,
+    projectId,
+    refetchProjectComponentProjection,
+    reloadVersionControl,
+    resolvedSelectedNodeId,
+    setEditableRows,
+    setEstimateTree,
+    setSelectedNodeId,
+    syncActiveTabRouteUrl,
+    toast,
+  ]);
+
   const {
     cancelPendingLibraryCommit,
     clearRowComponent,
@@ -1699,6 +1807,7 @@ export function EstimateSheetContent({
     estimateTree,
     editableRows,
     saveState,
+    rowMutationStatuses,
     insertTargetNodeId,
     pendingLibraryCommitGate,
     expressInsertDrafts,
@@ -1710,6 +1819,7 @@ export function EstimateSheetContent({
     replaceRow,
     moveRows,
     moveRowItem,
+    hasPendingRowMutation,
     detachRow,
     promoteRow,
     deleteRow,
@@ -1749,16 +1859,16 @@ export function EstimateSheetContent({
   const rowMovePositionOptions = useMemo(() => {
     const targetRows = rowMoveTargetNode?.estimateRowItems ?? [];
     if (targetRows.length === 0) return [{ value: "end", label: "Empty area" }];
-    return [
-      { value: "start", label: "Top of area" },
-      ...targetRows
-        .filter((item) => item.id !== rowMoveDialog?.rowItemId)
-        .map((item) => ({
-          value: `after:${item.id}`,
-          label: `After ${item.material || item.name || "row"}`,
-        })),
-      { value: "end", label: "Bottom of area" },
-    ];
+    const options = [{ value: "start", label: "Top of area" }];
+    for (const item of targetRows) {
+      if (item.id === rowMoveDialog?.rowItemId) continue;
+      options.push({
+        value: `after:${item.id}`,
+        label: `After ${item.material || item.name || "row"}`,
+      });
+    }
+    options.push({ value: "end", label: "Bottom of area" });
+    return options;
   }, [rowMoveDialog?.rowItemId, rowMoveTargetNode]);
   const closeRowMoveDialog = useCallback(() => {
     const opener = rowMoveDialog?.opener;
@@ -1884,28 +1994,32 @@ export function EstimateSheetContent({
     return () => window.removeEventListener("keydown", handleCommandPaletteShortcut);
   }, [setShowCommandPalette]);
 
+  const handleSidebarAddLibraryItemEvent = useEffectEvent((event: Event) => {
+    const customEvent = event as CustomEvent<unknown>;
+    const result = readAddLibraryItemEventDetail(customEvent.detail);
+    if (!result.ok) {
+      recordLibraryInsertPayloadRejected(result.reason, "custom_event", result.field);
+      result.onAccepted?.(false);
+      customEvent.preventDefault();
+      return;
+    }
+    if (!insertTargetNodeId) {
+      result.onAccepted?.(false);
+      customEvent.preventDefault();
+      return;
+    }
+    const accepted = insertLibraryItem(insertTargetNodeId, result.item);
+    result.onAccepted?.(accepted);
+    if (!accepted) customEvent.preventDefault();
+  });
+
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
-      const customEvent = event as CustomEvent<unknown>;
-      const result = readAddLibraryItemEventDetail(customEvent.detail);
-      if (!result.ok) {
-        recordLibraryInsertPayloadRejected(result.reason, "custom_event", result.field);
-        result.onAccepted?.(false);
-        customEvent.preventDefault();
-        return;
-      }
-      if (!insertTargetNodeId) {
-        result.onAccepted?.(false);
-        customEvent.preventDefault();
-        return;
-      }
-      const accepted = insertLibraryItem(insertTargetNodeId, result.item);
-      result.onAccepted?.(accepted);
-      if (!accepted) customEvent.preventDefault();
+      handleSidebarAddLibraryItemEvent(event);
     }
     window.addEventListener(ADD_LIBRARY_ITEM_EVENT, handleSidebarAdd);
     return () => window.removeEventListener(ADD_LIBRARY_ITEM_EVENT, handleSidebarAdd);
-  }, [insertLibraryItem, insertTargetNodeId, recordLibraryInsertPayloadRejected]);
+  }, []);
 
   // U2: a project source dropped onto a group row hands the insert over here (the
   // sheet owns the tree + the action), mirroring the template-drop event flow.
@@ -1924,7 +2038,7 @@ export function EstimateSheetContent({
     function handleMoveRowItemEvent(event: Event) {
       const detail = readRequestEstimateRowItemMoveEventDetail((event as CustomEvent<unknown>).detail);
       if (!detail) return;
-      moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex);
+      moveRowItemToNode(detail.rowItemId, detail.targetNodeId, detail.targetIndex, { targetPlacement: detail.targetPlacement });
     }
     window.addEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, handleMoveRowItemEvent);
     return () => window.removeEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, handleMoveRowItemEvent);
@@ -2080,6 +2194,8 @@ export function EstimateSheetContent({
           onRetry={reloadVersionControl}
           onLoadMore={loadMoreVersionControl}
           onScopeSelect={selectActivityScope}
+          onRestoreDeletedNodes={canEditEstimate ? restoreDeletedNodesFromHistory : undefined}
+          onRestoreDeletedRows={canEditEstimate ? restoreDeletedRowsFromHistory : undefined}
         />
       ) : null}
       {rowDetails ? (
@@ -2131,7 +2247,7 @@ export function EstimateSheetContent({
               />
             </label>
             {rowComponentPicker.mode === "replace" ? (
-              <div className="grid gap-1" role="list" aria-label="Replacement components">
+              <menu className="m-0 grid list-none gap-1 p-0" aria-label="Replacement components">
                 {isLazyLibraryLoading ? (
                   <p className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-tertiary">
                     Loading library components...
@@ -2157,9 +2273,9 @@ export function EstimateSheetContent({
                     No matching library components.
                   </p>
                 )}
-              </div>
+              </menu>
             ) : (
-              <div className="grid gap-1" role="list" aria-label="Move target rows">
+              <menu className="m-0 grid list-none gap-1 p-0" aria-label="Move target rows">
                 {rowComponentMoveOptions.length > 0 ? rowComponentMoveOptions.map((option) => {
                   const itemLabel = option.row.item.material || option.row.item.name || "Component";
                   const pathLabel = option.row.nodePath.join(" / ") || "Current area";
@@ -2188,7 +2304,7 @@ export function EstimateSheetContent({
                     No matching target rows.
                   </p>
                 )}
-              </div>
+              </menu>
             )}
           </div>
         </Modal>
@@ -2438,6 +2554,14 @@ export function EstimateSheetContent({
             onCreateTabStateChange={setCreateTabState}
           />
         ) : null}
+        <output
+          className="sr-only"
+          aria-live="polite"
+          aria-atomic="true"
+          data-estimate-row-save-status
+        >
+          {rowSaveStatusMessage}
+        </output>
         {didTruncateInitialTree ? (
           <output className="mx-2 mt-2 rounded-xs border border-warningSoft bg-warningSoft/40 px-2 py-1.5 text-[10px] leading-4 text-warning">
             This sheet view loaded the first {activeInitialLoadLimitState?.maxNodeCount?.toLocaleString() ?? "available"} nodes and {activeInitialLoadLimitState?.maxRowItemCount?.toLocaleString() ?? "available"} rows. Proposal exports use separate full-data limits.
@@ -2494,6 +2618,7 @@ export function EstimateSheetContent({
                       onRequestProjectSpecific={requestProjectSpecific}
                       onPromoteRowToLibrary={promoteRowToLibrary}
                       promotingRowId={promotingRowId}
+                      rowMutationStatuses={rowMutationStatuses}
                       onMoveRowComponent={moveRowComponent}
                       onMoveRowItem={moveRowItemToNode}
                       onOpenMoveRowItemDialog={openMoveRowItemDialog}
@@ -2534,6 +2659,32 @@ export function EstimateSheetContent({
           <>
             <div className="relative flex min-h-0 flex-1 overflow-auto px-2 pb-2 pt-2" data-estimate-pointer-surface>
               <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
+              <div className="m-auto flex max-w-sm flex-col items-center gap-3 px-3 py-8 text-center">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+                    Estimate sheet
+                  </p>
+                  <h2 className="text-[12px] font-medium tracking-normal text-ink">
+                    {estimateTree.length === 0 ? "This tab is empty" : "Select an area"}
+                  </h2>
+                  <p className="text-[10px] leading-4 text-tertiary">
+                    {estimateTree.length === 0
+                      ? "Add an Area to start, or drag a template or project content here."
+                      : "Choose an Area from the estimate tree to edit its rows."}
+                  </p>
+                </div>
+                {canEditEstimate ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Button type="button" variant="primary" size="sm" className="gap-1.5" onClick={requestRootGroupCreate}>
+                      <StackPlus size={13} weight="regular" aria-hidden="true" />
+                      Add Area
+                    </Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={openTemplateBrowser}>
+                      Browse templates
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </>
         )}

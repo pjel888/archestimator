@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { ImageSquare } from "@phosphor-icons/react/dist/ssr";
 
@@ -95,12 +95,11 @@ export function ComponentInspectorDock({
     counts: ComponentUsageCounts | null;
     error: boolean;
   }>({ itemId: item.id, counts: null, error: false });
-  const historyItemIdRef = useRef(item.id);
-  const [showAllHistoryState, setShowAllHistoryState] = useState(false);
+  const [historyVisibility, setHistoryVisibility] = useState({ itemId: item.id, showAll: false });
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const usage = usageState.itemId === item.id ? usageState.counts : null;
   const usageError = usageState.itemId === item.id ? usageState.error : false;
-  const showAllHistory = historyItemIdRef.current === item.id ? showAllHistoryState : false;
+  const showAllHistory = historyVisibility.itemId === item.id ? historyVisibility.showAll : false;
 
   useEffect(() => {
     let stale = false;
@@ -249,11 +248,10 @@ export function ComponentInspectorDock({
                     size="xs"
                     className="min-w-0 px-0 !text-[9px]"
                     onClick={() =>
-                      setShowAllHistoryState((current) => {
-                        const isCurrentItem = historyItemIdRef.current === item.id;
-                        historyItemIdRef.current = item.id;
-                        return isCurrentItem ? !current : true;
-                      })
+                      setHistoryVisibility((current) => ({
+                        itemId: item.id,
+                        showAll: current.itemId === item.id ? !current.showAll : true,
+                      }))
                     }
                   >
                     {showAllHistory ? "Show fewer entries" : `View all ${priceHistory.length} entries`}

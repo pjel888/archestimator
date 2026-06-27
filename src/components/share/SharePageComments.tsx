@@ -229,7 +229,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
   const announce = useCallback((msg: string) => {
     dispatchCommentsState({ type: "announcementSet", message: msg });
     // screen reader will pick up aria-live change
-  }, []);
+  }, [dispatchCommentsState]);
 
   // P12: client retry (3 attempts: immediate, +2s, +5s) + offline queue (sessionStorage + reconnect auto-flush)
   // Additive to P6 optimistic UI, error states, aria, design tokens. No behavior change on first-try success.
@@ -305,7 +305,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     } finally {
       if (!signal?.aborted) dispatchCommentsState({ type: "commentsLoadSettled" });
     }
-  }, [isValid, token]);
+  }, [dispatchCommentsState, isValid, token]);
 
   useEffect(() => {
     if (!isValid) return;
@@ -350,7 +350,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     }
     saveQueue(remaining);
     dispatchCommentsState({ type: "pendingCountSet", pendingCount: remaining.length });
-  }, [token, viewToken, loadQueue, saveQueue, announce]);
+  }, [announce, dispatchCommentsState, loadQueue, saveQueue, token, viewToken]);
 
   // Auto-flush on reconnect (and on mount if online)
   useEffect(() => {
@@ -407,7 +407,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     }
     dispatchCommentsState({ type: "retryStatusSet", retryStatus: null });
     throw lastErr instanceof Error ? lastErr : new Error("Failed after retries");
-  }, [token, viewToken]);
+  }, [dispatchCommentsState, token, viewToken]);
 
   const submitComment = useCallback(async () => {
     const body = draft.trim();
@@ -483,6 +483,7 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     }
   }, [
     activeReviewTarget,
+    dispatchCommentsState,
     draft,
     isValid,
     isPosting,

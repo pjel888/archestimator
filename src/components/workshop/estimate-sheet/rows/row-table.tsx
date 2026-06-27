@@ -9,6 +9,7 @@ import { Chip } from "@/components/ui/chip";
 import { ControlInput } from "@/components/ui/control-input";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
+import type { EstimateRowMutationStatus, EstimateRowMutationStatusMap } from "@/hooks/use-estimate-row-mutations";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import {
   EMPTY_ESTIMATE_COLUMN_WIDTHS,
@@ -70,6 +71,7 @@ export type EstimateRowItemsTableProps = {
   onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
+  rowMutationStatuses?: EstimateRowMutationStatusMap;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -120,6 +122,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
     prev.promotingRowId !== next.promotingRowId ||
+    prev.rowMutationStatuses !== next.rowMutationStatuses ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.onMoveRowItem !== next.onMoveRowItem ||
     prev.onOpenMoveRowItemDialog !== next.onOpenMoveRowItemDialog ||
@@ -137,6 +140,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
   for (const item of next.items) {
     if (prev.editableRows[item.id] !== next.editableRows[item.id]) return false;
     if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return false;
+    if (prev.rowMutationStatuses?.[item.id] !== next.rowMutationStatuses?.[item.id]) return false;
   }
   return true;
 }
@@ -241,6 +245,7 @@ type EstimateRowItemTableRowProps = {
   onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
   promotingRowId?: string | null;
+  rowMutationStatus?: EstimateRowMutationStatus;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onMoveRowItem: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
   onOpenMoveRowItemDialog?: (rowItemId: string, opener: HTMLElement) => void;
@@ -278,6 +283,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onRequestProjectSpecific,
   onPromoteRowToLibrary,
   promotingRowId,
+  rowMutationStatus,
   onMoveRowComponent,
   onMoveRowItem,
   onOpenMoveRowItemDialog,
@@ -351,6 +357,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const rowContingencyQuantity = computedItem.quantityContingencyAmount ?? 0;
   const rowAdjustmentValue = computedItem.adjustmentValue;
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
+  const rowMutationPending = rowMutationStatus?.phase === "pending";
 
   function handleRowItemDragStart(event: DragEvent<HTMLButtonElement>) {
     const payload: EstimateRowItemDragPayload = {
@@ -500,12 +507,19 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
       data-estimate-row-id={computedItem.id}
       data-estimate-row-drop-edge={rowDropEdge ?? undefined}
+      data-estimate-row-mutation-status={rowMutationStatus?.phase}
+      aria-busy={rowMutationPending ? true : undefined}
       onDragOver={handleRowItemDragOver}
       onDragLeave={() => setRowDropEdge(null)}
       onDrop={handleRowItemDrop}
     >
       <td className="relative flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
         {String(rowIndex + 1).padStart(2, "0")}
+        {rowMutationStatus ? (
+          <output className="sr-only" aria-label={`${computedItemLabel} mutation status`}>
+            {rowMutationStatus.label}
+          </output>
+        ) : null}
       </td>
       <td className="relative flex flex-col items-center justify-center gap-1 border-r border-hairline py-1 text-tertiary" data-estimate-row-select-cell="">
         {onOpenMoveRowItemDialog ? (
@@ -599,9 +613,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             updateQuantityDraft(event.target.value);
           }}
           onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
-          onBlur={() => {
+          onBlur={(event) => {
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
-            const parsed = parseEditableQuantityExpression(item, computedItem.editableQuantityInput);
+            const parsed = parseEditableQuantityExpression(item, event.currentTarget.value);
             if (!parsed.ok) {
               const initialRow = getInitialEditableRow(item);
               updateQuantityFields({
@@ -837,6 +851,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onRequestProjectSpecific,
   onPromoteRowToLibrary,
   promotingRowId,
+  rowMutationStatuses,
   onMoveRowComponent,
   onMoveRowItem,
   onOpenMoveRowItemDialog,
@@ -1098,6 +1113,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onRequestProjectSpecific={onRequestProjectSpecific}
                 onPromoteRowToLibrary={onPromoteRowToLibrary}
                 promotingRowId={promotingRowId}
+                rowMutationStatus={rowMutationStatuses?.[item.id]}
                 onMoveRowComponent={onMoveRowComponent}
                 onMoveRowItem={onMoveRowItem}
                 onOpenMoveRowItemDialog={onOpenMoveRowItemDialog}

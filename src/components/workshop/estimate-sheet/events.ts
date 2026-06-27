@@ -9,6 +9,7 @@ export type RequestEstimateRowItemMoveEventDetail = {
   rowItemId: string;
   targetNodeId: string;
   targetIndex: number;
+  targetPlacement?: "index" | "end";
 };
 
 export function readRequestEstimateRowItemMoveEventDetail(value: unknown): RequestEstimateRowItemMoveEventDetail | null {
@@ -17,9 +18,15 @@ export function readRequestEstimateRowItemMoveEventDetail(value: unknown): Reque
   if (typeof record.rowItemId !== "string" || record.rowItemId.length === 0) return null;
   if (typeof record.targetNodeId !== "string" || record.targetNodeId.length === 0) return null;
   if (typeof record.targetIndex !== "number" || !Number.isFinite(record.targetIndex) || record.targetIndex < 0) return null;
+  if (
+    record.targetPlacement !== undefined
+    && record.targetPlacement !== "index"
+    && record.targetPlacement !== "end"
+  ) return null;
   return {
     rowItemId: record.rowItemId,
     targetNodeId: record.targetNodeId,
     targetIndex: Math.trunc(record.targetIndex),
+    ...(record.targetPlacement ? { targetPlacement: record.targetPlacement } : {}),
   };
 }

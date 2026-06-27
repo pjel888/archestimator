@@ -377,16 +377,18 @@ function ExpressMaterialImageEditor({
           estimateId,
           rowItemId: itemId,
         });
-        if (imageUploadAttemptRef.current !== attemptId) return;
-        onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
-        replaceSelectedImagePreview("");
-        dispatchImageModal({ type: "close" });
-        onActiveChange(false);
+        if (imageUploadAttemptRef.current === attemptId) {
+          onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
+          replaceSelectedImagePreview("");
+          dispatchImageModal({ type: "close" });
+          onActiveChange(false);
+        }
       } catch (error) {
-        if (imageUploadAttemptRef.current !== attemptId) return;
-        dispatchImageModal(isUploadAbortError(error)
-          ? { type: "upload:cancelled" }
-          : { type: "upload:error", message: getUploadClientErrorMessage(error, "Could not upload image.") });
+        if (imageUploadAttemptRef.current === attemptId) {
+          dispatchImageModal(isUploadAbortError(error)
+            ? { type: "upload:cancelled" }
+            : { type: "upload:error", message: getUploadClientErrorMessage(error, "Could not upload image.") });
+        }
       } finally {
         if (imageUploadAbortRef.current === abortController) imageUploadAbortRef.current = null;
       }
@@ -557,7 +559,7 @@ function ExpressMaterialEditor({
   onRetryDraft: () => void;
   onDeleteDraft: () => void;
 }) {
-  const commitField = (field: ExpressEditableField) => onCommit({ [field]: editableRow[field] });
+  const commitField = (field: ExpressEditableField, value: string) => onCommit({ [field]: value });
   const editorLabel = editableRow.name || item.material || "Project Component";
   const imageUrl = editableRow.imageUrl.trim();
   const imageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
@@ -630,11 +632,11 @@ function ExpressMaterialEditor({
             value={editableRow.name}
             onChange={(event) => onChange({ name: event.target.value })}
             onFocus={() => onActiveChange(true)}
-            onBlur={() => {
-              commitField("name");
+            onBlur={(event) => {
+              commitField("name", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "name", onCommit: () => commitField("name"), onRevert })}
+            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "name", onCommit: () => commitField("name", event.currentTarget.value), onRevert })}
             data-estimate-row-id={item.id}
             data-express-field="name"
             aria-label="Component name"
@@ -648,11 +650,11 @@ function ExpressMaterialEditor({
             value={editableRow.supplier}
             onChange={(event) => onChange({ supplier: event.target.value })}
             onFocus={() => onActiveChange(true)}
-            onBlur={() => {
-              commitField("supplier");
+            onBlur={(event) => {
+              commitField("supplier", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "supplier", onCommit: () => commitField("supplier"), onRevert })}
+            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "supplier", onCommit: () => commitField("supplier", event.currentTarget.value), onRevert })}
             data-estimate-row-id={item.id}
             data-express-field="supplier"
             aria-label="Supplier"
@@ -666,11 +668,11 @@ function ExpressMaterialEditor({
               value={editableRow.unitCost}
               onChange={(value) => onChange({ unitCost: value })}
               onFocus={() => onActiveChange(true)}
-              onBlur={() => {
-                commitField("unitCost");
+              onBlur={(event) => {
+                commitField("unitCost", event.currentTarget.value);
                 onActiveChange(false);
               }}
-              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unitCost", onCommit: () => commitField("unitCost"), onRevert })}
+              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unitCost", onCommit: () => commitField("unitCost", event.currentTarget.value), onRevert })}
               data-estimate-row-id={item.id}
               data-express-field="unitCost"
               ariaLabel="Unit cost"
@@ -683,11 +685,11 @@ function ExpressMaterialEditor({
             value={editableRow.description}
             onChange={(event) => onChange({ description: event.target.value })}
             onFocus={() => onActiveChange(true)}
-            onBlur={() => {
-              commitField("description");
+            onBlur={(event) => {
+              commitField("description", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "description", onCommit: () => commitField("description"), onRevert, multiline: true })}
+            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "description", onCommit: () => commitField("description", event.currentTarget.value), onRevert, multiline: true })}
             data-estimate-row-id={item.id}
             data-express-field="description"
             aria-label="Component description"
@@ -704,11 +706,11 @@ function ExpressMaterialEditor({
               value={editableRow.unit}
               onChange={(event) => onChange({ unit: event.target.value })}
               onFocus={() => onActiveChange(true)}
-              onBlur={() => {
-                commitField("unit");
+              onBlur={(event) => {
+                commitField("unit", event.currentTarget.value);
                 onActiveChange(false);
               }}
-              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unit", onCommit: () => commitField("unit"), onRevert })}
+              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unit", onCommit: () => commitField("unit", event.currentTarget.value), onRevert })}
               data-estimate-row-id={item.id}
               data-express-field="unit"
               aria-label="Unit"

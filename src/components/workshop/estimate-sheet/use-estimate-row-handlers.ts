@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { flushSync } from "react-dom";
 
-import type { useEstimateRowMutations, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
+import type { useEstimateRowMutations, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
@@ -89,6 +90,7 @@ type UseEstimateRowHandlersInput = {
   estimateTree: EstimateTreeNode[];
   editableRows: Record<string, EditableRowValue>;
   saveState: EstimateSaveState;
+  rowMutationStatuses: EstimateRowMutationStatusMap;
   insertTargetNodeId: string;
   pendingLibraryCommitGate: PendingLibraryCommitGate | null;
   expressInsertDrafts: Record<string, ExpressInsertDraft>;
@@ -100,6 +102,7 @@ type UseEstimateRowHandlersInput = {
   replaceRow: EstimateRowMutations["replaceRow"];
   moveRows: EstimateRowMutations["moveRows"];
   moveRowItem: EstimateRowMutations["moveRowItem"];
+  hasPendingRowMutation: EstimateRowMutations["hasPendingRowMutation"];
   detachRow: EstimateRowMutations["detachRow"];
   promoteRow: EstimateRowMutations["promoteRow"];
   deleteRow: EstimateRowMutations["deleteRow"];
@@ -122,6 +125,28 @@ type UseEstimateRowHandlersInput = {
   recordReadOnlyLibraryMutationAttempt: (action: string) => void;
   toast: Toast;
 };
+
+const EDITABLE_ROW_FIELDS: Array<keyof EditableRowValue> = [
+  "quantity",
+  "quantityExpression",
+  "quantityBase",
+  "quantityContingencyAmount",
+  "contingencyMode",
+  "contingencyPercentage",
+  "adjustmentPercentage",
+  "miscCost",
+  "name",
+  "description",
+  "supplier",
+  "unit",
+  "unitCost",
+  "imageUrl",
+  "sourceUrl",
+];
+
+function editableRowsEqual(a: EditableRowValue, b: EditableRowValue) {
+  return EDITABLE_ROW_FIELDS.every((field) => a[field] === b[field]);
+}
 
 export function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItem | null {
   for (const node of nodes) {
@@ -323,6 +348,7 @@ export function useEstimateRowHandlers({
   estimateTree,
   editableRows,
   saveState,
+  rowMutationStatuses,
   insertTargetNodeId,
   pendingLibraryCommitGate,
   expressInsertDrafts,
@@ -334,6 +360,7 @@ export function useEstimateRowHandlers({
   replaceRow,
   moveRows,
   moveRowItem: persistMoveRowItem,
+  hasPendingRowMutation,
   detachRow,
   promoteRow,
   deleteRow,
@@ -357,8 +384,13 @@ export function useEstimateRowHandlers({
   toast,
 }: UseEstimateRowHandlersInput) {
   const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>(expressInsertDrafts);
+  const saveStateRef = useRef(saveState);
   const pendingFocusRowIdRef = useRef("");
   const pendingFocusFrameIdRef = useRef(0);
+
+  useEffect(() => {
+    saveStateRef.current = saveState;
+  }, [saveState]);
 
   useEffect(() => {
     expressInsertDraftsRef.current = expressInsertDrafts;
@@ -370,7 +402,10 @@ export function useEstimateRowHandlers({
     setExpressInsertDraftsState(next);
   });
 
-  const markRowDirty = useStableCallback(markRowDirtyNow);
+  const markRowDirty = useStableCallback(() => {
+    saveStateRef.current = "dirty";
+    markRowDirtyNow();
+  });
 
   useEffect(() => {
     if (saveState === "dirty" || saveState === "saving") return;
@@ -379,17 +414,34 @@ export function useEstimateRowHandlers({
       return;
     }
     queueMicrotask(() => {
+      if (saveStateRef.current === "dirty" || saveStateRef.current === "saving") return;
       const nextRows = collectEditableRows(estimateTree);
       const activeExpressRowId = getActiveExpressEditorRowId();
       setEditableRows((currentRows) => {
-        if (!activeExpressRowId || !currentRows[activeExpressRowId]) return nextRows;
-        return {
-          ...nextRows,
-          [activeExpressRowId]: currentRows[activeExpressRowId],
-        };
+        let mergedRows = nextRows;
+        for (const [rowId, currentRow] of Object.entries(currentRows)) {
+          const syncedRow = nextRows[rowId];
+          if (!syncedRow || editableRowsEqual(currentRow, syncedRow)) continue;
+          const status = rowMutationStatuses[rowId];
+          const failedServerSave = status?.phase === "failed" && !/offline/i.test(status.message ?? status.label);
+          if (failedServerSave) continue;
+          if (mergedRows === nextRows) mergedRows = { ...nextRows };
+          mergedRows[rowId] = currentRow;
+        }
+        for (const [rowId, status] of Object.entries(rowMutationStatuses)) {
+          const offlineFailure = status.phase === "failed" && /offline/i.test(status.message ?? status.label);
+          if (!offlineFailure || !currentRows[rowId]) continue;
+          if (mergedRows === nextRows) mergedRows = { ...nextRows };
+          mergedRows[rowId] = currentRows[rowId];
+        }
+        if (activeExpressRowId && currentRows[activeExpressRowId]) {
+          if (mergedRows === nextRows) mergedRows = { ...nextRows };
+          mergedRows[activeExpressRowId] = currentRows[activeExpressRowId];
+        }
+        return mergedRows;
       });
     });
-  }, [estimateTree, saveState, setEditableRows, skipEditableRowsSyncRef]);
+  }, [estimateTree, rowMutationStatuses, saveState, setEditableRows, skipEditableRowsSyncRef]);
 
   const requestPendingRowFocus = useStableCallback((rowId: string) => {
     pendingFocusRowIdRef.current = rowId;
@@ -877,7 +929,7 @@ export function useEstimateRowHandlers({
       toast({ tone: "error", message: "This row is not eligible to promote to the library." });
       return;
     }
-    if (saveState === "dirty" || saveState === "saving") {
+    if (hasPendingRowMutation([rowItemId])) {
       toast({ tone: "error", message: "Finish saving row edits before promoting this component." });
       return;
     }
@@ -1015,7 +1067,12 @@ export function useEstimateRowHandlers({
     }
   });
 
-  const moveRowItemToNode = useStableCallback((rowItemId: string, targetNodeId: string, targetIndex: number) => {
+  const moveRowItemToNode = useStableCallback((
+    rowItemId: string,
+    targetNodeId: string,
+    targetIndex: number,
+    options?: { targetPlacement?: "index" | "end" },
+  ) => {
     if (!canEditEstimate) {
       recordReadOnlyLibraryMutationAttempt("move_row_item");
       return false;
@@ -1024,22 +1081,21 @@ export function useEstimateRowHandlers({
       toast({ tone: "error", message: "Load the full estimate before moving rows." });
       return false;
     }
-    if (saveState === "dirty" || saveState === "saving") {
-      toast({ tone: "error", message: "Finish saving row edits before moving rows." });
-      return false;
-    }
-
     const sourceLocation = findEstimateRowItemLocation(estimateTree, rowItemId);
     if (!sourceLocation) {
       return false;
     }
+    const targetNode = findEstimateNode(estimateTree, targetNodeId);
+    const resolvedTargetIndex = options?.targetPlacement === "end"
+      ? targetNode?.estimateRowItems?.length ?? 0
+      : targetIndex;
 
     const moveResult = moveEstimateRowItemInTree({
       tree: estimateTree,
       rowItemId,
       sourceNodeId: sourceLocation.nodeId,
       targetNodeId,
-      targetIndex,
+      targetIndex: resolvedTargetIndex,
     });
 
     if (moveResult.status === "noop") {
@@ -1049,21 +1105,30 @@ export function useEstimateRowHandlers({
       toast({ tone: "error", message: "Couldn't move the row to that location." });
       return false;
     }
+    const movedSourceNodeId = moveResult.sourceNodeId;
+    const movedTargetNodeId = moveResult.targetNodeId;
+    if (hasPendingRowMutation(moveResult.affectedRowUpdates.map((update) => update.rowId))) {
+      toast({ tone: "error", message: "Finish saving affected rows before moving rows." });
+      return false;
+    }
 
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const rollbackRevision = getEstimateTreeRevision();
-    const nextRevision = setEstimateTree(() => moveResult.tree);
+    let nextRevision = rollbackRevision;
+    flushSync(() => {
+      nextRevision = setEstimateTree(() => moveResult.tree);
+    });
     requestPendingRowFocus(rowItemId);
 
     if (projectId && estimateId) {
-      persistMoveRowItem({
+      const persistMove = () => persistMoveRowItem({
         projectId,
         estimateId,
         activeTabId: activeTabId ?? null,
         movedRowId: rowItemId,
-        sourceNodeId: moveResult.sourceNodeId,
-        targetNodeId: moveResult.targetNodeId,
+        sourceNodeId: movedSourceNodeId,
+        targetNodeId: movedTargetNodeId,
         updates: moveResult.affectedRowUpdates,
         rollback: () => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision),
         onSuccess: (result) => {
@@ -1074,6 +1139,8 @@ export function useEstimateRowHandlers({
           toast({ tone: "error", message: "Couldn't move the row. Try again." });
         },
       });
+      if (typeof window === "undefined") persistMove();
+      else window.requestAnimationFrame(persistMove);
     }
 
     return true;

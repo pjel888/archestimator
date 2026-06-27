@@ -368,7 +368,7 @@ export function ProjectDetailsModal({
             <DialogBody className="min-h-0 overflow-hidden p-0">
               <div
                 data-create-project-modal-tray
-                className="min-h-0 overflow-hidden rounded-[8px] border border-white/70 bg-white"
+                className="min-h-0 overflow-hidden rounded-xs border border-white/70 bg-white"
               >
                 <form
                   onSubmit={handleSaveDetails}
@@ -525,7 +525,7 @@ export function ProjectDetailsModal({
                               suppressCreateWhenSearchMatches
                               optionPresentation="unit"
                               dropdownPlacement="top"
-                              inputClassName="h-8 bg-white/92 px-2 !text-[10px] uppercase"
+                              inputClassName="h-8 bg-white/92 px-2 !text-[9px] uppercase"
                             />
                           </div>
                           <label htmlFor="project-details-code" className="group/code-field w-full space-y-1">
@@ -537,7 +537,7 @@ export function ProjectDetailsModal({
                                 value={projectCode}
                                 onChange={(event) => dispatchDetails({ type: "projectCode", value: event.currentTarget.value })}
                                 placeholder="A7K9M2Q4"
-                                className="h-8 w-full bg-white/92 px-2 pr-9 !text-[10px] font-medium uppercase text-secondary"
+                                className="h-8 w-full bg-white/92 px-2 pr-9 !text-[9px] font-medium uppercase text-secondary"
                               />
                               <Button
                                 type="button"

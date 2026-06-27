@@ -87,6 +87,7 @@ import {
   ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
   readEstimateRowItemDragPayload,
 } from "./estimate-sheet/rows/constants";
+import { endEstimateWorkshopDrag } from "./estimate-workshop-drag";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
 type EstimateSheetTreeProps = {
@@ -599,30 +600,11 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [treeSelectionNodes]);
 
   const reportReorderStatus = useEffectEvent((status: ReorderStatus) => {
-    if (status.state === "saving") {
-      toast({
-        id: "estimate-tree-mutation",
-        message: status.message,
-        tone: "loading",
-        durationMs: null,
-      });
-      return;
-    }
-
     if (status.state === "error") {
       toast({
         id: "estimate-tree-mutation",
         message: status.message,
         tone: "error",
-      });
-      return;
-    }
-
-    if (status.state === "saved") {
-      toast({
-        id: "estimate-tree-mutation",
-        message: status.message,
-        tone: "success",
       });
       return;
     }
@@ -812,6 +794,9 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, []);
   const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
   const canReorderNow = !isTreeMutationSaving;
+  const treeMutationStatusMessage = reorderStatus.state === "saving" || reorderStatus.state === "saved"
+    ? reorderStatus.message
+    : "";
 
   /** Maps an optimistic node id to its server id, awaiting an in-flight create when needed. */
   const resolveServerNodeId = useCallback((nodeId: string): Promise<string> => {
@@ -962,11 +947,13 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
       const rowItemPayload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
       if (rowItemPayload) {
+        endEstimateWorkshopDrag();
         suppressPrimaryActionAfterDrag();
         const detail: RequestEstimateRowItemMoveEventDetail = {
           rowItemId: rowItemPayload.rowItemId,
           targetNodeId: targetId,
           targetIndex: targetNode.estimateRowItems?.length ?? 0,
+          targetPlacement: "end",
         };
         window.dispatchEvent(new CustomEvent<RequestEstimateRowItemMoveEventDetail>(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, { detail }));
         return;
@@ -1771,14 +1758,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         <span className="flex min-w-0 flex-1 items-center gap-1 text-left">
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
           {subtreeLoadState?.status === "loading" ? (
-            <span role="status" aria-live="polite" className="shrink-0 text-[9px] font-medium leading-3 text-tertiary">
+            <output aria-live="polite" className="shrink-0 text-[9px] font-medium leading-3 text-tertiary">
               Loading...
-            </span>
+            </output>
           ) : null}
           {subtreeLoadState?.status === "error" ? (
-            <span role="status" aria-live="polite" className="shrink-0 text-[9px] font-medium leading-3 text-danger">
+            <output aria-live="polite" className="shrink-0 text-[9px] font-medium leading-3 text-danger">
               Load failed
-            </span>
+            </output>
           ) : null}
         </span>
       );
@@ -1887,14 +1874,13 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
         </button>
         {renameSavePending ? (
-          <span
+          <output
             id={savingId}
-            role="status"
             aria-live="polite"
             className="shrink-0 text-[9px] font-medium leading-3 text-tertiary"
           >
             Saving...
-          </span>
+          </output>
         ) : null}
         {editingNodeError ? (
           <span
@@ -1996,6 +1982,16 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
+          {treeMutationStatusMessage ? (
+            <output
+              className="sr-only"
+              aria-live="polite"
+              aria-atomic="true"
+              data-estimate-tree-mutation-status
+            >
+              {treeMutationStatusMessage}
+            </output>
+          ) : null}
           <div className="min-h-0 flex-1 overflow-auto">
             <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
               <nav aria-label={`${projectName} estimate areas`}>

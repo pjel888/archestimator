@@ -299,7 +299,7 @@ export function ProjectLocationPreview({
             </span>
           </span>
           <span className="absolute inset-x-2 bottom-2 min-w-0 rounded-xs border border-white/72 bg-white/86 px-2 py-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.10)]">
-            <span className="block truncate text-[11px] font-medium leading-4 text-secondary">
+            <span className="block truncate text-[10px] font-medium leading-4 text-secondary">
               {address}
             </span>
             <span className="mt-0.5 block text-[10px] leading-4 text-tertiary">
@@ -318,7 +318,7 @@ export function ProjectLocationPreview({
             </span>
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[11px] font-medium leading-4 text-secondary">
+            <span className="block truncate text-[10px] font-medium leading-4 text-secondary">
               {addressLabel.trim() || "No location selected"}
             </span>
             <span className="mt-1 block text-[10px] leading-4 text-tertiary">
