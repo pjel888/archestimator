@@ -56,8 +56,10 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).toContain('kind: "estimate-row-item"');
     expect(rowTable).toContain("event.dataTransfer.dropEffect = \"move\"");
     expect(rowTable).toContain("onMoveRowItem(payload.rowItemId, targetNodeId");
-    expect(rowTable).toContain("onOpenMoveRowItemDialog?.(computedItem.id, event.currentTarget)");
-    expect(rowTable).toContain("data-estimate-row-move-action");
+    expect(rowTable).toContain("onOpenMoveRowItemDialog(computedItem.id, event.currentTarget)");
+    expect(rowTable).toContain("data-estimate-row-select-cell");
+    expect(rowTable).toContain("data-estimate-row-drag-handle");
+    expect(rowTable).not.toContain("data-estimate-row-move-action");
     expect(rowTable).not.toContain("onMoveRowComponent(payload.rowItemId");
 
     expect(rowDropZones).toContain("rowItemDragActive");
