@@ -150,8 +150,9 @@ function sanitizedProjectUrl(url) {
 }
 
 async function createTemporaryProofSession({ anonClient, serviceClient }) {
-  const email = `upload-storage-proof-${Date.now()}-${randomUUID()}@example.com`;
-  const password = `Proof-${randomUUID()}-${randomUUID()}-1a!`;
+  const stamp = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+  const email = `upload-proof-${stamp}@example.com`;
+  const password = `Proof-${stamp}-Aa1!`;
   const createResult = await serviceClient.auth.admin.createUser({
     email,
     password,
