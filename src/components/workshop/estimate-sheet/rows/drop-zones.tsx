@@ -9,7 +9,7 @@ import {
   readEstimateTemplateDragPayload,
   type EstimateTemplateDragPayload,
 } from "../../component-library/templates";
-import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
+import { endEstimateWorkshopDrag, useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import {
   ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
@@ -131,6 +131,7 @@ export function ComponentDropTarget({
         if (rowItemPayload && onMoveRowItem) {
           event.preventDefault();
           event.stopPropagation();
+          endEstimateWorkshopDrag();
           onMoveRowItem(rowItemPayload.rowItemId, nodeId, rowDropIndex);
           return;
         }

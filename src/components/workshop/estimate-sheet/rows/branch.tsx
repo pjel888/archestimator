@@ -1,10 +1,9 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { memo, useMemo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { cn } from "@/lib/ui/cn";
 import { pesoFormatter, type RowDetailTab } from "../activity-history-model";
 import {
@@ -25,7 +24,6 @@ import { EstimateRowItemsTable, type EstimateTableColumnResizeConfig } from "./r
 import type { ExpressInsertDraftState } from "./cells";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
-import type { EstimateSheetAdjustment, EstimateSheetAdjustmentMode } from "@/lib/estimates/types";
 
 export type BreadcrumbNode = { id: string; name: string };
 const EMPTY_BREADCRUMB_PATH: BreadcrumbNode[] = [];
@@ -64,14 +62,6 @@ export type EstimateSheetBranchProps = {
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
   columnResize?: EstimateTableColumnResizeConfig;
   nodeTotals?: ReadonlyMap<string, number>;
-  sheetAdjustment?: EstimateSheetAdjustment;
-  sheetSubtotal?: number;
-  sheetAdjustmentValue?: number;
-  adjustedSheetTotal?: number;
-  canEditSheetAdjustment?: boolean;
-  sheetAdjustmentSaveState?: "idle" | "saving" | "saved" | "failed";
-  sheetAdjustmentError?: string | null;
-  onUpdateSheetAdjustment?: (patch: Partial<Pick<EstimateSheetAdjustment, "mode" | "percentage">>) => void;
   depth?: number;
   siblingIndex?: number;
   renderChildBranches?: boolean;
@@ -165,14 +155,6 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
     prev.columnResize !== next.columnResize ||
-    prev.sheetAdjustment !== next.sheetAdjustment ||
-    prev.sheetSubtotal !== next.sheetSubtotal ||
-    prev.sheetAdjustmentValue !== next.sheetAdjustmentValue ||
-    prev.adjustedSheetTotal !== next.adjustedSheetTotal ||
-    prev.canEditSheetAdjustment !== next.canEditSheetAdjustment ||
-    prev.sheetAdjustmentSaveState !== next.sheetAdjustmentSaveState ||
-    prev.sheetAdjustmentError !== next.sheetAdjustmentError ||
-    prev.onUpdateSheetAdjustment !== next.onUpdateSheetAdjustment ||
     !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
   ) {
     return false;
@@ -192,112 +174,8 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
-const SHEET_ADJUSTMENT_MODE_OPTIONS = [
-  { value: "contingency", label: "Contingency" },
-  { value: "discount", label: "Discount" },
-] as const;
-
-function normalizeAdjustmentDraft(value: string) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0) return 0;
-  return Math.min(parsed, 100);
-}
-
-function formatAdjustmentDraft(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
-}
-
-function EstimateSheetAdjustmentRow({
-  adjustment,
-  subtotal,
-  adjustmentValue,
-  adjustedTotal,
-  canEdit,
-  saveState,
-  error,
-  onUpdate,
-}: {
-  adjustment: EstimateSheetAdjustment;
-  subtotal: number;
-  adjustmentValue: number;
-  adjustedTotal: number;
-  canEdit: boolean;
-  saveState: "idle" | "saving" | "saved" | "failed";
-  error: string | null;
-  onUpdate?: (patch: Partial<Pick<EstimateSheetAdjustment, "mode" | "percentage">>) => void;
-}) {
-  const [percentageDraft, setPercentageDraft] = useState(formatAdjustmentDraft(adjustment.percentage));
-
-  /* eslint-disable react-hooks/set-state-in-effect -- Adjustment percentage input keeps local draft text in sync with parent saves. */
-  useEffect(() => {
-    setPercentageDraft(formatAdjustmentDraft(adjustment.percentage));
-  }, [adjustment.percentage]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  function commitPercentageDraft() {
-    const nextPercentage = normalizeAdjustmentDraft(percentageDraft);
-    const normalizedDraft = formatAdjustmentDraft(nextPercentage);
-    setPercentageDraft(normalizedDraft);
-    if (nextPercentage !== adjustment.percentage) onUpdate?.({ percentage: nextPercentage });
-  }
-
-  return (
-    <div
-      className="grid grid-cols-[minmax(120px,1fr)_120px_72px_96px_110px] items-center gap-2 border-x border-b border-hairline bg-surfaceMuted/35 px-2 py-2 text-[10px]"
-      data-estimate-sheet-adjustment-row
-    >
-      <div className="min-w-0">
-        <p className="font-medium text-ink">Adjustment</p>
-        <p className="truncate text-[8px] text-tertiary">Subtotal {pesoFormatter.format(subtotal)}</p>
-      </div>
-      <DropdownSelect
-        options={SHEET_ADJUSTMENT_MODE_OPTIONS}
-        value={adjustment.mode}
-        onValueChange={(nextMode) => onUpdate?.({ mode: nextMode as EstimateSheetAdjustmentMode })}
-        disabled={!canEdit}
-        variant="boxed"
-        aria-label="Estimate adjustment mode"
-        className="h-7 text-[9px]"
-      />
-      <label className="flex items-center gap-1">
-        <input
-          type="number"
-          min={0}
-          max={100}
-          step="0.01"
-          inputMode="decimal"
-          value={percentageDraft}
-          disabled={!canEdit}
-          aria-label="Estimate adjustment percentage"
-          className="h-7 w-full rounded-xs border border-hairline bg-surface px-1 text-right font-sans text-[10px] tabular-nums text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:bg-surfaceMuted disabled:text-tertiary"
-          onChange={(event) => setPercentageDraft(event.target.value)}
-          onBlur={commitPercentageDraft}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") event.currentTarget.blur();
-            if (event.key === "Escape") {
-              setPercentageDraft(formatAdjustmentDraft(adjustment.percentage));
-              event.currentTarget.blur();
-            }
-          }}
-        />
-        <span className="text-[9px] text-tertiary">%</span>
-      </label>
-      <div className={cn("text-right font-sans text-[10px] font-medium tabular-nums", adjustmentValue < 0 ? "text-danger" : "text-ink")}>
-        {adjustmentValue < 0 ? "-" : "+"}{pesoFormatter.format(Math.abs(adjustmentValue))}
-      </div>
-      <div className="text-right">
-        <p className="font-sans text-[11px] font-semibold tabular-nums text-ink">{pesoFormatter.format(adjustedTotal)}</p>
-        <p className="text-[8px] text-tertiary">
-          {saveState === "saving" ? "Saving" : saveState === "failed" ? "Not saved" : saveState === "saved" ? "Saved" : "Grand total"}
-        </p>
-      </div>
-      {error ? <p className="col-span-full text-[9px] text-danger">{error}</p> : null}
-    </div>
-  );
-}
-
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, sheetAdjustment, sheetSubtotal = 0, sheetAdjustmentValue = 0, adjustedSheetTotal = 0, canEditSheetAdjustment = false, sheetAdjustmentSaveState = "idle", sheetAdjustmentError = null, onUpdateSheetAdjustment, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -559,18 +437,6 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               columnResize={columnResize}
             />
           </div>
-          {depth === 0 && sheetAdjustment ? (
-            <EstimateSheetAdjustmentRow
-              adjustment={sheetAdjustment}
-              subtotal={sheetSubtotal}
-              adjustmentValue={sheetAdjustmentValue}
-              adjustedTotal={adjustedSheetTotal}
-              canEdit={canEditSheetAdjustment}
-              saveState={sheetAdjustmentSaveState}
-              error={sheetAdjustmentError}
-              onUpdate={onUpdateSheetAdjustment}
-            />
-          ) : null}
           {/* Add-row / drag-a-component strip. Always present on EVERY node —
               P6 lets any node hold rows even when it already has child
               sub-areas — so a quiet "Add row" affordance is always available,

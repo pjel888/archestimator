@@ -6,6 +6,7 @@ export type EstimateColumnId =
   | "material"
   | "quantity"
   | "contingency"
+  | "discount"
   | "subTotal"
   | "miscCost"
   | "totalItemCosts"
@@ -15,6 +16,7 @@ export type ResizableEstimateColumnId =
   | "material"
   | "quantity"
   | "contingency"
+  | "discount"
   | "subTotal"
   | "miscCost"
   | "totalItemCosts";
@@ -37,6 +39,7 @@ export const ESTIMATE_COLUMN_DEFINITIONS = [
   { id: "material", label: "Materials", defaultWidth: 160, minWidth: 160, maxWidth: 640, resizable: true, cssVar: "--est-col-material" },
   { id: "quantity", label: "Qty", defaultWidth: 58, minWidth: 52, maxWidth: 140, resizable: true, cssVar: "--est-col-quantity" },
   { id: "contingency", label: "Contingency", defaultWidth: 92, minWidth: 72, maxWidth: 200, resizable: true, cssVar: "--est-col-contingency" },
+  { id: "discount", label: "Discount", defaultWidth: 86, minWidth: 72, maxWidth: 200, resizable: true, cssVar: "--est-col-discount" },
   { id: "subTotal", label: "Subtotal", defaultWidth: 92, minWidth: 76, maxWidth: 220, resizable: true, cssVar: "--est-col-subTotal" },
   { id: "miscCost", label: "Misc Cost", defaultWidth: 92, minWidth: 76, maxWidth: 220, resizable: true, cssVar: "--est-col-miscCost" },
   { id: "totalItemCosts", label: "Total Item Cost", defaultWidth: 108, minWidth: 88, maxWidth: 260, resizable: true, cssVar: "--est-col-totalItemCosts" },
@@ -57,7 +60,7 @@ export const DEFAULT_ESTIMATE_COLUMN_WIDTHS = Object.freeze(
 
 export const EMPTY_ESTIMATE_COLUMN_WIDTHS = Object.freeze({}) as Readonly<EstimateColumnWidths>;
 
-export const DEFAULT_ESTIMATE_COLUMN_TEMPLATE = "36px 32px minmax(160px,1fr) 58px 92px 92px 92px 108px 30px";
+export const DEFAULT_ESTIMATE_COLUMN_TEMPLATE = "36px 32px minmax(160px,1fr) 58px 92px 86px 92px 92px 108px 30px";
 
 export const ESTIMATE_COLUMN_TEMPLATE = [
   "36px",
@@ -65,6 +68,7 @@ export const ESTIMATE_COLUMN_TEMPLATE = [
   "minmax(var(--est-col-material, 160px), 1fr)",
   "var(--est-col-quantity, 58px)",
   "var(--est-col-contingency, 92px)",
+  "var(--est-col-discount, 86px)",
   "var(--est-col-subTotal, 92px)",
   "var(--est-col-miscCost, 92px)",
   "var(--est-col-totalItemCosts, 108px)",

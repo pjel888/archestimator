@@ -27,7 +27,7 @@ import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hoo
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
-import { updateEstimateSheetAdjustment, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import type { EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
@@ -87,7 +87,7 @@ const ProposalExportPreviewDialog = dynamic(
   () => import("./ProposalExportPreviewDialog").then((mod) => mod.ProposalExportPreviewDialog),
   { ssr: false },
 );
-import type { EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import {
   DEFAULT_ACTIVITY_FILTERS,
   // Aliased: the helpers barrel re-exported below also has a
@@ -241,10 +241,6 @@ function resolveSheetAdjustment(estimateId: string, adjustment: EstimateSheetAdj
   return adjustment ?? createDefaultSheetAdjustment(estimateId);
 }
 
-function calculateSheetAdjustmentValue(subtotal: number, adjustment: Pick<EstimateSheetAdjustment, "mode" | "percentage">) {
-  const value = subtotal * adjustment.percentage / 100;
-  return adjustment.mode === "discount" ? -value : value;
-}
 function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTreeNode[] {
   reportEstimateSelectedNodePresentationCompute("path");
   for (const node of nodes) {
@@ -1030,13 +1026,9 @@ export function EstimateSheetContent({
     [estimateId, sheetAdjustment],
   );
   const [sheetAdjustmentState, setSheetAdjustmentState] = useState<EstimateSheetAdjustment>(resolvedSheetAdjustment);
-  const [sheetAdjustmentSaveState, setSheetAdjustmentSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
-  const [sheetAdjustmentError, setSheetAdjustmentError] = useState<string | null>(null);
-  /* eslint-disable react-hooks/set-state-in-effect -- Sheet adjustment keeps editable draft state that must reset when server data changes. */
+  /* eslint-disable react-hooks/set-state-in-effect -- Proposal/export state follows server-provided sheet adjustment while worksheet rows expose per-item adjustments. */
   useEffect(() => {
     setSheetAdjustmentState(resolvedSheetAdjustment);
-    setSheetAdjustmentSaveState("idle");
-    setSheetAdjustmentError(null);
   }, [resolvedSheetAdjustment]);
   /* eslint-enable react-hooks/set-state-in-effect */
   const legacyTreeQuery = useEstimateAreaTreeQuery({
@@ -1519,44 +1511,6 @@ export function EstimateSheetContent({
     () => estimateTree.reduce((total, node) => total + (estimateNodeTotals.get(node.id) ?? 0), 0),
     [estimateNodeTotals, estimateTree],
   );
-  const sheetAdjustmentValue = useMemo(
-    () => calculateSheetAdjustmentValue(projectTotal, sheetAdjustmentState),
-    [projectTotal, sheetAdjustmentState],
-  );
-  const adjustedProjectTotal = projectTotal + sheetAdjustmentValue;
-  const persistSheetAdjustment = useStableCallback(async (patch: Partial<Pick<EstimateSheetAdjustment, "mode" | "percentage">>) => {
-    if (!projectId || !estimateId || !canEditEstimate) return;
-    const previousAdjustment = sheetAdjustmentState;
-    const nextAdjustment: EstimateSheetAdjustment = {
-      ...previousAdjustment,
-      ...patch,
-      mode: (patch.mode ?? previousAdjustment.mode) as EstimateSheetAdjustmentMode,
-      percentage: patch.percentage ?? previousAdjustment.percentage,
-    };
-
-    setSheetAdjustmentState(nextAdjustment);
-    setSheetAdjustmentSaveState("saving");
-    setSheetAdjustmentError(null);
-
-    try {
-      const savedAdjustment = await updateEstimateSheetAdjustment({
-        projectId,
-        estimateId,
-        mode: nextAdjustment.mode,
-        percentage: nextAdjustment.percentage,
-        expectedRowRevision: previousAdjustment.rowRevision,
-      });
-      setSheetAdjustmentState(savedAdjustment);
-      setSheetAdjustmentSaveState("saved");
-      toast({ id: "estimate-sheet-adjustment-save", tone: "success", message: "Adjustment saved." });
-    } catch (error) {
-      setSheetAdjustmentState(previousAdjustment);
-      setSheetAdjustmentSaveState("failed");
-      const message = error instanceof Error ? error.message : "Could not save adjustment.";
-      setSheetAdjustmentError(message);
-      toast({ id: "estimate-sheet-adjustment-save", tone: "error", message });
-    }
-  });
   const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || projectSpecificRowId || rowComponentPicker?.mode === "move");
   const currentRows = useMemo(
     () => (shouldBuildFlattenedRows ? flattenEstimateRows(estimateTree, editableRows) : EMPTY_FLATTENED_ESTIMATE_ROWS),
@@ -1688,8 +1642,8 @@ export function EstimateSheetContent({
   }, [rowComponentPicker?.opener, setRowComponentPicker, setRowComponentPickerQuery]);
 
   useEffect(() => {
-    dispatchProjectTotalChange(adjustedProjectTotal);
-  }, [adjustedProjectTotal]);
+    dispatchProjectTotalChange(projectTotal);
+  }, [projectTotal]);
 
   useEffect(() => {
     if (!estimateId || activeSelectedNodeId === resolvedSelectedNodeId) return;
@@ -2553,14 +2507,6 @@ export function EstimateSheetContent({
                       onToggleRowsSelection={toggleRowsSelection}
                       columnResize={estimateColumnResizeConfig}
                       nodeTotals={displayedNodeTotals}
-                      sheetAdjustment={sheetAdjustmentState}
-                      sheetSubtotal={projectTotal}
-                      sheetAdjustmentValue={sheetAdjustmentValue}
-                      adjustedSheetTotal={adjustedProjectTotal}
-                      canEditSheetAdjustment={canEditEstimate}
-                      sheetAdjustmentSaveState={sheetAdjustmentSaveState}
-                      sheetAdjustmentError={sheetAdjustmentError}
-                      onUpdateSheetAdjustment={persistSheetAdjustment}
                     />
                   </EstimateSheetExpansionContext.Provider>
                 ) : null}

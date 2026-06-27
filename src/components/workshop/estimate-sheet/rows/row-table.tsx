@@ -21,7 +21,7 @@ import { cn } from "@/lib/ui/cn";
 import { estimateSurfaceClass } from "../../estimate-surface-class";
 import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
-import { beginEstimateWorkshopDrag } from "../../estimate-workshop-drag";
+import { beginEstimateWorkshopDrag, endEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type RowDetailTab } from "../activity-history-model";
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
@@ -290,6 +290,11 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const computedItemLabel = isInlineEditableComponentRow
     ? computedItem.editableName || "Project Component"
     : computedItem.material || "component";
+  const editableAdjustmentMode = resolvedEditableRow.contingencyMode;
+  const editableContingencyColumnPercentage = editableAdjustmentMode === "contingency" ? resolvedEditableRow.contingencyPercentage : "0";
+  const editableDiscountColumnPercentage = editableAdjustmentMode === "discount" ? resolvedEditableRow.contingencyPercentage : "0";
+  const rowContingencyValue = computedItem.contingencyValue > 0 ? computedItem.contingencyValue : 0;
+  const rowDiscountValue = computedItem.contingencyValue < 0 ? computedItem.contingencyValue : 0;
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
 
   function handleRowItemDragStart(event: DragEvent<HTMLButtonElement>) {
@@ -326,6 +331,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
+    endEstimateWorkshopDrag();
     onMoveRowItem(payload.rowItemId, targetNodeId, rowDropEdge === "after" ? rowIndex + 1 : rowIndex);
   }
 
@@ -388,7 +394,39 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     updateQuantityFields(patch);
   }
 
+  function updateAdjustmentPercentageDraft(mode: "contingency" | "discount", value: string) {
+    setEditableRows((current) => updateEditableRowValue(current, computedItem, {
+      contingencyMode: mode,
+      contingencyPercentage: value,
+    }));
+    onMarkRowDirty(computedItem.id);
+  }
+
+  function commitRowAdjustmentPercentage(mode: "contingency" | "discount") {
+    const sourceValue = mode === "contingency" ? editableContingencyColumnPercentage : editableDiscountColumnPercentage;
+    if (resolvedEditableRow.contingencyMode !== mode && parseNonNegativeEditableNumber(sourceValue) === 0) return;
+
+    const nextAdjustmentPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(sourceValue));
+    const storedAdjustmentMode = computedItem.storedContingencyPercentage < 0 ? "discount" : "contingency";
+    const storedAdjustmentPercentage = toEditableContingencyPercentage(computedItem.storedContingencyPercentage);
+    setEditableRows((current) => updateEditableRowValue(current, computedItem, {
+      contingencyMode: mode,
+      contingencyPercentage: nextAdjustmentPercentage,
+    }));
+
+    if (mode === storedAdjustmentMode && nextAdjustmentPercentage === storedAdjustmentPercentage) return;
+    onUpdateRowItem(computedItem.id, {
+      contingencyMode: mode,
+      contingencyPercentage: nextAdjustmentPercentage,
+    });
+  }
+
   function commitContingencyPercentage() {
+    if (!computedItem.isQuantityContingency) {
+      commitRowAdjustmentPercentage("contingency");
+      return;
+    }
+
     const nextContingencyPercentage = toEditableContingencyPercentage(parseNonNegativeEditableNumber(computedItem.editableContingencyPercentage));
     const storedContingencyPercentage = toEditableContingencyPercentage(computedItem.storedContingencyPercentage);
     setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: nextContingencyPercentage }));
@@ -419,25 +457,27 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       onDrop={handleRowItemDrop}
     >
       <td className="relative flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
-        <span className="transition-opacity group-hover/estimate-row:opacity-0 group-focus-within/estimate-row:opacity-0">
-          {String(rowIndex + 1).padStart(2, "0")}
-        </span>
-        <Tooltip label="Move row" side="right" contentClassName="z-[1200]">
-          <button
-            type="button"
-            draggable
-            className="absolute inset-0 grid cursor-grab place-items-center text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
-            aria-label={`Move row ${computedItemLabel}`}
-            aria-haspopup="dialog"
-            data-estimate-row-drag-handle=""
-            onDragStart={handleRowItemDragStart}
-            onClick={(event) => onOpenMoveRowItemDialog?.(computedItem.id, event.currentTarget)}
-          >
-            <DotsSixVertical size={14} weight="regular" aria-hidden="true" />
-          </button>
-        </Tooltip>
+        {String(rowIndex + 1).padStart(2, "0")}
       </td>
-      <td className="flex items-center justify-center border-r border-hairline text-tertiary">
+      <td className="relative flex flex-col items-center justify-center gap-1 border-r border-hairline py-1 text-tertiary" data-estimate-row-select-cell="">
+        {onOpenMoveRowItemDialog ? (
+          <Tooltip label="Move row" side="right" contentClassName="z-[1200]">
+            <button
+              type="button"
+              draggable
+              className="grid size-5 cursor-grab place-items-center rounded-xs text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+              aria-label={`Move row ${computedItemLabel}`}
+              aria-haspopup="dialog"
+              data-estimate-row-drag-handle=""
+              onDragStart={handleRowItemDragStart}
+              onClick={(event) => onOpenMoveRowItemDialog(computedItem.id, event.currentTarget)}
+            >
+              <DotsSixVertical size={14} weight="regular" aria-hidden="true" />
+            </button>
+          </Tooltip>
+        ) : (
+          <span className="size-5" aria-hidden="true" />
+        )}
         <SelectionCheckbox
           checked={selected}
           ariaLabel={`Select ${computedItemLabel}`}
@@ -594,11 +634,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                 min="0"
                 max="100"
                 step="0.01"
-                value={computedItem.editableContingencyPercentage}
-                onChange={(event) => {
-                  setEditableRows((current) => updateEditableRowValue(current, computedItem, { contingencyPercentage: event.target.value }));
-                  onMarkRowDirty(computedItem.id);
-                }}
+                value={editableContingencyColumnPercentage}
+                onChange={(event) => updateAdjustmentPercentageDraft("contingency", event.target.value)}
                 onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 1 })}
                 onBlur={() => {
                   setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 1 ? null : current));
@@ -616,7 +653,44 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             <span className="text-[10px] font-medium leading-none tabular-nums text-ink" aria-hidden="true">%</span>
           </div>
           <p className="max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums text-tertiary">
-            {formatPeso(computedItem.contingencyValue)}
+            {formatPeso(rowContingencyValue)}
+          </p>
+        </div>
+      </td>
+      <td
+        className={cn(
+          "relative flex items-center justify-center border-r border-hairline px-1 py-1 text-center",
+          activeCellIndex === 2 && "ring-1 ring-inset ring-accent/30",
+        )}
+        data-estimate-cell-active={activeCellIndex === 2 ? "true" : undefined}
+      >
+        <div className="flex min-w-0 flex-col items-center justify-center gap-0.5">
+          <div className="flex h-5 items-baseline justify-center leading-none">
+            <ControlInput
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              disabled={computedItem.isQuantityContingency}
+              value={computedItem.isQuantityContingency ? "0" : editableDiscountColumnPercentage}
+              onChange={(event) => updateAdjustmentPercentageDraft("discount", event.target.value)}
+              onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 2 })}
+              onBlur={() => {
+                setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 2 ? null : current));
+                commitRowAdjustmentPercentage("discount");
+              }}
+              onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2, rowIds, onRequestFocusByRowId)}
+              data-estimate-row-index={rowIndex}
+              data-estimate-row-id={computedItem.id}
+              data-estimate-cell-index={2}
+              aria-label={`${computedItemLabel} discount percentage`}
+              align="center"
+              className="h-5 w-9 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 disabled:text-tertiary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+            <span className="text-[10px] font-medium leading-none tabular-nums text-ink" aria-hidden="true">%</span>
+          </div>
+          <p className={cn("max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums", rowDiscountValue < 0 ? "text-danger" : "text-tertiary")}>
+            {formatPeso(rowDiscountValue)}
           </p>
         </div>
       </td>
@@ -624,9 +698,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td
         className={cn(
           "flex items-center justify-center border-r border-hairline px-1",
-          activeCellIndex === 2 && "ring-1 ring-inset ring-accent/30",
+          activeCellIndex === 3 && "ring-1 ring-inset ring-accent/30",
         )}
-        data-estimate-cell-active={activeCellIndex === 2 ? "true" : undefined}
+        data-estimate-cell-active={activeCellIndex === 3 ? "true" : undefined}
       >
         <MoneyInput
           value={computedItem.editableMiscCost}
@@ -636,39 +710,21 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             onMarkRowDirty(computedItem.id);
           }}
           ariaLabel={`${computedItemLabel} misc cost`}
-          onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 2 })}
+          onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 3 })}
           onBlur={() => {
-            setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 2 ? null : current));
+            setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 3 ? null : current));
             if (computedItem.miscCost !== computedItem.storedMiscCost) onUpdateRowItem(computedItem.id, { miscCost: computedItem.editableMiscCost });
           }}
-          onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2, rowIds, onRequestFocusByRowId)}
+          onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 3, rowIds, onRequestFocusByRowId)}
           data-estimate-row-index={rowIndex}
           data-estimate-row-id={computedItem.id}
-          data-estimate-cell-index={2}
+          data-estimate-cell-index={3}
         />
       </td>
       <td className="flex items-center justify-end border-r border-hairline px-1 text-right">
         <p className="text-[10px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
       </td>
-      <td className="grid grid-cols-2 place-content-center gap-1 py-2 text-tertiary">
-        {onOpenMoveRowItemDialog ? (
-          <Tooltip label="Move row" side="left" contentClassName="z-[1200]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              draggable
-              className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-              aria-label={`Move row ${computedItemLabel}`}
-              aria-haspopup="dialog"
-              data-estimate-row-move-action=""
-              onDragStart={handleRowItemDragStart}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenMoveRowItemDialog(computedItem.id, event.currentTarget)}
-            >
-              <DotsSixVertical size={14} weight="regular" aria-hidden="true" />
-            </Button>
-          </Tooltip>
-        ) : null}
+      <td className="grid grid-cols-1 place-content-center gap-1 py-2 text-tertiary">
         <Tooltip label="Row details" side="left" contentClassName="z-[1200]">
           <Button
             type="button"
@@ -882,6 +938,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       event.preventDefault();
       event.stopPropagation();
       event.dataTransfer.dropEffect = "move";
+      endEstimateWorkshopDrag();
       onMoveRowItem(rowItemPayload.rowItemId, targetNodeId, items.length);
       return;
     }
@@ -943,6 +1000,10 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
             <th scope="col" className={headerCellClassName("contingency", "text-center")}>
               Contingency
               {columnResize ? <EstimateRowColumnResizeHandle columnId="contingency" resizeController={columnResizeController} /> : null}
+            </th>
+            <th scope="col" className={headerCellClassName("discount", "text-center")}>
+              Discount
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="discount" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("subTotal")}>
               Subtotal
