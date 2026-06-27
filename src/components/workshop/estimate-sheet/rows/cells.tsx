@@ -639,7 +639,7 @@ function ExpressMaterialEditor({
             data-express-field="name"
             aria-label="Component name"
             placeholder="Component name"
-            className={cn(cardInputClass, "text-[10px] font-medium leading-4 text-ink placeholder:text-ink")}
+            className={cn(cardInputClass, "!text-[12px] font-medium leading-4 text-ink placeholder:text-ink")}
           />
         )}
         supplier={(
@@ -657,7 +657,7 @@ function ExpressMaterialEditor({
             data-express-field="supplier"
             aria-label="Supplier"
             placeholder="Supplier"
-            className={cn(cardInputClass, "text-[8px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
+            className={cn(cardInputClass, "!text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
           />
         )}
         cost={(

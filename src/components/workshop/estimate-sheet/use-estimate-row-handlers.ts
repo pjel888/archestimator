@@ -157,6 +157,8 @@ function createBlankEstimateRowTemplate(): EstimateRowItem {
     subTotal: 0,
     contingencyPercentage: 0,
     contingencyValue: 0,
+    adjustmentPercentage: 0,
+    adjustmentValue: 0,
     miscCost: 0,
     totalItemCosts: 0,
     category: "Unassigned",
@@ -181,6 +183,8 @@ function createExpressEstimateRowTemplate(): EstimateRowItem {
     subTotal: 0,
     contingencyPercentage: 0,
     contingencyValue: 0,
+    adjustmentPercentage: 0,
+    adjustmentValue: 0,
     miscCost: 0,
     totalItemCosts: 0,
     category: "Unassigned",
@@ -268,6 +272,8 @@ function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editable
     subTotal: amounts.subTotal,
     contingencyPercentage: amounts.contingencyPercentage,
     contingencyValue: amounts.contingencyValue,
+    adjustmentPercentage: amounts.adjustmentPercentage,
+    adjustmentValue: amounts.adjustmentValue,
     miscCost: amounts.miscCost,
     totalItemCosts: amounts.totalItemCosts,
   };
@@ -296,6 +302,8 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
     subTotal: amounts.subTotal,
     contingencyPercentage: amounts.contingencyPercentage,
     contingencyValue: amounts.contingencyValue,
+    adjustmentPercentage: amounts.adjustmentPercentage,
+    adjustmentValue: amounts.adjustmentValue,
     miscCost: amounts.miscCost,
     totalItemCosts: amounts.totalItemCosts,
   };
@@ -442,6 +450,7 @@ export function useEstimateRowHandlers({
       quantityContingencyAmount: values.quantityContingencyAmount ?? currentEditableRow?.quantityContingencyAmount ?? "",
       contingencyMode: values.contingencyMode ?? currentEditableRow?.contingencyMode ?? "contingency",
       contingencyPercentage: values.contingencyPercentage ?? currentEditableRow?.contingencyPercentage ?? "0",
+      adjustmentPercentage: values.adjustmentPercentage ?? currentEditableRow?.adjustmentPercentage ?? "0",
       miscCost: values.miscCost ?? currentEditableRow?.miscCost ?? "0",
     };
     const expressFieldNames = ["name", "description", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
@@ -462,6 +471,7 @@ export function useEstimateRowHandlers({
       || values.quantityBase !== undefined
       || values.quantityContingencyAmount !== undefined;
     const shouldPatchContingency = values.contingencyPercentage !== undefined || values.contingencyMode !== undefined || shouldPatchQuantity;
+    const shouldPatchAdjustment = values.adjustmentPercentage !== undefined;
 
     updateRow({
       projectId,
@@ -479,6 +489,7 @@ export function useEstimateRowHandlers({
         quantityContingencyAmount: nextAmounts.quantityContingencyAmount,
       } : {}),
       ...(shouldPatchContingency && nextAmounts ? { contingencyPercentage: nextAmounts.contingencyPercentage } : {}),
+      ...(shouldPatchAdjustment && nextAmounts ? { adjustmentPercentage: nextAmounts.adjustmentPercentage } : {}),
       ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
       ...(shouldPromoteLegacyBlankToExpress ? {
         metadata: withExpressComponentMetadata(currentRowItem?.metadata, {
@@ -840,7 +851,10 @@ export function useEstimateRowHandlers({
         unit: replacementItem.unit,
         unitCost: replacementItem.itemCost,
         quantity: replacementItem.quantity,
+        quantityBase: replacementItem.quantityBase ?? null,
+        quantityContingencyAmount: replacementItem.quantityContingencyAmount ?? null,
         contingencyPercentage: replacementItem.contingencyPercentage ?? 0,
+        adjustmentPercentage: replacementItem.adjustmentPercentage ?? 0,
         miscCost: replacementItem.miscCost,
         sourceSnapshot: null,
         metadata: getClearedEstimateRowMetadata(currentRowItem.metadata),

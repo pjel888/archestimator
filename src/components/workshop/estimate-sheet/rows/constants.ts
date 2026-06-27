@@ -74,6 +74,12 @@ export function readEstimateLibraryItemPayload(value: unknown): EstimateLibraryI
   if (value.contingencyValue !== undefined && !hasFiniteNumberField(value, "contingencyValue")) {
     return { ok: false, reason: "invalid_number_field", field: "contingencyValue" };
   }
+  if (value.adjustmentPercentage !== undefined && !hasFiniteNumberField(value, "adjustmentPercentage")) {
+    return { ok: false, reason: "invalid_number_field", field: "adjustmentPercentage" };
+  }
+  if (value.adjustmentValue !== undefined && !hasFiniteNumberField(value, "adjustmentValue")) {
+    return { ok: false, reason: "invalid_number_field", field: "adjustmentValue" };
+  }
 
   return { ok: true, item: value as EstimateRowItem };
 }

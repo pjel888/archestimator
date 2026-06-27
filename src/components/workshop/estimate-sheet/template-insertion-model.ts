@@ -22,9 +22,11 @@ export function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem): Estim
   const id = createEstimateRowItemId();
   const quantity = libraryItem.quantity || 1;
   const contingencyPercentage = libraryItem.contingencyPercentage ?? 0;
+  const adjustmentPercentage = libraryItem.adjustmentPercentage ?? (libraryItem.quantityBase === null || libraryItem.quantityBase === undefined ? contingencyPercentage : 0);
   const miscCost = libraryItem.miscCost ?? 0;
   const subTotal = libraryItem.itemCost * quantity;
-  const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
+  const contingencyValue = 0;
+  const adjustmentValue = calculateContingencyValue(subTotal, adjustmentPercentage);
   return {
     ...libraryItem,
     id,
@@ -32,8 +34,10 @@ export function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem): Estim
     subTotal,
     contingencyPercentage,
     contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
     miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
+    totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
   };
 }
 

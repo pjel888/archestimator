@@ -170,6 +170,7 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   quantityBase?: number | null;
   quantityContingencyAmount?: number | null;
   contingencyPercentage?: number;
+  adjustmentPercentage?: number;
   miscCost?: number;
   sourceSnapshot?: Json | null;
   metadata?: EstimateRowItem["metadata"];
@@ -214,6 +215,7 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
     ...(input.quantityBase !== undefined ? { quantityBase: input.quantityBase } : {}),
     ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: input.quantityContingencyAmount } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: input.contingencyPercentage } : {}),
+    ...(input.adjustmentPercentage !== undefined ? { adjustmentPercentage: input.adjustmentPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: input.miscCost } : {}),
     ...(input.sourceSnapshot !== undefined ? {
       sourceSnapshot: input.sourceSnapshot,
@@ -236,6 +238,7 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
     ...(input.quantityBase !== undefined ? { quantityBase: result.quantityBase } : {}),
     ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: result.quantityContingencyAmount } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: result.contingencyPercentage } : {}),
+    ...(input.adjustmentPercentage !== undefined ? { adjustmentPercentage: result.adjustmentPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
     ...(input.sourceSnapshot !== undefined ? {
       sourceSnapshot: result.sourceSnapshot,
@@ -651,6 +654,7 @@ export function useEstimateRowMutations(
             ...(input.quantityBase !== undefined ? { quantityBase: previousRow.quantityBase ?? null } : {}),
             ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: previousRow.quantityContingencyAmount ?? null } : {}),
             ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: previousRow.contingencyPercentage ?? 0 } : {}),
+            ...(input.adjustmentPercentage !== undefined ? { adjustmentPercentage: previousRow.adjustmentPercentage ?? 0 } : {}),
             ...(input.miscCost !== undefined ? { miscCost: previousRow.miscCost } : {}),
             ...(input.sourceSnapshot !== undefined ? { sourceSnapshot: previousRowJson?.sourceSnapshot ?? null } : {}),
             ...(input.metadata !== undefined ? { metadata: previousRowJson?.metadata ?? {} } : {}),

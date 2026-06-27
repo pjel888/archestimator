@@ -40,6 +40,8 @@ export type FlattenedEstimateRow = {
   quantity: number;
   contingencyPercentage: number;
   contingencyValue: number;
+  adjustmentPercentage: number;
+  adjustmentValue: number;
   miscCost: number;
   lineTotal: number;
 };

@@ -71,6 +71,12 @@ function formatCostAdjustmentPercentage(value: number) {
   return `${modeLabel} ${formatAuditNumber(Math.abs(clampContingencyPercentage(value)))}%`;
 }
 
+function formatSignedAdjustmentPercentage(value: number) {
+  const percentage = clampContingencyPercentage(value);
+  const sign = percentage > 0 ? "+" : "";
+  return `${sign}${formatAuditNumber(percentage)}%`;
+}
+
 function AddTreeActionIcon() {
   return (
     <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
@@ -212,10 +218,10 @@ type AuditComponentSnapshot = {
 
 const ROW_HISTORY_COMPONENT_EVENT_TYPES = new Set(["row_added", "row_replaced", "row_deleted"]);
 const ROW_HISTORY_COMPONENT_FIELDS = new Set(["linkState", "sourceLibraryItemId", "sourceSnapshot"]);
-const ROW_HISTORY_SCALAR_FIELDS = new Set(["quantity", "contingencyPercentage", "miscCost"]);
+const ROW_HISTORY_SCALAR_FIELDS = new Set(["quantity", "contingencyPercentage", "adjustmentPercentage", "miscCost"]);
 const AUDIT_DETAIL_LIMIT = 5;
 
-const ROW_REPLACED_DETAIL_FIELDS = ["material", "supplier", "unitCost", "unit", "quantity", "contingencyPercentage", "miscCost"];
+const ROW_REPLACED_DETAIL_FIELDS = ["material", "supplier", "unitCost", "unit", "quantity", "contingencyPercentage", "adjustmentPercentage", "miscCost"];
 const HIDDEN_AUDIT_FIELDS = new Set(["metadata"]);
 
 function shouldRenderRowHistoryComponent(event: EstimateSheetHistoryEvent) {
@@ -300,9 +306,13 @@ function formatAuditFieldValue(field: string, value: unknown, snapshot: Record<s
     return parsed === null ? formatted : `${formatted} ${getSnapshotUnit(snapshot)}`;
   }
   if (field === "contingencyPercentage") {
-    const contingencyValue = readOptionalNumber(snapshot.contingencyValue);
     const percentage = formatted.startsWith("Contingency ") ? formatted : `Contingency ${formatted}`;
-    return contingencyValue === null ? percentage : `${percentage} (${formatPeso(contingencyValue)})`;
+    return percentage;
+  }
+  if (field === "adjustmentPercentage") {
+    const adjustmentValue = readOptionalNumber(snapshot.adjustmentValue);
+    const percentage = formatSignedAdjustmentPercentage(readOptionalNumber(value) ?? 0);
+    return adjustmentValue === null ? percentage : `${percentage} (${formatPeso(adjustmentValue)})`;
   }
   return formatted;
 }
@@ -1149,7 +1159,8 @@ export function RowDetailsModal({
   const lineTotal = row?.lineTotal ?? item?.totalItemCosts ?? 0;
   const quantity = row?.quantity ?? item?.quantity ?? 0;
   const contingencyPercentage = row?.contingencyPercentage ?? item?.contingencyPercentage ?? 0;
-  const contingencyValue = row?.contingencyValue ?? item?.contingencyValue ?? 0;
+  const adjustmentPercentage = row?.adjustmentPercentage ?? item?.adjustmentPercentage ?? 0;
+  const adjustmentValue = row?.adjustmentValue ?? item?.adjustmentValue ?? 0;
   const miscCost = row?.miscCost ?? item?.miscCost ?? 0;
   const componentStatus = getRowDetailComponentStatus(item, isBlankRow);
   const showReferenceImage = Boolean(item && !isBlankRow && (!isExpressComponentRow(item) || item.imageUrl));
@@ -1202,7 +1213,7 @@ export function RowDetailsModal({
               <div className="mt-3 grid grid-cols-2 gap-x-3 border-t border-hairline">
                 <RowDetailField label="Qty" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
                 <RowDetailField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
-                <RowDetailField label="Adjustment" value={formatCostAdjustmentPercentage(contingencyPercentage)} />
+                <RowDetailField label="Adjustment" value={formatSignedAdjustmentPercentage(adjustmentPercentage)} />
                 <RowDetailField label="Total" value={formatPeso(lineTotal)} />
               </div>
             </div>
@@ -1231,7 +1242,8 @@ export function RowDetailsModal({
                   <RowDetailField label="Quantity" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
                   <RowDetailField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
                   <RowDetailField label="Subtotal" value={formatPeso(item?.subTotal ?? 0)} />
-                  <RowDetailField label="Adjustment" value={`${formatCostAdjustmentPercentage(contingencyPercentage)} (${formatPeso(contingencyValue)})`} />
+                  <RowDetailField label="QTY contingency" value={formatCostAdjustmentPercentage(contingencyPercentage)} />
+                  <RowDetailField label="Adjustment" value={`${formatSignedAdjustmentPercentage(adjustmentPercentage)} (${formatPeso(adjustmentValue)})`} />
                   <RowDetailField label="Misc cost" value={formatPeso(miscCost)} />
                   <RowDetailField label="Total" value={formatPeso(lineTotal)} />
                   <RowDetailField label="Unit" value={item?.unit} />
