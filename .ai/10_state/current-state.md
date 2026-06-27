@@ -42,6 +42,54 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Component images are provider-readback private, with direct denial proof still open (2026-06-27):**
+
+- Applied a linked Supabase migration to Archestimator project `ebxxqidacheyapmmzavr` that sets `storage.buckets.component-images.public=false` and drops the old `component images are publicly readable` storage policy.
+- Provider readback confirms `component-images.public=false`, the named public read policy is absent, and no remaining `storage.objects` policies reference `component-images`. Evidence lives in `.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-private-bucket-readback.json`.
+- Local migration history is aligned to the Supabase connector ledger as `supabase/migrations/20260627010904_20260627120000_make_component_images_private.sql` because the connector assigned provider version `20260627010904` while preserving the planned local name.
+- Release gates now include `UPLOAD-GATE-COMPONENT-IMAGE-PRIVATE-BUCKET-READBACK`; the privacy blocker remains only for direct unauthenticated object read-denial operation proof and a non-empty publication snapshot migration exercise.
+
+**Upload provider portability has local S3-like multipart and asset-descriptor parity coverage (2026-06-27):**
+
+- Added provider-neutral direct-upload contracts in `src/lib/uploads/provider-portability.ts` for signed single-part sessions, multipart resumable sessions, object-head finalization validation, and multipart part validation.
+- Local fake S3-like tests cover signed single-part checksum/ETag proof, object-scope binding, size/content-type guards, multipart part signing/completion, missing-part failure, and abort cleanup.
+- Added `src/lib/uploads/asset-descriptor-migration.ts` to normalize safe upload asset descriptors, brokered private component/project image URLs, and legacy public component-image URLs into provider-neutral bucket/path locators while keeping unsafe URLs and descriptor/URL mismatches in manual review.
+- Release-gate evidence now includes `UPLOAD-GATE-S3-LIKE-MULTIPART-PARITY-LOCAL` and `UPLOAD-GATE-ASSET-DESCRIPTOR-MIGRATION-PARITY-LOCAL`; platform portability remains blocked for real-provider signed/resumable implementation and proof.
+- Fresh evidence: focused provider-portability/release-gate matrix passed (`2 files / 4 tests`), focused asset-descriptor/release-gate matrix passed (`2 files / 6 tests`), expanded upload matrix passed (`23 files / 159 tests`), `bunx tsc --noEmit --pretty false`, three-artifact JSON parse, scoped ESLint, and `git diff --check`.
+
+**Component image persisted provider scan is aggregate-readback verified, not operation-proof complete (2026-06-27):**
+
+- Linked Supabase aggregate scan for project `ebxxqidacheyapmmzavr` found zero persisted legacy public component-image URLs, zero `upload_assets` component-image records, and zero publication/version snapshot image rows; three estimate-row image references remain non-provider snapshot references.
+- Evidence lives in `.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-provider-scan.json`, and release gates include `UPLOAD-GATE-COMPONENT-IMAGE-PERSISTED-SCAN-READBACK`.
+- This scan did not itself make component-image privacy complete: direct provider read-denial operation proof was not captured, publication snapshot migration is not exercised against non-empty publication data, and bucket privacy is tracked separately in `upload-component-image-private-bucket-readback.json`.
+- Fresh evidence: focused provider-scan/release-gate matrix passed (`2 files / 4 tests`), expanded upload matrix passed (`24 files / 161 tests`), `bunx tsc --noEmit --pretty false`, four-artifact JSON parse, scoped ESLint, and `git diff --check`.
+
+**Linked Supabase migrations reconciled and provider ledger is up to date (2026-06-27):**
+
+- Target project verified as Archestimator `ebxxqidacheyapmmzavr`.
+- The linked provider ledger already contained the row reorganization, quantity adjustment, route-context follow-up, and row-move idempotency migrations: `20260627090000`, `20260627103000`, `20260627114500`, and `20260627115000`.
+- Applied and recorded the five upload-domain migrations through the authenticated Supabase connector because the shell CLI lacked `SUPABASE_DB_PASSWORD`: `20260626183000_upload_storage_direct_write_containment`, `20260626184000_freeze_unscanned_component_attachment_approval`, `20260626190000_upload_domain_tables`, `20260626194500_upload_scan_status_taxonomy`, and `20260626200000_upload_scan_lifecycle_contracts`.
+- Provider verification: migration ledger lists all five upload versions plus the recent row/quantity versions; `upload_sessions`, `upload_assets`, and `upload_events` exist with RLS enabled; upload enum labels include scan lifecycle values; public upload tables expose only authenticated SELECT policies; direct storage policies removed by the containment migration are absent; upload functions have expected authenticated/service-role execute grants.
+- Fetched the four remote-only legacy alias migration files into `supabase/migrations/` with `supabase migration fetch --linked`: `20260621105407`, `20260621112542`, `20260626124656`, and `20260626130006`.
+- Applied the 20 older local-only migrations with `supabase db push --linked --include-all --yes`, including project groups, workspace homebase, shared-link, route-context, and historical hardening migrations that had been inserted before the latest remote migration.
+- Final provider verification: regenerated local/provider drift query returned `local_count=158`, `remote_count=158`, and `drift_rows=[]`; `supabase db push --linked --dry-run` now reports `Remote database is up to date.`
+
+**Quantity add-ons and sheet-level adjustments are locally implemented (2026-06-27):**
+
+- Estimate rows now support strict base-plus-add-on quantity expressions such as `100+20`, persisted as `quantity_base` and `quantity_contingency_amount`; row contingency percentages convert into quantity add-ons instead of extra row-level money.
+- Estimate sheets now have one root totals adjustment row (`contingency` or `discount`) persisted in `estimate_sheet_adjustments`, included in route context, proposal preview/export totals, and version snapshots/restores.
+- Migration `20260627103000_quantity_contingency_and_sheet_adjustments.sql` adds the row quantity columns, sheet adjustment table/RLS, RPC/read-model updates, and forward-compatible row/node undo plus restore-as-copy handling for quantity fields and sheet adjustment snapshots.
+- Fresh evidence: targeted DOM/model/schema bundle passed (`7 files / 115 tests`), `bun run type-check`, and `git diff --check`.
+- Completed plan pack archived to `.ai/09_archive/2026-06-26-Quantity-Plus-Adjustment-Improvement/`.
+
+**Estimate row reorganization is complete and browser-proven (2026-06-27):**
+
+- The approved row-reorganization plan is implemented for same-branch reorder, cross-branch row moves, left-tree append drops, a keyboard/touch Move row dialog, and a right-side row action fallback outside the compact drag rail. Row movement is disabled when the initial tree is load-limited so the client cannot submit partial sibling order.
+- Persistence runs through `moveEstimateRowItemWithHistory` and `move_estimate_row_item_with_history`; the RPC derives the actor from `auth.uid()`, validates source/target tab membership and row revisions, defers the unique sort constraint, rechecks idempotency after locking, writes `row_reorganized`, and returns full source/target sibling rows with persisted `sort_order` for client reconciliation. Successful row moves clear the estimate route-context process cache before returning.
+- Linked Supabase project `ebxxqidacheyapmmzavr` has the row-move and follow-up migrations applied: `20260627090000`, dependency `20260627103000`, route-context row sort order `20260627114500`, and idempotency recheck `20260627115000`.
+- Fresh evidence passed: focused Vitest row matrix (4 files / 47 tests), row helper unit matrix (11 tests), `node scripts/prove-estimate-row-item-move-rpc-postgres.mjs`, `bun run type-check -- --pretty false`, scoped ESLint with 0 errors, authenticated Chromium proof `ARCHESTIMATOR_E2E_ROW_MOVE=1 bunx playwright test e2e/estimate-row-move.spec.ts --project=chromium --reporter=list`, zero E2E fixture residue, and `git diff --check`.
+- Completed plan pack archived to `.ai/09_archive/2026-06-26-Reorganize-Existing-Estimate-Row-Items/`.
+
 **Agent workflow validation hardening is locally verified (2026-06-27):**
 
 - `bun run validate:agents` now enforces `.ai/12_agents/payloads/*.md`
