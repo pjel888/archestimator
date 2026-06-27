@@ -25,6 +25,13 @@ vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
 vi.mock("@supabase/supabase-js", () => supabaseJsMocks);
 
+const DEFAULT_WORKSPACE_ID = "workspace-1";
+const DEFAULT_USER_ID = "user-1";
+const PNG_1X1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+  "base64",
+);
+
 function read(relativePath: string) {
   return readFileSync(join(process.cwd(), relativePath), "utf8");
 }
@@ -40,13 +47,13 @@ function expectAuthBeforeBodyParsing(source: string) {
 
 function mockCurrentWorkspace() {
   workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({
-    workspace: { id: "workspace-1" },
+    workspace: { id: DEFAULT_WORKSPACE_ID },
   });
   authMocks.requireCurrentUserContext.mockResolvedValue({
-    userId: "user-1",
+    userId: DEFAULT_USER_ID,
   });
   authMocks.getCurrentUserContext.mockResolvedValue({
-    userId: "user-1",
+    userId: DEFAULT_USER_ID,
   });
 }
 
@@ -65,6 +72,10 @@ function createFormRequest(formData: FormData) {
   } as unknown as Request;
 }
 
+function createPngFile(name = "reference.png") {
+  return new File([PNG_1X1], name, { type: "image/png" });
+}
+
 function createUnparsedFormRequest() {
   return {
     headers: new Headers(),
@@ -72,24 +83,98 @@ function createUnparsedFormRequest() {
   } as unknown as Request & { formData: ReturnType<typeof vi.fn> };
 }
 
-function mockStorageClient(attachmentRows: Array<Record<string, unknown>> = []) {
+function mockStorageClient(
+  attachmentRows: Array<Record<string, unknown>> = [],
+  options: {
+    attachmentLookupRow?: Record<string, unknown> | null;
+    attachmentLookupError?: { message: string } | null;
+    uploadAssetLookupRow?: Record<string, unknown> | null;
+    uploadAssetLookupError?: { message: string } | null;
+    uploadEventInsertError?: { message: string } | null;
+    downloadBlob?: Blob;
+  } = {},
+) {
   const remove = vi.fn(async () => ({ error: null }));
   const upload = vi.fn(async () => ({ error: null }));
-  const download = vi.fn(async () => ({ data: new Blob(["image"], { type: "image/webp" }), error: null }));
+  const download = vi.fn(async () => ({ data: options.downloadBlob ?? new Blob(["image"], { type: "image/webp" }), error: null }));
   const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://cdn.example/file" } }));
   const storageFrom = vi.fn(() => ({ remove, upload, download, getPublicUrl }));
+  const rpc = vi.fn(async (_name: string, args?: Record<string, unknown>) => ({
+    data: {
+      uploadSessionId: "session-1",
+      assetId: "asset-1",
+      scanStatus: args?.scan_status ?? "not_required",
+    },
+    error: null,
+  }));
   const attachmentQuery = {
     select: vi.fn(() => attachmentQuery),
     eq: vi.fn(() => attachmentQuery),
     in: vi.fn(async () => ({ data: attachmentRows, error: null })),
+    maybeSingle: vi.fn(async () => ({
+      data: options.attachmentLookupRow ?? null,
+      error: options.attachmentLookupError ?? null,
+    })),
   };
-  const dbFrom = vi.fn(() => attachmentQuery);
-  const client = { from: dbFrom, storage: { from: storageFrom } };
+  const uploadAssetQuery = {
+    select: vi.fn(() => uploadAssetQuery),
+    eq: vi.fn(() => uploadAssetQuery),
+    maybeSingle: vi.fn(async () => ({
+      data: options.uploadAssetLookupRow ?? null,
+      error: options.uploadAssetLookupError ?? null,
+    })),
+  };
+  const uploadEventsQuery = {
+    insert: vi.fn(async () => ({ error: options.uploadEventInsertError ?? null })),
+  };
+  const dbFrom = vi.fn((table: string) => {
+    if (table === "upload_assets") return uploadAssetQuery;
+    if (table === "upload_events") return uploadEventsQuery;
+    return attachmentQuery;
+  });
+  const client = { from: dbFrom, rpc, storage: { from: storageFrom } };
   supabaseJsMocks.createClient.mockReturnValue(client);
-  return { client, from: storageFrom, dbFrom, remove, upload, download, getPublicUrl };
+  return {
+    client,
+    from: storageFrom,
+    dbFrom,
+    rpc,
+    remove,
+    upload,
+    download,
+    getPublicUrl,
+    attachmentQuery,
+    uploadAssetQuery,
+    uploadEventsQuery,
+  };
 }
 
-function mockProjectLookup(data: { id: string; workspace_id: string } | null = null) {
+function createRpcMock(options: {
+  canEditProject?: boolean;
+  canEditEstimate?: boolean;
+  canManageLibrary?: boolean;
+  rpcError?: { message: string };
+} = {}) {
+  return vi.fn(async (name: string) => {
+    if (options.rpcError) return { data: null, error: options.rpcError };
+    if (name === "can_edit_project") return { data: options.canEditProject ?? true, error: null };
+    if (name === "can_edit_estimate") return { data: options.canEditEstimate ?? true, error: null };
+    if (name === "is_workspace_editor") return { data: options.canManageLibrary ?? true, error: null };
+    return { data: null, error: { message: `Unexpected rpc ${name}` } };
+  });
+}
+
+function mockServerRpc(options: Parameters<typeof createRpcMock>[0] = {}) {
+  const rpc = createRpcMock(options);
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ rpc });
+  return { rpc };
+}
+
+function mockProjectLookup(
+  data: { id: string; workspace_id: string } | null = null,
+  options: Parameters<typeof createRpcMock>[0] = {},
+) {
+  const rpc = createRpcMock(options);
   const maybeSingle = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
   const single = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
   const query = {
@@ -99,8 +184,8 @@ function mockProjectLookup(data: { id: string; workspace_id: string } | null = n
     single,
   };
   const from = vi.fn(() => query);
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from });
-  return { from, maybeSingle, single };
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+  return { from, maybeSingle, single, rpc };
 }
 
 beforeEach(() => {
@@ -110,6 +195,7 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role");
   mockCurrentWorkspace();
+  mockServerRpc();
 });
 
 describe("sensitive API auth boundaries", () => {
@@ -118,9 +204,16 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
+    expect(source).toContain("is_workspace_editor");
+    expect(source).toContain("uploadSessionId");
+    expect(source).toContain("assetId");
+    expect(source).toContain("scanStatus");
     expect(source).toContain("isOwnedUploadPath");
     expect(source).toContain('path.startsWith(`${workspaceId}/${userId}/`)');
     expect(source).toContain('!path.includes("..")');
+    expect(source).toContain("createComponentImageRouteUrl(path)");
+    expect(source).toContain("parseComponentImageStoragePath");
+    expect(source).not.toContain(".getPublicUrl(path)");
     expect(source).toContain("persistSession: false");
   });
 
@@ -129,6 +222,10 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
+    expect(source).toContain("is_workspace_editor");
+    expect(source).toContain("uploadSessionId");
+    expect(source).toContain("assetId");
+    expect(source).toContain("scanStatus");
     expect(source).toContain("isOwnedAttachmentPath");
     expect(source).toContain('path.startsWith(`${workspaceId}/${userId}/`)');
     expect(source).toContain('!path.includes("..")');
@@ -140,11 +237,44 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
+    expect(source).toContain("can_edit_project");
+    expect(source).toContain("uploadSessionId");
+    expect(source).toContain("assetId");
+    expect(source).toContain("scanStatus");
     expect(source).toContain('.eq("workspace_id", workspace.id)');
     expect(source).toContain("isOwnedUploadPath");
     expect(source).toContain("parseProjectImageStoragePath(path)");
     expect(source).toContain("parsed.workspaceId === workspaceId");
     expect(source).toContain("parsed.ownerUserId === userId");
+  });
+
+  it("keeps estimate row image uploads scoped to an editable project estimate instead of library managers", () => {
+    const source = read("src/app/api/estimate-row-images/route.ts");
+
+    expectAuthBeforeBodyParsing(source);
+    expect(source).toContain("ensureDefaultWorkspace()");
+    expect(source).toContain("can_edit_project");
+    expect(source).toContain("can_edit_estimate");
+    expect(source).not.toContain("is_workspace_editor");
+    expect(source).toContain(".from(\"projects\")");
+    expect(source).toContain(".from(\"estimates\")");
+    expect(source).toContain(".from(\"estimate_row_items\")");
+    expect(source).toContain(".eq(\"workspace_id\", workspace.id)");
+    expect(source).toContain(".eq(\"project_id\", projectId)");
+    expect(source).toContain(".eq(\"estimate_id\", estimateId)");
+    expect(source).toContain("uploadSessionId");
+    expect(source).toContain("assetId");
+    expect(source).toContain("imageAsset");
+    expect(source).toContain("scanStatus");
+    expect(source).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
+    expect(source).toContain("PROJECT_IMAGE_PATH_SEGMENT");
+    expect(source).toContain("createProjectImageRouteUrl(path)");
+    expect(source).toContain('surface: "project-image"');
+    expect(source).toContain("targetEntityType: \"estimate-row\"");
+    expect(source).toContain("targetEntityId: projectId");
+    expect(source).toContain("PROJECT_IMAGE_BUCKET");
+    expect(source).not.toContain('const COMPONENT_IMAGE_BUCKET = "component-images"');
+    expect(source).not.toContain(".getPublicUrl(path)");
   });
 
   it("keeps proposal export behind the current workspace repository boundary", () => {
@@ -167,6 +297,26 @@ describe("sensitive API auth boundaries", () => {
     expect(request.formData).not.toHaveBeenCalled();
   });
 
+  it("rejects component image uploads before parsing bodies when the user cannot manage the library", async () => {
+    const storage = mockStorageClient();
+    const server = mockServerRpc({ canManageLibrary: false });
+    const request = createUnparsedFormRequest();
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only workspace editors/admins can manage the library.",
+    });
+    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
+      target_workspace_id: DEFAULT_WORKSPACE_ID,
+    });
+    expect(request.formData).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
   it("rejects component attachment uploads before parsing bodies when auth fails", async () => {
     authMocks.requireCurrentUserContext.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
     const request = createUnparsedFormRequest();
@@ -175,6 +325,26 @@ describe("sensitive API auth boundaries", () => {
     await expect(POST(request)).rejects.toThrow("NEXT_REDIRECT:/login");
 
     expect(request.formData).not.toHaveBeenCalled();
+  });
+
+  it("rejects component attachment uploads before parsing bodies when the user cannot manage the library", async () => {
+    const storage = mockStorageClient();
+    const server = mockServerRpc({ canManageLibrary: false });
+    const request = createUnparsedFormRequest();
+    const { POST } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only workspace editors/admins can manage the library.",
+    });
+    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
+      target_workspace_id: DEFAULT_WORKSPACE_ID,
+    });
+    expect(request.formData).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
   });
 
   it("does not expose component attachment storage errors to clients", async () => {
@@ -198,6 +368,243 @@ describe("sensitive API auth boundaries", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it("removes a stored component attachment when upload record persistence fails", async () => {
+    const storage = mockStorageClient();
+    storage.rpc.mockResolvedValueOnce({ data: null, error: { message: "record failed" } });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const formData = new FormData();
+    formData.set("file", new File([Buffer.from("%PDF-1.7\n%test")], "spec.pdf", { type: "application/pdf" }));
+    const { POST } = await import("@/app/api/component-library/attachments/route");
+
+    try {
+      const response = await POST(createFormRequest(formData));
+
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({ error: "Could not store attachment." });
+      expect(storage.upload).toHaveBeenCalledOnce();
+      expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
+        storage_bucket: "component-attachments",
+        scan_status: "pending",
+      }));
+      expect(storage.remove).toHaveBeenCalledWith([
+        expect.stringMatching(/^workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/),
+      ]);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("uploads component images through storage plus atomic asset records and returns resolver URLs", async () => {
+    const storage = mockStorageClient();
+    const formData = new FormData();
+    formData.set("file", createPngFile("Library Hero.PNG"));
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      bucket: "component-images",
+      uploadSessionId: "session-1",
+      assetId: "asset-1",
+      scanStatus: "not_required",
+      url: expect.stringContaining("/api/component-library/images?path="),
+      thumbnailUrl: expect.stringContaining("/api/component-library/images?path="),
+      contentType: "image/webp",
+    });
+    expect(storage.from).toHaveBeenCalledWith("component-images");
+    expect(storage.upload).toHaveBeenCalledTimes(2);
+    expect(storage.upload).toHaveBeenNthCalledWith(1, expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/), expect.any(Buffer), expect.objectContaining({
+      contentType: "image/webp",
+      upsert: false,
+    }));
+    expect(storage.upload).toHaveBeenNthCalledWith(2, expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+-thumb\.webp$/), expect.any(Buffer), expect.objectContaining({
+      contentType: "image/webp",
+      upsert: false,
+    }));
+    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
+      upload_surface: "component-image",
+      target_entity_type: "component-library",
+      target_entity_id: null,
+      storage_bucket: "component-images",
+      storage_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
+      thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+-thumb\.webp$/),
+      scan_status: "not_required",
+    }));
+  });
+
+  it("uploads project images through private project storage plus atomic asset records", async () => {
+    const storage = mockStorageClient();
+    mockProjectLookup({ id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID });
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("file", createPngFile("Project Cover.PNG"));
+    const { POST } = await import("@/app/api/projects/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      bucket: "project-images",
+      uploadSessionId: "session-1",
+      assetId: "asset-1",
+      scanStatus: "not_required",
+      url: expect.stringContaining("/api/projects/images?path="),
+      thumbnailUrl: expect.stringContaining("/api/projects/images?path="),
+      contentType: "image/webp",
+    });
+    expect(storage.from).toHaveBeenCalledWith("project-images");
+    expect(storage.upload).toHaveBeenCalledTimes(2);
+    expect(storage.upload).toHaveBeenNthCalledWith(1, expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+\.webp$/), expect.any(Buffer), expect.objectContaining({
+      contentType: "image/webp",
+      upsert: false,
+    }));
+    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
+      upload_surface: "project-image",
+      target_entity_type: "project",
+      target_entity_id: "project-1",
+      storage_bucket: "project-images",
+      storage_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+\.webp$/),
+      thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+-thumb\.webp$/),
+      scan_status: "not_required",
+    }));
+  });
+
+  it("uploads estimate row images into the private project image bucket and returns row asset descriptors", async () => {
+    const storage = mockStorageClient();
+    const rpc = createRpcMock({ canEditProject: true, canEditEstimate: false });
+    const projectQuery = {
+      select: vi.fn(() => projectQuery),
+      eq: vi.fn(() => projectQuery),
+      single: vi.fn(async () => ({ data: { id: "project-1" }, error: null })),
+    };
+    const estimateQuery = {
+      select: vi.fn(() => estimateQuery),
+      eq: vi.fn(() => estimateQuery),
+      single: vi.fn(async () => ({ data: { id: "estimate-1", project_id: "project-1" }, error: null })),
+    };
+    const rowQuery = {
+      select: vi.fn(() => rowQuery),
+      eq: vi.fn(() => rowQuery),
+      single: vi.fn(async () => ({ data: { id: "row-1" }, error: null })),
+    };
+    const from = vi.fn((table: string) => {
+      if (table === "projects") return projectQuery;
+      if (table === "estimates") return estimateQuery;
+      return rowQuery;
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("estimateId", "estimate-1");
+    formData.set("rowItemId", "row-1");
+    formData.set("file", createPngFile("Reference.PNG"));
+    const { POST } = await import("@/app/api/estimate-row-images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      bucket: "project-images",
+      uploadSessionId: "session-1",
+      assetId: "asset-1",
+      scanStatus: "not_required",
+      path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+\.webp$/),
+      url: expect.stringContaining("/api/projects/images?path="),
+      imageAsset: {
+        kind: "upload-asset",
+        schemaVersion: 1,
+        bucket: "project-images",
+        url: expect.stringContaining("/api/projects/images?path="),
+        scanStatus: "not_required",
+      },
+    });
+    expect(storage.from).toHaveBeenCalledWith("project-images");
+    expect(storage.upload).toHaveBeenCalledTimes(2);
+    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
+      upload_surface: "project-image",
+      target_entity_type: "estimate-row",
+      target_entity_id: "project-1",
+      storage_bucket: "project-images",
+      storage_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+\.webp$/),
+      thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+-thumb\.webp$/),
+      scan_status: "not_required",
+      metadata: expect.objectContaining({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        rowItemId: "row-1",
+      }),
+    }));
+  });
+
+  it("rejects oversized image requests before auth, body parsing, or storage work", async () => {
+    const storage = mockStorageClient();
+    const request = {
+      headers: new Headers({ "content-length": String(14 * 1024 * 1024) }),
+      formData: vi.fn(async () => new FormData()),
+    } as unknown as Request & { formData: ReturnType<typeof vi.fn> };
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Image upload is too large. Compress or choose an image under 12 MB.",
+    });
+    expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
+    expect(request.formData).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects image MIME and magic mismatches before storage writes or upload records", async () => {
+    const storage = mockStorageClient();
+    const formData = new FormData();
+    formData.set("file", new File([Buffer.from("not actually a png")], "fake.png", { type: "image/png" }));
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "The uploaded file does not look like a supported image.",
+    });
+    expect(storage.upload).not.toHaveBeenCalled();
+    expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
+  });
+
+  it("rejects empty image uploads before storage writes", async () => {
+    const storage = mockStorageClient();
+    const formData = new FormData();
+    formData.set("file", new File([], "empty.png", { type: "image/png" }));
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Image file is empty.",
+    });
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects fake XLSX attachments before storage writes or upload records", async () => {
+    const storage = mockStorageClient();
+    const formData = new FormData();
+    formData.set("file", new File([Buffer.from("PK\x03\x04[Content_Types].xml")], "fake.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }));
+    const { POST } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "The uploaded file does not look like a supported attachment.",
+    });
+    expect(storage.upload).not.toHaveBeenCalled();
+    expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
   });
 
   it("rejects project image uploads before parsing bodies when auth fails", async () => {
@@ -240,6 +647,26 @@ describe("sensitive API auth boundaries", () => {
     ]);
   });
 
+  it("rejects component image deletion when the user cannot manage the library", async () => {
+    const storage = mockStorageClient();
+    const server = mockServerRpc({ canManageLibrary: false });
+    const { DELETE } = await import("@/app/api/component-library/images/route");
+
+    const response = await DELETE(createJsonRequest({
+      paths: ["workspace-1/user-1/component.webp"],
+    }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only workspace editors/admins can manage the library.",
+    });
+    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
+      target_workspace_id: DEFAULT_WORKSPACE_ID,
+    });
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
   it("rejects component image delete requests with no owned paths before storage writes", async () => {
     const storage = mockStorageClient();
     const { DELETE } = await import("@/app/api/component-library/images/route");
@@ -258,6 +685,51 @@ describe("sensitive API auth boundaries", () => {
     });
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it("serves component images through a private workspace resolver", async () => {
+    const storage = mockStorageClient();
+    const path = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/component.webp`;
+    const { GET } = await import("@/app/api/component-library/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(response.headers.get("cache-control")).toBe("private, max-age=86400, immutable");
+    expect(storage.from).toHaveBeenCalledWith("component-images");
+    expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
+  it("denies component image resolver requests for another workspace before storage download", async () => {
+    const storage = mockStorageClient();
+    const path = `workspace-2/${DEFAULT_USER_ID}/component.webp`;
+    const { GET } = await import("@/app/api/component-library/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Image could not be found.",
+    });
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with no-store for malformed component image paths before auth", async () => {
+    const storage = mockStorageClient();
+    const { GET } = await import("@/app/api/component-library/images/route");
+
+    const response = await GET(new Request("http://localhost/api/component-library/images?path=../escape.webp"));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Image could not be found.",
+    });
+    expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
   });
 
   it("removes only owned component attachment paths", async () => {
@@ -288,6 +760,26 @@ describe("sensitive API auth boundaries", () => {
       "workspace-1/user-1/spec.pdf",
       "workspace-1/user-1/schedule.xlsx",
     ]);
+  });
+
+  it("rejects component attachment deletion when the user cannot manage the library", async () => {
+    const storage = mockStorageClient();
+    const server = mockServerRpc({ canManageLibrary: false });
+    const { DELETE } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await DELETE(createJsonRequest({
+      paths: ["workspace-1/user-1/spec.pdf"],
+    }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only workspace editors/admins can manage the library.",
+    });
+    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
+      target_workspace_id: DEFAULT_WORKSPACE_ID,
+    });
+    expect(storage.dbFrom).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
   });
 
   it("blocks draft cleanup from deleting reviewed Library attachments", async () => {
@@ -330,6 +822,201 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.remove).not.toHaveBeenCalled();
   });
 
+  it("fails closed for malformed component attachment download ids before auth", async () => {
+    const storage = mockStorageClient();
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await GET(new Request("http://localhost/api/component-library/attachments?id=not-a-uuid"));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Attachment could not be found.",
+    });
+    expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
+    expect(storage.dbFrom).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it("refuses component attachment downloads until the upload asset is scan-clean", async () => {
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
+    const storage = mockStorageClient([], {
+      attachmentLookupRow: {
+        id: attachmentId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        file_name: "spec.pdf",
+        content_type: "application/pdf",
+        size_bytes: 8,
+        review_status: "uploaded",
+        is_current_approved: false,
+      },
+      uploadAssetLookupRow: {
+        id: "22222222-2222-4222-8222-222222222222",
+        upload_session_id: "33333333-3333-4333-8333-333333333333",
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        surface: "component-attachment",
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        status: "finalized",
+        scan_status: "pending",
+      },
+    });
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/attachments?id=${attachmentId}`));
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Attachment is not available until scanning is complete.",
+    });
+    expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
+    expect(storage.dbFrom).toHaveBeenCalledWith("upload_assets");
+    expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["wrong workspace", { workspace_id: "workspace-2", scan_status: "clean", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["wrong surface", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "clean", status: "finalized", surface: "component-image", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["wrong bucket", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "clean", status: "finalized", surface: "component-attachment", storage_bucket: "component-images", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["wrong path", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "clean", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/other.pdf` }],
+    ["non-finalized", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "clean", status: "reserved", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["infected", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "infected", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["unsupported", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "unsupported", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["transient scan failure", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "failed_transient", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["permanent scan failure", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "failed_permanent", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+    ["override not yet enabled for downloads", { workspace_id: DEFAULT_WORKSPACE_ID, scan_status: "override_approved", status: "finalized", surface: "component-attachment", storage_bucket: "component-attachments", storage_path: `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf` }],
+  ])("refuses component attachment downloads for %s upload asset rows", async (_caseName, assetOverrides) => {
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
+    const storage = mockStorageClient([], {
+      attachmentLookupRow: {
+        id: attachmentId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        file_name: "spec.pdf",
+        content_type: "application/pdf",
+        size_bytes: 8,
+        review_status: "approved",
+        is_current_approved: true,
+      },
+      uploadAssetLookupRow: {
+        id: "22222222-2222-4222-8222-222222222222",
+        upload_session_id: "33333333-3333-4333-8333-333333333333",
+        ...assetOverrides,
+      },
+    });
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/attachments?id=${attachmentId}`));
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Attachment is not available until scanning is complete.",
+    });
+    expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it("refuses component attachment downloads when audit insertion fails", async () => {
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
+    const storage = mockStorageClient([], {
+      uploadEventInsertError: { message: "audit table unavailable" },
+      attachmentLookupRow: {
+        id: attachmentId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        file_name: "spec.pdf",
+        content_type: "application/pdf",
+        size_bytes: 8,
+        review_status: "approved",
+        is_current_approved: true,
+      },
+      uploadAssetLookupRow: {
+        id: "22222222-2222-4222-8222-222222222222",
+        upload_session_id: "33333333-3333-4333-8333-333333333333",
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        surface: "component-attachment",
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        status: "finalized",
+        scan_status: "clean",
+      },
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    try {
+      const response = await GET(new Request(`http://localhost/api/component-library/attachments?id=${attachmentId}`));
+
+      expect(response.status).toBe(409);
+      expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+      await expect(response.json()).resolves.toEqual({
+        error: "Attachment download could not be audited.",
+      });
+      expect(storage.uploadEventsQuery.insert).toHaveBeenCalledOnce();
+      expect(storage.download).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("audits and serves component attachment downloads only after scan-clean finalization", async () => {
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    const assetId = "22222222-2222-4222-8222-222222222222";
+    const sessionId = "33333333-3333-4333-8333-333333333333";
+    const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
+    const storage = mockStorageClient([], {
+      downloadBlob: new Blob(["%PDF-1.7"], { type: "application/pdf" }),
+      attachmentLookupRow: {
+        id: attachmentId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        file_name: "spec.pdf",
+        content_type: "application/pdf",
+        size_bytes: 8,
+        review_status: "approved",
+        is_current_approved: true,
+      },
+      uploadAssetLookupRow: {
+        id: assetId,
+        upload_session_id: sessionId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        surface: "component-attachment",
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        status: "finalized",
+        scan_status: "clean",
+      },
+    });
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/attachments?id=${attachmentId}`));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    expect(response.headers.get("content-disposition")).toBe('attachment; filename="spec.pdf"');
+    expect(response.headers.get("cache-control")).toBe("private, max-age=300");
+    expect(storage.uploadEventsQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
+      workspace_id: DEFAULT_WORKSPACE_ID,
+      upload_session_id: sessionId,
+      upload_asset_id: assetId,
+      actor_user_id: DEFAULT_USER_ID,
+      event_type: "download_url_issued",
+    }));
+    expect(storage.from).toHaveBeenCalledWith("component-attachments");
+    expect(storage.download).toHaveBeenCalledWith(storagePath);
+  });
+
   it("removes only owned project image paths", async () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const userId = "22222222-2222-4222-8222-222222222222";
@@ -337,6 +1024,7 @@ describe("sensitive API auth boundaries", () => {
     workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: workspaceId } });
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId });
     const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup({ id: projectId, workspace_id: workspaceId });
     const { DELETE } = await import("@/app/api/projects/images/route");
 
     const response = await DELETE(createJsonRequest({
@@ -357,11 +1045,39 @@ describe("sensitive API auth boundaries", () => {
         `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
       ],
     });
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
+      target_project_id: projectId,
+    });
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.remove).toHaveBeenCalledWith([
       `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
       `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
     ]);
+  });
+
+  it("rejects project image deletion when the user cannot edit the project", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const userId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: workspaceId } });
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId });
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup({ id: projectId, workspace_id: workspaceId }, { canEditProject: false });
+    const { DELETE } = await import("@/app/api/projects/images/route");
+
+    const response = await DELETE(createJsonRequest({
+      paths: [`${workspaceId}/${userId}/project-images/${projectId}/image.webp`],
+    }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "You do not have permission to edit this project.",
+    });
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
+      target_project_id: projectId,
+    });
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
   });
 
   it("serves private project images only after authenticated project access resolves", async () => {
@@ -437,6 +1153,163 @@ describe("sensitive API auth boundaries", () => {
     });
     expect(projectLookup.from).toHaveBeenCalledWith("projects");
     expect(projectLookup.single).toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects project image uploads when the user cannot edit the project before file decoding or storage writes", async () => {
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup(
+      { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
+      { canEditProject: false },
+    );
+    const file = new window.File(["not decoded"], "project.png", { type: "image/png" });
+    const arrayBuffer = vi.spyOn(file, "arrayBuffer");
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("file", file);
+    const { POST } = await import("@/app/api/projects/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "You do not have permission to edit this project.",
+    });
+    expect(projectLookup.from).toHaveBeenCalledWith("projects");
+    expect(projectLookup.single).toHaveBeenCalled();
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
+      target_project_id: "project-1",
+    });
+    expect(arrayBuffer).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects estimate row image uploads before parsing bodies when auth fails", async () => {
+    authMocks.requireCurrentUserContext.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
+    const request = createUnparsedFormRequest();
+    const { POST } = await import("@/app/api/estimate-row-images/route");
+
+    await expect(POST(request)).rejects.toThrow("NEXT_REDIRECT:/login");
+
+    expect(request.formData).not.toHaveBeenCalled();
+  });
+
+  it("rejects estimate row image uploads for estimates outside the current project before file decoding or storage writes", async () => {
+    const storage = mockStorageClient();
+    const rpc = createRpcMock();
+    const projectQuery = {
+      select: vi.fn(() => projectQuery),
+      eq: vi.fn(() => projectQuery),
+      single: vi.fn(async () => ({ data: { id: "project-1" }, error: null })),
+    };
+    const estimateQuery = {
+      select: vi.fn(() => estimateQuery),
+      eq: vi.fn(() => estimateQuery),
+      single: vi.fn(async () => ({ data: null, error: { message: "not found" } })),
+    };
+    const from = vi.fn((table: string) => (table === "projects" ? projectQuery : estimateQuery));
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const file = new window.File(["not decoded"], "estimate-row.png", { type: "image/png" });
+    const arrayBuffer = vi.spyOn(file, "arrayBuffer");
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("estimateId", "estimate-2");
+    formData.set("rowItemId", "row-1");
+    formData.set("file", file);
+    const { POST } = await import("@/app/api/estimate-row-images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "Estimate could not be found.",
+    });
+    expect(from).toHaveBeenCalledWith("projects");
+    expect(from).toHaveBeenCalledWith("estimates");
+    expect(estimateQuery.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(arrayBuffer).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects estimate row image uploads when the user can neither edit the project nor the estimate", async () => {
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup(
+      { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
+      { canEditProject: false, canEditEstimate: false },
+    );
+    const file = new window.File(["not decoded"], "estimate-row.png", { type: "image/png" });
+    const arrayBuffer = vi.spyOn(file, "arrayBuffer");
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("estimateId", "estimate-1");
+    formData.set("rowItemId", "row-1");
+    formData.set("file", file);
+    const { POST } = await import("@/app/api/estimate-row-images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "You do not have permission to edit this estimate.",
+    });
+    expect(projectLookup.from).toHaveBeenCalledWith("projects");
+    expect(projectLookup.from).toHaveBeenCalledWith("estimates");
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
+      target_project_id: "project-1",
+    });
+    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_estimate", {
+      target_estimate_id: "estimate-1",
+    });
+    expect(arrayBuffer).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects estimate row image uploads for stale rows before file decoding or storage writes", async () => {
+    const storage = mockStorageClient();
+    const rpc = createRpcMock({ canEditProject: true, canEditEstimate: true });
+    const projectQuery = {
+      select: vi.fn(() => projectQuery),
+      eq: vi.fn(() => projectQuery),
+      single: vi.fn(async () => ({ data: { id: "project-1" }, error: null })),
+    };
+    const estimateQuery = {
+      select: vi.fn(() => estimateQuery),
+      eq: vi.fn(() => estimateQuery),
+      single: vi.fn(async () => ({ data: { id: "estimate-1", project_id: "project-1" }, error: null })),
+    };
+    const rowQuery = {
+      select: vi.fn(() => rowQuery),
+      eq: vi.fn(() => rowQuery),
+      single: vi.fn(async () => ({ data: null, error: { message: "not found" } })),
+    };
+    const from = vi.fn((table: string) => {
+      if (table === "projects") return projectQuery;
+      if (table === "estimates") return estimateQuery;
+      return rowQuery;
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const file = new window.File(["not decoded"], "estimate-row.png", { type: "image/png" });
+    const arrayBuffer = vi.spyOn(file, "arrayBuffer");
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("estimateId", "estimate-1");
+    formData.set("rowItemId", "stale-row");
+    formData.set("file", file);
+    const { POST } = await import("@/app/api/estimate-row-images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "Estimate row could not be found.",
+    });
+    expect(from).toHaveBeenCalledWith("estimate_row_items");
+    expect(rowQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(arrayBuffer).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
   });

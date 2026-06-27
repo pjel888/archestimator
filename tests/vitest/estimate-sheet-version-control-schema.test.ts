@@ -39,6 +39,8 @@ function readMigrationBySuffix(suffix: string) {
 }
 
 const nodeDeleteUndoMigration = readMigrationBySuffix("_estimate_node_delete_undo_rpc.sql");
+const rowItemMoveMigration = readMigrationBySuffix("_estimate_row_item_move_rpc.sql");
+const quantityContingencyMigration = readMigrationBySuffix("_quantity_contingency_and_sheet_adjustments.sql");
 
 describe("estimate sheet version control schema", () => {
   it("adds append-only events, named versions, row revisions, and safety indexes", () => {
@@ -100,6 +102,27 @@ describe("estimate sheet version control schema", () => {
     expect(centerMutationMigration).not.toMatch(/\bsavepoint\b/i);
   });
 
+  it("defines a dedicated row-item reorganization RPC with server-derived auth and order validation", () => {
+    expect(rowItemMoveMigration).toContain("create or replace function public.move_estimate_row_item_with_history");
+    expect(rowItemMoveMigration).toContain("actor_user_id uuid := auth.uid()");
+    expect(rowItemMoveMigration).toContain("if actor_user_id is null then");
+    expect(rowItemMoveMigration).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, actor_user_id)");
+    expect(rowItemMoveMigration).not.toContain("acting_user_id");
+    expect(rowItemMoveMigration).toContain("public.estimate_sheet_event_result(target_estimate_id, correlation_id)");
+    expect(rowItemMoveMigration).toContain("set constraints estimate_row_items_unique_sort deferred");
+    expect(rowItemMoveMigration).toContain("jsonb_to_recordset(move_updates)");
+    expect(rowItemMoveMigration).toContain("order by row_item.id");
+    expect(rowItemMoveMigration).toContain("for update");
+    expect(rowItemMoveMigration).toContain("estimate_sheet_row_revision_conflict");
+    expect(rowItemMoveMigration).toContain("row_revision = row_item.row_revision + 1");
+    expect(rowItemMoveMigration).toContain("Return the full source/target sibling rows");
+    expect(rowItemMoveMigration).toContain("and row_item.node_id in (source_node_id, target_node_id)");
+    expect(rowItemMoveMigration).toContain("'row_reorganized'");
+    expect(rowItemMoveMigration).toContain("'movedRowId'");
+    expect(rowItemMoveMigration).toContain("grant execute on function public.move_estimate_row_item_with_history(uuid, uuid, uuid, jsonb, uuid, uuid, uuid, uuid) to authenticated");
+    expect(rowItemMoveMigration).toContain("revoke all on function public.move_estimate_row_item_with_history(uuid, uuid, uuid, jsonb, uuid, uuid, uuid, uuid) from public, anon");
+  });
+
   it("defines center row delete undo from persisted row delete history", () => {
     const undoMigration = readMigrationBySuffix("_estimate_row_delete_undo_rpc.sql");
 
@@ -155,6 +178,43 @@ describe("estimate sheet version control schema", () => {
     expect(discountMigration).toContain("drop constraint if exists estimate_row_items_contingency_percentage_check");
     expect(discountMigration).toContain("check (contingency_percentage >= -100 and contingency_percentage <= 100)");
     expect(discountMigration).toContain("drop constraint if exists estimate_template_row_items_contingency_percentage_check");
+  });
+
+  it("persists quantity add-ons and sheet-level adjustments through row RPCs, snapshots, and route context", () => {
+    expect(quantityContingencyMigration).toContain("add column if not exists quantity_base numeric(14, 4)");
+    expect(quantityContingencyMigration).toContain("add column if not exists quantity_contingency_amount numeric(14, 4)");
+    expect(quantityContingencyMigration).toContain("estimate_row_items_quantity_contingency_total");
+    expect(quantityContingencyMigration).toContain("create table if not exists public.estimate_sheet_adjustments");
+    expect(quantityContingencyMigration).toContain("alter table public.estimate_sheet_adjustments enable row level security");
+    expect(quantityContingencyMigration).toContain("create policy estimate_sheet_adjustments_select_authenticated");
+    expect(quantityContingencyMigration).toContain("create policy estimate_sheet_adjustments_insert_authenticated");
+    expect(quantityContingencyMigration).toContain("create policy estimate_sheet_adjustments_update_authenticated");
+    expect(quantityContingencyMigration).toContain("create policy estimate_sheet_adjustments_delete_authenticated");
+    expect(quantityContingencyMigration).toContain("public.estimate_row_payload_quantity_base");
+    expect(quantityContingencyMigration).toContain("public.estimate_row_payload_quantity_contingency_amount");
+    expect(quantityContingencyMigration).toContain("public.estimate_row_payload_quantity");
+    expect(quantityContingencyMigration).toContain("'quantityBase', row_item.quantity_base");
+    expect(quantityContingencyMigration).toContain("'quantityContingencyAmount', row_item.quantity_contingency_amount");
+    expect(quantityContingencyMigration).toContain("quantity_base = next_quantity_base");
+    expect(quantityContingencyMigration).toContain("quantity_contingency_amount = next_quantity_contingency_amount");
+    expect(quantityContingencyMigration).toContain("public.estimate_sheet_adjustment_snapshot");
+    expect(quantityContingencyMigration).toContain("public.estimate_sheet_adjustment_value");
+    expect(quantityContingencyMigration).toContain("'sheetAdjustment', public.estimate_sheet_adjustment_snapshot(resolved.estimate_id)");
+    expect(quantityContingencyMigration).toContain("'adjustmentValue', public.estimate_sheet_adjustment_value(estimate.id)");
+    expect(quantityContingencyMigration).toContain("create or replace function public.move_estimate_row_component_with_history");
+    expect(quantityContingencyMigration).toContain("source_quantity_base := public.estimate_row_payload_quantity_base");
+    expect(quantityContingencyMigration).toContain("target_quantity_base := public.estimate_row_payload_quantity_base");
+    expect(quantityContingencyMigration).toContain("grant execute on function public.move_estimate_row_component_with_history");
+    expect(quantityContingencyMigration).toContain("create or replace function public.restore_deleted_estimate_rows_with_history");
+    expect(quantityContingencyMigration).toContain("restored_quantity_base := public.estimate_row_payload_quantity_base");
+    expect(quantityContingencyMigration).toContain("create or replace function public.restore_deleted_estimate_nodes_with_history");
+    expect(quantityContingencyMigration).toContain("public.estimate_row_payload_quantity(to_jsonb(row_snapshot), row_snapshot.\"quantityBase\"");
+    expect(quantityContingencyMigration).toContain("create or replace function public.restore_estimate_sheet_version_as_copy");
+    expect(quantityContingencyMigration).toContain("insert into public.estimate_sheet_adjustments");
+    expect(quantityContingencyMigration).toContain("public.estimate_row_payload_quantity(to_jsonb(row_row), row_row.\"quantityBase\"");
+    expect(quantityContingencyMigration).toContain("grant execute on function public.restore_deleted_estimate_rows_with_history");
+    expect(quantityContingencyMigration).toContain("grant execute on function public.restore_deleted_estimate_nodes_with_history");
+    expect(quantityContingencyMigration).toContain("grant execute on function public.restore_estimate_sheet_version_as_copy");
   });
 
   it("defines named-version, compare foundation, restore-as-copy, and wrapper RPCs", () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 import { EstimateMaterialCell } from "@/components/workshop/estimate-sheet/rows/cells";
 import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
@@ -25,6 +25,8 @@ function renderCell(overrides: Partial<Parameters<typeof EstimateMaterialCell>[0
   const view = render(
     <EstimateMaterialCell
       item={item}
+      projectId="project-1"
+      estimateId="estimate-1"
       editableRow={{
         name: item.material,
         description: item.description,
@@ -78,6 +80,29 @@ function getMaterialUnitSlot(root: ParentNode) {
   const slot = root.querySelector("[data-estimate-material-unit-slot='true']");
   expect(slot).toBeInstanceOf(HTMLElement);
   return slot as HTMLElement;
+}
+
+function createPendingAbortableFetch() {
+  return vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  }));
+}
+
+function uploadedImageAsset(url: string, assetId = "asset-1") {
+  return {
+    kind: "upload-asset",
+    schemaVersion: 1,
+    assetId,
+    uploadSessionId: `${assetId}-session`,
+    bucket: "project-images",
+    path: `workspace-1/user-1/project-images/project-1/estimate-row-images/estimate-1/${assetId}.webp`,
+    thumbnailPath: `workspace-1/user-1/project-images/project-1/estimate-row-images/estimate-1/${assetId}-thumb.webp`,
+    url,
+    thumbnailUrl: `${url}?thumb=1`,
+    contentType: "image/webp",
+    sizeBytes: 128,
+    scanStatus: "not_required",
+  };
 }
 
 describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
@@ -207,7 +232,10 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     fireEvent.change(urlInput, { target: { value: "https://assets.example.test/custom-reference.jpg" } });
     fireEvent.keyDown(urlInput, { key: "Enter" });
 
-    expect(onExpressFieldCommit).toHaveBeenCalledWith({ imageUrl: "https://assets.example.test/custom-reference.jpg" });
+    expect(onExpressFieldCommit).toHaveBeenCalledWith({
+      imageUrl: "https://assets.example.test/custom-reference.jpg",
+      imageAsset: null,
+    });
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reference image" })).not.toBeInTheDocument());
   });
 
@@ -220,7 +248,10 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ url: "https://assets.example.test/uploaded-reference.webp" }),
+      json: async () => ({
+        url: "https://assets.example.test/uploaded-reference.webp",
+        imageAsset: uploadedImageAsset("https://assets.example.test/uploaded-reference.webp"),
+      }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -258,8 +289,16 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     fireEvent.change(uploadInput, { target: { files: [file] } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save image" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/component-library/images", expect.objectContaining({ method: "POST" })));
-    await waitFor(() => expect(onExpressFieldCommit).toHaveBeenCalledWith({ imageUrl: "https://assets.example.test/uploaded-reference.webp" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get("projectId")).toBe("project-1");
+    expect((body as FormData).get("estimateId")).toBe("estimate-1");
+    expect((body as FormData).get("rowItemId")).toBe("express-row-1");
+    await waitFor(() => expect(onExpressFieldCommit).toHaveBeenCalledWith({
+      imageUrl: "https://assets.example.test/uploaded-reference.webp",
+      imageAsset: uploadedImageAsset("https://assets.example.test/uploaded-reference.webp"),
+    }));
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:reference-preview");
   });
 
@@ -269,7 +308,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       createObjectURL: vi.fn(() => "blob:reference-preview"),
       revokeObjectURL: vi.fn(),
     });
-    const fetchMock = vi.fn(() => new Promise(() => undefined));
+    const fetchMock = createPendingAbortableFetch();
     vi.stubGlobal("fetch", fetchMock);
 
     const item = {
@@ -318,7 +357,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       createObjectURL: vi.fn(() => "blob:reference-preview"),
       revokeObjectURL: vi.fn(),
     });
-    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
+    vi.stubGlobal("fetch", createPendingAbortableFetch());
 
     const item = {
       ...estimateLibraryItems[0],
@@ -363,6 +402,219 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     fireEvent.click(overlay as HTMLElement);
     expect(screen.getByRole("dialog", { name: "Reference image" })).toBeInTheDocument();
     expect(onExpressFieldCommit).not.toHaveBeenCalled();
+  });
+
+  it("cancels an in-flight reference image upload and keeps the selected file retryable", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:reference-preview"),
+      revokeObjectURL: vi.fn(),
+    });
+    let uploadSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      uploadSignal = init?.signal ?? undefined;
+      uploadSignal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      imageUrl: "",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    const onExpressFieldCommit = vi.fn();
+    renderCell({
+      item,
+      editableRow: {
+        name: "Project Component",
+        description: item.description,
+        supplier: item.supplier,
+        unit: item.unit,
+        unitCost: String(item.itemCost),
+        quantity: String(item.quantity),
+        contingencyMode: "contingency",
+        contingencyPercentage: String(item.contingencyPercentage ?? 0),
+        miscCost: String(item.miscCost),
+        imageUrl: "",
+        sourceUrl: item.sourceUrl ?? "",
+      },
+      onExpressFieldCommit,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add reference image for Project Component" }));
+    const dialog = screen.getByRole("dialog", { name: "Reference image" });
+    fireEvent.change(within(dialog).getByLabelText("Upload reference image"), {
+      target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save image" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Uploading image..."));
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel upload" }));
+
+    await waitFor(() => expect(uploadSignal?.aborted).toBe(true));
+    expect(screen.getByRole("dialog", { name: "Reference image" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Upload cancelled.");
+    expect(screen.getByRole("button", { name: "Retry upload" })).toBeInTheDocument();
+    expect(onExpressFieldCommit).not.toHaveBeenCalled();
+  });
+
+  it("ignores a stale abort from a superseded reference image upload attempt", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:reference-preview"),
+      revokeObjectURL: vi.fn(),
+    });
+
+    let callIndex = 0;
+    let rejectFirstUpload: ((error: unknown) => void) | undefined;
+    let resolveSecondUpload: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn(() => {
+      callIndex += 1;
+      if (callIndex === 1) {
+        return new Promise<Response>((_resolve, reject) => {
+          rejectFirstUpload = reject;
+        });
+      }
+      return new Promise<Response>((resolve) => {
+        resolveSecondUpload = resolve;
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      imageUrl: "",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    const onExpressFieldCommit = vi.fn();
+    renderCell({
+      item,
+      editableRow: {
+        name: "Project Component",
+        description: item.description,
+        supplier: item.supplier,
+        unit: item.unit,
+        unitCost: String(item.itemCost),
+        quantity: String(item.quantity),
+        contingencyMode: "contingency",
+        contingencyPercentage: String(item.contingencyPercentage ?? 0),
+        miscCost: String(item.miscCost),
+        imageUrl: "",
+        sourceUrl: item.sourceUrl ?? "",
+      },
+      onExpressFieldCommit,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add reference image for Project Component" }));
+    const dialog = screen.getByRole("dialog", { name: "Reference image" });
+    fireEvent.change(within(dialog).getByLabelText("Upload reference image"), {
+      target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save image" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Uploading image..."));
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel upload" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Retry upload" })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry upload" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Uploading image..."));
+
+    await act(async () => {
+      rejectFirstUpload?.(new DOMException("Aborted", "AbortError"));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Uploading image...");
+
+    await act(async () => {
+      resolveSecondUpload?.({
+        ok: true,
+        json: async () => ({
+          url: "https://assets.example.test/superseded-reference.webp",
+          imageAsset: uploadedImageAsset("https://assets.example.test/superseded-reference.webp", "asset-superseded"),
+        }),
+      } as Response);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(onExpressFieldCommit).toHaveBeenCalledWith({
+      imageUrl: "https://assets.example.test/superseded-reference.webp",
+      imageAsset: uploadedImageAsset("https://assets.example.test/superseded-reference.webp", "asset-superseded"),
+    }));
+  });
+
+  it("retries a failed reference image upload with the selected file", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:reference-preview"),
+      revokeObjectURL: vi.fn(),
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: "Upload capacity is busy." }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          url: "https://assets.example.test/retried-reference.webp",
+          imageAsset: uploadedImageAsset("https://assets.example.test/retried-reference.webp", "asset-retried"),
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      imageUrl: "",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    const onExpressFieldCommit = vi.fn();
+    renderCell({
+      item,
+      editableRow: {
+        name: "Project Component",
+        description: item.description,
+        supplier: item.supplier,
+        unit: item.unit,
+        unitCost: String(item.itemCost),
+        quantity: String(item.quantity),
+        contingencyMode: "contingency",
+        contingencyPercentage: String(item.contingencyPercentage ?? 0),
+        miscCost: String(item.miscCost),
+        imageUrl: "",
+        sourceUrl: item.sourceUrl ?? "",
+      },
+      onExpressFieldCommit,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add reference image for Project Component" }));
+    const dialog = screen.getByRole("dialog", { name: "Reference image" });
+    fireEvent.change(within(dialog).getByLabelText("Upload reference image"), {
+      target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save image" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Upload capacity is busy.");
+    fireEvent.click(screen.getByRole("button", { name: "Retry upload" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(onExpressFieldCommit).toHaveBeenCalledWith({
+      imageUrl: "https://assets.example.test/retried-reference.webp",
+      imageAsset: uploadedImageAsset("https://assets.example.test/retried-reference.webp", "asset-retried"),
+    }));
   });
 
   it("clears the file preview when switching to a pasted URL", async () => {

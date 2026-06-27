@@ -11,6 +11,19 @@ import {
 } from "@/lib/component-library/project-component-projection";
 import { readProjectComponentProjectionMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
+const estimateRowImageAsset = {
+  kind: "upload-asset",
+  schemaVersion: 1,
+  assetId: "asset-1",
+  uploadSessionId: "session-1",
+  bucket: "project-images",
+  path: "workspace-1/user-1/project-images/project-1/estimate-row-images/estimate-1/asset-1.webp",
+  thumbnailPath: "workspace-1/user-1/project-images/project-1/estimate-row-images/estimate-1/asset-1-thumb.webp",
+  contentType: "image/webp",
+  sizeBytes: 128,
+  scanStatus: "not_required",
+};
+
 function row(overrides: Partial<ProjectComponentProjectionRow> = {}): ProjectComponentProjectionRow {
   return {
     id: "row-1",
@@ -29,7 +42,7 @@ function row(overrides: Partial<ProjectComponentProjectionRow> = {}): ProjectCom
     designation: "",
     source_library_item_id: null,
     link_state: "unlinked",
-    source_snapshot: { imageUrl: "https://example.com/vanity.jpg", pricingSource: "Project estimate row" },
+    source_snapshot: { imageUrl: "https://example.com/vanity.jpg", imageAsset: estimateRowImageAsset, pricingSource: "Project estimate row" },
     metadata: withExpressComponentMetadata({}, { id: "express-row-1" }),
     created_at: "2026-06-15T00:00:00.000Z",
     estimate_nodes: { id: "node-1", name: "Powder Room", estimates: { id: "estimate-1", name: "Main", project_id: "project-1" } },
@@ -57,6 +70,7 @@ describe("project component projection", () => {
           nodeId: "node-1",
           nodeName: "Powder Room",
           classification: "express",
+          imageAsset: estimateRowImageAsset,
         },
       },
     });

@@ -38,6 +38,8 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     unit: overrides.unit ?? "sqm",
     itemCost,
     quantity,
+    quantityBase: overrides.quantityBase ?? null,
+    quantityContingencyAmount: overrides.quantityContingencyAmount ?? null,
     subTotal,
     contingencyPercentage,
     contingencyValue,
@@ -272,6 +274,62 @@ describe("proposal export model", () => {
       contingencySubtotal: 250,
       miscSubtotal: 75,
       grandTotal: 2_325,
+    });
+  });
+
+  it("treats quantity add-ons as quantity math instead of row contingency money", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms(
+        [
+          row({
+            id: "qty-addon-row",
+            quantity: 120,
+            quantityBase: 100,
+            quantityContingencyAmount: 20,
+            itemCost: 100,
+            contingencyPercentage: 20,
+          }),
+        ],
+        [],
+      ),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    expect(model.proposalRows[0]).toMatchObject({
+      quantity: 120,
+      materialSubtotal: 12_000,
+      contingencySubtotal: 0,
+      miscSubtotal: 0,
+      costAmount: 12_000,
+    });
+    expect(model.totals).toMatchObject({
+      materialSubtotal: 12_000,
+      contingencySubtotal: 0,
+      grandTotal: 12_000,
+    });
+  });
+
+  it("applies sheet adjustments once before project contingency and VAT", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([row({ id: "a", quantity: 1, itemCost: 1_000, miscCost: 0 })], []),
+      settings: {
+        sheetAdjustmentRate: 10,
+        sheetAdjustmentMode: "discount",
+        contingencyMode: "included",
+        vatMode: "included",
+      },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+
+    expect(model.totals).toMatchObject({
+      grandTotal: 1_000,
+      sheetAdjustmentAmount: -100,
+      adjustedDirectCost: 900,
+      projectContingencyAmount: 0,
+      vatAmount: 0,
+      grandTotalWithTaxes: 900,
     });
   });
 

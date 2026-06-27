@@ -371,88 +371,56 @@ describe("estimate sheet cost inputs", () => {
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const materialHeader = within(livingAreaSection).getByRole("columnheader", { name: "Materials" });
-    expect(within(livingAreaSection).getByRole("columnheader", { name: "Adjustment" })).toBeInTheDocument();
+    expect(within(livingAreaSection).getByRole("columnheader", { name: "Contingency" })).toBeInTheDocument();
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
     expect(materialHeader.querySelector("[data-estimate-material-header-rail='true']")).toHaveClass("w-[3px]", "bg-divider");
     expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
     expect(
       within(livingAreaSection)
-        .getByRole("row", { name: /Materials Qty Subtotal Adjustment Misc Cost Total Item Cost/ })
+        .getByRole("row", { name: /Materials Qty Contingency Subtotal Misc Cost Total Item Cost/ })
         .querySelector("svg"),
     ).toBeNull();
   });
 
-  it("centers subtotal, adjustment, and misc cost row values", () => {
+  it("centers subtotal, contingency, and misc cost row values", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const subtotalCell = within(livingAreaSection).getByText("₱ 57,600.00").closest("td");
-    const adjustmentInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring adjustment percentage");
-    const adjustmentType = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring adjustment type");
-    const adjustmentCell = adjustmentInput.closest("td");
+    const contingencyInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring contingency percentage");
+    const contingencyCell = contingencyInput.closest("td");
     const miscCostInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring misc cost");
 
     expect(subtotalCell).toHaveClass("justify-center");
-    expect(adjustmentCell).toHaveClass("relative", "justify-center");
-    expect(adjustmentType).toHaveTextContent("Contingency");
-    expect(adjustmentType).toHaveClass("!text-[8px]", "text-left");
-    expect(adjustmentType.closest("[data-slot='dropdown-select-root']")?.parentElement).toHaveClass("absolute", "left-1.5", "top-1.5");
-    expect(adjustmentInput).toHaveClass("text-right");
-    expect(adjustmentInput).toHaveClass("h-5");
-    expect(within(adjustmentCell as HTMLElement).getAllByText("%")).toHaveLength(1);
-    expect(within(adjustmentCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
+    expect(contingencyCell).toHaveClass("relative", "justify-center");
+    expect(screen.queryByLabelText("Hardwood Oak Flooring adjustment type")).not.toBeInTheDocument();
+    expect(contingencyInput).toHaveClass("text-right");
+    expect(contingencyInput).toHaveClass("h-5");
+    expect(within(contingencyCell as HTMLElement).getAllByText("%")).toHaveLength(1);
+    expect(within(contingencyCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
     expect(miscCostInput.closest("td")).toHaveClass("justify-center");
     expect(miscCostInput).toHaveClass("text-center");
   });
 
-  it("calculates contingency value from the row subtotal and includes it in total item cost", async () => {
+  it("converts contingency percentage edits into quantity add-ons", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
-    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
     await user.clear(adjustmentInput);
     await user.type(adjustmentInput, "10");
+    await user.tab();
 
-    expect(screen.getByText("₱ 5,760.00")).toBeInTheDocument();
+    await screen.findByText("₱ 63,360.00");
     expect(screen.getByText("₱ 93,360.00")).toBeInTheDocument();
   });
 
-  it("subtracts the adjustment value when the row is set to discount", async () => {
-    const user = userEvent.setup();
+  it("does not expose row-level discount controls", () => {
     renderEstimateSheet("living-area");
 
-    const adjustmentType = screen.getByLabelText("Hardwood Oak Flooring adjustment type");
-    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
-    await user.click(adjustmentType);
-    await user.click(screen.getByRole("option", { name: "Discount" }));
-    await user.clear(adjustmentInput);
-    await user.type(adjustmentInput, "10");
-
-    expect(adjustmentType).toHaveTextContent("Discount");
-    expect(screen.getByText("-₱ 5,760.00")).toBeInTheDocument();
-    expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
-  });
-
-  it("commits the fresh draft percentage when the mode changes right after typing", async () => {
-    const user = userEvent.setup();
-    renderEstimateSheet("living-area");
-
-    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
-    const adjustmentType = screen.getByLabelText("Hardwood Oak Flooring adjustment type");
-
-    // The plan's stale-closure guard sequence: type a draft percentage
-    // (unblurred), then open the mode picker (the click blurs and commits
-    // the draft), then pick Discount — the committed value must be the
-    // fresh draft, negated, not a stale snapshot from open time.
-    await user.clear(adjustmentInput);
-    await user.type(adjustmentInput, "10");
-    await user.click(adjustmentType);
-    await user.click(screen.getByRole("option", { name: "Discount" }));
-
-    expect(adjustmentType).toHaveTextContent("Discount");
-    expect(screen.getByText("-₱ 5,760.00")).toBeInTheDocument();
-    expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Hardwood Oak Flooring adjustment type")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Discount" })).not.toBeInTheDocument();
   });
 
   it("keeps area breadcrumbs as a compact node-body trail", () => {
@@ -615,7 +583,7 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(firstQuantity);
     await user.keyboard("{ArrowRight}");
-    const firstContingency = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    const firstContingency = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
     expect(firstContingency).toHaveFocus();
 
     await user.keyboard("{Enter}");
@@ -645,7 +613,7 @@ describe("estimate sheet cost inputs", () => {
 
     expect(firstQuantity).not.toHaveFocus();
     expect(activeRow).not.toHaveAttribute("data-estimate-row-active");
-    expect(firstQuantity).toHaveValue(7);
+    expect(firstQuantity).toHaveValue("7");
   });
 
   it("keeps row save state out of the visible spreadsheet cells while editing", async () => {
@@ -814,7 +782,7 @@ describe("estimate sheet cost inputs", () => {
       expect(screen.queryByLabelText("Express Sink replaceable estimate component")).not.toBeInTheDocument();
     });
     expect(screen.getByLabelText(`${estimateLibraryItems[2].material} replaceable estimate component`)).toBeInTheDocument();
-    expect(screen.getByLabelText(`${estimateLibraryItems[2].material} quantity`)).toHaveValue(expressRow.quantity);
+    expect(screen.getByLabelText(`${estimateLibraryItems[2].material} quantity`)).toHaveValue(String(expressRow.quantity));
   });
 
   it("replaces an express row with a moved sheet component and clears the source row", async () => {

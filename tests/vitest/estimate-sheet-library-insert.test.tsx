@@ -827,7 +827,7 @@ describe("estimate sheet library insertion persistence", () => {
 
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalled());
     expect(actionMocks.updateEstimateRowItem.mock.calls.map(([input]) => input.sourceSnapshot)).toEqual([
-      { imageUrl: "https://example.com/vanity.jpg" },
+      { imageAsset: null, imageUrl: "https://example.com/vanity.jpg" },
     ]);
   });
 
@@ -983,18 +983,7 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(row as HTMLElement).getByText("₱ 710.00")).toBeInTheDocument();
   });
 
-  it("clamps negative quantity edits to zero before saving", async () => {
-    actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
-      rowId: cabinetRowId,
-      nodeId: targetNodeId,
-      quantity: 0,
-      itemCost: 100,
-      contingencyPercentage: 0,
-      contingencyValue: 0,
-      miscCost: 10,
-      linkState: "linked-overridden",
-      rowRevision: 8,
-    });
+  it("rejects negative quantity edits without saving", async () => {
     renderPersistedEstimateSheet(nodesWithRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
@@ -1005,13 +994,9 @@ describe("estimate sheet library insertion persistence", () => {
     fireEvent.change(quantityInput, { target: { value: "-7" } });
     fireEvent.blur(quantityInput);
 
-    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
-    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
-      rowId: cabinetRowId,
-      quantity: 0,
-      expectedRowRevision: 7,
-    }));
-    await waitFor(() => expect(within(row as HTMLElement).getByText("₱ 10.00")).toBeInTheDocument());
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+    await waitFor(() => expect(quantityInput.value).toBe("2"));
+    expect(within(row as HTMLElement).getByText("₱ 210.00")).toBeInTheDocument();
   });
 
   it("makes a linked component project-specific without clearing row values", async () => {
@@ -1346,10 +1331,12 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
-      quantity: 2,
+      quantity: 4,
+      quantityBase: 2,
+      quantityContingencyAmount: 2,
       itemCost: 100,
       contingencyPercentage: 100,
-      contingencyValue: 200,
+      contingencyValue: 0,
       miscCost: 10,
       linkState: "linked-overridden",
       rowRevision: 8,
@@ -1357,7 +1344,7 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    const contingencyInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
+    const contingencyInput = within(kitchenSection).getByLabelText("Kitchen Cabinet contingency percentage") as HTMLInputElement;
 
     await user.click(contingencyInput);
     await user.clear(contingencyInput);
@@ -1367,21 +1354,26 @@ describe("estimate sheet library insertion persistence", () => {
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
     expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       rowId: cabinetRowId,
+      quantity: 4,
+      quantityBase: 2,
+      quantityContingencyAmount: 2,
       contingencyPercentage: 100,
       expectedRowRevision: 7,
     }));
-    expect(contingencyInput.value).toBe("100");
+    expect(contingencyInput.value).toBe("101");
   });
 
-  it("saves discount adjustments as negative percentages", async () => {
+  it("saves row contingency percentage edits as quantity add-ons", async () => {
     const user = userEvent.setup();
     actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
-      quantity: 2,
+      quantity: 2.2,
+      quantityBase: 2,
+      quantityContingencyAmount: 0.2,
       itemCost: 100,
-      contingencyPercentage: -10,
-      contingencyValue: -20,
+      contingencyPercentage: 10,
+      contingencyValue: 0,
       miscCost: 10,
       linkState: "linked-overridden",
       rowRevision: 8,
@@ -1389,11 +1381,8 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    const adjustmentType = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment type");
-    const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
+    const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet contingency percentage") as HTMLInputElement;
 
-    await user.click(adjustmentType);
-    await user.click(screen.getByRole("option", { name: "Discount" }));
     await user.click(adjustmentInput);
     await user.clear(adjustmentInput);
     await user.type(adjustmentInput, "10");
@@ -1402,10 +1391,13 @@ describe("estimate sheet library insertion persistence", () => {
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
     expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       rowId: cabinetRowId,
-      contingencyPercentage: -10,
+      quantity: 2.2,
+      quantityBase: 2,
+      quantityContingencyAmount: expect.closeTo(0.2, 5),
+      contingencyPercentage: 10,
       expectedRowRevision: 7,
     }));
-    expect(adjustmentType).toHaveTextContent("Discount");
+    expect(within(kitchenSection).queryByLabelText("Kitchen Cabinet adjustment type")).not.toBeInTheDocument();
     expect(adjustmentInput.value).toBe("10");
   });
 });

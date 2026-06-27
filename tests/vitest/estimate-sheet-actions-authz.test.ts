@@ -5,6 +5,13 @@ const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
 
 const ROW_ID = "44444444-4444-4444-8444-444444444444";
 const NODE_ID = "55555555-5555-4555-8555-555555555555";
+const TARGET_NODE_ID = "77777777-7777-4777-8777-777777777777";
+const SECOND_ROW_ID = "88888888-8888-4888-8888-888888888888";
+const UPLOAD_ASSET_ID = "99999999-aaaa-4aaa-8aaa-999999999999";
+const UPLOAD_SESSION_ID = "99999999-bbbb-4bbb-8bbb-999999999999";
+const ACTIVE_TAB_ID = "99999999-9999-4999-8999-999999999999";
+const MUTATION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const EVENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 const libraryItem = {
   id: "66666666-6666-4666-8666-666666666666",
@@ -47,6 +54,25 @@ function canonicalRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function canonicalImageAssetDescriptor(overrides: Record<string, unknown> = {}) {
+  return {
+    kind: "upload-asset",
+    schemaVersion: 1,
+    assetId: UPLOAD_ASSET_ID,
+    uploadSessionId: UPLOAD_SESSION_ID,
+    bucket: "project-images",
+    path: `workspace-1/11111111-1111-4111-8111-111111111111/project-images/${PROJECT_ID}/estimate-row-images/${ESTIMATE_ID}/reference.webp`,
+    thumbnailPath: `workspace-1/11111111-1111-4111-8111-111111111111/project-images/${PROJECT_ID}/estimate-row-images/${ESTIMATE_ID}/reference-thumb.webp`,
+    fileName: "reference.png",
+    contentType: "image/webp",
+    sizeBytes: 128,
+    scanStatus: "not_required",
+    width: 640,
+    height: 480,
+    ...overrides,
+  };
+}
+
 const requireAuth = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const fromSpy = vi.hoisted(() => vi.fn());
@@ -72,6 +98,7 @@ import {
   duplicateEstimateSheet,
   insertEstimateRowItemFromLibrary,
   moveEstimateRowComponentWithHistory,
+  moveEstimateRowItemWithHistory,
   regenerateEstimateSheetCode,
   replaceEstimateRowItemWithLibrary,
   renameEstimateNode,
@@ -161,6 +188,15 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       sourceLibraryItem: libraryItem,
       targetLibraryItem: libraryItem,
     })).rejects.toThrow(/edit access denied/i);
+    await expect(moveEstimateRowItemWithHistory({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      activeTabId: ACTIVE_TAB_ID,
+      movedRowId: ROW_ID,
+      sourceNodeId: NODE_ID,
+      targetNodeId: TARGET_NODE_ID,
+      updates: [{ rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, expectedRowRevision: 2 }],
+    })).rejects.toThrow(/edit access denied/i);
     await expect(deleteEstimateRowItemsBulk({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
@@ -173,6 +209,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     expect(rpcSpy).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
     expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.anything());
     expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_component_with_history", expect.anything());
+    expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_item_with_history", expect.anything());
     expect(rpcSpy).not.toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", expect.anything());
   });
 
@@ -276,6 +313,114 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
   });
 
+  it("updateEstimateRowItem canonicalizes uploaded reference image asset descriptors before writing source snapshots", async () => {
+    const canonicalDescriptor = canonicalImageAssetDescriptor();
+    fromSpy.mockImplementation((table: string) => {
+      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
+      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+      if (table === "estimate_row_items") {
+        return chain({
+          id: ROW_ID,
+          node_id: NODE_ID,
+          estimate_id: ESTIMATE_ID,
+          source_library_item_id: null,
+          source_snapshot: { category: "Cabinetry" },
+          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+          link_state: "unlinked",
+          row_revision: 4,
+        });
+      }
+      return chain(null);
+    });
+    rpcSpy.mockImplementation((fn: string) => {
+      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
+      if (fn === "validate_estimate_row_image_asset") return Promise.resolve({ data: canonicalDescriptor, error: null });
+      if (fn === "update_estimate_row_item_with_history") {
+        return Promise.resolve({
+          data: canonicalRow({
+            sourceSnapshot: {
+              category: "Cabinetry",
+              imageUrl: "https://assets.example.test/reference.webp",
+              imageAsset: canonicalDescriptor,
+            },
+          }),
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    await updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      sourceSnapshot: {
+        imageUrl: "https://assets.example.test/reference.webp",
+        imageAsset: {
+          ...canonicalDescriptor,
+          path: "workspace-evil/user-evil/tampered.webp",
+        },
+      },
+    });
+
+    expect(rpcSpy).toHaveBeenCalledWith("validate_estimate_row_image_asset", {
+      target_asset_id: UPLOAD_ASSET_ID,
+      target_upload_session_id: UPLOAD_SESSION_ID,
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: ROW_ID,
+    });
+    const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
+    expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
+      category: "Cabinetry",
+      imageUrl: "https://assets.example.test/reference.webp",
+      imageAsset: canonicalDescriptor,
+    });
+  });
+
+  it("updateEstimateRowItem rejects uploaded reference image asset descriptors that fail row validation", async () => {
+    fromSpy.mockImplementation((table: string) => {
+      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
+      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+      if (table === "estimate_row_items") {
+        return chain({
+          id: ROW_ID,
+          node_id: NODE_ID,
+          estimate_id: ESTIMATE_ID,
+          source_library_item_id: null,
+          source_snapshot: null,
+          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+          link_state: "unlinked",
+          row_revision: 4,
+        });
+      }
+      return chain(null);
+    });
+    rpcSpy.mockImplementation((fn: string) => {
+      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
+      if (fn === "validate_estimate_row_image_asset") return Promise.resolve({ data: null, error: null });
+      if (fn === "update_estimate_row_item_with_history") return Promise.resolve({ data: canonicalRow(), error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    await expect(updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      sourceSnapshot: {
+        imageUrl: "https://assets.example.test/reference.webp",
+        imageAsset: canonicalImageAssetDescriptor({ assetId: "99999999-cccc-4ccc-8ccc-999999999999" }),
+      },
+    })).rejects.toThrow("Reference image asset is not valid for this estimate row.");
+
+    expect(rpcSpy).toHaveBeenCalledWith("validate_estimate_row_image_asset", expect.objectContaining({
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: ROW_ID,
+    }));
+    expect(rpcSpy).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
+  });
+
   it("insertEstimateRowItemFromLibrary returns the canonical row when the RPC returns it", async () => {
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
@@ -349,5 +494,82 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       }),
     });
     expect(replaceCall?.[1].replacement_payload.metadata).not.toHaveProperty("expressComponent");
+  });
+
+  it("moveEstimateRowItemWithHistory calls the dedicated RPC without a caller-supplied actor", async () => {
+    fromSpy.mockImplementation((table: string) => {
+      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
+      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
+      return chain(null);
+    });
+    rpcSpy.mockImplementation((fn: string) => {
+      if (fn === "can_edit_estimate") return Promise.resolve({ data: true, error: null });
+      if (fn === "move_estimate_row_item_with_history") {
+        return Promise.resolve({
+          data: {
+            eventId: EVENT_ID,
+            updatedRowCount: 2,
+            rows: [
+              { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, rowRevision: 3 },
+              { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, rowRevision: 4 },
+            ],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const result = await moveEstimateRowItemWithHistory({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      activeTabId: ACTIVE_TAB_ID,
+      mutationId: MUTATION_ID,
+      movedRowId: ROW_ID,
+      sourceNodeId: NODE_ID,
+      targetNodeId: TARGET_NODE_ID,
+      updates: [
+        { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, expectedRowRevision: 2 },
+        { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, expectedRowRevision: 3 },
+      ],
+    });
+
+    const moveCall = rpcSpy.mock.calls.find(([fn]) => fn === "move_estimate_row_item_with_history") as [string, Record<string, unknown>] | undefined;
+
+    expect(result).toEqual({
+      eventId: EVENT_ID,
+      updatedRowCount: 2,
+      rows: [
+        { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, rowRevision: 3 },
+        { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, rowRevision: 4 },
+      ],
+    });
+    expect(moveCall?.[1]).toEqual({
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_active_tab_id: ACTIVE_TAB_ID,
+      moved_row_id: ROW_ID,
+      source_node_id: NODE_ID,
+      target_node_id: TARGET_NODE_ID,
+      move_updates: [
+        { rowId: ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 0, expectedRowRevision: 2 },
+        { rowId: SECOND_ROW_ID, nodeId: TARGET_NODE_ID, sortOrder: 1, expectedRowRevision: 3 },
+      ],
+      correlation_id: MUTATION_ID,
+    });
+    expect(moveCall?.[1]).not.toHaveProperty("acting_user_id");
+  });
+
+  it("moveEstimateRowItemWithHistory rejects malformed local move payloads before the RPC", async () => {
+    await expect(moveEstimateRowItemWithHistory({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      movedRowId: "optimistic-row-1",
+      sourceNodeId: NODE_ID,
+      targetNodeId: TARGET_NODE_ID,
+      updates: [],
+    })).rejects.toThrow(/at least one row order update/i);
+
+    expect(rpcSpy).not.toHaveBeenCalledWith("move_estimate_row_item_with_history", expect.anything());
   });
 });
