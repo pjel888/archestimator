@@ -74,6 +74,7 @@ function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
  * explanatory copy.
  */
 export function ComponentDropTarget({
+  canEditEstimate = true,
   nodeId,
   nodeName,
   empty,
@@ -82,6 +83,7 @@ export function ComponentDropTarget({
   onMoveRowItem,
   rowDropIndex = 0,
 }: {
+  canEditEstimate?: boolean;
   nodeId: string;
   nodeName: string;
   empty: boolean;
@@ -100,6 +102,8 @@ export function ComponentDropTarget({
   // A cancelled drag never delivers the balancing dragleave; adjust the
   // stale counter during render once the drag store empties.
   if (!compatibleDragActive && dragCount !== 0) setDragCount(0);
+
+  if (!canEditEstimate) return null;
 
   if (!compatibleDragActive) {
     return (

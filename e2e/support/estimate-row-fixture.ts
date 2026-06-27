@@ -3,11 +3,17 @@ import { randomUUID } from "node:crypto";
 import { type Locator, type Page, type TestInfo } from "@playwright/test";
 import { createClient, type Session } from "@supabase/supabase-js";
 
+import { CURRENT_TERMS } from "@/lib/legal/terms-content";
+
 const ownerAuthEmail = process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL?.trim().toLowerCase();
 const authCookieChunkSize = 3_180;
 
 export type EstimateRowE2EFixture = {
   workspaceId: string;
+  ownerUserId: string;
+  viewerUserId: string;
+  viewerEmail: string;
+  viewerPassword: string;
   projectId: string;
   estimateId: string;
   tabId: string;
@@ -16,9 +22,18 @@ export type EstimateRowE2EFixture = {
   targetNodeId: string;
   movedRowId: string;
   sourceSiblingRowId: string;
+  linkedComponentRowId: string;
+  componentMoveTargetRowId: string;
+  textEditRowId: string;
   targetExistingRowId: string;
+  linkedLibraryItemId: string;
+  replacementLibraryItemId: string;
   movedMaterial: string;
+  linkedMaterial: string;
+  componentMoveTargetMaterial: string;
+  textEditMaterial: string;
   targetMaterial: string;
+  replacementMaterial: string;
 };
 
 export type PersistedEstimateRow = {
@@ -34,6 +49,8 @@ export type PersistedEstimateRowDetails = PersistedEstimateRow & {
   description: string;
   misc_cost: number;
   adjustment_percentage: number | null;
+  source_library_item_id: string | null;
+  link_state: string | null;
 };
 
 export function hasEstimateRowE2EPrerequisites() {
@@ -142,6 +159,18 @@ export async function installOwnerSession(page: Page, testInfo: TestInfo) {
   await page.context().addCookies(createAuthCookies(session, readBaseURL(testInfo)));
 }
 
+async function createPasswordSession(email: string, password: string): Promise<Session> {
+  const { data, error } = await createAnonClient().auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  if (!data.session) throw new Error(`Supabase did not return an E2E session for ${email}.`);
+  return data.session;
+}
+
+export async function installViewerSession(page: Page, testInfo: TestInfo, fixture: EstimateRowE2EFixture) {
+  const session = await createPasswordSession(fixture.viewerEmail, fixture.viewerPassword);
+  await page.context().addCookies(createAuthCookies(session, readBaseURL(testInfo)));
+}
+
 async function getDevAuthUserId() {
   const email = ownerAuthEmail;
   if (!email) throw new Error("ARCHESTIMATOR_DEV_AUTH_EMAIL is required.");
@@ -153,13 +182,32 @@ async function getDevAuthUserId() {
 }
 
 async function getFixtureWorkspaceId(userId: string) {
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("default_workspace_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+
+  const { data, error } = await admin
     .from("workspace_members")
     .select("workspace_id, role")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1);
   if (error) throw error;
+  if (profile?.default_workspace_id) {
+    const { data: defaultMembership, error: defaultMembershipError } = await admin
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", userId)
+      .eq("workspace_id", profile.default_workspace_id)
+      .maybeSingle();
+    if (defaultMembershipError) throw defaultMembershipError;
+    if (defaultMembership?.workspace_id) return defaultMembership.workspace_id;
+  }
+
   const membership = data?.[0];
   if (!membership?.workspace_id) throw new Error("Dev auth user has no workspace membership for estimate row e2e.");
   return membership.workspace_id;
@@ -171,20 +219,37 @@ function rowInsert({
   rowId,
   material,
   sortOrder,
+  sourceLibraryItemId = null,
+  linkState = "unlinked",
+  express = false,
 }: {
   estimateId: string;
   nodeId: string;
   rowId: string;
   material: string;
   sortOrder: number;
+  sourceLibraryItemId?: string | null;
+  linkState?: "linked-clean" | "unlinked";
+  express?: boolean;
 }) {
   return {
     id: rowId,
     estimate_id: estimateId,
     node_id: nodeId,
     sort_order: sortOrder,
-    source_library_item_id: null,
-    source_snapshot: null,
+    source_library_item_id: sourceLibraryItemId,
+    source_snapshot: sourceLibraryItemId
+      ? {
+          sourceLibraryItemId,
+          material,
+          supplier: "E2E Supplier",
+          unit: "pc",
+          unitCost: 100,
+          miscCost: 0,
+          category: "E2E",
+          componentVersionNumber: 1,
+        }
+      : null,
     material,
     description: `${material} browser fixture`,
     supplier: "E2E Supplier",
@@ -197,9 +262,60 @@ function rowInsert({
     misc_cost: 0,
     discipline: "Architectural Works",
     designation: "E2E row proof",
-    link_state: "unlinked",
-    metadata: { e2e: true, source: "estimate-row-fixture" },
+    link_state: linkState,
+    metadata: {
+      e2e: true,
+      source: "estimate-row-fixture",
+      ...(express
+        ? {
+            expressComponent: {
+              kind: "express",
+              schemaVersion: 1,
+              id: rowId,
+              createdFrom: "estimate-row-fixture",
+              componentName: material,
+            },
+          }
+        : {}),
+    },
     row_revision: 1,
+  };
+}
+
+function libraryItemInsert({
+  workspaceId,
+  userId,
+  itemId,
+  material,
+  unitCost,
+}: {
+  workspaceId: string;
+  userId: string;
+  itemId: string;
+  material: string;
+  unitCost: number;
+}) {
+  const now = new Date().toISOString();
+  return {
+    id: itemId,
+    workspace_id: workspaceId,
+    name: material,
+    description: `${material} browser fixture library component`,
+    supplier: "E2E Supplier",
+    unit: "pc",
+    unit_cost: unitCost,
+    misc_cost: 0,
+    category: "E2E",
+    confidence: "e2e",
+    pricing_source: "E2E fixture",
+    pricing_date: new Date().toISOString().slice(0, 10),
+    lifecycle_state: "available" as const,
+    lifecycle_state_changed_at: now,
+    current_version_number: 1,
+    metadata: { e2e: true, source: "estimate-row-fixture" },
+    created_by: userId,
+    created_at: now,
+    updated_at: now,
   };
 }
 
@@ -207,6 +323,9 @@ export async function createEstimateRowFixture(): Promise<EstimateRowE2EFixture>
   const admin = createAdminClient();
   const userId = await getDevAuthUserId();
   const workspaceId = await getFixtureWorkspaceId(userId);
+  const viewerUserId = randomUUID();
+  const viewerEmail = `estimate-row-viewer-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}@archestimator.local`;
+  const viewerPassword = `Estimate-row-${randomUUID()}!`;
   const projectId = randomUUID();
   const estimateId = randomUUID();
   const tabId = randomUUID();
@@ -215,12 +334,87 @@ export async function createEstimateRowFixture(): Promise<EstimateRowE2EFixture>
   const targetNodeId = randomUUID();
   const movedRowId = randomUUID();
   const sourceSiblingRowId = randomUUID();
+  const linkedComponentRowId = randomUUID();
+  const componentMoveTargetRowId = randomUUID();
+  const textEditRowId = randomUUID();
   const targetExistingRowId = randomUUID();
+  const linkedLibraryItemId = randomUUID();
+  const replacementLibraryItemId = randomUUID();
   const stamp = Date.now().toString(36);
   const movedMaterial = `E2E movable row ${stamp}`;
+  const linkedMaterial = `E2E linked component ${stamp}`;
+  const componentMoveTargetMaterial = `E2E component target ${stamp}`;
+  const textEditMaterial = `E2E text edit row ${stamp}`;
   const targetMaterial = `E2E target anchor ${stamp}`;
+  const replacementMaterial = `E2E replacement component ${stamp}`;
 
   try {
+    const { data: createdViewer, error: viewerCreateError } = await admin.auth.admin.createUser({
+      id: viewerUserId,
+      email: viewerEmail,
+      password: viewerPassword,
+      email_confirm: true,
+      user_metadata: { display_name: "Estimate Row Viewer E2E" },
+    });
+    if (viewerCreateError) throw viewerCreateError;
+    if (!createdViewer.user) throw new Error("Supabase did not return the estimate row viewer E2E user.");
+
+    const { error: viewerProfileError } = await admin.from("profiles").upsert({
+      id: viewerUserId,
+      email: viewerEmail,
+      display_name: "Estimate Row Viewer E2E",
+      avatar_url: null,
+      role: "member",
+      default_workspace_id: workspaceId,
+    });
+    if (viewerProfileError) throw viewerProfileError;
+
+    const { error: viewerAllowlistError } = await admin.from("closed_beta_allowed_emails").upsert(
+      {
+        normalized_email: viewerEmail,
+        status: "active",
+        metadata: { e2e: true, source: "estimate-row-fixture" },
+        notes: "Estimate row viewer E2E fixture",
+      },
+      { onConflict: "normalized_email" },
+    );
+    if (viewerAllowlistError) throw viewerAllowlistError;
+
+    const { error: viewerTermsAcceptanceError } = await admin.from("legal_terms_acceptances").upsert(
+      {
+        user_id: viewerUserId,
+        terms_key: CURRENT_TERMS.key,
+        terms_version: CURRENT_TERMS.version,
+        terms_effective_date: CURRENT_TERMS.effectiveDate,
+        terms_content_hash: CURRENT_TERMS.contentHash,
+        privacy_policy_version: CURRENT_TERMS.privacyPolicyVersion,
+        acceptance_method: "authenticated_clickwrap",
+        acceptance_context: "workshop_terms_gate",
+        metadata_json: {
+          e2e: true,
+          source: "estimate-row-fixture",
+        },
+      },
+      { onConflict: "user_id,terms_key,terms_version" },
+    );
+    if (viewerTermsAcceptanceError) throw viewerTermsAcceptanceError;
+
+    const { error: viewerWorkspaceError } = await admin.from("workspace_members").upsert(
+      {
+        workspace_id: workspaceId,
+        user_id: viewerUserId,
+        role: "viewer",
+      },
+      { onConflict: "workspace_id,user_id" },
+    );
+    if (viewerWorkspaceError) throw viewerWorkspaceError;
+
+    const { error: libraryError } = await admin.from("cost_library_items").insert([
+      libraryItemInsert({ workspaceId, userId, itemId: linkedLibraryItemId, material: linkedMaterial, unitCost: 140 }),
+      libraryItemInsert({ workspaceId, userId, itemId: replacementLibraryItemId, material: replacementMaterial, unitCost: 220 }),
+    ]);
+    if (libraryError) throw libraryError;
+
     const { error: projectError } = await admin.from("projects").insert({
       id: projectId,
       workspace_id: workspaceId,
@@ -246,6 +440,18 @@ export async function createEstimateRowFixture(): Promise<EstimateRowE2EFixture>
     );
     if (projectMemberError) throw projectMemberError;
 
+    const { error: viewerProjectMemberError } = await admin.from("project_members").upsert(
+      {
+        project_id: projectId,
+        workspace_id: workspaceId,
+        user_id: viewerUserId,
+        role: "viewer",
+        added_by: userId,
+      },
+      { onConflict: "project_id,user_id" },
+    );
+    if (viewerProjectMemberError) throw viewerProjectMemberError;
+
     const { error: estimateError } = await admin.from("estimates").insert({
       id: estimateId,
       project_id: projectId,
@@ -265,6 +471,15 @@ export async function createEstimateRowFixture(): Promise<EstimateRowE2EFixture>
       added_by: userId,
     });
     if (estimateMemberError) throw estimateMemberError;
+
+    const { error: viewerEstimateMemberError } = await admin.from("estimate_sheet_members").insert({
+      estimate_id: estimateId,
+      project_id: projectId,
+      user_id: viewerUserId,
+      role: "viewer",
+      added_by: userId,
+    });
+    if (viewerEstimateMemberError) throw viewerEstimateMemberError;
 
     const { error: tabError } = await admin.from("estimate_tabs").insert({
       id: tabId,
@@ -314,16 +529,41 @@ export async function createEstimateRowFixture(): Promise<EstimateRowE2EFixture>
     const { error: rowError } = await admin.from("estimate_row_items").insert([
       rowInsert({ estimateId, nodeId: sourceNodeId, rowId: movedRowId, material: movedMaterial, sortOrder: 0 }),
       rowInsert({ estimateId, nodeId: sourceNodeId, rowId: sourceSiblingRowId, material: `E2E source sibling ${stamp}`, sortOrder: 1 }),
+      rowInsert({
+        estimateId,
+        nodeId: sourceNodeId,
+        rowId: linkedComponentRowId,
+        material: linkedMaterial,
+        sortOrder: 2,
+        sourceLibraryItemId: linkedLibraryItemId,
+        linkState: "linked-clean",
+      }),
+      rowInsert({ estimateId, nodeId: sourceNodeId, rowId: componentMoveTargetRowId, material: componentMoveTargetMaterial, sortOrder: 3 }),
+      rowInsert({ estimateId, nodeId: sourceNodeId, rowId: textEditRowId, material: textEditMaterial, sortOrder: 4, express: true }),
       rowInsert({ estimateId, nodeId: targetNodeId, rowId: targetExistingRowId, material: targetMaterial, sortOrder: 0 }),
     ]);
     if (rowError) throw rowError;
   } catch (error) {
-    await deleteEstimateRowFixture({ projectId, estimateId } as EstimateRowE2EFixture);
+    await deleteEstimateRowFixture({
+      workspaceId,
+      ownerUserId: userId,
+      viewerUserId,
+      viewerEmail,
+      viewerPassword,
+      projectId,
+      estimateId,
+      linkedLibraryItemId,
+      replacementLibraryItemId,
+    } as EstimateRowE2EFixture);
     throw error;
   }
 
   return {
     workspaceId,
+    ownerUserId: userId,
+    viewerUserId,
+    viewerEmail,
+    viewerPassword,
     projectId,
     estimateId,
     tabId,
@@ -332,17 +572,63 @@ export async function createEstimateRowFixture(): Promise<EstimateRowE2EFixture>
     targetNodeId,
     movedRowId,
     sourceSiblingRowId,
+    linkedComponentRowId,
+    componentMoveTargetRowId,
+    textEditRowId,
     targetExistingRowId,
+    linkedLibraryItemId,
+    replacementLibraryItemId,
     movedMaterial,
+    linkedMaterial,
+    componentMoveTargetMaterial,
+    textEditMaterial,
     targetMaterial,
+    replacementMaterial,
   };
+}
+
+export async function setEstimateRowFixtureRole(
+  fixture: EstimateRowE2EFixture,
+  role: "owner" | "admin" | "editor" | "viewer",
+) {
+  const admin = createAdminClient();
+  const [{ error: projectMemberError }, { error: estimateMemberError }] = await Promise.all([
+    admin
+      .from("project_members")
+      .update({ role })
+      .eq("project_id", fixture.projectId)
+      .eq("user_id", fixture.ownerUserId),
+    admin
+      .from("estimate_sheet_members")
+      .update({ role })
+      .eq("estimate_id", fixture.estimateId)
+      .eq("user_id", fixture.ownerUserId),
+  ]);
+  if (projectMemberError) throw projectMemberError;
+  if (estimateMemberError) throw estimateMemberError;
 }
 
 export async function deleteEstimateRowFixture(fixture: EstimateRowE2EFixture | null) {
   if (!fixture) return;
   const admin = createAdminClient();
+  const { data: linkedRows } = await admin
+    .from("estimate_row_items")
+    .select("source_library_item_id")
+    .eq("estimate_id", fixture.estimateId)
+    .not("source_library_item_id", "is", null);
+  const libraryItemIds = Array.from(new Set([
+    fixture.linkedLibraryItemId,
+    fixture.replacementLibraryItemId,
+    ...(linkedRows ?? []).map((row) => row.source_library_item_id).filter((id): id is string => Boolean(id)),
+  ]));
   await admin.from("estimates").delete().eq("id", fixture.estimateId);
   await admin.from("projects").delete().eq("id", fixture.projectId);
+  if (libraryItemIds.length > 0) await admin.from("cost_library_items").delete().in("id", libraryItemIds);
+  await admin.from("workspace_members").delete().eq("workspace_id", fixture.workspaceId).eq("user_id", fixture.viewerUserId);
+  await admin.from("closed_beta_allowed_emails").delete().eq("normalized_email", fixture.viewerEmail);
+  await admin.from("legal_terms_acceptances").delete().eq("user_id", fixture.viewerUserId);
+  await admin.from("profiles").delete().eq("id", fixture.viewerUserId);
+  await admin.auth.admin.deleteUser(fixture.viewerUserId);
 }
 
 export async function getPersistedRows(fixture: EstimateRowE2EFixture): Promise<PersistedEstimateRow[]> {
@@ -370,7 +656,7 @@ export async function getPersistedRow(fixture: EstimateRowE2EFixture, rowId: str
 export async function getPersistedRowDetails(fixture: EstimateRowE2EFixture, rowId: string) {
   const { data, error } = await createAdminClient()
     .from("estimate_row_items")
-    .select("id, node_id, sort_order, row_revision, quantity, material, description, misc_cost, adjustment_percentage")
+    .select("id, node_id, sort_order, row_revision, quantity, material, description, misc_cost, adjustment_percentage, source_library_item_id, link_state")
     .eq("estimate_id", fixture.estimateId)
     .eq("id", rowId)
     .single();

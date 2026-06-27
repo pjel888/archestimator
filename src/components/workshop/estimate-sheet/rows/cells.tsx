@@ -726,6 +726,7 @@ function ExpressMaterialEditor({
 }
 
 export function EstimateMaterialCell({
+  canEditEstimate = true,
   item,
   editableRow,
   projectId,
@@ -750,6 +751,7 @@ export function EstimateMaterialCell({
   onRetryExpressDraft,
   onDeleteExpressDraft,
 }: {
+  canEditEstimate?: boolean;
   item: EstimateRowItem;
   editableRow: EditableRowValue;
   projectId?: string;
@@ -776,6 +778,7 @@ export function EstimateMaterialCell({
 }) {
   const surfaceVariant = useEstimateSurfaceVariant();
   function handleReplacementDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!canEditEstimate) return;
     if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
@@ -791,6 +794,7 @@ export function EstimateMaterialCell({
   }
 
   function handleReplacementDrop(event: DragEvent<HTMLDivElement>) {
+    if (!canEditEstimate) return;
     const movedComponent = readEstimateComponentDragPayload(event);
     if (movedComponent) {
       event.preventDefault();
@@ -810,13 +814,14 @@ export function EstimateMaterialCell({
   }
 
   function handleComponentDragStart(event: DragEvent<HTMLButtonElement>) {
+    if (!canEditEstimate) return;
     event.stopPropagation();
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData(ESTIMATE_COMPONENT_DRAG_MIME_TYPE, JSON.stringify({ rowItemId: item.id, item } satisfies EstimateComponentDragPayload));
   }
 
-  const showProjectSpecificAction = canMakeProjectSpecific(item);
-  const showPromoteAction = canPromoteEstimateRowToLibrary(item);
+  const showProjectSpecificAction = canEditEstimate && canMakeProjectSpecific(item);
+  const showPromoteAction = canEditEstimate && canPromoteEstimateRowToLibrary(item);
   const showInlineComponentEditor = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
   const componentLabel = showInlineComponentEditor ? (editableRow.name || "Project Component") : (item.material || "component");
   const sourceTone = getComponentSourceTone(item);
@@ -829,13 +834,13 @@ export function EstimateMaterialCell({
         surfaceVariant === "glass" ? "hover:bg-white/40" : "bg-white hover:bg-neutral-50",
         isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent",
       )}
-      onDragOver={handleReplacementDragOver}
-      onDragLeave={onReplaceDragLeave}
-      onDrop={handleReplacementDrop}
+      onDragOver={canEditEstimate ? handleReplacementDragOver : undefined}
+      onDragLeave={canEditEstimate ? onReplaceDragLeave : undefined}
+      onDrop={canEditEstimate ? handleReplacementDrop : undefined}
       data-replace-target-active={isReplaceTarget ? "true" : undefined}
       data-component-source={sourceTone}
-      aria-label={`${componentLabel} replaceable estimate component`}
-      title={`${sourceLabel}. Drop another component here to replace this component`}
+      aria-label={canEditEstimate ? `${componentLabel} replaceable estimate component` : `${componentLabel} estimate component`}
+      title={canEditEstimate ? `${sourceLabel}. Drop another component here to replace this component` : sourceLabel}
     >
       <span
         className={cn("pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-divider transition-colors duration-150", getComponentSourceRailClass(sourceTone))}
@@ -878,7 +883,7 @@ export function EstimateMaterialCell({
             </Button>
           </ActionTooltip>
         ) : null}
-        {onOpenReplacePicker ? (
+        {canEditEstimate && onOpenReplacePicker ? (
           <ActionTooltip label="Replace component">
             <Button
               type="button"
@@ -895,7 +900,7 @@ export function EstimateMaterialCell({
             </Button>
           </ActionTooltip>
         ) : null}
-        {onOpenMovePicker ? (
+        {canEditEstimate && onOpenMovePicker ? (
           <ActionTooltip label="Move component">
             <Button
               type="button"
@@ -912,21 +917,23 @@ export function EstimateMaterialCell({
             </Button>
           </ActionTooltip>
         ) : null}
-        <ActionTooltip label="Delete component">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-5 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 active:bg-red-50 focus-visible:text-red-700"
-            aria-label={`Delete component ${componentLabel}`}
-            onClick={(event: MouseEvent<HTMLButtonElement>) => {
-              event.stopPropagation();
-              onClearComponent();
-            }}
-          >
-            <Trash size={11} weight="regular" aria-hidden="true" />
-          </Button>
-        </ActionTooltip>
+        {canEditEstimate ? (
+          <ActionTooltip label="Delete component">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 active:bg-red-50 focus-visible:text-red-700"
+              aria-label={`Delete component ${componentLabel}`}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                event.stopPropagation();
+                onClearComponent();
+              }}
+            >
+              <Trash size={11} weight="regular" aria-hidden="true" />
+            </Button>
+          </ActionTooltip>
+        ) : null}
         <ActionTooltip label="Component details">
           <Button
             type="button"
@@ -942,22 +949,24 @@ export function EstimateMaterialCell({
             <DotsThreeVertical size={11} weight="regular" aria-hidden="true" />
           </Button>
         </ActionTooltip>
-        <ActionTooltip label="Drag component">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-5 cursor-grab rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:cursor-grabbing active:bg-surfaceMuted"
-            aria-label={`Drag component ${componentLabel}`}
-            draggable
-            onClick={(event: MouseEvent<HTMLButtonElement>) => event.stopPropagation()}
-            onDragStart={handleComponentDragStart}
-          >
-            <DotsSixVertical size={11} weight="regular" aria-hidden="true" />
-          </Button>
-        </ActionTooltip>
+        {canEditEstimate ? (
+          <ActionTooltip label="Drag component">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 cursor-grab rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:cursor-grabbing active:bg-surfaceMuted"
+              aria-label={`Drag component ${componentLabel}`}
+              draggable
+              onClick={(event: MouseEvent<HTMLButtonElement>) => event.stopPropagation()}
+              onDragStart={handleComponentDragStart}
+            >
+              <DotsSixVertical size={11} weight="regular" aria-hidden="true" />
+            </Button>
+          </ActionTooltip>
+        ) : null}
       </div>
-      {showInlineComponentEditor ? (
+      {canEditEstimate && showInlineComponentEditor ? (
         <ExpressMaterialEditor
           key={`${item.id}:${editableRow.imageUrl}`}
           item={item}
@@ -997,6 +1006,7 @@ export function MoneyInput({
   "data-estimate-row-id"?: string;
   "data-estimate-cell-index"?: number;
   "data-express-field"?: string;
+  disabled?: boolean;
   onFocus?: InputHTMLAttributes<HTMLInputElement>["onFocus"];
   onBlur?: InputHTMLAttributes<HTMLInputElement>["onBlur"];
   onKeyDown?: InputHTMLAttributes<HTMLInputElement>["onKeyDown"];

@@ -2601,6 +2601,7 @@ export function EstimateSheetContent({
                       node={displayedSheetNode}
                       nodeCode={selectedNodePresentation.nodeCode}
                       ancestorPath={selectedNodePresentation.ancestorPath}
+                      canEditEstimate={canEditEstimate}
                       editableRows={editableRows}
                       setEditableRows={setEditableRows}
                       projectId={projectId}
@@ -2636,23 +2637,25 @@ export function EstimateSheetContent({
                   </EstimateSheetExpansionContext.Provider>
                 ) : null}
               </div>
-              <BulkActionToolbar
-                placement="bottom-dock"
-                dockTo="container"
-                selectedCount={bulkSelectedRowCount}
-                selectedLabel={bulkSelectedRowCount === 1 ? "row selected" : "rows selected"}
-                onClear={clearRowSelection}
-                actions={[
-                  {
-                    label: "Delete selected rows",
-                    ariaLabel: "Delete selected rows",
-                    title: "Deletes selected rows immediately. Use Undo after saving to restore them.",
-                    icon: <Trash size={12} weight="regular" />,
-                    variant: "danger",
-                    onClick: deleteSelectedRows,
-                  },
-                ]}
-              />
+              {canEditEstimate ? (
+                <BulkActionToolbar
+                  placement="bottom-dock"
+                  dockTo="container"
+                  selectedCount={bulkSelectedRowCount}
+                  selectedLabel={bulkSelectedRowCount === 1 ? "row selected" : "rows selected"}
+                  onClear={clearRowSelection}
+                  actions={[
+                    {
+                      label: "Delete selected rows",
+                      ariaLabel: "Delete selected rows",
+                      title: "Deletes selected rows immediately. Use Undo after saving to restore them.",
+                      icon: <Trash size={12} weight="regular" />,
+                      variant: "danger",
+                      onClick: deleteSelectedRows,
+                    },
+                  ]}
+                />
+              ) : null}
             </div>
           </>
         ) : (

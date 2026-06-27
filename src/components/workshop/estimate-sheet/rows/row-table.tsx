@@ -55,6 +55,7 @@ import {
 } from "./editable-row-model";
 
 export type EstimateRowItemsTableProps = {
+  canEditEstimate?: boolean;
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
@@ -108,6 +109,7 @@ export type EstimateTableColumnResizeConfig = {
 function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, next: EstimateRowItemsTableProps) {
   if (
     prev.items !== next.items ||
+    prev.canEditEstimate !== next.canEditEstimate ||
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
     prev.targetNodeId !== next.targetNodeId ||
@@ -225,6 +227,7 @@ function getEstimateRowDropEdge(event: DragEvent<HTMLTableRowElement>) {
 }
 
 type EstimateRowItemTableRowProps = {
+  canEditEstimate: boolean;
   item: EstimateRowItem;
   editableRow: EditableRowValue | undefined;
   projectId?: string;
@@ -263,6 +266,7 @@ type EstimateRowItemTableRowProps = {
 };
 
 const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
+  canEditEstimate,
   item,
   editableRow,
   projectId,
@@ -360,6 +364,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const rowMutationPending = rowMutationStatus?.phase === "pending";
 
   function handleRowItemDragStart(event: DragEvent<HTMLButtonElement>) {
+    if (!canEditEstimate) return;
     const payload: EstimateRowItemDragPayload = {
       rowItemId: computedItem.id,
       sourceNodeId: targetNodeId,
@@ -378,6 +383,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function handleRowItemDragOver(event: DragEvent<HTMLTableRowElement>) {
+    if (!canEditEstimate) return;
     if (!event.dataTransfer.types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -386,6 +392,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function handleRowItemDrop(event: DragEvent<HTMLTableRowElement>) {
+    if (!canEditEstimate) return;
     const payload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
     const targetEdge = getEstimateRowDropEdge(event);
     setRowDropEdge(null);
@@ -398,11 +405,13 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function updateExpressEditableRow(values: Partial<EditableRowValue>) {
+    if (!canEditEstimate) return;
     setEditableRows((current) => updateEditableRowValue(current, item, values));
     onMarkRowDirty(item.id);
   }
 
   function commitExpressFields(values: Partial<EditableRowValue>) {
+    if (!canEditEstimate) return;
     const nextValues = { ...resolvedEditableRow, ...values };
     const patch: Partial<EditableRowValue> = {};
     if (values.name !== undefined && nextValues.name !== item.material) patch.name = nextValues.name;
@@ -417,17 +426,20 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function updateQuantityFields(values: Partial<EditableRowValue>) {
+    if (!canEditEstimate) return;
     setEditableRows((current) => updateEditableRowValue(current, computedItem, values));
     onMarkRowDirty(computedItem.id);
   }
 
   function updateQuantityDraft(value: string) {
+    if (!canEditEstimate) return;
     const parsed = parseEditableQuantityExpression(item, value);
     if (parsed.ok) updateQuantityFields(parsed.patch);
     else updateQuantityFields({ quantityExpression: value });
   }
 
   function commitQuantityFields(values: Partial<EditableRowValue>) {
+    if (!canEditEstimate) return;
     const nextRow = { ...resolvedEditableRow, ...values };
     const nextAmounts = getEditableRowAmounts(item, nextRow);
     const didQuantityChange = nextAmounts.quantity !== computedItem.storedQuantity
@@ -445,6 +457,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function updateQuantityBreakdown(field: "base" | "contingency", value: string) {
+    if (!canEditEstimate) return;
     const patch = buildEditableQuantityContingencyPatch(
       field === "base" ? value : computedItem.editableQuantityBase,
       field === "contingency" ? value : computedItem.editableQuantityContingencyAmount,
@@ -453,6 +466,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function updateContingencyPercentageDraft(value: string) {
+    if (!canEditEstimate) return;
     const draft = readSignedPercentageDraft(value);
     setEditableRows((current) => updateEditableRowValue(current, computedItem, {
       contingencyMode: draft.mode,
@@ -462,6 +476,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function updateAdjustmentPercentageDraft(value: string) {
+    if (!canEditEstimate) return;
     setEditableRows((current) => updateEditableRowValue(current, computedItem, {
       adjustmentPercentage: normalizeSignedPercentageDraft(value),
     }));
@@ -469,6 +484,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function commitRowAdjustmentPercentage(sourceValue: string) {
+    if (!canEditEstimate) return;
     const nextAdjustmentPercentage = toEditableAdjustmentPercentage(parseEditableAdjustmentPercentage(normalizeSignedPercentageDraft(sourceValue)));
     setEditableRows((current) => updateEditableRowValue(current, computedItem, {
       adjustmentPercentage: nextAdjustmentPercentage,
@@ -480,6 +496,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   }
 
   function commitContingencyPercentage(sourceValue: string) {
+    if (!canEditEstimate) return;
     if (!computedItem.isQuantityContingency && parseEditableAdjustmentPercentage(sourceValue) === 0) {
       setEditableRows((current) => updateEditableRowValue(current, computedItem, {
         contingencyMode: "contingency",
@@ -509,9 +526,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       data-estimate-row-drop-edge={rowDropEdge ?? undefined}
       data-estimate-row-mutation-status={rowMutationStatus?.phase}
       aria-busy={rowMutationPending ? true : undefined}
-      onDragOver={handleRowItemDragOver}
-      onDragLeave={() => setRowDropEdge(null)}
-      onDrop={handleRowItemDrop}
+      onDragOver={canEditEstimate ? handleRowItemDragOver : undefined}
+      onDragLeave={canEditEstimate ? () => setRowDropEdge(null) : undefined}
+      onDrop={canEditEstimate ? handleRowItemDrop : undefined}
     >
       <td className="relative flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
         {String(rowIndex + 1).padStart(2, "0")}
@@ -522,7 +539,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         ) : null}
       </td>
       <td className="relative flex flex-col items-center justify-center gap-1 border-r border-hairline py-1 text-tertiary" data-estimate-row-select-cell="">
-        {onOpenMoveRowItemDialog ? (
+        {canEditEstimate && onOpenMoveRowItemDialog ? (
           <Tooltip label="Move row" side="right" contentClassName="z-[1200]">
             <button
               type="button"
@@ -540,20 +557,25 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         ) : (
           <span className="size-5" aria-hidden="true" />
         )}
-        <SelectionCheckbox
-          checked={selected}
-          ariaLabel={`Select ${computedItemLabel}`}
-          tabIndex={0}
-          uncheckedRevealClassName="group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleRowSelection(computedItem.id, !selected);
-          }}
-          onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowSelection(computedItem.id, !selected))}
-        />
+        {canEditEstimate ? (
+          <SelectionCheckbox
+            checked={selected}
+            ariaLabel={`Select ${computedItemLabel}`}
+            tabIndex={0}
+            uncheckedRevealClassName="group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleRowSelection(computedItem.id, !selected);
+            }}
+            onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowSelection(computedItem.id, !selected))}
+          />
+        ) : (
+          <span className="size-5" aria-hidden="true" />
+        )}
       </td>
       <td className="min-w-0 border-r border-hairline">
         <EstimateMaterialCell
+          canEditEstimate={canEditEstimate}
           item={computedItem}
           editableRow={resolvedEditableRow}
           projectId={projectId}
@@ -609,6 +631,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           type="text"
           inputMode="decimal"
           value={computedItem.editableQuantityInput}
+          disabled={!canEditEstimate}
           onChange={(event) => {
             updateQuantityDraft(event.target.value);
           }}
@@ -642,7 +665,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         {computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0 ? (
           <Chip
             tone="accent"
-            active={quantityBreakdownOpen}
+            active={canEditEstimate && quantityBreakdownOpen}
+            disabled={!canEditEstimate}
             className="absolute bottom-4 max-w-[calc(100%-8px)] px-1"
             aria-label={`${computedItemLabel} quantity adjustment breakdown`}
             onMouseDown={(event) => event.preventDefault()}
@@ -658,6 +682,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               min="0"
               step="0.01"
               value={computedItem.editableQuantityBase}
+              disabled={!canEditEstimate}
               aria-label={`${computedItemLabel} base quantity`}
               align="center"
               className="h-6 text-[10px] tabular-nums"
@@ -669,6 +694,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               inputMode="decimal"
               step="0.01"
               value={computedItem.editableQuantityContingencyAmount}
+              disabled={!canEditEstimate}
               aria-label={`${computedItemLabel} quantity adjustment`}
               align="center"
               className="h-6 text-[10px] tabular-nums"
@@ -693,6 +719,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               inputMode="decimal"
               step="0.01"
               value={editableContingencyColumnPercentage}
+              disabled={!canEditEstimate}
               onChange={(event) => updateContingencyPercentageDraft(event.target.value)}
               onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 1 })}
               onBlur={(event) => {
@@ -729,6 +756,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               inputMode="decimal"
               step="0.01"
               value={editableAdjustmentColumnPercentage}
+              disabled={!canEditEstimate}
               onChange={(event) => updateAdjustmentPercentageDraft(event.target.value)}
               onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 2 })}
               onBlur={(event) => {
@@ -759,6 +787,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       >
         <MoneyInput
           value={computedItem.editableMiscCost}
+          disabled={!canEditEstimate}
           align="center"
           onChange={(value) => {
             setEditableRows((current) => updateEditableRowValue(current, computedItem, { miscCost: value }));
@@ -804,18 +833,20 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             <ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />
           </Button>
         </Tooltip>
-        <Tooltip label={ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP} side="left" contentClassName="z-[1200]">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
-            aria-label={`Delete row ${computedItemLabel}`}
-            onClick={() => onDeleteRowItem(computedItem.id)}
-          >
-            <Trash size={14} weight="regular" aria-hidden="true" />
-          </Button>
-        </Tooltip>
+        {canEditEstimate ? (
+          <Tooltip label={ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP} side="left" contentClassName="z-[1200]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
+              aria-label={`Delete row ${computedItemLabel}`}
+              onClick={() => onDeleteRowItem(computedItem.id)}
+            >
+              <Trash size={14} weight="regular" aria-hidden="true" />
+            </Button>
+          </Tooltip>
+        ) : null}
       </td>
     </tr>
   );
@@ -835,6 +866,7 @@ function handleTableDragOver(event: DragEvent) {
 }
 
 export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
+  canEditEstimate = true,
   items,
   editableRows,
   setEditableRows,
@@ -874,7 +906,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
   const [activeExpressRowId, setActiveExpressRowId] = useState<string | null>(null);
   const [scrollMargin, dispatchScrollMargin] = useReducer(scrollMarginReducer, 0);
-  const selectableRowIds = useMemo(() => items.map((item) => item.id), [items]);
+  const rowIds = useMemo(() => items.map((item) => item.id), [items]);
+  const selectableRowIds = useMemo(() => (canEditEstimate ? rowIds : []), [canEditEstimate, rowIds]);
   const allRowsSelected = selectableRowIds.length > 0 && selectableRowIds.every((rowId) => selectedRowIds.has(rowId));
   const someRowsSelected = !allRowsSelected && selectableRowIds.some((rowId) => selectedRowIds.has(rowId));
   const columnResizeController = useEstimateColumnResizeController({
@@ -899,11 +932,11 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
 
   const requestFocusByRowId = useCallback(
     (rowId: string, cellIndex: number) => {
-      const rowIndex = selectableRowIds.indexOf(rowId);
+      const rowIndex = rowIds.indexOf(rowId);
       if (rowIndex >= 0 && virtualEnabled) rowVirtualizer.scrollToIndex(rowIndex, { align: "auto" });
       setFocusedCell({ rowId, cellIndex });
     },
-    [rowVirtualizer, selectableRowIds, virtualEnabled]
+    [rowIds, rowVirtualizer, virtualEnabled]
   );
   const handleExpressEditorActiveChange = useCallback((rowId: string, active: boolean) => {
     setActiveExpressRowId(active ? rowId : null);
@@ -920,13 +953,13 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
 
   useEffect(() => {
     if (!focusedCell || focusEstimateCellByRowId(focusedCell.rowId, focusedCell.cellIndex)) return;
-    const rowIndex = selectableRowIds.indexOf(focusedCell.rowId);
+    const rowIndex = rowIds.indexOf(focusedCell.rowId);
     if (rowIndex >= 0 && virtualEnabled) rowVirtualizer.scrollToIndex(rowIndex, { align: "auto" });
     const frame = requestAnimationFrame(() => {
       focusEstimateCellByRowId(focusedCell.rowId, focusedCell.cellIndex);
     });
     return () => cancelAnimationFrame(frame);
-  }, [focusedCell, rowVirtualizer, selectableRowIds, virtualEnabled]);
+  }, [focusedCell, rowIds, rowVirtualizer, virtualEnabled]);
 
   useEffect(() => {
     if (!virtualEnabled) {
@@ -989,6 +1022,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   if (!items.length) return null;
 
   function handleDrop(event: DragEvent) {
+    if (!canEditEstimate) return;
     const rowItemPayload = readEstimateRowItemDragPayload(event.dataTransfer.getData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE));
     if (rowItemPayload) {
       event.preventDefault();
@@ -1018,27 +1052,31 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       ref={scrollRootRef}
       className={cn("overflow-hidden border-x border-b border-hairline", estimateSurfaceClass(surfaceVariant, "gridTableRoot"))}
       data-estimate-row-table-root={targetNodeId}
-      onDragOver={handleTableDragOver}
-      onDrop={handleDrop}
+      onDragOver={canEditEstimate ? handleTableDragOver : undefined}
+      onDrop={canEditEstimate ? handleDrop : undefined}
     >
       <table className="w-full border-collapse text-[10px] text-ink">
         <thead className={cn("text-left text-[10px] font-medium text-ink", estimateSurfaceClass(surfaceVariant, "gridTableHead"))}>
           <tr className="grid min-h-10 border-b border-hairline" style={{ gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}>
             <th scope="col" className="flex items-center justify-center border-r border-hairline text-tertiary">#</th>
             <th scope="col" className="flex items-center justify-center border-r border-hairline">
-              <SelectionCheckbox
-                checked={allRowsSelected}
-                indeterminate={someRowsSelected}
-                ariaLabel="Select all estimate row items"
-                tabIndex={0}
-                uncheckedRevealClassName="opacity-100"
-                className="opacity-100"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onToggleRowsSelection(selectableRowIds, !allRowsSelected);
-                }}
-                onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowsSelection(selectableRowIds, !allRowsSelected))}
-              />
+              {canEditEstimate ? (
+                <SelectionCheckbox
+                  checked={allRowsSelected}
+                  indeterminate={someRowsSelected}
+                  ariaLabel="Select all estimate row items"
+                  tabIndex={0}
+                  uncheckedRevealClassName="opacity-100"
+                  className="opacity-100"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleRowsSelection(selectableRowIds, !allRowsSelected);
+                  }}
+                  onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowsSelection(selectableRowIds, !allRowsSelected))}
+                />
+              ) : (
+                <span className="size-5" aria-hidden="true" />
+              )}
             </th>
             <th scope="col" className={headerCellClassName("material")}>
               <span
@@ -1092,14 +1130,15 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
             return (
               <EstimateRowItemTableRow
                 key={item.id}
+                canEditEstimate={canEditEstimate}
                 item={item}
                 editableRow={editableRows[item.id]}
                 projectId={projectId}
                 estimateId={estimateId}
                 rowIndex={virtualRow.index}
-                selected={selectedRowIds.has(item.id)}
+                selected={canEditEstimate && selectedRowIds.has(item.id)}
                 activeCellIndex={focusedCell?.rowId === item.id ? focusedCell.cellIndex : null}
-                isReplaceTarget={replaceTargetRowId === item.id}
+                isReplaceTarget={canEditEstimate && replaceTargetRowId === item.id}
                 setEditableRows={setEditableRows}
                 setFocusedCell={setFocusedCell}
                 setReplaceTargetRowId={setReplaceTargetRowId}
@@ -1124,7 +1163,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onDeleteExpressDraft={onDeleteExpressDraft}
                 onToggleRowSelection={onToggleRowSelection}
                 targetNodeId={targetNodeId}
-                rowIds={selectableRowIds}
+                rowIds={rowIds}
                 onRequestFocusByRowId={requestFocusByRowId}
                 style={virtualEnabled ? {
                   left: 0,

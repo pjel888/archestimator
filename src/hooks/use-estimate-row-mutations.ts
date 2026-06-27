@@ -29,6 +29,7 @@ import {
 import { reconcileEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import { estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { recordEstimateMutationEvent, type EstimateMutationOperation } from "@/lib/estimates/estimate-mutation-telemetry";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 import type { EstimateRowUpdateBroadcastFields } from "./use-estimate-row-update-broadcast";
 import { estimateQueryKeys } from "./use-estimate-query";
@@ -55,6 +56,7 @@ export type EstimateRowMutationStatusMap = Record<string, EstimateRowMutationSta
 const ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE = "This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.";
 const ESTIMATE_ROW_OFFLINE_MESSAGE = "You appear to be offline. Row change kept locally; reconnect and try again.";
 const ROW_MUTATION_NETWORK_MODE = "always" as const;
+const ESTIMATE_ROW_PENDING_ESCALATION_MS = 15_000;
 
 function isBrowserOffline() {
   if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -214,12 +216,18 @@ type UpdateEstimateRowInput = SharedMutationInput & {
 type UpdateMutationContext = {
   operationIds: Record<string, number>;
   rowIds: string[];
+  operation: EstimateMutationOperation;
+  mutationId?: string;
+  startedAt: number;
   previousPatch?: EstimateRowItemPatch;
 };
 
 type ScopedMutationContext = {
   operationIds: Record<string, number>;
   rowIds: string[];
+  operation: EstimateMutationOperation;
+  mutationId?: string;
+  startedAt: number;
 };
 
 function readSnapshotRecord(value: Json | null | undefined): Record<string, unknown> {
@@ -389,6 +397,7 @@ export function useEstimateRowMutations(
   const { saveState, activeMutationCount, rowMutationError, markRowDirty, markSaving, markSaved, markFailed, clearRowMutationError } = useSaveState(onSaveStateChange);
   const rowOperationIdsRef = useRef<Record<string, number>>({});
   const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
+  const escalatedPendingMutationKeysRef = useRef<Set<string>>(new Set());
   const [rowMutationStatuses, setRowMutationStatuses] = useState<EstimateRowMutationStatusMap>({});
   const rowMutationStatusesRef = useRef(rowMutationStatuses);
   useEffect(() => {
@@ -396,19 +405,54 @@ export function useEstimateRowMutations(
   }, [rowMutationStatuses]);
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
   const treeQueryKey = estimateId ? (estimateTabId ? estimateQueryKeys.tabTree(estimateId, estimateTabId) : estimateQueryKeys.areaTree(estimateId)) : undefined;
-  const invalidateTreeAfterMutationError = useCallback((error: Error) => {
+  const recordCacheRefetch = useCallback((input: {
+    operation?: EstimateMutationOperation;
+    reason: string;
+    refetchType: "active" | "all" | "inactive" | "none";
+    queryScope: "detail" | "tree" | "library" | "component_projection";
+  }) => {
+    recordEstimateMutationEvent("cache_refetch_queued", {
+      operation: input.operation,
+      projectId,
+      estimateId,
+      reason: input.reason,
+      refetchType: input.refetchType,
+      queryScope: input.queryScope,
+    });
+  }, [estimateId, projectId]);
+  const invalidateTreeAfterMutationError = useCallback((error: Error, operation?: EstimateMutationOperation) => {
     const refetchType = isRowRevisionConflictError(error) ? "active" : "none";
     if (!treeQueryKey) return;
+    recordCacheRefetch({
+      operation,
+      reason: isRowRevisionConflictError(error) ? "row_revision_conflict" : "mutation_error",
+      refetchType,
+      queryScope: "tree",
+    });
     void queryClient.invalidateQueries({
       queryKey: treeQueryKey,
       refetchType,
     });
-    if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
-  }, [detailQueryKey, queryClient, treeQueryKey]);
+    if (detailQueryKey) {
+      recordCacheRefetch({
+        operation,
+        reason: isRowRevisionConflictError(error) ? "row_revision_conflict" : "mutation_error",
+        refetchType,
+        queryScope: "detail",
+      });
+      void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
+    }
+  }, [detailQueryKey, queryClient, recordCacheRefetch, treeQueryKey]);
 
-  const beginScopedRowMutation = useCallback((rowIds: readonly string[], label: string, mutationId?: string): ScopedMutationContext => {
+  const beginScopedRowMutation = useCallback((
+    rowIds: readonly string[],
+    label: string,
+    operation: EstimateMutationOperation,
+    mutationId?: string,
+  ): ScopedMutationContext => {
     const uniqueRowIds = [...new Set(rowIds.filter(Boolean))];
     const operationIds: Record<string, number> = {};
+    const startedAt = Date.now();
     uniqueRowIds.forEach((rowId) => {
       const operationId = (rowOperationIdsRef.current[rowId] ?? 0) + 1;
       rowOperationIdsRef.current[rowId] = operationId;
@@ -419,7 +463,7 @@ export function useEstimateRowMutations(
         phase: "pending",
         label,
         mutationId,
-        startedAt: Date.now(),
+        startedAt,
       };
       setRowMutationStatuses((current) => {
         const next = { ...current };
@@ -429,8 +473,16 @@ export function useEstimateRowMutations(
         return next;
       });
     }
-    return { operationIds, rowIds: uniqueRowIds };
-  }, []);
+    recordEstimateMutationEvent("mutation_requested", {
+      operation,
+      projectId,
+      estimateId,
+      rowCount: uniqueRowIds.length,
+      rowId: uniqueRowIds.length === 1 ? uniqueRowIds[0] : undefined,
+      mutationId,
+    });
+    return { operationIds, rowIds: uniqueRowIds, operation, mutationId, startedAt };
+  }, [estimateId, projectId]);
 
   const isLatestScopedRow = useCallback((rowId: string, context?: ScopedMutationContext) => {
     if (!context) return true;
@@ -441,6 +493,60 @@ export function useEstimateRowMutations(
   const finishScopedRowMutation = useCallback((context: ScopedMutationContext | undefined, error?: Error) => {
     if (!context || context.rowIds.length === 0) return;
     const nextError = error ? toEstimateRowMutationError(error) : null;
+    const durationMs = Date.now() - context.startedAt;
+    if (nextError) {
+      recordEstimateMutationEvent("mutation_failed", {
+        operation: context.operation,
+        projectId,
+        estimateId,
+        rowCount: context.rowIds.length,
+        rowId: context.rowIds.length === 1 ? context.rowIds[0] : undefined,
+        mutationId: context.mutationId,
+        durationMs,
+        code: nextError.code,
+        reason: nextError.message,
+        retryable: nextError.retryable,
+      });
+      if (nextError.code === ESTIMATE_ROW_REVISION_CONFLICT_CODE) {
+        recordEstimateMutationEvent("mutation_conflict", {
+          operation: context.operation,
+          projectId,
+          estimateId,
+          rowCount: context.rowIds.length,
+          mutationId: context.mutationId,
+          durationMs,
+          code: nextError.code,
+          retryable: nextError.retryable,
+        });
+      }
+      if (error && isEstimateRowOfflineError(error)) {
+        recordEstimateMutationEvent("mutation_offline_retryable", {
+          operation: context.operation,
+          projectId,
+          estimateId,
+          rowCount: context.rowIds.length,
+          mutationId: context.mutationId,
+          durationMs,
+          retryable: true,
+        });
+      }
+    } else {
+      recordEstimateMutationEvent("mutation_succeeded", {
+        operation: context.operation,
+        projectId,
+        estimateId,
+        rowCount: context.rowIds.length,
+        rowId: context.rowIds.length === 1 ? context.rowIds[0] : undefined,
+        mutationId: context.mutationId,
+        durationMs,
+      });
+      recordCacheRefetch({
+        operation: context.operation,
+        reason: "mutation_success",
+        refetchType: "none",
+        queryScope: "tree",
+      });
+    }
     setRowMutationStatuses((current) => {
       let didChange = false;
       const next = { ...current };
@@ -461,7 +567,31 @@ export function useEstimateRowMutations(
       });
       return didChange ? next : current;
     });
-  }, [isLatestScopedRow]);
+  }, [estimateId, isLatestScopedRow, projectId, recordCacheRefetch]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      const now = Date.now();
+      for (const [rowId, status] of Object.entries(rowMutationStatusesRef.current)) {
+        if (status.phase !== "pending") continue;
+        const pendingAgeMs = now - status.startedAt;
+        if (pendingAgeMs < ESTIMATE_ROW_PENDING_ESCALATION_MS) continue;
+        const escalationKey = `${rowId}:${status.mutationId ?? "unknown"}:${status.startedAt}`;
+        if (escalatedPendingMutationKeysRef.current.has(escalationKey)) continue;
+        escalatedPendingMutationKeysRef.current.add(escalationKey);
+        recordEstimateMutationEvent("mutation_pending_age_escalated", {
+          projectId,
+          estimateId,
+          rowId,
+          mutationId: status.mutationId,
+          pendingAgeMs,
+          reason: status.label,
+        });
+      }
+    }, 5_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [estimateId, projectId]);
 
   const hasPendingRowMutation = useCallback((rowIds: readonly string[]) =>
     rowIds.some((rowId) => Boolean(rowUpdateQueuesRef.current[rowId]) || rowMutationStatusesRef.current[rowId]?.phase === "pending"),
@@ -475,11 +605,11 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation([input.rowId], "Creating row", input.mutationId);
+      return beginScopedRowMutation([input.rowId], "Creating row", "insert_row", input.mutationId);
     },
-    onSuccess: (result: UpdateEstimateRowItemResult | undefined, input) => {
+    onSuccess: (result: UpdateEstimateRowItemResult | undefined, input, context) => {
       markSaved();
-      finishScopedRowMutation({ rowIds: [input.rowId], operationIds: {} });
+      finishScopedRowMutation(context);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       if (result) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
@@ -514,7 +644,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error, input);
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "insert_row");
     },
   });
 
@@ -526,7 +656,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation([input.rowId], "Replacing component", input.mutationId);
+      return beginScopedRowMutation([input.rowId], "Replacing component", "replace_row", input.mutationId);
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
       markSaved();
@@ -549,7 +679,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error, input);
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "replace_row");
     },
   });
 
@@ -561,7 +691,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation([input.rowId], "Deleting row", input.mutationId);
+      return beginScopedRowMutation([input.rowId], "Deleting row", "delete_row", input.mutationId);
     },
     onSuccess: (result: DeleteEstimateRowItemResult, input, context) => {
       markSaved();
@@ -576,7 +706,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error, input);
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "delete_row");
     },
   });
 
@@ -588,7 +718,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation([input.sourceRowId, input.targetRowId], "Moving component", input.mutationId);
+      return beginScopedRowMutation([input.sourceRowId, input.targetRowId], "Moving component", "move_component", input.mutationId);
     },
     onSuccess: (result: MoveEstimateRowComponentResult, input, context) => {
       markSaved();
@@ -618,7 +748,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error);
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "move_component");
     },
   });
 
@@ -630,7 +760,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation(input.updates.map((update) => update.rowId), "Moving row", input.mutationId);
+      return beginScopedRowMutation(input.updates.map((update) => update.rowId), "Moving row", "move_row", input.mutationId);
     },
     onSuccess: async (result: MoveEstimateRowItemWithHistoryResult, input, context) => {
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
@@ -685,7 +815,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error, { rowId: input.movedRowId });
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "move_row");
     },
   });
 
@@ -697,7 +827,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation(input.rowIds, "Deleting rows", input.mutationId);
+      return beginScopedRowMutation(input.rowIds, "Deleting rows", "delete_rows", input.mutationId);
     },
     onSuccess: (result: DeleteEstimateRowItemsBulkResult, input, context) => {
       markSaved();
@@ -712,7 +842,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error);
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "delete_rows");
     },
   });
 
@@ -724,7 +854,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation(input.rowIds ?? [], "Restoring rows", input.mutationId);
+      return beginScopedRowMutation(input.rowIds ?? [], "Restoring rows", "restore_rows", input.mutationId);
     },
     onSuccess: (result: RestoreDeletedEstimateRowsResult, input, context) => {
       markSaved();
@@ -738,7 +868,7 @@ export function useEstimateRowMutations(
       input.onError?.(error);
       finishScopedRowMutation(context, error);
       markFailed(error);
-      invalidateTreeAfterMutationError(error);
+      invalidateTreeAfterMutationError(error, context?.operation ?? "restore_rows");
     },
   });
 
@@ -750,7 +880,7 @@ export function useEstimateRowMutations(
     },
     onMutate: async (input): Promise<UpdateMutationContext> => {
       markSaving();
-      const scopedMutation = beginScopedRowMutation([input.rowId], "Making project component", input.mutationId);
+      const scopedMutation = beginScopedRowMutation([input.rowId], "Making project component", "detach_row", input.mutationId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
@@ -823,7 +953,7 @@ export function useEstimateRowMutations(
     },
     onMutate: (input): ScopedMutationContext => {
       markSaving();
-      return beginScopedRowMutation([input.rowId], "Promoting component", input.mutationId);
+      return beginScopedRowMutation([input.rowId], "Promoting component", "promote_row", input.mutationId);
     },
     onSuccess: (result, input, context) => {
       markSaved();
@@ -867,7 +997,7 @@ export function useEstimateRowMutations(
     },
     onMutate: async (input): Promise<UpdateMutationContext> => {
       markSaving();
-      const scopedMutation = beginScopedRowMutation([input.rowId], "Saving row changes", input.mutationId);
+      const scopedMutation = beginScopedRowMutation([input.rowId], "Saving row changes", "update_row", input.mutationId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
@@ -976,11 +1106,6 @@ export function useEstimateRowMutations(
     return {
       ...input,
       mutationId: input.mutationId ?? createMutationId(),
-      expectedRowRevisions: input.expectedRowRevisions ?? Object.fromEntries(
-        input.rowIds
-          .map((rowId) => [rowId, getCachedRowRevision(rowId)] as const)
-          .filter((entry): entry is readonly [string, number] => typeof entry[1] === "number"),
-      ),
     };
   }
 
@@ -999,7 +1124,7 @@ export function useEstimateRowMutations(
     if (isBrowserOffline()) {
       const normalizedInput = withMutationIdentity(input);
       markSaving();
-      const context = beginScopedRowMutation([normalizedInput.rowId], "Saving row changes", normalizedInput.mutationId);
+      const context = beginScopedRowMutation([normalizedInput.rowId], "Saving row changes", "update_row", normalizedInput.mutationId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(normalizedInput.estimateId, estimateTabId) : estimateQueryKeys.areaTree(normalizedInput.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, normalizedInput.rowId, toOptimisticRowPatch(normalizedInput)) : currentTree,

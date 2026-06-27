@@ -33,6 +33,7 @@ export type EstimateSheetBranchProps = {
   node: EstimateTreeNode;
   nodeCode: string;
   ancestorPath: BreadcrumbNode[];
+  canEditEstimate?: boolean;
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   projectId?: string;
@@ -130,6 +131,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.nodeCode !== next.nodeCode ||
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
+    prev.canEditEstimate !== next.canEditEstimate ||
     prev.depth !== next.depth ||
     prev.siblingIndex !== next.siblingIndex ||
     prev.renderChildBranches !== next.renderChildBranches ||
@@ -180,7 +182,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, editableRows, setEditableRows, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, editableRows, setEditableRows, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -215,7 +217,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
   // P6 single-node model: every node is a first-class area that can hold rows
   // AND child sub-areas, so a template/subtree drops directly into ANY node —
   // there is no area-wrap path anymore.
-  const canReceiveTemplates = true;
+  const canReceiveTemplates = canEditEstimate;
   // L7 accessible name: announce the node's dual content. "{name}, area
   // {, N rows}{, M sub-areas}" — clauses omitted when zero.
   const headerAriaLabel = [
@@ -370,6 +372,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
 
       {collapsed && (componentDragActive || rowItemDragActive) ? (
         <ComponentDropTarget
+          canEditEstimate={canEditEstimate}
           nodeId={node.id}
           nodeName={node.name}
           empty={!hasContents}
@@ -412,6 +415,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               ("{name}, area, N rows, M sub-areas") rendered sr-only above. */}
           <div className={showBreadcrumbs ? "-mt-2" : undefined}>
             <EstimateRowItemsTable
+              canEditEstimate={canEditEstimate}
               items={estimateRowItems}
               editableRows={editableRows}
               setEditableRows={setEditableRows}
@@ -448,6 +452,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               sub-areas — so a quiet "Add row" affordance is always available,
               and the empty node's "Add a row or a sub-area" state lives here. */}
           <ComponentDropTarget
+            canEditEstimate={canEditEstimate}
             nodeId={node.id}
             nodeName={node.name}
             empty={!hasContents}
@@ -466,6 +471,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 node={child}
                 nodeCode={childCode}
                 ancestorPath={childAncestorPath}
+                canEditEstimate={canEditEstimate}
                 editableRows={editableRows}
                 setEditableRows={setEditableRows}
                 projectId={projectId}
@@ -506,7 +512,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               creatable paths (a row OR a sub-area) through ComponentDropTarget's
               empty state above — the promise gap held in P4 is closed, so the
               separate group-only "Add a sub-area" message is gone. */}
-          {templateDragActive ? (
+          {canEditEstimate && templateDragActive ? (
             <TemplateDropZone
               nodeId={node.id}
               label={`Drop ${activeTemplateName || "template"} into ${node.name}`}

@@ -1229,11 +1229,6 @@ export function useEstimateRowHandlers({
     const previousLocations = selectedRowIds
       .map((rowId) => findEstimateRowItemLocation(estimateTree, rowId))
       .filter((location): location is EstimateRowItemLocation => Boolean(location));
-    const expectedRowRevisions = Object.fromEntries(
-      previousLocations
-        .map((location) => [location.item.id, location.item.rowRevision] as const)
-        .filter((entry): entry is readonly [string, number] => typeof entry[1] === "number"),
-    );
     const rollbackRevision = setEstimateTree((current) =>
       selectedRowIds.reduce((nextTree, rowId) => removeEstimateRowItem(nextTree, rowId), current),
     );
@@ -1252,7 +1247,6 @@ export function useEstimateRowHandlers({
       projectId,
       estimateId,
       rowIds: selectedRowIds,
-      expectedRowRevisions,
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
       onSuccess: (result) => {
         setBulkSelectedRowIds(new Set());
