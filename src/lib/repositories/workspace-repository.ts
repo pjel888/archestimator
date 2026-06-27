@@ -2556,7 +2556,7 @@ type EstimateTabsReadClient = {
 // column here or the Pick types below fail the build.
 const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id, sort_order";
 const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
-  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
+  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
 const ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS =
   `${ESTIMATE_TREE_NODE_COLUMNS}, estimate_row_items!estimate_row_items_node_id_fkey(${ESTIMATE_TREE_ROW_ITEM_COLUMNS})` as const;
 
@@ -2576,6 +2576,7 @@ export type EstimateTreeRowItemQueryRow = Pick<
   | "quantity_base"
   | "quantity_contingency_amount"
   | "contingency_percentage"
+  | "adjustment_percentage"
   | "misc_cost"
   | "row_revision"
   | "category_node_id"
@@ -2768,10 +2769,13 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const itemCost = Number(row.unit_cost);
   const miscCost = Number(row.misc_cost);
   const subTotal = itemCost * quantity;
+  const legacyAdjustmentPercentage = quantityBase === null ? Number(row.contingency_percentage ?? 0) : 0;
   const contingencyPercentage = quantityBase === null
-    ? Number(row.contingency_percentage ?? 0)
+    ? 0
     : quantityBase > 0 ? ((quantityContingencyAmount ?? 0) / quantityBase) * 100 : 0;
-  const contingencyValue = quantityBase === null ? (subTotal * contingencyPercentage) / 100 : 0;
+  const contingencyValue = 0;
+  const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
+  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const sourceSnapshot = readJsonRecord(row.source_snapshot);
   const metadata = readJsonRecord(row.metadata);
   const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
@@ -2804,8 +2808,10 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     subTotal,
     contingencyPercentage,
     contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
     miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
+    totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
     rowRevision: row.row_revision,
     category,
     categoryNodeId: categoryNodeId ?? undefined,
@@ -2908,6 +2914,7 @@ function assertRouteEstimateRowItemRow(value: Record<string, unknown>, path: str
     quantity_base: assertRpcOptionalNumber(value.quantity_base, `${path}.quantity_base`),
     quantity_contingency_amount: assertRpcOptionalNumber(value.quantity_contingency_amount, `${path}.quantity_contingency_amount`),
     contingency_percentage: assertRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
+    adjustment_percentage: assertRpcNumber(value.adjustment_percentage ?? 0, `${path}.adjustment_percentage`),
     misc_cost: assertRpcNumber(value.misc_cost, `${path}.misc_cost`),
     row_revision: assertRpcNumber(value.row_revision, `${path}.row_revision`),
     category_node_id: assertRpcOptionalString(value.category_node_id, `${path}.category_node_id`),

@@ -761,10 +761,15 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
   const metadata = readMetadataRecord(row.metadata);
   const quantity = Number(row.quantity);
   const itemCost = Number(row.unit_cost);
-  const contingencyPercentage = Number(row.contingency_percentage ?? 0);
+  const legacyAdjustmentPercentage = Number(row.contingency_percentage ?? 0);
+  const adjustmentPercentage = row.adjustment_percentage === undefined
+    ? legacyAdjustmentPercentage
+    : Number(row.adjustment_percentage ?? 0);
+  const contingencyPercentage = 0;
   const miscCost = Number(row.misc_cost);
   const subTotal = itemCost * quantity;
-  const contingencyValue = (subTotal * contingencyPercentage) / 100;
+  const contingencyValue = 0;
+  const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
   const source = readOptionalSource(sourceSnapshot.source) ?? readOptionalSource(metadata.source) ?? (row.source_library_item_id ? "library" : "project");
   const categoryNodeId = row.category_node_id ?? readString(sourceSnapshot.categoryNodeId);
   const supplierId = row.supplier_id ?? readString(sourceSnapshot.supplierId);
@@ -785,9 +790,11 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     subTotal,
     contingencyPercentage,
     contingencyValue,
+    adjustmentPercentage,
+    adjustmentValue,
     miscCost,
     miscCostDefault: miscCost,
-    totalItemCosts: subTotal + miscCost + contingencyValue,
+    totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
     imageUrl: readString(sourceSnapshot.imageUrl),
     category: readString(sourceSnapshot.category) ?? "General",
     categoryNodeId: categoryNodeId ?? undefined,
@@ -1429,6 +1436,11 @@ function assertLibraryOverviewRpcNumber(value: unknown, path: string): number {
   return value;
 }
 
+function assertLibraryOverviewRpcOptionalNumber(value: unknown, path: string): number | null {
+  if (value === null || value === undefined) return null;
+  return assertLibraryOverviewRpcNumber(value, path);
+}
+
 function assertLibraryOverviewRpcJson(value: unknown, path: string): Json {
   if (value === undefined) {
     throw new Error(`library overview RPC invalid shape: ${path} must be JSON`);
@@ -1513,6 +1525,8 @@ function assertLibraryOverviewTemplateRowItemRow(value: Record<string, unknown>,
     unit_cost: assertLibraryOverviewRpcNumber(value.unit_cost, `${path}.unit_cost`),
     misc_cost: assertLibraryOverviewRpcNumber(value.misc_cost, `${path}.misc_cost`),
     contingency_percentage: assertLibraryOverviewRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
+    adjustment_percentage: assertLibraryOverviewRpcOptionalNumber(value.adjustment_percentage, `${path}.adjustment_percentage`)
+      ?? assertLibraryOverviewRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
     discipline: assertLibraryOverviewRpcString(value.discipline, `${path}.discipline`),
     designation: assertLibraryOverviewRpcString(value.designation, `${path}.designation`),
     link_state: assertLibraryOverviewRpcString(value.link_state, `${path}.link_state`) as EstimateTemplateRowItemRow["link_state"],

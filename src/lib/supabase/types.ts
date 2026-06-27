@@ -1827,6 +1827,7 @@ export type Database = {
       }
       estimate_row_items: {
         Row: {
+          adjustment_percentage: number
           category_node_id: string | null
           contingency_percentage: number
           created_at: string
@@ -1854,6 +1855,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adjustment_percentage?: number
           category_node_id?: string | null
           contingency_percentage?: number
           created_at?: string
@@ -1881,6 +1883,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adjustment_percentage?: number
           category_node_id?: string | null
           contingency_percentage?: number
           created_at?: string
@@ -2356,6 +2359,7 @@ export type Database = {
       }
       estimate_template_row_items: {
         Row: {
+          adjustment_percentage: number
           category_node_id: string | null
           contingency_percentage: number
           created_at: string
@@ -2380,6 +2384,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adjustment_percentage?: number
           category_node_id?: string | null
           contingency_percentage?: number
           created_at?: string
@@ -2404,6 +2409,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adjustment_percentage?: number
           category_node_id?: string | null
           contingency_percentage?: number
           created_at?: string

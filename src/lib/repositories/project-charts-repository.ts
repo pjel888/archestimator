@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
+import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
 
 import { buildSeriesByEstimate } from "../project-charts/project-comparison-view";
 import { getCurrentWorkspaceProject } from "./workspace-repository";
@@ -27,7 +28,7 @@ type GetProjectChartsDataOptions = {
 type JsonRecord = Record<string, unknown>;
 type EstimateRowItemChartRow = Pick<
   Tables<"estimate_row_items">,
-  "id" | "estimate_id" | "node_id" | "source_snapshot" | "supplier" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "misc_cost"
+  "id" | "estimate_id" | "node_id" | "source_snapshot" | "supplier" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "adjustment_percentage" | "misc_cost"
 >;
 type EstimateNodeChartRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order">;
 type LimitedLoadResult<T> = {
@@ -104,8 +105,15 @@ export async function getProjectChartsData(
       ...estimate,
       rowCount: estimateRowsForOption.length,
       totalCost: estimateRowsForOption.reduce((sum, row) => {
-        const subTotal = finite(row.quantity) * finite(row.unitCost);
-        return sum + subTotal + finite(row.miscCost) + (subTotal * finite(row.contingencyPercentage ?? 0)) / 100;
+        return sum + computeEstimateRowLineTotal({
+          quantity: row.quantity,
+          quantity_base: row.quantityBase,
+          quantity_contingency_amount: row.quantityContingencyAmount,
+          unit_cost: row.unitCost,
+          contingency_percentage: row.contingencyPercentage,
+          adjustment_percentage: row.adjustmentPercentage,
+          misc_cost: row.miscCost,
+        });
       }, 0),
     };
   });
@@ -173,7 +181,7 @@ async function loadRowFacts(
 ): Promise<LimitedLoadResult<ProjectChartRowFact>> {
   const { data, error } = await supabase
     .from("estimate_row_items")
-    .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, misc_cost")
+    .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost")
     .in("estimate_id", estimateIds)
     // Deterministic order before truncation (`02` DB-6): if an estimate exceeds the
     // cap, the SAME rows are kept across loads, so totals don't silently shuffle.
@@ -205,6 +213,7 @@ async function loadRowFacts(
         quantityContingencyAmount: row.quantity_base === null ? null : finite(Number(row.quantity_contingency_amount ?? 0)),
         unitCost: finite(Number(row.unit_cost)),
         contingencyPercentage: finite(Number(row.contingency_percentage ?? 0)),
+        adjustmentPercentage: finite(Number(row.adjustment_percentage ?? 0)),
         miscCost: finite(Number(row.misc_cost)),
       };
     }),
