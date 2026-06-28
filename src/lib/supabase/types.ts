@@ -3896,6 +3896,13 @@ export type Database = {
         }
         Returns: string
       }
+      authorize_recipient_publication_for_current_user: {
+        Args: { p_publication_id: string }
+        Returns: {
+          publication_id: string
+          recipient_id: string
+        }[]
+      }
       backfill_estimate_sheet_baseline_versions: {
         Args: { acting_user_id?: string; batch_limit?: number }
         Returns: Json
@@ -4597,6 +4604,26 @@ export type Database = {
           role: string
           scope: string
           state: string
+        }[]
+      }
+      list_recipient_publications_for_current_user: {
+        Args: { page_limit?: number }
+        Returns: {
+          decision: string | null
+          expires_at: string | null
+          has_opened: boolean
+          last_activity_at: string | null
+          project_code: string | null
+          project_id: string
+          project_name: string
+          publication_id: string
+          published_at: string | null
+          revoked_at: string | null
+          sender_display_name: string | null
+          snapshot_version: number
+          status: string
+          workspace_id: string
+          workspace_name: string
         }[]
       }
       materialize_expired_collaboration_invitations: {
