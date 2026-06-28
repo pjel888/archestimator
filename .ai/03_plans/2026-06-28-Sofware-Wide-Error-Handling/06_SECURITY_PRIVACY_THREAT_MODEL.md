@@ -98,16 +98,20 @@ function maskValue(key: string, value: string): string {
 `sentry.server.config.ts` and `sentry.client.config.ts` use a `beforeSend` hook:
 
 ```ts
-beforeSend(event) {
-  // Scrub request bodies, headers, extra fields, and breadcrumbs.
-  // `scrubRequest`, `scrubExtra`, and `scrubBreadcrumb` are local redaction
-  // helpers defined in `src/lib/observability/redact.ts` (per `03` B.4 import
-  // and `08` P1-WP7). Each returns a sanitized copy of its input.
+// src/lib/observability/redact.ts (new in P1, per `08` P1-WP7)
+// Canonical Sentry event redaction entry point — referenced from
+// sentry.server.config.ts and sentry.client.config.ts `beforeSend` hook
+// in `05` Section A.3/A.4. Internally delegates to scrub helpers.
+export function redactSentryEvent(event: SentryEvent): SentryEvent {
   event.request = scrubRequest(event.request);
   event.extra = scrubExtra(event.extra);
   event.breadcrumbs = event.breadcrumbs?.map(scrubBreadcrumb);
   return event;
 }
+
+// `scrubRequest`, `scrubExtra`, and `scrubBreadcrumb` are local redaction
+// helpers in the same file. Each returns a sanitized copy of its input.
+// `redactSentryEvent` is the single exported function consumed by `beforeSend`.
 ```
 
 Sentry dashboard-level Data Scrubbers also configured to mask `$password`, `$auth`, `$cookie`, `email`, `phone`, `ip_address`.
