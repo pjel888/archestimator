@@ -29,7 +29,7 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 | FR-002 | pilot specified; full migration conditional | P2a pilot tests |
 | FR-003 | pilot specified; full migration conditional | P2a route-handler test |
 | FR-004 | pilot specified | P3a DOM/static or browser proof when needed |
-| FR-005 | pilot specified; not-found follow-on | P3a |
+| FR-005 | follow-on (post-P3a) | n/a — `not-found.tsx` and segment `error.tsx` are NOT in P3a pilot scope per `07` FR-005 and `08` P3a |
 | FR-006 | specified | `toast-apperror.test.tsx` |
 | FR-007 | conditional after pilot | auth regression tests |
 | ARCH-001 | specified | type-check + directory inspection |

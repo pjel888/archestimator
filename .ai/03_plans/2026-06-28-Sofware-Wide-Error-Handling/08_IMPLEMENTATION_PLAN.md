@@ -117,9 +117,9 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 
 ## P3a — Pilot client wiring: one error surface + toast.appError
 
-**Goal:** Prove the client error-surface pattern on one root or segment boundary before broad rollout.
+**Goal:** Prove the client error-surface pattern on `global-error.tsx` (the singular P3a pilot boundary) before broad rollout.
 
-**Requirements covered:** FR-004, FR-005, FR-006, UX-001, A11Y-001, A11Y-002.
+**Requirements covered:** FR-004, FR-006, UX-001, A11Y-001, A11Y-002. (FR-005 not-found.tsx is follow-on, NOT in P3a scope per `07` FR-005.)
 
 **Prerequisites:** P1 complete. (Does NOT depend on P2.)
 

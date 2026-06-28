@@ -132,9 +132,9 @@ export default function GlobalError({
 
 **Dev-only test trigger (for ADV-05 in `09`):** add a small gated hook in `src/app/layout.tsx` (or a tiny client component mounted by the root layout) that throws on `?forceGlobalError=1` query param when `process.env.NODE_ENV === 'development'`. This makes the Playwright spec `page.goto('/?forceGlobalError=1')` reliably trigger the global boundary in CI without requiring a real production crash. The hook MUST be dev-only — production builds must exclude it via `process.env.NODE_ENV` check so attackers cannot crash pages by sending the query param.
 
-### A.6 `src/app/error.tsx` (pilot UI surface in P3a)
+### A.6 `src/app/error.tsx` (post-pilot segment boundary pattern, NOT in approved P3a scope)
 
-Per Section D.3, the P3a pilot boundary opts in to server-side diagnosis by POSTing to `/api/internal/client-error` (the same endpoint used by `global-error.tsx`). Boundaries that do not opt in simply render fallback UI without server-side reporting.
+The approved P3a pilot only creates `global-error.tsx` (A.5). This section documents the **segment `error.tsx` pattern** that future post-pilot work will use when adding boundaries to specific route segments. It is NOT a P3a deliverable; it is included here as a reference shape so the post-pilot implementer does not have to re-litigate the contract.
 
 ```tsx
 "use client";
@@ -150,11 +150,8 @@ export default function Error({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    // A11Y-002 (pilot scope): move focus into the error container on mount.
     containerRef.current?.focus();
     toast.appError(error);
-    // Forward to server log for diagnosis (same channel as global-error.tsx).
-    // Best-effort — never blocks recovery.
     fetch('/api/internal/client-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
