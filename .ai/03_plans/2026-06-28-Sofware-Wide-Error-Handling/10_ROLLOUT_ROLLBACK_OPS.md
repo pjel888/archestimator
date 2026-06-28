@@ -131,7 +131,7 @@ If still stuck, paste the full log record into the agent's context with the prom
 ## F. Support implications
 
 - **Toast copy is user-safe.** No DB internals reach the user. Support team can paste toast copy directly into a bug report; it will not leak.
-- **`trace_id` is shareable.** Users can include `trace_id` (returned in route-handler JSON per `07` FR-003 AC-003.1, derived from PERF_TRACE `request_id` per `03` Section E) in support tickets; it correlates to a Sentry event (matched via the same `request_id` attached by `forwardToProd()`/`captureRequestError()` to Sentry breadcrumbs/tags) and to a dev log line (matched via `context.request_id` in `./logs/dev.ndjson`).
+- **`trace_id` is shareable.** Users can include `trace_id` (returned in route-handler JSON per `07` FR-003 AC-003.1) in support tickets. `trace_id` correlates to PERF_TRACE `request_id` when PERF_TRACE is active; otherwise it uses the generated fallback ID per `03` Section E (`generateTraceId()`). Either way it matches: (a) the Sentry event's `request_id` tag (attached by `forwardToProd()`/`captureRequestError()` per `04` E.1); (b) the dev log line's `context.request_id` in `./logs/dev.ndjson` (stamped by `errorResponse()` before the log call).
 - **PII minimization in logs.** AI agents reading dev logs should see hashes, redacted values, and tainted-field labels. Real captured auth/database failure logs require a redaction review before broad AI-log use.
 
 ## G. Operational checklist (pre-launch, after P5 owner/provider gate)

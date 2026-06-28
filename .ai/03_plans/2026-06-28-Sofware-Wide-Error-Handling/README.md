@@ -66,10 +66,10 @@ Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are indep
 This conditionally ready plan is complete for the approved pilot when an implementer can:
 - Build the AppError hierarchy + logger module without re-litigating the taxonomy.
 - Apply the wrapper to `publication/actions.ts` and one representative route handler knowing the canonical return/response shape.
-- Add `global-error.tsx` + `instrumentation.ts` knowing the exact contract.
+- Add `global-error.tsx` knowing the exact contract.
 - Tell an AI coding agent the dev log path + tail command and have it diagnose a real failure end-to-end.
 
-The all-actions/all-routes migration becomes implementation-ready only after the pilot evidence is recorded and this pack is updated.
+`instrumentation.ts` (Sentry `onRequestError`) is a P5 deliverable per `08` P5, NOT part of the approved pilot stop condition — it requires the owner/provider gate and is tracked separately. The all-actions/all-routes migration becomes implementation-ready only after the pilot evidence is recorded and this pack is updated.
 
 ## Protected contracts (hold-harmless)
 
