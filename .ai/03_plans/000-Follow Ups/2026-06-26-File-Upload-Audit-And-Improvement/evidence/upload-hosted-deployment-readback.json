@@ -1,0 +1,100 @@
+{
+  "mode": "upload-hosted-deployment-readback",
+  "generatedAt": "2026-06-28T04:10:00Z",
+  "passed": true,
+  "productionProofReady": true,
+  "proofBoundary": "read-only-vercel-deployment-inspection",
+  "project": {
+    "name": "archestimator",
+    "framework": "nextjs",
+    "providerIdentifiersRedacted": true
+  },
+  "currentRepository": {
+    "branch": "main",
+    "head": "e43b98dccc0163d9ff73b75726f27a04b9b512c0",
+    "originHead": "unknown-after-local-production-deploy",
+    "routeCommit": "a6548ebfa",
+    "routeCommitSubject": "feat: add upload operations verification scripts, internal API, and settings pages",
+    "deployedDirtyWorkspace": true
+  },
+  "sourceRoutes": {
+    "present": true,
+    "paths": [
+      "src/app/api/internal/upload-cleanup/route.ts",
+      "src/app/api/internal/upload-scan/route.ts",
+      "src/app/api/internal/upload-runtime/route.ts",
+      "vercel.json"
+    ]
+  },
+  "latestProductionDeployment": {
+    "idFingerprint": "sha256:b7adc2c77880ead4",
+    "urlFingerprint": "sha256:e6eacf64be80f08f",
+    "state": "READY",
+    "target": "production",
+    "createdAt": "2026-06-28T04:06:55.452Z",
+    "readyAt": "2026-06-28T04:07:57.462Z",
+    "commitSha": "e43b98dccc0163d9ff73b75726f27a04b9b512c0",
+    "commitMessage": "test: update estimate sheet test suites for row handling and mutation changes",
+    "source": "cli",
+    "gitDirty": true,
+    "aliases": [
+      "www.archestimator.com",
+      "archestimator.com",
+      "archestimator.vercel.app",
+      "archestimator-philipjonlewis-projects.vercel.app",
+      "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+    ]
+  },
+  "deploymentGap": {
+    "sourceRoutesPresentLocally": true,
+    "productionDeploymentPredatesUploadProofRoutes": false,
+    "routeCommitAfterProductionDeployment": false,
+    "hostedProofRoutesObservedDeployed": true,
+    "productionDeploymentRequired": false,
+    "productionDeploymentAttemptedFromThisSession": true
+  },
+  "routeReadback": {
+    "baseUrl": "https://www.archestimator.com",
+    "probes": [
+      {
+        "path": "/api/internal/upload-cleanup?limit=1&dryRun=1",
+        "status": 401,
+        "xMatchedPath": "/api/internal/upload-cleanup",
+        "hasNoStoreCacheControl": true,
+        "setCookiePresent": false,
+        "result": "route-present-fail-closed-unauthorized"
+      },
+      {
+        "path": "/api/internal/upload-scan?limit=1&dryRun=1",
+        "status": 401,
+        "xMatchedPath": "/api/internal/upload-scan",
+        "hasNoStoreCacheControl": true,
+        "setCookiePresent": false,
+        "result": "route-present-fail-closed-unauthorized"
+      },
+      {
+        "path": "/api/internal/upload-runtime",
+        "status": 401,
+        "xMatchedPath": "/api/internal/upload-runtime",
+        "hasNoStoreCacheControl": true,
+        "setCookiePresent": false,
+        "result": "route-present-fail-closed-unauthorized"
+      }
+    ]
+  },
+  "runtimeLogReadback": {
+    "environment": "production",
+    "query": "upload-runtime upload-cleanup upload-scan",
+    "timeRange": {
+      "since": "2026-06-28T03:41:31Z",
+      "until": "2026-06-28T04:10:00Z"
+    },
+    "uploadProofLogsFound": true,
+    "result": "Route probes reached the deployed production functions and returned no-store fail-closed 401 responses because upload proof/job secrets are configured and unauthenticated requests are rejected."
+  },
+  "failedChecks": [],
+  "notes": [
+    "This readback records deployment state and unauthenticated route presence only; it does not read secret values, invoke authenticated proof routes, prove live scanner/CDR execution, prove alert delivery, or prove dashboard/backpressure/retention observations.",
+    "The hosted upload cleanup, scan, and runtime routes are deployed and fail closed without bearer authentication. Production upload proof remains blocked until the remaining live scanner, alert, dashboard, backpressure, and retention proof artifacts pass."
+  ]
+}

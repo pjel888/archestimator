@@ -46,4 +46,4 @@ bun run scripts/check-upload-production-proof-evidence.ts
 - Backpressure: a hosted upload request was rejected with HTTP 429, `Retry-After` was present, matching telemetry was observed, and the evidence was path safe.
 - Retention runbook: hosted cleanup cron execution was observed, cleanup retry behavior was observed, the dashboard reflected the runbook state, alert observation was confirmed, and no raw storage paths were present.
 
-Production remains blocked until all seven production proof artifacts pass the bundle checker.
+Production remains blocked until the deployment readback plus all seven hosted/live production proof artifacts pass the bundle checker.

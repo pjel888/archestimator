@@ -1,0 +1,262 @@
+{
+  "generatedAt": "2026-06-28T04:08:21.243Z",
+  "mode": "hosted-upload-runtime-proof",
+  "proofBoundary": "hosted-runtime-authenticated-dry-run",
+  "baseUrl": "https://www.archestimator.com",
+  "runs": 1,
+  "concurrency": 2,
+  "bodyProbeBytes": 1024,
+  "authenticated": true,
+  "passed": true,
+  "productionProofReady": true,
+  "missingAuthenticatedProbeSecrets": [],
+  "note": "Hosted upload runtime proof never records bearer secrets or uploaded bytes. Authenticated probes call a secret-gated non-mutating route that reports runtime memory, bounded body-probe receipt, concurrency reachability, and Supabase Storage bucket latency. This does not prove real user upload UX, scanner/CDR execution, alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
+  "samples": [
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 1,
+      "status": 401,
+      "durationMs": 971.79,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 25,
+      "bodySummary": {},
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-dry-run",
+      "type": "authenticated-runtime-dry-run",
+      "run": 1,
+      "status": 200,
+      "durationMs": 245.14,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 867,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 44.77,
+        "deployment": {
+          "vercel": true,
+          "vercelEnvPresent": true,
+          "vercelRegionPresent": true,
+          "nodeVersion": "v24.14.1"
+        },
+        "configuredLimits": {
+          "memoryMb": 1024,
+          "bodyLimitBytes": 12582912,
+          "routeDurationMs": 10000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 1000
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 110.04,
+            "heapUsedMb": 19.7,
+            "externalMb": 13.6,
+            "arrayBuffersMb": 8.07
+          },
+          "after": {
+            "rssMb": 110.83,
+            "heapUsedMb": 17.52,
+            "externalMb": 13.62,
+            "arrayBuffersMb": 8.08
+          },
+          "rssDeltaMb": 0.79,
+          "heapUsedDeltaMb": -2.18
+        },
+        "storageLatency": {
+          "status": "ok",
+          "durationMs": 43.73,
+          "bucketReachable": true,
+          "bucketPublic": false,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-body-probe",
+      "type": "authenticated-body-probe",
+      "run": 1,
+      "status": 200,
+      "durationMs": 257.16,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 936,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 37.73,
+        "deployment": {
+          "vercel": true,
+          "vercelEnvPresent": true,
+          "vercelRegionPresent": true,
+          "nodeVersion": "v24.14.1"
+        },
+        "configuredLimits": {
+          "memoryMb": 1024,
+          "bodyLimitBytes": 12582912,
+          "routeDurationMs": 10000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 1000
+        },
+        "bodyProbe": {
+          "contentLengthBytes": 1024,
+          "receivedBytes": 1024,
+          "maxProbeBodyBytes": 4194304
+        },
+        "memory": {
+          "before": {
+            "rssMb": 110.83,
+            "heapUsedMb": 17.9,
+            "externalMb": 13.62,
+            "arrayBuffersMb": 8.09
+          },
+          "after": {
+            "rssMb": 111.08,
+            "heapUsedMb": 18.26,
+            "externalMb": 13.64,
+            "arrayBuffersMb": 8.11
+          },
+          "rssDeltaMb": 0.25,
+          "heapUsedDeltaMb": 0.36
+        },
+        "storageLatency": {
+          "status": "ok",
+          "durationMs": 36,
+          "bucketReachable": true,
+          "bucketPublic": false,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-concurrency-probe",
+      "type": "authenticated-concurrency-probe",
+      "run": 1,
+      "status": 200,
+      "durationMs": 240.51,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 863,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 20.28,
+        "deployment": {
+          "vercel": true,
+          "vercelEnvPresent": true,
+          "vercelRegionPresent": true,
+          "nodeVersion": "v24.14.1"
+        },
+        "configuredLimits": {
+          "memoryMb": 1024,
+          "bodyLimitBytes": 12582912,
+          "routeDurationMs": 10000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 1000
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 111.08,
+            "heapUsedMb": 18.61,
+            "externalMb": 13.64,
+            "arrayBuffersMb": 8.11
+          },
+          "after": {
+            "rssMb": 111.08,
+            "heapUsedMb": 18.9,
+            "externalMb": 13.66,
+            "arrayBuffersMb": 8.13
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0.29
+        },
+        "storageLatency": {
+          "status": "ok",
+          "durationMs": 19.7,
+          "bucketReachable": true,
+          "bucketPublic": false,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-concurrency-probe",
+      "type": "authenticated-concurrency-probe",
+      "run": 2,
+      "status": 200,
+      "durationMs": 339.75,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 864,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 39.89,
+        "deployment": {
+          "vercel": true,
+          "vercelEnvPresent": true,
+          "vercelRegionPresent": true,
+          "nodeVersion": "v24.14.1"
+        },
+        "configuredLimits": {
+          "memoryMb": 1024,
+          "bodyLimitBytes": 12582912,
+          "routeDurationMs": 10000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 1000
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 111.46,
+            "heapUsedMb": 19.4,
+            "externalMb": 13.67,
+            "arrayBuffersMb": 8.14
+          },
+          "after": {
+            "rssMb": 111.46,
+            "heapUsedMb": 19.97,
+            "externalMb": 13.68,
+            "arrayBuffersMb": 8.15
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0.57
+        },
+        "storageLatency": {
+          "status": "ok",
+          "durationMs": 38.91,
+          "bucketReachable": true,
+          "bucketPublic": false,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    }
+  ]
+}

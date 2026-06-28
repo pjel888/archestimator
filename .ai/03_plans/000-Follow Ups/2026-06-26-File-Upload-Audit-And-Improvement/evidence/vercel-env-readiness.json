@@ -1,0 +1,160 @@
+{
+  "generatedAt": "2026-06-28T04:22:35.413Z",
+  "mode": "vercel-env-readiness",
+  "source": "VERCEL_ENV_LIST_TEXT",
+  "discoveredNames": [
+    "ARCHESTIMATOR_AI_ENABLED",
+    "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+    "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+    "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+    "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+    "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+    "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+    "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+    "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS",
+    "CLOSED_BETA_ACCESS_ENABLED",
+    "CRON_SECRET",
+    "GOOGLE_MAPS_API_KEY",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+    "NEXT_PUBLIC_SITE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "PROJECT_INVITE_ENTRY_ENABLED",
+    "PUBLICATION_ACCESS_COOKIE_SECRET",
+    "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+    "PUBLICATION_TOKEN_HASH_SECRET",
+    "RESEND_API_KEY",
+    "RESEND_FROM",
+    "RESEND_REPLY_TO",
+    "RESEND_WEBHOOK_SECRET",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "UPLOAD_CLEANUP_JOB_SECRET",
+    "UPLOAD_JOBS_ENABLED",
+    "UPLOAD_RUNTIME_PROOF_SECRET",
+    "UPLOAD_SCAN_JOB_SECRET"
+  ],
+  "coreClosedBetaRuntime": {
+    "required": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED"
+    ],
+    "present": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "emailDelivery": {
+    "required": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "present": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "inviteDelivery": {
+    "required": [
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER"
+    ],
+    "present": [
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "scheduledJobs": {
+    "required": [
+      "CRON_SECRET",
+      "UPLOAD_JOBS_ENABLED"
+    ],
+    "present": [
+      "CRON_SECRET",
+      "UPLOAD_JOBS_ENABLED"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "uploadOperationsAlerts": {
+    "required": [
+      "UPLOAD_OPERATIONS_ALERTS_ENABLED",
+      "UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL",
+      "UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN"
+    ],
+    "present": [],
+    "missing": [
+      "UPLOAD_OPERATIONS_ALERTS_ENABLED",
+      "UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL",
+      "UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN"
+    ],
+    "ready": false
+  },
+  "hostedUploadRuntimeProof": {
+    "required": [
+      "UPLOAD_RUNTIME_PROOF_SECRET",
+      "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+      "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+      "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+      "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+      "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS"
+    ],
+    "present": [
+      "UPLOAD_RUNTIME_PROOF_SECRET",
+      "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+      "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+      "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+      "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+      "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "liveUploadScanner": {
+    "required": [
+      "UPLOAD_SCAN_PROVIDER",
+      "UPLOAD_CLAMD_HOST",
+      "UPLOAD_CLAMD_PORT"
+    ],
+    "present": [],
+    "missing": [
+      "UPLOAD_SCAN_PROVIDER",
+      "UPLOAD_CLAMD_HOST",
+      "UPLOAD_CLAMD_PORT"
+    ],
+    "ready": false
+  },
+  "vercelEnvReady": true,
+  "uploadProductionProofReady": false,
+  "note": "Vercel env readiness checks variable names only. It does not read or prove secret values, callback URL correctness, provider dashboard configuration, scheduled job execution, alert delivery, live scanner reachability, hosted runtime limits, rollback, or hosted auth behavior."
+}

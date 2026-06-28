@@ -45,6 +45,24 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Upload plan production hosted proof advanced; closeout still blocked at 3/8 gates (2026-06-28):**
+
+- Production deployment/readback is no longer the blocker. Vercel production deployment `dpl_GmehH3stHXoaZFNpjuM71xu2JhYh` is READY, aliases `www.archestimator.com`/`archestimator.com`, and is recorded with deployment fingerprints `sha256:b7adc2c77880ead4` and `sha256:e6eacf64be80f08f`.
+- Hosted upload cleanup, scan, and runtime routes are deployed. Unauthenticated route probes fail closed with no-store `401`; authenticated cleanup/scan dry-run proof and hosted runtime/body/concurrency/storage-latency proof pass without recording secrets, storage paths, provider paths, or uploaded bytes.
+- The production proof checker remains intentionally fail-closed: `productionProofReady=false`, `required=8`, `passed=3`, `failed=5`, `missing=0`, `invalid=0`. Passing keys are `deploymentReadback`, `hostedUploadOperations`, and `hostedUploadRuntime`. Failed keys are `liveScanner`, `alertDelivery`, `dashboardObservation`, `hostedBackpressure`, and `retentionRunbook`.
+- Cleanup dry-run previously failed on provider enum value `removed`; cleanup/readback code now uses the live provider `deleted` enum status and the focused cleanup route/job/dashboard tests were updated.
+- Requirement coverage now reports `traceabilityReady=true`, `productionReady=false`, `requirements=25`, `mapped=25`, `missing=0`, `blocked=8`, and `unknownReferences=0`; `UPLOAD-REQ-022` and `UPLOAD-REQ-024` are blocked by hosted backpressure observation, not by hosted runtime.
+- Fresh verification passed: focused Vitest matrix (`8` files / `45` tests), scoped ESLint, `bun run type-check`, `git diff --check`, and targeted JSON/path/token safety scan. Name-only Vercel env readiness reports alert env names and live scanner env names still missing; local scanner checks found no `clamd`, no `clamscan`, and no listener on `127.0.0.1:3310`.
+- Moved the plan to `.ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement/` instead of archiving it. Remaining production proof requires real live ClamD/CDR configuration and proof, observed alert delivery, hosted dashboard observation, hosted 429/Retry-After/telemetry backpressure proof, and hosted retention-runbook/cron observation.
+
+**Upload plan production proof hardening completed; production closeout still blocked (2026-06-28):**
+
+- The active upload production proof checker now requires eight gates: fresh production deployment readback plus hosted operations, hosted runtime, live ClamD scanner, alert delivery, dashboard observation, hosted backpressure, and retention-runbook proof.
+- `scripts/check-upload-production-proof-evidence.ts` rejects non-production hosted proof origins and writes repo-relative artifact paths. Regenerated `evidence/upload-production-proof-evidence-check.json` remains fail-closed with `productionProofReady=false`, `required=8`, `passed=0`, `failed=8`, `missing=0`, `invalid=0`, and no `/Users` or bearer-token strings.
+- Cleanup and scan cron routes now preserve authenticated `dryRun=1` proof but block non-dry-run mutation unless `UPLOAD_JOBS_ENABLED=1` is explicitly configured. `scripts/check-vercel-env-readiness.ts` includes that scheduled-job env name.
+- Fresh evidence passed: focused proof/route/env/release-gate Vitest matrix (`5` files / `31` tests), `bun run build`, and `git diff --check`.
+- Production deploy/proof remains externally blocked: local `vercel` has no credential/session, no `VERCEL*` env var is present, the Vercel connector returned CLI guidance instead of deploying, and Computer Use/Chrome app-state inspection timed out. The plan must not be archived until production deploy/readback plus all eight proof gates pass.
+
 **Estimate Sheet Content Improvement owner-gated closeout completed and archived (2026-06-27):**
 
 - Completed the owner-authorized local/provider closeout for `.ai/03_plans/2026-06-27-Estimate-Sheet-Content-Improvement` without any paid internet purchase, PITR enablement, hosted production deploy, or unrelated provider-project mutation.

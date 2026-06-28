@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-06-27T12:09:12.480Z",
+  "generatedAt": "2026-06-28T04:17:57.015Z",
   "mode": "upload-requirement-coverage-audit",
   "proofBoundary": "traceability-only",
   "requirementsFile": ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/04_REQUIREMENTS_SPECIFICATION.md",
   "releaseGatesFile": ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-release-gates.json",
-  "releaseGateGeneratedAt": "2026-06-27T12:08:32Z",
+  "releaseGateGeneratedAt": "2026-06-28T04:15:15Z",
   "releaseGateStatuses": {
     "closedBeta": "ready",
     "production": "blocked",
@@ -17,7 +17,7 @@
     "requirements": 25,
     "mapped": 25,
     "missing": 0,
-    "blocked": 7,
+    "blocked": 8,
     "unknownReferences": 0
   },
   "requirements": [
@@ -631,7 +631,7 @@
         {
           "scope": "production",
           "kind": "blocker",
-          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+          "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION"
         }
       ],
       "blockerRefs": [
@@ -643,7 +643,7 @@
         {
           "scope": "production",
           "kind": "blocker",
-          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+          "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION"
         }
       ]
     },
@@ -915,7 +915,7 @@
     },
     {
       "id": "UPLOAD-REQ-022",
-      "status": "mapped",
+      "status": "blocked",
       "evidenceRefs": [
         {
           "scope": "closedBeta",
@@ -1001,9 +1001,20 @@
           "scope": "production",
           "kind": "localPass",
           "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL"
+        },
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION"
         }
       ],
-      "blockerRefs": []
+      "blockerRefs": [
+        {
+          "scope": "production",
+          "kind": "blocker",
+          "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION"
+        }
+      ]
     },
     {
       "id": "UPLOAD-REQ-023",
@@ -1185,7 +1196,7 @@
         {
           "scope": "production",
           "kind": "blocker",
-          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+          "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION"
         },
         {
           "scope": "platform",
@@ -1232,7 +1243,7 @@
         {
           "scope": "production",
           "kind": "blocker",
-          "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF"
+          "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION"
         }
       ]
     },

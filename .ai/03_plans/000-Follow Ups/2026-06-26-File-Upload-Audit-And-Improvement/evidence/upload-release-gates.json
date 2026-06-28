@@ -1,6 +1,6 @@
 {
   "artifact": "upload-release-gates",
-  "generatedAt": "2026-06-27T12:08:32Z",
+  "generatedAt": "2026-06-28T04:15:15Z",
   "proofBoundary": "local-plus-linked-provider-operation-proof",
   "closedBeta": {
     "status": "ready",
@@ -448,7 +448,7 @@
           "UPLOAD-REQ-023",
           "UPLOAD-REQ-024"
         ],
-        "evidence": "scripts/check-upload-production-proof-evidence.ts validates the required hosted/live production proof bundle as a fail-closed gate: hosted cleanup/scan dry-run proof, hosted runtime proof, live ClamD scanner proof, observed alert delivery, observed hosted dashboard, observed hosted backpressure, and production retention runbook exercise. Current artifact evidence/upload-production-proof-evidence-check.json intentionally reports productionProofReady=false with all 7 required artifacts present but failed closed; this is checker/source proof only and does not claim production readiness."
+        "evidence": "scripts/check-upload-production-proof-evidence.ts validates the required production proof bundle as a fail-closed gate: production deployment readback, hosted cleanup/scan dry-run proof, hosted runtime proof, live ClamD scanner proof, observed alert delivery, observed hosted dashboard, observed hosted backpressure, and production retention runbook exercise. Current artifact evidence/upload-production-proof-evidence-check.json intentionally reports productionProofReady=false with 3 of 8 required gates passed; live scanner, alert delivery, dashboard observation, hosted backpressure, and retention runbook proof still fail closed. This is checker/source proof only and does not claim production readiness."
       },
       {
         "id": "UPLOAD-GATE-PRODUCTION-PROOF-RUNBOOK-LOCAL",
@@ -461,7 +461,7 @@
           "UPLOAD-REQ-023",
           "UPLOAD-REQ-024"
         ],
-        "evidence": "UPLOAD_PRODUCTION_PROOF_RUNBOOK.md maps all seven production evidence requirements to their expected passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria. It also calls out evidence/upload-hosted-deployment-readback.json as a read-only deployment preflight for hosted route presence, while explicitly keeping production blocked until hosted routes are deployed, scoped proof secrets are available, live ClamD/CDR configuration exists, alert delivery is observed, and hosted dashboard/backpressure/retention observations are collected. This is operator-readiness documentation only, not production proof."
+        "evidence": "UPLOAD_PRODUCTION_PROOF_RUNBOOK.md maps all eight production evidence requirements to their expected passing artifacts, safe collection commands, proof-boundary strings, and final bundle-check criteria. evidence/upload-hosted-deployment-readback.json now proves the hosted routes are deployed, and the hosted cleanup/scan dry-run plus hosted runtime artifacts now pass with scoped secrets. Production stays blocked until live ClamD/CDR configuration and proof exist, alert delivery is observed, and hosted dashboard/backpressure/retention observations are collected. This is operator-readiness documentation only, not production proof."
       },
       {
         "id": "UPLOAD-GATE-REQUIREMENT-COVERAGE-AUDIT-LOCAL",
@@ -478,7 +478,7 @@
           "UPLOAD-REQ-005",
           "UPLOAD-REQ-006"
         ],
-        "reason": "Fail-closed audited download broker, approved/current attachment gating, safe response headers, scan-status taxonomy, local scan lifecycle decisions, linked-provider checksum-bound scanner/override RPC state/readback proof, linked-provider scan-worker storage download/readback proof, linked-provider clean download readback proof, service-role scanner/override RPC contracts, a local injected scan job runner, a secret-gated internal scan worker route with Vercel Cron source config and local policy scanner, ClamD INSTREAM scanner provider source/protocol tests, an explicit live ClamD proof harness, upload production env-name preflight for the ClamD service config, a platform-admin scan override route, and an operator-facing scan override settings/runbook rehearsal exist. Current no-secret hosted proof against https://www.archestimator.com/api/internal/upload-scan?limit=1&dryRun=1 returns 404 with public cache headers, so the hosted scan proof route has not been observed deployed; observed hosted scan worker invocation and live scanner/CDR service execution are not complete."
+        "reason": "Fail-closed audited download broker, approved/current attachment gating, safe response headers, scan-status taxonomy, local scan lifecycle decisions, linked-provider checksum-bound scanner/override RPC state/readback proof, linked-provider scan-worker storage download/readback proof, linked-provider clean download readback proof, service-role scanner/override RPC contracts, a local injected scan job runner, a secret-gated internal scan worker route with Vercel Cron source config and local policy scanner, ClamD INSTREAM scanner provider source/protocol tests, an explicit live ClamD proof harness, upload production env-name preflight for the ClamD service config, a platform-admin scan override route, and an operator-facing scan override settings/runbook rehearsal exist. Hosted unauthenticated scan dry-run now fails closed with no-store 401, and authenticated hosted scan dry-run now passes with no-store 200 without downloading objects, scanning bytes, or writing scan results. Live scanner/CDR service configuration and execution proof remain incomplete."
       },
       {
         "id": "UPLOAD-GATE-CLEANUP-OBSERVABILITY",
@@ -488,15 +488,16 @@
           "UPLOAD-REQ-020",
           "UPLOAD-REQ-023"
         ],
-        "reason": "Local cleanup planning, retention cutoffs, retry guidance, dashboard-safe metrics, backlog alerts, scanner backpressure classifiers, path-safe cleanup/admission/scan operational telemetry seam, source/local/provider-proven signed/direct-upload reserved-session backpressure, a non-blocking sanitized webhook alert sink with Vercel env-name readiness coverage, upload production env-name preflight for cron and alert configuration, a path-safe platform-admin operations dashboard query and settings surface, local cleanup/scan operations runbook drill, secret-gated internal cleanup job route, Vercel Cron source config, CRON_SECRET env-readiness coverage, hosted upload operations dry-run verifier harness, linked-provider temporary object cleanup/delete readback proof, and linked-provider persisted retry/audit proof exist. Current no-secret hosted proof against https://www.archestimator.com/api/internal/upload-cleanup?limit=1&dryRun=1 returns 404 with public cache headers, so the hosted cleanup proof route has not been observed deployed; observed hosted scheduled TTL invocation, real hosted dashboard emission, observed alert delivery, observed hosted backpressure exercise, and production retention runbook exercise are not complete."
+        "reason": "Local cleanup planning, retention cutoffs, retry guidance, dashboard-safe metrics, backlog alerts, scanner backpressure classifiers, path-safe cleanup/admission/scan operational telemetry seam, source/local/provider-proven signed/direct-upload reserved-session backpressure, a non-blocking sanitized webhook alert sink with Vercel env-name readiness coverage, upload production env-name preflight for cron and alert configuration, a path-safe platform-admin operations dashboard query and settings surface, local cleanup/scan operations runbook drill, secret-gated internal cleanup job route, Vercel Cron source config, CRON_SECRET env-readiness coverage, hosted upload operations dry-run verifier harness, linked-provider temporary object cleanup/delete readback proof, and linked-provider persisted retry/audit proof exist. Hosted unauthenticated cleanup dry-run now fails closed with no-store 401, and authenticated hosted cleanup dry-run now passes with no-store 200 without deleting storage or writing cleanup audit events. Non-dry-run cleanup remains disabled by UPLOAD_JOBS_ENABLED=0; hosted scheduled TTL invocation, real hosted dashboard emission, observed alert delivery, and production retention runbook exercise are not complete."
       },
       {
-        "id": "UPLOAD-GATE-HOSTED-RUNTIME-PROOF",
+        "id": "UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION",
         "requirements": [
+          "UPLOAD-REQ-022",
           "UPLOAD-REQ-016",
           "UPLOAD-REQ-024"
         ],
-        "reason": "Local Sharp smoke evidence plus a secret-gated upload-runtime route, hosted runtime verifier harness, and upload production env-name preflight for the runtime proof secret/configured limit facts exist. Current no-secret hosted proof against https://www.archestimator.com/api/internal/upload-runtime returns 404 with public cache headers, so the hosted runtime proof route has not been observed deployed; hosted body-size, memory, duration, concurrency, and storage-latency observations from a deployed runtime are still required."
+        "reason": "Source/local/provider-proven signed/direct-upload reserved-session backpressure, path-safe quota/backpressure telemetry, route-level 429 handling, and hosted runtime proof exist. Hosted runtime proof now passes with authenticated body-size, memory, duration, concurrency, configured-limit, and storage-latency observations from the deployed runtime. A hosted upload admission/backpressure exercise that observes 429, Retry-After, and telemetry on the deployed surface is still required."
       }
     ]
   },
@@ -604,28 +605,48 @@
   "hostedEvidence": [
     {
       "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-runtime-fail-closed-proof.json bun run scripts/verify-hosted-upload-runtime.ts",
-      "exit": 1,
-      "result": "Read-only hosted no-secret runtime probe against https://www.archestimator.com returned 404 with public cache headers for /api/internal/upload-runtime; productionProofReady=false. See evidence/upload-hosted-runtime-fail-closed-proof.json.",
+      "exit": 0,
+      "result": "Hosted runtime proof against https://www.archestimator.com passed: unauthenticated requests fail closed with no-store 401, authenticated runtime/body/concurrency probes return no-store 200, configured limit facts are present, and Supabase Storage bucket latency/readability checks pass without recording secrets or provider paths. productionProofReady=true for this gate. See evidence/upload-hosted-runtime-fail-closed-proof.json.",
       "artifact": "evidence/upload-hosted-runtime-fail-closed-proof.json"
     },
     {
       "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.json MARKDOWN_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.md bun run scripts/verify-hosted-upload-operations.ts",
-      "exit": 1,
-      "result": "Read-only hosted no-secret cleanup/scan dry-run probes against https://www.archestimator.com returned 404 with public cache headers for /api/internal/upload-cleanup?limit=1&dryRun=1 and /api/internal/upload-scan?limit=1&dryRun=1; productionProofReady=false. See evidence/upload-hosted-operations-fail-closed-proof.json and evidence/upload-hosted-operations-fail-closed-proof.md.",
+      "exit": 0,
+      "result": "Hosted cleanup/scan dry-run proof against https://www.archestimator.com passed: unauthenticated cleanup/scan requests fail closed with no-store 401, authenticated cleanup and scan dry-runs return no-store 200, read provider queues, and perform no storage deletes, audit writes, downloads, scanner calls, or scan-result writes. productionProofReady=true for this gate. See evidence/upload-hosted-operations-fail-closed-proof.json and evidence/upload-hosted-operations-fail-closed-proof.md.",
       "artifact": "evidence/upload-hosted-operations-fail-closed-proof.json"
     },
     {
-      "command": "Vercel MCP read-only list_deployments/get_deployment/get_runtime_logs for project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E",
+      "command": "Vercel CLI production deploy plus read-only deployment/runtime route readback for archestimator",
       "exit": 0,
-      "result": "Production deployment dpl_8ymooyEM51amXCJ7xNstAHEkTeGq aliases www.archestimator.com/archestimator.com at commit 8c611d1333210838f201b4c91deb74fe656f5902 from 2026-06-20. Current source HEAD 2ff0ddf308cbe8d4470cf483d350a596cd01b9e8 contains upload proof routes added in a6548ebfa after that production commit. No production runtime logs matched upload proof route queries for 2026-06-26T11:50:59.173Z through 2026-06-27T11:50:59.172Z. Hosted proof routes remain deployment-blocked; no production readiness claimed.",
+      "result": "Production deployment readback passed for READY CLI deployment dpl_GmehH3stHXoaZFNpjuM71xu2JhYh aliasing www.archestimator.com/archestimator.com at commit e43b98dccc0163d9ff73b75726f27a04b9b512c0 with gitDirty=true. The hosted upload cleanup, scan, and runtime routes are deployed, unauthenticated probes return no-store 401, and authenticated hosted operations/runtime proof now passes. Production remains blocked for live scanner, alert delivery, dashboard, backpressure, and retention runbook observations.",
       "artifact": "evidence/upload-hosted-deployment-readback.json"
     }
   ],
   "localEvidence": [
     {
+      "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
+      "exit": 1,
+      "result": "Expected refreshed fail-closed upload production evidence bundle check after production deployment and hosted proof refresh: productionProofReady=false with required=8, passed=3, failed=5, missing=0, invalid=0. Failed keys: liveScanner, alertDelivery, dashboardObservation, hostedBackpressure, retentionRunbook. Evidence paths are repo-relative and contain no bearer tokens or /Users paths."
+    },
+    {
+      "command": "bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
+      "exit": 0,
+      "result": "5 files, 31 tests passed after adding deployment-readback hard gate, production-origin proof checks, and explicit upload cron mutation switch."
+    },
+    {
+      "command": "bun run build",
+      "exit": 0,
+      "result": "Next.js production build passed and listed /api/internal/upload-cleanup, /api/internal/upload-runtime, and /api/internal/upload-scan as dynamic routes."
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "result": "No whitespace errors after upload production proof hardening."
+    },
+    {
       "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-requirement-coverage-audit.json bun run scripts/check-upload-requirement-coverage.ts",
       "exit": 0,
-      "result": "Upload requirement coverage audit passed with traceabilityReady=true, productionReady=false, requirements=25, mapped=25, missing=0, blocked=7, unknownReferences=0. See evidence/upload-requirement-coverage-audit.json."
+      "result": "Upload requirement coverage audit passed with traceabilityReady=true, productionReady=false, requirements=25, mapped=25, missing=0, blocked=8, unknownReferences=0. See evidence/upload-requirement-coverage-audit.json."
     },
     {
       "command": "bunx vitest run tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
@@ -665,7 +686,7 @@
     {
       "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
       "exit": 1,
-      "result": "Expected refreshed fail-closed upload production evidence bundle check after requirement coverage audit: productionProofReady=false with required=7, passed=0, failed=7, missing=0, invalid=0. Failed keys: hostedUploadOperations, hostedUploadRuntime, liveScanner, alertDelivery, dashboardObservation, hostedBackpressure, retentionRunbook. Production remains blocked."
+      "result": "Expected refreshed fail-closed upload production evidence bundle check after production deployment and hosted proof refresh: productionProofReady=false with required=8, passed=3, failed=5, missing=0, invalid=0. Failed keys: liveScanner, alertDelivery, dashboardObservation, hostedBackpressure, retentionRunbook. Production remains blocked."
     },
     {
       "command": "bunx vitest run tests/vitest/upload-release-gates.test.ts tests/vitest/upload-requirement-coverage-audit.test.ts --maxWorkers=1",
@@ -775,7 +796,7 @@
     {
       "command": "OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts",
       "exit": 1,
-      "result": "Expected fail-closed upload production evidence bundle check: productionProofReady=false with required=7, passed=0, failed=7 fail-closed artifacts, missing=0, invalid=0. See evidence/upload-production-proof-evidence-check.json."
+      "result": "Expected fail-closed upload production evidence bundle check: productionProofReady=false with required=8, passed=0, failed=8 fail-closed artifacts, missing=0, invalid=0. See evidence/upload-production-proof-evidence-check.json."
     },
     {
       "command": "bun run scripts/verify-upload-production-observations.ts",

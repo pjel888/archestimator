@@ -41,9 +41,10 @@ scan/download, cleanup, observability, and provider-portability phases defined i
 - Start dirty status: clean (`git status --short --branch` showed
   `## main...origin/main`)
 - Current phase: `EXECUTE -> VERIFY` partial; release gates remain blocked where
-  provider/scanner/privacy/finality proof is absent.
-- Proof boundary: `local-only`; provider-backed storage proof is explicitly
-  skipped/blocking until configured.
+  live scanner, alert, dashboard, backpressure, and retention-runbook evidence
+  is absent.
+- Proof boundary: `production deployment readback + hosted authenticated dry-run
+  proof`; remaining proof gates are live/observed operational surfaces.
 
 ## Source of Truth Read
 
@@ -107,6 +108,80 @@ scan/download, cleanup, observability, and provider-portability phases defined i
 | L6 | `verifier` | Build requirement-by-requirement completion checklist and evidence matrix. | Read-only: plan pack plus current repo evidence. | All lane findings eventually. | Completed |
 
 ## Iteration Log
+
+### Iteration 65
+
+- Hypothesis: Production proof can advance past the stale deployment/no-secret
+  blocker once Vercel production env names are configured, the proof routes are
+  redeployed, and the cleanup route's provider enum mismatch is fixed.
+- Action: Added the required production Vercel env names for upload cron
+  guarding, hosted operations proof, and hosted runtime proof, redeployed to
+  production, diagnosed the cleanup dry-run `500` as an invalid
+  `upload_record_status` enum value, changed cleanup/readback code and tests to
+  use the provider's `deleted` status, and redeployed the fix.
+- Files changed: `src/lib/uploads/cleanup-job.ts`,
+  `src/lib/uploads/operations-dashboard.ts`, focused cleanup/route tests,
+  release-gate evidence/tests, runbooks, and active proof artifacts.
+- Evidence:
+  - Latest production deployment readback records READY CLI deployment
+    `dpl_GmehH3stHXoaZFNpjuM71xu2JhYh` aliasing
+    `www.archestimator.com`/`archestimator.com` at commit
+    `e43b98dccc0163d9ff73b75726f27a04b9b512c0`, with deployment fingerprints
+    `sha256:b7adc2c77880ead4` and `sha256:e6eacf64be80f08f`.
+  - Unauthenticated production probes for cleanup, scan, and runtime now reach
+    the deployed routes and fail closed with no-store `401`.
+  - Authenticated hosted cleanup/scan dry-run proof passed with no-store `200`
+    and no storage deletes, audit writes, downloads, scanner calls, or scan
+    result writes.
+  - Authenticated hosted runtime proof passed with no-store `200` for runtime,
+    body, and concurrency probes, configured limit facts, and private Supabase
+    Storage bucket latency/readability checks.
+  - `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts` exited `1` as expected with `productionProofReady=false`, `required=8`, `passed=3`, `failed=5`, `missing=0`, `invalid=0`.
+  - `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-requirement-coverage-audit.json bun run scripts/check-upload-requirement-coverage.ts` passed with `blocked=8`; `UPLOAD-REQ-022` and `UPLOAD-REQ-024` are blocked by hosted backpressure observation, not by hosted runtime.
+  - `VERCEL_ENV_LIST_TEXT=<sanitized env names> OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/vercel-env-readiness.json bun run scripts/check-vercel-env-readiness.ts` passed with `vercelEnvReady=true`, `uploadProductionProofReady=false`, alert env names missing, and live scanner env names missing.
+  - Focused Vitest matrix passed (`8` files / `45` tests): production proof checker, cleanup route/job, scan route, Vercel env readiness, release gates, operations dashboard, and requirement coverage audit.
+  - Scoped ESLint passed for changed scripts, routes, upload cleanup/dashboard code, and focused tests.
+  - `bun run type-check`, `git diff --check`, and targeted JSON/path/token safety scan passed.
+  - Local live scanner availability checks found no `clamd`, no `clamscan`, and no listener on `127.0.0.1:3310`.
+  - During a final stale-text scan, shell backtick expansion accidentally invoked `vercel` with no arguments. It completed preview deployment `dpl_J7YE1NDN9xq4C2b82KcPK5zhgSYs` at `archestimator-8keouo2ae-philipjonlewis-projects.vercel.app` with `target=null`; this is not production proof and was not used for the release-gate decision.
+- Result: Production deployment readback, hosted upload operations proof, and
+  hosted runtime proof are unblocked and passing. The plan is still not
+  archive-ready because live ClamD/CDR proof, alert delivery, hosted dashboard
+  observation, hosted backpressure observation, and retention-runbook proof are
+  still absent.
+
+### Iteration 64
+
+- Hypothesis: Production proof closeout is unsafe if the final checker can pass
+  without fresh deployment readback, and deploying the proof routes is unsafe if
+  Vercel Cron can immediately call mutating cleanup/scan endpoints.
+- Action: Hardened `scripts/check-upload-production-proof-evidence.ts` to require
+  `deploymentReadback` as an eighth hard gate, reject non-production hosted proof
+  origins, and write repo-relative artifact paths. Added an explicit
+  `UPLOAD_JOBS_ENABLED=1` guard before non-dry-run cleanup/scan execution while
+  preserving authenticated `dryRun=1` proof. Added the new scheduled-job env
+  name to `scripts/check-vercel-env-readiness.ts` and updated runbooks/tests.
+- Files changed: `scripts/check-upload-production-proof-evidence.ts`,
+  `scripts/check-vercel-env-readiness.ts`,
+  `src/app/api/internal/upload-cleanup/route.ts`,
+  `src/app/api/internal/upload-scan/route.ts`, focused Vitest files, runbooks,
+  and active evidence JSON.
+- Evidence:
+  - `OUTPUT_FILE=.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json bun run scripts/check-upload-production-proof-evidence.ts` exited `1` as expected with `productionProofReady=false`, `required=8`, `passed=0`, `failed=8`, `missing=0`, `invalid=0`.
+  - A path/token scan of the regenerated bundle reported `hasUsers=false` and
+    `hasBearer=false`.
+  - `bunx vitest run tests/vitest/upload-production-proof-evidence-checker.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/vercel-env-readiness-script.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1` passed (`5` files / `31` tests).
+  - `bun run build` passed and listed `/api/internal/upload-cleanup`,
+    `/api/internal/upload-runtime`, and `/api/internal/upload-scan`.
+  - `git diff --check` passed.
+- Production access result: Vercel MCP deploy did not deploy and returned CLI
+  guidance only. Local `vercel` has no credential/session, no `VERCEL*` env var
+  is available, and `Google Chrome`/Computer Use timed out before exposing a
+  usable authenticated dashboard path.
+- Result: Local safety/proof gates are stronger and verified. The plan is not
+  archive-ready. Remaining external blockers are production deployment access,
+  Vercel production env/proof secrets, live ClamD/CDR reachability, hosted alert
+  delivery, and hosted dashboard/backpressure/retention observations.
 
 ### Iteration 1
 
