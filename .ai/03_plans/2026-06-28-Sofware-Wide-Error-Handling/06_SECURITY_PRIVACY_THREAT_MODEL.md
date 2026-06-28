@@ -180,11 +180,14 @@ export async function POST(req: NextRequest) {
     return new Response(null, { status: 400 });
   }
 
-  const report = redactForLog({
-    client_message: stripControlChars(body.value.message).slice(0, 1024),
-    client_digest: body.value.digest,
-    path: body.value.path,
-  });
+  // Field names match `05` Section A.8 canonical contract:
+  //   client_message_redacted, digest, path_normalized, user_agent_hashed
+  // All client-supplied text is treated as untrusted and labeled tainted.
+  const report = {
+    client_message_redacted: stripControlChars(body.value.message).slice(0, 1024),
+    digest: body.value.digest,
+    path_normalized: normalizePath(body.value.path),
+  };
 
   // logger.warn() accepts AppErrorLogRecord (partial DevLogRecord) — no
   // record_id (logger generates) and no severity_number (logger derives from

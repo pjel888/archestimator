@@ -8,7 +8,7 @@ Every claim cites a source URL. Sources prioritized: official docs (nextjs.org, 
 
 Source: [Next.js App Router > Error Handling](https://nextjs.org/docs/app/getting-started/error-handling) (also captured via Context7 `/vercel/next.js` query, 2026-06-28).
 
-- `error.tsx` — React Client Component boundary. Catches errors thrown in any Server Component or Client Component in its segment and below. Must be a Client Component (`"use client"`). Receives `{ error, reset }` props. Reset re-renders the segment.
+- `error.tsx` — React Client Component boundary. Catches errors thrown in any Server Component or Client Component in its segment and below. Must be a Client Component (`"use client"`). Receives `{ error, unstable_retry }` props (Next.js 16 / React 19 — `unstable_retry` is the recovery primitive; older docs named it `reset`). `unstable_retry` re-renders the segment.
 - `global-error.tsx` — Top-level boundary. Catches errors thrown in `layout.tsx` or `providers.tsx` at the root. **Must render `<html>` and `<body>` itself** because the root layout is bypassed. Required for production-grade Next.js apps.
 - `not-found.tsx` — Catches `notFound()` throws and unmatched routes within its segment.
 - `loading.tsx` — Suspense fallback. Not error-handling, but adjacent.

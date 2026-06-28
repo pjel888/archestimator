@@ -33,7 +33,7 @@ No percentage rollout needed (single-tenant MVP). After first paying user, intro
 |---|---|---|
 | P1 | `git revert` P1 commits; delete `src/lib/observability/` | No behavior change was made; revert is clean |
 | P2a | `git revert` the pilot action/route commits | Pilot module returns to legacy behavior; no broad migration touched |
-| P3a | Delete `global-error.tsx`, `error.tsx`, `not-found.tsx`, `/api/internal/client-error`; revert toast.appError addition | Next.js default error page returns for root errors; per-route error.tsx files still work as before |
+| P3a | Delete `global-error.tsx`, pilot `error.tsx`, `/api/internal/client-error`; revert toast.appError addition | Next.js default error page returns for root errors; per-route error.tsx files still work as before. `not-found.tsx` is NOT in P3a scope (follow-on per `07` FR-005) |
 | P4 | Delete `scripts/tail-dev-logs.mjs`; revert logger wiring (becomes no-op) | Dev logs stop being written; no runtime impact |
 | P5 | Set `SENTRY_ENABLED=false`; Sentry init becomes no-op | Sentry dashboard stops receiving events; logger still writes dev NDJSON |
 

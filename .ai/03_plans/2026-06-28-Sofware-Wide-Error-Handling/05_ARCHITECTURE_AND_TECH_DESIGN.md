@@ -89,7 +89,7 @@ Mirrors server config; loaded by the Next.js Sentry wizard. Same `SENTRY_ENABLED
 
 ```tsx
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function GlobalError({
   error,
@@ -98,7 +98,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  const containerRef = useRef<HTMLElement>(null);
   useEffect(() => {
+    // A11Y-002 (pilot scope): move focus into the error container so
+    // screen-reader users hear the failure immediately on mount.
+    containerRef.current?.focus();
     // Client-side error → also forward to server log via /api/internal/client-error
     fetch('/api/internal/client-error', {
       method: 'POST',
@@ -110,7 +114,8 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
-        <main role="alert">
+        {/* tabIndex=-1 makes the container programmatically focusable (not in tab order). */}
+        <main ref={containerRef} tabIndex={-1} role="alert">
           <h1>Something went wrong</h1>
           <p>We could not load this page. Try again or return home.</p>
           {error.digest ? <p>Reference: {error.digest}</p> : null}
@@ -132,7 +137,7 @@ Per Section D.3, the P3a pilot boundary opts in to server-side diagnosis by POST
 ```tsx
 "use client";
 import { toast } from '@/components/ui/toast';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function Error({
   error,
@@ -141,7 +146,10 @@ export default function Error({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // A11Y-002 (pilot scope): move focus into the error container on mount.
+    containerRef.current?.focus();
     toast.appError(error);
     // Forward to server log for diagnosis (same channel as global-error.tsx).
     // Best-effort — never blocks recovery.
@@ -156,7 +164,7 @@ export default function Error({
     }).catch(() => { /* swallow; logging is best-effort */ });
   }, [error]);
   return (
-    <div role="alert" className="...">
+    <div ref={containerRef} tabIndex={-1} role="alert" className="...">
       <h2>Something went wrong</h2>
       <p>We could not load this section. Try again or return home.</p>
       {error.digest ? <p>Reference: {error.digest}</p> : null}
@@ -166,9 +174,9 @@ export default function Error({
 }
 ```
 
-### A.7 `src/app/not-found.tsx` (new in P3a)
+### A.7 `src/app/not-found.tsx` (follow-on after P3a pilot, NOT in approved pilot scope)
 
-404 page for unmatched routes. Brand-styled, points users to home or contact.
+404 page for unmatched routes. Brand-styled, points users to home or contact. Per `07` FR-005, `08` P3a-WP1, and `12` FR-005 row, `not-found.tsx` is explicitly **out of the approved P3a pilot scope** and is implemented as a follow-on after pilot evidence. Listed here for completeness; do NOT implement in P3a.
 
 ### A.8 `src/app/api/internal/client-error/route.ts` (new in P3a)
 

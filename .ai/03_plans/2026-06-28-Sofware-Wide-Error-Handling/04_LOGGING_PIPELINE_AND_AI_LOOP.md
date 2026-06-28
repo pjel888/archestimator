@@ -212,13 +212,24 @@ export const logger = {
   error(record: AppErrorLogRecord) {
     const enriched = enrich(record);
     writeDevLog(enriched);
-    forwardToProd(enriched);  // no-op in dev; Sentry/OTel in prod
+    forwardToProd(enriched);  // no-op in dev; Sentry captureException in prod (P5)
   },
   // warn, info, debug similar — each picks its own level and uses the same enrich().
 };
 ```
 
 `src/lib/perf/server-timing.ts` itself is a protected contract per README — only consumed via its existing exports (`getCurrentPerfTraceSnapshot`, `withPerfTraceRequest`, `traced`). The internal `perfTraceStorage` is intentionally not imported by the logger.
+
+### E.1 Production capture ownership (P5)
+
+There are **two distinct Sentry capture paths** in production. They do NOT overlap:
+
+| Path | Fires when | Capture mechanism |
+|---|---|---|
+| **Wrapped** server-action / route-handler failures | The `withActionErrors` wrapper or `errorResponse()` catches the error | `logger.error(appError.toLogRecord())` → `forwardToProd(enriched)` → `Sentry.captureException` |
+| **Uncaught** server errors (bugs that escape all wrappers) | Next.js server catches an error that no wrapper caught | `instrumentation.ts` `onRequestError(err, request, context)` → `Sentry.captureException` |
+
+Both paths land in Sentry. The wrapped path adds structured context (record_id, error.kind/code, agent_decision); the uncaught path adds request/context breadcrumbs. An error that flows through a wrapper does NOT also fire `onRequestError` because the wrapper swallowed it (returned `ActionResult`/`NextResponse`); an error that escapes all wrappers DOES fire `onRequestError`. This is the canonical ownership model — both `03`/`05` (wrapped) and `04`/`05`/`07`/`11` (onRequestError) describe complementary, non-overlapping paths.
 
 ## F. Production forwarder
 
