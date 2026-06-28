@@ -58,6 +58,7 @@ const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
   "h-5 border-0 bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3 max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums";
 const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2 max-w-[calc(100%-8px)] truncate text-[8px] font-medium leading-[10px] tabular-nums text-tertiary";
+const ESTIMATE_LOWER_LEFT_NUMERIC_CLASS = "absolute bottom-4 left-1 max-w-[calc(100%-8px)] truncate text-left text-[8px] font-medium leading-[10px] tabular-nums text-tertiary";
 
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
@@ -672,13 +673,13 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         />
         {quantityHasContingency ? (
           <dl
-            className="absolute left-1 top-2 grid max-w-[calc(100%-32px)] grid-cols-[auto_auto] gap-x-1 gap-y-0.5 text-[8px] font-medium leading-[10px] text-tertiary"
+            className="absolute left-1 right-1 top-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1 gap-y-0.5 text-[8px] font-medium leading-[10px] text-tertiary"
             aria-label={`${computedItemLabel} quantity breakdown`}
           >
-            <dt>Value</dt>
-            <dd className="min-w-4 text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityBase ?? 0)}</dd>
-            <dt>Contingency</dt>
-            <dd className="min-w-4 text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityContingencyAmount ?? 0)}</dd>
+            <dt className="text-right">Value</dt>
+            <dd className="justify-self-end text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityBase ?? 0)}</dd>
+            <dt className="text-right">Contingency</dt>
+            <dd className="justify-self-end text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityContingencyAmount ?? 0)}</dd>
           </dl>
         ) : null}
         {quantityHasContingency ? (
@@ -686,8 +687,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             type="button"
             disabled={!canEditEstimate}
             className={cn(
-              ESTIMATE_CORNER_NUMERIC_CLASS,
-              "right-1 rounded-none border-0 bg-transparent p-0 text-right hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 disabled:cursor-default disabled:opacity-70",
+              ESTIMATE_LOWER_LEFT_NUMERIC_CLASS,
+              "rounded-none border-0 bg-transparent p-0 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 disabled:cursor-default disabled:opacity-70",
               quantityBreakdownOpen && "text-ink",
             )}
             aria-label={`${computedItemLabel} quantity adjustment breakdown`}

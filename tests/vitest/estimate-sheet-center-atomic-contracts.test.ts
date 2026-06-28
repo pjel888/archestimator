@@ -114,6 +114,7 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).toContain('const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";');
     expect(rowTable).toContain('const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3');
     expect(rowTable).toContain('const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2');
+    expect(rowTable).toContain('const ESTIMATE_LOWER_LEFT_NUMERIC_CLASS = "absolute bottom-4 left-1');
     expect(rowTable).toContain('className="relative grid h-full w-full min-w-0 place-items-center"');
     expect(rowTable).not.toContain("flex min-w-0 flex-col items-center justify-center gap-0.5");
     expect(rowCells).toContain('className="!text-[10px] font-medium leading-3 tabular-nums text-ink"');
@@ -122,10 +123,12 @@ describe("estimate sheet center atomic mutation contracts", () => {
   it("keeps quantity contingency breakdown as corner metadata with a centered total", () => {
     expect(rowTable).toContain("const quantityDisplayValue = quantityCellFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity);");
     expect(rowTable).toContain('value={quantityDisplayValue}');
-    expect(rowTable).toContain("<dt>Value</dt>");
-    expect(rowTable).toContain("<dt>Contingency</dt>");
-    expect(rowTable).toContain('className="min-w-4 text-right tabular-nums text-ink"');
+    expect(rowTable).toContain("absolute left-1 right-1 top-2 grid grid-cols-[max-content_minmax(0,1fr)]");
+    expect(rowTable).toContain('className="text-right">Value</dt>');
+    expect(rowTable).toContain('className="text-right">Contingency</dt>');
+    expect(rowTable).toContain('className="justify-self-end text-right tabular-nums text-ink"');
     expect(rowTable).toContain("ESTIMATE_CORNER_NUMERIC_CLASS");
+    expect(rowTable).toContain("ESTIMATE_LOWER_LEFT_NUMERIC_CLASS");
     expect(rowTable).not.toContain('import { Chip } from "@/components/ui/chip";');
     expect(rowTable).not.toContain("<Chip");
   });
