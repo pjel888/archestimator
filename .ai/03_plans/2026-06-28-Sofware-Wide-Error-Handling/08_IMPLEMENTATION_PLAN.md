@@ -61,7 +61,7 @@ bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/unwrap-supabase.
 - Targeted existing regression tests above show no new failures against the recorded baseline.
 - `./logs/dev.ndjson` not yet written (file writer belongs to P4).
 
-**Rollback:** delete `src/lib/observability/` directory. No other code touched.
+**Rollback:** `git revert <P1 commit(s)>` is the canonical mechanism — it restores `src/lib/observability/`, `tsconfig.json` paths (if added), and any other P1-touched files atomically. The per-phase file list (observability/, tsconfig.json) is a sanity check, not a manual rollback recipe.
 
 **Risks:**
 - RISK-ERR-001 — Over-engineering the taxonomy. Mitigation: 9 public kinds / 12 concrete subclasses max; revisit at pilot boundary.
@@ -150,7 +150,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 - `/api/internal/client-error` rate-limits correctly.
 - `/api/internal/client-error` redacts client text and labels tainted fields.
 
-**Rollback:** delete P3a files. Existing toast API unchanged.
+**Rollback:** `git revert <P3a commit(s)>` is the canonical mechanism — restores `global-error.tsx`, `error.tsx` (if added), `not-found.tsx` (if added), `/api/internal/client-error`, `toast.tsx` (reverts appError addition), and any P3a-added tests atomically. Existing toast API unchanged by revert.
 
 ## P4 — Dev logging pipeline: NDJSON file + AI tail command
 
@@ -186,7 +186,7 @@ bun run logs:tail --last 5
 - `bun run logs:explain <id>` prints a full AI-readable summary.
 - AI agent (manual test) can read the log and identify the error class + route + cause.
 
-**Rollback:** delete `./logs/`, revert logger wiring (becomes no-op), delete scripts/tail-dev-logs.mjs.
+**Rollback:** `git revert <P4 commit(s)>` is the canonical mechanism — reverts `.gitignore` (logs/ entry), `package.json` (logs:* scripts), `src/lib/observability/logger.ts` (file-writer wiring), `scripts/tail-dev-logs.mjs`, and P4-added tests atomically. After revert, the logger becomes a no-op for file writes; no runtime impact.
 
 ## P5 — Production observability: Sentry design + owner/provider gate
 
@@ -216,8 +216,13 @@ bun run logs:tail --last 5
 SENTRY_DSN=... bun run build  # only after P5-WP1 owner/provider gate
 bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-redact.test.ts
 # Manual preview/provider proof only after explicit owner authority:
-# deploy to Vercel preview; trigger the global-error boundary via the dev-only
-# ?forceGlobalError=1 query param (per `05` Section A.5 note); verify Sentry receives event
+# deploy to Vercel preview; trigger an error via a preview-safe mechanism.
+# NOTE: ?forceGlobalError=1 is DEV-ONLY (NODE_ENV=development gate per `05`
+# Section A.5 note) and is excluded from preview/production builds, so it
+# CANNOT be used here. The implementer must add a separate preview-safe
+# trigger as part of P5-WP1 owner-gate work — e.g., a tiny authenticated
+# `/api/internal/trigger-error` route gated to VERCEL_ENV=preview and
+# behind an owner-approved test token. Verify Sentry receives the event.
 ```
 
 **Exit criteria:**

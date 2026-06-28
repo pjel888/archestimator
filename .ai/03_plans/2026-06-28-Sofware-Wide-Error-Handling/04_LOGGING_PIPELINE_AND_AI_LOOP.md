@@ -298,8 +298,7 @@ Full OTel SDK with OTLP exporter is explicitly deferred. Plan adopts OTel *data 
 ## G. Bundle/perf budgets
 
 - Logger module bundle add: **<10 KB** gzipped equivalent for the native writer; no client bundle impact until owner-gated Sentry, whose client SDK budget is ~20 KB.
-- Per-call overhead: **<1 ms p95** for logger.error (file append is fast; Sentry capture is fire-and-forget with batched sends).
-- Async — every log call returns immediately; I/O is non-blocking.
+- Per-call overhead: **<1 ms p95** for logger.error. The dev file writer uses synchronous append (`fs.appendFileSync`) — sub-millisecond at dev log volumes (low write rate, kernel-buffered append). Sentry capture in prod is fire-and-forget with batched sends. NOT async/non-blocking: a synchronous append is the deliberate tradeoff for simplicity and reliability; if dev write volume ever becomes a bottleneck, swap to a write queue (RISK-ERR-002).
 - Verified by `tests/vitest/logger-perf.test.ts` (new in P4).
 
 ## H. Off-limits (per README)
