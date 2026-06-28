@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useReducer, useRef, useState, type CSSProperties, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useReducer, useRef, useState, type CSSProperties, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { ArrowsClockwise, ArrowsOutCardinal, Cube, DotsSixVertical, DotsThreeVertical, ImageSquare, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,13 @@ export type ExpressInsertDraftState = "creating" | "failed";
 type ComponentSourceTone = "library" | "express" | "project" | "manual";
 
 const MATERIAL_UNIT_SLOT_CLASS =
-  "flex w-16 shrink-0 items-center justify-end whitespace-nowrap text-right text-[10px] font-medium leading-3 text-tertiary";
+  "flex w-16 shrink-0 items-center justify-end whitespace-nowrap text-right !text-[10px] font-medium leading-3 text-tertiary";
 const MATERIAL_COST_SLOT_CLASS = "w-[112px] shrink-0";
 const MATERIAL_TEXT_RESERVE_CLASS = "min-w-0 pr-[136px]";
+const MATERIAL_UNIT_LABEL_CLASS =
+  "relative flex min-w-0 max-w-full items-center justify-end text-right !text-[10px] font-medium leading-3";
+const MATERIAL_UNIT_SLASH_CLASS = "absolute -top-2 right-0 block h-2 leading-[8px] text-tertiary";
+const MATERIAL_UNIT_VALUE_CLASS = "block max-w-full truncate";
 const ESTIMATE_IMAGE_UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
 const ESTIMATE_IMAGE_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
@@ -53,9 +57,10 @@ type EstimateImageModalAction =
   | { type: "open"; imageUrl: string }
   | { type: "close" }
   | { type: "url:change"; value: string }
-  | { type: "file:selected"; file: File; previewUrl: string }
+  | { type: "file:selected"; file: File; previewUrl: string; message?: string }
   | { type: "file:error"; message: string }
   | { type: "upload:start" }
+  | { type: "upload:success" }
   | { type: "upload:error"; message: string }
   | { type: "upload:cancelled" };
 
@@ -90,10 +95,11 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
     case "file:selected":
       return {
         ...state,
+        open: false,
         imageUrlDraftDirty: false,
         selectedImage: action.file,
         selectedImagePreview: action.previewUrl,
-        uploadState: reduceUploadClientState(state.uploadState, { type: "select", message: `${action.file.name} selected.` }),
+        uploadState: reduceUploadClientState(state.uploadState, { type: "select", message: action.message ?? `${action.file.name} selected.` }),
       };
     case "file:error":
       return {
@@ -105,11 +111,15 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
     case "upload:start":
       return {
         ...state,
+        open: false,
         uploadState: reduceUploadClientState(state.uploadState, { type: "uploading", message: "Uploading image..." }),
       };
+    case "upload:success":
+      return INITIAL_ESTIMATE_IMAGE_MODAL_STATE;
     case "upload:error":
       return {
         ...state,
+        open: false,
         uploadState: reduceUploadClientState(state.uploadState, { type: "retryable-error", message: action.message }),
       };
     case "upload:cancelled":
@@ -253,7 +263,12 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
           {item.description}
         </p>
       )}
-      unit={<p className="min-w-0 max-w-full truncate text-right" data-estimate-material-unit-label="true">/ {item.unit}</p>}
+      unit={(
+        <p className={MATERIAL_UNIT_LABEL_CLASS} data-estimate-material-unit-label="true" title={`per ${item.unit}`}>
+          <span className={MATERIAL_UNIT_SLASH_CLASS} data-estimate-material-unit-slash="true" aria-hidden="true">/</span>
+          <span className={MATERIAL_UNIT_VALUE_CLASS} data-estimate-material-unit-value="true">{item.unit}</span>
+        </p>
+      )}
     />
   );
 }
@@ -284,6 +299,7 @@ function handleExpressFieldKeyDown(
 }
 
 function ExpressMaterialImageEditor({
+  draftState,
   editableImageUrl,
   editorLabel,
   imageStyle,
@@ -294,6 +310,7 @@ function ExpressMaterialImageEditor({
   onActiveChange,
   onCommitImageUrl,
 }: {
+  draftState?: ExpressInsertDraftState;
   editableImageUrl: string;
   editorLabel: string;
   imageStyle?: CSSProperties;
@@ -311,6 +328,10 @@ function ExpressMaterialImageEditor({
   const imageUploadAttemptRef = useRef(0);
   const { imageUrlDraft, imageUrlDraftDirty, open: imageModalOpen, selectedImage, selectedImagePreview, uploadState: imageUploadState } = imageModal;
   const imageModalBusy = isUploadClientBusy(imageUploadState);
+  const imageUploadRetryable = Boolean(selectedImage && isUploadClientRetryable(imageUploadState));
+  const showThumbnailUploadState = Boolean(selectedImage && !imageModalOpen && imageUploadState.message);
+  const thumbnailStatusRole = getUploadClientStatusRole(imageUploadState);
+  const thumbnailImageStyle = selectedImagePreview ? { backgroundImage: `url(${selectedImagePreview})` } : imageStyle;
 
   useEffect(() => () => {
     imageUploadAttemptRef.current += 1;
@@ -318,11 +339,11 @@ function ExpressMaterialImageEditor({
     if (selectedImagePreviewRef.current) URL.revokeObjectURL(selectedImagePreviewRef.current);
   }, []);
 
-  function replaceSelectedImagePreview(nextPreviewUrl: string) {
+  const replaceSelectedImagePreview = useCallback((nextPreviewUrl: string) => {
     if (selectedImagePreviewRef.current === nextPreviewUrl) return;
     if (selectedImagePreviewRef.current) URL.revokeObjectURL(selectedImagePreviewRef.current);
     selectedImagePreviewRef.current = nextPreviewUrl;
-  }
+  }, []);
 
   function openImageModal() {
     onActiveChange(true);
@@ -346,6 +367,44 @@ function ExpressMaterialImageEditor({
     dispatchImageModal({ type: "upload:cancelled" });
   }
 
+  const startImageUpload = useCallback(async (file: File) => {
+    if (draftState) return;
+    const attemptId = imageUploadAttemptRef.current + 1;
+    imageUploadAttemptRef.current = attemptId;
+    const abortController = new AbortController();
+    imageUploadAbortRef.current = abortController;
+    dispatchImageModal({ type: "upload:start" });
+    try {
+      const uploadedImage = await uploadEstimateReferenceImage(file, {
+        signal: abortController.signal,
+        projectId,
+        estimateId,
+        rowItemId: itemId,
+      });
+      if (imageUploadAttemptRef.current === attemptId) {
+        onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
+        replaceSelectedImagePreview("");
+        dispatchImageModal({ type: "upload:success" });
+        onActiveChange(false);
+      }
+    } catch (error) {
+      if (imageUploadAttemptRef.current === attemptId) {
+        dispatchImageModal(isUploadAbortError(error)
+          ? { type: "upload:cancelled" }
+          : { type: "upload:error", message: getUploadClientErrorMessage(error, "Could not upload image.") });
+      }
+    } finally {
+      if (imageUploadAbortRef.current === abortController) imageUploadAbortRef.current = null;
+    }
+  }, [draftState, estimateId, itemId, onActiveChange, onCommitImageUrl, projectId, replaceSelectedImagePreview]);
+
+  useEffect(() => {
+    if (!selectedImage) return;
+    if (draftState) return;
+    if (imageUploadState.state !== "selected") return;
+    void startImageUpload(selectedImage);
+  }, [draftState, imageUploadState.state, selectedImage, startImageUpload]);
+
   function handleImageFileChange(file: File | null | undefined) {
     if (!file) return;
     imageUploadAttemptRef.current += 1;
@@ -359,39 +418,22 @@ function ExpressMaterialImageEditor({
     }
     const previewUrl = URL.createObjectURL(file);
     replaceSelectedImagePreview(previewUrl);
-    dispatchImageModal({ type: "file:selected", file, previewUrl });
+    dispatchImageModal({
+      type: "file:selected",
+      file,
+      previewUrl,
+      message: draftState ? "Waiting for the component row to save before uploading image..." : "Image selected. Starting upload...",
+    });
+    onActiveChange(false);
+    if (!draftState) void startImageUpload(file);
   }
 
   async function saveImageDraft() {
     if (imageModalBusy) return;
     if (selectedImage) {
-      const attemptId = imageUploadAttemptRef.current + 1;
-      imageUploadAttemptRef.current = attemptId;
-      const abortController = new AbortController();
-      imageUploadAbortRef.current = abortController;
-      dispatchImageModal({ type: "upload:start" });
-      try {
-        const uploadedImage = await uploadEstimateReferenceImage(selectedImage, {
-          signal: abortController.signal,
-          projectId,
-          estimateId,
-          rowItemId: itemId,
-        });
-        if (imageUploadAttemptRef.current === attemptId) {
-          onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
-          replaceSelectedImagePreview("");
-          dispatchImageModal({ type: "close" });
-          onActiveChange(false);
-        }
-      } catch (error) {
-        if (imageUploadAttemptRef.current === attemptId) {
-          dispatchImageModal(isUploadAbortError(error)
-            ? { type: "upload:cancelled" }
-            : { type: "upload:error", message: getUploadClientErrorMessage(error, "Could not upload image.") });
-        }
-      } finally {
-        if (imageUploadAbortRef.current === abortController) imageUploadAbortRef.current = null;
-      }
+      dispatchImageModal({ type: "file:selected", file: selectedImage, previewUrl: selectedImagePreview, message: "Image selected. Starting upload..." });
+      onActiveChange(false);
+      void startImageUpload(selectedImage);
       return;
     }
     if (imageUrlDraftDirty) onCommitImageUrl(imageUrlDraft, null);
@@ -400,28 +442,58 @@ function ExpressMaterialImageEditor({
 
   return (
     <>
-      <ActionTooltip label={imageUrl ? "Change reference image" : "Add reference image"}>
-        <button
-          type="button"
-          className={cn(
-            "relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50",
-            imageUrl && "shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
-          )}
-          style={imageStyle}
-          data-estimate-row-id={itemId}
-          data-express-field="imageUrl"
-          aria-label={imageUrl ? `Change reference image for ${editorLabel}` : `Add reference image for ${editorLabel}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            openImageModal();
-          }}
-        >
-          {imageUrl ? null : <ImageSquare size={18} weight="regular" aria-hidden="true" />}
-          <span aria-hidden="true" className={cn("absolute inset-x-1 bottom-1 rounded-xs bg-white/86 px-1 py-0.5 opacity-0 transition group-hover:opacity-90 group-focus-within:opacity-90", !imageUrl && "static bg-transparent opacity-100")}>
-            {imageUrl ? "Change" : "Add image"}
-          </span>
-        </button>
-      </ActionTooltip>
+      <div className="relative size-14 shrink-0">
+        <ActionTooltip label={imageModalBusy ? "Uploading reference image" : imageUrl ? "Change reference image" : "Add reference image"}>
+          <button
+            type="button"
+            className={cn(
+              "relative grid size-14 place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
+              (imageUrl || selectedImagePreview) && "shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
+            )}
+            style={thumbnailImageStyle}
+            data-estimate-row-id={itemId}
+            data-express-field="imageUrl"
+            aria-label={imageUrl ? `Change reference image for ${editorLabel}` : `Add reference image for ${editorLabel}`}
+            disabled={imageModalBusy}
+            onClick={(event) => {
+              event.stopPropagation();
+              openImageModal();
+            }}
+          >
+            {imageUrl || selectedImagePreview ? null : <ImageSquare size={18} weight="regular" aria-hidden="true" />}
+            <span aria-hidden="true" className={cn("absolute inset-x-1 bottom-1 rounded-xs bg-white/86 px-1 py-0.5 opacity-0 transition group-hover:opacity-90 group-focus-within:opacity-90", !imageUrl && !selectedImagePreview && "static bg-transparent opacity-100")}>
+              {imageUrl || selectedImagePreview ? "Change" : "Add image"}
+            </span>
+          </button>
+        </ActionTooltip>
+        {showThumbnailUploadState ? (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 rounded-xs bg-white/88 px-1 text-center text-[8px] font-medium leading-[10px] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]",
+              thumbnailStatusRole === "alert" ? "text-danger" : "text-secondary",
+            )}
+            role={thumbnailStatusRole}
+          >
+            {imageModalBusy ? (
+              <span className="size-4 animate-spin rounded-full border-2 border-secondary/25 border-t-secondary" aria-hidden="true" />
+            ) : null}
+            <span className={cn(imageModalBusy && "sr-only")}>{imageUploadState.message}</span>
+            {imageUploadRetryable ? (
+              <button
+                type="button"
+                className="pointer-events-auto mt-0.5 rounded-xs border border-hairline bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-ink shadow-sm hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+                aria-label="Retry upload"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (selectedImage) void startImageUpload(selectedImage);
+                }}
+              >
+                Retry
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
       <Modal
         open={imageModalOpen}
         onOpenChange={(open) => {
@@ -610,6 +682,7 @@ function ExpressMaterialEditor({
       <EstimateMaterialCardFrame
         image={(
           <ExpressMaterialImageEditor
+            draftState={draftState}
             editableImageUrl={editableRow.imageUrl}
             editorLabel={editorLabel}
             imageStyle={imageStyle}
@@ -699,8 +772,8 @@ function ExpressMaterialEditor({
           />
         )}
         unit={(
-          <div className="flex w-full min-w-0 items-center justify-end gap-1" data-estimate-material-unit-label="true">
-            <span aria-hidden="true">/</span>
+          <div className={cn(MATERIAL_UNIT_LABEL_CLASS, "w-full")} data-estimate-material-unit-label="true">
+            <span className={MATERIAL_UNIT_SLASH_CLASS} data-estimate-material-unit-slash="true" aria-hidden="true">/</span>
             <ControlInput
               type="text"
               value={editableRow.unit}
@@ -716,7 +789,7 @@ function ExpressMaterialEditor({
               aria-label="Unit"
               placeholder="unit"
               align="right"
-              className={cn(cardInputClass, "h-4 w-12 text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
+              className={cn(cardInputClass, "h-4 w-full !text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
             />
           </div>
         )}

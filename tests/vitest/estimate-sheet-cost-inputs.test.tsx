@@ -405,10 +405,14 @@ describe("estimate sheet cost inputs", () => {
     expect(adjustmentInput).toHaveClass("text-right");
     expect(contingencyInput).toHaveClass("h-5");
     expect(adjustmentInput).toHaveClass("h-5");
+    expect(contingencyInput).not.toHaveClass("w-10");
+    expect(adjustmentInput).not.toHaveClass("w-10");
+    expect(contingencyInput).toHaveStyle({ width: "1ch" });
+    expect(adjustmentInput).toHaveStyle({ width: "1ch" });
     expect(within(contingencyCell as HTMLElement).getAllByText("%")).toHaveLength(1);
-    expect(within(contingencyCell as HTMLElement).getByText("0 sqm")).toHaveClass("text-center", "text-[8px]");
+    expect(within(contingencyCell as HTMLElement).queryByText("0 sqm")).not.toBeInTheDocument();
     expect(within(adjustmentCell as HTMLElement).getAllByText("%")).toHaveLength(1);
-    expect(within(adjustmentCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
+    expect(within(adjustmentCell as HTMLElement).queryByText("₱ 0.00")).not.toBeInTheDocument();
     expect(miscCostInput.closest("td")).toHaveClass("justify-center");
     expect(miscCostInput).toHaveClass("text-center");
   });
@@ -444,12 +448,12 @@ describe("estimate sheet cost inputs", () => {
     fireEvent.blur(quantityAdjustmentInput);
 
     await waitFor(() => expect(quantityInput).toHaveValue("53"));
-    expect(screen.getByText("- 10.416667%")).toBeInTheDocument();
+    expect(screen.getByText("- 10.42%")).toBeInTheDocument();
   });
 
   it("applies signed row adjustment percentage edits to subtotal without changing quantity", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     expect(screen.queryByLabelText("Hardwood Oak Flooring adjustment type")).not.toBeInTheDocument();
     const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
@@ -458,7 +462,7 @@ describe("estimate sheet cost inputs", () => {
     await user.type(adjustmentInput, "-10");
     await user.tab();
 
-    await screen.findByText("-₱ 5,760.00");
+    expect(await screen.findByText("-₱ 5,760.00")).toHaveClass("top-18", "right-1", "text-right", "!text-[10px]");
     expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
     expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveValue("48");
     expect(screen.getByLabelText("Hardwood Oak Flooring contingency percentage")).toHaveValue("0");

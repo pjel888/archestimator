@@ -112,12 +112,26 @@ describe("estimate sheet center atomic mutation contracts", () => {
 
   it("keeps estimate row primary numeric values on one font size and centerline", () => {
     expect(rowTable).toContain('const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";');
-    expect(rowTable).toContain('const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3');
-    expect(rowTable).toContain('const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2');
+    expect(rowTable).toContain('const ESTIMATE_LOWER_RIGHT_META_CLASS = "absolute top-18 right-1');
     expect(rowTable).toContain("const ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS =");
+    expect(rowTable).toContain("function getPercentageInputWidth(value: string)");
+    expect(rowTable).toContain("style={{ width: getPercentageInputWidth(editableAdjustmentColumnPercentage) }}");
+    expect(rowTable).toContain('import { formatQuantityUnitLabel } from "@/lib/estimates/format-quantity-unit-label";');
+    expect(rowTable).toContain("const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, computedItem.unit);");
     expect(rowTable).toContain('className="relative grid h-full w-full min-w-0 place-items-center"');
-    expect(rowTable).toContain('className="absolute top-18 right-1 text-[10px] font-medium leading-3 text-tertiary">/ {computedItem.unit}</p>');
+    expect(rowTable).toContain("className={ESTIMATE_LOWER_RIGHT_META_CLASS}>{quantityUnitLabel}</p>");
+    expect(rowTable).toContain("rowContingencyQuantity !== 0 ? (");
+    expect(rowTable).toContain(`        </div>
+        {rowContingencyQuantity !== 0 ? (`);
+    expect(rowTable).toContain("rowAdjustmentValue !== 0 ? (");
+    expect(rowTable).toContain(`        </div>
+        {rowAdjustmentValue !== 0 ? (`);
+    expect(rowTable).toContain("className={cn(ESTIMATE_LOWER_RIGHT_META_CLASS, rowAdjustmentValue < 0 ? \"text-danger\" : \"text-tertiary\")}");
+    expect(rowTable).not.toContain("absolute bottom-4");
+    expect(rowTable).not.toContain("w-10 text-right");
     expect(rowTable).not.toContain("flex min-w-0 flex-col items-center justify-center gap-0.5");
+    expect(rowCells).toContain("const MATERIAL_UNIT_SLOT_CLASS =");
+    expect(rowCells).toContain("!text-[10px] font-medium leading-3 text-tertiary");
     expect(rowCells).toContain('className="!text-[10px] font-medium leading-3 tabular-nums text-ink"');
   });
 
@@ -135,7 +149,7 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).toContain('className="text-right">Contingency</dt>');
     expect(rowTable).toContain('className={ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS}');
     expect(rowTable).toContain('<span className="text-tertiary">- {formatQuantityBreakdownPercentage(computedItem.contingencyPercentage)}</span>');
-    expect(rowTable).toContain("ESTIMATE_CORNER_NUMERIC_CLASS");
+    expect(rowTable).toContain("ESTIMATE_LOWER_RIGHT_META_CLASS");
     expect(rowTable).not.toContain('import { Chip } from "@/components/ui/chip";');
     expect(rowTable).not.toContain("<Chip");
     expect(rowTable).not.toContain("quantityBreakdownOpen");

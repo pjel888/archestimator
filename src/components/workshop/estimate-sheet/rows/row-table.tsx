@@ -37,6 +37,7 @@ import { EstimateRowColumnResizeHandle } from "./column-resize-handle";
 import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState } from "./cells";
 import { focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
+import { formatQuantityUnitLabel } from "@/lib/estimates/format-quantity-unit-label";
 import {
   buildEditableQuantityContingencyPatch,
   buildEditableQuantityContingencyPercentagePatch,
@@ -56,8 +57,7 @@ import {
 const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";
 const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
   "h-5 border-0 bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3 max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums";
-const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2 max-w-[calc(100%-8px)] truncate text-[8px] font-medium leading-[10px] tabular-nums text-tertiary";
+const ESTIMATE_LOWER_RIGHT_META_CLASS = "absolute top-18 right-1 max-w-[calc(100%-8px)] truncate text-right !text-[10px] font-medium leading-3 tabular-nums text-tertiary";
 const ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS =
   "h-[10px] w-7 border-0 bg-transparent p-0 !text-[8px] font-medium leading-[10px] tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
@@ -174,7 +174,7 @@ function formatSignedCompactNumber(value: number) {
 
 function formatQuantityBreakdownPercentage(value: string | number) {
   const parsed = typeof value === "number" ? value : parseEditableAdjustmentPercentage(value);
-  return `${Number(Math.abs(parsed).toFixed(6))}%`;
+  return `${Number(Math.abs(parsed).toFixed(2))}%`;
 }
 
 function formatModePercentageInput(mode: "contingency" | "discount", value: string) {
@@ -199,6 +199,10 @@ function normalizeSignedPercentageDraft(value: string) {
   if (trimmedValue.includes("-")) return unsignedValue ? `-${unsignedValue}` : "-";
   if (trimmedValue.includes("+")) return unsignedValue ? `+${unsignedValue}` : "+";
   return trimmedValue;
+}
+
+function getPercentageInputWidth(value: string) {
+  return `${Math.min(Math.max(value.trim().length || 1, 1), 7)}ch`;
 }
 
 function readSignedPercentageDraft(value: string) {
@@ -378,6 +382,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const quantityHasContingency = computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0;
   const quantityBreakdownVisible = quantityHasContingency && (quantityCellHovered || quantityBreakdownFocused);
   const quantityDisplayValue = quantityInputDraft ?? (quantityInputFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity));
+  const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, computedItem.unit);
+  const rowContingencyQuantityUnitLabel = formatQuantityUnitLabel(rowContingencyQuantity, computedItem.unit);
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
   const rowMutationPending = rowMutationStatus?.phase === "pending";
 
@@ -746,7 +752,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             </dd>
           </dl>
         ) : null}
-        <p className="absolute top-18 right-1 text-[10px] font-medium leading-3 text-tertiary">/ {computedItem.unit}</p>
+        {quantityUnitLabel ? <p className={ESTIMATE_LOWER_RIGHT_META_CLASS}>{quantityUnitLabel}</p> : null}
       </td>
       <td
         className={cn(
@@ -775,14 +781,17 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               data-estimate-cell-index={1}
               aria-label={`${computedItemLabel} contingency percentage`}
               align="center"
-              className={cn(ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS, "w-10 text-right")}
+              className={cn(ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS, "text-right")}
+              style={{ width: getPercentageInputWidth(editableContingencyColumnPercentage) }}
             />
             <span className={ESTIMATE_PRIMARY_NUMERIC_CLASS} aria-hidden="true">%</span>
           </div>
-          <p className={cn(ESTIMATE_CORNER_NUMERIC_CLASS, "right-1 text-right", rowContingencyQuantity < 0 ? "text-danger" : "text-tertiary")}>
-            {formatSignedCompactNumber(rowContingencyQuantity)} {computedItem.unit}
-          </p>
         </div>
+        {rowContingencyQuantity !== 0 ? (
+          <p className={cn(ESTIMATE_LOWER_RIGHT_META_CLASS, rowContingencyQuantity < 0 ? "text-danger" : "text-tertiary")}>
+            {rowContingencyQuantityUnitLabel ? `${formatSignedCompactNumber(rowContingencyQuantity)} ${rowContingencyQuantityUnitLabel}` : formatSignedCompactNumber(rowContingencyQuantity)}
+          </p>
+        ) : null}
       </td>
       <td className="flex items-center justify-center border-r border-hairline px-1 text-center">
         <p className={ESTIMATE_PRIMARY_NUMERIC_CLASS}>{pesoFormatter.format(computedItem.subTotal).replace("₱", "₱ ")}</p>
@@ -814,14 +823,17 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               data-estimate-cell-index={2}
               aria-label={`${computedItemLabel} adjustment percentage`}
               align="center"
-              className={cn(ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS, "w-10 text-right")}
+              className={cn(ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS, "text-right")}
+              style={{ width: getPercentageInputWidth(editableAdjustmentColumnPercentage) }}
             />
             <span className={ESTIMATE_PRIMARY_NUMERIC_CLASS} aria-hidden="true">%</span>
           </div>
-          <p className={cn(ESTIMATE_SECONDARY_NUMERIC_CLASS, rowAdjustmentValue < 0 ? "text-danger" : "text-tertiary")}>
+        </div>
+        {rowAdjustmentValue !== 0 ? (
+          <p className={cn(ESTIMATE_LOWER_RIGHT_META_CLASS, rowAdjustmentValue < 0 ? "text-danger" : "text-tertiary")}>
             {formatPeso(rowAdjustmentValue)}
           </p>
-        </div>
+        ) : null}
       </td>
       <td
         className={cn(
