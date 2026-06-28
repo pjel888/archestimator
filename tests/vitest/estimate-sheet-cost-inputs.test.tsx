@@ -415,7 +415,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("converts row contingency percentage edits into quantity adjustments", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const contingencyInput = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
     await user.clear(contingencyInput);
@@ -424,7 +424,27 @@ describe("estimate sheet cost inputs", () => {
 
     await screen.findByText("+4.8 sqm");
     expect(screen.getByText("₱ 93,360.00")).toBeInTheDocument();
-    expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveValue("48 + 4.8");
+    const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
+    expect(quantityInput).toHaveValue("52.8");
+    expect(screen.queryByLabelText("Hardwood Oak Flooring base quantity")).not.toBeInTheDocument();
+
+    const quantityCell = quantityInput.closest("td");
+    if (!quantityCell) throw new Error("Expected quantity cell to render");
+    fireEvent.mouseEnter(quantityCell);
+
+    const baseQuantityInput = screen.getByLabelText("Hardwood Oak Flooring base quantity");
+    const quantityAdjustmentInput = screen.getByLabelText("Hardwood Oak Flooring quantity adjustment");
+    expect(baseQuantityInput).toHaveValue(48);
+    expect(quantityAdjustmentInput).toHaveValue("4.8");
+    expect(screen.getByText("- 10%")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Hardwood Oak Flooring quantity adjustment breakdown")).not.toBeInTheDocument();
+
+    expect(quantityAdjustmentInput).not.toBeDisabled();
+    fireEvent.change(quantityAdjustmentInput, { target: { value: "5" } });
+    fireEvent.blur(quantityAdjustmentInput);
+
+    await waitFor(() => expect(quantityInput).toHaveValue("53"));
+    expect(screen.getByText("- 10.416667%")).toBeInTheDocument();
   });
 
   it("applies signed row adjustment percentage edits to subtotal without changing quantity", async () => {
@@ -1090,7 +1110,7 @@ describe("estimate sheet filter + group/sort (D2)", () => {
   });
 
   it("choosing Group → Cost uses live editable row totals", async () => {
-    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree(), canEditEstimate: true });
     const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
 
     const area1 = ["fg-r1", "fg-r2", "fg-r3"];

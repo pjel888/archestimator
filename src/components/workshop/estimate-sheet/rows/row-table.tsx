@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
@@ -58,7 +58,8 @@ const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
   "h-5 border-0 bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3 max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums";
 const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2 max-w-[calc(100%-8px)] truncate text-[8px] font-medium leading-[10px] tabular-nums text-tertiary";
-const ESTIMATE_LOWER_LEFT_NUMERIC_CLASS = "absolute bottom-4 left-1 max-w-[calc(100%-8px)] truncate text-left text-[8px] font-medium leading-[10px] tabular-nums text-tertiary";
+const ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS =
+  "h-[10px] w-7 border-0 bg-transparent p-0 !text-[8px] font-medium leading-[10px] tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
@@ -169,6 +170,11 @@ function formatSignedCompactNumber(value: number) {
   if (value === 0) return "0";
   const magnitude = formatCompactNumber(Math.abs(value));
   return value > 0 ? `+${magnitude}` : `-${magnitude}`;
+}
+
+function formatQuantityBreakdownPercentage(value: string | number) {
+  const parsed = typeof value === "number" ? value : parseEditableAdjustmentPercentage(value);
+  return `${Number(Math.abs(parsed).toFixed(6))}%`;
 }
 
 function formatModePercentageInput(mode: "contingency" | "discount", value: string) {
@@ -311,7 +317,6 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
 }: EstimateRowItemTableRowProps) {
   reportEstimateRowItemRender(item.id);
   const isInlineEditableComponentRow = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
-  const [quantityBreakdownOpen, setQuantityBreakdownOpen] = useState(false);
   const computedItem = useMemo(() => {
     const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
     const amountEditableRow = isInlineEditableComponentRow ? resolvedEditableRow : { ...resolvedEditableRow, unitCost: String(item.itemCost) };
@@ -366,11 +371,23 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const editableAdjustmentColumnPercentage = formatSignedPercentageInput(resolvedEditableRow.adjustmentPercentage);
   const rowContingencyQuantity = computedItem.quantityContingencyAmount ?? 0;
   const rowAdjustmentValue = computedItem.adjustmentValue;
-  const quantityCellFocused = activeCellIndex === 0;
+  const [quantityInputFocused, setQuantityInputFocused] = useState(false);
+  const [quantityInputDraft, setQuantityInputDraft] = useState<string | null>(null);
+  const [quantityCellHovered, setQuantityCellHovered] = useState(false);
+  const [quantityBreakdownFocused, setQuantityBreakdownFocused] = useState(false);
   const quantityHasContingency = computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0;
-  const quantityDisplayValue = quantityCellFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity);
+  const quantityBreakdownVisible = quantityHasContingency && (quantityCellHovered || quantityBreakdownFocused);
+  const quantityDisplayValue = quantityInputDraft ?? (quantityInputFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity));
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
   const rowMutationPending = rowMutationStatus?.phase === "pending";
+
+  function handleQuantityCellMouseLeave() {
+    setQuantityCellHovered(false);
+  }
+
+  function handleQuantityCellBlur(event: FocusEvent<HTMLTableCellElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setQuantityBreakdownFocused(false);
+  }
 
   function handleRowItemDragStart(event: DragEvent<HTMLButtonElement>) {
     if (!canEditEstimate) return;
@@ -631,10 +648,14 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       </td>
       <td
         className={cn(
-          "relative flex flex-col items-center justify-center border-r border-hairline px-1 text-center",
+          "group/qty-cell relative flex flex-col items-center justify-center border-r border-hairline px-1 text-center",
           activeCellIndex === 0 && "ring-1 ring-inset ring-accent/30",
         )}
         data-estimate-cell-active={activeCellIndex === 0 ? "true" : undefined}
+        onMouseEnter={() => setQuantityCellHovered(true)}
+        onMouseLeave={handleQuantityCellMouseLeave}
+        onFocusCapture={() => setQuantityBreakdownFocused(true)}
+        onBlurCapture={handleQuantityCellBlur}
       >
         <ControlInput
           type="text"
@@ -642,10 +663,18 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           value={quantityDisplayValue}
           disabled={!canEditEstimate}
           onChange={(event) => {
+            setQuantityInputFocused(true);
+            setQuantityInputDraft(event.target.value);
             updateQuantityDraft(event.target.value);
           }}
-          onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
+          onFocus={() => {
+            setQuantityInputFocused(true);
+            setQuantityInputDraft(computedItem.editableQuantityInput);
+            setFocusedCell({ rowId: computedItem.id, cellIndex: 0 });
+          }}
           onBlur={(event) => {
+            setQuantityInputFocused(false);
+            setQuantityInputDraft(null);
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
             const parsed = parseEditableQuantityExpression(item, event.currentTarget.value);
             if (!parsed.ok) {
@@ -671,60 +700,51 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           align="center"
           className={ESTIMATE_PRIMARY_NUMERIC_CLASS}
         />
-        {quantityHasContingency ? (
+        {quantityBreakdownVisible ? (
           <dl
-            className="absolute left-1 right-1 top-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1 gap-y-0.5 text-[8px] font-medium leading-[10px] text-tertiary"
+            className="absolute left-1 right-1 top-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1 gap-y-0.5 text-[8px] font-medium leading-[10px] text-tertiary transition-opacity"
             aria-label={`${computedItemLabel} quantity breakdown`}
           >
             <dt className="text-right">Value</dt>
-            <dd className="justify-self-end text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityBase ?? 0)}</dd>
+            <dd className="justify-self-end">
+              <ControlInput
+                type="number"
+                min="0"
+                step="0.01"
+                value={computedItem.editableQuantityBase}
+                disabled={!canEditEstimate}
+                aria-label={`${computedItemLabel} base quantity`}
+                align="right"
+                className={ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS}
+                onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
+                onChange={(event) => updateQuantityBreakdown("base", event.target.value)}
+                onBlur={(event) => {
+                  setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
+                  commitQuantityFields(buildEditableQuantityContingencyPatch(event.currentTarget.value, computedItem.editableQuantityContingencyAmount));
+                }}
+              />
+            </dd>
             <dt className="text-right">Contingency</dt>
-            <dd className="justify-self-end text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityContingencyAmount ?? 0)}</dd>
+            <dd className="flex justify-end gap-1 text-right tabular-nums">
+              <ControlInput
+                type="text"
+                inputMode="decimal"
+                step="0.01"
+                value={computedItem.editableQuantityContingencyAmount}
+                disabled={!canEditEstimate}
+                aria-label={`${computedItemLabel} quantity adjustment`}
+                align="right"
+                className={ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS}
+                onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 0 })}
+                onChange={(event) => updateQuantityBreakdown("contingency", event.target.value)}
+                onBlur={(event) => {
+                  setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
+                  commitQuantityFields(buildEditableQuantityContingencyPatch(computedItem.editableQuantityBase, event.currentTarget.value));
+                }}
+              />
+              <span className="text-tertiary">- {formatQuantityBreakdownPercentage(computedItem.contingencyPercentage)}</span>
+            </dd>
           </dl>
-        ) : null}
-        {quantityHasContingency ? (
-          <button
-            type="button"
-            disabled={!canEditEstimate}
-            className={cn(
-              ESTIMATE_LOWER_LEFT_NUMERIC_CLASS,
-              "rounded-none border-0 bg-transparent p-0 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 disabled:cursor-default disabled:opacity-70",
-              quantityBreakdownOpen && "text-ink",
-            )}
-            aria-label={`${computedItemLabel} quantity adjustment breakdown`}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => setQuantityBreakdownOpen((current) => !current)}
-          >
-            {formatSignedCompactNumber(computedItem.quantityContingencyAmount ?? 0)} ({formatSignedEditablePercentage(computedItem.contingencyPercentage)}%)
-          </button>
-        ) : null}
-        {quantityBreakdownOpen ? (
-          <div className="absolute left-1 top-8 z-20 grid w-40 grid-cols-2 gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
-            <ControlInput
-              type="number"
-              min="0"
-              step="0.01"
-              value={computedItem.editableQuantityBase}
-              disabled={!canEditEstimate}
-              aria-label={`${computedItemLabel} base quantity`}
-              align="center"
-              className="h-6 text-[10px] tabular-nums"
-              onChange={(event) => updateQuantityBreakdown("base", event.target.value)}
-              onBlur={(event) => commitQuantityFields(buildEditableQuantityContingencyPatch(event.currentTarget.value, computedItem.editableQuantityContingencyAmount))}
-            />
-            <ControlInput
-              type="text"
-              inputMode="decimal"
-              step="0.01"
-              value={computedItem.editableQuantityContingencyAmount}
-              disabled={!canEditEstimate}
-              aria-label={`${computedItemLabel} quantity adjustment`}
-              align="center"
-              className="h-6 text-[10px] tabular-nums"
-              onChange={(event) => updateQuantityBreakdown("contingency", event.target.value)}
-              onBlur={(event) => commitQuantityFields(buildEditableQuantityContingencyPatch(computedItem.editableQuantityBase, event.currentTarget.value))}
-            />
-          </div>
         ) : null}
         <p className="absolute top-18 right-1 text-[10px] font-medium leading-3 text-tertiary">/ {computedItem.unit}</p>
       </td>
