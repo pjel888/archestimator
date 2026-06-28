@@ -24,45 +24,45 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Source:** user request + `01_SOURCE_AUDIT.md`.
 - **Priority:** P1 (must).
 - **Dependencies:** none.
-- **AC-001.1:** All 9 leaf classes exist (auth ×4, validation, not_found, conflict, database, upstream, rate_limit, network, internal).
+- **AC-001.1:** All 9 `AppErrorKind` values and 12 concrete leaf classes exist (auth ×4 plus validation, not_found, conflict, database, upstream, rate_limit, network, internal).
 - **AC-001.2:** `unwrapSupabase` translates Postgres error codes (`42501`, `PGRST301`, `PGRST309`, etc.) to the correct subclass.
 - **AC-001.3:** Existing tests in `tests/vitest/library-action-errors.test.ts` and `tests/vitest/auth-error-mapping.test.ts` continue to pass.
 - **Validation:** `bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/unwrap-supabase.test.ts`.
 - **Affected:** `src/lib/observability/app-error.ts` (new).
-- **Risk:** Subclasses too fine → switch-statement fatigue; too coarse → lossy taxonomy. Plan targets 9 leaf classes.
+- **Risk:** Subclasses too fine → switch-statement fatigue; too coarse → lossy taxonomy. Plan targets 9 public kinds and 12 concrete classes.
 
 ### FR-002 — Unified Server Action return shape
-- **Statement:** All 22 server action files export actions wrapped with `withActionErrors` returning `ActionResult<T>`.
+- **Statement:** Pilot scope: `publication/actions.ts` exports actions wrapped with `withActionErrors` returning `ActionResult<T>`. Full scope after pilot: all 22 server action files.
 - **Rationale:** `01` Section B.1 — 7+ inconsistent shapes; client code cannot write a single error handler.
 - **Priority:** P2 (must).
 - **Dependencies:** FR-001.
 - **AC-002.1:** `withActionErrors(fn)` returns a function returning `{ok:true,data} | {ok:false,error:{kind,code,message}}`.
-- **AC-002.2:** All 22 server action files migrated; no `throw new Error(...)` outside the wrapper.
-- **AC-002.3:** Existing server-action tests still pass.
-- **Validation:** `bun run type-check` + `bun run test:dom`.
+- **AC-002.2:** Pilot action module migrated; no raw Supabase details returned to clients.
+- **AC-002.3:** Targeted pilot server-action tests pass with no new failures against the known baseline.
+- **Validation:** `bun run type-check` + targeted pilot tests.
 - **Affected:** all 22 files listed in `01` B.1; `src/lib/observability/with-action-errors.ts` (new).
 
 ### FR-003 — Unified Route Handler error response
-- **Statement:** All 22 route handlers use `errorResponse(err)` for error responses.
+- **Statement:** Pilot scope: one representative route handler uses `errorResponse(err)` for error responses. Full scope after pilot: all 22 route handlers.
 - **Priority:** P2 (must).
 - **AC-003.1:** Every handler returns `{ok:false, error:{kind,code,message}, trace_id}` with mapped HTTP status.
-- **AC-003.2:** `tests/vitest/route-error-smoke-gate.test.ts` extended to cover all 22 handlers.
+- **AC-003.2:** Pilot route-handler test covers the selected handler; all-22 smoke-gate coverage follows after pilot evidence.
 - **Affected:** all 22 files in `01` B.2; `src/lib/observability/route-error.ts` (new).
 
 ### FR-004 — Root global-error.tsx
-- **Statement:** `src/app/global-error.tsx` exists and renders minimal `<html><body>` shell when root layout throws.
+- **Statement:** Pilot scope: one selected root or segment error boundary exists and renders safe fallback UI using the Next.js 16 `unstable_retry` contract. Full scope may include root `global-error.tsx` after pilot proof.
 - **Rationale:** `01` Section A.2 — none exists.
 - **Priority:** P3 (must).
-- **AC-004.1:** File exists at `src/app/global-error.tsx`.
-- **AC-004.2:** Tested via Playwright `e2e/global-error.spec.ts` (forces a layout-level throw and verifies the boundary renders).
+- **AC-004.1:** Selected pilot boundary file exists.
+- **AC-004.2:** Tested via DOM/static test or Playwright only when browser behavior is the claim being proven.
 - **Affected:** new file.
 
 ### FR-005 — Root error.tsx and not-found.tsx
-- **Statement:** `src/app/error.tsx` and `src/app/not-found.tsx` exist.
+- **Statement:** Selected pilot `error.tsx`/`global-error.tsx` exists; root `not-found.tsx` is a follow-on after pilot if still needed.
 - **Priority:** P3 (must).
-- **AC-005.1:** Both files exist.
-- **AC-005.2:** `error.tsx` calls `toast.appError` on mount.
-- **AC-005.3:** `not-found.tsx` is brand-styled.
+- **AC-005.1:** Pilot boundary file exists.
+- **AC-005.2:** Pilot `error.tsx` calls `toast.appError` on mount when the selected boundary is segment-level.
+- **AC-005.3:** `not-found.tsx` remains follow-on, not pilot-blocking.
 
 ### FR-006 — Toast.appError convenience
 - **Statement:** `src/components/ui/toast.tsx` exports `toast.appError(err)`.
@@ -82,22 +82,22 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Affected:** `src/lib/auth/error-mapping.ts` (extend only).
 
 ### ARCH-001 — Observability module location
-- **Statement:** All new code lives under `src/lib/observability/`.
+- **Statement:** Foundation observability code lives under `src/lib/observability/`.
 - **Rationale:** `DEC-ERR-001`.
-- **AC-001.1:** 9 files per `05` Section A.1.
+- **AC-001.1:** 9 planned files per `05` Section A.1.
 - **AC-001.2:** `src/lib/perf/server-timing.ts` consumed (not modified).
 
 ### ARCH-002 — Off-limits files
-- **Statement:** Files in README `## Files off-limits` are unchanged.
-- **AC-002.1:** git diff for those files is empty (or additive only).
+- **Statement:** Files in README `## Protected contracts` preserve existing contracts.
+- **AC-002.1:** git diff for protected contracts is additive only where the plan explicitly allows it.
 
 ### LOG-001 — Structured dev NDJSON logger
 - **Statement:** `src/lib/observability/logger.ts` writes NDJSON records to `./logs/dev.ndjson` in development.
-- **Priority:** P1 (must).
+- **Priority:** P4 (pilot must).
 - **AC-001.1:** Records conform to schema in `04` Section B.1.
 - **AC-001.2:** Append-mode writes; truncate-on-dev-start; 50MB rotation cap.
 - **AC-001.3:** PERF_TRACE AsyncLocalStorage consumed for `request_id` + `scope`.
-- **Validation:** `tests/vitest/logger.test.ts`.
+- **Validation:** `tests/vitest/logger.test.ts` in P4.
 
 ### LOG-002 — Redaction layer
 - **Statement:** `src/lib/observability/redact.ts` redacts all keys in `NEVER_LOG_KEYS`, hashes `HASHED_ONLY`, masks `MASKED`.
@@ -117,13 +117,13 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### OBS-001 — instrumentation.ts with onRequestError
 - **Statement:** `instrumentation.ts` at project root exports `register()` and `onRequestError()`.
-- **Priority:** P5 (must for prod observability).
+- **Priority:** P5 (owner/provider-gated for prod observability).
 - **AC-001.1:** `onRequestError` captures via Sentry.
 - **AC-001.2:** Tested via `tests/vitest/instrumentation.test.ts`.
 
 ### OBS-002 — Sentry integration
-- **Statement:** `@sentry/nextjs` installed; `sentry.{server,client}.config.ts` exist; `SENTRY_DSN` env wired.
-- **Priority:** P5.
+- **Statement:** `@sentry/nextjs` installed; `sentry.{server,client}.config.ts` exist; `SENTRY_DSN` env documented. Real DSN, GitHub secret, Vercel env, source-map upload, and dashboard proof are owner/provider-gated.
+- **Priority:** P5 conditional.
 - **AC-002.1:** Source maps uploaded in CI.
 - **AC-002.2:** `beforeSend` hook redacts PII per `06`.
 
@@ -139,12 +139,13 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** Source maps never published to public CDN.
 - **AC-002.1:** Playwright probe in P6 verifies `/.next/static/chunks/*.map` returns 404 on production deploy.
 
-### SEC-003 — Client error endpoint rate-limited
-- **Statement:** `/api/internal/client-error` rate-limited to 10 requests/min/IP.
+### SEC-003 — Client error endpoint hardened
+- **Statement:** `/api/internal/client-error` is same-origin checked, strictly parsed, size-capped, redacted, tainted-field labeled, and rate-limited to 10 requests/min/IP for local/preview. Production enablement requires provider-backed rate limiting.
 - **AC-003.1:** Test verifies 11th request in a minute returns 429.
+- **AC-003.2:** Tests verify malformed, cross-site, oversized, email/token/URL, control-character, and prompt-injection payloads do not produce trusted/raw log fields.
 
 ### SEC-004 — PII masking in Sentry
-- **Statement:** `maskAllText: true` in prod; `data-private` attribute respected; `beforeSend` strips auth headers.
+- **Statement:** `maskAllText: true` in prod; replay sampling remains `0`; `data-private` attribute respected; `beforeSend` strips auth headers.
 
 ### UX-001 — Consistent toast tones per error kind
 - **Statement:** `03` Section C table implemented in `toast-config.ts`.
@@ -171,8 +172,8 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** `09_TEST_QA_ULTRAQA_PLAN.md` matrix executed; zero P0/P1 findings unresolved at P6.
 
 ### PERF-001 — Logger overhead budget
-- **Statement:** `logger.error` adds <1ms p95 per call.
-- **AC-001.1:** `tests/vitest/logger-perf.test.ts` measures 1000 calls; p95 < 1ms.
+- **Statement:** `logger.error` adds <1ms p95 per call once the P4 file writer is enabled.
+- **AC-001.1:** `tests/vitest/logger-perf.test.ts` measures 1000 calls in P4; p95 < 1ms.
 
 ### PERF-002 — Bundle size budget
 - **Statement:** Client bundle delta <60KB gzipped after P5.
@@ -202,7 +203,7 @@ For the canonical flows this plan affects:
 
 | Item | Defer trigger |
 |---|---|
-| Zod schema library adoption | P1 implementer's choice; not strictly required for the error layer |
+| Zod schema library adoption | Separate owner decision; this plan uses a strict local parser by default |
 | PostHog product analytics | Separate work; not blocking |
 | Vercel Analytics / Speed Insights | Separate work |
 | Vercel Log Drain config | After first paying user |
