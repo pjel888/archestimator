@@ -130,6 +130,8 @@ export default function GlobalError({
 
 **Note:** `global-error.tsx` must render `<html>` and `<body>` itself because the root layout is bypassed.
 
+**Dev-only test trigger (for ADV-05 in `09`):** add a small gated hook in `src/app/layout.tsx` (or a tiny client component mounted by the root layout) that throws on `?forceGlobalError=1` query param when `process.env.NODE_ENV === 'development'`. This makes the Playwright spec `page.goto('/?forceGlobalError=1')` reliably trigger the global boundary in CI without requiring a real production crash. The hook MUST be dev-only — production builds must exclude it via `process.env.NODE_ENV` check so attackers cannot crash pages by sending the query param.
+
 ### A.6 `src/app/error.tsx` (pilot UI surface in P3a)
 
 Per Section D.3, the P3a pilot boundary opts in to server-side diagnosis by POSTing to `/api/internal/client-error` (the same endpoint used by `global-error.tsx`). Boundaries that do not opt in simply render fallback UI without server-side reporting.
@@ -180,7 +182,7 @@ export default function Error({
 
 ### A.8 `src/app/api/internal/client-error/route.ts` (new in P3a)
 
-Receives POSTs from `global-error.tsx` and client-side unhandledrejection handler. Writes only redacted, tainted client-report fields to logger: `{ client_message_redacted, digest, path_normalized, user_agent_hashed }`. Client-supplied text is untrusted and never rendered or pasted into AI prompts as instructions.
+Receives POSTs from `global-error.tsx` and the pilot `error.tsx` boundary only. (Client-side `unhandledrejection` reporting is NOT in the approved P3a pilot scope per README protected-contracts — `providers.tsx` mount behavior is preserved and additive unhandled-rejection reporting is allowed only after pilot proof. ADV-09 in `09` is correspondingly deferred to follow-on.) Writes only redacted, tainted client-report fields to logger: `{ client_message_redacted, digest, path_normalized, user_agent_hashed }`. Client-supplied text is untrusted and never rendered or pasted into AI prompts as instructions.
 
 ### A.9 `scripts/tail-dev-logs.mjs` (new in P4)
 

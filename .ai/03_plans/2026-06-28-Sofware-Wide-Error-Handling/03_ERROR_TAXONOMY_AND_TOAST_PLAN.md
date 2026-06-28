@@ -30,7 +30,7 @@ AppError (abstract root)
 ├── kind: 'conflict'
 │   └── ConflictError                (409, code: 'CONFLICT')
 ├── kind: 'database'
-│   └── DatabaseError                (500, code: 'DATABASE_*' or 'RLS_*')
+│   └── DatabaseError                (500, code: 'DATABASE_*') — non-RLS Postgres failures only; RLS/42501 denials go to AuthPermissionDeniedError per B.4 unwrapSupabase
 ├── kind: 'upstream'
 │   └── UpstreamError                (502/503/504, code: 'UPSTREAM_*')
 ├── kind: 'rate_limit'
@@ -304,14 +304,14 @@ All toasts are dismissible.
 
 ### C.1 Toast convenience method
 
-The toast lookup keys by `code` (which is unique per concrete subclass) — NOT by `kind`. This is required because the four auth subclasses share `kind: 'auth'` but need different tones (info vs warning) and copy. `TOAST_CONFIG` below is therefore indexed by `code`.
+The toast lookup keys by `code` (which is unique per concrete subclass) — NOT by `kind`. This is required because the four auth subclasses share `kind: 'auth'` but need different tones (info vs warning) and copy. The lookup tables live in the canonical `src/lib/observability/toast-config.ts` module (per `05` Section A.1, `07` FR-006, `08` P1-WP8). `src/components/ui/toast.tsx` imports from there.
 
 ```ts
-// src/components/ui/toast.tsx (EXTEND, not replace)
-import { AppError } from '@/lib/observability/app-error';
+// src/lib/observability/toast-config.ts (new in P1, per 08 P1-WP8)
+import type { AppError, AppErrorKind } from './app-error';
 
 // Keyed by AppError `code` (unique per concrete subclass). See Section C table.
-const TOAST_CONFIG: Record<string, { tone: 'info'|'warning'|'error'; durationMs: number }> = {
+export const TOAST_CONFIG: Record<string, { tone: 'info'|'warning'|'error'; durationMs: number }> = {
   AUTH_REQUIRED:           { tone: 'info',    durationMs: 5000 },
   AUTH_SESSION_EXPIRED:    { tone: 'info',    durationMs: 7000 },
   AUTH_PERMISSION_DENIED:  { tone: 'warning', durationMs: 6000 },
@@ -327,7 +327,7 @@ const TOAST_CONFIG: Record<string, { tone: 'info'|'warning'|'error'; durationMs:
 };
 
 // Kind-level fallback for validation/database/upstream wildcard codes
-const TOAST_FALLBACK_BY_KIND: Record<AppError['kind'], { tone: 'info'|'warning'|'error'; durationMs: number }> = {
+export const TOAST_FALLBACK_BY_KIND: Record<AppErrorKind, { tone: 'info'|'warning'|'error'; durationMs: number }> = {
   auth:         { tone: 'info',    durationMs: 5000 },
   validation:   { tone: 'warning', durationMs: 7000 },
   not_found:    { tone: 'info',    durationMs: 5000 },
@@ -338,6 +338,12 @@ const TOAST_FALLBACK_BY_KIND: Record<AppError['kind'], { tone: 'info'|'warning'|
   network:      { tone: 'warning', durationMs: 6000 },
   internal:     { tone: 'error',   durationMs: 8000 },
 };
+```
+
+```ts
+// src/components/ui/toast.tsx (EXTEND, not replace)
+import { AppError } from '@/lib/observability/app-error';
+import { TOAST_CONFIG, TOAST_FALLBACK_BY_KIND } from '@/lib/observability/toast-config';
 
 toast.appError = (err: unknown) => {
   // Accepts three input shapes:

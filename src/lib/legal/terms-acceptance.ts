@@ -6,18 +6,14 @@ import {
   type LegalTermsAcceptanceContext,
   type LegalTermsAcceptanceMethod,
 } from "@/lib/legal/terms-acceptance-record";
+import {
+  readCurrentUserTermsAcceptanceStatusFromClient,
+  toLegalTermsAcceptanceClient,
+  type LegalTermsAcceptanceStatus,
+} from "@/lib/legal/terms-acceptance-status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Tables } from "@/lib/supabase/types";
-
-type LegalTermsAcceptanceStatus = {
-  requiredTerms: typeof CURRENT_TERMS;
-  acceptedCurrentVersion: boolean;
-  requiresAcceptance: boolean;
-  acceptedAt: string | null;
-  latestAcceptedVersion: string | null;
-  bypassReason?: "missing_local_supabase_env";
-};
 
 type RecordCurrentTermsAcceptanceInput = {
   userId: string;
@@ -61,27 +57,7 @@ export async function getCurrentUserTermsAcceptanceStatus(userId: string): Promi
   if (localBypass) return localBypass;
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("legal_terms_acceptances")
-    .select("accepted_at, terms_version")
-    .eq("user_id", userId)
-    .eq("terms_key", CURRENT_TERMS.key)
-    .eq("terms_version", CURRENT_TERMS.version)
-    .order("accepted_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Unable to verify Terms acceptance status: ${error.message}`);
-  }
-
-  return {
-    requiredTerms: CURRENT_TERMS,
-    acceptedCurrentVersion: Boolean(data),
-    requiresAcceptance: !data,
-    acceptedAt: data?.accepted_at ?? null,
-    latestAcceptedVersion: data?.terms_version ?? null,
-  };
+  return readCurrentUserTermsAcceptanceStatusFromClient(toLegalTermsAcceptanceClient(supabase), userId);
 }
 
 async function readCurrentAcceptanceWithServiceRole(userId: string): Promise<Tables<"legal_terms_acceptances"> | null> {

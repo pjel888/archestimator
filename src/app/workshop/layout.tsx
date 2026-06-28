@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AUTH_REQUEST_PATH_HEADER } from "@/lib/auth/redirects";
+import { isProtectedRouteGateSatisfied } from "@/lib/auth/protected-route-gate";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import {
@@ -17,8 +18,13 @@ import "react-complex-tree/lib/style-modern.css";
 export default async function WorkshopLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();
   const requestPath = headerList.get(AUTH_REQUEST_PATH_HEADER) ?? TERMS_GATE_FALLBACK_NEXT;
+  const termsGateBypassed = shouldBypassTermsAcceptanceGate(requestPath);
 
-  if (shouldBypassTermsAcceptanceGate(requestPath)) {
+  if (isProtectedRouteGateSatisfied(headerList, { termsRequired: !termsGateBypassed })) {
+    return children;
+  }
+
+  if (termsGateBypassed) {
     return children;
   }
 
