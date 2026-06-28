@@ -99,10 +99,13 @@ function maskValue(key: string, value: string): string {
 
 ```ts
 beforeSend(event) {
-  // Scrub request bodies, headers, extra fields
+  // Scrub request bodies, headers, extra fields, and breadcrumbs.
+  // `scrubRequest`, `scrubExtra`, and `scrubBreadcrumb` are local redaction
+  // helpers defined in `src/lib/observability/redact.ts` (per `03` B.4 import
+  // and `08` P1-WP7). Each returns a sanitized copy of its input.
   event.request = scrubRequest(event.request);
   event.extra = scrubExtra(event.extra);
-  event.breadcrumbs = event.breadcrumbs?.map(scrumbBreadcrumb);
+  event.breadcrumbs = event.breadcrumbs?.map(scrubBreadcrumb);
   return event;
 }
 ```
