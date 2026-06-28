@@ -195,7 +195,7 @@ For the canonical flows this plan affects:
 | Route `POST /api/share/[token]/comment` | 200 `{ok}` | `ValidationError` 400 | n/a | `ValidationError` 400 | 401/403 | 502 | 409 | n/a | errorResponse JSON | `tests/vitest/share-comment.test.ts` |
 | Auth callback | redirect to workshop | redirect to `/login?code=callback_missing_code` | n/a | redirect with code | redirect | redirect with `service_unavailable` | n/a | n/a | Browser redirect | `tests/vitest/auth-error-mapping.test.ts` |
 | Toast.appError(err) | tone+copy rendered | n/a | n/a | n/a | n/a | n/a | n/a | n/a | Visible toast | `tests/vitest/toast-apperror.test.tsx` |
-| `global-error.tsx` | HTML renders, POST logs | n/a | n/a | n/a | n/a | POST swallowed | n/a | n/a | Page | Playwright `e2e/global-error.spec.ts` |
+| `global-error.tsx` | HTML renders, POST logs | n/a | n/a | n/a | n/a | POST swallowed | n/a | n/a | Page | `tests/vitest/global-error.test.tsx` (DOM/static primary) + `e2e/global-error.spec.ts` (Playwright, conditional per AC-004.2) |
 | `instrumentation.onRequestError` | Sentry capture | n/a | n/a | n/a | n/a | Sentry unavailable → swallow | n/a | n/a | Sentry dashboard | `tests/vitest/instrumentation.test.ts` |
 
 ## Out-of-scope (deferred)

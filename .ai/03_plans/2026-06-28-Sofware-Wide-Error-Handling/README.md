@@ -8,7 +8,7 @@
 
 ## Master result
 
-Define the first coherent software-wide error-handling layer for Archestimator, then roll it out pilot-first. The target architecture is that runtime failures on client, server action, route handler, middleware, edge runtime, or auth callback flow through one typed taxonomy, surface to the user via the existing Toast primitive with consistent tone+copy, and emit structured NDJSON diagnostics that a human or AI coding agent can tail in dev mode and root-cause without further instrumentation.
+Define the first coherent software-wide error-handling layer for Archestimator, then roll it out pilot-first. The target architecture is that runtime failures on client, server action, route handler, middleware (covered via server-scope `onRequestError` per `12` audit finding 9 — middleware runs in the Next.js server runtime; no separate edge config needed), or auth callback flow through one typed taxonomy, surface to the user via the existing Toast primitive with consistent tone+copy, and emit structured NDJSON diagnostics that a human or AI coding agent can tail in dev mode and root-cause without further instrumentation.
 
 Approved implementation scope from this repaired planning pack:
 - P1 foundation modules, without changing current behavior.
