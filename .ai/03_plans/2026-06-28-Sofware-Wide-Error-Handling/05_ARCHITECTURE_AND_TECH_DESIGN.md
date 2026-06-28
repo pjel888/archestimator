@@ -8,7 +8,7 @@ Where each module lives, what it exports, how it composes with existing code.
 
 ```
 src/lib/observability/
-├── app-error.ts                  # AppError root + 9 subclasses
+├── app-error.ts                  # AppError root + 9 public kinds / 12 concrete subclasses
 ├── action-result.ts              # ActionResult<T> discriminated union
 ├── unwrap-supabase.ts            # Supabase {data,error} → AppError translator
 ├── with-action-errors.ts         # Server Action wrapper
@@ -25,19 +25,18 @@ Total new code in P1: ~600 lines.
 
 ```ts
 // instrumentation.ts
+import { type Instrumentation } from 'next';
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('./sentry.server.config');
   }
 }
 
-export async function onRequestError(
-  request: { headers: Headers; method: string; path: string },
-  error: unknown,
-) {
+export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   const { captureRequestError } = await import('./sentry.server.config');
-  captureRequestError(request, error);
-}
+  await captureRequestError(err, request, context);
+};
 ```
 
 ### A.3 `sentry.server.config.ts` (new in P5)
@@ -52,8 +51,8 @@ export async function register() {
     environment: process.env.NODE_ENV,
     release: process.env.npm_package_version,
     tracesSampleRate: 0.1,
-    replaysSessionSampleRate: 0.05,
-    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
     maskAllText: process.env.NODE_ENV === 'production',
     beforeSend(event) {
       return redactSentryEvent(event);
@@ -61,9 +60,14 @@ export async function register() {
   });
 }
 
-export async function captureRequestError(request, error) {
+export async function captureRequestError(error, request, context) {
   Sentry.captureException(error, {
-    extra: { method: request.method, path: request.path },
+    extra: {
+      method: request.method,
+      path: request.path,
+      routePath: context.routePath,
+      routerKind: context.routerKind,
+    },
   });
 }
 ```
@@ -78,7 +82,13 @@ Mirrors server config; loaded by the Next.js Sentry wizard. Same redaction rules
 "use client";
 import { useEffect } from 'react';
 
-export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string };
+  unstable_retry: () => void;
+}) {
   useEffect(() => {
     // Client-side error → also forward to server log via /api/internal/client-error
     fetch('/api/internal/client-error', {
@@ -93,8 +103,9 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
       <body>
         <main role="alert">
           <h1>Something went wrong</h1>
-          <p>{error.message || 'An unexpected error occurred.'}</p>
-          <button onClick={() => reset()}>Try again</button>
+          <p>We could not load this page. Try again or return home.</p>
+          {error.digest ? <p>Reference: {error.digest}</p> : null}
+          <button onClick={() => unstable_retry()}>Try again</button>
           <a href="/">Go home</a>
         </main>
       </body>
@@ -105,22 +116,29 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 
 **Note:** `global-error.tsx` must render `<html>` and `<body>` itself because the root layout is bypassed.
 
-### A.6 `src/app/error.tsx` (new in P3)
+### A.6 `src/app/error.tsx` (pilot UI surface in P3)
 
 ```tsx
 "use client";
 import { toast } from '@/components/ui/toast';
 import { useEffect } from 'react';
 
-export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function Error({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string };
+  unstable_retry: () => void;
+}) {
   useEffect(() => {
-    toast({ message: 'Something went wrong. We\'re looking into it.', tone: 'error', durationMs: 8000 });
+    toast.appError(error);
   }, [error]);
   return (
     <div role="alert" className="...">
       <h2>Something went wrong</h2>
-      <p>{error.message || 'An unexpected error occurred.'}</p>
-      <button onClick={reset}>Try again</button>
+      <p>We could not load this section. Try again or return home.</p>
+      {error.digest ? <p>Reference: {error.digest}</p> : null}
+      <button onClick={unstable_retry}>Try again</button>
     </div>
   );
 }
@@ -132,7 +150,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
 
 ### A.8 `src/app/api/internal/client-error/route.ts` (new in P3)
 
-Receives POSTs from `global-error.tsx` and client-side unhandledrejection handler. Writes to logger. **NO PII** — only `{ message, digest, path, user_agent_hashed }`.
+Receives POSTs from `global-error.tsx` and client-side unhandledrejection handler. Writes only redacted, tainted client-report fields to logger: `{ client_message_redacted, digest, path_normalized, user_agent_hashed }`. Client-supplied text is untrusted and never rendered or pasted into AI prompts as instructions.
 
 ### A.9 `scripts/tail-dev-logs.mjs` (new in P4)
 
@@ -281,7 +299,7 @@ Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a
 
 ### D.5 Production error reaches Sentry
 
-`instrumentation.ts`'s `onRequestError(request, error)` fires whenever Next.js server captures an error. Sentry captures with breadcrumbs (route, fetch, click trail).
+`instrumentation.ts`'s `onRequestError(err, request, context)` fires whenever Next.js server captures an error. Sentry captures the exception with sanitized request/context breadcrumbs only.
 
 ## E. Validation contracts (drives `08_IMPLEMENTATION_PLAN.md`)
 
@@ -290,7 +308,7 @@ Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a
 | `AppError` subclasses are exhaustive | `tests/vitest/app-error.test.ts` (new P1) |
 | `unwrapSupabase` maps every Postgres code we care about | `tests/vitest/unwrap-supabase.test.ts` (new P1) |
 | `withActionErrors` returns `ActionResult<T>` shape | `tests/vitest/with-action-errors.test.ts` (new P1) |
-| Dev logger writes valid NDJSON to `./logs/dev.nd.json` | `tests/vitest/logger.test.ts` (new P1) |
+| Dev logger writes valid NDJSON to `./logs/dev.ndjson` | `tests/vitest/logger.test.ts` (new P4) |
 | `toast.appError` picks correct tone per kind | `tests/vitest/toast-apperror.test.tsx` (new P3) |
 | `global-error.tsx` renders without root layout | Playwright `e2e/global-error.spec.ts` (new P3) |
 | `instrumentation.ts` register + onRequestError wires Sentry | `tests/vitest/instrumentation.test.ts` (new P5) |
