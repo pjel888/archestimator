@@ -24,7 +24,7 @@ P2a and P3a pilot work may run in parallel after P1 lands (no shared-file confli
 
 **Goal:** Establish `src/lib/observability/` with no behavior change to the rest of the codebase. Pure addition.
 
-**Requirements covered:** FR-001, ARCH-001, LOG-002, SEC-001, TEST-001, DOC-001.
+**Requirements covered:** FR-001, ARCH-001, LOG-002, SEC-001, TEST-001. (DOC-001 current-state update is P6a closeout per `07` DOC-001 and `12` DOC-001 row — NOT a P1 deliverable.)
 
 **Prerequisites:** `bun run type-check` and `bun run lint` baseline characterized. Do not require full `bun run test` / `bun run test:dom` green because `.ai/10_state/current-state.md` records known pre-existing `test:dom` failures.
 
@@ -119,7 +119,7 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 
 **Goal:** Prove the client error-surface pattern on `global-error.tsx` (the singular P3a pilot boundary) before broad rollout.
 
-**Requirements covered:** FR-004, FR-006, UX-001, A11Y-001, A11Y-002. (FR-005 not-found.tsx is follow-on, NOT in P3a scope per `07` FR-005.)
+**Requirements covered:** FR-004, FR-006, UX-001, A11Y-001, A11Y-002, SEC-003. (FR-005 not-found.tsx is follow-on, NOT in P3a scope per `07` FR-005. SEC-003 client-error hardening is delivered by P3a-WP2.)
 
 **Prerequisites:** P1 complete. (Does NOT depend on P2.)
 
@@ -127,7 +127,7 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 
 | WP | Task | File(s) | Complexity |
 |---|---|---|---|
-| P3a-WP1 | Create `src/app/global-error.tsx` (the singular P3a pilot boundary) using `unstable_retry`, safe copy, focus management per A11Y-002, and POST to `/api/internal/client-error` per `05` Section A.5 + D.3 | new | S |
+| P3a-WP1 | Create `src/app/global-error.tsx` (the singular P3a pilot boundary) using `unstable_retry`, safe copy, focus management per A11Y-002, and POST to `/api/internal/client-error` per `05` Section A.5 + D.4 | new | S |
 | P3a-WP2 | Create `src/app/api/internal/client-error/route.ts` with same-origin checks, strict local parser, redaction, tainted-field labeling, and local/preview rate limit | new | M |
 | P3a-WP3 | Extend `src/components/ui/toast.tsx` to add `toast.appError(err)` (preserves existing API) | extend | S |
 | P3a-WP4 | Tests: `tests/vitest/{global-error,toast-apperror,toast-a11y,client-error}.test.ts(x)`. The `global-error.test.tsx` is the PRIMARY FR-004 deliverable (DOM/static); `e2e/global-error.spec.ts` is conditional per AC-004.2. | new | M |
@@ -156,7 +156,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 
 **Goal:** AI coding agents can `tail -f ./logs/dev.ndjson` and diagnose failures.
 
-**Requirements covered:** LOG-003, LOG-004, ARCH-002 (server-timing consumed).
+**Requirements covered:** LOG-001, LOG-003, LOG-004, ARCH-002 (server-timing consumed). (LOG-001 NDJSON logger is implemented here by P4-WP2/3/7; LOG-002 redact is already P1-WP7.)
 
 **Prerequisites:** P1 complete.
 

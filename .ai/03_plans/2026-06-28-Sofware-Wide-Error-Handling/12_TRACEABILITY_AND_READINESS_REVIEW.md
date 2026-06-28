@@ -9,7 +9,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | FR-001 | `01` Section E gaps 1, 2, 9, 10 | P1-WP1, P1-WP3 | `tests/vitest/app-error.test.ts`, `unwrap-supabase.test.ts` | specified |
 | FR-002 | `01` Section B.1 | P2a-WP1 | `with-action-errors.test.ts` + pilot action regression | pilot specified; full migration conditional |
 | FR-003 | `01` Section B.2 | P2a-WP2, 3 | `route-error.test.ts` + selected handler test | pilot specified; full migration conditional |
-| FR-004 | `01` Section A.2 | P3a-WP1, 5 | DOM/static or `e2e/global-error.spec.ts` when browser claim is needed | pilot specified |
+| FR-004 | `01` Section A.2 | P3a-WP1, WP4 (primary DOM/static test), WP5 (optional browser) | `tests/vitest/global-error.test.tsx` (primary) + `e2e/global-error.spec.ts` (conditional) | pilot specified |
 | FR-005 | `01` Section A.2 | Follow-on (post-P3a) | DOM/static or Playwright (when implemented) | follow-on — `not-found.tsx` and segment `error.tsx` are NOT in P3a pilot scope |
 | FR-006 | `03` Section C | P3a-WP3 | `toast-apperror.test.tsx` | specified |
 | FR-007 | `01` Section B.7 | P2b follow-on after pilot | existing `auth-error-mapping.test.ts` | conditional |
