@@ -177,7 +177,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 ```bash
 bun run test -- tests/unit/tail-dev-logs.test.ts
 bun run test:dom -- tests/vitest/logger.test.ts tests/vitest/logger-perf.test.ts
-bun run dev &  # background; generate a test error via curl /api/health/<bad>; kill dev
+bun run dev &  # background; generate a test error via GET /?forceGlobalError=1 (dev-only trigger per `05` Section A.5 note); kill dev
 bun run logs:tail --last 5
 ```
 
@@ -216,7 +216,8 @@ bun run logs:tail --last 5
 SENTRY_DSN=... bun run build  # only after P5-WP1 owner/provider gate
 bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-redact.test.ts
 # Manual preview/provider proof only after explicit owner authority:
-# deploy to Vercel preview; trigger a /api/health/throw; verify Sentry receives event
+# deploy to Vercel preview; trigger the global-error boundary via the dev-only
+# ?forceGlobalError=1 query param (per `05` Section A.5 note); verify Sentry receives event
 ```
 
 **Exit criteria:**

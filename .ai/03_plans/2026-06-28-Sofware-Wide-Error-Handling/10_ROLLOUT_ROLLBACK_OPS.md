@@ -99,7 +99,7 @@ Per `03` Section B.4 `unwrapSupabase`, Supabase RLS / 42501 denials are classifi
 3. Open Postgres logs in Supabase dashboard → match the timestamp window.
 4. For each event, use `context.user_id_hashed` to look up the user (hash their UUID offline and compare).
 5. Check the failing query only in Supabase/provider logs with restricted access. Sentry may contain `error.kind`, `error.code`, sanitized route/action, request/trace IDs, release, and parameter-free fingerprints only.
-6. If `AUTH_PERMISSION_DENIED`: fix the RLS policy in a new migration. If `DATABASE_*`: fix the action/repository code or migration as appropriate.
+6. If `AUTH_PERMISSION_DENIED`: fix the RLS policy in a new migration. **Owner-gated per README protected-contracts** — migrations/RLS are untouched by this plan; an incident-driven RLS fix is an operational follow-up requiring fresh owner approval and is NOT authorized by the plan pack itself. If `DATABASE_*`: fix the action/repository code or migration as appropriate (same owner gate).
 
 ### E.2 "Users report toast 'Something went wrong' but no Sentry event"
 

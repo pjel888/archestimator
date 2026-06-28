@@ -32,7 +32,7 @@ Executed in parallel via bash/grep + websearch + context7. Captured grounded inv
 - Selected **standard** profile per `Creating-Plan-Prompt.md` line 1086-1088.
 - Defined 16-file pack.
 - Defined stable ID prefixes.
-- Defined 6 implementation phases (P1, P2a, P3a, P4, P5, P6a).
+- Defined 7 implementation phases (P1, P2a, P2b, P3a, P4, P5, P6a). P2b (broad server migration) is blocked pending P2a pilot evidence per `08` P2b and `DEC-ERR-012`.
 - Initialized OMX `autoresearch-goal` mission at `.omx/goals/autoresearch/software-wide-error-handling/`.
 
 ### Iteration 4 — EXECUTE (2026-06-28 19:30 → original pack complete)
