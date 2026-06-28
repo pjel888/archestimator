@@ -345,7 +345,7 @@ Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a
 | `unwrapSupabase` maps every Postgres code we care about | `tests/vitest/unwrap-supabase.test.ts` (new P1) |
 | `withActionErrors` returns `ActionResult<T>` shape | `tests/vitest/with-action-errors.test.ts` (new P1) |
 | Dev logger writes valid NDJSON to `./logs/dev.ndjson` | `tests/vitest/logger.test.ts` (new P4) |
-| `toast.appError` picks correct tone per kind | `tests/vitest/toast-apperror.test.tsx` (new P3a) |
+| `toast.appError` picks correct tone per `code` (with `kind` fallback) per `03` Section C.1 | `tests/vitest/toast-apperror.test.tsx` (new P3a) |
 | Selected pilot boundary renders safely | DOM/static test or Playwright `e2e/global-error.spec.ts` when browser proof is required (new P3a) |
 | `instrumentation.ts` register + onRequestError wires Sentry | `tests/vitest/instrumentation.test.ts` (new P5) |
 | `scripts/tail-dev-logs.mjs` parses every record shape | `tests/unit/tail-dev-logs.test.ts` (new P4) |
