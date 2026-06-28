@@ -262,13 +262,6 @@ function getLibraryFolderButton(name: string) {
   return folderButton;
 }
 
-function getLibraryFolderButtonWithin(scope: HTMLElement, name: string) {
-  const matches = within(scope).getAllByRole("treeitem", { name });
-  const folderButton = matches.find((element) => (element.getAttribute("data-tree-row") ?? "").startsWith("folder:"));
-  if (!folderButton) throw new Error(`Library folder button not found: ${name}`);
-  return folderButton;
-}
-
 function getLibraryFolderArrowWithin(scope: HTMLElement, folderId: string) {
   const row = scope.querySelector(`[data-tree-row="folder:${folderId}"]`);
   if (!row) throw new Error(`Library folder row not found: ${folderId}`);
@@ -286,11 +279,6 @@ function getComponentNameInspectButton(itemId: string) {
 function openComponentViewMenu() {
   fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
   return screen.getByRole("menu", { name: "Component view mode" });
-}
-
-function openAddComponentViewMenu(dialog: HTMLElement) {
-  fireEvent.click(within(dialog).getByRole("button", { name: /View by:/ }));
-  return within(dialog).getByRole("menu", { name: "Add component view mode" });
 }
 
 describe("component library manager bundle boundaries", () => {
@@ -421,9 +409,8 @@ describe("component library manager UI", () => {
     expect(getSheetContextStrip(sheet)).toHaveTextContent("All Components · 3 components");
 
     const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
-    const nesting = within(addDialog).getByLabelText("Component nesting");
-    expect(within(nesting).queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
-    expect(within(nesting).queryByRole("treeitem", { name: "Fabrication" })).not.toBeInTheDocument();
+    expect(within(addDialog).queryByLabelText("Component nesting")).not.toBeInTheDocument();
+    expect(within(addDialog).getByRole("combobox", { name: "Category" })).toBeInTheDocument();
   });
 
   it("uses an in-app discard confirmation for dirty Add Component drafts", async () => {
@@ -527,7 +514,8 @@ describe("component library manager UI", () => {
     expect(detailsBranch.firstElementChild).toHaveClass("min-h-[72px]");
     expect(emptyBranch.firstElementChild).toHaveClass("min-h-[72px]");
     expect(fabricationBranch.firstElementChild).toHaveClass("bg-white/80");
-    expect(fabricationBranch.firstElementChild).toHaveClass("border-white/60");
+    expect(fabricationBranch.firstElementChild).toHaveClass("estimate-glass-chrome");
+    expect(fabricationBranch.firstElementChild).toHaveClass("border-[color:var(--glass-border)]");
     expect(fabricationBranch.firstElementChild).not.toHaveClass("border-l-2");
     expect(fabricationBranch.firstElementChild).not.toHaveClass("border-l-divider/70");
     expect(detailsBranch.firstElementChild).not.toHaveClass("border-l-2");
@@ -548,7 +536,7 @@ describe("component library manager UI", () => {
     expect(within(fabricationBranch).getByText("Database Brand")).toBeInTheDocument();
     const emptyFolderRow = tree.querySelector('[data-tree-row="folder:folder-empty-child"]');
     expect(emptyFolderRow).not.toBeNull();
-    expect(within(emptyFolderRow as HTMLElement).queryByRole("button", { name: /Collapse|Expand/ })).toBeNull();
+    expect(within(emptyFolderRow as HTMLElement).getByRole("button", { name: /Collapse|Expand/ })).toBeInTheDocument();
     const detailsCard = detailsBranch.querySelector('[data-component-catalogue-card-id="db-library-custom-cabinet-pull"]');
     const emptyRow = emptyBranch.querySelector('[data-component-catalogue-empty-row="true"]');
     expect(detailsCard).not.toBeNull();
@@ -703,206 +691,78 @@ describe("component library manager UI", () => {
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
   });
 
-  it("uses the same working folder expanders inside the Add Component modal", async () => {
+  it("renders the Add Component modal with the OpenDesign field contract instead of the retired nesting tree", async () => {
     await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const modalFabricationArrow = getLibraryFolderArrowWithin(dialog, "folder-fabrication");
-    expect(getLibraryFolderButtonWithin(dialog, "Fabrication")).toHaveAttribute("aria-expanded", "true");
-    expect(within(dialog).getByRole("treeitem", { name: "Details" })).toBeInTheDocument();
-
-    fireEvent.click(modalFabricationArrow);
-
-    expect(getLibraryFolderButtonWithin(dialog, "Fabrication")).toHaveAttribute("aria-expanded", "false");
-    expect(within(dialog).queryByRole("treeitem", { name: "Details" })).not.toBeInTheDocument();
-
-    fireEvent.click(getLibraryFolderArrowWithin(dialog, "folder-fabrication"));
-
-    expect(getLibraryFolderButtonWithin(dialog, "Fabrication")).toHaveAttribute("aria-expanded", "true");
-    expect(within(dialog).getByRole("treeitem", { name: "Details" })).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Component nesting")).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("treeitem", { name: "Fabrication" })).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Name")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Description")).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Category" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Brand" })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Unit cost")).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Unit" })).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Pricing source")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Pricing date")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Confidence")).not.toBeInTheDocument();
   });
 
-  it("runs rename and delete folder actions inside the Add Component modal tree", async () => {
+  it("keeps supplier and brand typing as form fields without staging modal tree folders", async () => {
     await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const managerSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
-    expect(managerSource).not.toContain("window.prompt");
-    expect(managerSource).not.toContain("window.confirm");
-    expect(managerSource).toContain("ConfirmDialog");
-
-    actionMocks.renameLibraryFolder.mockResolvedValueOnce({
-      folder: {
-        ...sharedLibraryFolders[1],
-        name: "Renamed Details",
-      },
-    });
-
-    fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Details"), { clientX: 16, clientY: 16 });
-
-    expect(await screen.findByRole("menuitem", { name: "Select" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Add folder" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
-
-    const renameDialog = await screen.findByRole("dialog", { name: "Rename folder" });
-    fireEvent.change(within(renameDialog).getByLabelText("Folder name"), {
-      target: { value: "Renamed Details" },
-    });
-    fireEvent.click(within(renameDialog).getByRole("button", { name: "Save name" }));
-
-    await waitFor(() => expect(actionMocks.renameLibraryFolder).toHaveBeenCalledWith("folder-details", "Renamed Details"));
-    await waitFor(() => expect(getLibraryFolderButtonWithin(dialog, "Renamed Details")).toBeInTheDocument());
-
-    actionMocks.deleteLibraryFolder.mockResolvedValueOnce(undefined);
-
-    fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Renamed Details"), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
-
-    const deleteDialog = await screen.findByRole("alertdialog", { name: "Delete folder?" });
-    expect(deleteDialog).toHaveTextContent('Delete "Renamed Details"? Its 1 component and 1 subfolder move out of this folder; nothing is deleted from the library.');
-    expect(within(deleteDialog).getByRole("button", { name: "Keep folder" })).toBeInTheDocument();
-    fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete folder" }));
-
-    await waitFor(() => expect(actionMocks.deleteLibraryFolder).toHaveBeenCalledWith("folder-details"));
-  });
-
-  it("keeps folder actions recoverable when rename or delete fails", async () => {
-    await renderLibrary();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
-    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-
-    actionMocks.renameLibraryFolder.mockRejectedValueOnce(new Error("Folder was changed by someone else."));
-
-    fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Details"), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
-
-    const renameDialog = await screen.findByRole("dialog", { name: "Rename folder" });
-    fireEvent.change(within(renameDialog).getByLabelText("Folder name"), {
-      target: { value: "Conflicted Details" },
-    });
-    fireEvent.click(within(renameDialog).getByRole("button", { name: "Save name" }));
-
-    expect((await screen.findAllByText("Folder was changed by someone else.")).length).toBeGreaterThan(0);
-    expect(getLibraryFolderButtonWithin(dialog, "Details")).toBeInTheDocument();
-    expect(within(dialog).queryByRole("treeitem", { name: "Conflicted Details" })).not.toBeInTheDocument();
-
-    actionMocks.deleteLibraryFolder.mockRejectedValueOnce(new Error("Folder still has children."));
-
-    fireEvent.contextMenu(getLibraryFolderButtonWithin(dialog, "Details"), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
-
-    const deleteDialog = await screen.findByRole("alertdialog", { name: "Delete folder?" });
-    fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete folder" }));
-
-    expect((await screen.findAllByText("Folder still has children.")).length).toBeGreaterThan(0);
-    expect(getLibraryFolderButtonWithin(dialog, "Details")).toBeInTheDocument();
-  });
-
-  it("keeps supplier typing in the current Add Component tree view and stages the supplier folder", async () => {
-    await renderLibrary();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const viewMode = openAddComponentViewMenu(dialog);
-    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
-    expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByRole("combobox", { name: "Supplier" }), {
       target: { value: "Future Fabricator" },
     });
 
     expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toHaveValue("Future Fabricator");
-    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(dialog).queryByRole("treeitem", { name: "All Suppliers" })).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("treeitem", { name: "Future Fabricator" })).not.toBeInTheDocument();
-
-    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
-
-    expect(within(dialog).getByRole("button", { name: "View by: Suppliers" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(dialog).getByRole("treeitem", { name: "Future Fabricator" })).toHaveAttribute("aria-selected", "true");
-  });
-
-  it("keeps brand typing in the current Add Component tree view and stages the brand folder", async () => {
-    await renderLibrary();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const viewMode = openAddComponentViewMenu(dialog);
-    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
-    expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByRole("combobox", { name: "Brand" }), {
       target: { value: "Future Studio" },
     });
 
     expect(within(dialog).getByRole("combobox", { name: "Brand" })).toHaveValue("Future Studio");
-    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(dialog).queryByRole("treeitem", { name: "All Brands" })).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("treeitem", { name: "Future Studio" })).not.toBeInTheDocument();
-
-    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Brand" }));
-
-    expect(within(dialog).getByRole("button", { name: "View by: Brand" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(dialog).getByRole("treeitem", { name: "Future Studio" })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("opens a cost manager with timestamped component cost data", async () => {
+  it("opens the OpenDesign variant drawer instead of the retired cost manager", async () => {
     await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    expect(within(dialog).getByText("Cost baseline")).toBeInTheDocument();
-    expect(within(dialog).getByText(/Updated /)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open V1" }));
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Open cost manager" }));
+    const drawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
+    expect(within(drawer).getByLabelText("Variant Name")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Variant Description")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("SKU / Reference")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Variant unit cost")).toBeInTheDocument();
+    const variantUnit = within(drawer).getByRole("combobox", { name: "Variant unit" });
+    expect(variantUnit).toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Equivalent quantity")).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole("combobox", { name: "Equivalent unit" })).not.toBeInTheDocument();
 
-    const manager = await screen.findByRole("dialog", { name: "Cost Manager" });
-    expect(within(manager).getByText("Variant 1 cost data")).toBeInTheDocument();
-    expect(within(manager).getByText("Current entry")).toBeInTheDocument();
-    expect(within(manager).getByText("All cost entries")).toBeInTheDocument();
-    expect(within(manager).getByRole("textbox", { name: "Unit cost" })).toBeInTheDocument();
-    expect(within(manager).getByRole("textbox", { name: "Misc cost" })).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Pricing source")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Date")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Cost manager confidence")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Source URL")).toBeInTheDocument();
-    expect(within(manager).getByLabelText("Notes")).toBeInTheDocument();
+    fireEvent.change(variantUnit, { target: { value: "box" } });
 
-    fireEvent.click(within(manager).getByRole("button", { name: "Add cost entry" }));
-
-    const costEntries = within(manager).getByRole("listbox", { name: "Cost manager entries" });
-    expect(within(costEntries).getAllByRole("option")).toHaveLength(2);
-  });
-
-  it("commits a cost confidence through the shared dropdown select", async () => {
-    await renderLibrary();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Open cost manager" }));
-
-    const manager = await screen.findByRole("dialog", { name: "Cost Manager" });
-    const confidenceTrigger = within(manager).getByRole("combobox", { name: "Cost manager confidence" });
-    expect(confidenceTrigger).toHaveTextContent("Medium");
-
-    fireEvent.click(confidenceTrigger);
-    const listbox = screen.getByRole("listbox", { name: "Cost manager confidence" });
-    expect(listbox.parentElement).toBe(document.body);
-
-    fireEvent.click(within(listbox).getByRole("option", { name: "High" }));
-
-    expect(confidenceTrigger).toHaveTextContent("High");
-    expect(screen.queryByRole("listbox", { name: "Cost manager confidence" })).toBeNull();
-    expect(screen.getByRole("dialog", { name: "Cost Manager" })).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Equivalent quantity")).toBeInTheDocument();
+    expect(within(drawer).getByRole("combobox", { name: "Equivalent unit" })).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Upload attachment")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Cost Manager" })).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Misc cost")).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Pricing source")).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Confidence")).not.toBeInTheDocument();
   });
 
   it("updates the lifecycle draft from the Activity tab and keeps the modal open on Escape", async () => {
@@ -926,9 +786,9 @@ describe("component library manager UI", () => {
 
     expect(lifecycleTrigger).toHaveTextContent("In production");
     expect(screen.queryByRole("listbox", { name: "Component state" })).toBeNull();
-    // The draft update propagates to the activity history summary row.
-    const lifecycleHistoryRow = within(activityPanel).getByText("Lifecycle state").closest("li") as HTMLElement;
-    expect(within(lifecycleHistoryRow).getByText("In production")).toBeInTheDocument();
+    expect(within(activityPanel).getByText("Current state: In production. Default cost: PHP 0.00.")).toBeInTheDocument();
+    expect(within(activityPanel).getByLabelText("Currency")).toHaveValue("PHP");
+    expect(within(activityPanel).getByLabelText("Change note")).toBeInTheDocument();
 
     // Escape with the listbox open closes only the listbox; the hosting modal stays.
     fireEvent.click(lifecycleTrigger);
@@ -940,7 +800,7 @@ describe("component library manager UI", () => {
     expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
   });
 
-  it("renders unit dropdowns with clear code and meaning columns", async () => {
+  it("renders main and variant unit dropdowns with clear code and meaning columns", async () => {
     await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
@@ -957,28 +817,21 @@ describe("component library manager UI", () => {
     expect(unitOptions.querySelector('[data-combobox-option-code="pc"]')).toHaveTextContent("pc");
     expect(unitOptions.querySelector('[data-combobox-option-meaning="Piece"]')).toHaveTextContent("Piece");
 
-    fireEvent.change(unitInput, { target: { value: "box" } });
-    fireEvent.click(within(dialog).getByRole("option", { name: "box Box / carton" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open V1" }));
+    const drawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
+    fireEvent.change(within(drawer).getByRole("combobox", { name: "Variant unit" }), {
+      target: { value: "box" },
+    });
+    const equivalentUnitInput = within(drawer).getByRole("combobox", { name: "Equivalent unit" });
+    fireEvent.focus(equivalentUnitInput);
 
-    const packageUnitInput = within(dialog).getByRole("combobox", { name: "Content per box unit" });
-    fireEvent.focus(packageUnitInput);
-
-    const packageUnitOptions = within(dialog).getByRole("listbox", { name: "Content per box unit options" });
-    expect(within(packageUnitOptions).getByText("Code")).toBeInTheDocument();
-    expect(within(packageUnitOptions).getByText("Meaning")).toBeInTheDocument();
-    expect(packageUnitOptions.querySelector('[data-combobox-option-code="pieces"]')).toHaveTextContent("pieces");
-    expect(packageUnitOptions.querySelector('[data-combobox-option-meaning="Count"]')).toHaveTextContent("Count");
-
-    fireEvent.click(within(dialog).getByRole("button", { name: "Advanced catalog details" }));
-    const dimensionUnitInput = within(dialog).getByRole("combobox", { name: "Dimension unit" });
-    fireEvent.focus(dimensionUnitInput);
-
-    const dimensionUnitOptions = within(dialog).getByRole("listbox", { name: "Dimension unit options" });
-    expect(dimensionUnitOptions).toHaveAttribute("data-combobox-popup-placement", "top");
-    expect(within(dimensionUnitOptions).getByText("Code")).toBeInTheDocument();
-    expect(within(dimensionUnitOptions).getByText("Meaning")).toBeInTheDocument();
-    expect(dimensionUnitOptions.querySelector('[data-combobox-option-code="mm"]')).toHaveTextContent("mm");
-    expect(dimensionUnitOptions.querySelector('[data-combobox-option-meaning="Millimeter"]')).toHaveTextContent("Millimeter");
+    const equivalentUnitOptions = within(drawer).getByRole("listbox", { name: "Equivalent unit options" });
+    expect(equivalentUnitOptions).toHaveAttribute("data-combobox-popup-placement", "top");
+    expect(within(equivalentUnitOptions).getByText("Code")).toBeInTheDocument();
+    expect(within(equivalentUnitOptions).getByText("Meaning")).toBeInTheDocument();
+    expect(equivalentUnitOptions.querySelector('[data-combobox-option-code="pieces"]')).toHaveTextContent("pieces");
+    expect(equivalentUnitOptions.querySelector('[data-combobox-option-meaning="Count"]')).toHaveTextContent("Count");
   });
 
   it("removes collection dropdown behavior instead of hiding it", async () => {

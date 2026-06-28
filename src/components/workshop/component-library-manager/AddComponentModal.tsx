@@ -1,17 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { type RefObject, useEffect, useId, useMemo, useReducer, useRef, useTransition } from "react";
-import { CaretDown, ImageSquare, Plus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import {
-  CONTROL_INPUT_SURFACE_CLASS,
-  ControlField,
-  ControlInput,
-  ControlTextarea,
-} from "@/components/ui/control-input";
+  Dna,
+  ImageSquare,
+  Money,
+  Package,
+  Paperclip,
+  Plus,
+  Trash,
+  UploadSimple,
+  X,
+} from "@phosphor-icons/react/dist/ssr";
+
+import { Button } from "@/components/ui/button";
+import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/control-input";
 import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
@@ -22,17 +26,14 @@ import {
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
 import {
-  buildLibraryFolderTree,
   getUserLibraryFolders,
   type LibraryFolderRecord,
 } from "@/lib/component-library/library-folder-reorder";
 import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
-import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { findComponentCategoryPath, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
   COMPONENT_UNIT_OPTIONS,
   CONTENT_UNIT_OPTIONS,
-  DIMENSION_UNIT_OPTIONS,
   getUnitDisplayLabel,
   type ComponentUnitOption,
   unitUsesContentConversion,
@@ -45,60 +46,12 @@ import {
   uploadComponentAttachment,
   validateComponentAttachmentFile,
 } from "@/lib/uploads/component-attachment-client";
-import { filterMapBy } from "@/lib/util/array";
-import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
-import { LibraryFolderTreePicker } from "./LibraryFolderTree";
 import {
   isAllComponentsFolderId,
-  type ComponentViewMode,
   type CreateLibraryFolderHandler,
   type ReorderStatus,
 } from "./library-folder-tree-shared";
-
-type VariantDraft = {
-  id: string;
-  label: string;
-  sku: string;
-  description: string;
-  unitCost: string;
-  miscCost: string;
-  unit: string;
-  packageQuantity: string;
-  packageUnit: string;
-  dimensionLength: string;
-  dimensionWidth: string;
-  dimensionHeight: string;
-  dimensionUnit: string;
-  pricingSource: string;
-  pricingDate: string;
-  confidence: string;
-  sourceUrl: string;
-  notes: string;
-  isDefault: boolean;
-  image: VariantImageDraft | null;
-  attachments: VariantAttachmentDraft[];
-  costEntries: VariantCostEntryDraft[];
-  activeCostEntryId: string;
-};
-
-type ComponentDraft = {
-  name: string;
-  category: string;
-  brand: string;
-  brandId: string;
-  thumbnailPath: string;
-  libraryFolderId: string;
-  categoryNodeId: string;
-  supplierId: string;
-  supplierName: string;
-  lifecycleState: ComponentLifecycleState;
-  effectiveAt: string;
-  changeReason: string;
-  variants: VariantDraft[];
-  sharedImageForAllVariants: boolean;
-  sharedImage: VariantImageDraft | null;
-};
 
 type VariantImageDraft = {
   bucket: string;
@@ -123,23 +76,37 @@ type VariantAttachmentDraft = {
   uploadSessionId?: string;
   assetId?: string;
   scanStatus?: string | null;
-  reviewStatus?: string | null;
-  isCurrentApproved?: boolean;
 };
 
-type VariantCostEntryDraft = {
+type VariantDraft = {
   id: string;
+  label: string;
+  description: string;
+  sku: string;
   unitCost: string;
-  miscCost: string;
-  pricingSource: string;
-  pricingDate: string;
-  confidence: string;
-  sourceUrl: string;
-  notes: string;
-  isCurrent: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string | null;
+  unit: string;
+  packageQuantity: string;
+  packageUnit: string;
+  isDefault: boolean;
+  image: VariantImageDraft | null;
+  attachments: VariantAttachmentDraft[];
+};
+
+type ComponentDraft = {
+  name: string;
+  category: string;
+  categoryNodeId: string;
+  supplierId: string;
+  supplierName: string;
+  brand: string;
+  brandId: string;
+  thumbnailPath: string;
+  lifecycleState: ComponentLifecycleState;
+  effectiveAt: string;
+  changeReason: string;
+  sharedImageForAllVariants: boolean;
+  sharedImage: VariantImageDraft | null;
+  variants: VariantDraft[];
 };
 
 type ImageUploadState =
@@ -181,16 +148,17 @@ type AddComponentModalProps = {
 };
 
 type AddComponentModalTab = "component" | "activity";
+type VariantDrawerView = "manager" | "variant";
 
 const MAX_CLIENT_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
 const CLIENT_IMAGE_EDGE = 1600;
 const CLIENT_IMAGE_QUALITY = 0.82;
+const DEFAULT_VARIANT_LABEL = "V1";
 const ALLOWED_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const accountingNumberFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
-const measurementNumberFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
 const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = [
   { value: "draft", label: "Draft", tone: "neutral" },
   { value: "in_production", label: "In production", tone: "info" },
@@ -198,19 +166,20 @@ const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; 
   { value: "discontinued", label: "Discontinued", tone: "warning" },
   { value: "archived", label: "Archived", tone: "danger" },
 ];
-const COST_CONFIDENCE_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-];
-const ADD_COMPONENT_MODAL_TABS: readonly WorkshopTreeTabItem<AddComponentModalTab>[] = [
+const ADD_COMPONENT_MODAL_TABS: Array<{ id: AddComponentModalTab; label: string }> = [
   { id: "component", label: "Component" },
   { id: "activity", label: "Activity" },
 ];
-const DEFAULT_VARIANT_LABEL = "Variant 1";
 const COMPONENT_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(COMPONENT_UNIT_OPTIONS);
 const CONTENT_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(CONTENT_UNIT_OPTIONS);
-const DIMENSION_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(DIMENSION_UNIT_OPTIONS);
+const OPENDESIGN_INPUT_CLASS =
+  "h-8 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
+const OPENDESIGN_TEXTAREA_CLASS =
+  "min-h-14 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 py-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
+const OPENDESIGN_SECTION_CLASS = "grid gap-[10px] rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2";
+const OPENDESIGN_SECTION_TITLE_CLASS = "flex items-center gap-2 text-[10px] font-medium normal-case text-secondary";
+const OPENDESIGN_IMAGE_WELL_CLASS =
+  "relative grid aspect-square place-items-center overflow-hidden rounded-[3px] border-0 bg-[rgba(61,61,61,0.04)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.035)]";
 
 function toUnitComboboxOptions(options: ComponentUnitOption[]): CreatableComboboxOption[] {
   return options.map((option) => ({
@@ -219,6 +188,28 @@ function toUnitComboboxOptions(options: ComponentUnitOption[]): CreatableCombobo
     description: option.description,
     searchText: option.searchText,
   }));
+}
+
+function toComboboxOptions(options: Array<{ id: string; name: string }>): CreatableComboboxOption[] {
+  return options.map((option) => ({ id: option.id, label: option.name }));
+}
+
+function toCategoryComboboxOptions(
+  nodes: ComponentLibraryTaxonomyNode[],
+  depth = 0,
+  path: string[] = [],
+): CreatableComboboxOption[] {
+  return nodes.flatMap((node) => {
+    const nextPath = [...path, node.label];
+    const option: CreatableComboboxOption = {
+      id: node.id,
+      label: node.label,
+      description: nextPath.join(" / "),
+      searchText: [node.label, node.code, node.meta, node.kind, ...(node.aliases ?? []), ...nextPath].filter(Boolean).join(" "),
+    };
+    const children = node.children ? toCategoryComboboxOptions(node.children, depth + 1, nextPath) : [];
+    return [option, ...children];
+  });
 }
 
 function getSelectedUnitId(value: string, options: CreatableComboboxOption[]): string | null {
@@ -230,16 +221,6 @@ function getUnitComboboxValue(change: { id: string | null; label: string }) {
   return change.id ?? change.label;
 }
 
-function getContentConversionCopy(unit: string) {
-  const unitLabel = getUnitDisplayLabel(unit) || "unit";
-  return {
-    visible: unitUsesContentConversion(unit),
-    label: `Content / ${unitLabel.toLowerCase()}`,
-    quantityAriaLabel: `Content per ${unitLabel.toLowerCase()} quantity`,
-    unitAriaLabel: `Content per ${unitLabel.toLowerCase()} unit`,
-  };
-}
-
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -248,6 +229,156 @@ function formatBytes(bytes: number | undefined) {
   if (!bytes || bytes <= 0) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function parseMoney(value: string) {
+  const normalized = value.replace(/[,\s]/g, "").trim();
+  if (!normalized) return NaN;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function normalizeMoneyInput(value: string) {
+  const cleaned = value.replace(/[,\s]/g, "").replace(/[^0-9.]/g, "");
+  const [whole = "", ...decimalParts] = cleaned.split(".");
+  if (decimalParts.length === 0) return whole;
+  return `${whole}.${decimalParts.join("")}`;
+}
+
+function formatAccountingMoney(value: string) {
+  const parsed = parseMoney(value);
+  return Number.isFinite(parsed) ? accountingNumberFormatter.format(parsed) : value;
+}
+
+function readOptionalPositiveNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : NaN;
+}
+
+function normalizeDuplicateIdentityValue(value: string | null | undefined) {
+  return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function getAttachmentKind(contentType: string): "pdf" | "excel" {
+  return contentType === "application/pdf" ? "pdf" : "excel";
+}
+
+function buildImageMetadata(image: VariantImageDraft | null): Json {
+  if (!image) return {};
+  return {
+    thumbnailStoragePath: image.thumbnailStoragePath,
+    width: image.width ?? null,
+    height: image.height ?? null,
+    originalBytes: image.originalBytes ?? null,
+    optimizedBytes: image.optimizedBytes ?? null,
+  };
+}
+
+function getImageStoragePaths(image: VariantImageDraft | null | undefined) {
+  if (!image) return [];
+  return Array.from(new Set([image.path, image.thumbnailStoragePath].filter(Boolean)));
+}
+
+function getAttachmentStoragePaths(attachment: VariantAttachmentDraft | null | undefined) {
+  if (!attachment?.path) return [];
+  return [attachment.path];
+}
+
+function isImageUploadBusy(state: ImageUploadState["state"]) {
+  return state === "processing" || state === "uploading";
+}
+
+function isUsableUploadResponse(value: UploadedComponentImage): value is UploadedComponentImage {
+  return Boolean(value.url && value.thumbnailUrl && value.path && value.thumbnailPath);
+}
+
+function toVariantImageDraft(value: UploadedComponentImage): VariantImageDraft {
+  return {
+    bucket: value.bucket ?? "component-images",
+    path: value.path,
+    thumbnailPath: value.thumbnailUrl,
+    thumbnailStoragePath: value.thumbnailPath,
+    url: value.url,
+    thumbnailUrl: value.thumbnailUrl,
+    width: value.width,
+    height: value.height,
+    originalBytes: value.originalBytes,
+    optimizedBytes: value.optimizedBytes,
+  };
+}
+
+function makeVariantDraft(index: number, overrides: Partial<VariantDraft> = {}): VariantDraft {
+  return {
+    id: crypto.randomUUID(),
+    label: index === 1 ? DEFAULT_VARIANT_LABEL : `V${index}`,
+    description: "",
+    sku: "",
+    unitCost: "",
+    unit: "unit",
+    packageQuantity: "",
+    packageUnit: "",
+    isDefault: index === 1,
+    image: null,
+    attachments: [],
+    ...overrides,
+  };
+}
+
+function resolveFolderCategoryNodeId(folders: LibraryFolderRecord[], folderId: string | null): string {
+  if (!folderId) return "";
+  const byId = new Map(folders.map((folder) => [folder.id, folder]));
+  let current = byId.get(folderId);
+  const seen = new Set<string>();
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    if (current.source_category_node_id) return current.source_category_node_id;
+    current = current.parent_id ? byId.get(current.parent_id) : undefined;
+  }
+  return "";
+}
+
+function getInitialDraft({
+  folders,
+  categoryTree,
+  selectedFolderId,
+  selectedSupplierId,
+  selectedBrandId,
+  suppliers,
+  brands,
+}: {
+  folders: LibraryFolderRecord[];
+  categoryTree: ComponentLibraryTaxonomyNode[];
+  selectedFolderId: string | null;
+  selectedSupplierId?: string | null;
+  selectedBrandId?: string | null;
+  suppliers: ComponentLibrarySupplierOption[];
+  brands: ComponentLibraryBrand[];
+}): ComponentDraft {
+  const selectedFolder = selectedFolderId && !isAllComponentsFolderId(selectedFolderId)
+    ? folders.find((folder) => folder.id === selectedFolderId)
+    : undefined;
+  const supplier = selectedSupplierId ? suppliers.find((entry) => entry.id === selectedSupplierId) : undefined;
+  const brand = selectedBrandId ? brands.find((entry) => entry.id === selectedBrandId) : undefined;
+  const categoryNodeId = resolveFolderCategoryNodeId(folders, selectedFolder?.id ?? null);
+  const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
+  return {
+    name: "",
+    category: categoryPath.at(-1) ?? "",
+    categoryNodeId,
+    supplierId: supplier?.id ?? "",
+    supplierName: supplier?.name ?? "",
+    brand: brand?.name ?? "",
+    brandId: brand?.id ?? "",
+    thumbnailPath: "",
+    lifecycleState: "available",
+    effectiveAt: today(),
+    changeReason: "Component created from workshop library.",
+    sharedImageForAllVariants: false,
+    sharedImage: null,
+    variants: [makeVariantDraft(1)],
+  };
 }
 
 async function resizeImageForUpload(file: File): Promise<File> {
@@ -288,9 +419,29 @@ async function uploadComponentImage(file: File): Promise<UploadedComponentImage>
   return result as UploadedComponentImage;
 }
 
-function getImageStoragePaths(image: VariantImageDraft | null | undefined) {
-  if (!image) return [];
-  return Array.from(new Set([image.path, image.thumbnailStoragePath].filter(Boolean)));
+async function removeComponentImageUpload(image: VariantImageDraft | null | undefined) {
+  const paths = getImageStoragePaths(image);
+  if (paths.length === 0) return;
+  await fetch("/api/component-library/images", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths }),
+  }).catch(() => undefined);
+}
+
+async function removeComponentAttachmentUpload(attachment: VariantAttachmentDraft | null | undefined) {
+  const paths = getAttachmentStoragePaths(attachment);
+  if (paths.length === 0) return;
+  await fetch("/api/component-library/attachments", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths }),
+  }).catch(() => undefined);
+}
+
+function getVariantImage(draft: ComponentDraft, variant: VariantDraft | undefined): VariantImageDraft | null {
+  if (draft.sharedImageForAllVariants) return draft.sharedImage;
+  return variant?.image ?? null;
 }
 
 function collectDraftImages(draft: ComponentDraft) {
@@ -313,1012 +464,11 @@ function collectDraftAttachments(draft: ComponentDraft) {
   return Array.from(byPath.values());
 }
 
-function isSameStoredImage(left: VariantImageDraft | null | undefined, right: VariantImageDraft | null | undefined) {
-  return Boolean(left && right && (left.path === right.path || left.thumbnailStoragePath === right.thumbnailStoragePath));
-}
-
-async function removeComponentImageUpload(image: VariantImageDraft | null | undefined) {
-  const paths = getImageStoragePaths(image);
-  if (paths.length === 0) return;
-  await fetch("/api/component-library/images", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paths }),
-  }).catch(() => undefined);
-}
-
-function getAttachmentStoragePaths(attachment: VariantAttachmentDraft | null | undefined) {
-  if (!attachment?.path) return [];
-  return [attachment.path];
-}
-
-async function removeComponentAttachmentUpload(attachment: VariantAttachmentDraft | null | undefined) {
-  const paths = getAttachmentStoragePaths(attachment);
-  if (paths.length === 0) return;
-  await fetch("/api/component-library/attachments", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paths }),
-  }).catch(() => undefined);
-}
-
-function isImageUploadBusy(state: ImageUploadState["state"]) {
-  return state === "processing" || state === "uploading";
-}
-
-function isUsableUploadResponse(value: UploadedComponentImage): value is UploadedComponentImage {
-  return Boolean(value.url && value.thumbnailUrl && value.path && value.thumbnailPath);
-}
-
-function toVariantImageDraft(value: UploadedComponentImage): VariantImageDraft {
-  return {
-    bucket: value.bucket ?? "component-images",
-    path: value.path,
-    thumbnailPath: value.thumbnailUrl,
-    thumbnailStoragePath: value.thumbnailPath,
-    url: value.url,
-    thumbnailUrl: value.thumbnailUrl,
-    width: value.width,
-    height: value.height,
-    originalBytes: value.originalBytes,
-    optimizedBytes: value.optimizedBytes,
-  };
-}
-
-function makeCostEntryDraft(overrides: Partial<VariantCostEntryDraft> = {}): VariantCostEntryDraft {
-  const timestamp = new Date().toISOString();
-  return {
-    id: crypto.randomUUID(),
-    unitCost: "",
-    miscCost: "0",
-    pricingSource: "",
-    pricingDate: today(),
-    confidence: "medium",
-    sourceUrl: "",
-    notes: "",
-    isCurrent: true,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    deletedAt: null,
-    ...overrides,
-  };
-}
-
-function makeVariantDraft(index: number, overrides: Partial<VariantDraft> = {}): VariantDraft {
-  const costEntry = makeCostEntryDraft();
-  return {
-    id: crypto.randomUUID(),
-    label: index === 1 ? DEFAULT_VARIANT_LABEL : `Variant ${index}`,
-    sku: "",
-    description: "",
-    unitCost: "",
-    miscCost: "0",
-    unit: "unit",
-    packageQuantity: "",
-    packageUnit: "",
-    dimensionLength: "0",
-    dimensionWidth: "0",
-    dimensionHeight: "0",
-    dimensionUnit: "m",
-    pricingSource: "",
-    pricingDate: today(),
-    confidence: "medium",
-    sourceUrl: "",
-    notes: "",
-    isDefault: index === 1,
-    image: null,
-    attachments: [],
-    costEntries: [costEntry],
-    activeCostEntryId: costEntry.id,
-    ...overrides,
-  };
-}
-
-function buildFolderPath(folders: LibraryFolderRecord[], folderId: string | null): string[] {
-  if (!folderId) return [];
-  const byId = new Map(folders.map((folder) => [folder.id, folder]));
-  const path: string[] = [];
-  let current = byId.get(folderId);
-  const seen = new Set<string>();
-  while (current && !seen.has(current.id)) {
-    seen.add(current.id);
-    path.unshift(current.name);
-    current = current.parent_id ? byId.get(current.parent_id) : undefined;
-  }
-  return path;
-}
-
-function resolveFolderCategoryNodeId(folders: LibraryFolderRecord[], folderId: string | null): string {
-  if (!folderId) return "";
-  const byId = new Map(folders.map((folder) => [folder.id, folder]));
-  let current = byId.get(folderId);
-  const seen = new Set<string>();
-  while (current && !seen.has(current.id)) {
-    seen.add(current.id);
-    if (current.source_category_node_id) return current.source_category_node_id;
-    current = current.parent_id ? byId.get(current.parent_id) : undefined;
-  }
-  return "";
-}
-
-function toComboboxOptions(options: Array<{ id: string; name: string }>): CreatableComboboxOption[] {
-  return options.map((option) => ({ id: option.id, label: option.name }));
-}
-
-function normalizeDuplicateIdentityValue(value: string | null | undefined) {
-  return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-function getInitialNestingViewMode(selectedSupplierId?: string | null, selectedBrandId?: string | null): ComponentViewMode {
-  if (selectedSupplierId) return "suppliers";
-  if (selectedBrandId) return "brand";
-  return "default";
-}
-
-function getInitialDraft({
-  folders,
-  categoryTree,
-  selectedFolderId,
-  selectedSupplierId,
-  selectedBrandId,
-  suppliers,
-  brands,
-}: {
-  folders: LibraryFolderRecord[];
-  categoryTree: ComponentLibraryTaxonomyNode[];
-  selectedFolderId: string | null;
-  selectedSupplierId?: string | null;
-  selectedBrandId?: string | null;
-  suppliers: ComponentLibrarySupplierOption[];
-  brands: ComponentLibraryBrand[];
-}): ComponentDraft {
-  const selectedFolder = selectedFolderId && !isAllComponentsFolderId(selectedFolderId)
-    ? folders.find((folder) => folder.id === selectedFolderId)
-    : undefined;
-  const supplier = selectedSupplierId ? suppliers.find((entry) => entry.id === selectedSupplierId) : undefined;
-  const brand = selectedBrandId ? brands.find((entry) => entry.id === selectedBrandId) : undefined;
-  const categoryNodeId = resolveFolderCategoryNodeId(folders, selectedFolder?.id ?? null);
-  const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
-  return {
-    name: "",
-    category: categoryPath.at(-1) ?? "",
-    brand: brand?.name ?? "",
-    brandId: brand?.id ?? "",
-    thumbnailPath: "",
-    libraryFolderId: selectedFolder?.id ?? "",
-    categoryNodeId,
-    supplierId: supplier?.id ?? "",
-    supplierName: supplier?.name ?? "",
-    lifecycleState: "available",
-    effectiveAt: today(),
-    changeReason: "Component created from workshop library.",
-    variants: [makeVariantDraft(1)],
-    sharedImageForAllVariants: false,
-    sharedImage: null,
-  };
-}
-
-function parseMoney(value: string) {
-  const normalized = value.replace(/[₱,\s]/g, "").trim();
-  if (!normalized) return NaN;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
-function normalizeMoneyInput(value: string) {
-  const cleaned = value.replace(/[₱,\s]/g, "").replace(/[^0-9.]/g, "");
-  const [whole = "", ...decimalParts] = cleaned.split(".");
-  if (decimalParts.length === 0) return whole;
-  return `${whole}.${decimalParts.join("")}`;
-}
-
-function formatAccountingMoney(value: string) {
-  const parsed = parseMoney(value);
-  return Number.isFinite(parsed) ? accountingNumberFormatter.format(parsed) : value;
-}
-
-const costTimestampFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
-const costDateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
-function formatCostTimestamp(entry: VariantCostEntryDraft | undefined) {
-  if (!entry) return "No timestamp";
-  const timestamp = entry.updatedAt || entry.createdAt;
-  if (timestamp) return `Updated ${costTimestampFormatter.format(new Date(timestamp))}`;
-  if (entry.pricingDate) return `Effective ${costDateFormatter.format(new Date(`${entry.pricingDate}T00:00:00`))} at 12:00 AM`;
-  return "No timestamp";
-}
-
-function formatCostEntryLabel(entry: VariantCostEntryDraft | undefined) {
-  if (!entry) return "No cost entry selected";
-  return `${formatAccountingMoney(entry.unitCost)} / ${entry.pricingDate || "No date"}`;
-}
-
-function formatMoneyInputValue(value: string, previousValue = "", nativeEvent?: Event) {
-  const normalized = normalizeMoneyInput(value);
-  const previousNormalized = normalizeMoneyInput(previousValue);
-  const [previousWhole = ""] = previousNormalized.split(".");
-  const [, decimalPart = ""] = normalized.split(".");
-  const inputEvent = typeof InputEvent !== "undefined" && nativeEvent instanceof InputEvent ? nativeEvent : null;
-
-  if (
-    inputEvent?.inputType === "insertText" &&
-    inputEvent.data &&
-    /^\d$/.test(inputEvent.data) &&
-    previousValue === formatAccountingMoney(previousValue) &&
-    decimalPart.startsWith("00") &&
-    decimalPart.length > 2
-  ) {
-    return formatAccountingMoney(`${previousWhole}${inputEvent.data}`);
-  }
-
-  if (
-    inputEvent?.inputType === "deleteContentBackward" &&
-    previousValue === formatAccountingMoney(previousValue) &&
-    previousWhole.length > 0 &&
-    decimalPart.length < 2
-  ) {
-    return previousWhole.length === 1 ? "" : formatAccountingMoney(previousWhole.slice(0, -1));
-  }
-
-  return formatAccountingMoney(normalized);
-}
-
-function readOptionalPositiveNumber(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : NaN;
-}
-
-function readOptionalNonNegativeNumber(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : NaN;
-}
-
-function roundMeasurement(value: number) {
-  return Math.round((value + Number.EPSILON) * 1_000_000) / 1_000_000;
-}
-
-function formatMeasurement(value: number | null) {
-  if (value === null) return "";
-  return measurementNumberFormatter.format(value);
-}
-
-function formatComputedMeasurement(value: number | null, unit: string, exponent: 2 | 3) {
-  const formattedValue = formatMeasurement(value);
-  return formattedValue ? `${formattedValue} ${unit || "unit"}${exponent}` : "";
-}
-
-function getActiveCostEntry(variant: VariantDraft | undefined): VariantCostEntryDraft | undefined {
-  if (!variant) return undefined;
-  return (
-    variant.costEntries.find((entry) => !entry.deletedAt && entry.id === variant.activeCostEntryId)
-    ?? variant.costEntries.find((entry) => !entry.deletedAt && entry.isCurrent)
-    ?? variant.costEntries.find((entry) => !entry.deletedAt)
-  );
-}
-
-function getVisibleCostEntries(variant: VariantDraft | undefined): VariantCostEntryDraft[] {
-  return variant?.costEntries.filter((entry) => !entry.deletedAt) ?? [];
-}
-
-function getVariantImage(draft: ComponentDraft, variant: VariantDraft | undefined): VariantImageDraft | null {
-  if (draft.sharedImageForAllVariants) return draft.sharedImage;
-  return variant?.image ?? null;
-}
-
-function getAttachmentKind(contentType: string): "pdf" | "excel" {
-  return contentType === "application/pdf" ? "pdf" : "excel";
-}
-
-function getAttachmentScanBadge(attachment: VariantAttachmentDraft) {
-  switch (attachment.scanStatus) {
-    case "clean":
-      return { label: "Scan clean", tone: "success" as const };
-    case "infected":
-    case "failed_permanent":
-    case "unsupported":
-      return { label: "Scan blocked", tone: "danger" as const };
-    case "failed_transient":
-      return { label: "Scan retry", tone: "warning" as const };
-    case "override_approved":
-      return { label: "Override blocked", tone: "warning" as const };
-    case "pending":
-    case undefined:
-    case null:
-    default:
-      return { label: "Scan pending", tone: "warning" as const };
-  }
-}
-
-function getAttachmentReviewBadge(attachment: VariantAttachmentDraft) {
-  if (attachment.reviewStatus === "approved" && attachment.isCurrentApproved) {
-    return { label: "Review approved", tone: "success" as const };
-  }
-  return { label: "Review blocked", tone: "neutral" as const };
-}
-
-function isAttachmentDownloadAvailable(attachment: VariantAttachmentDraft) {
-  return attachment.scanStatus === "clean" && attachment.reviewStatus === "approved" && attachment.isCurrentApproved === true;
-}
-
-function getAttachmentDownloadBadge(attachment: VariantAttachmentDraft) {
-  return isAttachmentDownloadAvailable(attachment)
-    ? { label: "Download ready", tone: "success" as const }
-    : { label: "Download blocked", tone: "neutral" as const };
-}
-
-function getAttachmentBlockedCopy(attachment: VariantAttachmentDraft) {
-  if (isAttachmentDownloadAvailable(attachment)) return "Download is available after audit logging.";
-  if (attachment.scanStatus === "clean") {
-    return "Download blocked until Library review marks this attachment current.";
-  }
-  if (attachment.scanStatus === "infected") {
-    return "Download blocked because scanning flagged this attachment.";
-  }
-  if (attachment.scanStatus === "failed_transient") {
-    return "Download blocked while scanner retry is pending.";
-  }
-  if (attachment.scanStatus === "failed_permanent" || attachment.scanStatus === "unsupported") {
-    return "Download blocked until a documented security override is available.";
-  }
-  return "Download blocked until scanner marks this attachment clean and Library review marks it current.";
-}
-
-function buildImageMetadata(image: VariantImageDraft | null): Json {
-  if (!image) return {};
-  return {
-    thumbnailStoragePath: image.thumbnailStoragePath,
-    width: image.width ?? null,
-    height: image.height ?? null,
-    originalBytes: image.originalBytes ?? null,
-    optimizedBytes: image.optimizedBytes ?? null,
-  };
-}
-
-function buildComponentMetadata(
-  variant: VariantDraft,
-  computed: { footprintArea: number | null; packageArea: number | null; volume: number | null },
-): Json {
-  const measurement: Record<string, Json> = {};
-  const usesContentConversion = unitUsesContentConversion(variant.unit);
-  const packageQuantity = usesContentConversion ? readOptionalPositiveNumber(variant.packageQuantity) : null;
-  const length = readOptionalNonNegativeNumber(variant.dimensionLength);
-  const width = readOptionalNonNegativeNumber(variant.dimensionWidth);
-  const height = readOptionalNonNegativeNumber(variant.dimensionHeight);
-
-  const packageRecord: Record<string, Json> = {};
-  if (packageQuantity !== null && !Number.isNaN(packageQuantity)) packageRecord.quantity = packageQuantity;
-  if (usesContentConversion && variant.packageUnit.trim()) packageRecord.unit = variant.packageUnit.trim();
-  if (Object.keys(packageRecord).length > 0) measurement.package = packageRecord;
-
-  const dimensionsRecord: Record<string, Json> = {};
-  const hasDimensionValue =
-    (length !== null && !Number.isNaN(length)) ||
-    (width !== null && !Number.isNaN(width)) ||
-    (height !== null && !Number.isNaN(height));
-  if (length !== null && !Number.isNaN(length)) dimensionsRecord.length = length;
-  if (width !== null && !Number.isNaN(width)) dimensionsRecord.width = width;
-  if (height !== null && !Number.isNaN(height)) dimensionsRecord.height = height;
-  if (hasDimensionValue && variant.dimensionUnit.trim()) dimensionsRecord.unit = variant.dimensionUnit.trim();
-  if (computed.footprintArea !== null) dimensionsRecord.footprintArea = computed.footprintArea;
-  if (computed.packageArea !== null) dimensionsRecord.packageArea = computed.packageArea;
-  if (computed.volume !== null) dimensionsRecord.volume = computed.volume;
-  if (Object.keys(dimensionsRecord).length > 0) measurement.dimensions = dimensionsRecord;
-
-  return Object.keys(measurement).length > 0 ? { measurement } : {};
-}
-
-function sectionTitleClassName() {
-  return "text-[9px] font-medium uppercase tracking-normal text-tertiary";
-}
-
-const selectTriggerClassName = "h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
-
-type StateUpdater<T> = T | ((current: T) => T);
-
-type OpenAddComponentModalState = {
-  draft: ComponentDraft;
-  variantPreviewUrls: Record<string, string>;
-  sharedPreviewUrl: string;
-  imageUpload: ImageUploadState;
-  attachmentUpload: ImageUploadState;
-  costPickerOpen: boolean;
-  costManagerOpen: boolean;
-  discardDialogOpen: boolean;
-  duplicateCheckReady: boolean;
-  duplicateAcknowledged: boolean;
-  advancedDetailsOpen: boolean;
-  activeTab: AddComponentModalTab;
-  activeVariantId: string;
-  nestingViewMode: ComponentViewMode;
-  error: string;
-};
-
-type OpenAddComponentModalInit = {
-  initialDraft: ComponentDraft;
-  selectedSupplierId?: string | null;
-  selectedBrandId?: string | null;
-};
-
-type OpenAddComponentModalAction =
-  | { type: "setDraft"; value: StateUpdater<ComponentDraft> }
-  | { type: "setVariantPreviewUrls"; value: StateUpdater<Record<string, string>> }
-  | { type: "setSharedPreviewUrl"; value: string }
-  | { type: "setImageUpload"; value: ImageUploadState }
-  | { type: "setAttachmentUpload"; value: ImageUploadState }
-  | { type: "setCostPickerOpen"; value: StateUpdater<boolean> }
-  | { type: "setCostManagerOpen"; value: boolean }
-  | { type: "setDiscardDialogOpen"; value: boolean }
-  | { type: "setDuplicateCheckReady"; value: boolean }
-  | { type: "setDuplicateAcknowledged"; value: boolean }
-  | { type: "setAdvancedDetailsOpen"; value: StateUpdater<boolean> }
-  | { type: "setActiveTab"; value: AddComponentModalTab }
-  | { type: "setActiveVariantId"; value: string }
-  | { type: "setNestingViewMode"; value: ComponentViewMode }
-  | { type: "setError"; value: string };
-
-function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
-  return typeof value === "function" ? (value as (current: T) => T)(current) : value;
-}
-
-function createOpenAddComponentModalState({
-  initialDraft,
-  selectedSupplierId,
-  selectedBrandId,
-}: OpenAddComponentModalInit): OpenAddComponentModalState {
-  return {
-    draft: initialDraft,
-    variantPreviewUrls: {},
-    sharedPreviewUrl: "",
-    imageUpload: { state: "idle" },
-    attachmentUpload: { state: "idle" },
-    costPickerOpen: false,
-    costManagerOpen: false,
-    discardDialogOpen: false,
-    duplicateCheckReady: false,
-    duplicateAcknowledged: false,
-    advancedDetailsOpen: false,
-    activeTab: "component",
-    activeVariantId: initialDraft.variants[0]?.id ?? "",
-    nestingViewMode: getInitialNestingViewMode(selectedSupplierId, selectedBrandId),
-    error: "",
-  };
-}
-
-function openAddComponentModalReducer(
-  state: OpenAddComponentModalState,
-  action: OpenAddComponentModalAction,
-): OpenAddComponentModalState {
-  switch (action.type) {
-    case "setDraft":
-      return { ...state, draft: resolveStateUpdater(state.draft, action.value) };
-    case "setVariantPreviewUrls":
-      return { ...state, variantPreviewUrls: resolveStateUpdater(state.variantPreviewUrls, action.value) };
-    case "setSharedPreviewUrl":
-      return { ...state, sharedPreviewUrl: action.value };
-    case "setImageUpload":
-      return { ...state, imageUpload: action.value };
-    case "setAttachmentUpload":
-      return { ...state, attachmentUpload: action.value };
-    case "setCostPickerOpen":
-      return { ...state, costPickerOpen: resolveStateUpdater(state.costPickerOpen, action.value) };
-    case "setCostManagerOpen":
-      return { ...state, costManagerOpen: action.value };
-    case "setDiscardDialogOpen":
-      return { ...state, discardDialogOpen: action.value };
-    case "setDuplicateCheckReady":
-      return { ...state, duplicateCheckReady: action.value };
-    case "setDuplicateAcknowledged":
-      return { ...state, duplicateAcknowledged: action.value };
-    case "setAdvancedDetailsOpen":
-      return { ...state, advancedDetailsOpen: resolveStateUpdater(state.advancedDetailsOpen, action.value) };
-    case "setActiveTab":
-      return { ...state, activeTab: action.value };
-    case "setActiveVariantId":
-      return { ...state, activeVariantId: action.value };
-    case "setNestingViewMode":
-      return { ...state, nestingViewMode: action.value };
-    case "setError":
-      return { ...state, error: action.value };
-  }
-}
-
-type ComputedMeasurements = {
-  footprintArea: number | null;
-  packageArea: number | null;
-  volume: number | null;
-};
-
-type AddComponentAdvancedDetailsProps = {
-  open: boolean;
-  id: string;
-  activeVariant: VariantDraft;
-  computedMeasurements: ComputedMeasurements;
-  attachmentInputId: string;
-  attachmentUpload: ImageUploadState;
-  onUpdateActiveVariant: (update: Partial<VariantDraft>) => void;
-  onUploadAttachment: (file: File) => void | Promise<void>;
-  onRemoveAttachment: (attachmentId: string) => void;
-};
-
-type BooleanStateSetter = (value: StateUpdater<boolean>) => void;
-
-type AddComponentCostPickerProps = {
-  activeCostEntry: VariantCostEntryDraft | undefined;
-  visibleCostEntries: VariantCostEntryDraft[];
-  unitCostError: string | undefined;
-  costPickerOpen: boolean;
-  costPickerListboxId: string;
-  costPickerRootRef: RefObject<HTMLDivElement | null>;
-  onBeginCostEdit: () => void;
-  onCommitCostInputEntry: () => void;
-  onSetCostPickerOpen: BooleanStateSetter;
-  onOpenCostManager: () => void;
-  onUpdateActiveCostEntry: (update: Partial<VariantCostEntryDraft>) => void;
-  onSelectCostEntry: (entryId: string) => void;
-  onDeleteCostEntry: (entryId: string) => void;
-};
-
-type AddComponentUnitControlsProps = {
-  activeVariant: VariantDraft;
-  contentConversion: ReturnType<typeof getContentConversionCopy>;
-  unitError: string | undefined;
-  onUpdateUnit: (unit: string) => void;
-  onUpdateActiveVariant: (update: Partial<VariantDraft>) => void;
-};
-
-function AddComponentUnitControls({
-  activeVariant,
-  contentConversion,
-  unitError,
-  onUpdateUnit,
-  onUpdateActiveVariant,
-}: AddComponentUnitControlsProps) {
-  return (
-    <div
-      className={cn(
-        "grid min-w-0 gap-x-2 gap-y-3 md:col-span-2",
-        contentConversion.visible
-          ? "md:grid-cols-[minmax(0,0.8fr)_minmax(18rem,1.2fr)]"
-          : "md:grid-cols-1",
-      )}
-    >
-      <ControlField as="div" label="Unit" required errorText={unitError} reserveHelperSpace>
-        <CreatableCombobox
-          ariaLabel="Unit"
-          ariaRequired
-          value={activeVariant.unit}
-          selectedId={getSelectedUnitId(activeVariant.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
-          options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
-          placeholder="Search or add unit"
-          emptyLabel="No units found"
-          createLabel={(value) => `Add unit "${value}"`}
-          onChange={(change) => onUpdateUnit(getUnitComboboxValue(change))}
-          invalid={Boolean(unitError)}
-          preferSelectionOnEnter
-          suppressCreateWhenSearchMatches
-          optionPresentation="unit"
-        />
-      </ControlField>
-      {contentConversion.visible ? (
-        <ControlField as="div" label={contentConversion.label} reserveHelperSpace>
-          <div className="grid min-w-0 grid-cols-[5.5rem_minmax(22ch,1fr)] gap-1">
-            <ControlInput
-              aria-label={contentConversion.quantityAriaLabel}
-              inputMode="decimal"
-              value={activeVariant.packageQuantity}
-              onChange={(event) => onUpdateActiveVariant({ packageQuantity: event.target.value })}
-              invalid={Number.isNaN(readOptionalPositiveNumber(activeVariant.packageQuantity))}
-              className={CONTROL_INPUT_SURFACE_CLASS}
-              placeholder="12"
-            />
-            <CreatableCombobox
-              ariaLabel={contentConversion.unitAriaLabel}
-              value={activeVariant.packageUnit}
-              selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
-              options={CONTENT_UNIT_COMBOBOX_OPTIONS}
-              placeholder="unit"
-              emptyLabel="No content units found"
-              createLabel={(value) => `Add unit "${value}"`}
-              inputClassName="min-w-[22ch]"
-              onChange={(change) => onUpdateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
-              preferSelectionOnEnter
-              suppressCreateWhenSearchMatches
-              optionPresentation="unit"
-            />
-          </div>
-        </ControlField>
-      ) : null}
-    </div>
-  );
-}
-
-function AddComponentCostPicker({
-  activeCostEntry,
-  visibleCostEntries,
-  unitCostError,
-  costPickerOpen,
-  costPickerListboxId,
-  costPickerRootRef,
-  onBeginCostEdit,
-  onCommitCostInputEntry,
-  onSetCostPickerOpen,
-  onOpenCostManager,
-  onUpdateActiveCostEntry,
-  onSelectCostEntry,
-  onDeleteCostEntry,
-}: AddComponentCostPickerProps) {
-  return (
-    <ControlField as="div" label="Unit cost" className="md:col-span-2" required errorText={unitCostError}>
-      <div ref={costPickerRootRef} className="relative grid gap-1">
-        <div className="flex min-h-8 items-center justify-between gap-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1">
-          <div className="min-w-0">
-            <div className="truncate text-[10px] font-medium leading-4 text-ink">Cost baseline</div>
-            <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            aria-label="Open cost manager"
-            onClick={() => {
-              onBeginCostEdit();
-              onCommitCostInputEntry();
-              onSetCostPickerOpen(false);
-              onOpenCostManager();
-            }}
-            className="h-7 shrink-0 px-2"
-          >
-            Manage
-          </Button>
-        </div>
-        <div className="grid grid-cols-[minmax(0,1fr)_32px] gap-1">
-          <ControlInput
-            aria-label="Unit cost"
-            aria-required="true"
-            role="combobox"
-            aria-expanded={costPickerOpen}
-            aria-controls={costPickerListboxId}
-            inputMode="decimal"
-            value={activeCostEntry?.unitCost ?? ""}
-            onFocus={() => {
-              onBeginCostEdit();
-            }}
-            onClick={() => {
-              onBeginCostEdit();
-            }}
-            onBlur={(event) => {
-              onCommitCostInputEntry();
-              const nextTarget = event.relatedTarget as Node | null;
-              if (!nextTarget || !costPickerRootRef.current?.contains(nextTarget)) {
-                onSetCostPickerOpen(false);
-              }
-            }}
-            onChange={(event) => {
-              onUpdateActiveCostEntry({
-                unitCost: formatMoneyInputValue(event.target.value, activeCostEntry?.unitCost ?? "", event.nativeEvent),
-              });
-              onSetCostPickerOpen(false);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onCommitCostInputEntry();
-                onSetCostPickerOpen(false);
-              }
-            }}
-            invalid={Boolean(unitCostError)}
-            className={cn(CONTROL_INPUT_SURFACE_CLASS, "text-right tabular-nums")}
-            placeholder="0.00"
-          />
-          <button
-            type="button"
-            aria-label="Open cost entries"
-            title="Open cost entries"
-            aria-expanded={costPickerOpen}
-            aria-controls={costPickerListboxId}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => {
-              onBeginCostEdit();
-              onCommitCostInputEntry();
-              onSetCostPickerOpen((current) => !current);
-            }}
-            className="grid size-8 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          >
-            <CaretDown size={12} weight="regular" aria-hidden="true" />
-          </button>
-        </div>
-        {costPickerOpen ? (
-          <div className="absolute left-0 right-0 top-[38px] z-30 grid gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
-            {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Cost picker is a custom ARIA listbox, not a datalist input. */}
-            <div
-              id={costPickerListboxId}
-              role="listbox"
-              aria-label="Cost entries"
-              className="grid gap-1"
-            >
-              {visibleCostEntries.map((entry) => (
-                <div key={entry.id} className="grid grid-cols-[minmax(0,1fr)_28px] gap-1">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={entry.id === activeCostEntry?.id}
-                    onClick={() => onSelectCostEntry(entry.id)}
-                    className={cn(
-                      "grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xs px-2 text-left text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                      entry.id === activeCostEntry?.id ? "bg-accentSoft" : "bg-white",
-                    )}
-                  >
-                    <span className="truncate text-tertiary">{entry.pricingDate || "No date"}</span>
-                    <span className="justify-self-end tabular-nums">{formatAccountingMoney(entry.unitCost)}</span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Delete cost entry ${entry.pricingDate || "No date"} ${formatAccountingMoney(entry.unitCost)}`}
-                    title="Delete cost entry"
-                    disabled={visibleCostEntries.length <= 1}
-                    onClick={() => onDeleteCostEntry(entry.id)}
-                    className="grid size-7 place-items-center rounded-xs border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <Trash size={11} weight="regular" aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {activeCostEntry ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-center gap-2 border-t border-hairline px-2 pt-1">
-                <span className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Date</span>
-                <ControlInput
-                  aria-label="Selected cost date"
-                  type="date"
-                  value={activeCostEntry.pricingDate || today()}
-                  onChange={(event) => onUpdateActiveCostEntry({ pricingDate: event.target.value })}
-                  className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7")}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </ControlField>
-  );
-}
-
-function AddComponentAdvancedDetails({
-  open,
-  id,
-  activeVariant,
-  computedMeasurements,
-  attachmentInputId,
-  attachmentUpload,
-  onUpdateActiveVariant,
-  onUploadAttachment,
-  onRemoveAttachment,
-}: AddComponentAdvancedDetailsProps) {
-  if (!open) return null;
-
-  return (
-    <div id={id} className="md:col-span-2 grid gap-3">
-      <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Component measurements">
-        <div className={sectionTitleClassName()}>Measurements</div>
-        <div className="mt-2 grid gap-x-2 gap-y-3 md:grid-cols-4">
-          <ControlField label="Length">
-            <ControlInput
-              aria-label="Length"
-              inputMode="decimal"
-              value={activeVariant.dimensionLength}
-              onChange={(event) => onUpdateActiveVariant({ dimensionLength: event.target.value })}
-              invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionLength))}
-              className={CONTROL_INPUT_SURFACE_CLASS}
-              placeholder="0"
-            />
-          </ControlField>
-          <ControlField label="Width">
-            <ControlInput
-              aria-label="Width"
-              inputMode="decimal"
-              value={activeVariant.dimensionWidth}
-              onChange={(event) => onUpdateActiveVariant({ dimensionWidth: event.target.value })}
-              invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionWidth))}
-              className={CONTROL_INPUT_SURFACE_CLASS}
-              placeholder="0"
-            />
-          </ControlField>
-          <ControlField label="Height">
-            <ControlInput
-              aria-label="Height"
-              inputMode="decimal"
-              value={activeVariant.dimensionHeight}
-              onChange={(event) => onUpdateActiveVariant({ dimensionHeight: event.target.value })}
-              invalid={Number.isNaN(readOptionalNonNegativeNumber(activeVariant.dimensionHeight))}
-              className={CONTROL_INPUT_SURFACE_CLASS}
-              placeholder="0"
-            />
-          </ControlField>
-          <ControlField as="div" label="Dimension unit">
-            <CreatableCombobox
-              ariaLabel="Dimension unit"
-              value={activeVariant.dimensionUnit}
-              selectedId={getSelectedUnitId(activeVariant.dimensionUnit, DIMENSION_UNIT_COMBOBOX_OPTIONS)}
-              options={DIMENSION_UNIT_COMBOBOX_OPTIONS}
-              placeholder="m"
-              emptyLabel="No dimension units found"
-              createLabel={(value) => `Add unit "${value}"`}
-              onChange={(change) => onUpdateActiveVariant({ dimensionUnit: getUnitComboboxValue(change) })}
-              preferSelectionOnEnter
-              suppressCreateWhenSearchMatches
-              optionPresentation="unit"
-              dropdownPlacement="top"
-            />
-          </ControlField>
-          <ControlField label="Area / item">
-            <ControlInput
-              aria-label="Computed footprint area"
-              disabled
-              readOnly
-              value={formatComputedMeasurement(computedMeasurements.footprintArea, activeVariant.dimensionUnit, 2)}
-              className={cn(
-                CONTROL_INPUT_SURFACE_CLASS,
-                "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
-              )}
-            />
-          </ControlField>
-          <ControlField label="Area / unit">
-            <ControlInput
-              aria-label="Computed package area"
-              disabled
-              readOnly
-              value={formatComputedMeasurement(computedMeasurements.packageArea, activeVariant.dimensionUnit, 2)}
-              className={cn(
-                CONTROL_INPUT_SURFACE_CLASS,
-                "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
-              )}
-            />
-          </ControlField>
-          <ControlField label="Volume">
-            <ControlInput
-              aria-label="Computed volume"
-              disabled
-              readOnly
-              value={formatComputedMeasurement(computedMeasurements.volume, activeVariant.dimensionUnit, 3)}
-              className={cn(
-                CONTROL_INPUT_SURFACE_CLASS,
-                "bg-surfaceMuted text-tertiary opacity-100 hover:border-hairline disabled:bg-surfaceMuted disabled:text-tertiary disabled:opacity-100",
-              )}
-            />
-          </ControlField>
-          <div aria-hidden="true" className="hidden md:block" />
-        </div>
-      </div>
-      <ControlField label="Description" className="md:col-span-2">
-        <ControlTextarea
-          value={activeVariant.description}
-          onChange={(event) => onUpdateActiveVariant({ description: event.target.value })}
-          className="min-h-16"
-        />
-      </ControlField>
-      <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Variant attachments">
-        <div className="flex items-center justify-between gap-2">
-          <div className={sectionTitleClassName()}>Attachments</div>
-          <input
-            id={attachmentInputId}
-            type="file"
-            accept="application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            aria-label="Upload attachment"
-            disabled={attachmentUpload.state === "uploading"}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.currentTarget.value = "";
-              if (!file) return;
-              void onUploadAttachment(file);
-            }}
-            className="sr-only"
-          />
-          <label
-            htmlFor={attachmentInputId}
-            className="inline-flex min-h-7 cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
-          >
-            <UploadSimple size={11} weight="regular" aria-hidden="true" />
-            Attach file
-          </label>
-        </div>
-        <ul className="m-0 mt-2 grid list-none gap-1 p-0">
-          {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => {
-            const scanBadge = getAttachmentScanBadge(attachment);
-            const reviewBadge = getAttachmentReviewBadge(attachment);
-            const downloadBadge = getAttachmentDownloadBadge(attachment);
-
-            return (
-              <li
-                key={attachment.id}
-                className="grid min-h-16 gap-1 rounded-xs border border-hairline bg-surfaceMuted px-2 py-2"
-              >
-                <div className="grid grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2">
-                  <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
-                  <span className="shrink-0 text-[9px] font-medium text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
-                  <button
-                    type="button"
-                    aria-label={`Remove attachment ${attachment.fileName}`}
-                    title="Remove attachment"
-                    onClick={() => onRemoveAttachment(attachment.id)}
-                    className="grid size-7 place-items-center rounded-xs text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    <Trash size={11} weight="regular" aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="flex flex-wrap items-center gap-1">
-                  <Badge
-                    size="xs"
-                    tone={scanBadge.tone}
-                    className="min-w-0"
-                    aria-label={`Attachment scan status: ${scanBadge.label}`}
-                  >
-                    {scanBadge.label}
-                  </Badge>
-                  <Badge
-                    size="xs"
-                    tone={reviewBadge.tone}
-                    className="min-w-0"
-                    aria-label={`Attachment review status: ${reviewBadge.label}`}
-                  >
-                    {reviewBadge.label}
-                  </Badge>
-                  <Badge
-                    size="xs"
-                    tone={downloadBadge.tone}
-                    className="min-w-0"
-                    aria-label={`Attachment download status: ${downloadBadge.label}`}
-                  >
-                    {downloadBadge.label}
-                  </Badge>
-                </div>
-                <p className="m-0 text-[9px] font-medium leading-3 text-tertiary">
-                  {getAttachmentBlockedCopy(attachment)}
-                </p>
-              </li>
-            );
-          }) : (
-            <li className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
-              No attachments
-            </li>
-          )}
-        </ul>
-        {attachmentUpload.state !== "idle" ? (
-          <span
-            role={attachmentUpload.state === "error" ? "alert" : "status"}
-            className={cn(
-              "mt-1 block text-[9px] normal-case leading-3 tracking-normal",
-              attachmentUpload.state === "error" ? "text-danger" : "text-tertiary",
-            )}
-          >
-            {attachmentUpload.message}
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 export function AddComponentModal(props: AddComponentModalProps) {
   if (!props.open) return null;
   return <OpenAddComponentModal {...props} />;
 }
 
-// react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function OpenAddComponentModal({
   open,
   folders,
@@ -1331,93 +481,48 @@ function OpenAddComponentModal({
   selectedBrandId,
   onOpenChange,
   onComponentCreated,
-  onCreateFolder,
-  onRenameFolder,
-  onDeleteFolder,
-  reorderStatus,
-  treeMutationPending,
 }: AddComponentModalProps) {
   const userFolders = useMemo(() => getUserLibraryFolders(folders), [folders]);
-  const initialModalStateInput = useMemo(() => ({
-    initialDraft: getInitialDraft({
-      folders: userFolders,
-      categoryTree,
-      selectedFolderId,
-      selectedSupplierId,
-      selectedBrandId,
-      suppliers,
-      brands,
-    }),
+  const [draft, setDraft] = useState(() => getInitialDraft({
+    folders: userFolders,
+    categoryTree,
+    selectedFolderId,
     selectedSupplierId,
     selectedBrandId,
-  }), [brands, categoryTree, selectedBrandId, selectedFolderId, selectedSupplierId, suppliers, userFolders]);
-  const [modalState, dispatchModal] = useReducer(
-    openAddComponentModalReducer,
-    initialModalStateInput,
-    createOpenAddComponentModalState,
-  );
-  const {
-    draft,
-    variantPreviewUrls,
-    sharedPreviewUrl,
-    imageUpload,
-    attachmentUpload,
-    costPickerOpen,
-    costManagerOpen,
-    discardDialogOpen,
-    duplicateCheckReady,
-    duplicateAcknowledged,
-    advancedDetailsOpen,
-    activeTab,
-    activeVariantId,
-    nestingViewMode,
-    error,
-  } = modalState;
-  const setDraft = (value: StateUpdater<ComponentDraft>) => dispatchModal({ type: "setDraft", value });
-  const setVariantPreviewUrls = (value: StateUpdater<Record<string, string>>) => dispatchModal({ type: "setVariantPreviewUrls", value });
-  const setSharedPreviewUrl = (value: string) => dispatchModal({ type: "setSharedPreviewUrl", value });
-  const setImageUpload = (value: ImageUploadState) => dispatchModal({ type: "setImageUpload", value });
-  const setAttachmentUpload = (value: ImageUploadState) => dispatchModal({ type: "setAttachmentUpload", value });
-  const setCostPickerOpen = (value: StateUpdater<boolean>) => dispatchModal({ type: "setCostPickerOpen", value });
-  const setCostManagerOpen = (value: boolean) => dispatchModal({ type: "setCostManagerOpen", value });
-  const setDiscardDialogOpen = (value: boolean) => dispatchModal({ type: "setDiscardDialogOpen", value });
-  const setDuplicateCheckReady = (value: boolean) => dispatchModal({ type: "setDuplicateCheckReady", value });
-  const setDuplicateAcknowledged = (value: boolean) => dispatchModal({ type: "setDuplicateAcknowledged", value });
-  const setAdvancedDetailsOpen = (value: StateUpdater<boolean>) => dispatchModal({ type: "setAdvancedDetailsOpen", value });
-  const setActiveTab = (value: AddComponentModalTab) => dispatchModal({ type: "setActiveTab", value });
-  const setActiveVariantId = (value: string) => dispatchModal({ type: "setActiveVariantId", value });
-  const setNestingViewMode = (value: ComponentViewMode) => dispatchModal({ type: "setNestingViewMode", value });
-  const setError = (value: string) => dispatchModal({ type: "setError", value });
+    suppliers,
+    brands,
+  }));
+  const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
+  const [activeVariantId, setActiveVariantId] = useState(() => draft.variants[0]?.id ?? "");
+  const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
+  const [variantDrawerView, setVariantDrawerView] = useState<VariantDrawerView>("manager");
+  const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
+  const [sharedPreviewUrl, setSharedPreviewUrl] = useState("");
+  const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
+  const [attachmentUpload, setAttachmentUpload] = useState<ImageUploadState>({ state: "idle" });
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [duplicateCheckReady, setDuplicateCheckReady] = useState(false);
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const [error, setError] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const thumbnailInputId = useId();
+  const variantThumbnailInputId = useId();
   const attachmentInputId = useId();
-  const tabsId = useId();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
   const duplicateCheckTimerRef = useRef<number | null>(null);
-  const variantPreviewUrlsRef = useRef<Record<string, string>>({});
-  const sharedPreviewUrlRef = useRef("");
-  const costPickerRootRef = useRef<HTMLDivElement>(null);
-  const costEditBaselineRef = useRef<{ variantId: string; entry: VariantCostEntryDraft } | null>(null);
-  const componentTabPanelId = `${tabsId}-component-panel`;
-  const activityTabPanelId = `${tabsId}-activity-panel`;
-  const costPickerListboxId = `${tabsId}-cost-picker-listbox`;
-  const advancedDetailsId = `${tabsId}-advanced-details`;
+  const draftRef = useRef(draft);
+  const variantPreviewUrlsRef = useRef(variantPreviewUrls);
+  const sharedPreviewUrlRef = useRef(sharedPreviewUrl);
 
-  const folderNodes = useMemo(() => buildLibraryFolderTree(userFolders), [userFolders]);
-  const selectedFolderPath = useMemo(() => buildFolderPath(userFolders, draft.libraryFolderId || null), [draft.libraryFolderId, userFolders]);
-  const selectedCategoryPath = useMemo(
-    () => (draft.categoryNodeId ? findComponentCategoryPath(categoryTree, draft.categoryNodeId) ?? [] : []),
-    [categoryTree, draft.categoryNodeId],
-  );
+  const categoryOptions = useMemo(() => toCategoryComboboxOptions(categoryTree), [categoryTree]);
   const brandOptions = useMemo(() => toComboboxOptions(brands), [brands]);
   const supplierOptions = useMemo(() => toComboboxOptions(suppliers), [suppliers]);
   const selectedBrand = brands.find((brand) => brand.id === draft.brandId);
   const selectedSupplier = suppliers.find((supplier) => supplier.id === draft.supplierId);
   const defaultVariant = draft.variants.find((variant) => variant.isDefault) ?? draft.variants[0];
   const activeVariant = draft.variants.find((variant) => variant.id === activeVariantId) ?? defaultVariant ?? draft.variants[0];
-  const activeCostEntry = getActiveCostEntry(activeVariant);
-  const visibleCostEntries = getVisibleCostEntries(activeVariant);
   const activeVariantImage = getVariantImage(draft, activeVariant);
   const activePreviewUrl = draft.sharedImageForAllVariants ? sharedPreviewUrl : (activeVariant ? variantPreviewUrls[activeVariant.id] ?? "" : "");
   const activeImageSrc = activePreviewUrl || activeVariantImage?.thumbnailUrl || activeVariantImage?.url || "";
@@ -1425,35 +530,25 @@ function OpenAddComponentModal({
   const imageBusy = isImageUploadBusy(imageUpload.state);
   const attachmentBusy = isImageUploadBusy(attachmentUpload.state);
   const lifecycleOption = LIFECYCLE_OPTIONS.find((option) => option.value === draft.lifecycleState) ?? LIFECYCLE_OPTIONS[0];
-  const defaultCostEntry = getActiveCostEntry(defaultVariant);
-  const defaultCost = defaultCostEntry && Number.isFinite(parseMoney(defaultCostEntry.unitCost))
-    ? formatAccountingMoney(defaultCostEntry.unitCost)
+  const defaultCost = Number.isFinite(parseMoney(defaultVariant?.unitCost ?? ""))
+    ? formatAccountingMoney(defaultVariant?.unitCost ?? "")
     : "0.00";
+  const selectedCategoryPath = useMemo(
+    () => (draft.categoryNodeId ? findComponentCategoryPath(categoryTree, draft.categoryNodeId) ?? [] : []),
+    [categoryTree, draft.categoryNodeId],
+  );
   const quickAddValidation = useMemo(() => validateQuickAddComponentInput({
     name: draft.name,
     category: draft.category,
-    unit: activeVariant?.unit ?? defaultVariant?.unit ?? "",
-    unitCost: activeCostEntry?.unitCost ?? defaultCostEntry?.unitCost ?? "",
+    unit: defaultVariant?.unit ?? "",
+    unitCost: defaultVariant?.unitCost ?? "",
     supplier: selectedSupplier?.name ?? draft.supplierName,
     brand: selectedBrand?.name ?? draft.brand,
-    pricingDate: activeCostEntry?.pricingDate ?? defaultCostEntry?.pricingDate ?? "",
-    pricingSource: activeCostEntry?.pricingSource ?? defaultCostEntry?.pricingSource ?? "",
-    confidence: activeCostEntry?.confidence ?? defaultCostEntry?.confidence ?? "",
-    libraryFolderId: draft.libraryFolderId || null,
   }), [
-    activeCostEntry?.confidence,
-    activeCostEntry?.pricingDate,
-    activeCostEntry?.pricingSource,
-    activeCostEntry?.unitCost,
-    activeVariant?.unit,
-    defaultCostEntry?.confidence,
-    defaultCostEntry?.pricingDate,
-    defaultCostEntry?.pricingSource,
-    defaultCostEntry?.unitCost,
     defaultVariant?.unit,
+    defaultVariant?.unitCost,
     draft.brand,
     draft.category,
-    draft.libraryFolderId,
     draft.name,
     draft.supplierName,
     selectedBrand?.name,
@@ -1484,67 +579,27 @@ function OpenAddComponentModal({
     selectedBrand?.name,
     selectedSupplier?.name,
   ]);
-  const activeContentConversion = getContentConversionCopy(activeVariant?.unit ?? "");
-  const computedMeasurements = useMemo(() => {
-    const usesContentConversion = unitUsesContentConversion(activeVariant?.unit ?? "");
-    const packageQuantity = readOptionalPositiveNumber(activeVariant?.packageQuantity ?? "");
-      const length = readOptionalNonNegativeNumber(activeVariant?.dimensionLength ?? "");
-      const width = readOptionalNonNegativeNumber(activeVariant?.dimensionWidth ?? "");
-      const height = readOptionalNonNegativeNumber(activeVariant?.dimensionHeight ?? "");
-      const footprintArea = length !== null && !Number.isNaN(length) && width !== null && !Number.isNaN(width)
-        ? roundMeasurement(length * width)
-        : null;
-      const packageArea = footprintArea !== null
-        ? roundMeasurement(footprintArea * (usesContentConversion ? (packageQuantity !== null && !Number.isNaN(packageQuantity) ? packageQuantity : 0) : 1))
-        : null;
-    const volume = footprintArea !== null && height !== null && !Number.isNaN(height)
-      ? roundMeasurement(footprintArea * height)
-      : null;
-    return { footprintArea, packageArea, volume };
-  }, [activeVariant?.dimensionHeight, activeVariant?.dimensionLength, activeVariant?.dimensionWidth, activeVariant?.packageQuantity, activeVariant?.unit]);
   const validation = useMemo(() => {
     const messages: string[] = Object.values(quickAddValidation.errors);
     if (draft.variants.length === 0) messages.push("At least one variant is required.");
     if (draft.variants.filter((variant) => variant.isDefault).length !== 1) messages.push("Exactly one default variant is required.");
     for (const [index, variant] of draft.variants.entries()) {
-      const label = variant.label.trim() || `Variant ${index + 1}`;
-      const currentCostEntry = getActiveCostEntry(variant);
+      const label = variant.label.trim() || `V${index + 1}`;
       if (!variant.label.trim()) messages.push(`${label} name is required.`);
       if (!variant.unit.trim()) messages.push(`${label} unit is required.`);
-      if (!currentCostEntry) messages.push(`${label} needs at least one cost entry.`);
-      if (!Number.isFinite(parseMoney(currentCostEntry?.unitCost ?? "")) || parseMoney(currentCostEntry?.unitCost ?? "") < 0) {
+      if (!Number.isFinite(parseMoney(variant.unitCost)) || parseMoney(variant.unitCost) < 0) {
         messages.push(`${label} cost must be a non-negative number.`);
       }
-      if (variant.costEntries.filter((entry) => !entry.deletedAt && entry.isCurrent).length !== 1) {
-        messages.push(`${label} needs exactly one current cost entry.`);
-      }
-      for (const entry of variant.costEntries.filter((candidate) => !candidate.deletedAt)) {
-        if (!Number.isFinite(parseMoney(entry.unitCost)) || parseMoney(entry.unitCost) < 0) {
-          messages.push(`${label} cost entry must be a non-negative number.`);
-        }
-      }
       if (unitUsesContentConversion(variant.unit) && Number.isNaN(readOptionalPositiveNumber(variant.packageQuantity))) {
-        messages.push(`${label} content quantity must be a positive number when provided.`);
-      }
-      if (Number.isNaN(readOptionalNonNegativeNumber(variant.dimensionLength))) messages.push(`${label} length must be a non-negative number when provided.`);
-      if (Number.isNaN(readOptionalNonNegativeNumber(variant.dimensionWidth))) messages.push(`${label} width must be a non-negative number when provided.`);
-      if (Number.isNaN(readOptionalNonNegativeNumber(variant.dimensionHeight))) messages.push(`${label} height must be a non-negative number when provided.`);
-      if (variant.sourceUrl.trim() && !sanitizeComponentSourceUrl(variant.sourceUrl)) {
-        messages.push(`${label} source URL must use http, https, or an internal path.`);
-      }
-      for (const entry of variant.costEntries.filter((candidate) => !candidate.deletedAt)) {
-        if (entry.sourceUrl.trim() && !sanitizeComponentSourceUrl(entry.sourceUrl)) {
-          messages.push(`${label} cost entry source URL must use http, https, or an internal path.`);
-        }
+        messages.push(`${label} equivalent quantity must be a positive number when provided.`);
       }
     }
     return messages;
-  }, [draft, quickAddValidation.errors]);
+  }, [draft.variants, quickAddValidation.errors]);
 
   useEffect(() => {
-    const focusFrame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
-    return () => window.cancelAnimationFrame(focusFrame);
-  }, []);
+    draftRef.current = draft;
+  }, [draft]);
 
   useEffect(() => {
     variantPreviewUrlsRef.current = variantPreviewUrls;
@@ -1554,16 +609,26 @@ function OpenAddComponentModal({
     sharedPreviewUrlRef.current = sharedPreviewUrl;
   }, [sharedPreviewUrl]);
 
+  useEffect(() => {
+    const focusFrame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, []);
+
   useEffect(() => () => {
     Object.values(variantPreviewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
     if (sharedPreviewUrlRef.current) URL.revokeObjectURL(sharedPreviewUrlRef.current);
     if (duplicateCheckTimerRef.current !== null) window.clearTimeout(duplicateCheckTimerRef.current);
   }, []);
 
-  function updateDraft(update: Partial<ComponentDraft>) {
+  function markDirty() {
     dirtyRef.current = true;
-    setDraft((current) => ({ ...current, ...update }));
     setError("");
+    setSubmitAttempted(false);
+  }
+
+  function updateDraft(update: Partial<ComponentDraft>) {
+    markDirty();
+    setDraft((current) => ({ ...current, ...update }));
   }
 
   function updateQuickAddIdentity(update: Partial<ComponentDraft>) {
@@ -1580,43 +645,12 @@ function OpenAddComponentModal({
     }, 300);
   }
 
-  function getFolderCategoryDraft(nextFolders: LibraryFolderRecord[], folderId: string | null) {
-    const categoryNodeId = resolveFolderCategoryNodeId(nextFolders, folderId);
-    const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
-    const category = categoryPath.at(-1) ?? "";
-    return {
-      categoryNodeId,
-      ...(category ? { category } : {}),
-    };
-  }
-
-  const handleCreateFolder: CreateLibraryFolderHandler | undefined = onCreateFolder
-    ? (parentId, options) => {
-        onCreateFolder(parentId, {
-          placement: options?.placement,
-          onCreated: (folder) => {
-            options?.onCreated?.(folder);
-            const nextFolders = [...userFolders.filter((entry) => entry.id !== folder.id), folder];
-            updateQuickAddIdentity({
-              libraryFolderId: folder.id,
-              ...getFolderCategoryDraft(nextFolders, folder.id),
-            });
-          },
-        });
-      }
-    : undefined;
-
   function updateVariant(variantId: string, update: Partial<VariantDraft>) {
-    dirtyRef.current = true;
-    setDraft((current) => {
-      return {
-        ...current,
-        variants: current.variants.map((variant) => (
-          variant.id === variantId ? { ...variant, ...update } : variant
-        )),
-      };
-    });
-    setError("");
+    markDirty();
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => (variant.id === variantId ? { ...variant, ...update } : variant)),
+    }));
   }
 
   function updateActiveVariant(update: Partial<VariantDraft>) {
@@ -1632,21 +666,19 @@ function OpenAddComponentModal({
   }
 
   function addVariant() {
-    dirtyRef.current = true;
+    markDirty();
     const nextVariant = makeVariantDraft(draft.variants.length + 1, {
       unit: defaultVariant?.unit ?? "unit",
-      dimensionUnit: defaultVariant?.dimensionUnit ?? "m",
     });
-    setDraft((current) => {
-      return { ...current, variants: [...current.variants, nextVariant] };
-    });
+    setDraft((current) => ({ ...current, variants: [...current.variants, nextVariant] }));
     setActiveVariantId(nextVariant.id);
-    setError("");
+    setVariantDrawerOpen(true);
+    setVariantDrawerView("variant");
   }
 
   function removeActiveVariant() {
     if (!activeVariant || draft.variants.length <= 1) return;
-    dirtyRef.current = true;
+    markDirty();
     const removedImage = draft.sharedImageForAllVariants ? null : activeVariant.image;
     const removedAttachments = activeVariant.attachments;
     const removedIndex = draft.variants.findIndex((variant) => variant.id === activeVariant.id);
@@ -1658,29 +690,21 @@ function OpenAddComponentModal({
     setDraft((current) => ({ ...current, variants: ensuredVariants }));
     setActiveVariantId(nextActive?.id ?? "");
     if (removedImage) void removeComponentImageUpload(removedImage);
-    for (const attachment of removedAttachments) {
-      void removeComponentAttachmentUpload(attachment);
-    }
-    setError("");
+    for (const attachment of removedAttachments) void removeComponentAttachmentUpload(attachment);
   }
 
   function setActiveVariantAsDefault() {
     if (!activeVariant) return;
-    dirtyRef.current = true;
+    markDirty();
     setDraft((current) => ({
       ...current,
       variants: current.variants.map((variant) => ({ ...variant, isDefault: variant.id === activeVariant.id })),
     }));
-    setError("");
   }
 
   function cleanupUploadedDraftAssets() {
-    for (const image of collectDraftImages(draft)) {
-      void removeComponentImageUpload(image);
-    }
-    for (const attachment of collectDraftAttachments(draft)) {
-      void removeComponentAttachmentUpload(attachment);
-    }
+    for (const image of collectDraftImages(draftRef.current)) void removeComponentImageUpload(image);
+    for (const attachment of collectDraftAttachments(draftRef.current)) void removeComponentAttachmentUpload(attachment);
   }
 
   function requestClose(openValue: boolean) {
@@ -1713,7 +737,7 @@ function OpenAddComponentModal({
       return;
     }
     if (file.size > MAX_CLIENT_SOURCE_IMAGE_BYTES) {
-      setImageUpload({ state: "error", message: "Choose an image under 20 MB. Large images are converted before upload." });
+      setImageUpload({ state: "error", message: "Choose an image under 20 MB." });
       return;
     }
 
@@ -1727,13 +751,12 @@ function OpenAddComponentModal({
       if (existingPreviewUrl) URL.revokeObjectURL(existingPreviewUrl);
       setVariantPreviewUrls((current) => ({ ...current, [activeVariant.id]: localPreviewUrl }));
     }
-    dirtyRef.current = true;
-    setError("");
-    setImageUpload({ state: "processing", message: "Optimizing image before upload..." });
+    markDirty();
+    setImageUpload({ state: "processing", message: "Optimizing image..." });
 
     try {
       const uploadFile = await resizeImageForUpload(file).catch(() => file);
-      setImageUpload({ state: "uploading", message: "Uploading optimized image to Supabase Storage..." });
+      setImageUpload({ state: "uploading", message: "Uploading image..." });
       const uploadedImage = await uploadComponentImage(uploadFile);
       if (!isUsableUploadResponse(uploadedImage)) throw new Error("Image upload response was incomplete.");
       const imageDraft = toVariantImageDraft(uploadedImage);
@@ -1743,9 +766,7 @@ function OpenAddComponentModal({
         updateActiveVariant({ image: imageDraft });
         if (activeVariant.isDefault) updateDraft({ thumbnailPath: imageDraft.thumbnailUrl || imageDraft.url });
       }
-      if (previousImage && !isSameStoredImage(previousImage, imageDraft)) {
-        void removeComponentImageUpload(previousImage);
-      }
+      if (previousImage && previousImage.path !== imageDraft.path) void removeComponentImageUpload(previousImage);
       setImageUpload({
         state: "uploaded",
         message: `Stored WebP thumbnail (${formatBytes(uploadedImage.originalBytes)} -> ${formatBytes(uploadedImage.optimizedBytes)}).`,
@@ -1759,23 +780,14 @@ function OpenAddComponentModal({
 
   async function handleAttachmentUpload(file: File) {
     if (!activeVariant) return;
-    const validation = validateComponentAttachmentFile(file);
-    if (!validation.ok) {
-      setAttachmentUpload({ state: "error", message: validation.message });
+    const uploadValidation = validateComponentAttachmentFile(file);
+    if (!uploadValidation.ok) {
+      setAttachmentUpload({ state: "error", message: uploadValidation.message });
       return;
     }
 
-    dirtyRef.current = true;
-    setError("");
-    setAttachmentUpload({
-      state: "uploading",
-      message: validation.uploadMode === "tus_resumable"
-        ? "Uploading attachment with a resumable storage session..."
-        : validation.uploadMode === "signed_single_part"
-          ? "Uploading attachment with a signed storage session..."
-          : "Uploading attachment to Supabase Storage...",
-    });
-
+    markDirty();
+    setAttachmentUpload({ state: "uploading", message: "Uploading attachment..." });
     try {
       const uploaded = await uploadComponentAttachment(file);
       updateActiveVariant({
@@ -1791,8 +803,6 @@ function OpenAddComponentModal({
             uploadSessionId: uploaded.uploadSessionId,
             assetId: uploaded.assetId,
             scanStatus: uploaded.scanStatus ?? "pending",
-            reviewStatus: "pending",
-            isCurrentApproved: false,
           },
         ],
       });
@@ -1800,6 +810,15 @@ function OpenAddComponentModal({
     } catch (uploadError) {
       setAttachmentUpload({ state: "error", message: uploadError instanceof Error ? uploadError.message : "Could not upload attachment." });
     }
+  }
+
+  function removeAttachment(attachmentId: string) {
+    if (!activeVariant) return;
+    const removedAttachment = activeVariant.attachments.find((attachment) => attachment.id === attachmentId);
+    updateActiveVariant({
+      attachments: activeVariant.attachments.filter((attachment) => attachment.id !== attachmentId),
+    });
+    if (removedAttachment) void removeComponentAttachmentUpload(removedAttachment);
   }
 
   function setSharedImageMode(checked: boolean) {
@@ -1818,188 +837,13 @@ function OpenAddComponentModal({
     updateDraft({ sharedImageForAllVariants: false });
   }
 
-  function removeAttachment(attachmentId: string) {
-    if (!activeVariant) return;
-    const removedAttachment = activeVariant.attachments.find((attachment) => attachment.id === attachmentId);
-    updateActiveVariant({
-      attachments: activeVariant.attachments.filter((attachment) => attachment.id !== attachmentId),
+  function selectCategory(change: { id: string | null; label: string }) {
+    const categoryNodeId = change.id ?? "";
+    const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
+    updateQuickAddIdentity({
+      category: categoryPath.at(-1) ?? change.label,
+      categoryNodeId,
     });
-    if (removedAttachment) void removeComponentAttachmentUpload(removedAttachment);
-  }
-
-  function updateActiveCostEntry(update: Partial<VariantCostEntryDraft>) {
-    if (!activeVariant || !activeCostEntry) return;
-    const timestamp = new Date().toISOString();
-    const updatedEntry = {
-      ...activeCostEntry,
-      ...update,
-      isCurrent: true,
-      createdAt: activeCostEntry.createdAt ?? timestamp,
-      updatedAt: timestamp,
-    };
-    updateActiveVariant({
-      ...("unitCost" in update ? { unitCost: updatedEntry.unitCost } : {}),
-      ...("miscCost" in update ? { miscCost: updatedEntry.miscCost } : {}),
-      ...("pricingSource" in update ? { pricingSource: updatedEntry.pricingSource } : {}),
-      ...("pricingDate" in update ? { pricingDate: updatedEntry.pricingDate } : {}),
-      ...("confidence" in update ? { confidence: updatedEntry.confidence } : {}),
-      ...("sourceUrl" in update ? { sourceUrl: updatedEntry.sourceUrl } : {}),
-      ...("notes" in update ? { notes: updatedEntry.notes } : {}),
-      activeCostEntryId: updatedEntry.id,
-      costEntries: activeVariant.costEntries.map((entry) => (
-        entry.id === updatedEntry.id ? updatedEntry : { ...entry, isCurrent: false }
-      )),
-    });
-  }
-
-  function addCostEntry() {
-    if (!activeVariant) return;
-    const sourceEntry = activeCostEntry;
-    const nextEntry = makeCostEntryDraft({
-      unitCost: sourceEntry?.unitCost || "0.00",
-      miscCost: sourceEntry?.miscCost ?? "0",
-      pricingSource: sourceEntry?.pricingSource ?? "",
-      pricingDate: today(),
-      confidence: sourceEntry?.confidence ?? "medium",
-      sourceUrl: sourceEntry?.sourceUrl ?? "",
-      notes: sourceEntry?.notes ?? "",
-      isCurrent: true,
-    });
-    dirtyRef.current = true;
-    setDraft((current) => ({
-      ...current,
-      variants: current.variants.map((variant) => {
-        if (variant.id !== activeVariant.id) return variant;
-        return {
-          ...variant,
-          unitCost: nextEntry.unitCost,
-          miscCost: nextEntry.miscCost,
-          pricingSource: nextEntry.pricingSource,
-          pricingDate: nextEntry.pricingDate,
-          confidence: nextEntry.confidence,
-          sourceUrl: nextEntry.sourceUrl,
-          notes: nextEntry.notes,
-          activeCostEntryId: nextEntry.id,
-          costEntries: [
-            ...variant.costEntries.map((entry) => ({ ...entry, isCurrent: false })),
-            nextEntry,
-          ],
-        };
-      }),
-    }));
-    costEditBaselineRef.current = { variantId: activeVariant.id, entry: { ...nextEntry } };
-    setCostPickerOpen(false);
-    setError("");
-  }
-
-  function beginCostEdit() {
-    if (!activeVariant || !activeCostEntry) return;
-    const currentBaseline = costEditBaselineRef.current;
-    if (currentBaseline?.variantId === activeVariant.id && currentBaseline.entry.id === activeCostEntry.id) return;
-    costEditBaselineRef.current = { variantId: activeVariant.id, entry: { ...activeCostEntry } };
-  }
-
-  function commitCostInputEntry() {
-    if (!activeVariant || !activeCostEntry) return;
-    const parsedCost = parseMoney(activeCostEntry.unitCost);
-    if (!Number.isFinite(parsedCost) || parsedCost < 0) return;
-
-    const formattedCost = formatAccountingMoney(activeCostEntry.unitCost);
-    const baseline = costEditBaselineRef.current;
-    const baselineMatches = baseline?.variantId === activeVariant.id && baseline.entry.id === activeCostEntry.id;
-    const baselineCost = parseMoney(baseline?.entry.unitCost ?? "");
-
-    if (baselineMatches && Number.isFinite(baselineCost) && baselineCost >= 0 && baselineCost !== parsedCost) {
-      const nextEntry = makeCostEntryDraft({
-        unitCost: formattedCost,
-        miscCost: activeCostEntry.miscCost,
-        pricingSource: activeCostEntry.pricingSource,
-        pricingDate: today(),
-        confidence: activeCostEntry.confidence,
-        sourceUrl: activeCostEntry.sourceUrl,
-        notes: activeCostEntry.notes,
-        isCurrent: true,
-      });
-      dirtyRef.current = true;
-      setDraft((current) => ({
-        ...current,
-        variants: current.variants.map((variant) => {
-          if (variant.id !== activeVariant.id) return variant;
-          return {
-            ...variant,
-            unitCost: nextEntry.unitCost,
-            miscCost: nextEntry.miscCost,
-            pricingSource: nextEntry.pricingSource,
-            pricingDate: nextEntry.pricingDate,
-            confidence: nextEntry.confidence,
-            sourceUrl: nextEntry.sourceUrl,
-            notes: nextEntry.notes,
-            activeCostEntryId: nextEntry.id,
-            costEntries: [
-              ...variant.costEntries.map((entry) => (
-                entry.id === activeCostEntry.id ? { ...baseline.entry, isCurrent: false } : { ...entry, isCurrent: false }
-              )),
-              nextEntry,
-            ],
-          };
-        }),
-      }));
-      costEditBaselineRef.current = { variantId: activeVariant.id, entry: { ...nextEntry } };
-    } else {
-      const pricingDate = activeCostEntry.pricingDate || today();
-      updateActiveCostEntry({ unitCost: formattedCost, pricingDate });
-      costEditBaselineRef.current = {
-        variantId: activeVariant.id,
-        entry: { ...activeCostEntry, unitCost: formattedCost, pricingDate, isCurrent: true },
-      };
-    }
-
-    setError("");
-  }
-
-  function selectCostEntry(entryId: string) {
-    if (!activeVariant) return;
-    const entry = activeVariant.costEntries.find((candidate) => candidate.id === entryId && !candidate.deletedAt);
-    if (!entry) return;
-    updateActiveVariant({
-      unitCost: entry.unitCost,
-      miscCost: entry.miscCost,
-      pricingSource: entry.pricingSource,
-      pricingDate: entry.pricingDate,
-      confidence: entry.confidence,
-      sourceUrl: entry.sourceUrl,
-      notes: entry.notes,
-      activeCostEntryId: entry.id,
-      costEntries: activeVariant.costEntries.map((candidate) => ({ ...candidate, isCurrent: candidate.id === entry.id })),
-    });
-    costEditBaselineRef.current = { variantId: activeVariant.id, entry: { ...entry, isCurrent: true } };
-    setCostPickerOpen(false);
-  }
-
-  function deleteCostEntry(entryId: string) {
-    if (!activeVariant || visibleCostEntries.length <= 1) return;
-    const remainingEntries = activeVariant.costEntries.filter((entry) => !entry.deletedAt && entry.id !== entryId);
-    const nextCurrent = activeVariant.activeCostEntryId === entryId ? remainingEntries[0] : getActiveCostEntry(activeVariant);
-    updateActiveVariant({
-      ...(nextCurrent ? {
-        unitCost: nextCurrent.unitCost,
-        miscCost: nextCurrent.miscCost,
-        pricingSource: nextCurrent.pricingSource,
-        pricingDate: nextCurrent.pricingDate,
-        confidence: nextCurrent.confidence,
-        sourceUrl: nextCurrent.sourceUrl,
-        notes: nextCurrent.notes,
-        activeCostEntryId: nextCurrent.id,
-      } : {}),
-      costEntries: activeVariant.costEntries.map((entry) => {
-        if (entry.id === entryId) {
-          const timestamp = new Date().toISOString();
-          return { ...entry, isCurrent: false, deletedAt: timestamp, updatedAt: timestamp };
-        }
-        return { ...entry, isCurrent: nextCurrent ? entry.id === nextCurrent.id : entry.isCurrent };
-      }),
-    });
-    if (nextCurrent) costEditBaselineRef.current = { variantId: activeVariant.id, entry: { ...nextCurrent, isCurrent: true } };
   }
 
   function buildOptimisticItem(result: {
@@ -2009,14 +853,54 @@ function OpenAddComponentModal({
     priceOptions?: Array<{ id: string; label: string; isDefault: boolean }>;
   }): EstimateRowItem {
     const variant = defaultVariant;
-    const variantCost = getActiveCostEntry(variant);
     const variantImage = getVariantImage(draft, variant);
-    const itemCost = parseMoney(variantCost?.unitCost ?? variant?.unitCost ?? "0");
-    const miscCost = parseMoney(variantCost?.miscCost ?? variant?.miscCost ?? "0");
+    const itemCost = parseMoney(variant?.unitCost ?? "0");
     const supplierName = selectedSupplier?.name ?? draft.supplierName;
     const brandName = selectedBrand?.name ?? draft.brand;
     const category = draft.category.trim();
     const persistedOptions = result.priceOptions ?? [];
+    const priceOptions = draft.variants.map((entry, index) => {
+      const persistedOption = persistedOptions.find((option) => option.label === entry.label) ?? (entry.isDefault && result.activePriceOptionId
+        ? { id: result.activePriceOptionId, label: entry.label, isDefault: true }
+        : null);
+      const image = getVariantImage(draft, entry);
+      return {
+        id: persistedOption?.id ?? `optimistic-${entry.id}`,
+        label: entry.label,
+        sku: entry.sku || null,
+        variantDescription: entry.description,
+        variantSortOrder: index + 1,
+        unit: entry.unit,
+        unitCost: parseMoney(entry.unitCost),
+        miscCost: 0,
+        currency: "PHP",
+        pricingSource: null,
+        pricingDate: today(),
+        confidence: null,
+        sourceUrl: null,
+        notes: null,
+        supplierId: draft.supplierId || null,
+        packageQuantity: unitUsesContentConversion(entry.unit) ? readOptionalPositiveNumber(entry.packageQuantity) : null,
+        packageUnit: unitUsesContentConversion(entry.unit) ? entry.packageUnit || null : null,
+        imageBucket: image?.bucket,
+        imagePath: image?.path,
+        thumbnailPath: image?.thumbnailUrl || image?.thumbnailPath,
+        imageMetadata: buildImageMetadata(image),
+        attachments: entry.attachments.map((attachment) => ({
+          id: attachment.id,
+          bucket: attachment.bucket,
+          path: attachment.path,
+          fileName: attachment.fileName,
+          contentType: attachment.contentType,
+          sizeBytes: attachment.sizeBytes,
+          kind: getAttachmentKind(attachment.contentType),
+        })),
+        variantMetadata: {},
+        isActive: true,
+        isDefault: entry.isDefault,
+      };
+    });
+
     return {
       id: result.itemId ?? crypto.randomUUID(),
       material: draft.name.trim(),
@@ -2031,85 +915,21 @@ function OpenAddComponentModal({
       currency: "PHP",
       quantity: 1,
       subTotal: itemCost,
-      miscCost,
-      miscCostDefault: miscCost,
-      totalItemCosts: itemCost + miscCost,
+      miscCost: 0,
+      miscCostDefault: 0,
+      totalItemCosts: itemCost,
       imageUrl: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || draft.thumbnailPath || undefined,
       category,
       categoryNodeId: draft.categoryNodeId || undefined,
       categoryPath: selectedCategoryPath,
-      libraryFolderId: draft.libraryFolderId || undefined,
       brand: brandName || undefined,
       brandId: draft.brandId || undefined,
       sku: variant?.sku || undefined,
-      sourceUrl: variant?.sourceUrl || undefined,
       sourceLibraryItemId: result.itemId,
       componentVersionNumber: result.versionNumber,
       priceOptionId: result.activePriceOptionId,
       priceOptionLabel: variant?.label,
-      priceOptions: draft.variants.map((entry, index) => {
-        const persistedOption = persistedOptions.find((option) => option.label === entry.label) ?? (entry.isDefault && result.activePriceOptionId
-          ? { id: result.activePriceOptionId, label: entry.label, isDefault: true }
-          : null);
-        const costEntry = getActiveCostEntry(entry);
-        const image = getVariantImage(draft, entry);
-        return {
-          id: persistedOption?.id ?? `optimistic-${entry.id}`,
-          label: entry.label,
-          sku: entry.sku || null,
-          variantDescription: entry.description,
-          variantSortOrder: index + 1,
-          unit: entry.unit,
-          unitCost: parseMoney(costEntry?.unitCost ?? entry.unitCost),
-          miscCost: parseMoney(costEntry?.miscCost ?? entry.miscCost),
-          currency: "PHP",
-          pricingSource: costEntry?.pricingSource ?? entry.pricingSource,
-          pricingDate: costEntry?.pricingDate ?? entry.pricingDate,
-          confidence: costEntry?.confidence ?? entry.confidence,
-          sourceUrl: costEntry?.sourceUrl ?? entry.sourceUrl,
-          notes: costEntry?.notes ?? entry.notes,
-          supplierId: draft.supplierId || null,
-          activeCostEntryId: costEntry?.id,
-          costEntries: filterMapBy(
-            entry.costEntries,
-            (candidate) => !candidate.deletedAt,
-            (candidate) => ({
-              id: candidate.id,
-              unitCost: parseMoney(candidate.unitCost),
-              miscCost: parseMoney(candidate.miscCost),
-              currency: "PHP",
-              pricingSource: candidate.pricingSource,
-              pricingDate: candidate.pricingDate,
-              confidence: candidate.confidence,
-              sourceUrl: candidate.sourceUrl,
-              notes: candidate.notes,
-              isCurrent: candidate.id === costEntry?.id,
-            }),
-          ),
-          packageQuantity: unitUsesContentConversion(entry.unit) ? readOptionalPositiveNumber(entry.packageQuantity) : null,
-          packageUnit: unitUsesContentConversion(entry.unit) ? entry.packageUnit || null : null,
-          dimensionLength: readOptionalPositiveNumber(entry.dimensionLength),
-          dimensionWidth: readOptionalPositiveNumber(entry.dimensionWidth),
-          dimensionHeight: readOptionalPositiveNumber(entry.dimensionHeight),
-          dimensionUnit: entry.dimensionUnit || null,
-          imageBucket: image?.bucket,
-          imagePath: image?.path,
-          thumbnailPath: image?.thumbnailUrl || image?.thumbnailPath,
-          imageMetadata: buildImageMetadata(image),
-          attachments: entry.attachments.map((attachment) => ({
-            id: attachment.id,
-            bucket: attachment.bucket,
-            path: attachment.path,
-            fileName: attachment.fileName,
-            contentType: attachment.contentType,
-            sizeBytes: attachment.sizeBytes,
-            kind: getAttachmentKind(attachment.contentType),
-          })),
-          variantMetadata: {},
-          isActive: true,
-          isDefault: entry.isDefault,
-        };
-      }),
+      priceOptions,
       lifecycleState: draft.lifecycleState,
       lifecycleStateChangedAt: draft.effectiveAt,
       history: [{
@@ -2124,100 +944,55 @@ function OpenAddComponentModal({
       notes: draft.changeReason,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      pricingSource: variantCost?.pricingSource || variant?.pricingSource || supplierName || "Component library",
-      pricingDate: variantCost?.pricingDate || variant?.pricingDate || today(),
-      confidence: variantCost?.confidence || variant?.confidence || undefined,
+      pricingSource: supplierName || "Component library",
+      pricingDate: today(),
+      confidence: undefined,
       isCustom: true,
     };
   }
 
   function submit() {
+    setSubmitAttempted(true);
     if (imageBusy || attachmentBusy) {
       setError("Wait for uploads to finish before adding this component.");
       return;
     }
     if (validation.length > 0 || isPending) {
-      setError(validation[0] ?? "Please resolve validation errors before adding this component.");
+      setError("");
       return;
     }
     const fallbackVariant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
-    const defaultVariantMeasurements = (() => {
-      const usesContentConversion = unitUsesContentConversion(fallbackVariant?.unit ?? "");
-      const packageQuantity = readOptionalPositiveNumber(fallbackVariant?.packageQuantity ?? "");
-      const length = readOptionalPositiveNumber(fallbackVariant?.dimensionLength ?? "");
-      const width = readOptionalPositiveNumber(fallbackVariant?.dimensionWidth ?? "");
-      const height = readOptionalPositiveNumber(fallbackVariant?.dimensionHeight ?? "");
-      const footprintArea = length !== null && !Number.isNaN(length) && width !== null && !Number.isNaN(width)
-        ? roundMeasurement(length * width)
-        : null;
-      const packageArea = footprintArea !== null
-        ? roundMeasurement(footprintArea * (usesContentConversion ? (packageQuantity !== null && !Number.isNaN(packageQuantity) ? packageQuantity : 0) : 1))
-        : null;
-      const volume = footprintArea !== null && height !== null && !Number.isNaN(height)
-        ? roundMeasurement(footprintArea * height)
-        : null;
-      return { footprintArea, packageArea, volume };
-    })();
     const defaultVariantImage = getVariantImage(draft, fallbackVariant);
     const defaultThumbnailPath = defaultVariantImage?.thumbnailUrl || defaultVariantImage?.thumbnailPath || null;
-
     const payload: CreateCostLibraryComponentInput = {
+      fieldContract: "opendesign-add-component",
       name: draft.name,
-      description: fallbackVariant?.description ?? "",
+      description: fallbackVariant.description,
       category: draft.category.trim(),
       categoryNodeId: draft.categoryNodeId,
       supplier: selectedSupplier?.name ?? draft.supplierName,
       supplierId: draft.supplierId || null,
       brand: (selectedBrand?.name ?? draft.brand) || null,
       brandId: draft.brandId || null,
-      unit: fallbackVariant?.unit ?? "unit",
+      unit: fallbackVariant.unit || "unit",
       thumbnailPath: defaultThumbnailPath,
-      libraryFolderId: draft.libraryFolderId || null,
       lifecycleState: draft.lifecycleState,
       effectiveAt: draft.effectiveAt,
       changeReason: draft.changeReason,
-      metadata: buildComponentMetadata(fallbackVariant, defaultVariantMeasurements),
+      metadata: {},
       priceOptions: draft.variants.map((variant, index) => {
-        const costEntry = getActiveCostEntry(variant);
         const variantImage = getVariantImage(draft, variant);
         return {
           label: variant.label,
           sku: variant.sku || null,
           variantDescription: variant.description,
           variantSortOrder: index + 1,
-          unit: variant.unit || fallbackVariant?.unit || "unit",
-          unitCost: parseMoney(costEntry?.unitCost ?? variant.unitCost),
-          miscCost: parseMoney(costEntry?.miscCost ?? variant.miscCost),
+          unit: variant.unit || fallbackVariant.unit || "unit",
+          unitCost: parseMoney(variant.unitCost),
           currency: "PHP",
-          pricingSource: costEntry?.pricingSource ?? variant.pricingSource,
-          pricingDate: costEntry?.pricingDate ?? variant.pricingDate,
-          confidence: costEntry?.confidence ?? variant.confidence,
-          sourceUrl: costEntry?.sourceUrl ?? variant.sourceUrl,
-          notes: costEntry?.notes ?? variant.notes,
           supplierId: draft.supplierId || null,
-          activeCostEntryId: costEntry?.id ?? null,
-          costEntries: filterMapBy(
-            variant.costEntries,
-            (entry) => !entry.deletedAt,
-            (entry) => ({
-              clientId: entry.id,
-              unitCost: parseMoney(entry.unitCost),
-              miscCost: parseMoney(entry.miscCost),
-              currency: "PHP",
-              pricingSource: entry.pricingSource,
-              pricingDate: entry.pricingDate,
-              confidence: entry.confidence,
-              sourceUrl: entry.sourceUrl,
-              notes: entry.notes,
-              isCurrent: entry.id === costEntry?.id,
-            }),
-          ),
           packageQuantity: unitUsesContentConversion(variant.unit) ? readOptionalPositiveNumber(variant.packageQuantity) : null,
           packageUnit: unitUsesContentConversion(variant.unit) ? variant.packageUnit || null : null,
-          dimensionLength: readOptionalPositiveNumber(variant.dimensionLength),
-          dimensionWidth: readOptionalPositiveNumber(variant.dimensionWidth),
-          dimensionHeight: readOptionalPositiveNumber(variant.dimensionHeight),
-          dimensionUnit: variant.dimensionUnit || null,
           imageBucket: variantImage?.bucket ?? null,
           imagePath: variantImage?.path ?? null,
           thumbnailPath: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || null,
@@ -2230,7 +1005,6 @@ function OpenAddComponentModal({
             sizeBytes: attachment.sizeBytes,
             kind: getAttachmentKind(attachment.contentType),
           })),
-          variantMetadata: {},
           isDefault: variant.isDefault,
           isActive: true,
           effectiveAt: draft.effectiveAt,
@@ -2252,646 +1026,706 @@ function OpenAddComponentModal({
     });
   }
 
+  const showValidationErrors = submitAttempted && validation.length > 0;
+  const visibleValidationErrors: Partial<typeof quickAddValidation.errors> = showValidationErrors ? quickAddValidation.errors : {};
+  const componentStatus = error || (showValidationErrors ? "Complete the required fields before adding this component." : "Ready to add component.");
+  const unitLabel = getUnitDisplayLabel(activeVariant?.unit ?? "") || activeVariant?.unit || "unit";
+  const showActiveVariantEquivalency = activeVariant ? unitUsesContentConversion(activeVariant.unit) : false;
+  const showMainCostSection = !(variantDrawerOpen && variantDrawerView === "variant");
+
   return (
     <>
-    <Modal
-      open={open}
-      title="Add Component"
-      description="Create a persisted, versioned library component."
-      onOpenChange={requestClose}
-      className="max-w-7xl"
-      bodyClassName="p-0"
-      closeLabel="Close add component modal"
-    >
-      <div className="flex h-[78dvh] min-h-[560px] max-h-[760px] flex-col">
-        <div className="shrink-0">
-          <WorkshopTreeTabs
-            tabs={ADD_COMPONENT_MODAL_TABS}
-            activeTab={activeTab}
-            ariaLabel="Add component sections"
-            onTabChange={setActiveTab}
-          />
-        </div>
-
-        {activeTab === "component" ? (
-          <div
-            id={componentTabPanelId}
-            role="tabpanel"
-            aria-label="Component"
-            className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[408px_minmax(0,1fr)_304px]"
-          >
-          <aside className="min-h-0 overflow-auto border-b border-hairline bg-white p-3 lg:col-start-1 lg:border-b-0 lg:border-r" aria-label="Component image">
-            <div className="flex h-full min-h-0 flex-col gap-2">
-              <div className="relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-xs border border-dashed border-divider bg-white text-tertiary">
-                {activeImageSrc ? (
-                  <Image
-                    src={activeImageSrc}
-                    alt="Component thumbnail preview"
-                    fill
-                    sizes="408px"
-                    className="object-cover"
-                    unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
-                  />
-                ) : (
-                  <div className="grid justify-items-center gap-1 px-3 text-center">
-                    <ImageSquare size={34} weight="regular" aria-hidden="true" />
-                    <span className="text-[10px] font-medium leading-4 text-ink">Thumbnail</span>
-                    <span className="max-w-48 text-[9px] font-medium leading-3 text-tertiary">
-                      Upload a square reference image for this component.
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="grid gap-1">
-                <span className="block min-h-3 truncate text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Upload thumbnail</span>
-                <input
-                  id={thumbnailInputId}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"
-                  aria-label="Upload thumbnail"
-                  disabled={imageBusy}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.currentTarget.value = "";
-                    if (!file) return;
-                    void handleThumbnailUpload(file);
-                  }}
-                  className="sr-only"
-                />
-                <label
-                  htmlFor={thumbnailInputId}
-                  className="inline-flex min-h-8 cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
-                >
-                  <UploadSimple size={12} weight="regular" aria-hidden="true" />
-                  Choose image
-                </label>
-                <label className="flex min-h-6 items-center gap-2 rounded-xs px-1 text-[10px] font-medium normal-case tracking-normal text-ink">
-                  <input
-                    type="checkbox"
-                    aria-label="Use same image for all variants"
-                    checked={draft.sharedImageForAllVariants}
-                    onChange={(event) => setSharedImageMode(event.target.checked)}
-                    className="size-3 rounded-xs border-hairline accent-ink"
-                  />
-                  <span>Use same image for all variants</span>
-                </label>
-                {activeImagePath ? (
-                  <span className="truncate text-[9px] normal-case leading-3 tracking-normal text-tertiary">{activeImagePath}</span>
-                ) : (
-                  <span className="text-[9px] normal-case leading-3 tracking-normal text-tertiary">JPG, PNG, WebP, or AVIF. Large files are converted to WebP before storage.</span>
-                )}
-                {imageUpload.state !== "idle" ? (
-                  <span
-                    role={imageUpload.state === "error" ? "alert" : "status"}
-                    className={cn(
-                      "text-[9px] normal-case leading-3 tracking-normal",
-                      imageUpload.state === "error" ? "text-danger" : "text-tertiary",
-                    )}
-                  >
-                    {imageUpload.message}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          </aside>
-
-          <div className="flex min-h-0 flex-col lg:col-start-2">
-            <div className="shrink-0 border-b border-hairline bg-white px-3 py-2" aria-label="Selected nesting path">
-              <div className="text-[9px] font-medium uppercase tracking-normal text-tertiary">NEST COMPONENT UNDER</div>
-              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 pl-2 text-[10px] leading-4">
-                {selectedFolderPath.length > 0 ? (
-                  selectedFolderPath.map((segment, index) => {
-                    const selected = index === selectedFolderPath.length - 1;
-                    return (
-                      <span key={`${segment}-${index}`} className="inline-flex min-w-0 items-center gap-1">
-                        {index > 0 ? <span className="font-normal text-tertiary">/</span> : null}
-                        <span className={cn("max-w-[20rem] truncate", selected ? "font-medium text-ink" : "font-normal text-tertiary")}>
-                          {segment}
-                        </span>
-                      </span>
-                    );
-                  })
-                ) : (
-                  <span className="font-normal text-tertiary">No folder selected</span>
-                )}
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-auto p-3">
-              <div className="grid gap-3">
-              <section className="grid gap-2" role="form" aria-label="Quick add component">
-                <div className="grid gap-x-2 gap-y-3 md:grid-cols-2" aria-label="Component information fields">
-                  <ControlField label="Name" className="md:col-span-2" required errorText={quickAddValidation.errors.name}>
-                    <ControlInput
-                      ref={initialFocusRef}
-                      aria-label="Name"
-                      data-dialog-initial-focus
-                      value={draft.name}
-                      onBlur={scheduleDuplicateCheck}
-                      onChange={(event) => updateQuickAddIdentity({ name: event.target.value })}
-                      aria-required="true"
-                      invalid={Boolean(quickAddValidation.errors.name)}
-                      className={CONTROL_INPUT_SURFACE_CLASS}
-                    />
-                  </ControlField>
-                  <ControlField label="Category" required errorText={quickAddValidation.errors.category}>
-                    <ControlInput
-                      aria-label="Category"
-                      value={draft.category}
-                      onChange={(event) => updateQuickAddIdentity({ category: event.target.value })}
-                      aria-required="true"
-                      invalid={Boolean(quickAddValidation.errors.category)}
-                      className={CONTROL_INPUT_SURFACE_CLASS}
-                    />
-                  </ControlField>
-                  <ControlField as="div" label="Brand" errorText={quickAddValidation.errors.brand}>
-                    <CreatableCombobox
-                      ariaLabel="Brand"
-                      value={selectedBrand?.name ?? draft.brand}
-                      selectedId={draft.brandId || null}
-                      options={brandOptions}
-                      placeholder="Search or add brand"
-                      emptyLabel="No brands yet"
-                      invalid={Boolean(quickAddValidation.errors.brand)}
-                      onChange={(change) => {
-                        updateQuickAddIdentity({ brandId: change.id ?? "", brand: change.label });
-                      }}
-                    />
-                  </ControlField>
-                  <ControlField as="div" label="Supplier" errorText={quickAddValidation.errors.supplier}>
-                    <CreatableCombobox
-                      ariaLabel="Supplier"
-                      value={selectedSupplier?.name ?? draft.supplierName}
-                      selectedId={draft.supplierId || null}
-                      options={supplierOptions}
-                      placeholder="Search or add supplier"
-                      emptyLabel="No suppliers yet"
-                      invalid={Boolean(quickAddValidation.errors.supplier)}
-                      onChange={(change) => {
-                        updateQuickAddIdentity({ supplierId: change.id ?? "", supplierName: change.label });
-                      }}
-                    />
-                  </ControlField>
-                  {possibleDuplicate ? (
-                    <output
-                      className="md:col-span-2 flex min-h-9 items-center justify-between gap-2 rounded-xs border border-warning/30 bg-warningSoft/40 px-2 py-1.5 text-[10px] font-medium leading-4 text-ink"
-                    >
-                      <span className="min-w-0">
-                        A component named &quot;{possibleDuplicate.name ?? possibleDuplicate.material}&quot; already exists. Add anyway or open the existing one.
-                      </span>
-                      <Button
-                        type="button"
-                        variant="warning"
-                        size="xs"
-                        className="min-w-0 shrink-0 px-2"
-                        onClick={() => setDuplicateAcknowledged(true)}
-                      >
-                        Create anyway
-                      </Button>
-                    </output>
-                  ) : null}
-                  <div className="md:col-span-2 rounded-xs border border-hairline bg-white" aria-label="Component variants">
-                    <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component variants">
-                      {draft.variants.map((variant) => (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          role="tab"
-                          aria-selected={activeVariant?.id === variant.id}
-                          className={cn(
-                            "relative h-full min-w-0 max-w-32 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                            activeVariant?.id === variant.id
-                              ? "z-10 -mb-px border-hairline bg-white text-ink"
-                              : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
-                          )}
-                          onClick={() => setActiveVariantId(variant.id)}
-                        >
-                          <span className="block truncate">{variant.label || "Variant"}</span>
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        aria-label="Add variant"
-                        title="Add variant"
-                        onClick={addVariant}
-                        className="ml-auto grid size-8 place-items-center border-l border-hairline text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                      >
-                        <Plus size={12} weight="regular" aria-hidden="true" />
-                      </button>
-                    </div>
-                    {activeVariant ? (
-                      <div role="tabpanel" aria-label={activeVariant.label || "Variant"} className="grid gap-3 p-3">
-                        <div className="grid gap-x-2 gap-y-3 md:grid-cols-[minmax(0,1fr)_8.5rem]">
-                          <ControlField label="Variant name">
-                            <ControlInput
-                              aria-label="Variant name"
-                              value={activeVariant.label}
-                              onChange={(event) => updateActiveVariant({ label: event.target.value })}
-                              invalid={!activeVariant.label.trim()}
-                              className={CONTROL_INPUT_SURFACE_CLASS}
-                            />
-                          </ControlField>
-                          <div className="grid w-[8.5rem] grid-cols-[6rem_2rem] items-end gap-1 justify-self-end">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              onClick={setActiveVariantAsDefault}
-                              disabled={activeVariant.isDefault}
-                              className="min-h-8 w-24 px-2 whitespace-nowrap"
-                            >
-                              {activeVariant.isDefault ? "Default" : "Make default"}
-                            </Button>
-                            {draft.variants.length > 1 && !activeVariant.isDefault ? (
-                              <button
-                                type="button"
-                                aria-label="Remove active variant"
-                                title="Remove active variant"
-                                onClick={removeActiveVariant}
-                                className="grid size-8 shrink-0 place-items-center rounded-xs border border-hairline text-tertiary transition hover:bg-surfaceMuted hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                              >
-                                <Trash size={12} weight="regular" aria-hidden="true" />
-                              </button>
-                            ) : (
-                              <span aria-hidden="true" className="size-8" />
-                            )}
-                          </div>
-                          <ControlField label="SKU / Reference">
-                            <ControlInput
-                              value={activeVariant.sku}
-                              onChange={(event) => updateActiveVariant({ sku: event.target.value })}
-                              className={CONTROL_INPUT_SURFACE_CLASS}
-                            />
-                          </ControlField>
-                          <AddComponentCostPicker
-                            activeCostEntry={activeCostEntry}
-                            visibleCostEntries={visibleCostEntries}
-                            unitCostError={quickAddValidation.errors.unitCost}
-                            costPickerOpen={costPickerOpen}
-                            costPickerListboxId={costPickerListboxId}
-                            costPickerRootRef={costPickerRootRef}
-                            onBeginCostEdit={beginCostEdit}
-                            onCommitCostInputEntry={commitCostInputEntry}
-                            onSetCostPickerOpen={setCostPickerOpen}
-                            onOpenCostManager={() => setCostManagerOpen(true)}
-                            onUpdateActiveCostEntry={updateActiveCostEntry}
-                            onSelectCostEntry={selectCostEntry}
-                            onDeleteCostEntry={deleteCostEntry}
-                          />
-                          <AddComponentUnitControls
-                            activeVariant={activeVariant}
-                            contentConversion={activeContentConversion}
-                            unitError={quickAddValidation.errors.unit}
-                            onUpdateUnit={updateActiveVariantUnit}
-                            onUpdateActiveVariant={updateActiveVariant}
-                          />
-                          <div className="grid gap-x-2 gap-y-3 md:col-span-2 md:grid-cols-3">
-                            <ControlField label="Pricing date" errorText={quickAddValidation.errors.pricingDate}>
-                              <ControlInput
-                                aria-label="Pricing date"
-                                type="date"
-                                value={activeCostEntry?.pricingDate ?? ""}
-                                onChange={(event) => updateActiveCostEntry({ pricingDate: event.target.value })}
-                                invalid={Boolean(quickAddValidation.errors.pricingDate)}
-                                className={CONTROL_INPUT_SURFACE_CLASS}
-                              />
-                            </ControlField>
-                            <ControlField label="Pricing source" errorText={quickAddValidation.errors.pricingSource}>
-                              <ControlInput
-                                aria-label="Pricing source"
-                                value={activeCostEntry?.pricingSource ?? ""}
-                                onChange={(event) => updateActiveCostEntry({ pricingSource: event.target.value })}
-                                invalid={Boolean(quickAddValidation.errors.pricingSource)}
-                                className={CONTROL_INPUT_SURFACE_CLASS}
-                              />
-                            </ControlField>
-                            <ControlField label="Confidence" errorText={quickAddValidation.errors.confidence}>
-                              <ControlInput
-                                aria-label="Confidence"
-                                value={activeCostEntry?.confidence ?? ""}
-                                onChange={(event) => updateActiveCostEntry({ confidence: event.target.value })}
-                                invalid={Boolean(quickAddValidation.errors.confidence)}
-                                className={CONTROL_INPUT_SURFACE_CLASS}
-                                placeholder="Supplier quote, verified invoice"
-                              />
-                            </ControlField>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="xs"
-                            aria-expanded={advancedDetailsOpen}
-                            aria-controls={advancedDetailsId}
-                            className="md:col-span-2 min-w-0 justify-between px-2"
-                            onClick={() => setAdvancedDetailsOpen((current) => !current)}
-                          >
-                            Advanced catalog details
-                            <CaretDown
-                              size={12}
-                              weight="regular"
-                              aria-hidden="true"
-                              className={cn("transition", advancedDetailsOpen ? "rotate-180" : "")}
-                            />
-                          </Button>
-                          <AddComponentAdvancedDetails
-                            open={advancedDetailsOpen}
-                            id={advancedDetailsId}
-                            activeVariant={activeVariant}
-                            computedMeasurements={computedMeasurements}
-                            attachmentInputId={attachmentInputId}
-                            attachmentUpload={attachmentUpload}
-                            onUpdateActiveVariant={updateActiveVariant}
-                            onUploadAttachment={handleAttachmentUpload}
-                            onRemoveAttachment={removeAttachment}
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </section>
-
-              </div>
-            </div>
-          </div>
-
-          <aside className="flex min-h-0 flex-col border-t border-hairline bg-white lg:col-start-3 lg:border-l lg:border-t-0" aria-label="Component nesting">
-            <div className="min-h-0 flex-1">
-              <LibraryFolderTreePicker
-                folders={userFolders}
-                nodes={folderNodes}
-                libraryItems={libraryItems}
-                selectedFolderId={draft.libraryFolderId}
-                viewMode={nestingViewMode}
-                onViewModeChange={setNestingViewMode}
-                suppliers={suppliers}
-                selectedSupplierId={draft.supplierId || null}
-                selectedSupplierName={draft.supplierName || null}
-                brands={brands}
-                selectedBrandId={draft.brandId || null}
-                selectedBrandName={draft.brand || null}
-                onSelectFolder={(folderId) => {
-                  updateQuickAddIdentity({
-                    libraryFolderId: folderId,
-                    ...getFolderCategoryDraft(userFolders, folderId),
-                  });
-                }}
-                onSelectSupplier={(supplierId, supplierName) => {
-                  const supplier = supplierId ? suppliers.find((entry) => entry.id === supplierId) : null;
-                  updateQuickAddIdentity({ supplierId: supplierId ?? "", supplierName: supplierName ?? supplier?.name ?? "" });
-                  setNestingViewMode("suppliers");
-                }}
-                onSelectBrand={(brandId, brandName) => {
-                  const brand = brandId ? brands.find((entry) => entry.id === brandId) : null;
-                  updateQuickAddIdentity({ brandId: brandId ?? "", brand: brandName ?? brand?.name ?? "" });
-                  setNestingViewMode("brand");
-                }}
-                onCreateFolder={handleCreateFolder}
-                onRenameFolder={onRenameFolder}
-                onDeleteFolder={onDeleteFolder}
-                reorderStatus={reorderStatus}
-                treeMutationPending={treeMutationPending}
-              />
-            </div>
-          </aside>
-          </div>
-        ) : (
-          <div
-            id={activityTabPanelId}
-            role="tabpanel"
-            aria-label="Activity"
-            className="min-h-0 flex-1 overflow-auto bg-surfaceMuted p-3"
-          >
-            <div className="mx-auto grid w-full max-w-5xl gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <section className="grid gap-3 rounded-xs border border-hairline bg-white p-3" aria-label="Component lifecycle">
-                <div className={sectionTitleClassName()}>Lifecycle</div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <ControlField label="Component state">
-                    <DropdownSelect
-                      aria-label="Component state"
-                      options={LIFECYCLE_OPTIONS}
-                      value={draft.lifecycleState}
-                      onValueChange={(lifecycleState) => updateDraft({ lifecycleState: lifecycleState as ComponentLifecycleState })}
-                      className={selectTriggerClassName}
-                    />
-                  </ControlField>
-                  <ControlField label="Effective date">
-                    <ControlInput
-                      type="date"
-                      value={draft.effectiveAt}
-                      onChange={(event) => updateDraft({ effectiveAt: event.target.value })}
-                      className={CONTROL_INPUT_SURFACE_CLASS}
-                    />
-                  </ControlField>
-                  <ControlField label="Change note" className="md:col-span-2">
-                    <ControlTextarea
-                      value={draft.changeReason}
-                      onChange={(event) => updateDraft({ changeReason: event.target.value })}
-                      className="min-h-24"
-                    />
-                  </ControlField>
-                </div>
-              </section>
-
-              <section className="grid gap-3 rounded-xs border border-hairline bg-white p-3" aria-label="Activity history">
-                <div className={sectionTitleClassName()}>Activity history</div>
-                <ul className="m-0 grid list-none gap-2 p-0">
-                  <li className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
-                    <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-medium text-ink">Component created</span>
-                      <span className="shrink-0 text-[9px] font-normal text-tertiary">{draft.effectiveAt}</span>
-                    </div>
-                    <div className="mt-1 truncate text-[10px] font-normal text-tertiary">{draft.name.trim() || "Unnamed component"}</div>
-                    <div className="mt-1 text-[10px] font-normal leading-4 text-tertiary">{draft.changeReason}</div>
-                  </li>
-                  <li className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
-                    <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-medium text-ink">Lifecycle state</span>
-                      <span className="shrink-0 text-[9px] font-normal text-tertiary">{lifecycleOption.label}</span>
-                    </div>
-                    <div className="mt-1 text-[10px] font-normal leading-4 text-tertiary">{draft.effectiveAt}</div>
-                  </li>
-                  <li className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
-                    <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-medium text-ink">Cost baseline</span>
-                      <span className="shrink-0 text-[9px] font-normal text-tertiary">{defaultCost}</span>
-                    </div>
-                    <div className="mt-1 truncate text-[10px] font-normal text-tertiary">
-                      {defaultVariant?.label ?? "Variant 1"} / {defaultVariant?.unit || "unit"}
-                    </div>
-                  </li>
-                </ul>
-              </section>
-            </div>
-          </div>
+      <Modal
+        open={open}
+        title="Add Component"
+        onOpenChange={requestClose}
+        closeLabel="Close add component modal"
+        blurBackdrop={false}
+        transparentBackdrop
+        bodyClassName="overflow-visible p-0"
+        className={cn(
+          "!w-[min(793px,calc(100vw-16px))] max-w-none overflow-visible rounded-[6px] border border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.88)] shadow-[0_28px_70px_-24px_rgba(23,29,40,0.32),0_10px_26px_-18px_rgba(23,29,40,0.24)] backdrop-blur-[18px] transition-transform duration-200",
+          "[&_[data-archestimator-modal-close-header]]:absolute [&_[data-archestimator-modal-close-header]]:right-2 [&_[data-archestimator-modal-close-header]]:top-2 [&_[data-archestimator-modal-close-header]]:z-40 [&_[data-archestimator-modal-close-header]]:min-h-0 [&_[data-archestimator-modal-close-header]]:border-0 [&_[data-archestimator-modal-close-header]]:bg-transparent [&_[data-archestimator-modal-close-header]]:p-0",
+          "[&_[data-archestimator-modal-title-header]]:min-h-[44px] [&_[data-archestimator-modal-title-header]]:border-b [&_[data-archestimator-modal-title-header]]:border-[rgba(61,61,61,0.08)] [&_[data-archestimator-modal-title-header]]:bg-transparent [&_[data-archestimator-modal-title-header]]:px-2 [&_[data-archestimator-modal-title-header]]:py-0",
+          "[&_[data-archestimator-modal-title-header]_h2]:!text-[12px] [&_[data-archestimator-modal-title-header]_h2]:!font-medium",
+          "[&_[data-archestimator-modal-location-footer]]:hidden",
+          variantDrawerOpen && "lg:-translate-x-[184px]",
         )}
-
-        <div className="sticky bottom-0 z-10 flex min-h-11 items-center justify-end gap-2 border-t border-hairline bg-white px-3 py-2">
-          {error ? (
-            <div className="mr-auto min-w-0 text-[9px] font-medium leading-4 text-danger" aria-live="polite">
-              {error}
-            </div>
-          ) : null}
-          <Button type="button" onClick={submit} variant="primary" size="sm" disabled={isPending || imageBusy || attachmentBusy || validation.length > 0}>
-            {isPending ? "Adding..." : imageBusy || attachmentBusy ? "Uploading..." : "Add Component"}
-          </Button>
-        </div>
-      </div>
-    </Modal>
-    <Modal
-      open={costManagerOpen}
-      title="Cost Manager"
-      description={`${activeVariant?.label ?? "Variant 1"} cost data`}
-      onOpenChange={setCostManagerOpen}
-      closeLabel="Close cost manager"
-      className="max-w-3xl"
-      bodyClassName="p-0"
-    >
-      <div className="grid max-h-[min(720px,calc(100dvh-96px))] min-h-[520px] grid-cols-1 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)]">
-        <section className="min-h-0 border-b border-hairline bg-surfaceMuted/60 lg:border-b-0 lg:border-r" aria-label="All cost entries">
-          <div className="flex min-h-10 items-center justify-between gap-2 border-b border-hairline bg-white px-3 py-2">
-            <div className="min-w-0">
-              <div className="truncate text-[10px] font-medium leading-4 text-ink">All cost entries</div>
-              <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{visibleCostEntries.length} records</div>
-            </div>
-            <Button type="button" variant="secondary" size="sm" onClick={addCostEntry} className="h-7 shrink-0 px-2">
-              <Plus size={11} weight="regular" aria-hidden="true" />
-              Add cost entry
-            </Button>
-          </div>
-          {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- Cost manager entries use a custom ARIA listbox; native datalist would not preserve this UI. */}
-          <div role="listbox" aria-label="Cost manager entries" className="grid max-h-[220px] gap-1 overflow-auto p-2 lg:max-h-none">
-            {visibleCostEntries.map((entry) => (
-              <div key={entry.id} className="grid grid-cols-[minmax(0,1fr)_28px] gap-1">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={entry.id === activeCostEntry?.id}
-                  aria-label={`${entry.isCurrent ? "Current " : ""}${formatCostEntryLabel(entry)}`}
-                  onClick={() => selectCostEntry(entry.id)}
-                  className={cn(
-                    "grid min-h-[54px] min-w-0 rounded-xs border px-2 py-1.5 text-left transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                    entry.id === activeCostEntry?.id ? "border-accent bg-accentSoft" : "border-hairline bg-white",
-                  )}
-                >
-                  <span className="flex min-w-0 items-center justify-between gap-2">
-                    <span className="truncate text-[10px] font-medium tabular-nums text-ink">{formatAccountingMoney(entry.unitCost)}</span>
-                    {entry.isCurrent ? <span className="shrink-0 rounded-xs bg-white px-1 text-[8px] font-medium uppercase leading-4 text-tertiary">Current</span> : null}
-                  </span>
-                  <span className="mt-0.5 truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(entry)}</span>
-                  <span className="mt-0.5 truncate text-[9px] font-normal leading-3 text-tertiary">{entry.pricingSource || "No source"}</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Delete cost entry ${formatCostEntryLabel(entry)}`}
-                  title="Delete cost entry"
-                  disabled={visibleCostEntries.length <= 1}
-                  onClick={() => deleteCostEntry(entry.id)}
-                  className="grid size-7 place-items-center self-start rounded-xs border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Trash size={11} weight="regular" aria-hidden="true" />
-                </button>
-              </div>
+      >
+        <div className="relative flex h-[min(894px,calc(100dvh-62px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
+          <div className="flex h-8 shrink-0 items-end gap-0 border-b border-[rgba(61,61,61,0.08)] px-[10px]" role="tablist" aria-label="Add component sections">
+            {ADD_COMPONENT_MODAL_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative h-8 min-w-[86px] px-3 !text-[10px] font-medium text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                  activeTab === tab.id && "text-ink after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-[#F24405]",
+                )}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
-        </section>
-        <section className="min-h-0 overflow-auto bg-white p-3" aria-label="Current cost entry">
-          <div className="mb-3 rounded-xs border border-hairline bg-surfaceMuted px-3 py-2">
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="truncate text-[10px] font-medium leading-4 text-ink">Current entry</div>
-                <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="text-[9px] font-medium leading-4 tabular-nums text-ink">{formatAccountingMoney(activeCostEntry?.unitCost ?? "0")}</div>
-                <div className="text-[9px] font-medium leading-3 text-tertiary">PHP</div>
-              </div>
+
+          <button
+            type="button"
+            aria-label="Open variants panel"
+            aria-expanded={variantDrawerOpen}
+            onClick={() => {
+              setVariantDrawerOpen((current) => !current);
+              setVariantDrawerView("manager");
+            }}
+            className={cn(
+              "absolute right-[-30px] top-[-1px] z-30 grid h-[34px] w-[30px] place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.92)] text-tertiary shadow-[6px_8px_18px_rgba(17,17,17,0.10)] transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] max-lg:right-3 max-lg:top-[50px] max-lg:rounded-[6px] max-lg:border-l",
+              variantDrawerOpen && "border-[#F24405]/30 text-[#F24405]",
+            )}
+          >
+            <Dna size={15} weight="regular" aria-hidden="true" />
+          </button>
+
+          {activeTab === "component" ? (
+            <div role="tabpanel" aria-label="Component" className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
+              <aside className="min-h-0 overflow-auto border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.54)] p-2 lg:border-b-0 lg:border-r" aria-label="Component image">
+                <div className="grid gap-2">
+                  <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
+                    {activeImageSrc ? (
+                      <Image
+                        src={activeImageSrc}
+                        alt="Component thumbnail preview"
+                        fill
+                        sizes="260px"
+                        className="object-cover"
+                        unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
+                      />
+                    ) : (
+                      <div className="grid justify-items-center gap-1 px-4 text-center text-tertiary">
+                        <ImageSquare size={34} weight="regular" aria-hidden="true" />
+                        <span className="text-[10px] font-medium text-ink">Thumbnail</span>
+                        <span className="max-w-[18ch] text-[9px] font-medium leading-3 text-tertiary">Upload a square product image</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    id={thumbnailInputId}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"
+                    aria-label="Upload thumbnail"
+                    disabled={imageBusy}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.currentTarget.value = "";
+                      if (!file) return;
+                      void handleThumbnailUpload(file);
+                    }}
+                    className="sr-only"
+                  />
+                  <label
+                    htmlFor={thumbnailInputId}
+                    className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
+                  >
+                    <UploadSimple size={12} weight="regular" aria-hidden="true" />
+                    Choose image
+                  </label>
+                  <label className="flex min-h-6 items-center gap-2 rounded-[6px] px-1 !text-[10px] font-medium text-ink">
+                    <input
+                      type="checkbox"
+                      aria-label="Use same image for all variants"
+                      checked={draft.sharedImageForAllVariants}
+                      onChange={(event) => setSharedImageMode(event.target.checked)}
+                      className="size-3 rounded-[3px] border-[rgba(61,61,61,0.22)] accent-[#F24405]"
+                    />
+                    <span>Use same image for all variants</span>
+                  </label>
+                  <span className="min-h-4 truncate text-[9px] font-medium text-tertiary">
+                    {activeImagePath || "JPG, PNG, WebP, or AVIF"}
+                  </span>
+                  {imageUpload.state !== "idle" ? (
+                    <span
+                      role={imageUpload.state === "error" ? "alert" : "status"}
+                      className={cn("text-[9px] font-medium", imageUpload.state === "error" ? "text-danger" : "text-tertiary")}
+                    >
+                      {imageUpload.message}
+                    </span>
+                  ) : null}
+                </div>
+              </aside>
+
+              <main className="min-h-0 overflow-auto p-2" role="form" aria-label="Quick add component">
+                <div className="grid gap-[10px]">
+                  <section className={OPENDESIGN_SECTION_CLASS} aria-label="Component information fields">
+                    <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
+                      <Package size={11} weight="regular" aria-hidden="true" />
+                      Component
+                    </div>
+                    <ControlField label="Name" errorText={visibleValidationErrors.name}>
+                      <ControlInput
+                        ref={initialFocusRef}
+                        aria-label="Name"
+                        data-dialog-initial-focus
+                        value={draft.name}
+                        onBlur={scheduleDuplicateCheck}
+                        onChange={(event) => updateQuickAddIdentity({ name: event.target.value })}
+                        aria-required="true"
+                        invalid={Boolean(visibleValidationErrors.name)}
+                        className={OPENDESIGN_INPUT_CLASS}
+                      />
+                    </ControlField>
+                    <ControlField label="Description">
+                      <ControlTextarea
+                        aria-label="Description"
+                        value={defaultVariant?.description ?? ""}
+                        onChange={(event) => {
+                          if (!defaultVariant) return;
+                          updateVariant(defaultVariant.id, { description: event.target.value });
+                        }}
+                        className={OPENDESIGN_TEXTAREA_CLASS}
+                      />
+                    </ControlField>
+                  </section>
+
+                  {showMainCostSection ? (
+                    <section className={OPENDESIGN_SECTION_CLASS} aria-label="Cost fields">
+                      <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
+                        <Money size={11} weight="regular" aria-hidden="true" />
+                        Cost
+                      </div>
+                      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                        <ControlField label="Unit cost" errorText={visibleValidationErrors.unitCost}>
+                          <div className="grid grid-cols-[38px_minmax(0,1fr)] overflow-hidden rounded-[6px] bg-[rgba(61,61,61,0.05)]">
+                            <span className="grid place-items-center border-r border-[rgba(61,61,61,0.08)] text-[10px] font-medium text-tertiary">PHP</span>
+                            <ControlInput
+                              aria-label="Unit cost"
+                              aria-required="true"
+                              inputMode="decimal"
+                              value={defaultVariant?.unitCost ?? ""}
+                              onChange={(event) => {
+                                if (!defaultVariant) return;
+                                updateVariant(defaultVariant.id, { unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) });
+                              }}
+                              invalid={Boolean(visibleValidationErrors.unitCost)}
+                              className={cn(OPENDESIGN_INPUT_CLASS, "rounded-none bg-transparent text-right tabular-nums hover:bg-transparent focus:bg-transparent")}
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </ControlField>
+                        <ControlField as="div" label="Unit" errorText={visibleValidationErrors.unit}>
+                          <CreatableCombobox
+                            ariaLabel="Unit"
+                            ariaRequired
+                            value={defaultVariant?.unit ?? ""}
+                            selectedId={getSelectedUnitId(defaultVariant?.unit ?? "", COMPONENT_UNIT_COMBOBOX_OPTIONS)}
+                            options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
+                            placeholder="Search units"
+                            emptyLabel="No units found"
+                            createLabel={(value) => `Add unit "${value}"`}
+                            invalid={Boolean(visibleValidationErrors.unit)}
+                            inputClassName={OPENDESIGN_INPUT_CLASS}
+                            onChange={(change) => {
+                              if (!defaultVariant) return;
+                              const unit = getUnitComboboxValue(change);
+                              updateVariant(defaultVariant.id, {
+                                unit,
+                                ...(unitUsesContentConversion(unit) ? {} : { packageQuantity: "", packageUnit: "" }),
+                              });
+                            }}
+                            preferSelectionOnEnter
+                            suppressCreateWhenSearchMatches
+                            optionPresentation="unit"
+                            showClearButton={false}
+                          />
+                        </ControlField>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <section className={OPENDESIGN_SECTION_CLASS} aria-label="Catalogue fields">
+                    <div className={OPENDESIGN_SECTION_TITLE_CLASS}>Catalogue</div>
+                    <ControlField as="div" label="Category" errorText={visibleValidationErrors.category}>
+                      <CreatableCombobox
+                        ariaLabel="Category"
+                        ariaRequired
+                        value={draft.category}
+                        selectedId={draft.categoryNodeId || null}
+                        options={categoryOptions}
+                        placeholder="Search categories"
+                        emptyLabel="No categories found"
+                        createLabel={(value) => `Add category "${value}"`}
+                        invalid={Boolean(visibleValidationErrors.category)}
+                        inputClassName={OPENDESIGN_INPUT_CLASS}
+                        onChange={selectCategory}
+                        preferSelectionOnEnter
+                        showClearButton={false}
+                        showDropdownIndicator
+                      />
+                    </ControlField>
+                    <ControlField as="div" label="Supplier" errorText={visibleValidationErrors.supplier}>
+                      <CreatableCombobox
+                        ariaLabel="Supplier"
+                        value={selectedSupplier?.name ?? draft.supplierName}
+                        selectedId={draft.supplierId || null}
+                        options={supplierOptions}
+                        placeholder="Search suppliers"
+                        emptyLabel="No suppliers yet"
+                        invalid={Boolean(visibleValidationErrors.supplier)}
+                        inputClassName={OPENDESIGN_INPUT_CLASS}
+                        onChange={(change) => updateQuickAddIdentity({ supplierId: change.id ?? "", supplierName: change.label })}
+                        showClearButton={false}
+                        showDropdownIndicator
+                      />
+                    </ControlField>
+                    <ControlField as="div" label="Brand" errorText={visibleValidationErrors.brand}>
+                      <CreatableCombobox
+                        ariaLabel="Brand"
+                        value={selectedBrand?.name ?? draft.brand}
+                        selectedId={draft.brandId || null}
+                        options={brandOptions}
+                        placeholder="Search brands"
+                        emptyLabel="No brands yet"
+                        invalid={Boolean(visibleValidationErrors.brand)}
+                        inputClassName={OPENDESIGN_INPUT_CLASS}
+                        onChange={(change) => updateQuickAddIdentity({ brandId: change.id ?? "", brand: change.label })}
+                        showClearButton={false}
+                        showDropdownIndicator
+                      />
+                    </ControlField>
+                    {possibleDuplicate ? (
+                      <output className="flex min-h-8 items-center justify-between gap-2 rounded-[6px] bg-warningSoft/50 px-2 text-[10px] font-medium text-ink">
+                        <span className="min-w-0 truncate">
+                          A component named &quot;{possibleDuplicate.name ?? possibleDuplicate.material}&quot; already exists.
+                        </span>
+                        <Button type="button" variant="warning" size="xs" onClick={() => setDuplicateAcknowledged(true)} className="min-w-0 shrink-0 px-2">
+                          Create anyway
+                        </Button>
+                      </output>
+                    ) : null}
+                  </section>
+                </div>
+              </main>
             </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <ControlField label="Unit cost">
-              <ControlInput
-                aria-label="Cost manager unit cost"
-                inputMode="decimal"
-                value={activeCostEntry?.unitCost ?? ""}
-                onFocus={beginCostEdit}
-                onBlur={commitCostInputEntry}
-                onChange={(event) => updateActiveCostEntry({ unitCost: formatMoneyInputValue(event.target.value, activeCostEntry?.unitCost ?? "", event.nativeEvent) })}
-                invalid={!Number.isFinite(parseMoney(activeCostEntry?.unitCost ?? "")) || parseMoney(activeCostEntry?.unitCost ?? "") < 0}
-                className={cn(CONTROL_INPUT_SURFACE_CLASS, "text-right tabular-nums")}
-                placeholder="0.00"
-              />
-            </ControlField>
-            <ControlField label="Misc cost">
-              <ControlInput
-                aria-label="Cost manager misc cost"
-                inputMode="decimal"
-                value={activeCostEntry?.miscCost ?? "0"}
-                onChange={(event) => updateActiveCostEntry({ miscCost: formatMoneyInputValue(event.target.value, activeCostEntry?.miscCost ?? "", event.nativeEvent) })}
-                invalid={!Number.isFinite(parseMoney(activeCostEntry?.miscCost ?? "")) || parseMoney(activeCostEntry?.miscCost ?? "") < 0}
-                className={cn(CONTROL_INPUT_SURFACE_CLASS, "text-right tabular-nums")}
-                placeholder="0.00"
-              />
-            </ControlField>
-            <ControlField label="Date">
-              <ControlInput
-                aria-label="Cost manager pricing date"
-                type="date"
-                value={activeCostEntry?.pricingDate || today()}
-                onChange={(event) => updateActiveCostEntry({ pricingDate: event.target.value })}
-                className={CONTROL_INPUT_SURFACE_CLASS}
-              />
-            </ControlField>
-            <ControlField as="label" label="Confidence">
-              <DropdownSelect
-                aria-label="Cost manager confidence"
-                options={COST_CONFIDENCE_OPTIONS}
-                value={activeCostEntry?.confidence || "medium"}
-                onValueChange={(confidence) => updateActiveCostEntry({ confidence })}
-                className="h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px]"
-              />
-            </ControlField>
-            <ControlField label="Pricing source" className="md:col-span-2">
-              <ControlInput
-                aria-label="Cost manager pricing source"
-                value={activeCostEntry?.pricingSource ?? ""}
-                onChange={(event) => updateActiveCostEntry({ pricingSource: event.target.value })}
-                className={CONTROL_INPUT_SURFACE_CLASS}
-                placeholder="Supplier quote, retail catalog, or allowance"
-              />
-            </ControlField>
-            <ControlField label="Source URL" className="md:col-span-2">
-              <ControlInput
-                aria-label="Cost manager source URL"
-                type="url"
-                value={activeCostEntry?.sourceUrl ?? ""}
-                onChange={(event) => updateActiveCostEntry({ sourceUrl: event.target.value })}
-                className={CONTROL_INPUT_SURFACE_CLASS}
-                placeholder="https://"
-              />
-            </ControlField>
-            <ControlField label="Notes" className="md:col-span-2">
-              <ControlTextarea
-                aria-label="Cost manager notes"
-                value={activeCostEntry?.notes ?? ""}
-                onChange={(event) => updateActiveCostEntry({ notes: event.target.value })}
-                className="min-h-20"
-              />
-            </ControlField>
-          </div>
-        </section>
-      </div>
-    </Modal>
-    <ConfirmDialog
-      open={discardDialogOpen}
-      onOpenChange={setDiscardDialogOpen}
-      title="Discard this draft?"
-      description="You have unsaved changes to this component. They are lost if you leave."
-      confirmLabel="Discard draft"
-      cancelLabel="Keep editing"
-      tone="warning"
-      onConfirm={confirmDiscardDraft}
-    />
+          ) : (
+            <div role="tabpanel" aria-label="Activity" className="min-h-0 flex-1 overflow-auto p-[14px]">
+              <section className="mx-auto grid w-full max-w-[520px] gap-3" aria-label="Component lifecycle">
+                <ControlField label="Component state">
+                  <DropdownSelect
+                    aria-label="Component state"
+                    options={LIFECYCLE_OPTIONS}
+                    value={draft.lifecycleState}
+                    onValueChange={(lifecycleState) => updateDraft({ lifecycleState: lifecycleState as ComponentLifecycleState })}
+                    className={OPENDESIGN_INPUT_CLASS}
+                  />
+                </ControlField>
+                <ControlField label="Effective date">
+                  <ControlInput
+                    aria-label="Effective date"
+                    type="date"
+                    value={draft.effectiveAt}
+                    onChange={(event) => updateDraft({ effectiveAt: event.target.value })}
+                    className={OPENDESIGN_INPUT_CLASS}
+                  />
+                </ControlField>
+                <ControlField label="Currency">
+                  <ControlInput
+                    aria-label="Currency"
+                    disabled
+                    readOnly
+                    value="PHP"
+                    className={cn(OPENDESIGN_INPUT_CLASS, "opacity-100 disabled:opacity-100")}
+                  />
+                </ControlField>
+                <ControlField label="Change note">
+                  <ControlTextarea
+                    aria-label="Change note"
+                    value={draft.changeReason}
+                    onChange={(event) => updateDraft({ changeReason: event.target.value })}
+                    className={cn(OPENDESIGN_TEXTAREA_CLASS, "min-h-24")}
+                  />
+                </ControlField>
+                <div className="rounded-[6px] bg-[rgba(61,61,61,0.05)] px-2 py-2 text-[10px] font-medium text-tertiary">
+                  Current state: {lifecycleOption.label}. Default cost: PHP {defaultCost}.
+                </div>
+              </section>
+            </div>
+          )}
+
+          <footer className="flex h-[49px] min-h-[49px] shrink-0 items-center gap-2 border-t border-[rgba(61,61,61,0.08)] px-2">
+            <div className={cn("mr-auto min-w-0 truncate text-[9px] font-medium", error || showValidationErrors ? "text-danger" : "text-tertiary")} aria-live="polite">
+              {componentStatus}
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={() => requestClose(false)} className="min-w-[74px] rounded-[6px]">
+              Discard
+            </Button>
+            <Button type="button" onClick={submit} variant="brand" size="sm" disabled={isPending || imageBusy || attachmentBusy} className="min-w-[104px] rounded-[6px]">
+              {isPending ? "Adding..." : imageBusy || attachmentBusy ? "Uploading..." : "Add Component"}
+            </Button>
+          </footer>
+
+          <aside
+            role="dialog"
+            aria-label="Manage variants"
+            aria-modal="false"
+            aria-hidden={!variantDrawerOpen}
+            className={cn(
+              "absolute bottom-0 left-[calc(100%-1px)] top-[32px] z-20 flex w-[min(533px,calc(100vw-32px))] flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] shadow-[22px_24px_60px_-28px_rgba(23,29,40,0.42)] backdrop-blur-[18px] transition max-lg:left-0 max-lg:right-0 max-lg:w-full max-lg:rounded-[6px] max-lg:border-l",
+              variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-2 opacity-0",
+            )}
+          >
+            <header className="flex h-[45px] shrink-0 items-center gap-2 border-b border-[rgba(61,61,61,0.08)] px-4">
+              <div className="mr-auto min-w-0">
+                <h3 className="truncate text-[12px] font-medium leading-4 text-ink">Manage Variants</h3>
+                <p className="m-0 truncate text-[9px] font-medium leading-3 text-tertiary">{draft.variants.length} variant{draft.variants.length === 1 ? "" : "s"}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close variants panel"
+                onClick={() => setVariantDrawerOpen(false)}
+                className="grid size-7 place-items-center rounded-[6px] text-tertiary transition hover:bg-[rgba(61,61,61,0.06)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+              >
+                <X size={13} weight="regular" aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className="flex h-8 shrink-0 items-center border-b border-[rgba(61,61,61,0.08)] px-4">
+              <Button
+                type="button"
+                variant="secondary"
+                size="xs"
+                disabled={!activeVariant || activeVariant.isDefault}
+                onClick={setActiveVariantAsDefault}
+                className="h-6 min-w-[66px] rounded-[6px] px-2 !text-[9px]"
+              >
+                {activeVariant?.isDefault ? "Default" : "Make default"}
+              </Button>
+            </div>
+
+            <nav className="absolute left-full top-[45px] z-30 grid w-[30px] gap-0 max-lg:hidden" aria-label="Variant navigation">
+              <button
+                type="button"
+                aria-label="Manage variants"
+                aria-pressed={variantDrawerView === "manager"}
+                onClick={() => setVariantDrawerView("manager")}
+                className={cn(
+                  "grid h-8 w-[30px] place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.92)] text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                  variantDrawerView === "manager" && "border-r-2 border-r-[#F24405] bg-white text-[#F24405]",
+                )}
+              >
+                <Dna size={13} weight="regular" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Add variant"
+                onClick={addVariant}
+                className="mt-[-1px] grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.92)] text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+              >
+                <Plus size={14} weight="regular" aria-hidden="true" />
+              </button>
+              <div className="grid gap-0">
+                {draft.variants.map((variant, index) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    aria-label={`Open V${index + 1}`}
+                    aria-pressed={activeVariant?.id === variant.id && variantDrawerView === "variant"}
+                    onClick={() => {
+                      setActiveVariantId(variant.id);
+                      setVariantDrawerView("variant");
+                    }}
+                    className={cn(
+                      "mt-[-1px] grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.58)] text-[9px] font-semibold text-tertiary opacity-60 transition hover:bg-white hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                      activeVariant?.id === variant.id && variantDrawerView === "variant" && "border-r-2 border-r-[#F24405] bg-white text-[#F24405] opacity-100",
+                    )}
+                  >
+                    V{index + 1}
+                  </button>
+                ))}
+              </div>
+            </nav>
+
+            <div className="min-h-0 flex-1 overflow-auto p-2 pl-4">
+              {variantDrawerView === "manager" ? (
+                <div className="grid gap-2" aria-label="Variant manager">
+                  {draft.variants.map((variant, index) => (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveVariantId(variant.id);
+                        setVariantDrawerView("variant");
+                      }}
+                      className="grid min-h-[58px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-2 text-left transition hover:bg-[rgba(61,61,61,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                    >
+                      <span className={cn("grid size-8 place-items-center rounded-[6px] text-[10px] font-semibold", variant.isDefault ? "bg-[#F24405] text-white" : "bg-white text-tertiary")}>
+                        {variant.label || `V${index + 1}`}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[10px] font-semibold text-ink">{variant.label || `V${index + 1}`}</span>
+                        <span className="block truncate text-[9px] font-medium text-tertiary">PHP {formatAccountingMoney(variant.unitCost || "0")} / {getUnitDisplayLabel(variant.unit) || variant.unit}</span>
+                      </span>
+                      {variant.isDefault ? <span className="rounded-[5px] bg-white px-2 py-1 text-[9px] font-medium text-[#F24405]">Default</span> : null}
+                    </button>
+                  ))}
+                  <Button type="button" variant="secondary" size="sm" onClick={addVariant} className="mt-1 rounded-[6px]">
+                    <Plus size={12} weight="regular" aria-hidden="true" />
+                    Add variant
+                  </Button>
+                </div>
+              ) : activeVariant ? (
+                <div className="grid gap-2" aria-label="Variant editor">
+                  <section className="grid grid-cols-[96px_minmax(0,1fr)] gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
+                    <div className="grid gap-1">
+                      <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
+                        {activeImageSrc ? (
+                          <Image
+                            src={activeImageSrc}
+                            alt="Variant thumbnail preview"
+                            fill
+                            sizes="96px"
+                            className="object-cover"
+                            unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
+                          />
+                        ) : (
+                          <ImageSquare size={20} weight="regular" aria-hidden="true" className="text-tertiary" />
+                        )}
+                      </div>
+                      <span className="truncate text-[9px] font-medium text-tertiary">{activeImagePath || "Variant thumbnail"}</span>
+                    </div>
+                    <div className="grid content-center gap-1">
+                      <input
+                        id={variantThumbnailInputId}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"
+                        aria-label="Upload variant thumbnail"
+                        disabled={imageBusy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.currentTarget.value = "";
+                          if (!file) return;
+                          void handleThumbnailUpload(file);
+                        }}
+                        className="sr-only"
+                      />
+                      <label
+                        htmlFor={variantThumbnailInputId}
+                        className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
+                      >
+                        <UploadSimple size={12} weight="regular" aria-hidden="true" />
+                        Choose image
+                      </label>
+                      <span className="text-[9px] font-medium leading-3 text-tertiary">JPG, PNG, WebP, or AVIF</span>
+                    </div>
+                  </section>
+
+                  <section className={OPENDESIGN_SECTION_CLASS} aria-label="Variant identity">
+                    <ControlField label="Variant Name">
+                      <ControlInput
+                        aria-label="Variant Name"
+                        aria-required="true"
+                        value={activeVariant.label}
+                        onChange={(event) => updateActiveVariant({ label: event.target.value })}
+                        invalid={showValidationErrors && !activeVariant.label.trim()}
+                        className={OPENDESIGN_INPUT_CLASS}
+                      />
+                    </ControlField>
+                    <ControlField label="Variant Description">
+                      <ControlTextarea
+                        aria-label="Variant Description"
+                        value={activeVariant.description}
+                        onChange={(event) => updateActiveVariant({ description: event.target.value })}
+                        className={OPENDESIGN_TEXTAREA_CLASS}
+                      />
+                    </ControlField>
+                    <ControlField label="SKU / Reference">
+                      <ControlInput
+                        aria-label="SKU / Reference"
+                        value={activeVariant.sku}
+                        onChange={(event) => updateActiveVariant({ sku: event.target.value })}
+                        className={OPENDESIGN_INPUT_CLASS}
+                      />
+                    </ControlField>
+                  </section>
+
+                  <section className={OPENDESIGN_SECTION_CLASS} aria-label="Variant cost">
+                    <div className={OPENDESIGN_SECTION_TITLE_CLASS}>Cost</div>
+                    <div
+                      className={cn(
+                        "grid gap-2",
+                        showActiveVariantEquivalency
+                          ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.05fr)]"
+                          : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]",
+                      )}
+                    >
+                      <ControlField label="Unit cost" errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unitCost : undefined}>
+                        <div className="grid grid-cols-[38px_minmax(0,1fr)] overflow-hidden rounded-[6px] bg-[rgba(61,61,61,0.05)]">
+                          <span className="grid place-items-center border-r border-[rgba(61,61,61,0.08)] text-[10px] font-medium text-tertiary">PHP</span>
+                          <ControlInput
+                            aria-label="Variant unit cost"
+                            aria-required="true"
+                            inputMode="decimal"
+                            value={activeVariant.unitCost}
+                            onChange={(event) => updateActiveVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
+                            invalid={showValidationErrors && (!Number.isFinite(parseMoney(activeVariant.unitCost)) || parseMoney(activeVariant.unitCost) < 0)}
+                            className={cn(OPENDESIGN_INPUT_CLASS, "rounded-none bg-transparent text-right tabular-nums hover:bg-transparent focus:bg-transparent")}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </ControlField>
+                      <ControlField as="div" label="Unit" errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unit : undefined}>
+                        <CreatableCombobox
+                          ariaLabel="Variant unit"
+                          ariaRequired
+                          value={activeVariant.unit}
+                          selectedId={getSelectedUnitId(activeVariant.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
+                          options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
+                          placeholder="Search units"
+                          emptyLabel="No units found"
+                          createLabel={(value) => `Add unit "${value}"`}
+                          invalid={showValidationErrors && !activeVariant.unit.trim()}
+                          inputClassName={OPENDESIGN_INPUT_CLASS}
+                          onChange={(change) => updateActiveVariantUnit(getUnitComboboxValue(change))}
+                          preferSelectionOnEnter
+                          suppressCreateWhenSearchMatches
+                          optionPresentation="unit"
+                          dropdownPlacement="top"
+                          showClearButton={false}
+                        />
+                      </ControlField>
+                      {showActiveVariantEquivalency ? (
+                        <div className="grid gap-1">
+                          <div className="text-[9px] font-medium uppercase leading-3 text-secondary">Equivalency</div>
+                          <div className="grid gap-1 rounded-[6px] bg-[rgba(61,61,61,0.035)] p-1">
+                            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1 px-1 text-[9px] font-medium text-tertiary">
+                              <span>1 {unitLabel}</span>
+                              <span>=</span>
+                            </div>
+                            <div className="grid gap-1 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
+                              <ControlField label="Equivalent quantity">
+                                <ControlInput
+                                  aria-label="Equivalent quantity"
+                                  inputMode="decimal"
+                                  value={activeVariant.packageQuantity}
+                                  onChange={(event) => updateActiveVariant({ packageQuantity: event.target.value })}
+                                  invalid={Number.isNaN(readOptionalPositiveNumber(activeVariant.packageQuantity))}
+                                  className={OPENDESIGN_INPUT_CLASS}
+                                  placeholder="12"
+                                />
+                              </ControlField>
+                              <ControlField as="div" label="Equivalent unit">
+                                <CreatableCombobox
+                                  ariaLabel="Equivalent unit"
+                                  value={activeVariant.packageUnit}
+                                  selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
+                                  options={CONTENT_UNIT_COMBOBOX_OPTIONS}
+                                  placeholder={unitLabel}
+                                  emptyLabel="No units found"
+                                  createLabel={(value) => `Add unit "${value}"`}
+                                  inputClassName={OPENDESIGN_INPUT_CLASS}
+                                  onChange={(change) => updateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
+                                  preferSelectionOnEnter
+                                  suppressCreateWhenSearchMatches
+                                  optionPresentation="unit"
+                                  dropdownPlacement="top"
+                                  showClearButton={false}
+                                />
+                              </ControlField>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
+
+                  <section className={OPENDESIGN_SECTION_CLASS} aria-label="Variant attachments">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
+                        <Paperclip size={11} weight="regular" aria-hidden="true" />
+                        Attachments
+                      </div>
+                      <input
+                        id={attachmentInputId}
+                        type="file"
+                        accept="application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        aria-label="Upload attachment"
+                        disabled={attachmentBusy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.currentTarget.value = "";
+                          if (!file) return;
+                          void handleAttachmentUpload(file);
+                        }}
+                        className="sr-only"
+                      />
+                      <label
+                        htmlFor={attachmentInputId}
+                        className="inline-flex h-7 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-2 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
+                      >
+                        <UploadSimple size={11} weight="regular" aria-hidden="true" />
+                        Upload
+                      </label>
+                    </div>
+                    <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0">
+                      {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => (
+                        <li key={attachment.id} className="grid size-[92px] shrink-0 grid-rows-[minmax(0,1fr)_auto] rounded-[6px] bg-[rgba(61,61,61,0.05)] p-2">
+                          <div className="grid min-h-0 place-items-center">
+                            <Paperclip size={18} weight="regular" aria-hidden="true" className="text-tertiary" />
+                          </div>
+                          <div className="grid gap-1">
+                            <span className="truncate text-[9px] font-medium text-ink">{attachment.fileName}</span>
+                            <button
+                              type="button"
+                              aria-label={`Remove attachment ${attachment.fileName}`}
+                              onClick={() => removeAttachment(attachment.id)}
+                              className="justify-self-start rounded-[5px] px-1 text-[9px] font-medium text-danger transition hover:bg-dangerSoft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </li>
+                      )) : (
+                        <li className="grid min-h-[92px] min-w-full place-items-center rounded-[6px] border border-dashed border-[rgba(61,61,61,0.16)] px-3 text-center text-[10px] font-medium text-tertiary">
+                          No files attached. Upload specs, quotes, certificates, or site files for this variant.
+                        </li>
+                      )}
+                    </ul>
+                    {attachmentUpload.state !== "idle" ? (
+                      <span
+                        role={attachmentUpload.state === "error" ? "alert" : "status"}
+                        className={cn("text-[9px] font-medium", attachmentUpload.state === "error" ? "text-danger" : "text-tertiary")}
+                      >
+                        {attachmentUpload.message}
+                      </span>
+                    ) : null}
+                  </section>
+                </div>
+              ) : null}
+            </div>
+            <footer className="flex h-[49px] shrink-0 items-center justify-start border-t border-[rgba(61,61,61,0.08)] px-4">
+              {variantDrawerView === "variant" && activeVariant ? (
+                <button
+                  type="button"
+                  aria-label="Delete variant"
+                  onClick={removeActiveVariant}
+                  className="grid size-7 place-items-center rounded-[6px] text-danger transition hover:bg-dangerSoft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                >
+                  <Trash size={12} weight="regular" aria-hidden="true" />
+                </button>
+              ) : null}
+            </footer>
+          </aside>
+        </div>
+      </Modal>
+      <ConfirmDialog
+        open={discardDialogOpen}
+        onOpenChange={setDiscardDialogOpen}
+        title="Discard this draft?"
+        description="You have unsaved changes to this component. They are lost if you leave."
+        confirmLabel="Discard draft"
+        cancelLabel="Keep editing"
+        tone="warning"
+        onConfirm={confirmDiscardDraft}
+      />
     </>
   );
 }

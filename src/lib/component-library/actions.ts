@@ -53,6 +53,7 @@ import {
 import { recordLibraryEvent, sanitizeLibraryTelemetryRecord, type LibraryTelemetryRecord } from "./library-telemetry";
 import { readComponentSourceUrlInput } from "./source-url";
 import { throwActionError } from "./action-errors";
+import { unitUsesContentConversion } from "./unit-options";
 
 // U11 (DATA-2/DATA-3): one place to revalidate every server-rendered surface that
 // shows templates — the library browse route AND the library overview (counts) —
@@ -149,6 +150,7 @@ export type CostLibraryComponentInput = {
 };
 
 export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
+  fieldContract?: "opendesign-add-component";
   priceOptions: ComponentPriceOptionInput[];
 };
 
@@ -615,6 +617,33 @@ function normalizeComponentInput(input: CostLibraryComponentInput) {
   };
 }
 
+function readComponentInputForCreate(input: CreateCostLibraryComponentInput): CostLibraryComponentInput {
+  return {
+    id: input.id,
+    name: input.name,
+    description: input.description,
+    category: input.category,
+    categoryNodeId: input.categoryNodeId,
+    supplier: input.supplier,
+    supplierId: input.supplierId,
+    brand: input.brand,
+    brandId: input.brandId,
+    unit: input.unit,
+    thumbnailPath: input.thumbnailPath,
+    libraryFolderId: input.fieldContract === "opendesign-add-component" ? null : input.libraryFolderId,
+    lifecycleState: input.lifecycleState,
+    effectiveAt: input.effectiveAt,
+    changeReason: input.changeReason,
+    metadata: input.metadata,
+  };
+}
+
+function stripOpenDesignAddComponentRpcComponent(input: ReturnType<typeof normalizeComponentInput>) {
+  const component = { ...input };
+  delete component.libraryFolderId;
+  return component;
+}
+
 function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
   const sourceUrl = readComponentSourceUrlInput(input.sourceUrl);
   const sourceValidation = validateQuickAddComponentInput({
@@ -722,6 +751,60 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
   };
 }
 
+function sanitizeOpenDesignAddComponentPriceOption(input: ComponentPriceOptionInput): ComponentPriceOptionInput {
+  return {
+    id: input.id,
+    label: input.label,
+    sku: input.sku,
+    variantDescription: input.variantDescription,
+    variantSortOrder: input.variantSortOrder,
+    unit: input.unit,
+    unitCost: input.unitCost,
+    currency: input.currency,
+    supplierId: input.supplierId,
+    ...(unitUsesContentConversion(input.unit) ? {
+      packageQuantity: input.packageQuantity,
+      packageUnit: input.packageUnit,
+    } : {}),
+    imageBucket: input.imageBucket,
+    imagePath: input.imagePath,
+    thumbnailPath: input.thumbnailPath,
+    imageMetadata: input.imageMetadata,
+    attachments: input.attachments,
+    isDefault: input.isDefault,
+    isActive: input.isActive,
+    changeReason: input.changeReason,
+    effectiveAt: input.effectiveAt,
+  };
+}
+
+function stripOpenDesignAddComponentRpcPriceOption(input: ReturnType<typeof normalizePriceOptionInput>) {
+  return {
+    id: input.id,
+    label: input.label,
+    sku: input.sku,
+    variantDescription: input.variantDescription,
+    variantSortOrder: input.variantSortOrder,
+    unit: input.unit,
+    unitCost: input.unitCost,
+    currency: input.currency,
+    supplierId: input.supplierId,
+    ...(unitUsesContentConversion(input.unit) ? {
+      packageQuantity: input.packageQuantity,
+      packageUnit: input.packageUnit,
+    } : {}),
+    imageBucket: input.imageBucket,
+    imagePath: input.imagePath,
+    thumbnailPath: input.thumbnailPath,
+    imageMetadata: input.imageMetadata,
+    attachments: input.attachments,
+    isDefault: input.isDefault,
+    isActive: input.isActive,
+    effectiveAt: input.effectiveAt,
+    changeReason: input.changeReason,
+  };
+}
+
 function readMetadataObject(metadata: Json | undefined): { [key: string]: Json | undefined } {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) return metadata;
   return {};
@@ -816,9 +899,13 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
   await assertCanManageLibrary(supabase, workspace.id);
-  validatePriceOptions(input.priceOptions);
+  const priceOptionInputs = input.fieldContract === "opendesign-add-component"
+    ? input.priceOptions.map(sanitizeOpenDesignAddComponentPriceOption)
+    : input.priceOptions;
+  validatePriceOptions(priceOptionInputs);
+  const componentInput = readComponentInputForCreate(input);
   const component = normalizeComponentInput({
-    ...input,
+    ...componentInput,
     metadata: {
       ...readMetadataObject(input.metadata),
       source: "library",
@@ -826,7 +913,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
       createdFrom: "workshop-library",
     },
   });
-  const defaultPriceOption = input.priceOptions.find((option) => option.isDefault) ?? input.priceOptions[0];
+  const defaultPriceOption = priceOptionInputs.find((option) => option.isDefault) ?? priceOptionInputs[0];
   const quickAddValidation = validateQuickAddComponentInput({
     name: component.name,
     category: component.category,
@@ -854,11 +941,17 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     confidence: defaultPriceOption?.confidence,
     libraryFolderId: component.libraryFolderId,
   });
-  const priceOptions = input.priceOptions.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
+  const normalizedPriceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
+  const priceOptions = input.fieldContract === "opendesign-add-component"
+    ? normalizedPriceOptions.map(stripOpenDesignAddComponentRpcPriceOption)
+    : normalizedPriceOptions;
+  const componentPayload = input.fieldContract === "opendesign-add-component"
+    ? stripOpenDesignAddComponentRpcComponent(component)
+    : component;
   await assertWithinLibraryQuota(supabase, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
   const { data, error } = await supabase.rpc("create_cost_library_component", {
     target_workspace_id: workspace.id,
-    component: { ...component, createdBy: currentUser.userId } as Json,
+    component: { ...componentPayload, createdBy: currentUser.userId } as Json,
     price_options: priceOptions as Json,
   });
 

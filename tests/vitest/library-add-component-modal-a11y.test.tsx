@@ -35,7 +35,7 @@ const folders: LibraryFolderRecord[] = [
     parent_id: null,
     name: "Hardware",
     sort_order: 10,
-    source_category_node_id: null,
+    source_category_node_id: "cat-hardware",
     folder_kind: "custom",
   },
 ];
@@ -45,6 +45,7 @@ const duplicateRows: EstimateRowItem[] = [
     id: "component-duplicate",
     material: "Door Hinge",
     name: "Door Hinge",
+    description: "",
     supplier: "Acme",
     source: "library",
     unit: "pc",
@@ -56,6 +57,8 @@ const duplicateRows: EstimateRowItem[] = [
     miscCost: 0,
     totalItemCosts: 10,
     category: "Hardware",
+    pricingSource: "Acme",
+    pricingDate: "2026-01-10",
   },
 ];
 
@@ -95,18 +98,19 @@ async function getAddDialog() {
 function fillValidQuickAdd(dialog: HTMLElement) {
   const form = within(dialog).getByRole("form", { name: "Quick add component" });
   fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Door Stop" } });
-  fireEvent.change(within(form).getByLabelText("Category"), { target: { value: "Hardware" } });
+  fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
   fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
   fireEvent.change(within(form).getByLabelText("Unit cost"), { target: { value: "123.456" } });
-  fireEvent.change(within(form).getByLabelText("Pricing date"), { target: { value: "2026-01-10" } });
-  fireEvent.change(within(form).getByLabelText("Pricing source"), {
-    target: { value: "https://supplier.example/quote" },
-  });
-  fireEvent.change(within(form).getByLabelText("Confidence"), { target: { value: "Supplier quote" } });
   return form;
 }
 
-describe("AddComponentModal quick add contract", () => {
+function openVariantDrawer(dialog: HTMLElement) {
+  fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Open V1" }));
+  return within(dialog).getByRole("dialog", { name: "Manage variants" });
+}
+
+describe("AddComponentModal OpenDesign field contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     actionMocks.createCostLibraryComponent.mockResolvedValue({
@@ -120,13 +124,13 @@ describe("AddComponentModal quick add contract", () => {
     vi.unstubAllGlobals();
   });
 
-  it("exposes the canonical required fields with required and invalid semantics", async () => {
+  it("exposes only the OpenDesign required fields on the main component form", async () => {
     renderAddModal();
 
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
     const name = within(form).getByLabelText("Name");
-    const category = within(form).getByLabelText("Category");
+    const category = within(form).getByRole("combobox", { name: "Category" });
     const unit = within(form).getByRole("combobox", { name: "Unit" });
     const unitCost = within(form).getByLabelText("Unit cost");
 
@@ -134,10 +138,29 @@ describe("AddComponentModal quick add contract", () => {
     expect(category).toHaveAttribute("aria-required", "true");
     expect(unit).toHaveAttribute("aria-required", "true");
     expect(unitCost).toHaveAttribute("aria-required", "true");
+    expect(name).not.toHaveAttribute("aria-invalid", "true");
+    expect(category).not.toHaveAttribute("aria-invalid", "true");
+    expect(unitCost).not.toHaveAttribute("aria-invalid", "true");
+    expect(within(dialog).queryByText("Enter a component name.")).not.toBeInTheDocument();
+    expect(within(form).getByLabelText("Description")).toBeInTheDocument();
+    expect(within(form).getByRole("combobox", { name: "Supplier" })).toBeInTheDocument();
+    expect(within(form).getByRole("combobox", { name: "Brand" })).toBeInTheDocument();
+
+    expect(within(dialog).queryByLabelText("Pricing date")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Pricing source")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Confidence")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Source URL")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Misc cost")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Length")).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Component nesting")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Add Component" })).not.toBeDisabled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
+
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(category).toHaveAttribute("aria-invalid", "true");
     expect(unitCost).toHaveAttribute("aria-invalid", "true");
-    expect(within(dialog).getByRole("button", { name: "Add Component" })).toBeDisabled();
+    expect(within(dialog).getByText("Enter a component name.")).toBeInTheDocument();
   });
 
   it("lets a nested combobox own Escape before the dirty modal close dialog", async () => {
@@ -166,36 +189,23 @@ describe("AddComponentModal quick add contract", () => {
     nativeConfirm.mockRestore();
   });
 
-  it("keeps invalid source fields client-side and preserves input after a failed retry", async () => {
+  it("keeps the draft open after a failed create and preserves OpenDesign fields", async () => {
     actionMocks.createCostLibraryComponent.mockRejectedValueOnce(new Error("Network down"));
     const props = renderAddModal();
     const dialog = await getAddDialog();
     const form = fillValidQuickAdd(dialog);
 
-    const pricingDate = within(form).getByLabelText("Pricing date");
-    const pricingSource = within(form).getByLabelText("Pricing source");
-
-    fireEvent.change(pricingDate, { target: { value: "2999-01-01" } });
-    expect(pricingDate).toHaveAttribute("aria-invalid", "true");
-    expect(within(dialog).getByRole("button", { name: "Add Component" })).toBeDisabled();
-
-    fireEvent.change(pricingDate, { target: { value: "2026-01-10" } });
-    fireEvent.change(pricingSource, { target: { value: "ftp://supplier.example/quote" } });
-    expect(pricingSource).toHaveAttribute("aria-invalid", "true");
-    expect(within(dialog).getByRole("button", { name: "Add Component" })).toBeDisabled();
-
-    fireEvent.change(pricingSource, { target: { value: "https://supplier.example/quote" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
 
     await screen.findByText("Network down");
     expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
     expect(within(form).getByLabelText("Name")).toHaveValue("Door Stop");
-    expect(within(form).getByLabelText("Category")).toHaveValue("Hardware");
-    expect(within(form).getByLabelText("Pricing source")).toHaveValue("https://supplier.example/quote");
+    expect(within(form).getByRole("combobox", { name: "Category" })).toHaveValue("Hardware");
+    expect(within(form).getByRole("combobox", { name: "Supplier" })).toHaveValue("Acme");
     expect(props.onComponentCreated).not.toHaveBeenCalled();
   });
 
-  it("submits the quick add payload without requiring a folder", async () => {
+  it("submits a field-contract payload without retired price/source fields", async () => {
     const props = renderAddModal();
     const dialog = await getAddDialog();
     fillValidQuickAdd(dialog);
@@ -204,27 +214,61 @@ describe("AddComponentModal quick add contract", () => {
 
     await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));
     expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(expect.objectContaining({
+      fieldContract: "opendesign-add-component",
       name: "Door Stop",
       category: "Hardware",
       unit: "unit",
       supplier: "Acme",
-      libraryFolderId: null,
       priceOptions: [
         expect.objectContaining({
-          label: "Variant 1",
+          label: "V1",
           unit: "unit",
           unitCost: 123.46,
-          pricingDate: "2026-01-10",
-          pricingSource: "https://supplier.example/quote",
-          confidence: "Supplier quote",
+          currency: "PHP",
           isDefault: true,
         }),
       ],
     }));
+    const payload = actionMocks.createCostLibraryComponent.mock.calls[0][0];
+    expect(payload).not.toHaveProperty("libraryFolderId");
+    expect(payload.priceOptions[0]).not.toHaveProperty("pricingDate");
+    expect(payload.priceOptions[0]).not.toHaveProperty("pricingSource");
+    expect(payload.priceOptions[0]).not.toHaveProperty("confidence");
+    expect(payload.priceOptions[0]).not.toHaveProperty("sourceUrl");
+    expect(payload.priceOptions[0]).not.toHaveProperty("notes");
+    expect(payload.priceOptions[0]).not.toHaveProperty("miscCost");
+    expect(payload.priceOptions[0]).not.toHaveProperty("dimensionLength");
+    expect(payload.priceOptions[0]).not.toHaveProperty("costEntries");
     await waitFor(() => expect(props.onComponentCreated).toHaveBeenCalledTimes(1));
   });
 
-  it("renders scan, review, and download blocked states for uploaded attachments", async () => {
+  it("opens the variants drawer with OpenDesign variant-only fields", async () => {
+    renderAddModal();
+    const dialog = await getAddDialog();
+    const drawer = openVariantDrawer(dialog);
+
+    expect(within(drawer).getByLabelText("Variant Name")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Variant Description")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("SKU / Reference")).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Variant unit cost")).toBeInTheDocument();
+    const variantUnit = within(drawer).getByRole("combobox", { name: "Variant unit" });
+    expect(variantUnit).toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Equivalent quantity")).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole("combobox", { name: "Equivalent unit" })).not.toBeInTheDocument();
+
+    fireEvent.change(variantUnit, { target: { value: "box" } });
+
+    expect(within(drawer).getByLabelText("Equivalent quantity")).toBeInTheDocument();
+    expect(within(drawer).getByRole("combobox", { name: "Equivalent unit" })).toBeInTheDocument();
+    expect(within(drawer).getByLabelText("Upload attachment")).toBeInTheDocument();
+
+    expect(within(drawer).queryByLabelText("Pricing date")).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Pricing source")).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Confidence")).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Dimension unit")).not.toBeInTheDocument();
+  });
+
+  it("renders uploaded variant attachments in the drawer carousel", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       bucket: "component-attachments",
       path: "workspace-1/user-1/spec.pdf",
@@ -242,22 +286,29 @@ describe("AddComponentModal quick add contract", () => {
     renderAddModal();
 
     const dialog = await getAddDialog();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Advanced catalog details" }));
+    const drawer = openVariantDrawer(dialog);
 
     const file = new File(["%PDF-1.7"], "spec.pdf", { type: "application/pdf" });
-    fireEvent.change(within(dialog).getByLabelText("Upload attachment"), {
+    fireEvent.change(within(drawer).getByLabelText("Upload attachment"), {
       target: { files: [file] },
     });
 
     await screen.findByText("Stored spec.pdf (2 KB).");
-    expect(within(dialog).getByText("spec.pdf")).toBeInTheDocument();
-    expect(within(dialog).getByText("Scan pending")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Attachment scan status: Scan pending")).toBeInTheDocument();
-    expect(within(dialog).getByText("Review blocked")).toBeInTheDocument();
-    expect(within(dialog).getByText("Download blocked")).toBeInTheDocument();
-    expect(within(dialog).getByText(
-      "Download blocked until scanner marks this attachment clean and Library review marks it current.",
-    )).toBeInTheDocument();
+    expect(within(drawer).getByText("spec.pdf")).toBeInTheDocument();
+    expect(within(drawer).getByRole("button", { name: "Remove attachment spec.pdf" })).toBeInTheDocument();
+  });
+
+  it("keeps Activity fields because they exist in the OpenDesign component", async () => {
+    renderAddModal();
+    const dialog = await getAddDialog();
+
+    fireEvent.click(within(dialog).getByRole("tab", { name: "Activity" }));
+
+    const activityPanel = within(dialog).getByRole("tabpanel", { name: "Activity" });
+    expect(within(activityPanel).getByRole("combobox", { name: "Component state" })).toHaveTextContent("Available");
+    expect(within(activityPanel).getByLabelText("Effective date")).toBeInTheDocument();
+    expect(within(activityPanel).getByLabelText("Currency")).toHaveValue("PHP");
+    expect(within(activityPanel).getByLabelText("Change note")).toBeInTheDocument();
   });
 
   it("shows a non-blocking duplicate warning after the name blur check", async () => {
@@ -265,13 +316,13 @@ describe("AddComponentModal quick add contract", () => {
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    fireEvent.change(within(form).getByLabelText("Category"), { target: { value: "Hardware" } });
+    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     const name = within(form).getByLabelText("Name");
     fireEvent.change(name, { target: { value: "Door Hinge" } });
     fireEvent.blur(name);
 
-    await screen.findByText('A component named "Door Hinge" already exists. Add anyway or open the existing one.');
+    await screen.findByText('A component named "Door Hinge" already exists.');
     fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
     expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
   });
@@ -281,27 +332,22 @@ describe("AddComponentModal quick add contract", () => {
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    fireEvent.change(within(form).getByLabelText("Category"), { target: { value: "Hardware" } });
+    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     const name = within(form).getByLabelText("Name");
     fireEvent.change(name, { target: { value: "  door    hinge  " } });
     fireEvent.blur(name);
 
-    await screen.findByText('A component named "Door Hinge" already exists. Add anyway or open the existing one.');
+    await screen.findByText('A component named "Door Hinge" already exists.');
 
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "" } });
     fireEvent.change(within(form).getByRole("combobox", { name: "Brand" }), { target: { value: "Hinge Co" } });
     fireEvent.change(name, { target: { value: "Concealed Pull" } });
     fireEvent.blur(name);
 
-    await screen.findByText('A component named "Concealed Pull" already exists. Add anyway or open the existing one.');
+    await screen.findByText('A component named "Concealed Pull" already exists.');
     fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
     fireEvent.change(within(form).getByLabelText("Unit cost"), { target: { value: "45.50" } });
-    fireEvent.change(within(form).getByLabelText("Pricing date"), { target: { value: "2026-01-10" } });
-    fireEvent.change(within(form).getByLabelText("Pricing source"), {
-      target: { value: "https://supplier.example/quote" },
-    });
-    fireEvent.change(within(form).getByLabelText("Confidence"), { target: { value: "Supplier quote" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
 
     await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));

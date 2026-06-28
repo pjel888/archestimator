@@ -34,6 +34,7 @@ export type AppModalProps = {
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
   blurBackdrop?: boolean;
+  transparentBackdrop?: boolean;
   initialFocus?: "content" | "first";
   bodyClassName?: string;
   contentClassName?: string;
@@ -95,6 +96,7 @@ export function AppModal({
   closeOnOverlayClick = true,
   closeOnEscape = true,
   blurBackdrop = true,
+  transparentBackdrop = false,
   initialFocus = "first",
   bodyClassName,
   contentClassName,
@@ -132,7 +134,7 @@ export function AppModal({
           data-archestimator-modal-root
           className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
         >
-          <DialogOverlay blur={blurBackdrop} />
+          <DialogOverlay blur={blurBackdrop} transparent={transparentBackdrop} />
           <DialogContent
             role={tone === "destructive" || tone === "danger" ? "alertdialog" : "dialog"}
             described={Boolean(description)}

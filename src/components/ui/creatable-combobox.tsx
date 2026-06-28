@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Plus, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Plus, X } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
 import { CONTROL_INPUT_SURFACE_CLASS, ControlInput } from "./control-input";
@@ -39,6 +39,8 @@ type CreatableComboboxProps = {
   suppressCreateWhenSearchMatches?: boolean;
   optionPresentation?: "default" | "unit";
   dropdownPlacement?: "bottom" | "top";
+  showClearButton?: boolean;
+  showDropdownIndicator?: boolean;
 };
 
 function normalizeLabel(value: string): string {
@@ -78,6 +80,8 @@ export function CreatableCombobox({
   suppressCreateWhenSearchMatches,
   optionPresentation = "default",
   dropdownPlacement = "bottom",
+  showClearButton = true,
+  showDropdownIndicator = false,
 }: CreatableComboboxProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -171,7 +175,7 @@ export function CreatableCombobox({
           setOpen(true);
         }}
       />
-      {value ? (
+      {showClearButton && value ? (
         <button
           type="button"
           aria-label={`Clear ${ariaLabel}`}
@@ -183,6 +187,13 @@ export function CreatableCombobox({
         >
           <X size={10} weight="regular" aria-hidden="true" />
         </button>
+      ) : showDropdownIndicator ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-2 top-1/2 grid size-5 -translate-y-1/2 place-items-center text-tertiary"
+        >
+          <CaretDown size={11} weight="regular" />
+        </span>
       ) : null}
       {open ? (
         // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- This is an ARIA combobox popup, not a native datalist-backed input.
