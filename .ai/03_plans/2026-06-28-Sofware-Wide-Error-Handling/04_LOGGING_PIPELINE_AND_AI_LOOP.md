@@ -179,7 +179,7 @@ This loop is the explicit payoff of the user's "AI agent driven development" req
 
 ## E. PERF_TRACE integration
 
-`src/lib/perf/server-timing.ts` already uses `AsyncLocalStorage` keyed by `requestId` + `scope`. The logger module consumes this same context to populate `context.request_id`, `context.route`, `context.user_id_hashed` on every record without explicit passing.
+`src/lib/perf/server-timing.ts` already uses `AsyncLocalStorage` keyed by `requestId` + `scope`. The logger module consumes this same context to populate `context.request_id` and `context.route` on every record without explicit passing. **`user_id_hashed` is NOT auto-populated** — PERF_TRACE stores only `requestId` and `scope` (no user identifier, by design — server-timing.ts is performance-only). Callers that want `user_id_hashed` in a log record must pass it explicitly via the `context` field on the `AppErrorLogRecord` (e.g., server actions read it from the auth session and stamp it on the AppError they throw).
 
 ```ts
 // src/lib/observability/logger.ts (new in P1)
@@ -226,10 +226,13 @@ function enrich(record: AppErrorLogRecord): DevLogRecord {
 }
 
 export const logger = {
-  error(record: AppErrorLogRecord) {
+  // `originalError?` is forwarded to Sentry.captureException (P5) so the
+  // wrapped path preserves the real exception object (stack, name, cause
+  // chain). The structured `record` is still the dev-log source-of-truth.
+  error(record: AppErrorLogRecord, originalError?: unknown) {
     const enriched = enrich(record);
     writeDevLog(enriched);
-    forwardToProd(enriched);  // no-op in dev; Sentry captureException in prod (P5)
+    forwardToProd(enriched, originalError);  // no-op in dev; Sentry captureException in prod (P5)
   },
   // warn, info, debug similar — each picks its own level and uses the same enrich().
 };
@@ -243,7 +246,7 @@ There are **two distinct Sentry capture paths** in production. They do NOT overl
 
 | Path | Fires when | Capture mechanism |
 |---|---|---|
-| **Wrapped** server-action / route-handler failures | The `withActionErrors` wrapper or `errorResponse()` catches the error | `logger.error(appError.toLogRecord())` → `forwardToProd(enriched)` → `Sentry.captureException` (attaches `request_id` as a Sentry tag from `enriched.context.request_id` so the wrapped path is correlatable by the same key as the uncaught path) |
+| **Wrapped** server-action / route-handler failures | The `withActionErrors` wrapper or `errorResponse()` catches the error | `logger.error(appError.toLogRecord(), appError)` → `forwardToProd(enriched, originalError)` → `Sentry.captureException(originalError)` with enriched context as `extra`/tags (attaches `request_id` from `enriched.context.request_id`) |
 | **Uncaught** server errors (bugs that escape all wrappers) | Next.js server catches an error that no wrapper caught | `instrumentation.ts` `onRequestError(err, request, context)` → `Sentry.captureException` (attaches `request_id` from PERF_TRACE per `05` Section A.3) |
 
 Both paths land in Sentry. The wrapped path adds structured context (record_id, error.kind/code, agent_decision); the uncaught path adds request/context breadcrumbs. An error that flows through a wrapper does NOT also fire `onRequestError` because the wrapper swallowed it (returned `ActionResult`/`NextResponse`); an error that escapes all wrappers DOES fire `onRequestError`. This is the canonical ownership model — both `03`/`05` (wrapped) and `04`/`05`/`07`/`11` (onRequestError) describe complementary, non-overlapping paths.

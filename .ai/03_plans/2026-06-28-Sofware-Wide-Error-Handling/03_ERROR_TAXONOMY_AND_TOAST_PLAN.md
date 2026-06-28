@@ -425,12 +425,12 @@ export function withActionErrors<T, Args extends unknown[]>(
       return { ok: true, data };
     } catch (err) {
       if (err instanceof AppError) {
-        logger.error(err.toLogRecord());
+        logger.error(err.toLogRecord(), err);
         return { ok: false, error: err.toClientJSON() };
       }
       // Unknown error → wrap in InternalError
       const wrapped = new InternalError({ cause: err });
-      logger.error(wrapped.toLogRecord());
+      logger.error(wrapped.toLogRecord(), wrapped);
       return { ok: false, error: wrapped.toClientJSON() };
     }
   };
@@ -463,7 +463,7 @@ export function errorResponse(err: unknown, traceIdOverride?: string): NextRespo
   logger.error({
     ...appError.toLogRecord(),
     context: { ...appError.context, request_id: traceId },  // stamp the log with the SAME trace_id
-  });
+  }, appError);  // pass the original AppError so Sentry.captureException preserves the real exception
   return NextResponse.json(
     { ok: false, error: appError.toClientJSON(), trace_id: traceId },
     { status: appError.httpStatus ?? 500 },
