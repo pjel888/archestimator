@@ -75,6 +75,20 @@ export function redactForLog(
       ? value.map((v) => redactForLog(v))
       : Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactForLog(v, k)]));
   }
+  // Bare-string path: scrub known secret/PII patterns from unkeyed strings.
+  // This is what makes `redactForLog(String(appError.cause))` safe — cause
+  // strings often contain raw Supabase/Postgres error text that may embed
+  // emails, JWTs, or query params. Patterns: bearer tokens, JWTs, emails,
+  // long hex/base64 runs (likely API keys), and `password=...`/`token=...`
+  // query-string fragments.
+  if (typeof value === 'string') {
+    return value
+      .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')
+      .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[JWT_REDACTED]')  // JWT shape
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]')
+      .replace(/(password|token|api[_-]?key|secret)=([^\s&]+)/gi, '$1=[REDACTED]')
+      .replace(/\b[A-Fa-f0-9]{32,}\b/g, '[SECRET_REDACTED]');  // long hex runs
+  }
   return value;
 }
 

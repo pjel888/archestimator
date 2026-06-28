@@ -139,7 +139,9 @@ If still stuck, paste the full log record into the agent's context with the prom
 - [ ] Owner/provider gate recorded for Sentry project, DSN, auth token, source-map policy, retention, and access controls
 - [ ] `SENTRY_DSN` set in Vercel env (production)
 - [ ] `SENTRY_AUTH_TOKEN` set in GitHub Actions secret (for sourcemap upload)
-- [ ] `SENTRY_ENABLED=true` in Vercel env (production)
+- [ ] `SENTRY_ENABLED=true` in Vercel env (production, server-side)
+- [ ] `NEXT_PUBLIC_SENTRY_ENABLED=true` in Vercel env (production, client-side; requires rebuild to take effect because Next.js bakes `NEXT_PUBLIC_*` at build time)
+- [ ] `NEXT_PUBLIC_SENTRY_DSN` set if the client SDK needs a separate DSN (otherwise the wizard wires it from the same project)
 - [ ] Session Replay remains disabled (`replaysSessionSampleRate=0`, `replaysOnErrorSampleRate=0`) unless a separate privacy decision approves it
 - [ ] Provider-backed `/api/internal/client-error` rate limiter selected before production enablement
 - [ ] First test error submitted to Sentry; dashboard confirms receipt

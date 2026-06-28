@@ -425,12 +425,12 @@ export function withActionErrors<T, Args extends unknown[]>(
       return { ok: true, data };
     } catch (err) {
       if (err instanceof AppError) {
-        logger.error(err.toLogRecord(), err);
+        logger.error(err.toLogRecord(), err);  // err IS the original; pass it directly
         return { ok: false, error: err.toClientJSON() };
       }
       // Unknown error → wrap in InternalError
       const wrapped = new InternalError({ cause: err });
-      logger.error(wrapped.toLogRecord(), wrapped);
+      logger.error(wrapped.toLogRecord(), err);  // pass the ORIGINAL err (not wrapped) so Sentry.captureException keeps the real stack/cause
       return { ok: false, error: wrapped.toClientJSON() };
     }
   };
@@ -452,6 +452,7 @@ export const createProject = withActionErrors(async (input: CreateProjectInput) 
 import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
 
 export function errorResponse(err: unknown, traceIdOverride?: string): NextResponse {
+  // err is the original thrown value. If it's already an AppError, use it; else wrap.
   const appError = err instanceof AppError ? err : new InternalError({ cause: err });
   // Derive trace_id from PERF_TRACE AsyncLocalStorage when caller does not pass one.
   // This satisfies FR-003 AC-003.1 (every handler error response includes trace_id)
@@ -463,7 +464,7 @@ export function errorResponse(err: unknown, traceIdOverride?: string): NextRespo
   logger.error({
     ...appError.toLogRecord(),
     context: { ...appError.context, request_id: traceId },  // stamp the log with the SAME trace_id
-  }, appError);  // pass the original AppError so Sentry.captureException preserves the real exception
+  }, err);  // pass the ORIGINAL err (not the wrapped appError) so Sentry.captureException keeps the real stack/cause chain
   return NextResponse.json(
     { ok: false, error: appError.toClientJSON(), trace_id: traceId },
     { status: appError.httpStatus ?? 500 },
