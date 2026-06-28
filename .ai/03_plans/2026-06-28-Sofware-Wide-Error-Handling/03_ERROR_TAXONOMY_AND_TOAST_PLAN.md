@@ -8,10 +8,12 @@ Defines the typed `AppError` hierarchy, the toast tone+copy mapping per class, a
 2. **Every error carries a public-safe message** suitable for the user (no DB internals, no stack traces, no PII).
 3. **Every error carries a private cause** for the server log + dev NDJSON (full detail).
 4. **Every error maps to a stable toast tone** so the user always knows severity at a glance.
-5. **Subclasses are fine-grained enough to drive copy decisions** but coarse enough to keep the taxonomy memorable. Target: 6–10 leaf classes.
+5. **Subclasses are fine-grained enough to drive copy decisions** but coarse enough to keep the taxonomy memorable. Target: 6–10 `kind` values and a small concrete class set.
 6. **Auth errors stay in their own family** to preserve the existing `error-mapping.ts` + `recordAccountSecurityEvent` pattern.
 
 ## B. The `AppError` hierarchy
+
+Canonical count: **9 public `AppErrorKind` values, 12 concrete subclasses**. The four auth subclasses intentionally share `kind: 'auth'` so client code can handle auth consistently while preserving specific codes and copy.
 
 ```
 AppError (abstract root)
@@ -91,14 +93,16 @@ export abstract class AppError extends Error {
     return {
       timestamp: this.timestamp,
       level: 'ERROR',
-      kind: this.kind,
-      code: this.code,
       message: this.userMessage,
-      trace_id: this.traceId,
+      error: {
+        kind: this.kind,
+        code: this.code,
+        class: this.name,
+        message: this.userMessage,
+        stack: process.env.NODE_ENV === 'development' ? this.stack?.split('\n').slice(0, 50) : undefined,
+        cause: process.env.NODE_ENV === 'development' ? String(redactForLog(this.cause)) : undefined,
+      },
       context: this.context,
-      // stack and cause only in dev; never in prod NDJSON
-      stack: process.env.NODE_ENV === 'development' ? this.stack : undefined,
-      cause: process.env.NODE_ENV === 'development' ? String(this.cause) : undefined,
     };
   }
 }
@@ -206,9 +210,9 @@ The wrapper helper:
 
 ```ts
 // src/lib/observability/with-action-errors.ts (new in P1)
-export async function withActionErrors<T, Args extends unknown[]>(
+export function withActionErrors<T, Args extends unknown[]>(
   fn: (...args: Args) => Promise<T>,
-): Promise<(...args: Args) => Promise<ActionResult<T>>> {
+): (...args: Args) => Promise<ActionResult<T>> {
   return async (...args) => {
     try {
       const data = await fn(...args);
