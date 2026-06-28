@@ -50,19 +50,17 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Affected:** all 22 files in `01` B.2; `src/lib/observability/route-error.ts` (new).
 
 ### FR-004 — Root global-error.tsx
-- **Statement:** Pilot scope: one selected root or segment error boundary exists and renders safe fallback UI using the Next.js 16 `unstable_retry` contract. Full scope may include root `global-error.tsx` after pilot proof.
+- **Statement:** Pilot scope: `src/app/global-error.tsx` exists and renders safe fallback UI using the Next.js 16 `unstable_retry` contract, with focus management (A11Y-002) and POST to `/api/internal/client-error` for server-side diagnosis. Full scope may add segment `error.tsx` boundaries after pilot proof.
 - **Rationale:** `01` Section A.2 — none exists.
 - **Priority:** P3a pilot.
-- **AC-004.1:** Selected pilot boundary file exists.
-- **AC-004.2:** Tested via DOM/static test or Playwright only when browser behavior is the claim being proven.
-- **Affected:** new file.
+- **AC-004.1:** `src/app/global-error.tsx` exists and renders `<html><body>` per Next 16 docs.
+- **AC-004.2:** Tested via DOM/static test or Playwright (`e2e/global-error.spec.ts`) only when browser behavior is the claim being proven.
+- **Affected:** new file `src/app/global-error.tsx`.
 
-### FR-005 — Root error.tsx and not-found.tsx
-- **Statement:** Selected pilot `error.tsx`/`global-error.tsx` exists; root `not-found.tsx` is a follow-on after pilot if still needed.
-- **Priority:** P3a pilot.
-- **AC-005.1:** Pilot boundary file exists.
-- **AC-005.2:** Pilot `error.tsx` calls `toast.appError` on mount when the selected boundary is segment-level.
-- **AC-005.3:** `not-found.tsx` remains follow-on, not pilot-blocking.
+### FR-005 — not-found.tsx (follow-on)
+- **Statement:** `not-found.tsx` is a follow-on after pilot; not pilot-blocking.
+- **Priority:** Follow-on after P3a pilot.
+- **AC-005.1:** `not-found.tsx` may be added later without re-litigating the taxonomy.
 
 ### FR-006 — Toast.appError convenience
 - **Statement:** `src/components/ui/toast.tsx` exports `toast.appError(err)`.

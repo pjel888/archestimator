@@ -127,7 +127,7 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 
 | WP | Task | File(s) | Complexity |
 |---|---|---|---|
-| P3a-WP1 | Create one pilot `src/app/global-error.tsx` or route-segment `error.tsx` using `unstable_retry` and safe copy | new | S |
+| P3a-WP1 | Create `src/app/global-error.tsx` (the singular P3a pilot boundary) using `unstable_retry`, safe copy, focus management per A11Y-002, and POST to `/api/internal/client-error` per `05` Section A.5 + D.3 | new | S |
 | P3a-WP2 | Create `src/app/api/internal/client-error/route.ts` with same-origin checks, strict local parser, redaction, tainted-field labeling, and local/preview rate limit | new | M |
 | P3a-WP3 | Extend `src/components/ui/toast.tsx` to add `toast.appError(err)` (preserves existing API) | extend | S |
 | P3a-WP4 | Tests: `tests/vitest/{toast-apperror,toast-a11y,client-error}.test.ts(x)` | new | M |
