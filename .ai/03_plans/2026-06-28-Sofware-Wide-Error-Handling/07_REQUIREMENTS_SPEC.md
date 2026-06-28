@@ -156,16 +156,16 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### A11Y-001 — Toasts announce to screen readers
 - **Statement:** Toast container uses `role="status"` for non-critical tones and `role="alert"` for `error` tone, with `aria-live="polite"` and `aria-live="assertive"` respectively.
-- **AC-001.1:** Existing toast.tsx already complies (verified in audit). P3 task: explicit test in `tests/vitest/toast-a11y.test.tsx`.
+- **AC-001.1:** Existing toast.tsx already complies (verified in audit). P3a task: explicit test in `tests/vitest/toast-a11y.test.tsx`.
 
 ### A11Y-002 — Error boundaries focusable
 - **Statement:** `global-error.tsx` and `error.tsx` move focus to the error container on mount.
 - **AC-002.1:** Playwright test verifies `document.activeElement` is inside the error boundary after navigation.
 
 ### TEST-001 — New test files for P1
-- **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,logger,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`.)
+- **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`. The `logger.test.ts` and `logger-perf.test.ts` files are P4 deliverables — see TEST-002 and `08` P4-WP7.)
 
-### TEST-002 — New test files for P3–P5
+### TEST-002 — New test files for P3a–P5
 - **Statement:** `tests/vitest/{toast-apperror,toast-a11y,client-error,instrumentation,sentry-redact}.test.ts` + `tests/unit/tail-dev-logs.test.ts` are created across P3a–P5 and pass. (These files are planned deliverables of their respective phases, not pre-existing on `main`.)
 
 ### TEST-003 — Adversarial QA matrix

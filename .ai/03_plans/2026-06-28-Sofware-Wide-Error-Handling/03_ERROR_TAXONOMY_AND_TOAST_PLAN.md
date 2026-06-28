@@ -90,17 +90,24 @@ export abstract class AppError extends Error {
     return { kind: this.kind, code: this.code, message: this.userMessage };
   }
 
+  /** Severity level for logging. Subclasses override per the table in `04` Section B.3. */
+  toLogLevel(): 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL' {
+    // Default — most subclasses override (see hierarchy below).
+    return 'ERROR';
+  }
+
   /** Convert to a structured log record for the dev NDJSON / prod forwarder. */
   toLogRecord(): AppErrorLogRecord {
     // AppErrorLogRecord is a *partial* DevLogRecord — it omits `record_id`
     // and `severity_number`, which the logger adds at emit time:
     //   - `record_id` is generated per-emit (see `04` Section C.2)
     //   - `severity_number` is derived from `level` per the OTel map in `04` Section B.3
-    // The logger's `error(record)`/`warn(record)`/etc. signatures accept
-    // AppErrorLogRecord and return the fully-shaped DevLogRecord after enrichment.
+    // `level` is sourced from `toLogLevel()` so each AppError subclass maps
+    // to the correct OTel severity (auth/validation/not_found → INFO, conflict/
+    // rate_limit/network → WARN, database/upstream/internal → ERROR; see `04` B.3).
     return {
       timestamp: this.timestamp,
-      level: 'ERROR',
+      level: this.toLogLevel(),
       message: this.userMessage,
       error: {
         kind: this.kind,
@@ -114,6 +121,58 @@ export abstract class AppError extends Error {
     };
   }
 }
+```
+
+**Per-subclass `toLogLevel()` overrides** (matches the severity table in `04` Section B.3):
+
+```ts
+// Auth family — INFO for required/expired, WARN for denied/rate-limited
+export class AuthRequiredError extends AppError {
+  readonly kind = 'auth' as const;
+  toLogLevel() { return 'INFO' as const; }
+  // ... constructor per B.2
+}
+export class AuthSessionExpiredError extends AppError {
+  readonly kind = 'auth' as const;
+  toLogLevel() { return 'INFO' as const; }
+}
+export class AuthPermissionDeniedError extends AppError {
+  readonly kind = 'auth' as const;
+  toLogLevel() { return 'WARN' as const; }
+}
+export class AuthRateLimitedError extends AppError {
+  readonly kind = 'auth' as const;
+  toLogLevel() { return 'WARN' as const; }
+}
+
+// Validation, not_found → INFO
+export class ValidationError extends AppError {
+  readonly kind = 'validation' as const;
+  toLogLevel() { return 'INFO' as const; }
+}
+export class NotFoundError extends AppError {
+  readonly kind = 'not_found' as const;
+  toLogLevel() { return 'INFO' as const; }
+}
+
+// Conflict, rate_limit, network → WARN
+export class ConflictError extends AppError {
+  readonly kind = 'conflict' as const;
+  toLogLevel() { return 'WARN' as const; }
+}
+export class RateLimitError extends AppError {
+  readonly kind = 'rate_limit' as const;
+  toLogLevel() { return 'WARN' as const; }
+}
+export class NetworkError extends AppError {
+  readonly kind = 'network' as const;
+  toLogLevel() { return 'WARN' as const; }
+}
+
+// Database, upstream, internal → ERROR (default; no override needed)
+export class DatabaseError extends AppError { readonly kind = 'database' as const; }
+export class UpstreamError extends AppError { readonly kind = 'upstream' as const; }
+export class InternalError extends AppError { readonly kind = 'internal' as const; }
 ```
 
 `AppErrorLogRecord` and `DevLogRecord` (defined in `04` Section B.1) compose like so:
@@ -220,12 +279,44 @@ All toasts are dismissible.
 
 ### C.1 Toast convenience method
 
+The toast lookup keys by `code` (which is unique per concrete subclass) — NOT by `kind`. This is required because the four auth subclasses share `kind: 'auth'` but need different tones (info vs warning) and copy. `TOAST_CONFIG` below is therefore indexed by `code`.
+
 ```ts
 // src/components/ui/toast.tsx (EXTEND, not replace)
+import { AppError } from '@/lib/observability/app-error';
+
+// Keyed by AppError `code` (unique per concrete subclass). See Section C table.
+const TOAST_CONFIG: Record<string, { tone: 'info'|'warning'|'error'; durationMs: number }> = {
+  AUTH_REQUIRED:           { tone: 'info',    durationMs: 5000 },
+  AUTH_SESSION_EXPIRED:    { tone: 'info',    durationMs: 7000 },
+  AUTH_PERMISSION_DENIED:  { tone: 'warning', durationMs: 6000 },
+  AUTH_RATE_LIMITED:       { tone: 'warning', durationMs: 6000 },
+  // validation.* codes vary; fallback below handles them with tone=warning
+  NOT_FOUND:               { tone: 'info',    durationMs: 5000 },
+  CONFLICT:                { tone: 'warning', durationMs: 7000 },
+  RATE_LIMIT:              { tone: 'warning', durationMs: 6000 },
+  NETWORK:                 { tone: 'warning', durationMs: 6000 },
+  DATABASE:                { tone: 'error',   durationMs: 8000 },
+  UPSTREAM:                { tone: 'error',   durationMs: 8000 },
+  INTERNAL:                { tone: 'error',   durationMs: 8000 },
+};
+
+// Kind-level fallback for validation/database/upstream wildcard codes
+const TOAST_FALLBACK_BY_KIND: Record<AppError['kind'], { tone: 'info'|'warning'|'error'; durationMs: number }> = {
+  auth:         { tone: 'info',    durationMs: 5000 },
+  validation:   { tone: 'warning', durationMs: 7000 },
+  not_found:    { tone: 'info',    durationMs: 5000 },
+  conflict:     { tone: 'warning', durationMs: 7000 },
+  database:     { tone: 'error',   durationMs: 8000 },
+  upstream:     { tone: 'error',   durationMs: 8000 },
+  rate_limit:   { tone: 'warning', durationMs: 6000 },
+  network:      { tone: 'warning', durationMs: 6000 },
+  internal:     { tone: 'error',   durationMs: 8000 },
+};
 
 toast.appError = (err: unknown) => {
   if (err instanceof AppError) {
-    const cfg = TOAST_CONFIG[err.kind];
+    const cfg = TOAST_CONFIG[err.code] ?? TOAST_FALLBACK_BY_KIND[err.kind];
     toast({ message: err.userMessage, tone: cfg.tone, durationMs: cfg.durationMs });
   } else if (err instanceof Error) {
     toast({ message: "Something went wrong.", tone: 'error', durationMs: 8000 });

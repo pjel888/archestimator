@@ -125,4 +125,4 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 |---|---|---|---|
 | OPEN-001 | `/api/internal/client-error` production rate limiter: Vercel KV or Upstash Redis? | implementer | P5-WP8; in-memory is local/preview only |
 | OPEN-002 | Dev logger also write to stdout for parity? | lead | P4-WP2 |
-| OPEN-003 | Toast dedupe in P3 or deferred? | lead | Deferred (RISK-ERR-012) |
+| OPEN-003 | Toast dedupe in P3a or deferred? | lead | Deferred (RISK-ERR-012) |

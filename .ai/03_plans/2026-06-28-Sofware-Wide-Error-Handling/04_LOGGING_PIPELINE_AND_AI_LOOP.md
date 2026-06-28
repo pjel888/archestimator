@@ -182,17 +182,38 @@ This loop is the explicit payoff of the user's "AI agent driven development" req
 ```ts
 // src/lib/observability/logger.ts (new in P1)
 import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
+import type { AppErrorLogRecord, DevLogRecord } from './types';
+
+// `error()`/`warn()`/`info()`/`debug()` accept a PARTIAL AppErrorLogRecord
+// (no record_id, no severity_number). The logger enriches it at emit time:
+//   - record_id       = `${timestampNs}-${processCounter++}`
+//   - severity_number = SEVERITY_BY_LEVEL[level]  // OTel map, see Section B.3
+// The enriched record is the canonical DevLogRecord written to ./logs/dev.ndjson.
+const SEVERITY_BY_LEVEL: Record<AppErrorLogRecord['level'], number> = {
+  TRACE: 1, DEBUG: 5, INFO: 9, WARN: 13, ERROR: 17, FATAL: 21,
+};
+
+let processCounter = 0;
+function enrich(record: AppErrorLogRecord): DevLogRecord {
+  const trace = getCurrentPerfTraceSnapshot();
+  const timestampNs = Date.now();
+  return {
+    record_id: `${timestampNs}-${processCounter++}`,
+    severity_number: SEVERITY_BY_LEVEL[record.level],
+    ...record,
+    context: trace
+      ? { ...record.context, request_id: trace.requestId, route: trace.scope }
+      : record.context,
+  };
+}
 
 export const logger = {
-  error(record: DevLogRecord) {
-    const trace = getCurrentPerfTraceSnapshot();
-    const enriched = trace
-      ? { ...record, context: { ...record.context, request_id: trace.requestId, route: trace.scope } }
-      : record;
+  error(record: AppErrorLogRecord) {
+    const enriched = enrich(record);
     writeDevLog(enriched);
     forwardToProd(enriched);  // no-op in dev; Sentry/OTel in prod
   },
-  // warn, info, debug similar
+  // warn, info, debug similar — each picks its own level and uses the same enrich().
 };
 ```
 

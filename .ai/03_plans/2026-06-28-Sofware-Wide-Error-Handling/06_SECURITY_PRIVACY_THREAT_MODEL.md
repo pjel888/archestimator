@@ -153,7 +153,7 @@ Plan preserves all of this. The `mapAuthCodeToAppError` bridge carries the same 
 
 Owner-delegated decision for this planning pack: use the in-memory limiter only for local dev and preview smoke proof. Production rollout of `/api/internal/client-error` is blocked until a provider-backed limiter is selected and authorized; preferred options are Vercel KV or Upstash Redis depending on the then-current cost posture.
 
-`/api/internal/client-error` route (new P3):
+`/api/internal/client-error` route (new P3a):
 
 ```ts
 // src/app/api/internal/client-error/route.ts
@@ -214,8 +214,8 @@ Production must not rely on the in-memory `rateLimiter` Map because serverless i
 | `redactForLog` redacts every key in `NEVER_LOG_KEYS` | `tests/vitest/redact.test.ts` (new P1) |
 | `redactForLog` hashes user_id consistently | same test |
 | Logger never writes raw email/phone/IP | property test: random PII inputs → no leaks |
-| `/api/internal/client-error` rejects cross-site reports, malformed JSON, oversized payloads, secret/token/email/URL strings, control characters, and prompt-injection strings | `tests/vitest/client-error.test.ts` (new P3 pilot) |
-| `/api/internal/client-error` rate-limits at 10/min | `tests/vitest/client-error.test.ts` (new P3 pilot) |
+| `/api/internal/client-error` rejects cross-site reports, malformed JSON, oversized payloads, secret/token/email/URL strings, control characters, and prompt-injection strings | `tests/vitest/client-error.test.ts` (new P3a pilot) |
+| `/api/internal/client-error` rate-limits at 10/min | `tests/vitest/client-error.test.ts` (new P3a pilot) |
 | Sentry `beforeSend` strips auth headers | `tests/vitest/sentry-redact.test.ts` (new P5) |
 | Source maps absent from public CDN | Playwright probe in P6a |
 

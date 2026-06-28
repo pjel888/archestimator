@@ -150,7 +150,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 - `/api/internal/client-error` rate-limits correctly.
 - `/api/internal/client-error` redacts client text and labels tainted fields.
 
-**Rollback:** delete P3 files. Existing toast API unchanged.
+**Rollback:** delete P3a files. Existing toast API unchanged.
 
 ## P4 — Dev logging pipeline: NDJSON file + AI tail command
 

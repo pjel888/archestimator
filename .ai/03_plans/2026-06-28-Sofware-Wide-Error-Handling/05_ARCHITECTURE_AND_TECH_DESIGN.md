@@ -85,7 +85,7 @@ export async function captureRequestError(error, request, context) {
 
 Mirrors server config; loaded by the Next.js Sentry wizard. Same `SENTRY_ENABLED` kill switch and redaction rules.
 
-### A.5 `src/app/global-error.tsx` (new in P3)
+### A.5 `src/app/global-error.tsx` (new in P3a)
 
 ```tsx
 "use client";
@@ -125,7 +125,9 @@ export default function GlobalError({
 
 **Note:** `global-error.tsx` must render `<html>` and `<body>` itself because the root layout is bypassed.
 
-### A.6 `src/app/error.tsx` (pilot UI surface in P3)
+### A.6 `src/app/error.tsx` (pilot UI surface in P3a)
+
+Per Section D.3, the P3a pilot boundary opts in to server-side diagnosis by POSTing to `/api/internal/client-error` (the same endpoint used by `global-error.tsx`). Boundaries that do not opt in simply render fallback UI without server-side reporting.
 
 ```tsx
 "use client";
@@ -141,6 +143,17 @@ export default function Error({
 }) {
   useEffect(() => {
     toast.appError(error);
+    // Forward to server log for diagnosis (same channel as global-error.tsx).
+    // Best-effort — never blocks recovery.
+    fetch('/api/internal/client-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: error.message?.slice(0, 1024),
+        digest: error.digest,
+        path: window.location.pathname,
+      }),
+    }).catch(() => { /* swallow; logging is best-effort */ });
   }, [error]);
   return (
     <div role="alert" className="...">
@@ -153,11 +166,11 @@ export default function Error({
 }
 ```
 
-### A.7 `src/app/not-found.tsx` (new in P3)
+### A.7 `src/app/not-found.tsx` (new in P3a)
 
 404 page for unmatched routes. Brand-styled, points users to home or contact.
 
-### A.8 `src/app/api/internal/client-error/route.ts` (new in P3)
+### A.8 `src/app/api/internal/client-error/route.ts` (new in P3a)
 
 Receives POSTs from `global-error.tsx` and client-side unhandledrejection handler. Writes only redacted, tainted client-report fields to logger: `{ client_message_redacted, digest, path_normalized, user_agent_hashed }`. Client-supplied text is untrusted and never rendered or pasted into AI prompts as instructions.
 
@@ -222,7 +235,7 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-### B.5 `src/components/ui/toast.tsx` (P3)
+### B.5 `src/components/ui/toast.tsx` (P3a)
 
 Add `toast.appError(err)` convenience. Existing API untouched.
 
