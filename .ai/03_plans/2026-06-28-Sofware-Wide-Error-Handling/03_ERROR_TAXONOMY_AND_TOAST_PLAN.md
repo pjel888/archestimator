@@ -453,11 +453,17 @@ import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
 
 export function errorResponse(err: unknown, traceIdOverride?: string): NextResponse {
   const appError = err instanceof AppError ? err : new InternalError({ cause: err });
-  logger.error(appError.toLogRecord());
   // Derive trace_id from PERF_TRACE AsyncLocalStorage when caller does not pass one.
   // This satisfies FR-003 AC-003.1 (every handler error response includes trace_id)
   // without requiring every call site to thread the trace manually.
+  // The trace_id is computed BEFORE logger.error so the same value lands in the
+  // dev log AND in the route-handler JSON response AND in Sentry — keeping the
+  // correlation promise in `10` Section F.1 intact even when PERF_TRACE is absent.
   const traceId = traceIdOverride ?? getCurrentPerfTraceSnapshot()?.requestId ?? generateTraceId();
+  logger.error({
+    ...appError.toLogRecord(),
+    context: { ...appError.context, request_id: traceId },  // stamp the log with the SAME trace_id
+  });
   return NextResponse.json(
     { ok: false, error: appError.toClientJSON(), trace_id: traceId },
     { status: appError.httpStatus ?? 500 },
