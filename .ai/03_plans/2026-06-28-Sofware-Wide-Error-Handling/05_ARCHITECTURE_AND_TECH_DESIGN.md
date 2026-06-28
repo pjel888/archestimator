@@ -104,8 +104,12 @@ export default function GlobalError({
     // screen-reader users hear the failure immediately on mount.
     containerRef.current?.focus();
     // Client-side error → also forward to server log via /api/internal/client-error.
-    // Payload matches the endpoint contract in `06` Section F (client_message_redacted,
-    // digest, path_normalized, user_agent_hashed).
+    // The CLIENT POST payload is raw `{message, digest, path}` — these are
+    // UNTRUSTED client-supplied fields. The SERVER (per `06` Section F)
+    // sanitizes them into the logged contract
+    // `{client_message_redacted, digest, path_normalized, user_agent_hashed}`
+    // before writing to ./logs/dev.ndjson. The client never sends
+    // pre-redacted fields; the redaction is server-side.
     fetch('/api/internal/client-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
