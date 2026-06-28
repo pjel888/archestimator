@@ -181,7 +181,7 @@ export default function Error({
 
 ### A.7 `src/app/not-found.tsx` (follow-on after P3a pilot, NOT in approved pilot scope)
 
-404 page for unmatched routes. Brand-styled, points users to home or contact. Per `07` FR-005, `08` P3a-WP1, and `12` FR-005 row, `not-found.tsx` is explicitly **out of the approved P3a pilot scope** and is implemented as a follow-on after pilot evidence. Listed here for completeness; do NOT implement in P3a.
+404 page for unmatched routes. Brand-styled, points users to home or contact. Per `07` FR-005 and `12` FR-005 row (which maps FR-005 to follow-on, not P3a-WP1), `not-found.tsx` is explicitly **out of the approved P3a pilot scope** and is implemented as a follow-on after pilot evidence. Listed here for completeness; do NOT implement in P3a.
 
 ### A.8 `src/app/api/internal/client-error/route.ts` (new in P3a)
 

@@ -18,6 +18,9 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 | 10 | Hold-harmless/protected contracts | PASS | README protected contracts replace contradictory protected-file wording. |
 | 11 | Traceable requirement IDs | PASS | `07` and `12` map requirement IDs to pilot/full-scope status. |
 | 12 | Readiness verdict | PASS | `12` and README now declare `CONDITIONALLY READY`, not full implementation-ready. |
+| 13 | Rollback safety (criterion 7 in reviewer rubric) | PASS | `08:227` and `10:11,38,44-48` agree on `SENTRY_ENABLED=false` kill switch; per-phase revert preserved; master rollback flag explicitly removed. |
+| 14 | No regressions / no scope creep (criterion 9) | PASS | P1 pure addition (`08:25,62-64`); pilot-first preserved; baseline `test:dom` reds acknowledged (`08:29,260`); no silent IMPLEMENTED upgrade. |
+| 15 | Plan-pack completeness (criterion 10) | PASS | All 16 files exist; `11` has 15 ADRs + 17 risks; `12` maps every requirement; tests framed as planned deliverables. |
 
 **Overall:** planning package is `CONDITIONALLY READY`. P1 plus the pilot vertical and P4 dev logging pilot are approved; broad migration and provider proof require the gates listed below.
 
