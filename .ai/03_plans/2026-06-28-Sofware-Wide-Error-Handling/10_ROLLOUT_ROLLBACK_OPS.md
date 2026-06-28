@@ -36,13 +36,14 @@ No percentage rollout needed (single-tenant MVP). After first paying user, intro
 | P2a | `git revert` the pilot action/route commits | Pilot module returns to legacy behavior; no broad migration touched |
 | P3a | Delete `global-error.tsx`, `/api/internal/client-error`; revert toast.appError addition | Next.js default error page returns for root errors; per-route segment `error.tsx` (if any added post-pilot) still works as before. `not-found.tsx` and segment `error.tsx` are NOT in P3a scope (follow-on per `07` FR-005 and `05` A.6) |
 | P4 | Delete `scripts/tail-dev-logs.mjs`; revert logger wiring (becomes no-op) | Dev logs stop being written; no runtime impact |
-| P5 | Set `SENTRY_ENABLED=false`; Sentry init becomes no-op | Sentry dashboard stops receiving events; logger still writes dev NDJSON |
+| P5 | Set `SENTRY_ENABLED=false` (server) AND `NEXT_PUBLIC_SENTRY_ENABLED=false` (client, requires rebuild/redeploy); both Sentry configs become no-op | Sentry dashboard stops receiving events from server and client; logger still writes dev NDJSON |
 
 ### C.2 Full rollback
 
 Set observability flags false:
 ```
 SENTRY_ENABLED=false
+NEXT_PUBLIC_SENTRY_ENABLED=false   # client; requires rebuild + redeploy
 ERROR_LOG_FILE_ENABLED=false
 ```
 

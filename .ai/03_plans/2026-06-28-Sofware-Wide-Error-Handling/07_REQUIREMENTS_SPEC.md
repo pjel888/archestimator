@@ -178,7 +178,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-002.1:** Bundle-analyzer CI gate fails build if delta exceeded.
 
 ### DOC-001 — Update `.ai/10_state/current-state.md`
-- **Statement:** After P1 lands, append an entry to current-state.md describing the new observability module.
+- **Statement:** At P6a closeout (after pilot evidence is captured and the pack is upgraded to PILOT IMPLEMENTED), append an entry to current-state.md describing the implemented observability module + pilot outcomes. NOT a P1 deliverable — `08` P6a-WP5, `12` DOC-001 row, and `13` DOC-001 row all map DOC-001 to P6a closeout.
 
 ### DOC-002 — Update `DESIGN.md` (only if Toast catalog changes UI tokens)
 - **Statement:** Toast copy catalog in `toast-config.ts` may reuse existing tokens; if it introduces new tokens, update DESIGN.md.

@@ -130,8 +130,8 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 | P3a-WP1 | Create `src/app/global-error.tsx` (the singular P3a pilot boundary) using `unstable_retry`, safe copy, focus management per A11Y-002, and POST to `/api/internal/client-error` per `05` Section A.5 + D.3 | new | S |
 | P3a-WP2 | Create `src/app/api/internal/client-error/route.ts` with same-origin checks, strict local parser, redaction, tainted-field labeling, and local/preview rate limit | new | M |
 | P3a-WP3 | Extend `src/components/ui/toast.tsx` to add `toast.appError(err)` (preserves existing API) | extend | S |
-| P3a-WP4 | Tests: `tests/vitest/{toast-apperror,toast-a11y,client-error}.test.ts(x)` | new | M |
-| P3a-WP5 | Browser smoke only if static/DOM tests cannot prove the chosen boundary behavior | optional | M |
+| P3a-WP4 | Tests: `tests/vitest/{global-error,toast-apperror,toast-a11y,client-error}.test.ts(x)`. The `global-error.test.tsx` is the PRIMARY FR-004 deliverable (DOM/static); `e2e/global-error.spec.ts` is conditional per AC-004.2. | new | M |
+| P3a-WP5 | Browser smoke (`e2e/global-error.spec.ts`) ONLY if DOM/static tests cannot prove the chosen boundary behavior | optional | M |
 
 **Parallelization:** WP1 and WP2 can split. WP3 touches a protected contract and should serialize with other toast edits.
 
@@ -139,7 +139,7 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 ```bash
 bun run type-check
 bun run lint
-bun run test:dom -- tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/client-error.test.ts
+bun run test:dom -- tests/vitest/global-error.test.tsx tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/client-error.test.ts
 # Browser proof only when the chosen boundary behavior cannot be proven by DOM/static tests:
 bun run test:e2e -- e2e/global-error.spec.ts
 ```
@@ -224,7 +224,7 @@ bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-red
 - `beforeSend` redaction works (test fixture with auth header).
 - Bundle size delta <60KB.
 
-**Rollback:** set `SENTRY_ENABLED=false` (the P5 kill switch — see `10_ROLLOUT_ROLLBACK_OPS.md` Section A and C). The guard in `sentry.server.config.ts` `register()` and `captureRequestError()` short-circuits, so Sentry becomes a no-op while the dev NDJSON logger keeps working. `SENTRY_DSN=` (empty) achieves the same effect at the SDK level but is not the canonical rollback path; the dedicated kill switch is preferred because it does not require changing provider env vars.
+**Rollback:** set `SENTRY_ENABLED=false` (server) AND `NEXT_PUBLIC_SENTRY_ENABLED=false` (client, requires rebuild/redeploy because Next.js client bundle reads `NEXT_PUBLIC_*` at build time) — see `10_ROLLOUT_ROLLBACK_OPS.md` Section A and C. The guards in `sentry.server.config.ts` `register()`/`captureRequestError()` and `sentry.client.config.ts` short-circuit, so both sides become no-ops while the dev NDJSON logger keeps working. `SENTRY_DSN=` (empty) is a non-canonical fallback at the SDK level; the dedicated kill switches are preferred because they are explicit and survive SDK default behavior changes.
 
 ## P6a — Pilot verification: targeted vitest + browser/adversarial + AI-diagnosability
 
