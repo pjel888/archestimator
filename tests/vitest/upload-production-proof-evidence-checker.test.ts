@@ -16,10 +16,32 @@ function writeJson(dir: string, file: string, value: unknown) {
   writeFileSync(join(dir, file), `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function deploymentReadbackProof() {
+  return {
+    mode: "upload-hosted-deployment-readback",
+    proofBoundary: "read-only-vercel-deployment-inspection",
+    passed: true,
+    productionProofReady: true,
+    latestProductionDeployment: {
+      state: "READY",
+      target: "production",
+      aliases: ["www.archestimator.com", "archestimator.com"],
+    },
+    deploymentGap: {
+      sourceRoutesPresentLocally: true,
+      hostedProofRoutesObservedDeployed: true,
+      productionDeploymentPredatesUploadProofRoutes: false,
+      productionDeploymentRequired: false,
+    },
+    failedChecks: [],
+  };
+}
+
 function hostedOperationsProof() {
   return {
     mode: "hosted-upload-operations-proof",
     proofBoundary: "hosted-authenticated-dry-run",
+    baseUrl: "https://www.archestimator.com",
     passed: true,
     productionProofReady: true,
     authenticatedDryRunKinds: ["cleanup", "scan"],
@@ -31,6 +53,7 @@ function hostedRuntimeProof() {
   return {
     mode: "hosted-upload-runtime-proof",
     proofBoundary: "hosted-runtime-authenticated-dry-run",
+    baseUrl: "https://www.archestimator.com",
     passed: true,
     productionProofReady: true,
     authenticated: true,
@@ -150,10 +173,14 @@ describe("upload production proof evidence checker", () => {
       "check-upload-production-proof-evidence.ts",
       "upload-hosted-deployment-readback.json",
       "read-only-vercel-deployment-inspection",
+      "deploymentReadback",
       "hostedProofRoutesObservedDeployed=false",
       "productionDeploymentPredatesUploadProofRoutes=true",
-      "productionDeploymentAttemptedFromThisSession=false",
-      "passed=7",
+      "productionDeploymentAttemptedFromThisSession=true",
+      "required=8",
+      "passed=3",
+      "failed=5",
+      "passed=8",
       "failed=0",
       "missing=0",
       "invalid=0",
@@ -174,11 +201,13 @@ describe("upload production proof evidence checker", () => {
     expect(report.mode).toBe("upload-production-proof-evidence-check");
     expect(report.passed).toBe(false);
     expect(report.productionProofReady).toBe(false);
-    expect(report.totals.required).toBe(7);
-    expect(report.totals.failed).toBe(7);
+    expect(report.totals.required).toBe(8);
+    expect(report.totals.passed).toBe(3);
+    expect(report.totals.failed).toBe(5);
     expect(report.totals.missing).toBe(0);
-    expect(report.requirements.find((item) => item.key === "hostedUploadOperations")?.status).toBe("failed");
-    expect(report.requirements.find((item) => item.key === "hostedUploadRuntime")?.status).toBe("failed");
+    expect(report.requirements.find((item) => item.key === "deploymentReadback")?.status).toBe("passed");
+    expect(report.requirements.find((item) => item.key === "hostedUploadOperations")?.status).toBe("passed");
+    expect(report.requirements.find((item) => item.key === "hostedUploadRuntime")?.status).toBe("passed");
     expect(report.requirements.find((item) => item.key === "liveScanner")?.status).toBe("failed");
     expect(report.requirements.find((item) => item.key === "liveScanner")?.failedChecks).toContain("live-scanner-eicar-detected");
     expect(report.requirements.find((item) => item.key === "alertDelivery")?.status).toBe("failed");
@@ -192,6 +221,7 @@ describe("upload production proof evidence checker", () => {
   it("passes only when every hosted/live production evidence artifact satisfies its contract", () => {
     const dir = mkdtempSync(join(tmpdir(), "upload-production-proof-"));
     try {
+      writeJson(dir, "upload-hosted-deployment-readback.json", deploymentReadbackProof());
       writeJson(dir, "upload-hosted-operations-proof.json", hostedOperationsProof());
       writeJson(dir, "upload-hosted-runtime-proof.json", hostedRuntimeProof());
       writeJson(dir, "upload-clamd-live-proof.json", liveScannerProof());
@@ -208,13 +238,44 @@ describe("upload production proof evidence checker", () => {
       expect(report.passed).toBe(true);
       expect(report.productionProofReady).toBe(true);
       expect(report.totals).toEqual({
-        required: 7,
-        passed: 7,
+        required: 8,
+        passed: 8,
         failed: 0,
         missing: 0,
         invalid: 0,
       });
-      expect(report.requirements.map((item) => item.status)).toEqual(Array.from({ length: 7 }, () => "passed"));
+      expect(report.requirements.map((item) => item.status)).toEqual(Array.from({ length: 8 }, () => "passed"));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects local or preview hosted proof origins even when artifact shapes otherwise pass", () => {
+    const dir = mkdtempSync(join(tmpdir(), "upload-production-proof-origin-"));
+    try {
+      writeJson(dir, "upload-hosted-deployment-readback.json", deploymentReadbackProof());
+      writeJson(dir, "upload-hosted-operations-proof.json", {
+        ...hostedOperationsProof(),
+        baseUrl: "http://localhost:3000",
+      });
+      writeJson(dir, "upload-hosted-runtime-proof.json", {
+        ...hostedRuntimeProof(),
+        baseUrl: "https://archestimator-preview.vercel.app",
+      });
+      writeJson(dir, "upload-clamd-live-proof.json", liveScannerProof());
+      writeJson(dir, "upload-alert-delivery-production-proof.json", alertDeliveryProof());
+      writeJson(dir, "upload-dashboard-production-proof.json", dashboardProof());
+      writeJson(dir, "upload-backpressure-production-proof.json", backpressureProof());
+      writeJson(dir, "upload-retention-runbook-production-proof.json", retentionRunbookProof());
+
+      const report = checkUploadProductionProofEvidence({
+        evidenceDir: dir,
+        generatedAt: "2026-06-27T00:00:00.000Z",
+      });
+
+      expect(report.passed).toBe(false);
+      expect(report.requirements.find((item) => item.key === "hostedUploadOperations")?.failedChecks).toContain("hosted-operations-production-origin");
+      expect(report.requirements.find((item) => item.key === "hostedUploadRuntime")?.failedChecks).toContain("hosted-runtime-production-origin");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -256,6 +317,8 @@ describe("upload production proof evidence checker", () => {
 
       expect(JSON.parse(saved)).toEqual(report);
       expect(saved).not.toContain("Bearer ");
+      expect(saved).not.toContain(process.cwd());
+      expect(saved).not.toContain("/Users/");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

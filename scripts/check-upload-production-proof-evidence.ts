@@ -1,12 +1,14 @@
 #!/usr/bin/env bun
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 const DEFAULT_EVIDENCE_DIR = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence";
 const DEFAULT_OUTPUT = `${DEFAULT_EVIDENCE_DIR}/upload-production-proof-evidence-check.json`;
+const PRODUCTION_BASE_URL = "https://www.archestimator.com";
 
 type EvidenceRequirementKey =
+  | "deploymentReadback"
   | "hostedUploadOperations"
   | "hostedUploadRuntime"
   | "liveScanner"
@@ -103,10 +105,34 @@ function check(label: string, passed: boolean, proof?: string): EvidenceCheck {
   return { label, passed, proof };
 }
 
+function displayPath(path: string) {
+  const relativePath = relative(process.cwd(), resolve(path));
+  return relativePath && !relativePath.startsWith("..") ? relativePath : path;
+}
+
+function validateDeploymentReadback(artifact: unknown): EvidenceCheck[] {
+  const aliases = arrayValue(artifact, ["latestProductionDeployment", "aliases"]);
+  return [
+    check("deployment-readback-mode", stringValue(artifact, ["mode"]) === "upload-hosted-deployment-readback"),
+    check("deployment-readback-boundary", stringValue(artifact, ["proofBoundary"]) === "read-only-vercel-deployment-inspection"),
+    check("deployment-readback-passed", booleanValue(artifact, ["passed"]) === true),
+    check("deployment-readback-production-proof-ready", booleanValue(artifact, ["productionProofReady"]) === true),
+    check("deployment-target-production", stringValue(artifact, ["latestProductionDeployment", "target"]) === "production"),
+    check("deployment-state-ready", stringValue(artifact, ["latestProductionDeployment", "state"]) === "READY"),
+    check("deployment-production-alias-observed", aliases.includes("www.archestimator.com"), aliases.join(",")),
+    check("deployment-source-routes-present", booleanValue(artifact, ["deploymentGap", "sourceRoutesPresentLocally"]) === true),
+    check("deployment-hosted-proof-routes-observed", booleanValue(artifact, ["deploymentGap", "hostedProofRoutesObservedDeployed"]) === true),
+    check("deployment-does-not-predate-proof-routes", booleanValue(artifact, ["deploymentGap", "productionDeploymentPredatesUploadProofRoutes"]) === false),
+    check("deployment-not-required-after-readback", booleanValue(artifact, ["deploymentGap", "productionDeploymentRequired"]) === false),
+    check("deployment-failed-checks-empty", arrayValue(artifact, ["failedChecks"]).length === 0),
+  ];
+}
+
 function validateHostedUploadOperations(artifact: unknown): EvidenceCheck[] {
   const authenticatedKinds = arrayValue(artifact, ["authenticatedDryRunKinds"]);
   return [
     check("hosted-operations-mode", stringValue(artifact, ["mode"]) === "hosted-upload-operations-proof"),
+    check("hosted-operations-production-origin", stringValue(artifact, ["baseUrl"]) === PRODUCTION_BASE_URL),
     check("hosted-operations-passed", booleanValue(artifact, ["passed"]) === true),
     check("hosted-operations-production-proof-ready", booleanValue(artifact, ["productionProofReady"]) === true),
     check("hosted-operations-authenticated-boundary", stringValue(artifact, ["proofBoundary"]) === "hosted-authenticated-dry-run"),
@@ -123,6 +149,7 @@ function validateHostedUploadRuntime(artifact: unknown): EvidenceCheck[] {
     .filter((type): type is string => typeof type === "string");
   return [
     check("hosted-runtime-mode", stringValue(artifact, ["mode"]) === "hosted-upload-runtime-proof"),
+    check("hosted-runtime-production-origin", stringValue(artifact, ["baseUrl"]) === PRODUCTION_BASE_URL),
     check("hosted-runtime-passed", booleanValue(artifact, ["passed"]) === true),
     check("hosted-runtime-production-proof-ready", booleanValue(artifact, ["productionProofReady"]) === true),
     check("hosted-runtime-authenticated", booleanValue(artifact, ["authenticated"]) === true),
@@ -199,6 +226,13 @@ function validateRetentionRunbook(artifact: unknown): EvidenceCheck[] {
 
 const REQUIREMENTS: EvidenceRequirement[] = [
   {
+    key: "deploymentReadback",
+    label: "Production deployment readback",
+    candidates: ["upload-hosted-deployment-readback.json"],
+    note: "Requires fresh read-only proof that production is READY, aliased, and contains the hosted upload proof routes.",
+    validate: validateDeploymentReadback,
+  },
+  {
     key: "hostedUploadOperations",
     label: "Hosted cleanup and scan dry-run routes",
     candidates: ["upload-hosted-operations-proof.json", "upload-hosted-operations-fail-closed-proof.json"],
@@ -255,13 +289,13 @@ function loadArtifact(evidenceDir: string, candidates: readonly string[], overri
     if (!existsSync(path)) continue;
     try {
       return {
-        artifactPath: path,
+        artifactPath: displayPath(path),
         artifact: JSON.parse(readFileSync(path, "utf8")) as unknown,
         invalid: false,
       };
     } catch {
       return {
-        artifactPath: path,
+        artifactPath: displayPath(path),
         artifact: null,
         invalid: true,
       };
@@ -356,12 +390,12 @@ export function checkUploadProductionProofEvidence(
     generatedAt: options.generatedAt ?? new Date().toISOString(),
     mode: "upload-production-proof-evidence-check",
     proofBoundary: "fail-closed-production-evidence-bundle",
-    evidenceDir,
+    evidenceDir: displayPath(evidenceDir),
     passed,
     productionProofReady: passed,
     totals,
     requirements,
-    note: "This checker validates the required hosted/live production upload proof artifacts as a bundle. It does not collect evidence, deploy routes, read secrets, mutate provider state, or turn on production uploads. Any missing, invalid, fail-closed, local-only, or partial artifact keeps productionProofReady=false.",
+    note: "This checker validates the required production deployment readback plus hosted/live production upload proof artifacts as a bundle. It does not collect evidence, deploy routes, read secrets, mutate provider state, or turn on production uploads. Any missing, invalid, fail-closed, local-only, preview-only, stale-deployment, or partial artifact keeps productionProofReady=false.",
   };
 }
 
