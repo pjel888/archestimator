@@ -186,6 +186,14 @@ export async function POST(req: NextRequest) {
     return new Response(null, { status: 403 });
   }
 
+  // Size ceiling enforced BEFORE body buffering — reject oversized payloads
+  // at the transport layer so the route does not allocate/parse them. The
+  // parser is a secondary defense-in-depth check.
+  const contentLength = Number(req.headers.get('content-length') ?? '0');
+  if (!Number.isFinite(contentLength) || contentLength > 8 * 1024) {  // 8KB hard cap
+    return new Response(null, { status: 413 });
+  }
+
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const now = Date.now();
   const entry = rateLimiter.get(ip) ?? { count: 0, resetAt: now + 60_000 };

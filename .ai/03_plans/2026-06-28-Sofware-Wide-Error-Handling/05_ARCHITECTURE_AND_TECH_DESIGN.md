@@ -175,6 +175,13 @@ export default function Error({
   useEffect(() => {
     containerRef.current?.focus();
     toast.appError(error);
+    // Only POST when the boundary was triggered by a CLIENT-SIDE render error
+    // (after hydration). For server-render/RSC throws, onRequestError already
+    // captured the event (per D.3 case 1) — duplicate POSTing would double-log.
+    // The boundary cannot directly tell which case fired, so use `error.digest`
+    // as the dedup key: the POST includes `digest`, and the server route
+    // short-circuits if it has seen this digest within the last 60s (rate-
+    // limiter handles dedup naturally).
     fetch('/api/internal/client-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -356,7 +363,7 @@ Similar to server action, but uses `errorResponse(err, traceId)` to produce a `N
 Next.js 16 catches via the nearest `error.tsx` boundary. The two sub-cases have DIFFERENT server-notify behavior:
 
 - **Server-render/RSC throw:** `error.tsx` shows fallback UI + calls `toast.appError`. The Next.js 16 `instrumentation.ts` `onRequestError(err, request, context)` hook **DOES fire** (server-scope captures RSC/render errors per local Next 16 docs) → Sentry receives the event via the uncaught-server path in `04` Section E.1. No explicit POST from `error.tsx` is needed for this case.
-- **Client-side boundary catch** (e.g., an event handler throws after hydration, or a client component fails during interaction): `error.tsx` shows fallback UI + `toast.appError`. `onRequestError` does **NOT** fire (server-scope only; client-side boundary catches are invisible to it). For server-side diagnosis of client-boundary failures, the boundary must explicitly POST to `/api/internal/client-error`. The approved P3a pilot boundary (`global-error.tsx` per D.4) opts in to this POST; segment `error.tsx` POST is post-pilot per A.6.
+- **Client-side render-time error** (e.g., a state-rendering bug in a Client Component that throws during the React render phase, AFTER hydration): `error.tsx` shows fallback UI + `toast.appError`. `onRequestError` does **NOT** fire (render-time client throws after hydration are not server-captured). For server-side diagnosis, the boundary must explicitly POST to `/api/internal/client-error`. The approved P3a pilot boundary (`global-error.tsx` per D.4) opts in to this POST; segment `error.tsx` POST is post-pilot per A.6. **Note:** Next.js error boundaries do NOT catch event-handler or async-code errors (per `node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md:340-344`) — those must be caught manually or via a global unhandledrejection handler (follow-on per `09` ADV-09).
 
 ### D.4 Root layout / providers throw
 
