@@ -45,6 +45,27 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Estimate row image upload RPC binding fixed (2026-06-28):**
+
+- Root cause for `Cannot read properties of undefined (reading 'rest')` after uploading an image on a newly created project-level row was detached Supabase `rpc` usage in estimate-row image asset validation.
+- `validateEstimateRowImageAssetPatch` and `removeUnvalidatedEstimateRowImageAsset` now bind `supabase.rpc` before calling `validate_estimate_row_image_asset`, preserving Supabase client's `this.rest` context.
+- Regression evidence: action authz test mock now mimics Supabase method binding; pending express-row image upload coverage verifies selected files wait until insert success, then upload and update with the inserted `rowRevision`.
+- Fresh local checks passed: `estimate-sheet-actions-authz`, `estimate-sheet-library-insert`, `estimate-component-drag`, `bun run type-check`, and `git diff --check`.
+
+**Library Templates Page plan archived after implementation proof (2026-06-28):**
+
+- Plan folder `.ai/03_plans/2026-06-28-Library-Templates-Page/` was archived to `.ai/09_archive/2026-06-28-Library-Templates-Page/` after verifying the conservative track implementation is present locally.
+- Closeout evidence: source/test mapping confirms the three-zone `/workshop/library/templates` workbench, `Library` + `Project` source-dock clamp with hidden `Templates` prevention, Project unavailable/no-fetch state, and read-only template editor capability gating.
+- Fresh targeted Vitest matrix passed: `8` files / `145` tests (`library-tabs-layout`, `library-templates-cache`, `component-library-ui`, right-sidebar perf, `template-browse-project-sources`, `template-editor`, `template-gallery`, and `library-template-insert-picker`).
+- Remaining boundary: browser/provider/hosted proof is still not claimed; this archive records local implementation proof for the conservative track only.
+
+**Library Templates Page conservative implementation landed locally (2026-06-28):**
+
+- `/workshop/library/templates` now uses the approved three-zone workbench shape: left template inventory, center template gallery with selected-template structure/summary preview, and right source dock.
+- Template-focused source docks clamp to exactly `Library` + `Project`; hidden `Templates` tabs cannot be restored by initial tab, local/legacy stored prefs, or render paths. Project appears as an explicit unavailable selector state until scoped project-source data is wired.
+- `/workshop/library/templates/[templateId]` now passes an explicit `canEditTemplate` capability; the client suppresses add/rename/delete/drop/row-edit/right-dock mutation affordances when rendered read-only while server actions remain the enforcement layer.
+- Fresh local evidence passed: targeted Vitest matrix (`8` files / `145` tests), `bun run type-check`, scoped ESLint for touched files, and `git diff --check`. Browser/provider proof was intentionally not run or claimed.
+
 **Library Templates Page plan package is implementation-ready (2026-06-28):**
 
 - Plan package `.ai/03_plans/2026-06-28-Library-Templates-Page/` is now `IMPLEMENTATION-READY` for the conservative track: `/workshop/library/templates` becomes a three-zone Library Templates workbench, while `/workshop/library/templates/[templateId]` remains the full editor with explicit read-only capability gating.
