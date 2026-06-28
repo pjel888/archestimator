@@ -136,7 +136,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
         <div className="min-w-0">
-          <h1 className="text-sm font-medium text-ink">Proposals</h1>
+          <h1 className="text-[12px] font-medium text-ink">Proposals</h1>
           <p className="mt-1 truncate text-[10px] text-secondary">{userEmail}</p>
         </div>
         <button

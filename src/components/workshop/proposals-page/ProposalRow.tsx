@@ -89,7 +89,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
     >
       <div className="min-w-0">
         <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-          <span className="truncate text-[10px] font-medium uppercase tracking-normal text-tertiary">
+          <span className="truncate text-[9px] font-medium uppercase tracking-normal text-tertiary">
             {proposal.workspaceName}
           </span>
           {proposal.projectCode ? (
@@ -98,7 +98,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
             </span>
           ) : null}
         </div>
-        <h2 className="truncate text-sm font-medium text-ink">{proposal.projectName}</h2>
+        <h2 className="truncate text-[12px] font-medium text-ink">{proposal.projectName}</h2>
         <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[10px] leading-4 text-secondary">
           <span>Version {proposal.snapshotVersion}</span>
           <span>

@@ -19,8 +19,8 @@ export function ProposalsErrorState({ error, isRetrying = false, onRetry, retryB
       <span className="mb-3 grid size-10 place-items-center rounded-xs bg-dangerSoft text-danger" aria-hidden="true">
         <WarningCircle size={18} weight="regular" />
       </span>
-      <h2 className="text-sm font-medium text-ink">Unable to load proposals</h2>
-      <p className="mt-2 max-w-[34rem] text-xs leading-5 text-secondary">{readErrorMessage(error)}</p>
+      <h2 className="text-[12px] font-medium text-ink">Unable to load proposals</h2>
+      <p className="mt-2 max-w-[34rem] text-[10px] leading-5 text-secondary">{readErrorMessage(error)}</p>
       <button
         ref={retryButtonRef}
         type="button"

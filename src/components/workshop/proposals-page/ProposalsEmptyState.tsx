@@ -6,8 +6,8 @@ export function ProposalsEmptyState() {
       <span className="mb-3 grid size-10 place-items-center rounded-xs bg-accent-soft text-accent-dark" aria-hidden="true">
         <EnvelopeSimple size={18} weight="regular" />
       </span>
-      <h2 className="text-sm font-medium text-ink">No proposals yet</h2>
-      <p className="mt-2 max-w-[34rem] text-xs leading-5 text-secondary">
+      <h2 className="text-[12px] font-medium text-ink">No proposals yet</h2>
+      <p className="mt-2 max-w-[34rem] text-[10px] leading-5 text-secondary">
         Proposals sent to your signed-in email address will appear here.
       </p>
     </div>
