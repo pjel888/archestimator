@@ -50,7 +50,7 @@ P1 — Foundation: typed AppError + logger module (no behavior change; pure addi
    ↓
 P2a — Pilot server unification: publication/actions.ts + one representative route handler
    ↓
-P3a — Pilot client wiring: one root/segment error surface + Toast copy catalog
+P3a — Pilot client wiring: `src/app/global-error.tsx` (singular pilot boundary) + Toast tone/durationMs catalog
    ↓
 P4 — Dev logging pipeline: NDJSON file writer + PERF_TRACE integration + AI tail command
    ↓

@@ -145,9 +145,9 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 ### SEC-004 — PII masking in Sentry
 - **Statement:** `maskAllText: true` in prod; replay sampling remains `0`; `data-private` attribute respected; `beforeSend` strips auth headers.
 
-### UX-001 — Consistent toast tones per error kind
-- **Statement:** `03` Section C table implemented in `toast-config.ts`.
-- **AC-001.1:** Each `AppErrorKind` maps to a specific tone, copy, and duration.
+### UX-001 — Consistent toast tones per error code
+- **Statement:** `03` Section C table implemented in `toast-config.ts` as a code-keyed tone+durationMs map (with kind-based fallback). Copy comes from `AppError.userMessage` per `03` C.1 and FR-006 AC-006.2 — `toast-config.ts` does NOT store copy.
+- **AC-001.1:** Each `AppError.code` maps to a specific tone and durationMs. Kind-level fallback covers codes not in the map.
 
 ### UX-002 — Dismissible toasts
 - **Statement:** All error toasts dismissible (existing API already supports this; preserved).
@@ -157,7 +157,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-001.1:** Existing toast.tsx already complies (verified in audit). P3a task: explicit test in `tests/vitest/toast-a11y.test.tsx`.
 
 ### A11Y-002 — Error boundary focusable (pilot scope)
-- **Statement:** The P3a pilot boundary (`global-error.tsx` OR one selected `error.tsx`) moves focus to the error container on mount so screen-reader users hear the failure immediately. Full A11Y-002 (both `global-error.tsx` AND all `error.tsx` boundaries) is a follow-on after pilot evidence.
+- **Statement:** The P3a pilot boundary (`src/app/global-error.tsx` — the singular approved pilot surface per `08` P3a-WP1; segment `error.tsx` is post-pilot per `05` A.6) moves focus to the error container on mount so screen-reader users hear the failure immediately. Full A11Y-002 (segment `error.tsx` boundaries too) is a follow-on after pilot evidence.
 - **AC-002.1:** Pilot boundary Playwright/DOM test verifies `document.activeElement` is inside the selected boundary after navigation.
 
 ### TEST-001 — New test files for P1

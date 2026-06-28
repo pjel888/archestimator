@@ -39,7 +39,7 @@ P2a and P3a pilot work may run in parallel after P1 lands (no shared-file confli
 | P1-WP5 | Create `src/lib/observability/route-error.ts` errorResponse helper | new | S |
 | P1-WP6 | Create `src/lib/observability/types.ts` DevLogRecord + AppErrorLogRecord | new | S |
 | P1-WP7 | Create `src/lib/observability/redact.ts` PII redaction (per `06` Section B) | new | M |
-| P1-WP8 | Create `src/lib/observability/toast-config.ts` kind→tone/copy/duration map | new | S |
+| P1-WP8 | Create `src/lib/observability/toast-config.ts` code→tone/durationMs map (with kind fallback); copy comes from `AppError.userMessage` per `03` C.1 + `07` FR-006 AC-006.2 | new | S |
 | P1-WP9 | Create `src/lib/observability/logger.ts` interface + redaction path + no-op/dev-console transport; no file writer yet | new | M |
 | P1-WP10 | Tests: `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` | new | M |
 | P1-WP11 | Characterization: record current targeted baseline for nearby existing auth/library error tests | docs/test output | S |

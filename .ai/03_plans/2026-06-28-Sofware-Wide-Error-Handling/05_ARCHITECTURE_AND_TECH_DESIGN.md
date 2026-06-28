@@ -15,7 +15,7 @@ src/lib/observability/
 ├── route-error.ts                # Route Handler errorResponse()
 ├── logger.ts                     # NDJSON writer (dev) + prod forwarder shim
 ├── redact.ts                     # PII redaction rules
-├── toast-config.ts               # AppErrorKind → {tone, copy, duration} map
+├── toast-config.ts               # code → {tone, durationMs} map (with kind fallback); copy comes from AppError.userMessage
 └── types.ts                      # DevLogRecord, AppErrorLogRecord shared types
 ```
 

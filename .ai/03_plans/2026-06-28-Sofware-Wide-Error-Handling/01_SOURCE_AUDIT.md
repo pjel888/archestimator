@@ -172,7 +172,7 @@ export async function GET() {
 
 **Gap:** No standard error-response shape. Plan unifies on:
 ```ts
-NextResponse.json({ ok: false, error: { code, message }, trace_id }, { status: mappedStatusCode })
+NextResponse.json({ ok: false, error: { kind, code, message }, trace_id }, { status: mappedStatusCode })
 ```
 
 ### B.3 Middleware (`src/proxy.ts`)
