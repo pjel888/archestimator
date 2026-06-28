@@ -67,7 +67,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Rationale:** preserves existing API; adds AppError-aware convenience.
 - **Priority:** P3a pilot.
 - **AC-006.1:** Existing `toast({message, tone, durationMs})` API unchanged.
-- **AC-006.2:** `toast.appError(err)` looks up tone+copy by `err.code` with kind-based fallback (per `03` Section C.1). Accepts three input shapes: AppError instance, serialized ActionResult error arm `{kind, code, message}`, or generic Error/unknown.
+- **AC-006.2:** `toast.appError(err)` looks up **tone and durationMs** by `err.code` with kind-based fallback (per `03` Section C.1). **Copy comes from the error itself** (`AppError.userMessage` for instances, serialized `message` field for ActionResult JSON, generic fallback otherwise) — `TOAST_CONFIG` stores tone+durationMs only, not copy. The Section C copy table in `03` documents the *recommended* `userMessage` per class (used when constructing AppError subclasses); it is not a runtime lookup table. Accepts three input shapes: AppError instance, serialized ActionResult error arm `{kind, code, message}`, or generic Error/unknown.
 - **Validation:** `tests/vitest/toast-apperror.test.tsx` (new).
 - **Affected:** `src/components/ui/toast.tsx` (extend only); `src/lib/observability/toast-config.ts` (new).
 

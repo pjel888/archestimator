@@ -189,7 +189,7 @@ export default function Error({
 
 ### A.8 `src/app/api/internal/client-error/route.ts` (new in P3a)
 
-Receives POSTs from `global-error.tsx` and the pilot `error.tsx` boundary only. (Client-side `unhandledrejection` reporting is NOT in the approved P3a pilot scope per README protected-contracts — `providers.tsx` mount behavior is preserved and additive unhandled-rejection reporting is allowed only after pilot proof. ADV-09 in `09` is correspondingly deferred to follow-on.) Writes only redacted, tainted client-report fields to logger: `{ client_message_redacted, digest, path_normalized, user_agent_hashed }`. Client-supplied text is untrusted and never rendered or pasted into AI prompts as instructions.
+Receives POSTs from `global-error.tsx` only in the approved P3a pilot scope. (Segment `error.tsx` POSTing is a post-pilot follow-on per `07` FR-005 and `05` A.6. Client-side `unhandledrejection` reporting is NOT in the approved P3a pilot scope per README protected-contracts — `providers.tsx` mount behavior is preserved and additive unhandled-rejection reporting is allowed only after pilot proof. ADV-09 in `09` is correspondingly deferred to follow-on.) Writes only redacted, tainted client-report fields to logger: `{ client_message_redacted, digest, path_normalized, user_agent_hashed }`. Client-supplied text is untrusted and never rendered or pasted into AI prompts as instructions.
 
 ### A.9 `scripts/tail-dev-logs.mjs` (new in P4)
 
@@ -338,7 +338,7 @@ Similar to server action, but uses `errorResponse(err, traceId)` to produce a `N
 
 ### D.3 Page render throws (RSC or client)
 
-Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a fallback UI + calls `toast.appError`. It does NOT auto-notify the server: `error.tsx` is a Client Component boundary, and the Next.js 16 `instrumentation.ts` `onRequestError` hook is server-scope only (it fires for errors captured in route handlers, server actions, and server-side render — not for client-side boundary catches). If a segment-level client boundary failure needs server-side diagnosis, the `error.tsx` must explicitly POST to `/api/internal/client-error` (the same endpoint used by `global-error.tsx` in D.4). The plan's P3a pilot boundary opts in to this reporting explicitly; boundaries that do not opt in simply render fallback UI without server-side diagnosis.
+Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a fallback UI + calls `toast.appError`. It does NOT auto-notify the server: `error.tsx` is a Client Component boundary, and the Next.js 16 `instrumentation.ts` `onRequestError` hook is server-scope only (it fires for errors captured in route handlers, server actions, and server-side render — not for client-side boundary catches). If a segment-level client boundary failure needs server-side diagnosis, the post-pilot segment `error.tsx` (per A.6, NOT in P3a) may explicitly POST to `/api/internal/client-error`. The approved P3a pilot boundary is `global-error.tsx` only (D.4); segment `error.tsx` reporting is post-pilot.
 
 ### D.4 Root layout / providers throw
 
