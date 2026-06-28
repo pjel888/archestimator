@@ -63,8 +63,11 @@ export interface AppErrorOptions {
   httpStatus?: number;
   /** Original cause for server log only. Never sent to client. */
   cause?: unknown;
-  /** Optional breadcrumbs for the dev/AI log. */
-  context?: Record<string, string | number | boolean | null>;
+  /** Optional breadcrumbs for the dev/AI log. Optional fields are allowed
+   * (e.g. `relation?: string`) — the type permits `undefined` so callers
+   * like `unwrapSupabase(ctx: { operation, relation? })` can pass ctx directly
+   * without a normalization step. */
+  context?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export abstract class AppError extends Error {
