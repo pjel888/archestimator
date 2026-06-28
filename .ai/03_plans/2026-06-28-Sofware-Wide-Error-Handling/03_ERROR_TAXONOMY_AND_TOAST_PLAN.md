@@ -385,17 +385,27 @@ export const createProject = withActionErrors(async (input: CreateProjectInput) 
 
 ```ts
 // src/lib/observability/route-error.ts (new in P1)
-export function errorResponse(err: unknown, traceId?: string): NextResponse {
+import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
+
+export function errorResponse(err: unknown, traceIdOverride?: string): NextResponse {
   const appError = err instanceof AppError ? err : new InternalError({ cause: err });
   logger.error(appError.toLogRecord());
+  // Derive trace_id from PERF_TRACE AsyncLocalStorage when caller does not pass one.
+  // This satisfies FR-003 AC-003.1 (every handler error response includes trace_id)
+  // without requiring every call site to thread the trace manually.
+  const traceId = traceIdOverride ?? getCurrentPerfTraceSnapshot()?.requestId ?? generateTraceId();
   return NextResponse.json(
     { ok: false, error: appError.toClientJSON(), trace_id: traceId },
     { status: appError.httpStatus ?? 500 },
   );
 }
+
+function generateTraceId(): string {
+  return `err_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
 ```
 
-Route handlers use `try/catch` and call `errorResponse(err)` from the catch.
+Route handlers use `try/catch` and call `errorResponse(err)` from the catch; `trace_id` is auto-derived.
 
 ## F. Auth error bridge (preserve existing pattern)
 

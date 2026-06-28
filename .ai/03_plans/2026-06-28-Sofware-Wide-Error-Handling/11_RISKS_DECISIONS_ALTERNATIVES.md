@@ -44,8 +44,9 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 **Rationale:** Orthogonal to error-handling taxonomy. Mixing dependency adoption into this plan bloats scope.
 
 ### DEC-ERR-009 — Logger transport
-**Decision:** Dev = file (`./logs/dev.ndjson`). Prod = stdout (Vercel captures).
-**Rationale:** AI agents can `tail -f` a file reliably. Production serverless requires stdout.
+**Decision:** Dev = local file (`./logs/dev.ndjson`). Prod = Sentry error forwarder (via `instrumentation.ts` `onRequestError` + `@sentry/nextjs`); stdout/Vercel Log Drain is a deferred secondary channel for full log volume after first paying user.
+**Rationale:** AI agents can `tail -f` a file reliably in dev. Production error visibility is the immediate gap that Sentry closes (see `DEC-ERR-004`). Stdout remains a free-form transport for Vercel-side observability but is not the canonical error path.
+**Status:** Updated 2026-06-28 ( santa-loop round 5 ) to align with `04` Section A/F and `DEC-ERR-004`.
 
 ### DEC-ERR-010 — Sentry performance sampling rate
 **Decision:** 10% (`tracesSampleRate: 0.1`).

@@ -71,7 +71,7 @@ bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/unwrap-supabase.
 
 **Goal:** Prove the canonical server contract on the riskiest server action module and one representative route handler before broad migration.
 
-**Requirements covered:** FR-002, FR-003, FR-007, AC-002.1-3, AC-003.1-2, AC-007.1-3.
+**Requirements covered:** FR-002, FR-003, FR-007. (Acceptance criteria qualified by parent requirement: FR-002 AC-002.1–3, FR-003 AC-003.1–2, FR-007 AC-007.1–3.)
 
 **Prerequisites:** P1 complete; logger interface stable.
 

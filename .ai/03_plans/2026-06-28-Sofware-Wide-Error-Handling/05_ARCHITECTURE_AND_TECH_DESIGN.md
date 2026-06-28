@@ -215,7 +215,7 @@ export const createProject = withActionErrors(_createProject);
 
 ### B.4 Pilot route handler first; all 22 route handler files after pilot (P2a/P2b)
 
-The pilot wraps one representative handler first. After pilot evidence, each remaining handler gets a try/catch wrapper:
+The pilot wraps one representative handler first. After pilot evidence, each remaining handler gets a try/catch wrapper. The handler must include `trace_id` per `07` FR-003 AC-003.1; `errorResponse()` derives it from the active PERF_TRACE context (or generates one when no trace is active) so callers do not need to thread it manually:
 ```ts
 // before
 export async function POST(req: NextRequest) {
@@ -230,10 +230,15 @@ export async function POST(req: NextRequest) {
     // ... do stuff
     return NextResponse.json({ ok: true, data: result });
   } catch (err) {
+    // errorResponse() reads PERF_TRACE AsyncLocalStorage to derive trace_id;
+    // falls back to a generated id when no trace is active. The returned
+    // NextResponse.json body is `{ok:false, error:{...}, trace_id}` per FR-003.
     return errorResponse(err);
   }
 }
 ```
+
+The optional second argument `errorResponse(err, traceId)` is reserved for handlers that compute their own trace id (e.g. middleware-injected); the single-arg form is the canonical pilot pattern.
 
 ### B.5 `src/components/ui/toast.tsx` (P3a)
 

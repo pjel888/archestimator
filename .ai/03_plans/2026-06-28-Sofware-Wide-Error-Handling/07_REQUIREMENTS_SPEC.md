@@ -158,9 +158,9 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** Toast container uses `role="status"` for non-critical tones and `role="alert"` for `error` tone, with `aria-live="polite"` and `aria-live="assertive"` respectively.
 - **AC-001.1:** Existing toast.tsx already complies (verified in audit). P3a task: explicit test in `tests/vitest/toast-a11y.test.tsx`.
 
-### A11Y-002 — Error boundaries focusable
-- **Statement:** `global-error.tsx` and `error.tsx` move focus to the error container on mount.
-- **AC-002.1:** Playwright test verifies `document.activeElement` is inside the error boundary after navigation.
+### A11Y-002 — Error boundary focusable (pilot scope)
+- **Statement:** The P3a pilot boundary (`global-error.tsx` OR one selected `error.tsx`) moves focus to the error container on mount so screen-reader users hear the failure immediately. Full A11Y-002 (both `global-error.tsx` AND all `error.tsx` boundaries) is a follow-on after pilot evidence.
+- **AC-002.1:** Pilot boundary Playwright/DOM test verifies `document.activeElement` is inside the selected boundary after navigation.
 
 ### TEST-001 — New test files for P1
 - **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`. The `logger.test.ts` and `logger-perf.test.ts` files are P4 deliverables — see TEST-002 and `08` P4-WP7.)
