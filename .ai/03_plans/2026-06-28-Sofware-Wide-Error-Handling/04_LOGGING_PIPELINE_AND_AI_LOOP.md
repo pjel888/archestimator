@@ -209,21 +209,27 @@ function enrich(record: AppErrorLogRecord): DevLogRecord {
   // The logger OWNS the final timestamp — caller-supplied `record.timestamp` is ignored.
   // The logger also redacts `error.cause` here (using server-only `redactForLog` from
   // `redact.ts`) so `app-error.ts` stays client-safe (no node:crypto dependency).
+  // Caller-supplied `context.request_id` WINS over PERF_TRACE so `errorResponse(err, traceIdOverride)`
+  // can preserve a custom trace id; PERF_TRACE is only the fallback when caller did not stamp it.
   const iso = new Date().toISOString();                       // ...ss.sssZ
   const micro = performance.now().toFixed(6).slice(-6);       // 6-digit microsecond suffix
   const timestamp = iso.replace(/\d{3}Z$/, `${micro}Z`);      // swap ms for µs, keep decimal point
   const redacted = record.error?.cause
     ? { ...record.error, cause: redactForLog(record.error.cause) }
     : record.error;
+  const callerRequestId = record.context?.request_id;
+  const perfRequestId = trace?.requestId;
   return {
     ...record,                                                  // caller fields first
     record_id: `${timestamp}-${WORKER_ID}-${processCounter++}`, // logger stamps record_id
     timestamp,                                                  // logger stamps timestamp (overrides caller)
     severity_number: SEVERITY_BY_LEVEL[record.level],           // logger stamps severity_number
     error: redacted,                                            // logger redacts cause
-    context: trace
-      ? { ...record.context, request_id: trace.requestId, route: trace.scope }
-      : record.context,
+    context: {
+      ...record.context,
+      ...(callerRequestId ? {} : perfRequestId ? { request_id: perfRequestId } : {}),  // PERF_TRACE only fills when caller didn't
+      ...(perfRequestId && !record.context?.route ? { route: trace.scope } : {}),
+    },
   };
 }
 

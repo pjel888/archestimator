@@ -103,10 +103,10 @@ Per `03` Section B.4 `unwrapSupabase`, Supabase RLS / 42501 denials are classifi
 
 ### E.2 "Users report toast 'Something went wrong' but no Sentry event"
 
-Likely a client-only error (unhandledrejection or boundary catch).
-1. Check `/api/internal/client-error` logs (filter by `level=WARN` in `./logs/dev.ndjson`).
-2. If prod: query Sentry for `level=info` events (unhandledrejection may not trigger `onRequestError`).
-3. Ask user for the URL + timestamp; correlate via hashed user ID.
+Likely a client-only error (boundary catch via `global-error.tsx` POSTing `/api/internal/client-error`, OR an unhandledrejection — the latter is follow-on per `09` ADV-09).
+1. Check `/api/internal/client-error` logs (filter by `level=WARN` in `./logs/dev.ndjson`) — these are the client-reported failures.
+2. Unhandledrejection reporting is NOT in the approved P3a pilot scope (per `05` Section A.8 + `09` ADV-09). If/when it lands as a follow-on, those failures will appear in Sentry as browser-side captureException events; until then, Sentry will NOT have client-only unhandledrejection data, and the runbook is limited to `/api/internal/client-error` logs.
+3. Ask user for the URL + timestamp; correlate via hashed user ID (if `context.user_id_hashed` is present) or via `trace_id` from the route-handler JSON (if the user copied it).
 
 ### E.3 "Dev log file is huge (>50MB)"
 
