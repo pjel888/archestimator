@@ -75,7 +75,7 @@ export abstract class AppError extends Error {
   readonly userMessage: string;
   readonly code: string;
   readonly httpStatus?: number;
-  readonly context?: Record<string, string | number | boolean | null>;
+  readonly context?: Record<string, string | number | boolean | null | undefined>;
   readonly timestamp: string; // ISO 8601
   readonly traceId?: string;  // from AsyncLocalStorage / PERF_TRACE
 

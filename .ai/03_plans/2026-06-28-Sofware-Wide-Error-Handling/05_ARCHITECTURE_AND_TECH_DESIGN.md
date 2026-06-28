@@ -49,6 +49,7 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
 ```ts
 // sentry.server.config.ts
 import * as Sentry from '@sentry/nextjs';
+import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
 
 export async function register() {
   // Kill switch per `10_ROLLOUT_ROLLBACK_OPS.md` A: SENTRY_ENABLED=false makes this a no-op.
@@ -74,12 +75,19 @@ export async function captureRequestError(error, request, context) {
   // route pattern) instead of request.path (which may include query string
   // per node_modules/next/dist/docs/.../instrumentation.md). Method and
   // routerKind are low-cardinality. No raw URL, no query, no headers.
-  Sentry.captureException(error, {
-    extra: {
-      method: request.method,
-      routePath: context.routePath,  // parameter-free; safe per `10` E.1 runbook
-      routerKind: context.routerKind,
-    },
+  // Attach request_id as a tag so support can correlate trace_id (returned
+  // to user in route-handler JSON) to this Sentry event AND to the matching
+  // dev log line (per `10` Section F.1).
+  const trace = getCurrentPerfTraceSnapshot();
+  Sentry.withScope((scope) => {
+    if (trace?.requestId) scope.setTag('request_id', trace.requestId);
+    Sentry.captureException(error, {
+      extra: {
+        method: request.method,
+        routePath: context.routePath,  // parameter-free; safe per `10` E.1 runbook
+        routerKind: context.routerKind,
+      },
+    });
   });
 }
 ```
