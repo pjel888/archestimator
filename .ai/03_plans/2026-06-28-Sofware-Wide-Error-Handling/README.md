@@ -59,7 +59,7 @@ P5 — Prod observability decision: Sentry integration design; provider credenti
 P6a — Pilot verification: targeted vitest + browser smoke where needed + adversarial + AI-diagnosability test
 ```
 
-Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are independent after P1. P4 depends on P1 only. P5 depends on P1 + P4 (logger interface) but cannot enable production provider state without execution-time owner authority. P6a depends on all approved pilot phases. Full P2/P3 migration is a follow-on plan update after pilot pass.
+Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are independent after P1. P4 depends on P1 only. P5 depends on P1 + P4 (logger interface) but cannot enable production provider state without execution-time owner authority. P6a depends on all approved pilot phases. Full broad-P2 (P2b) and broad-P3 migration is a follow-on plan update after pilot pass.
 
 ## Stop condition
 

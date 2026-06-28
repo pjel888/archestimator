@@ -4,7 +4,7 @@ Feature flag strategy, rollout rings, runbook, monitoring thresholds, support im
 
 ## A. Feature flag strategy
 
-The plan uses observability kill switches only. It does **not** use a master error-handling switch because P2 changes exported Server Action return contracts to `ActionResult<T>`; an env var cannot safely restore legacy thrown-error behavior after callers migrate.
+The plan uses observability kill switches only. It does **not** use a master error-handling switch because the broad P2 phase (P2a pilot + P2b full migration) changes exported Server Action return contracts to `ActionResult<T>`; an env var cannot safely restore legacy thrown-error behavior after callers migrate.
 
 | Flag | Default | Purpose | Phase introduced |
 |---|---|---|---|

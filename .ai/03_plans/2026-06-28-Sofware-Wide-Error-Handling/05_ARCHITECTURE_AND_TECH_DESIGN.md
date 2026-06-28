@@ -103,11 +103,17 @@ export default function GlobalError({
     // A11Y-002 (pilot scope): move focus into the error container so
     // screen-reader users hear the failure immediately on mount.
     containerRef.current?.focus();
-    // Client-side error → also forward to server log via /api/internal/client-error
+    // Client-side error → also forward to server log via /api/internal/client-error.
+    // Payload matches the endpoint contract in `06` Section F (client_message_redacted,
+    // digest, path_normalized, user_agent_hashed).
     fetch('/api/internal/client-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: error.message, digest: error.digest }),
+      body: JSON.stringify({
+        message: error.message,
+        digest: error.digest,
+        path: window.location.pathname,
+      }),
     }).catch(() => { /* swallow; logging is best-effort */ });
   }, [error]);
 
@@ -187,7 +193,7 @@ Per `04_LOGGING_PIPELINE_AND_AI_LOOP.md` Section D.
 
 ## B. Modified modules
 
-### B.1 `src/lib/component-library/action-errors.ts` (P2)
+### B.1 `src/lib/component-library/action-errors.ts` (P2a pilot)
 
 Existing `throwActionError` becomes a thin shim that throws a typed `AppError.InternalError`:
 
@@ -263,9 +269,11 @@ Add the `sentry` key. CSP/headers/redirects untouched.
 
 Add `logs/` entry.
 
-### B.9 `package.json` (P5 only)
+### B.9 `package.json` (P4 scripts + P5 dep)
 
-P1 uses native file writing and no new logger dependency. P5 adds `@sentry/nextjs` only after the owner/provider gate.
+- **P4** adds local `logs:tail`, `logs:explain`, `logs:dev` scripts (per `08` P4-WP5) — no new dependencies, just script entries.
+- **P5** adds the `@sentry/nextjs` dependency only after the owner/provider gate.
+- P1 uses native file writing and no new logger dependency.
 
 ## C. Module dependency graph
 
