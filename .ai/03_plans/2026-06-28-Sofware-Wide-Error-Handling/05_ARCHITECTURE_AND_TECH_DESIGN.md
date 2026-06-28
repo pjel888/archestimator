@@ -78,7 +78,8 @@ export async function captureRequestError(error, request, context) {
   // routerKind are low-cardinality. No raw URL, no query, no headers.
   // Attach request_id as a tag so support can correlate trace_id (returned
   // to user in route-handler JSON) to this Sentry event AND to the matching
-  // dev log line (per `10` Section F.1).
+  // dev log line (per `10` Section F). The wrapped forwardToProd path
+  // attaches the same tag from enriched.context.request_id per `04` E.1.
   const trace = getCurrentPerfTraceSnapshot();
   Sentry.withScope((scope) => {
     if (trace?.requestId) scope.setTag('request_id', trace.requestId);

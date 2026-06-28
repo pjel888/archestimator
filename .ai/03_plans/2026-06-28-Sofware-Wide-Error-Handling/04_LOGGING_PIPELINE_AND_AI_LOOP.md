@@ -242,8 +242,8 @@ There are **two distinct Sentry capture paths** in production. They do NOT overl
 
 | Path | Fires when | Capture mechanism |
 |---|---|---|
-| **Wrapped** server-action / route-handler failures | The `withActionErrors` wrapper or `errorResponse()` catches the error | `logger.error(appError.toLogRecord())` → `forwardToProd(enriched)` → `Sentry.captureException` |
-| **Uncaught** server errors (bugs that escape all wrappers) | Next.js server catches an error that no wrapper caught | `instrumentation.ts` `onRequestError(err, request, context)` → `Sentry.captureException` |
+| **Wrapped** server-action / route-handler failures | The `withActionErrors` wrapper or `errorResponse()` catches the error | `logger.error(appError.toLogRecord())` → `forwardToProd(enriched)` → `Sentry.captureException` (attaches `request_id` as a Sentry tag from `enriched.context.request_id` so the wrapped path is correlatable by the same key as the uncaught path) |
+| **Uncaught** server errors (bugs that escape all wrappers) | Next.js server catches an error that no wrapper caught | `instrumentation.ts` `onRequestError(err, request, context)` → `Sentry.captureException` (attaches `request_id` from PERF_TRACE per `05` Section A.3) |
 
 Both paths land in Sentry. The wrapped path adds structured context (record_id, error.kind/code, agent_decision); the uncaught path adds request/context breadcrumbs. An error that flows through a wrapper does NOT also fire `onRequestError` because the wrapper swallowed it (returned `ActionResult`/`NextResponse`); an error that escapes all wrappers DOES fire `onRequestError`. This is the canonical ownership model — both `03`/`05` (wrapped) and `04`/`05`/`07`/`11` (onRequestError) describe complementary, non-overlapping paths.
 
