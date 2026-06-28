@@ -127,7 +127,7 @@ Source: [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatshee
 | Encode log data properly | NDJSON strict encoding; no eval; no template injection surface |
 | Use structured logging | OTel data model; all records are JSON |
 | Don't log to client-side storage | Client errors POST to server endpoint; nothing stored in localStorage/sessionStorage |
-| Implement log integrity | File system permissions on `./logs/`; notarize `dev.ndjson` lines with sequence numbers |
+| Implement log integrity | File system permissions on `./logs/` (deferred: formal log-integrity notarization with sequence numbers is OUT OF SCOPE per Section G follow-ons) |
 | Centralize logging | Single `logger` module in `src/lib/observability/logger.ts` |
 | Monitor log injection | AI-tail script validates JSON per line; bad records skipped + WARN line written |
 

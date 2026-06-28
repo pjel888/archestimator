@@ -2,7 +2,7 @@
 
 Authoritative execution guide for the implementation AI. Phased with ultragoal-style per-phase contract. Ponytail-aware: smallest coherent change per phase.
 
-**Readiness status:** `CONDITIONALLY READY`. Approved execution scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, and one UI error surface), plus the P4 dev logging pilot. Full all-actions/all-routes migration is intentionally gated on pilot evidence.
+**Readiness status:** `CONDITIONALLY READY`. Approved execution scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, and `src/app/global-error.tsx` as the **singular** P3a UI boundary — segment `error.tsx` and `not-found.tsx` are post-pilot follow-on per `07` FR-005 and `05` A.6/A.7), plus the P4 dev logging pilot. Full all-actions/all-routes migration is intentionally gated on pilot evidence.
 
 ## Phase order and dependency graph
 

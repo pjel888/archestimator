@@ -12,7 +12,7 @@ Define the first coherent software-wide error-handling layer for Archestimator, 
 
 Approved implementation scope from this repaired planning pack:
 - P1 foundation modules, without changing current behavior.
-- A pilot vertical after P1: `publication/actions.ts`, one representative route handler selected by the implementer, and one root/segment UI error surface.
+- A pilot vertical after P1: `publication/actions.ts`, one representative route handler selected by the implementer, and `src/app/global-error.tsx` as the **singular** P3a UI error boundary (segment `error.tsx` and `not-found.tsx` are post-pilot follow-on per `07` FR-005 and `05` A.6/A.7).
 - P4 dev logging pilot: NDJSON file writer, `PERF_TRACE` integration, AI tail command, and logger perf proof.
 - Full all-actions/all-routes migration only after pilot evidence is captured and this plan is upgraded.
 
