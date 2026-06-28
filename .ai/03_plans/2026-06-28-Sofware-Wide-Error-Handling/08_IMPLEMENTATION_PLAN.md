@@ -146,7 +146,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 
 **Exit criteria:**
 - One selected error boundary renders safe fallback copy and recovery action.
-- `toast.appError(err)` picks correct tone per kind.
+- `toast.appError(err)` picks correct tone per `code` (with `kind` fallback) per `03` Section C.1.
 - `/api/internal/client-error` rate-limits correctly.
 - `/api/internal/client-error` redacts client text and labels tainted fields.
 

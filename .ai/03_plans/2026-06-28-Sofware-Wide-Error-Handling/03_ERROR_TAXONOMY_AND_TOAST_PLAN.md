@@ -169,10 +169,35 @@ export class NetworkError extends AppError {
   toLogLevel() { return 'WARN' as const; }
 }
 
-// Database, upstream, internal → ERROR (default; no override needed)
-export class DatabaseError extends AppError { readonly kind = 'database' as const; }
-export class UpstreamError extends AppError { readonly kind = 'upstream' as const; }
-export class InternalError extends AppError { readonly kind = 'internal' as const; }
+// Database, upstream → ERROR. These two accept an optional options object
+// (same shape as InternalError in B.3) so callers can pass just
+// `{ cause, context }` and inherit safe defaults. InternalError is declared
+// separately in B.3 with the same object-form pattern.
+export class DatabaseError extends AppError {
+  readonly kind = 'database' as const;
+  constructor(opts?: { cause?: unknown; userMessage?: string; code?: string; context?: AppErrorOptions['context'] }) {
+    super({
+      userMessage: opts?.userMessage ?? "Something went wrong on our end. We're looking into it.",
+      code: opts?.code ?? 'DATABASE',
+      httpStatus: 500,
+      cause: opts?.cause,
+      context: opts?.context,
+    });
+  }
+}
+export class UpstreamError extends AppError {
+  readonly kind = 'upstream' as const;
+  constructor(opts?: { cause?: unknown; userMessage?: string; code?: string; context?: AppErrorOptions['context']; httpStatus?: number }) {
+    super({
+      userMessage: opts?.userMessage ?? "A third-party service is unavailable. Try again in a moment.",
+      code: opts?.code ?? 'UPSTREAM',
+      httpStatus: opts?.httpStatus ?? 502,
+      cause: opts?.cause,
+      context: opts?.context,
+    });
+  }
+}
+// InternalError declared in B.3 above (same object-form pattern).
 ```
 
 `AppErrorLogRecord` and `DevLogRecord` (defined in `04` Section B.1) compose like so:
@@ -315,15 +340,31 @@ const TOAST_FALLBACK_BY_KIND: Record<AppError['kind'], { tone: 'info'|'warning'|
 };
 
 toast.appError = (err: unknown) => {
+  // Accepts three input shapes:
+  //   1. AppError instance — uses err.code / err.kind directly
+  //   2. Serialized ActionResult error arm {kind, code, message} from server action —
+  //      looks up config by code, falls back by kind, then uses the serialized message
+  //   3. Error instance or unknown — generic fallback
   if (err instanceof AppError) {
     const cfg = TOAST_CONFIG[err.code] ?? TOAST_FALLBACK_BY_KIND[err.kind];
     toast({ message: err.userMessage, tone: cfg.tone, durationMs: cfg.durationMs });
+  } else if (isSerializedAppError(err)) {
+    // err is the wire shape from ActionResult error arm or route handler JSON body.
+    const cfg = TOAST_CONFIG[err.code] ?? TOAST_FALLBACK_BY_KIND[err.kind];
+    toast({ message: err.message, tone: cfg.tone, durationMs: cfg.durationMs });
   } else if (err instanceof Error) {
     toast({ message: "Something went wrong.", tone: 'error', durationMs: 8000 });
   } else {
     toast({ message: "Unexpected error.", tone: 'error', durationMs: 8000 });
   }
 };
+
+// Type guard for the serialized AppError wire shape ({kind, code, message}).
+function isSerializedAppError(value: unknown): value is { kind: AppError['kind']; code: string; message: string } {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.kind === 'string' && typeof v.code === 'string' && typeof v.message === 'string';
+}
 ```
 
 This is **additive**. The existing `toast({message, tone, durationMs})` API stays untouched. Off-limits rule preserved.

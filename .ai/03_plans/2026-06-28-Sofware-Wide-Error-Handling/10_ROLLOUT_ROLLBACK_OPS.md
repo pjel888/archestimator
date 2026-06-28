@@ -86,14 +86,18 @@ After first paying user:
 
 ## E. Runbook (for incidents)
 
-### E.1 "Sentry shows a spike in DatabaseError"
+### E.1 "Sentry shows a spike in permission-denied or database errors"
 
-1. Open Sentry dashboard → filter by `error.kind=database`.
-2. Note the top `error.code` (e.g. `DATABASE_RLS_DENIED`).
+Per `03` Section B.4 `unwrapSupabase`, Supabase RLS / 42501 denials are classified as `AuthPermissionDeniedError` (`kind: 'auth'`, `code: 'AUTH_PERMISSION_DENIED'`), NOT as `DatabaseError`. Database-class errors are reserved for non-RLS Postgres failures (constraint violations, connection errors, timeouts).
+
+1. Open Sentry dashboard → filter by `error.code=AUTH_PERMISSION_DENIED` (RLS denials) OR `error.kind=database` (non-RLS DB failures).
+2. Note the top `error.code`:
+   - `AUTH_PERMISSION_DENIED` → RLS policy blocked the operation
+   - `DATABASE_*` (e.g. `DATABASE_CONSTRAINT_VIOLATION`, `DATABASE_TIMEOUT`) → non-RLS DB failure
 3. Open Postgres logs in Supabase dashboard → match the timestamp window.
 4. For each event, use `context.user_id_hashed` to look up the user (hash their UUID offline and compare).
 5. Check the failing query only in Supabase/provider logs with restricted access. Sentry may contain `error.kind`, `error.code`, sanitized route/action, request/trace IDs, release, and parameter-free fingerprints only.
-6. If RLS issue: fix the policy in a new migration. If query bug: fix the action/repository code.
+6. If `AUTH_PERMISSION_DENIED`: fix the RLS policy in a new migration. If `DATABASE_*`: fix the action/repository code or migration as appropriate.
 
 ### E.2 "Users report toast 'Something went wrong' but no Sentry event"
 
