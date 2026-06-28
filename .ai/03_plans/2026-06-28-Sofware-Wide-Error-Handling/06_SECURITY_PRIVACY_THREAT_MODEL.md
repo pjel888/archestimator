@@ -193,7 +193,8 @@ export async function POST(req: NextRequest) {
   // `parseClientErrorReport` (local parser in this route file) returns an
   // already-sanitized shape: it strips control chars, masks emails/tokens/
   // URL secrets, removes prompt-injection patterns, and truncates to 1024
-  // chars per `07` FR-003 AC-003.2 and `09` SEC-003/ADV-06 expectations.
+  // chars per `07` SEC-003 AC-003.1 and `09` SEC-003/ADV-06/ADV-15
+  // expectations.
   const report = {
     client_message_redacted: body.value.message, // already sanitized by parseClientErrorReport
     digest: body.value.digest,

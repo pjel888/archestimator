@@ -215,7 +215,7 @@ export interface AppErrorLogRecord {
 }
 
 // The logger enriches AppErrorLogRecord → DevLogRecord at emit time:
-//   record_id     = `${timestampNs}-${processCounter++}`
+//   record_id       = `${timestamp}-${workerId}-${processCounter++}`  (worker-aware, unique across concurrent dev workers)
 //   severity_number = SEVERITY_BY_LEVEL[level]  // per `04` Section B.3
 ```
 

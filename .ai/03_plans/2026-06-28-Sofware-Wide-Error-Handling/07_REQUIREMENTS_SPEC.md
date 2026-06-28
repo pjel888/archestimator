@@ -164,7 +164,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`. The `logger.test.ts` and `logger-perf.test.ts` files are P4 deliverables — see TEST-002 and `08` P4-WP7.)
 
 ### TEST-002 — New test files for P3a–P5
-- **Statement:** `tests/vitest/{toast-apperror,toast-a11y,client-error,instrumentation,sentry-redact}.test.ts` + `tests/unit/tail-dev-logs.test.ts` are created across P3a–P5 and pass. (These files are planned deliverables of their respective phases, not pre-existing on `main`.)
+- **Statement:** `tests/vitest/{toast-apperror.test.tsx, toast-a11y.test.tsx, client-error.test.ts, instrumentation.test.ts, sentry-redact.test.ts}` + `tests/unit/tail-dev-logs.test.ts` are created across P3a–P5 and pass. (These files are planned deliverables of their respective phases, not pre-existing on `main`. Toast tests use `.test.tsx` because they render React components via Testing Library; the rest are logic-only `.test.ts`.)
 
 ### TEST-003 — Adversarial QA matrix
 - **Statement:** `09_TEST_QA_ULTRAQA_PLAN.md` matrix executed; zero P0/P1 findings unresolved at P6a.

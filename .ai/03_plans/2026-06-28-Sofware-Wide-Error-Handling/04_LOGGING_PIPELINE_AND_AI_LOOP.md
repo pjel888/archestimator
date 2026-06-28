@@ -187,7 +187,7 @@ import type { AppErrorLogRecord, DevLogRecord } from './types';
 
 // `error()`/`warn()`/`info()`/`debug()` accept a PARTIAL AppErrorLogRecord
 // (no record_id, no severity_number). The logger enriches it at emit time:
-//   - record_id       = `${timestampNs}-${processCounter++}`
+//   - record_id       = `${timestamp}-${workerId}-${processCounter++}`  (worker-aware, unique across concurrent dev workers)
 //   - severity_number = SEVERITY_BY_LEVEL[level]  // OTel map, see Section B.3
 // The enriched record is the canonical DevLogRecord written to ./logs/dev.ndjson.
 const SEVERITY_BY_LEVEL: Record<AppErrorLogRecord['level'], number> = {
