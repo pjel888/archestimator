@@ -15,6 +15,30 @@ type ProposalsPageClientProps = {
   userEmail: string;
 };
 
+type RecipientProposalsSuccessResult = Extract<RecipientProposalsResult, { ok: true }>;
+type RecipientProposalsErrorCode = Exclude<RecipientProposalsResult, { ok: true }>["error"];
+
+class RecipientProposalsQueryError extends Error {
+  code: RecipientProposalsErrorCode;
+
+  constructor(code: RecipientProposalsErrorCode) {
+    super(code);
+    this.name = "RecipientProposalsQueryError";
+    this.code = code;
+  }
+}
+
+async function fetchRecipientProposals(): Promise<RecipientProposalsSuccessResult> {
+  const result = await loadRecipientProposals();
+  if (result.ok) return result;
+  throw new RecipientProposalsQueryError(result.error);
+}
+
+function readQueryErrorCode(error: Error | null): RecipientProposalsErrorCode | null {
+  if (error instanceof RecipientProposalsQueryError) return error.code;
+  return error ? "unknown" : null;
+}
+
 function readRefreshErrorLabel(error: "unauthorized" | "unknown") {
   if (error === "unauthorized") return "This signed-in email cannot access the proposals inbox.";
   return "Proposals could not be refreshed.";
@@ -26,20 +50,16 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
   const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusRetryAfterFailureRef = useRef(false);
   const refreshInFlightRef = useRef(false);
-  const lastOkResultRef = useRef<Extract<RecipientProposalsResult, { ok: true }> | null>(
-    initialResult.ok ? initialResult : null,
-  );
 
   const query = useQuery({
     queryKey,
-    queryFn: loadRecipientProposals,
-    initialData: initialResult,
+    queryFn: fetchRecipientProposals,
+    initialData: initialResult.ok ? initialResult : undefined,
+    enabled: initialResult.ok,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
-
-  if (query.data?.ok) lastOkResultRef.current = query.data;
 
   const refresh = useCallback(
     async (options: { focusOnFailure?: boolean } = {}) => {
@@ -47,7 +67,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
       refreshInFlightRef.current = true;
       try {
         const result = await query.refetch();
-        const failed = Boolean(result.error) || result.data?.ok === false;
+        const failed = Boolean(result.error);
         if (options.focusOnFailure && failed) focusRetryAfterFailureRef.current = true;
       } finally {
         refreshInFlightRef.current = false;
@@ -78,8 +98,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     };
   }, [query.isFetching, refresh]);
 
-  const currentResult = query.data ?? initialResult;
-  const currentError = currentResult.ok ? null : currentResult.error;
+  const currentError = readQueryErrorCode(query.error) ?? (!query.data && !initialResult.ok ? initialResult.error : null);
 
   useEffect(() => {
     if (!focusRetryAfterFailureRef.current || !currentError) return;
@@ -98,7 +117,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     [refresh],
   );
 
-  if (!lastOkResultRef.current && currentError) {
+  if (!query.data && currentError) {
     return (
       <div className="min-h-0 flex-1 overflow-auto p-3">
         <ProposalsErrorState
@@ -111,7 +130,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     );
   }
 
-  const rows = lastOkResultRef.current?.rows ?? [];
+  const rows = query.data?.rows ?? [];
 
   return (
     <div className="flex h-full min-h-0 flex-col">

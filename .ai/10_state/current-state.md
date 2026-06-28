@@ -45,12 +45,13 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
-**Add Component OpenDesign visual proof passed (2026-06-29):**
+**Add Component OpenDesign exact visual proof passed (2026-06-29):**
 
-- The Add Component modal now matches the OpenDesign composition closely enough for handoff: 793px main modal, 533px attached variant drawer, 30px right-side rail, Component/Cost/Catalogue main field order, external `V1` rail labels, and flatter OpenDesign section/image surfaces.
+- The Add Component modal now matches the OpenDesign active-V1 composition by measured geometry: 793px main modal, 533px attached variant drawer, 30px right rail, 44px title band, 32px tab rail, 49px footers, and 30x32/30x34/30x34 manager/add/V1 rail controls.
 - OpenDesign remains the field contract. Non-OpenDesign fields stay removed from this create surface and stripped from the `fieldContract: "opendesign-add-component"` Supabase RPC JSON. Equivalency is retained because the OpenDesign HTML includes it, but it is visible only for package/content-conversion units such as `box`; normal `piece/unit` states hide it and send no package quantity/unit.
-- Visual evidence: `.omx/artifacts/visual-ralph/add-component-modal/reference.png`, `current-before.png`, and `current-after-4.png`; verdict `.omx/state/add-component-modal/ralph-progress.json` scored `92`.
-- Fresh evidence passed: targeted DOM/action matrix `3` files / `32` tests; scoped modal lint; scoped modal/action/test lint (0 errors; existing `actions.ts` warnings only); `git diff --check`.
+- The initial modal state has no red validation text, no required asterisks, no clear-X controls, no validation-driven layout shift, and no popovers. In active V1 drawer state, the main form shows Component + Catalogue like OpenDesign; Cost lives in the drawer for the selected variant.
+- Visual evidence: `.omx/artifacts/visual-ralph/add-component-modal/opendesign-rendered-open-v1.png`, `current-after-10-open-v1.png`, and `current-after-10-metrics.json`; verdict `.omx/state/add-component-modal/ralph-progress.json` scored `96`. Remaining known visual difference: real empty attachment state instead of OpenDesign's static sample attachment cards.
+- Fresh evidence passed: targeted DOM/action matrix `3` files / `32` tests; scoped modal/action/test lint (0 errors; existing `actions.ts` warnings only); `git diff --check`.
 
 **Project Activity Page plan archived (2026-06-29):**
 
