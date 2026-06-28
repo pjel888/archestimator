@@ -94,7 +94,7 @@ export default function Error({ error, reset }) {
 ### A.6 Form validation
 
 - **NO Zod** (0 imports of `from "zod"` in `src/`).
-- **Gap:** No schema-validation library. Trust-boundary validation is hand-rolled. Plan recommends adding Zod as part of P1 if the implementer chooses; not strictly required for the error-handling layer itself.
+- **Gap:** No schema-validation library. Trust-boundary validation is hand-rolled. This plan keeps dependency adoption out of scope and uses a small strict local parser for the pilot client-error endpoint.
 
 ### A.7 Third-party error reporting
 
@@ -256,7 +256,7 @@ Relevant keys (no values, just keys): Supabase URL/keys/service role, Dev auth b
   "git": { "deploymentEnabled": false }
 }
 ```
-Plan adds a Vercel Log Drain config in P5 (Vercel dashboard config; not in this file).
+Plan defers Vercel Log Drain/Axiom until first paying user. P5 covers Sentry design/provider gating only.
 
 ### C.6 CI workflows
 - `.github/workflows/ci.yml` — main pipeline (bun install → validate → build → Playwright)

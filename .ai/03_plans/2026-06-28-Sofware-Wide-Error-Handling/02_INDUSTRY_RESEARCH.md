@@ -45,7 +45,7 @@ Source: [Next.js API Reference > File Conventions > instrumentation](https://nex
 
 `instrumentation.ts` at project root exports:
 - `register()` — runs once at server init. Used to init Sentry, OTel, etc.
-- `onRequestError(request, error)` — invoked when the Next.js server captures an error in a route handler, server action, or page render. Must `await` async work. `error.digest` can identify the error type when React processed it.
+- `onRequestError(err, request, context)` — invoked when the Next.js server captures an error in a route handler, server action, or page render. Must `await` async work. `err.digest` can identify the error type when React processed it. Local Next 16 docs define the parameter order as `error`, `request`, `context`.
 
 This is the load-bearing hook for production error forwarding. Plan adds `instrumentation.ts` in P5.
 
@@ -178,7 +178,7 @@ Archestimator plan adopts these in `06_SECURITY_PRIVACY_THREAT_MODEL.md`.
 
 The plan is sized to MVP pre-launch (no external users). Industry standards are aspirational at scale; the plan adopts the minimum subset that delivers the user's stated outcomes:
 - AI-diagnosability now (dev NDJSON + tail command)
-- Production error visibility at first paying user (Sentry)
+- Production error visibility through P5 Sentry once owner/provider authority exists; Vercel Log Drain after first paying user
 - Full OTel/Axiom/PostHog stack deferred until justified by usage
 
 Full Datadog, multi-trace-backend, full session-replay, full GenAI semantic-conventions adoption are explicitly out of scope (`11_RISKS_DECISIONS_ALTERNATIVES.md`).

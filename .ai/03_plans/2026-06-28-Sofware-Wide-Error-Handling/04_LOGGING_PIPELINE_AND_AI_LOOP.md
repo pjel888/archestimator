@@ -203,12 +203,13 @@ export const logger = {
 - Add `instrumentation.ts` at project root:
   ```ts
   // instrumentation.ts (new in P5)
+  import { type Instrumentation } from 'next';
+
   export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
       await import('./sentry.server.config');
     }
   }
-  import { type Instrumentation } from 'next';
 
   export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
     const { captureRequestError } = await import('./sentry.server.config');
