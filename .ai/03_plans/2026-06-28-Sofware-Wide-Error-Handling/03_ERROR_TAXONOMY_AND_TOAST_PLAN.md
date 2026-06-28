@@ -105,7 +105,7 @@ export abstract class AppError extends Error {
   toLogRecord(): AppErrorLogRecord {
     // AppErrorLogRecord is a *partial* DevLogRecord — it omits `record_id`
     // and `severity_number`, which the logger adds at emit time:
-    //   - `record_id` is generated per-emit (see `04` Section C.2)
+    //   - `record_id` is generated per-emit by `enrich()` in `04` Section E
     //   - `severity_number` is derived from `level` per the OTel map in `04` Section B.3
     // `level` is sourced from `toLogLevel()` so each AppError subclass maps
     // to the correct OTel severity (auth/validation/not_found → INFO, conflict/

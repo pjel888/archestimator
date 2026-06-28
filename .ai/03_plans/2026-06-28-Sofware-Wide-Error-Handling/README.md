@@ -77,8 +77,8 @@ This conditionally ready plan is complete for the approved pilot when an impleme
 - `src/app/providers.tsx` ToastProvider mount — existing mount behavior must stay; additive unhandled-rejection reporting is allowed only after pilot proof.
 - `src/lib/auth/error-mapping.ts` and the auth callback audit pattern — existing codes and audit calls stay; additive AppError bridge is allowed.
 - `src/middleware.ts` / `src/proxy.ts` — runtime behavior unchanged; only error-context enrichment after pilot evidence.
-- All Supabase migrations (67 files) — no schema changes planned.
-- All RLS policies — no policy changes planned.
+- All Supabase migrations (67 files) — no schema changes planned by this pack. (Incident-driven RLS/migration fixes are NOT authorized by this plan; they require fresh owner approval per `10` Section E.1.)
+- All RLS policies — no policy changes planned by this pack. (Same owner-gate as migrations applies to incident-driven policy fixes.)
 - `vercel.json` regions/crons — unchanged.
 - `next.config.ts` CSP / headers / redirects — unchanged; Sentry config additions require P5 owner/provider gate.
 - `.github/workflows/*` — no removal/rewrite of existing; sourcemap upload step requires P5 owner/provider gate.

@@ -147,7 +147,7 @@ If still stuck, paste the full log record into the agent's context with the prom
 - [ ] First test error submitted to Sentry; dashboard confirms receipt
 - [ ] Source map upload step green in CI
 - [ ] Bundle size delta verified <60KB
-- [ ] Playwright `global-error.spec.ts` green on preview deploy
+- [ ] `tests/vitest/global-error.test.tsx` green (primary DOM/static deliverable per `08` P3a-WP4); Playwright `e2e/global-error.spec.ts` green IF the boundary behavior could not be fully proven by DOM/static (conditional per `07` FR-004 AC-004.2)
 - [ ] Manual AI-diagnosability proof logged in `13_FINAL_AUDIT_SCORECARD.md`
 
 ## H. Ponytail counterweight
