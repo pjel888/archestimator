@@ -137,7 +137,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### SEC-002 — Source maps private
 - **Statement:** Source maps never published to public CDN.
-- **AC-002.1:** Playwright probe in P6a verifies `/.next/static/chunks/*.map` returns 404 on production deploy.
+- **AC-002.1:** Playwright probe in P6a verifies `/_next/static/chunks/*.map` returns 404 on production deploy. (Note: `/_next/` is the Next.js runtime URL prefix; `/.next/` is the build-output directory on disk. The probe must hit the public URL path, not the filesystem path.)
 
 ### SEC-003 — Client error endpoint hardened
 - **Statement:** `/api/internal/client-error` is same-origin checked, strictly parsed, size-capped, redacted, tainted-field labeled, and rate-limited to 10 requests/min/IP for local/preview. Production enablement requires provider-backed rate limiting.

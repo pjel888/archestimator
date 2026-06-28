@@ -121,10 +121,15 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 - `RISK-ERR-014` — agent runtime may still be broken at implementation time. All implementation is direct (no agent delegation required).
 - Runtime/browser/provider behavior remains unproven until P5/P6a evidence is captured; this is why the package is conditional rather than fully implementation-ready.
 
-**Stop conditions for implementation:**
+**Stop conditions for the approved pilot (P1 + P2a + P3a + P4):**
 - P6a exit criteria all met.
-- `13_FINAL_AUDIT_SCORECARD.md` shows every rubric item PASS with both RED→GREEN proof and real-surface artifact captured.
-- README status flipped to "IMPLEMENTED".
+- `13_FINAL_AUDIT_SCORECARD.md` shows every PILOT rubric item PASS with both RED→GREEN proof and real-surface artifact captured.
+- README status flipped to "PILOT IMPLEMENTED" (NOT full "IMPLEMENTED" — full status requires the broad P2b/P3 migration which is gated on pilot evidence + fresh independent review per `08` P2b and `DEC-ERR-012`).
+
+**Stop conditions for full IMPLEMENTED** (separate, post-pilot):
+- All-actions/all-routes migration passes (P2b + full P3).
+- Provider/prod proof captured after owner/provider authority for P5.
+- Fresh independent review accepts the full migration.
 
 ## E. Pre-implementation revalidation checklist
 

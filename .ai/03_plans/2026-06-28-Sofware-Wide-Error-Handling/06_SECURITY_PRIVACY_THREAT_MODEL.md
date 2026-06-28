@@ -186,10 +186,13 @@ export async function POST(req: NextRequest) {
     path: body.value.path,
   });
 
+  // logger.warn() accepts AppErrorLogRecord (partial DevLogRecord) — no
+  // record_id (logger generates) and no severity_number (logger derives from
+  // level=WARN per the OTel map in `04` Section B.3). `user_agent_hashed`
+  // is a declared field in DevLogRecord.context per `04` Section B.1.
   logger.warn({
     timestamp: new Date().toISOString(),
     level: 'WARN',
-    severity_number: 13,
     message: 'Client error report',
     context: {
       route_handler: 'POST /api/internal/client-error',

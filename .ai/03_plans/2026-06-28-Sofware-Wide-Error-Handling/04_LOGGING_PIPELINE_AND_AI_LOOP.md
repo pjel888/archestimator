@@ -56,6 +56,7 @@ interface DevLogRecord {
     user_id_hashed?: string;  // SHA-256(userId)[:16]; never raw UUID
     workspace_id_hashed?: string;
     session_id_hashed?: string;
+    user_agent_hashed?: string;  // SHA-256(UA)[:16] for client-error reports (06 F)
     deployment_environment?: 'development'|'test'|'production';
     service_version?: string; // package.json version
   };
