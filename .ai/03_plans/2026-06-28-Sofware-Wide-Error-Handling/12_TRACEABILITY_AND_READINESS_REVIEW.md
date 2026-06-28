@@ -7,20 +7,20 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | Req ID | Source evidence | WP | Test | Status |
 |---|---|---|---|---|
 | FR-001 | `01` Section E gaps 1, 2, 9, 10 | P1-WP1, P1-WP3 | `tests/vitest/app-error.test.ts`, `unwrap-supabase.test.ts` | specified |
-| FR-002 | `01` Section B.1 | P2-WP1..6 | `with-action-errors.test.ts` + existing regression | specified |
-| FR-003 | `01` Section B.2 | P2-WP7, 8 | `route-error.test.ts` + extended smoke-gate | specified |
-| FR-004 | `01` Section A.2 | P3-WP1, 9 | `e2e/global-error.spec.ts` | specified |
-| FR-005 | `01` Section A.2 | P3-WP2, 3 | Playwright + manual | specified |
-| FR-006 | `03` Section C | P3-WP5 | `toast-apperror.test.tsx` | specified |
-| FR-007 | `01` Section B.7 | P2-WP2 | existing `auth-error-mapping.test.ts` | specified |
+| FR-002 | `01` Section B.1 | P2a-WP1 | `with-action-errors.test.ts` + pilot action regression | pilot specified; full migration conditional |
+| FR-003 | `01` Section B.2 | P2a-WP2, 3 | `route-error.test.ts` + selected handler test | pilot specified; full migration conditional |
+| FR-004 | `01` Section A.2 | P3a-WP1, 5 | DOM/static or `e2e/global-error.spec.ts` when browser claim is needed | pilot specified |
+| FR-005 | `01` Section A.2 | P3a-WP1 | DOM/static or Playwright | pilot specified; root not-found follow-on |
+| FR-006 | `03` Section C | P3a-WP3 | `toast-apperror.test.tsx` | specified |
+| FR-007 | `01` Section B.7 | P2b follow-on after pilot | existing `auth-error-mapping.test.ts` | conditional |
 | ARCH-001 | `DEC-ERR-001` | P1-WP1..9 | directory exists; type-check | specified |
 | ARCH-002 | README | all phases | `git diff -- <off-limits>` empty | specified |
-| LOG-001 | `02` Section C, `DEC-ERR-009` | P1-WP9, P4-WP2, 3 | `logger.test.ts` | specified |
+| LOG-001 | `02` Section C, `DEC-ERR-009` | P4-WP2, 3, 7 | `logger.test.ts` | pilot specified |
 | LOG-002 | `06` Section B, `DEC-ERR-005` | P1-WP7 | `redact.test.ts` | specified |
 | LOG-003 | `04` Section D | P4-WP4, 6 | `tests/unit/tail-dev-logs.test.ts` | specified |
 | LOG-004 | `04` Section C | P4-WP1 | grep `logs/` in .gitignore | specified |
-| OBS-001 | `02` Section A.3 | P5-WP5 | `instrumentation.test.ts` | specified |
-| OBS-002 | `02` Section D, `DEC-ERR-004` | P5-WP1..4 | `sentry-redact.test.ts` + manual dashboard | specified |
+| OBS-001 | `02` Section A.3 | P5-WP6 | `instrumentation.test.ts` | owner/provider-gated |
+| OBS-002 | `02` Section D, `DEC-ERR-004` | P5-WP1..5, 7, 9 | `sentry-redact.test.ts`; manual dashboard only after owner/provider authority | owner/provider-gated |
 | OBS-003 | `02` Section E | deferred | n/a | deferred |
 | SEC-001 | `06` Section B | P1-WP7 | `redact.test.ts` property test | specified |
 | SEC-002 | `06` Section D, `DEC-ERR-011` | P5-WP1 + P6 probe | `e2e/source-map-leak.spec.ts` | specified |
@@ -85,38 +85,41 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 
 ## D. Readiness review
 
-**Verdict:** `IMPLEMENTATION-READY` (standard profile)
+**Verdict:** `CONDITIONALLY READY` (standard profile)
 
 **Scope of readiness:**
-- 30 requirements traceable to source + WP + test.
+- P1 foundation plus pilot vertical are traceable to source + WP + test.
+- Full all-actions/all-routes migration remains conditional on pilot evidence and plan update.
 - 11 ADRs documented with rejected alternatives.
-- 14 risks logged with mitigations.
+- 17 risks logged with mitigations.
 - All user-pointed framework sections addressed.
-- No unresolved P0/P1 blockers.
-- No `BLOCKED-EXTERNAL`, `BLOCKED-ARCHITECTURE`, or `BLOCKED-EVIDENCE` items.
+- Council-raised P0/P1 blockers resolved by narrowing readiness and adding owner/provider gates.
+- No unresolved P0/P1 remains inside the approved P1+pilot scope. Provider/prod proof is explicitly gated for P5.
 
-**Verification mode declaration:** `emulated`
-- Lead performed source audit, industry research, plan, write, and review.
-- Background `explore` / `librarian` / `plan` agent runtime was unavailable (5 background + 1 sync all returned zero output after 30min timeout).
-- Per `Multi-Agent-Execution-Directive.md` Section 2: readiness cap = 97.
+**Verification mode declaration:** `independent-council-improved`
+- Original package was lead-authored and over-claimed readiness.
+- Native feasibility, security/privacy, coherence, and adversarial document reviewers were used in this Codex improvement pass.
+- Final verifier must confirm no unresolved P0/P1 remains before the planning task is complete.
 
-**Conditions for `IMPLEMENTATION-READY` (met):**
+**Conditions for `CONDITIONALLY READY` (met):**
 - Every requirement has a stable ID, source evidence, WP, test.
 - All ADRs have rationale + rejected alternatives.
-- All off-limits files enumerated.
+- All protected contracts enumerated.
 - All risks have mitigations.
-- Phased plan with exit criteria.
+- Phased pilot-first plan with exit criteria.
 - Industry standards cited with URLs.
 - Ponytail counterweight applied.
 
-**Conditions for upgrade to `independent` verification mode (NOT met):**
-- Would require a real second agent or human reviewer to read this pack fresh.
-- Out of scope for this planning task. Future step: hand pack to a reviewer agent when runtime recovers.
+**Conditions for upgrade to `IMPLEMENTATION-READY`:**
+- P1 foundation passes type-check, lint, and targeted tests.
+- P2a/P3a/P4 pilot passes targeted and adversarial evidence.
+- P5 owner/provider gate is resolved before external/prod proof.
+- Fresh independent review accepts the full P2b/P3 broad migration plan.
 
 **Residual risks:**
 - `RISK-ERR-013` — plan drift between writing and implementation. Implementer must re-read.
 - `RISK-ERR-014` — agent runtime may still be broken at implementation time. All implementation is direct (no agent delegation required).
-- Plan does NOT verify in a real browser/provider/production — that is the implementation phase's job.
+- Runtime/browser/provider behavior remains unproven until P5/P6 evidence is captured; this is why the package is conditional rather than fully implementation-ready.
 
 **Stop conditions for implementation:**
 - P6 exit criteria all met.
