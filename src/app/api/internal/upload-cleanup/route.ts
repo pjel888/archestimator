@@ -58,6 +58,10 @@ function isDryRun(request: Request) {
   return value === "1" || value === "true";
 }
 
+function areUploadJobsEnabled() {
+  return process.env.UPLOAD_JOBS_ENABLED?.trim() === "1";
+}
+
 function summarizeRejectedReasons(rejected: Array<{ reason: string }>) {
   return rejected.reduce<Record<string, number>>((accumulator, item) => {
     accumulator[item.reason] = (accumulator[item.reason] ?? 0) + 1;
@@ -107,9 +111,12 @@ async function handleUploadCleanupJob(request: Request) {
 
   try {
     const limit = readLimit(request);
+    const dryRun = isDryRun(request);
+    if (!dryRun && !areUploadJobsEnabled()) return jsonError("Upload cleanup job is disabled.", 503);
+
     const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-cleanup-job");
     const records = await listUploadCleanupJobRecords(serviceRole, { limit });
-    if (isDryRun(request)) return jsonOk(summarizeUploadCleanupDryRun(records, limit));
+    if (dryRun) return jsonOk(summarizeUploadCleanupDryRun(records, limit));
 
     const result = await runUploadCleanupJob({
       records,

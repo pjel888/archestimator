@@ -95,6 +95,7 @@ describe("internal upload scan route", () => {
 
   it("runs the scan job with service-role storage and returns a path-safe summary", async () => {
     vi.stubEnv("UPLOAD_SCAN_JOB_SECRET", "scan-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
     const scan = createScanClient();
     const { GET } = await import("@/app/api/internal/upload-scan/route");
 
@@ -128,6 +129,18 @@ describe("internal upload scan route", () => {
     });
     expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
     expect(JSON.stringify(scan.rpc.mock.calls)).not.toContain(ATTACHMENT_PATH);
+  });
+
+  it("blocks non-dry-run scans unless upload jobs are explicitly enabled", async () => {
+    vi.stubEnv("UPLOAD_SCAN_JOB_SECRET", "scan-secret");
+    const { GET } = await import("@/app/api/internal/upload-scan/route");
+
+    const response = await GET(createRequest("scan-secret", 5));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    await expect(response.json()).resolves.toEqual({ error: "Upload scan job is disabled." });
+    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
   });
 
   it("supports an authenticated dry run without storage download, scanning, or result writes", async () => {
@@ -169,6 +182,7 @@ describe("internal upload scan route", () => {
 
   it("accepts Vercel CRON_SECRET and records infected policy-scanner results", async () => {
     vi.stubEnv("CRON_SECRET", "cron-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
     const eicarBytes = new TextEncoder().encode("X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*");
     const scan = createScanClient(eicarBytes);
     const { GET } = await import("@/app/api/internal/upload-scan/route");

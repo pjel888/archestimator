@@ -240,7 +240,7 @@ describe("upload cleanup job runner", () => {
     expect(result.operationalSnapshot.status).toBe("blocked");
   });
 
-  it("maps persisted removed assets and expired sessions into cleanup records", async () => {
+  it("maps persisted deleted assets and expired sessions into cleanup records", async () => {
     const assetQuery = createThenableQuery([{
       id: ASSET_ID,
       upload_session_id: SESSION_ID,
@@ -250,7 +250,7 @@ describe("upload cleanup job runner", () => {
       storage_bucket: "component-attachments",
       storage_path: ATTACHMENT_PATH,
       thumbnail_path: null,
-      status: "removed",
+      status: "deleted",
       updated_at: "2026-05-01T00:00:00.000Z",
     }]);
     const sessionQuery = createThenableQuery([{
@@ -271,8 +271,8 @@ describe("upload cleanup job runner", () => {
 
     expect(client.from).toHaveBeenCalledWith("upload_assets");
     expect(client.from).toHaveBeenCalledWith("upload_sessions");
-    expect(assetQuery.eq).toHaveBeenCalledWith("status", "removed");
-    expect(sessionQuery.in).toHaveBeenCalledWith("status", ["reserved", "pending", "failed", "aborted"]);
+    expect(assetQuery.eq).toHaveBeenCalledWith("status", "deleted");
+    expect(sessionQuery.in).toHaveBeenCalledWith("status", ["reserved", "failed", "expired", "deleted"]);
     expect(records).toEqual([
       expect.objectContaining({
         assetId: ASSET_ID,

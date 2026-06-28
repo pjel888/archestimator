@@ -38,14 +38,15 @@ describe("upload requirement coverage audit", () => {
       requirements: 25,
       mapped: 25,
       missing: 0,
-      blocked: 7,
+      blocked: 8,
       unknownReferences: 0,
     });
     expect(report.requirements.map((requirement) => requirement.id)).toContain("UPLOAD-REQ-001");
     expect(report.requirements.map((requirement) => requirement.id)).toContain("UPLOAD-REQ-025");
     expect(report.requirements.every((requirement) => requirement.evidenceRefs.length > 0)).toBe(true);
     expect(report.requirements.find((requirement) => requirement.id === "UPLOAD-REQ-024")?.status).toBe("blocked");
-    expect(report.requirements.find((requirement) => requirement.id === "UPLOAD-REQ-024")?.blockerRefs.map((ref) => ref.id)).toContain("UPLOAD-GATE-HOSTED-RUNTIME-PROOF");
+    expect(report.requirements.find((requirement) => requirement.id === "UPLOAD-REQ-024")?.blockerRefs.map((ref) => ref.id)).toContain("UPLOAD-GATE-HOSTED-BACKPRESSURE-OBSERVATION");
+    expect(report.requirements.find((requirement) => requirement.id === "UPLOAD-REQ-022")?.status).toBe("blocked");
     expect(report.note).toContain("does not prove production readiness");
   });
 

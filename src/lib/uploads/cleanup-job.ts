@@ -460,6 +460,10 @@ function cleanupRecordFromAssetRow(row: UploadAssetCleanupRow): UploadCleanupJob
 }
 
 function cleanupRecordFromSessionRow(row: UploadSessionCleanupRow): UploadCleanupJobRecord {
+  const status = row.status === "failed" || row.status === "expired" || row.status === "deleted"
+    ? row.status
+    : "reserved";
+
   return {
     assetId: row.id,
     uploadAssetId: null,
@@ -469,7 +473,7 @@ function cleanupRecordFromSessionRow(row: UploadSessionCleanupRow): UploadCleanu
     surface: row.surface,
     bucket: row.storage_bucket,
     path: row.storage_path,
-    status: row.status === "failed" ? "failed" : "reserved",
+    status,
     expiresAt: row.expires_at,
   };
 }
@@ -488,13 +492,13 @@ export async function listUploadCleanupJobRecords(
   const [assetResult, sessionResult] = await Promise.all([
     assetQuery
       .select("id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at")
-      .eq("status", "removed")
+      .eq("status", "deleted")
       .lte("updated_at", cutoffs.deletedAssetsBefore)
       .order("updated_at", { ascending: true })
       .limit(limit),
     sessionQuery
       .select("id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at")
-      .in("status", ["reserved", "pending", "failed", "aborted"])
+      .in("status", ["reserved", "failed", "expired", "deleted"])
       .lte("expires_at", cutoffs.expiredSessionsBefore)
       .order("expires_at", { ascending: true })
       .limit(limit),

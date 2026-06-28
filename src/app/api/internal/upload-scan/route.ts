@@ -53,6 +53,10 @@ function isDryRun(request: Request) {
   return value === "1" || value === "true";
 }
 
+function areUploadJobsEnabled() {
+  return process.env.UPLOAD_JOBS_ENABLED?.trim() === "1";
+}
+
 function summarizeUploadScanDryRun(records: Awaited<ReturnType<typeof listUploadScanJobRecords>>, limit: number) {
   const selectedRecords = records.slice(0, limit);
 
@@ -85,9 +89,12 @@ async function handleUploadScanJob(request: Request) {
 
   try {
     const limit = readLimit(request);
+    const dryRun = isDryRun(request);
+    if (!dryRun && !areUploadJobsEnabled()) return jsonError("Upload scan job is disabled.", 503);
+
     const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-scan-job");
     const records = await listUploadScanJobRecords(serviceRole, { limit });
-    if (isDryRun(request)) return jsonOk(summarizeUploadScanDryRun(records, limit));
+    if (dryRun) return jsonOk(summarizeUploadScanDryRun(records, limit));
 
     const result = await runUploadScanJob({
       records,

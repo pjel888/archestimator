@@ -20,6 +20,7 @@ describe("Vercel env readiness checker", () => {
     expect(result.coreClosedBetaRuntime.missing).toContain("NEXT_PUBLIC_SUPABASE_URL");
     expect(result.coreClosedBetaRuntime.missing).toContain("CLOSED_BETA_ACCESS_ENABLED");
     expect(result.scheduledJobs.missing).toContain("CRON_SECRET");
+    expect(result.scheduledJobs.missing).toContain("UPLOAD_JOBS_ENABLED");
     expect(result.uploadOperationsAlerts.missing).toContain("UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL");
     expect(result.hostedUploadRuntimeProof.missing).toContain("UPLOAD_RUNTIME_PROOF_SECRET");
     expect(result.hostedUploadRuntimeProof.missing).toContain("ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES");
@@ -47,6 +48,7 @@ describe("Vercel env readiness checker", () => {
       "ARCHESTIMATOR_AI_ENABLED",
       "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
       "CRON_SECRET",
+      "UPLOAD_JOBS_ENABLED",
     ].join("\n");
 
     const result = checkVercelEnvReadiness(transcript);
@@ -60,7 +62,7 @@ describe("Vercel env readiness checker", () => {
     expect(result.uploadOperationsAlerts.ready).toBe(false);
   });
 
-  it("fails overall readiness when the cron secret name is missing", () => {
+  it("fails overall readiness when scheduled job controls are missing", () => {
     const transcript = [
       "NEXT_PUBLIC_APP_URL",
       "NEXT_PUBLIC_SITE_URL",
@@ -80,7 +82,7 @@ describe("Vercel env readiness checker", () => {
 
     expect(result.coreClosedBetaRuntime.ready).toBe(true);
     expect(result.scheduledJobs.ready).toBe(false);
-    expect(result.scheduledJobs.missing).toEqual(["CRON_SECRET"]);
+    expect(result.scheduledJobs.missing).toEqual(["CRON_SECRET", "UPLOAD_JOBS_ENABLED"]);
     expect(result.vercelEnvReady).toBe(false);
   });
 
@@ -153,6 +155,7 @@ describe("Vercel env readiness checker", () => {
   it("passes upload production proof preflight only when all upload proof env groups are present", () => {
     const transcript = [
       "CRON_SECRET",
+      "UPLOAD_JOBS_ENABLED",
       "UPLOAD_OPERATIONS_ALERTS_ENABLED",
       "UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL",
       "UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN",

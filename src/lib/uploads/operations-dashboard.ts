@@ -211,7 +211,7 @@ function aggregateSnapshot(input: {
     surface.sizeBuckets[sizeBucket(sizeBytes)] += 1;
     if (row.content_type) incrementRecord(surface.contentTypes, row.content_type);
 
-    if (row.status === "removed") {
+    if (row.status === "deleted" || row.status === "removed") {
       surface.removedAssets += 1;
       removedAssetCount += 1;
     } else if (row.status === "finalized") {

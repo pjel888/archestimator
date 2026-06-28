@@ -47,7 +47,7 @@ function createCleanupClient() {
     storage_bucket: "component-attachments",
     storage_path: ATTACHMENT_PATH,
     thumbnail_path: null,
-    status: "removed",
+    status: "deleted",
     updated_at: "2026-05-01T00:00:00.000Z",
   }]);
   const sessionQuery = createThenableQuery([]);
@@ -96,6 +96,7 @@ describe("internal upload cleanup route", () => {
 
   it("runs the cleanup job with service-role storage and returns a path-safe summary", async () => {
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
     const cleanup = createCleanupClient();
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
@@ -136,6 +137,18 @@ describe("internal upload cleanup route", () => {
     });
     expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
     expect(JSON.stringify(cleanup.insert.mock.calls)).not.toContain(ATTACHMENT_PATH);
+  });
+
+  it("blocks non-dry-run cleanup unless upload jobs are explicitly enabled", async () => {
+    vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
+    const { GET } = await import("@/app/api/internal/upload-cleanup/route");
+
+    const response = await GET(createRequest("cleanup-secret", 5));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    await expect(response.json()).resolves.toEqual({ error: "Upload cleanup job is disabled." });
+    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
   });
 
   it("supports an authenticated dry run without storage removal or cleanup audit writes", async () => {
@@ -182,6 +195,7 @@ describe("internal upload cleanup route", () => {
   it("accepts Vercel CRON_SECRET even when a manual cleanup secret is also configured", async () => {
     vi.stubEnv("CRON_SECRET", "cron-secret");
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "manual-cleanup-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
     createCleanupClient();
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
@@ -193,6 +207,7 @@ describe("internal upload cleanup route", () => {
 
   it("emits cleanup telemetry from the cron route path", async () => {
     vi.stubEnv("CRON_SECRET", "cron-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
     const telemetry: unknown[] = [];
     const { setUploadOperationalTelemetrySink } = await import("@/lib/uploads/operational-telemetry");
     setUploadOperationalTelemetrySink((record) => telemetry.push(record));
