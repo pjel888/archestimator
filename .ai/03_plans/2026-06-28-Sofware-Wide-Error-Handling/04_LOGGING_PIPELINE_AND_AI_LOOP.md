@@ -183,6 +183,7 @@ This loop is the explicit payoff of the user's "AI agent driven development" req
 ```ts
 // src/lib/observability/logger.ts (new in P1)
 import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
+import { redactForLog } from './redact';
 import type { AppErrorLogRecord, DevLogRecord } from './types';
 
 // `error()`/`warn()`/`info()`/`debug()` accept a PARTIAL AppErrorLogRecord

@@ -50,6 +50,7 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
 // sentry.server.config.ts
 import * as Sentry from '@sentry/nextjs';
 import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
+import { redactSentryEvent } from '@/lib/observability/redact';
 
 export async function register() {
   // Kill switch per `10_ROLLOUT_ROLLBACK_OPS.md` A: SENTRY_ENABLED=false makes this a no-op.

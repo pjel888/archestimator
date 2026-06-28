@@ -94,7 +94,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** `src/lib/observability/logger.ts` writes NDJSON records to `./logs/dev.ndjson` in development.
 - **Priority:** P4 (pilot must).
 - **AC-001.1:** Records conform to schema in `04` Section B.1.
-- **AC-001.2:** Append-mode writes; truncate-on-dev-start; 50MB rotation cap.
+- **AC-001.2:** Append-mode writes (no truncation-on-start — see `04` Section C.2 for the race-free append-only session-start design); 50MB rotation cap.
 - **AC-001.3:** PERF_TRACE AsyncLocalStorage consumed for `request_id` + `scope`.
 - **Validation:** `tests/vitest/logger.test.ts` in P4.
 

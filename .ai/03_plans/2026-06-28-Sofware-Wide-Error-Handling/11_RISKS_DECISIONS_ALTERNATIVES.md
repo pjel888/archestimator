@@ -85,7 +85,7 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 | ID | Risk | L | I | Sev | Mitigation | Owner | Status |
 |---|---|---|---|---|---|---|---|
 | RISK-ERR-001 | AppError taxonomy over-engineered | M | L | M | Cap at 9 public kinds / 12 concrete classes; revisit at pilot boundary | lead | open |
-| RISK-ERR-002 | Logger file-handle leak | L | M | M | `createWriteStream(append)` once; close on exit | lead | open |
+| RISK-ERR-002 | Logger file-handle leak | L | M | M | Synchronous `fs.appendFileSync` per call (no persistent handle); switch to `createWriteStream(append)` if dev volume grows | lead | open |
 | RISK-ERR-003 | Wrapping changes TS signature; callers break | M | H | H | Preserve `Args extends unknown[]`; verify each call site | implementer | open |
 | RISK-ERR-004 | Existing tests assume throw behavior | H | M | H | Migrate per-module; use direct helper | implementer | open |
 | RISK-ERR-005 | Sentry free tier saturates (5k/mo) | L | M | M | Sample 0.1; defer paid tier; alert at 80% | lead | open |

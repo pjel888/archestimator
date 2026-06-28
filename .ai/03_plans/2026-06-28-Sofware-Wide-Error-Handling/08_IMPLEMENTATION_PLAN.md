@@ -65,7 +65,7 @@ bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/unwrap-supabase.
 
 **Risks:**
 - RISK-ERR-001 — Over-engineering the taxonomy. Mitigation: 9 public kinds / 12 concrete subclasses max; revisit at pilot boundary.
-- RISK-ERR-002 — Logger file-handle leak. Mitigation: `createWriteStream(append)` once per process; close on `process.on('exit')`.
+- RISK-ERR-002 — Logger file-handle leak. Mitigation: synchronous `fs.appendFileSync` per call (no persistent handle to leak); if dev volume grows large enough to warrant a long-lived stream, switch to `createWriteStream(append)` once per process and close on `process.on('exit')`.
 
 ## P2a — Pilot server unification: wrap publication/actions.ts + one route handler
 
@@ -166,7 +166,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 |---|---|---|---|
 | P4-WP1 | Add `logs/` to `.gitignore` | extend .gitignore | XS |
 | P4-WP2 | Wire the dev logger to write to `./logs/dev.ndjson` | extend logger.ts | M |
-| P4-WP3 | Implement truncate-on-dev-start + 50MB rotation | extend logger.ts | M |
+| P4-WP3 | Implement append-only session-start + 50MB rotation (NO truncation-on-start per `04` Section C.2 race-free design) | extend logger.ts | M |
 | P4-WP4 | Create `scripts/tail-dev-logs.mjs` per `04` Section D | new | M |
 | P4-WP5 | Add `logs:tail`, `logs:explain`, `logs:dev` scripts to `package.json` | extend package.json | XS |
 | P4-WP6 | Tests: `tests/unit/tail-dev-logs.test.ts` (parsing, --explain summary, tainted-field labeling) | new | M |

@@ -114,7 +114,7 @@ Logger auto-rotates at 50MB to `dev.ndjson.1`. If that's also full, manually del
 ```bash
 rm ./logs/dev.ndjson.1
 ```
-And restart `bun run dev`. The current `dev.ndjson` will be truncated on restart.
+And restart `bun run dev`. The logger is append-only — it will not truncate the existing file on restart (per `04` Section C.2 race-free design). To force a clean log, manually `rm ./logs/dev.ndjson` before starting dev.
 
 ### E.4 "AI agent cannot diagnose from logs"
 
