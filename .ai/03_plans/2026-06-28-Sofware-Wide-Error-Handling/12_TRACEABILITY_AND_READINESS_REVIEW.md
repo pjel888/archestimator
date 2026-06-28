@@ -64,7 +64,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | Section 3 (multi-agent orchestration) | `00` "Lanes used" + `LOOP_LEDGER.md` |
 | Section 4 (skills) | `00` "Skill discipline" |
 | Section 4A (workflow contracts) | `00` "Workflow routing" |
-| Section 5 (concurrent repo safety) | `00` ledger + README "Files off-limits" |
+| Section 5 (concurrent repo safety) | `00` ledger + README "Protected contracts" |
 | Section 6 (audit entire codebase) | `01_SOURCE_AUDIT.md` |
 | Section 7 (trace docs) | `02_INDUSTRY_RESEARCH.md` + cross-refs |
 | Section 8 (analysis dimensions) | `01`, `03`, `05`, `06`, `04`/`08`, `10`, `11` |

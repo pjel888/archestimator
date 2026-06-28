@@ -7,15 +7,15 @@ Authoritative execution guide for the implementation AI. Phased with ultragoal-s
 ## Phase order and dependency graph
 
 ```
-P1 (Foundation)  ──┬──▶ P2 (Server unification, parallel-safe)
+P1 (Foundation)  ──┬──▶ P2a (Pilot server unification, parallel-safe)
                    │
-                   ├──▶ P3 (Client wiring, parallel-safe with P2)
+                   ├──▶ P3a (Pilot client wiring, parallel-safe with P2a)
                    │
                    ├──▶ P4 (Dev logging pipeline)
                    │
-                   └──▶ P5 (Prod observability; depends on P1 + P4)
+                   └──▶ P5 (Prod observability design; depends on P1 + P4 and owner/provider gate)
 
-P6 (Verification) — depends on P1–P5
+P6a (Pilot verification) — depends on P1, P2a, P3a, P4; P5 provider proof is separately gated
 ```
 
 P2a and P3a pilot work may run in parallel after P1 lands (no shared-file conflicts). P4 may run in parallel with pilot P2a/P3a (depends only on P1's logger interface). P5 is a design/provider gate after P1 + P4; production credentials, GitHub secrets, Vercel env changes, and preview/production deploy proof require explicit execution-time authority.

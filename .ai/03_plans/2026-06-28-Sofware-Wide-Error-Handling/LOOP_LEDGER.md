@@ -35,20 +35,20 @@ Executed in parallel via bash/grep + websearch + context7. Captured grounded inv
 - Defined 6 implementation phases (P1–P6).
 - Initialized OMX `autoresearch-goal` mission at `.omx/goals/autoresearch/software-wide-error-handling/`.
 
-### Iteration 4 — EXECUTE (2026-06-28 19:30 → in progress)
-Writing each plan document with content grounded in the audit + research above. Ponytail mode: tight docs, no fluff.
+### Iteration 4 — EXECUTE (2026-06-28 19:30 → original pack complete)
+Wrote each plan document with content grounded in the audit + research above. Original pack over-claimed implementation readiness; Iteration 5 repairs that.
 
-### Iteration 5 — VERIFY (planned)
-Reviewer gate: re-read every doc against the user's verbatim requirements + rubric, then incorporate native council findings from feasibility and security/privacy reviewers plus any returned coherence/adversarial findings.
+### Iteration 5 — VERIFY/REPAIR (2026-06-28 Codex)
+Reviewer gate: native council review found feasibility, security/privacy, coherence, and adversarial issues. The lead integrated fixes and downgraded full-package readiness to `CONDITIONALLY READY`.
 
-### Iteration 6 — RECORD + DECIDE (planned)
-- Update this ledger with verdict.
-- Run `omx autoresearch-goal verdict --slug software-wide-error-handling --verdict <pass|fail|blocked> --evidence "..."`.
-- If pass: declare plan IMPLEMENTATION-READY in README and `12_TRACEABILITY_AND_READINESS_REVIEW.md`.
+### Iteration 6 — RECORD + DECIDE (pending final verifier)
+- Update this ledger with final verifier result.
+- Keep README and `12_TRACEABILITY_AND_READINESS_REVIEW.md` at `CONDITIONALLY READY`.
+- Full `IMPLEMENTATION-READY` requires P1+pilot evidence plus a fresh independent review.
 
 ## Open decisions
 
-All resolved — see `11_RISKS_DECISIONS_ALTERNATIVES.md` for `DEC-ERR-001` through `DEC-ERR-011` with rejected alternatives.
+All planning-only owner decisions resolved — see `11_RISKS_DECISIONS_ALTERNATIVES.md` for `DEC-ERR-001` through `DEC-ERR-015` with rejected alternatives.
 
 ## Skipped validation
 

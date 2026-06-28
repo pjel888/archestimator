@@ -178,7 +178,9 @@ separate evidence:
 - `verification_mode: independent` can support 98-100 readiness or an
   unqualified completion claim when all other gates pass.
 - `verification_mode: emulated` caps readiness at 97 and requires the report to
-  state what independence was unavailable.
+  state what independence was unavailable. For high-blast-radius planning
+  packages, it also caps package status at `CONDITIONALLY READY` unless a real
+  independent reviewer or explicit owner acceptance reviews the final package.
 - `verification_mode: same-agent` caps readiness at 94 and cannot support
   `IMPLEMENTATION-READY` for high-risk planning packages or high-risk execution
   scopes.
@@ -607,6 +609,14 @@ Escalate only for:
   inferred.
 - Provider/project boundary uncertainty.
 - Evidence that cannot be gathered safely.
+
+If the user explicitly grants owner authority for a planning-only task, resolve
+reversible planning/product decisions inside the documents after a bounded
+same-agent or LLM council when the tradeoff is material. Label the result as an
+`owner-delegated planning decision`. Do not use that delegation to perform or
+approve destructive commands, credential use, paid-service enablement,
+provider/project changes, external production actions, code/test/migration
+edits outside the planning scope, or claims of human/manual approval.
 
 When blocked:
 

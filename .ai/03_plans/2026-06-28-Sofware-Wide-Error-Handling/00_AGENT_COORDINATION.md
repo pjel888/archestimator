@@ -57,10 +57,10 @@ Per `Creating-Plan-Prompt.md` Section 4A:
 
 - **Autopilot delivery shape:** not invoked (planning-only, no implementation).
 - **Ultragoal-style durable goal ledger:** per-phase contracts in `08_IMPLEMENTATION_PLAN.md`.
-- **Ultrawork-style parallelization:** P2 (server-side wrapping) and P3 (client-side wiring) are parallel-safe after P1 lands; called out in `08_IMPLEMENTATION_PLAN.md`.
+- **Ultrawork-style parallelization:** P2a (pilot server wrapping) and P3a (pilot client wiring) are parallel-safe after P1 lands; full P2b/P3 migration is gated on pilot evidence.
 - **Autoresearch/validator-gated evidence:** research in `02_INDUSTRY_RESEARCH.md` shaped decisions `DEC-ERR-002`, `DEC-ERR-004`, `DEC-ERR-005`; citations recorded.
 - **Compound Engineering plan quality:** stable IDs (`FR-`, `ARCH-`, `LOG-`, `OBS-`, `SEC-`, `UX-`, `A11Y-`, `TEST-`, `DEC-ERR-`, `RISK-ERR-`, `AC-`); repo-relative paths; rejected alternatives in `11_RISKS_DECISIONS_ALTERNATIVES.md`; no addenda stacking.
-- **React/Next best-practice review:** P3 contract in `08_IMPLEMENTATION_PLAN.md` covers `"use client"` boundaries (Toast already client-only), Server Action shape (canonical in P2), RSC payload impact (none — error path is additive).
+- **React/Next best-practice review:** P3a contract in `08_IMPLEMENTATION_PLAN.md` covers `"use client"` boundaries, `unstable_retry`, Toast API preservation, and Server Action shape (canonical in P2a).
 - **Performance-goal contract:** logger overhead budget defined in `06`/`08` (<1ms p95 per call, <50KB bundle add).
 - **UltraQA adversarial QA:** matrix in `09_TEST_QA_ULTRAQA_PLAN.md`.
 - **Superpowers-style skill discipline:** every skill name above was verified to exist in this environment; none used as proof of work.
@@ -69,7 +69,7 @@ Per `Creating-Plan-Prompt.md` Section 4A:
 
 | Lane | Goal | Owned scope | Dependencies | Findings | Decisions | Status |
 |---|---|---|---|---|---|---|
-| Lead | Master plan | Full pack | None | Audit + research complete | Profile=standard, 16 files | EXECUTE in progress |
+| Lead | Master plan | Full pack | None | Audit + research + council repair complete | Profile=standard, 16 files, conditional-ready pilot scope | COMPLETE pending final verifier |
 | Plan agent (attempted) | Plan graph | n/a | None | n/a (failed) | n/a | superseded |
 | Explore client (attempted) | Client audit | src/components, src/hooks, src/app | None | n/a (failed) | n/a | superseded |
 | Explore server (attempted) | Server audit | src/lib, src/app/api, src/proxy.ts | None | n/a (failed) | n/a | superseded |
@@ -93,8 +93,8 @@ Per `Creating-Plan-Prompt.md` Section 4A:
 Planning stops when:
 - All 16 docs exist in the plan dir.
 - `13_FINAL_AUDIT_SCORECARD.md` shows every rubric item PASS.
-- README declares IMPLEMENTATION-READY.
-- OMX verdict recorded as `pass`.
+- README declares `CONDITIONALLY READY` with approved pilot scope.
+- Final verifier pass recorded in this pack.
 
 Implementation (separate task, future) stops when:
 - P1–P6 landed and committed.

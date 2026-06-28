@@ -34,7 +34,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 ### FR-002 — Unified Server Action return shape
 - **Statement:** Pilot scope: `publication/actions.ts` exports actions wrapped with `withActionErrors` returning `ActionResult<T>`. Full scope after pilot: all 22 server action files.
 - **Rationale:** `01` Section B.1 — 7+ inconsistent shapes; client code cannot write a single error handler.
-- **Priority:** P2 (must).
+- **Priority:** P2a pilot; P2b full migration after pilot.
 - **Dependencies:** FR-001.
 - **AC-002.1:** `withActionErrors(fn)` returns a function returning `{ok:true,data} | {ok:false,error:{kind,code,message}}`.
 - **AC-002.2:** Pilot action module migrated; no raw Supabase details returned to clients.
@@ -44,7 +44,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### FR-003 — Unified Route Handler error response
 - **Statement:** Pilot scope: one representative route handler uses `errorResponse(err)` for error responses. Full scope after pilot: all 22 route handlers.
-- **Priority:** P2 (must).
+- **Priority:** P2a pilot; P2b full migration after pilot.
 - **AC-003.1:** Every handler returns `{ok:false, error:{kind,code,message}, trace_id}` with mapped HTTP status.
 - **AC-003.2:** Pilot route-handler test covers the selected handler; all-22 smoke-gate coverage follows after pilot evidence.
 - **Affected:** all 22 files in `01` B.2; `src/lib/observability/route-error.ts` (new).
@@ -52,14 +52,14 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 ### FR-004 — Root global-error.tsx
 - **Statement:** Pilot scope: one selected root or segment error boundary exists and renders safe fallback UI using the Next.js 16 `unstable_retry` contract. Full scope may include root `global-error.tsx` after pilot proof.
 - **Rationale:** `01` Section A.2 — none exists.
-- **Priority:** P3 (must).
+- **Priority:** P3a pilot.
 - **AC-004.1:** Selected pilot boundary file exists.
 - **AC-004.2:** Tested via DOM/static test or Playwright only when browser behavior is the claim being proven.
 - **Affected:** new file.
 
 ### FR-005 — Root error.tsx and not-found.tsx
 - **Statement:** Selected pilot `error.tsx`/`global-error.tsx` exists; root `not-found.tsx` is a follow-on after pilot if still needed.
-- **Priority:** P3 (must).
+- **Priority:** P3a pilot.
 - **AC-005.1:** Pilot boundary file exists.
 - **AC-005.2:** Pilot `error.tsx` calls `toast.appError` on mount when the selected boundary is segment-level.
 - **AC-005.3:** `not-found.tsx` remains follow-on, not pilot-blocking.
@@ -67,7 +67,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 ### FR-006 — Toast.appError convenience
 - **Statement:** `src/components/ui/toast.tsx` exports `toast.appError(err)`.
 - **Rationale:** preserves existing API; adds AppError-aware convenience.
-- **Priority:** P3 (must).
+- **Priority:** P3a pilot.
 - **AC-006.1:** Existing `toast({message, tone, durationMs})` API unchanged.
 - **AC-006.2:** `toast.appError(err)` picks tone+copy from `toast-config.ts` per `err.kind`.
 - **Validation:** `tests/vitest/toast-apperror.test.tsx` (new).
@@ -75,7 +75,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### FR-007 — Auth error bridge
 - **Statement:** `src/lib/auth/error-mapping.ts` exports `mapAuthCodeToAppError(code, cause)` that returns `AppError.AuthError` subclass.
-- **Priority:** P2 (must).
+- **Priority:** P2b after pilot.
 - **AC-007.1:** Existing `mapAuthErrorToCode` function preserved unchanged.
 - **AC-007.2:** `recordAccountSecurityEvent` calls preserved unchanged.
 - **AC-007.3:** New bridge maps every existing code (callback_missing_code, otp_expired, beta_access_required, etc.).

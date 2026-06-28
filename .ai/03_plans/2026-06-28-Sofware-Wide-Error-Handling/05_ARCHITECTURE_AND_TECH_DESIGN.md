@@ -176,13 +176,13 @@ export function throwActionError(userMessage: string, cause?: unknown): never {
 
 The function signature is unchanged — call sites keep working. Existing tests in `tests/vitest/library-action-errors.test.ts` continue to pass.
 
-### B.2 `src/lib/auth/error-mapping.ts` (P2)
+### B.2 `src/lib/auth/error-mapping.ts` (P2b after pilot)
 
 Add `mapAuthCodeToAppError` bridge per `03` Section F. Existing `mapAuthErrorToCode` unchanged.
 
-### B.3 All 22 server action files (P2)
+### B.3 Pilot server action first; all 22 server action files after pilot (P2a/P2b)
 
-Each module gets its exported actions wrapped:
+The pilot wraps `publication/actions.ts` first. After pilot evidence, each remaining module gets its exported actions wrapped:
 ```ts
 // before
 export async function createProject(input: CreateProjectInput) { ... }
@@ -191,9 +191,9 @@ const _createProject = async (input: CreateProjectInput) => { ... };
 export const createProject = withActionErrors(_createProject);
 ```
 
-### B.4 All 22 route handler files (P2)
+### B.4 Pilot route handler first; all 22 route handler files after pilot (P2a/P2b)
 
-Each handler gets a try/catch wrapper:
+The pilot wraps one representative handler first. After pilot evidence, each remaining handler gets a try/catch wrapper:
 ```ts
 // before
 export async function POST(req: NextRequest) {

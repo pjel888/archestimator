@@ -72,8 +72,11 @@ those actions are separately in scope.
 Record the final verification mode as `verification_mode: independent`,
 `verification_mode: emulated`, or `verification_mode: same-agent`. Only
 independent verification can support a 98-100 readiness score. Emulated
-verification caps readiness at 97. Same-agent verification caps readiness at 94
-and cannot support `IMPLEMENTATION-READY` for high-risk plans.
+verification caps readiness at 97. For high-blast-radius planning packages,
+emulated verification also caps package status at `CONDITIONALLY READY` unless
+a real independent reviewer or explicit owner acceptance reviews the final
+package. Same-agent verification caps readiness at 94 and cannot support
+`IMPLEMENTATION-READY` for high-risk plans.
 
 Run no more than six meaningful audit/revision cycles. If internally resolvable
 issues remain at the cap, stop fabricating certainty and mark the package
