@@ -1,5 +1,21 @@
 # 17 - Final Readiness Review
 
+## Implementation completion addendum (2026-06-28)
+
+Canonical implementation status: **locally verified for v1**.
+
+Evidence:
+
+- Project Activity route, transient loader, server repository, client UI, RPC migrations, generated types, focused tests, and browser proof script are implemented.
+- `bun run type-check`, scoped lint, `bun run test:dom -- tests/vitest/project-activity-page`, focused auth/legal gate tests, and `bun run build` passed.
+- Browser proof artifact `.omx/artifacts/project-activity-page/project-activity-route-browser-2026-06-28T163016Z/project-activity-route-browser-proof.json` passed with 20 authenticated production samples: TTFB p50 `45ms`, p95 `140ms`.
+- Supabase provider proof stayed inside project `ebxxqidacheyapmmzavr`; scoped RPC/direct-deny and index evidence completed.
+
+Known residuals:
+
+- Full `auth-proxy.test.ts` has pre-existing beta-route expectation failures for `/beta/access-required` versus the current `/access-required` route. This is unrelated to the activity-page surface.
+- Browser proof captured repeated 404 console resource warnings but no page errors; route assertions and visual/timing gates passed.
+
 ## Package metadata
 
 - Plan folder: `.ai/03_plans/2026-06-28-Project-Activity-Page/`

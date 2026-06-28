@@ -1,5 +1,23 @@
 # 16 — Requirements Traceability Matrix
 
+## Implementation status addendum (2026-06-28)
+
+The v1 implementation has landed and the original `Pending` statuses below are superseded for the implemented scope by the evidence in `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`.
+
+Completion summary:
+
+- Implemented scope: FR-01 through FR-11, UX-01 through UX-08, ARCH-01 through ARCH-05, DATA-01 through DATA-04, API-01 through API-02, SEC-01 through SEC-06, PERF-01 through PERF-04, REL-01 through REL-03, OPS-02 through OPS-03, TEST-01 through TEST-04, and DOC-01.
+- Out of scope remains: FR-12 and DOC-02.
+- OPS-01 remains not applicable for v1 because no feature flag was added; rollback remains git revert plus migration fix-forward/rollback.
+
+Primary evidence:
+
+- Focused implementation tests: `bun run test:dom -- tests/vitest/project-activity-page` passed 7 files / 38 tests.
+- Auth/legal gate regression: focused `auth-proxy`, legal gate, direct caller, and route concurrency tests passed.
+- Build/type/lint: `bun run type-check`, scoped `bun run lint`, and `bun run build` passed.
+- Provider proof: scoped collaboration-audit RPC/direct-deny proof and index `EXPLAIN` evidence completed in Supabase project `ebxxqidacheyapmmzavr`.
+- Browser/performance proof: `.omx/artifacts/project-activity-page/project-activity-route-browser-2026-06-28T163016Z/project-activity-route-browser-proof.json` passed, with TTFB p50 `45ms` and p95 `140ms`.
+
 Every requirement is traced to source evidence, source strength, work package, acceptance criterion, test method, and current status. Source strength values: `brief`, `repo evidence`, `assumption`, `derived`.
 
 | Req ID | Source | Source strength | WP | Acceptance | Test method | Status |

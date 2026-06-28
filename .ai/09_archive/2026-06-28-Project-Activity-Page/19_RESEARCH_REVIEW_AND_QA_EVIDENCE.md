@@ -1,5 +1,54 @@
 # 19 — Research, Review, and QA Evidence
 
+## Implementation QA evidence addendum (2026-06-28)
+
+Status: implementation complete and locally verified for the v1 Project Activity page.
+
+Key implementation artifacts:
+
+- Route: `src/app/workshop/projects/[projectId]/activity/page.tsx`
+- Loader: `src/app/api/projects/[projectId]/activity/route.ts`
+- Client surface: `src/components/workshop/project-activity/ProjectActivityClient.tsx`
+- Repository: `src/lib/repositories/project-activity-feed-repository.ts`
+- RPC/index migrations:
+  - `supabase/migrations/20260628223000_project_activity_collaboration_audit_rpc.sql`
+  - `supabase/migrations/20260628224500_project_activity_collaboration_audit_rpc_cursor_qualification.sql`
+  - `supabase/migrations/20260628231500_project_activity_collaboration_audit_project_created_id_idx.sql`
+- Browser proof script: `scripts/prove-project-activity-route-browser.mjs`
+
+Provider proof:
+
+- Supabase project boundary verified as `ebxxqidacheyapmmzavr`.
+- Scoped collaboration-audit RPC migrations were applied in the provider project.
+- Direct app-role table privileges on `collaboration_audit_events` remained empty.
+- Authorized simulated RPC read returned rows/count; unauthorized simulated subject returned permission denied.
+- Added `collaboration_audit_events_project_created_id_idx`; forced-plan `EXPLAIN` used the new `(project_id, created_at desc, id desc)` index with no sort. The tiny current table may still choose a sequential scan by cost.
+
+Local validation:
+
+- `bun run type-check` passed.
+- `bun run lint` scoped to the touched activity/proxy/legal/proof files passed with zero errors.
+- `bun run test:dom -- tests/vitest/project-activity-page` passed: 7 files / 38 tests.
+- Focused proxy/legal gate tests passed, including the signed Terms gate cookie path.
+- `bun run build` passed under Next.js 16.2.6 and listed `/workshop/projects/[projectId]/activity` plus `/api/projects/[projectId]/activity`.
+- Full `auth-proxy.test.ts` still has pre-existing beta-route expectation failures around `/beta/access-required` versus the current `/access-required` route; these are outside the activity-page change and were not used as completion evidence.
+
+Browser proof:
+
+- Artifact directory: `.omx/artifacts/project-activity-page/project-activity-route-browser-2026-06-28T163016Z/`
+- Report: `.omx/artifacts/project-activity-page/project-activity-route-browser-2026-06-28T163016Z/project-activity-route-browser-proof.json`
+- Status: `passed`.
+- Auth mode: temporary Supabase user.
+- Cleanup: temporary auth user deleted; allowlist and terms acceptance cleanup completed; no cleanup errors.
+- TTFB proof: 20 authenticated production-start samples, p50 `45ms`, p95 `140ms`, thresholds p50 `300ms` / p95 `600ms`.
+- Browser behavior proof covered authenticated route resolution, dashboard-to-Activity navigation, desktop/mobile screenshots, no horizontal document overflow, scope/actor/client/action/edited-by-me/refresh/clear controls, filter URL state, invalid query tolerance, Load more handling, and Refresh availability.
+- Remaining browser warnings: repeated 404 console resource warnings captured by the proof script. The page-level assertions still passed and no page errors were captured.
+
+Performance implementation note:
+
+- The original route-level streaming and repository optimizations were insufficient because first byte was dominated by protected-route auth/legal gates and remote Supabase variance.
+- The final implementation moved the protected `/workshop` hard gate into proxy, uses Supabase `auth.getClaims()` where supported by the installed SDK, stamps trusted internal request headers for the server layout, and caches current Terms acceptance in a short-lived HMAC-signed HttpOnly cookie. If no signing secret is available, the proxy falls back to the database Terms check.
+
 ## Research questions and sources
 
 | Question | Source | Decision influenced |
