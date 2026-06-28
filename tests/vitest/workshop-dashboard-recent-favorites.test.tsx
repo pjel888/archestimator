@@ -300,11 +300,11 @@ describe("workshop dashboard recent favorite controls", () => {
       </>,
     );
 
-    expect(screen.getByText("Star a project to pin it here.")).toBeInTheDocument();
+    expect(screen.getByRole("tree", { name: "Favorite projects and estimate sheets" }).childElementCount).toBe(0);
 
     await user.click(screen.getByRole("button", { name: "Add Lewis Residence to favorites" }));
 
-    expect(screen.getByRole("tree", { name: "Favorite projects" })).toBeInTheDocument();
+    expect(screen.getByRole("tree", { name: "Favorite projects and estimate sheets" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Lewis Residence" })).toBeInTheDocument();
     expect(workshopActions.setProjectFavorite).toHaveBeenCalledWith({ projectId: "project-1", favorite: true });
 
@@ -328,6 +328,30 @@ describe("workshop dashboard recent favorite controls", () => {
     await user.click(screen.getByRole("button", { name: "Add Concept Budget to favorite estimate sheets" }));
 
     expect(screen.getByRole("treeitem", { name: "Concept Budget" })).toBeInTheDocument();
+    expect(workshopActions.setEstimateFavorite).toHaveBeenCalledWith({ estimateId: "estimate-1", favorite: true });
+
+    write.resolve(undefined);
+  });
+
+  it("updates the upper favorites tree immediately when a sheet is favorited under an unpinned project", async () => {
+    const user = userEvent.setup();
+    const write = deferred<void>();
+    workshopActions.setEstimateFavorite.mockReturnValueOnce(write.promise);
+
+    renderWithQueryClient(
+      <>
+        <FavoritesTree favoriteProjects={[]} favoritesScope={scope} />
+        <RecentSheetsList estimates={[estimate()]} favoriteProjects={[]} favoritesScope={scope} />
+      </>,
+    );
+
+    const favoritesTree = screen.getByRole("tree", { name: "Favorite projects and estimate sheets" });
+    expect(favoritesTree.childElementCount).toBe(0);
+
+    await user.click(screen.getByRole("button", { name: "Add Concept Budget to favorite estimate sheets" }));
+
+    expect(within(favoritesTree).getByRole("treeitem", { name: "Lewis Residence" })).toBeInTheDocument();
+    expect(within(favoritesTree).getByRole("treeitem", { name: "Concept Budget" })).toBeInTheDocument();
     expect(workshopActions.setEstimateFavorite).toHaveBeenCalledWith({ estimateId: "estimate-1", favorite: true });
 
     write.resolve(undefined);
@@ -386,7 +410,7 @@ describe("workshop dashboard recent favorite controls", () => {
       </>,
     );
 
-    const favoritesTree = screen.getByRole("tree", { name: "Favorite projects" });
+    const favoritesTree = screen.getByRole("tree", { name: "Favorite projects and estimate sheets" });
     const lewisTreeLink = within(favoritesTree).getByRole("link", { name: /Lewis Residence/ });
     const harperTreeLink = within(favoritesTree).getByRole("link", { name: /Harper Renovation/ });
 

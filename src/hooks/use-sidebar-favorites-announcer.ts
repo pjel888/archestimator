@@ -9,8 +9,8 @@ import { useEffect, useState } from "react";
  * announcement text across the tree.
  *
  * Two channels, mirroring the sidebar's two ARIA live regions:
- * - "polite"   -> data-sidebar-favorites-status (aria-live=polite)  — the required
- *                 legibility cue when a favorited estimate's parent isn't pinned.
+ * - "polite"   -> data-sidebar-favorites-status (aria-live=polite)  — the cue
+ *                 when a favorited estimate creates a sheet-only project grouping.
  * - "assertive" -> data-sidebar-favorites-alert (aria-live=assertive) — failures.
  *
  * Polite writes clear the prior text first (no stacking on rapid toggles, QA-20)

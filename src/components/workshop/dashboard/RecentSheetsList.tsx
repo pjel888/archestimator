@@ -43,8 +43,17 @@ export function RecentSheetsList({
   embedded = false,
 }: RecentSheetsListProps) {
   const rows = estimates.slice(0, 6);
-  const favoriteProjectIds = useMemo(
-    () => new Set(favoriteProjects.map((project) => project.id)),
+  const projectFavoriteCreatedAtById = useMemo(
+    () =>
+      new Map(
+        favoriteProjects.flatMap((project) => {
+          const projectFavoriteCreatedAt =
+            project.projectFavoriteCreatedAt === undefined
+              ? project.favoriteCreatedAt
+              : project.projectFavoriteCreatedAt;
+          return projectFavoriteCreatedAt === null ? [] : [[project.id, projectFavoriteCreatedAt] as const];
+        }),
+      ),
     [favoriteProjects],
   );
 
@@ -78,9 +87,7 @@ export function RecentSheetsList({
                 <FavoriteSheetButton
                   estimate={estimate}
                   favoritesScope={favoritesScope}
-                  isProjectSidebarFavorite={favoriteProjectIds.has(
-                    estimate.project_id,
-                  )}
+                  projectFavoriteCreatedAt={projectFavoriteCreatedAtById.get(estimate.project_id) ?? null}
                 />
               </span>
               <Link
@@ -118,11 +125,11 @@ export function RecentSheetsList({
 function FavoriteSheetButton({
   estimate,
   favoritesScope,
-  isProjectSidebarFavorite,
+  projectFavoriteCreatedAt,
 }: {
   estimate: WorkshopEstimateSummary;
   favoritesScope: { workspaceId: string; userId: string };
-  isProjectSidebarFavorite: boolean;
+  projectFavoriteCreatedAt: string | null;
 }) {
   const { toggle, isPending } = useToggleEstimateFavorite(favoritesScope);
   const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(
@@ -152,7 +159,8 @@ function FavoriteSheetButton({
           name: estimate.projectName,
           projectCode: estimate.projectCode,
           href: projectHref(estimate.project_id),
-          isSidebarFavorite: isProjectSidebarFavorite,
+          isSidebarFavorite: projectFavoriteCreatedAt !== null,
+          projectFavoriteCreatedAt,
         },
         favorite: nextFavorite,
       },

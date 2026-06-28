@@ -8,7 +8,14 @@ import type { ProjectEstimatesStore } from "@/stores/project-estimates-store";
 
 export type ToggleEstimateFavoriteInput = {
   estimate: { id: string; projectId: string; name: string; sheetCode: string | null; href: string; favoriteCreatedAt: string | null };
-  project: { id: string; name: string; projectCode: string | null; href: string; isSidebarFavorite: boolean };
+  project: {
+    id: string;
+    name: string;
+    projectCode: string | null;
+    href: string;
+    isSidebarFavorite: boolean;
+    projectFavoriteCreatedAt?: string | null;
+  };
   favorite: boolean;
   store?: ProjectEstimatesStore;
 };
@@ -33,12 +40,19 @@ export function useToggleEstimateFavorite(scope: Scope, announceCue?: () => void
       if (previousSidebar) {
         queryClient.setQueryData<MainSidebarFavoriteProject[]>(key, patchSidebarFavoritesCache(previousSidebar,
           input.favorite
-            ? { kind: "estimate-insert", parentId: input.project.id,
+            ? { kind: "estimate-insert", parent: {
+                id: input.project.id,
+                name: input.project.name,
+                projectCode: input.project.projectCode,
+                href: input.project.href,
+                projectFavoriteCreatedAt: input.project.projectFavoriteCreatedAt ?? (input.project.isSidebarFavorite ? synthesizedAt : null),
+              },
                 sheet: { id: input.estimate.id, projectId: input.estimate.projectId, name: input.estimate.name, sheetCode: input.estimate.sheetCode, href: input.estimate.href },
                 createdAt: synthesizedAt }
             : { kind: "estimate-remove", parentId: input.project.id, sheetId: input.estimate.id }));
       }
-      // 08: cue ONLY for the non-favorited parent; favorited-but-hidden is silent.
+      // Cue only when the parent project itself is not favorited; the sidebar now
+      // still creates a project grouping for the favorite sheet.
       if (!input.project.isSidebarFavorite) announceCue?.();
       input.store?.getState().patch(input.estimate.id, { isFavorite: input.favorite, favoriteCreatedAt: input.favorite ? synthesizedAt : null });
       return { previousSidebar, previousRow };

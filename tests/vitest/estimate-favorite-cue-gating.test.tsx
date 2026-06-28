@@ -91,7 +91,7 @@ describe("ProjectEstimateFavoriteButton cue gating (Phase 2 carry-forward / D5)"
 
     await waitFor(() =>
       expect(politeSpy).toHaveBeenCalledWith(
-        "Estimate favorited. Favorite the project to pin it in the sidebar.",
+        "Estimate favorited. It now appears in the sidebar under its project.",
       ),
     );
     expect(politeSpy).toHaveBeenCalledTimes(1);

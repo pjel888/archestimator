@@ -25,7 +25,7 @@ function renderWithClient(ui: ReactElement) {
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
-const POLITE_CUE = "Estimate favorited. Favorite the project to pin it in the sidebar.";
+const POLITE_CUE = "Estimate favorited. It now appears in the sidebar under its project.";
 const ASSERTIVE_COPY = "Could not update favorite. Try again.";
 
 describe("MainSidebar live regions: polite/assertive + dedup (QA-20)", () => {

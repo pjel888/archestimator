@@ -208,7 +208,7 @@ export function FavoritesTree({
       <div
         ref={treeRef}
         role="tree"
-        aria-label="Favorite projects"
+        aria-label="Favorite projects and estimate sheets"
         tabIndex={0}
         onKeyDown={handleKeyDown}
         className="min-h-0 flex-1 overflow-y-auto border-t border-hairline py-0"

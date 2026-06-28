@@ -11,9 +11,17 @@ if (!migrationPath) {
 }
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8");
+const mainSidebarMigration = readFileSync(
+  join(process.cwd(), "supabase/migrations/20260628153000_main_sidebar_favorite_projects.sql"),
+  "utf8",
+);
 const repository = readFileSync(join(process.cwd(), "src/lib/repositories/workspace-repository.ts"), "utf8");
 const actions = readFileSync(join(process.cwd(), "src/lib/workshop/actions.ts"), "utf8");
 const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+const sidebarFavoritesRepository = repository.slice(
+  repository.indexOf("export const listMainSidebarFavoriteProjects"),
+  repository.indexOf("export const getCurrentWorkspaceProject"),
+);
 
 describe("workshop favorites schema", () => {
   test("stores project and estimate favorites as user-scoped RLS tables", () => {
@@ -48,5 +56,25 @@ describe("workshop favorites schema", () => {
     expect(actions).toContain("export async function setEstimateFavorite");
     expect(actions).toContain("revalidatePath(\"/workshop\")");
     expect(actions).toContain("revalidatePath(\"/workshop/projects\")");
+  });
+
+  test("loads sidebar estimate favorites even when the parent project is not favorited", () => {
+    expect(mainSidebarMigration).toContain("create or replace function public.main_sidebar_favorite_projects");
+    expect(mainSidebarMigration).toContain("estimate_favorites_workspace_user_project_created_idx");
+    expect(mainSidebarMigration).toContain("latest_sheet_favorite_refs");
+    expect(mainSidebarMigration).toContain("selected_containers");
+    expect(mainSidebarMigration).toContain("limit (select safe_project_limit from input)");
+    expect(mainSidebarMigration).toContain("limit (select safe_sheet_limit from input)");
+    expect(mainSidebarMigration).toContain("grant execute on function public.main_sidebar_favorite_projects(uuid, int, int) to authenticated");
+    expect(supabaseTypes).toContain("main_sidebar_favorite_projects: {");
+    expect(sidebarFavoritesRepository).toContain('rpc("main_sidebar_favorite_projects"');
+    expect(sidebarFavoritesRepository).toContain("parseMainSidebarFavoriteProjectsPayload");
+    expect(sidebarFavoritesRepository).toContain(".from(\"project_favorites\")");
+    expect(sidebarFavoritesRepository).toContain(".from(\"estimate_favorites\")");
+    expect(sidebarFavoritesRepository).toContain("favoriteEstimateProjectIds");
+    expect(sidebarFavoritesRepository).toContain("sidebarProjectIds");
+    expect(sidebarFavoritesRepository).toContain("projectFavoriteCreatedAt");
+    expect(sidebarFavoritesRepository).not.toContain("if (favoriteProjectIds.length === 0) return []");
+    expect(sidebarFavoritesRepository).not.toContain(".in(\"project_id\", favoriteProjectIds)");
   });
 });

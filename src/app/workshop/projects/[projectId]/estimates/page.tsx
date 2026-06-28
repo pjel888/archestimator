@@ -42,15 +42,23 @@ async function ProjectEstimatesContent({ params }: ProjectEstimatesPageProps) {
       ]),
     );
 
-  // isSidebarFavorite: membership in the scoped top-window favorites list (cached
-  // read, no extra query). Drives the optimistic sidebar insert + the legibility cue.
-  const isSidebarFavorite = sidebarFavoriteProjects.some((favorite) => favorite.id === project.id);
+  // Use the explicit project-favorite marker. The sidebar list can also contain
+  // sheet-only project containers, and those must not be mistaken for a starred
+  // parent project.
+  const sidebarFavoriteProject = sidebarFavoriteProjects.find((favorite) => favorite.id === project.id);
+  const projectFavoriteCreatedAt = sidebarFavoriteProject
+    ? sidebarFavoriteProject.projectFavoriteCreatedAt === undefined
+      ? sidebarFavoriteProject.favoriteCreatedAt
+      : sidebarFavoriteProject.projectFavoriteCreatedAt
+    : null;
+  const isSidebarFavorite = projectFavoriteCreatedAt !== null;
   const parentProject = {
     id: project.id,
     name: project.name,
     projectCode: project.project_code ?? null,
     href: `/workshop/projects/${project.id}`,
     isSidebarFavorite,
+    projectFavoriteCreatedAt,
   };
   const scope = { workspaceId: workspaceBootstrap.workspace.id, userId: currentUser.userId };
 

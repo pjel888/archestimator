@@ -12,7 +12,7 @@ import type { ProjectEstimateListRow } from "@/lib/estimates/project-estimate-li
 import type { ProjectEstimatesStore } from "@/stores/project-estimates-store";
 import { cn } from "@/lib/ui/cn";
 
-const FAVORITE_HIDDEN_PARENT_CUE = "Estimate favorited. Favorite the project to pin it in the sidebar.";
+const FAVORITE_SHEET_GROUPED_CUE = "Estimate favorited. It now appears in the sidebar under its project.";
 const FAVORITE_FAILURE_ALERT = "Could not update favorite. Try again.";
 
 export type EstimateFavoriteParentProject = {
@@ -21,6 +21,7 @@ export type EstimateFavoriteParentProject = {
   readonly projectCode: string | null;
   readonly href: string;
   readonly isSidebarFavorite: boolean;
+  readonly projectFavoriteCreatedAt?: string | null;
 };
 
 export type EstimateFavoriteScope = {
@@ -34,15 +35,14 @@ type ProjectEstimateFavoriteButtonProps = {
   readonly optimistic: boolean;
   readonly store?: ProjectEstimatesStore;
   /**
-   * Parent project metadata used to decide whether the optimistic sidebar insert
-   * happens (visible favorited parent) and to drive the required legibility cue
-   * (non-favorited parent). Optional: standalone renders (no sidebar context) fall
-   * back to a synthesized parent derived from the estimate's project id.
+   * Parent project metadata used to create or update the optimistic sidebar
+   * grouping and to drive the legibility cue when only the estimate sheet is
+   * favorited. Optional standalone renders fall back to synthesized project data.
    */
   readonly parentProject?: EstimateFavoriteParentProject;
   /** Scope for the sidebar favorites cache key. Defaults to an empty scope when absent. */
   readonly scope?: EstimateFavoriteScope;
-  /** Fires the polite legibility cue when toggling under a non-sidebar-favorite parent. */
+  /** Fires the polite legibility cue when toggling under a non-favorited parent project. */
   readonly announceCue?: () => void;
 };
 
@@ -71,12 +71,12 @@ export function ProjectEstimateFavoriteButton({
   const [favoriteOverride, setFavoriteOverride] = useState<{ readonly estimateId: string; readonly value: boolean } | null>(null);
   const [errorMessage, setErrorMessage] = useState<{ readonly estimateId: string; readonly message: string } | null>(null);
   const [isToggling, setIsToggling] = useState(false);
-  // The hook calls announceCue inside onMutate (only when the parent is NOT a sidebar
-  // favorite). The favorited copy is only correct when ADDING a favorite, so we gate on
-  // the latest intent carried here; the prop, if provided, overrides the default bridge.
+  // The hook calls announceCue inside onMutate only when the parent project itself
+  // is not a favorite. The copy is only correct when ADDING a favorite, so gate on
+  // the latest intent carried here; the prop, if provided, overrides the bridge.
   const nextFavoriteRef = useRef(false);
   const defaultAnnounceCue = useCallback(() => {
-    if (nextFavoriteRef.current) announceSidebarFavoritePolite(FAVORITE_HIDDEN_PARENT_CUE);
+    if (nextFavoriteRef.current) announceSidebarFavoritePolite(FAVORITE_SHEET_GROUPED_CUE);
   }, []);
   const { toggle, isPending } = useToggleEstimateFavorite(scope ?? FALLBACK_SCOPE, announceCue ?? defaultAnnounceCue);
   const isFavorite = favoriteOverride?.estimateId === estimate.id ? favoriteOverride.value : estimate.isFavorite;

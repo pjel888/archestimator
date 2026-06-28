@@ -256,7 +256,7 @@ describe("workshop sidebar shell", () => {
     ).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Send beta feedback" }),
+      screen.getByRole("button", { name: "Send feedback" }),
     ).toHaveAttribute("aria-haspopup", "dialog");
   });
 
@@ -309,7 +309,7 @@ describe("workshop dashboard homebase", () => {
 
     // Favorites tree (per-sheet favoriting → real nested tree).
     const favoritesTree = screen.getByRole("tree", {
-      name: "Favorite projects",
+      name: "Favorite projects and estimate sheets",
     });
     expect(
       within(favoritesTree).getByText("Lewis Residence"),
@@ -533,7 +533,7 @@ describe("workshop dashboard homebase", () => {
         .childElementCount,
     ).toBe(0);
     expect(
-      screen.getByRole("tree", { name: "Favorite projects" }).childElementCount,
+      screen.getByRole("tree", { name: "Favorite projects and estimate sheets" }).childElementCount,
     ).toBe(0);
     expect(
       screen.getByRole("heading", { name: "Projects" }),
@@ -548,7 +548,7 @@ describe("workshop dashboard homebase", () => {
     ).toBe(0);
     expect(screen.queryByText("No shared links yet")).toBeNull();
     expect(screen.queryByText("No recent components yet")).toBeNull();
-    expect(screen.queryByText("Star a project to pin it here.")).toBeNull();
+    expect(screen.queryByText("Star a project or estimate sheet to pin it here.")).toBeNull();
     expect(screen.queryByText("No recent projects yet")).toBeNull();
     expect(screen.queryByText("No recent estimate sheets yet")).toBeNull();
     expect(screen.queryByRole("region", { name: "Get started" })).toBeNull();

@@ -402,7 +402,7 @@ export function MainSidebar({
 
             {liveFavoriteProjects.length > 0 ? (
               <div
-                aria-label="Favorite projects"
+                aria-label="Favorite projects and estimate sheets"
                 className={cn(
                   "flex min-w-0 flex-col gap-0.5 pb-2 transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
                   expanded ? "translate-x-0 opacity-100" : "pointer-events-none hidden translate-x-1 opacity-0",
@@ -486,7 +486,7 @@ export function MainSidebar({
                 data-sidebar-favorites-empty
                 className="pb-2 pl-3 text-[9px] font-normal leading-none text-tertiary"
               >
-                Star a project to pin it here.
+                Star a project or estimate sheet to pin it here.
               </p>
             ) : null}
 

@@ -94,9 +94,9 @@ describe("MainSidebar favorites", () => {
     const navigation = screen.getByRole("navigation", { name: "Main navigation" });
     expect(within(navigation).getByText("Favorites")).toBeInTheDocument();
 
-    const favoriteProject = within(navigation).getByRole("link", { name: "Lewis Residence" });
-    expect(favoriteProject).toHaveAttribute("href", "/workshop/projects/project-1");
-    expect(favoriteProject).toHaveClass("pl-[52px]");
+    const favoriteProjectLink = within(navigation).getByRole("link", { name: "Lewis Residence" });
+    expect(favoriteProjectLink).toHaveAttribute("href", "/workshop/projects/project-1");
+    expect(favoriteProjectLink).toHaveClass("pl-[52px]");
 
     const favoriteSheet = within(navigation).getByRole("link", { name: "Concept Budget" });
     expect(favoriteSheet).toHaveAttribute("href", "/workshop/projects/project-1/estimates/sheet-1");
@@ -110,7 +110,47 @@ describe("MainSidebar favorites", () => {
     await Promise.resolve(); // flush a microtask — a mount refetch would have fired here
     expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
     expect(within(navigation).getByRole("link", { name: "Lewis Residence" })).toBeInTheDocument();
-    expect(within(navigation).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
+    expect(within(navigation).queryByText("Star a project or estimate sheet to pin it here.")).not.toBeInTheDocument();
+  });
+
+  it("renders a favorite estimate sheet under its project when the project itself is not favorited", async () => {
+    const favoriteProjects: MainSidebarFavoriteProject[] = [
+      favoriteProject({
+        favoriteCreatedAt: "2026-06-18T00:00:00.000Z",
+        projectFavoriteCreatedAt: null,
+        favoriteEstimateSheets: [
+          {
+            href: "/workshop/projects/project-1/estimates/sheet-1",
+            id: "sheet-1",
+            name: "Concept Budget",
+            projectId: "project-1",
+            sheetCode: "ES-001",
+            favoriteCreatedAt: "2026-06-18T00:00:00.000Z",
+          },
+        ],
+      }),
+    ];
+
+    renderWithClient(
+      <MainSidebar
+        favoritesScope={scope}
+        favoriteProjects={favoriteProjects}
+        user={{ displayName: "Philip Lewis", email: "philip@example.com" }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
+
+    const navigation = screen.getByRole("navigation", { name: "Main navigation" });
+    const favoriteProjectLink = within(navigation).getByRole("link", { name: "Lewis Residence" });
+    expect(favoriteProjectLink).toHaveAttribute("href", "/workshop/projects/project-1");
+    expect(favoriteProjectLink).toHaveClass("pl-[52px]");
+
+    const favoriteSheet = within(navigation).getByRole("link", { name: "Concept Budget" });
+    expect(favoriteSheet).toHaveAttribute("href", "/workshop/projects/project-1/estimates/sheet-1");
+    expect(favoriteSheet).toHaveClass("pl-[72px]");
+    expect(favoriteSheet).toHaveAttribute("aria-current", "page");
+    expect(within(navigation).queryByText("Star a project or estimate sheet to pin it here.")).not.toBeInTheDocument();
   });
 
   it("shows the empty hint once the query settles with zero favorites", async () => {
@@ -123,7 +163,7 @@ describe("MainSidebar favorites", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
+    expect(await within(nav).findByText("Star a project or estimate sheet to pin it here.")).toBeInTheDocument();
   });
 
   it("defers stale sidebar favorites until the collapsed rail is hovered", async () => {
@@ -170,13 +210,13 @@ describe("MainSidebar favorites", () => {
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
     expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalledTimes(1);
-    expect(within(nav).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
+    expect(within(nav).queryByText("Star a project or estimate sheet to pin it here.")).not.toBeInTheDocument();
 
     await act(async () => {
       deferred.resolve([]);
       await deferred.promise;
     });
-    expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
+    expect(await within(nav).findByText("Star a project or estimate sheet to pin it here.")).toBeInTheDocument();
   });
 
   it("does not flash to empty on a workshop navigation — the SSR-seeded list is authoritative, no mount reconcile", async () => {
@@ -211,7 +251,7 @@ describe("MainSidebar favorites", () => {
     // Settle a few async turns to be sure the seeded list is not clobbered by a late reconcile.
     await act(async () => { await Promise.resolve(); });
     expect(within(nav).getByRole("link", { name: "Lewis Residence" })).toBeInTheDocument();
-    expect(within(nav).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
+    expect(within(nav).queryByText("Star a project or estimate sheet to pin it here.")).not.toBeInTheDocument();
   });
 
   it("mounts two sr-only live regions with the correct ARIA wiring, always present", () => {
@@ -242,12 +282,12 @@ describe("MainSidebar favorites", () => {
     const politeRegion = () => container.querySelector("[data-sidebar-favorites-status]");
 
     act(() => {
-      announceSidebarFavoritePolite("Estimate favorited. Favorite the project to pin it in the sidebar.");
+      announceSidebarFavoritePolite("Estimate favorited. It now appears in the sidebar under its project.");
     });
 
     await waitFor(() =>
       expect(politeRegion()).toHaveTextContent(
-        "Estimate favorited. Favorite the project to pin it in the sidebar.",
+        "Estimate favorited. It now appears in the sidebar under its project.",
       ),
     );
   });

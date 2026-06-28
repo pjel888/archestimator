@@ -37,9 +37,19 @@ export type MainSidebarFavoriteEstimateSheet = {
 
 export type MainSidebarFavoriteProject = {
   favoriteEstimateSheets: MainSidebarFavoriteEstimateSheet[];
+  /**
+   * Latest favorite timestamp for sorting the sidebar container. For sheet-only
+   * containers this is the newest nested sheet favorite.
+   */
+  favoriteCreatedAt: string;
   href: string;
   id: string;
   name: string;
   projectCode: string | null;
-  favoriteCreatedAt: string;
+  /**
+   * Timestamp for the project favorite itself. `null` means the project is only
+   * present as a grouping parent for favorite estimate sheets. Undefined is
+   * treated as a legacy project-favorite container.
+   */
+  projectFavoriteCreatedAt?: string | null;
 };

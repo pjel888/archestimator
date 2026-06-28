@@ -43,14 +43,52 @@ describe("useToggleEstimateFavorite", () => {
     expect(store.getState().estimates.find((e) => e.id === "est-1")!.isFavorite).toBe(true);
     await waitFor(() => expect(actions.setEstimateFavorite).toHaveBeenCalledWith({ estimateId: "est-1", favorite: true }));
   });
-  it("does NOT touch the sidebar when the parent is not a favorite, but patches the row", async () => {
+  it("optimistically creates a project grouping when the parent project is not a favorite", async () => {
     actions.setEstimateFavorite.mockResolvedValue(undefined);
     qc.setQueryData(favoritesQueryKeys.sidebar(SCOPE), []);
     const store = createProjectEstimatesStore([makeRow()]);
     const { result } = renderHook(() => useToggleEstimateFavorite(SCOPE), { wrapper: wrap(qc) });
     act(() => result.current.toggle({ ...baseInput, store, project: { ...baseInput.project, isSidebarFavorite: false } }));
-    expect(qc.getQueryData(favoritesQueryKeys.sidebar(SCOPE))).toEqual([]);
+    const cache = qc.getQueryData<MainSidebarFavoriteProject[]>(favoritesQueryKeys.sidebar(SCOPE))!;
+    expect(cache).toHaveLength(1);
+    expect(cache[0]).toMatchObject({
+      id: "p1",
+      name: "Lewis Residence",
+      projectCode: "AE-LR-001",
+      href: "/workshop/projects/p1",
+      projectFavoriteCreatedAt: null,
+    });
+    expect(cache[0].favoriteEstimateSheets.map((sheet) => sheet.id)).toEqual(["est-1"]);
     expect(store.getState().estimates[0].isFavorite).toBe(true);
+  });
+  it("removes the project grouping when the last sheet-only favorite is removed", async () => {
+    actions.setEstimateFavorite.mockResolvedValue(undefined);
+    qc.setQueryData<MainSidebarFavoriteProject[]>(favoritesQueryKeys.sidebar(SCOPE), [{
+      ...favoritedParent(),
+      favoriteCreatedAt: "2026-06-16T00:00:00.000Z",
+      projectFavoriteCreatedAt: null,
+      favoriteEstimateSheets: [{
+        id: "est-1",
+        projectId: "p1",
+        name: "Concept Budget",
+        sheetCode: "ES-001",
+        href: "/workshop/projects/p1/estimates/est-1",
+        favoriteCreatedAt: "2026-06-16T00:00:00.000Z",
+      }],
+    }]);
+    const store = createProjectEstimatesStore([makeRow({ isFavorite: true, favoriteCreatedAt: "2026-06-16T00:00:00.000Z" })]);
+    const { result } = renderHook(() => useToggleEstimateFavorite(SCOPE), { wrapper: wrap(qc) });
+
+    act(() => result.current.toggle({
+      ...baseInput,
+      favorite: false,
+      store,
+      estimate: { ...baseInput.estimate, favoriteCreatedAt: "2026-06-16T00:00:00.000Z" },
+      project: { ...baseInput.project, isSidebarFavorite: false, projectFavoriteCreatedAt: null },
+    }));
+
+    expect(qc.getQueryData(favoritesQueryKeys.sidebar(SCOPE))).toEqual([]);
+    expect(store.getState().estimates[0].isFavorite).toBe(false);
   });
   it("rolls back BOTH surfaces from one snapshot on error", async () => {
     actions.setEstimateFavorite.mockRejectedValue(new Error("nope"));

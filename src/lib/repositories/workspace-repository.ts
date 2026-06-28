@@ -166,6 +166,8 @@ const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
 const WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT = 50;
 const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
+const MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT =
+  MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT * MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT * 4;
 const ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS = 30_000;
 const ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_MAX_ENTRIES = 100;
 const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
@@ -211,6 +213,10 @@ type WorkshopProjectsSummaryRpcResult = {
   data: Json | null;
   error: unknown;
 };
+type MainSidebarFavoriteProjectsRpcResult = {
+  data: Json | null;
+  error: unknown;
+};
 type EstimateNodeRouteContextRpcResult = {
   data: Json | null;
   error: unknown;
@@ -233,6 +239,15 @@ type WorkshopHomebaseSummaryPayload = {
   estimateNodes: WorkshopEstimateNodeRecord[];
 };
 type WorkshopProjectFavoriteRef = Pick<Tables<"project_favorites">, "project_id">;
+type MainSidebarFavoriteSheetRpcRow = Pick<Tables<"estimates">, "id" | "project_id" | "name"> & {
+  sheet_code: string | null;
+  favorite_created_at: string;
+};
+type MainSidebarFavoriteProjectRpcRow = Pick<Tables<"projects">, "id" | "name" | "project_code"> & {
+  favorite_created_at: string;
+  project_favorite_created_at: string | null;
+  favorite_estimate_sheets: MainSidebarFavoriteSheetRpcRow[];
+};
 type ProjectGroupMembershipRow = Pick<Tables<"project_group_memberships">, "project_id" | "group_id">;
 type WorkspaceMembershipRoleRow = Pick<Tables<"workspace_members">, "role">;
 type SentPendingInviteCountRow = { project_id: string; count: number };
@@ -1365,6 +1380,27 @@ function assertProjectRecord(value: Record<string, unknown>, path: string): Work
   };
 }
 
+function assertMainSidebarFavoriteSheet(value: Record<string, unknown>, path: string): MainSidebarFavoriteSheetRpcRow {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    project_id: assertRpcString(value.project_id, `${path}.project_id`),
+    name: assertRpcString(value.name, `${path}.name`),
+    sheet_code: assertRpcOptionalString(value.sheet_code, `${path}.sheet_code`),
+    favorite_created_at: assertRpcString(value.favorite_created_at, `${path}.favorite_created_at`),
+  };
+}
+
+function assertMainSidebarFavoriteProject(value: Record<string, unknown>, path: string): MainSidebarFavoriteProjectRpcRow {
+  return {
+    id: assertRpcString(value.id, `${path}.id`),
+    name: assertRpcString(value.name, `${path}.name`),
+    project_code: assertRpcOptionalString(value.project_code, `${path}.project_code`),
+    favorite_created_at: assertRpcString(value.favorite_created_at, `${path}.favorite_created_at`),
+    project_favorite_created_at: assertRpcOptionalString(value.project_favorite_created_at, `${path}.project_favorite_created_at`),
+    favorite_estimate_sheets: readRpcArray(value, "favorite_estimate_sheets", assertMainSidebarFavoriteSheet, "main_sidebar_favorite_projects"),
+  };
+}
+
 function assertProjectMemberRow(value: Record<string, unknown>, path: string): ProjectMemberRow {
   return {
     project_id: assertRpcString(value.project_id, `${path}.project_id`),
@@ -1543,10 +1579,26 @@ export function parseWorkshopProjectsSummaryPayload(value: unknown): WorkshopPro
   };
 }
 
+export function parseMainSidebarFavoriteProjectsPayload(value: unknown): MainSidebarFavoriteProjectRpcRow[] {
+  const source = "main_sidebar_favorite_projects";
+  if (!Array.isArray(value)) throw new Error(`${source} invalid payload`);
+  return value.map((item, index) => {
+    if (!isRecord(item)) throw new Error(`${source} invalid array element: [${index}] is not an object`);
+    return assertMainSidebarFavoriteProject(item, `[${index}]`);
+  });
+}
+
 function isWorkspaceProjectsSummaryContractError(error: unknown): error is Error {
   if (!(error instanceof Error)) return false;
   return (
     error.message.startsWith("workspace_projects_summary invalid") ||
+    error.message.startsWith("workspace summary RPC invalid shape")
+  );
+}
+
+function isMainSidebarFavoriteProjectsContractError(error: unknown): error is Error {
+  return error instanceof Error && (
+    error.message.startsWith("main_sidebar_favorite_projects invalid") ||
     error.message.startsWith("workspace summary RPC invalid shape")
   );
 }
@@ -2047,59 +2099,171 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
   };
 }
 
+function toMainSidebarFavoriteProject(row: MainSidebarFavoriteProjectRpcRow): MainSidebarFavoriteProject {
+  return {
+    favoriteEstimateSheets: row.favorite_estimate_sheets.map((sheet) => ({
+      href: `/workshop/projects/${sheet.project_id}/estimates/${sheet.id}`,
+      id: sheet.id,
+      name: sheet.name,
+      projectId: sheet.project_id,
+      sheetCode: sheet.sheet_code,
+      favoriteCreatedAt: sheet.favorite_created_at,
+    })),
+    href: `/workshop/projects/${row.id}`,
+    id: row.id,
+    name: row.name,
+    projectCode: row.project_code,
+    favoriteCreatedAt: row.favorite_created_at,
+    projectFavoriteCreatedAt: row.project_favorite_created_at,
+  };
+}
+
 export const listMainSidebarFavoriteProjects = cache(async function listMainSidebarFavoriteProjects(): Promise<MainSidebarFavoriteProject[]> {
+  const rpcResult = await listMainSidebarFavoriteProjectsRpcPath();
+  if (rpcResult) return rpcResult;
+  return listMainSidebarFavoriteProjectsAppPath();
+});
+
+async function listMainSidebarFavoriteProjectsRpcPath(): Promise<MainSidebarFavoriteProject[] | null> {
+  if (process.env.MAIN_SIDEBAR_FAVORITES_RPC_DISABLED === "1") return null;
+  if (await isDevAdminDatabaseBypassActiveForRequest()) return null;
+
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const result = await traced("sidebar.rpc.main_sidebar_favorite_projects", () =>
+    supabase.rpc("main_sidebar_favorite_projects", {
+      target_workspace_id: workspace.id,
+      project_limit: MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT,
+      sheet_limit: MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT,
+    }) as unknown as Promise<MainSidebarFavoriteProjectsRpcResult>,
+  );
+
+  if (result.error) {
+    if (isWorkspaceHomebaseSummaryRolloutError(result.error)) {
+      const code = isRecord(result.error) && typeof result.error.code === "string" ? result.error.code : "unknown";
+      const message = isRecord(result.error) && typeof result.error.message === "string" ? result.error.message : "unknown";
+      const details = isRecord(result.error) && typeof result.error.details === "string" ? result.error.details : null;
+      console.warn(`[main_sidebar_favorite_projects] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
+      return null;
+    }
+    throw result.error;
+  }
+
+  try {
+    return parseMainSidebarFavoriteProjectsPayload(result.data).map(toMainSidebarFavoriteProject);
+  } catch (error) {
+    if (!isMainSidebarFavoriteProjectsContractError(error)) throw error;
+    console.warn(`[main_sidebar_favorite_projects] RPC returned an incompatible payload (${error.message}); using app path`);
+    return null;
+  }
+}
+
+async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavoriteProject[]> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const { data: projectFavorites, error: projectFavoritesError } = await supabase
-    .from("project_favorites")
-    .select("project_id, created_at")
-    .eq("workspace_id", workspace.id)
-    .eq("user_id", profile.id)
-    .order("created_at", { ascending: false })
-    .limit(MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT);
+  const [projectFavoritesResult, estimateFavoriteProjectCandidatesResult] = await Promise.all([
+    supabase
+      .from("project_favorites")
+      .select("project_id, created_at")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT),
+    supabase
+      .from("estimate_favorites")
+      .select("project_id, created_at")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT),
+  ]);
 
-  if (projectFavoritesError) throw projectFavoritesError;
+  if (projectFavoritesResult.error) throw projectFavoritesResult.error;
+  if (estimateFavoriteProjectCandidatesResult.error) throw estimateFavoriteProjectCandidatesResult.error;
 
-  const favoriteProjectRows = projectFavorites ?? [];
+  const favoriteProjectRows = projectFavoritesResult.data ?? [];
+  const latestEstimateFavoriteCreatedAtByProjectId = new Map<string, string>();
+  for (const favorite of estimateFavoriteProjectCandidatesResult.data ?? []) {
+    if (!latestEstimateFavoriteCreatedAtByProjectId.has(favorite.project_id)) {
+      latestEstimateFavoriteCreatedAtByProjectId.set(favorite.project_id, favorite.created_at);
+    }
+  }
+
+  const projectFavoriteCandidateCreatedAtById = new Map(favoriteProjectRows.map((favorite) => [favorite.project_id, favorite.created_at]));
   const favoriteProjectIds = favoriteProjectRows.map((favorite) => favorite.project_id);
-  if (favoriteProjectIds.length === 0) return [];
+  const favoriteEstimateProjectIds = Array.from(latestEstimateFavoriteCreatedAtByProjectId.keys());
+  const sidebarProjectIds = Array.from(new Set([...favoriteProjectIds, ...favoriteEstimateProjectIds]))
+    .map((projectId) => {
+      const favoriteCreatedAtCandidates = [
+        projectFavoriteCandidateCreatedAtById.get(projectId),
+        latestEstimateFavoriteCreatedAtByProjectId.get(projectId),
+      ]
+        .filter((timestamp): timestamp is string => Boolean(timestamp))
+        .sort();
+      return {
+        projectId,
+        favoriteCreatedAt: favoriteCreatedAtCandidates[favoriteCreatedAtCandidates.length - 1],
+      };
+    })
+    .filter((candidate): candidate is { projectId: string; favoriteCreatedAt: string } => Boolean(candidate.favoriteCreatedAt))
+    .sort((left, right) => {
+      if (left.favoriteCreatedAt < right.favoriteCreatedAt) return 1;
+      if (left.favoriteCreatedAt > right.favoriteCreatedAt) return -1;
+      return right.projectId.localeCompare(left.projectId);
+    })
+    .slice(0, MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT)
+    .map((candidate) => candidate.projectId);
+  if (sidebarProjectIds.length === 0) return [];
 
-  const [projectsResult, estimateFavoritesResult] = await Promise.all([
+  const [projectsResult, selectedProjectFavoritesResult, sheetFavoriteResults] = await Promise.all([
     supabase
       .from("projects")
       .select("id, name, project_code")
-      .in("id", favoriteProjectIds),
+      .in("id", sidebarProjectIds),
     supabase
-      .from("estimate_favorites")
-      .select("estimate_id, project_id, created_at")
+      .from("project_favorites")
+      .select("project_id, created_at")
       .eq("workspace_id", workspace.id)
       .eq("user_id", profile.id)
-      .in("project_id", favoriteProjectIds)
-      .order("created_at", { ascending: false }),
+      .in("project_id", sidebarProjectIds),
+    Promise.all(sidebarProjectIds.map((projectId) =>
+      supabase
+        .from("estimate_favorites")
+        .select("estimate_id, project_id, created_at")
+        .eq("workspace_id", workspace.id)
+        .eq("user_id", profile.id)
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT),
+    )),
   ]);
 
   if (projectsResult.error) throw projectsResult.error;
-  if (estimateFavoritesResult.error) throw estimateFavoritesResult.error;
-
-  const favoriteEstimateRows = estimateFavoritesResult.data ?? [];
-  const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
-  let estimateById = new Map<string, Pick<Tables<"estimates">, "id" | "project_id" | "name" | "sheet_code">>();
-
-  if (favoriteEstimateIds.length > 0) {
-    const { data, error } = await supabase
-      .from("estimates")
-      .select("id, project_id, name, sheet_code")
-      .in("id", favoriteEstimateIds);
-
-    if (error) throw error;
-    estimateById = new Map((data ?? []).map((estimate) => [estimate.id, estimate]));
+  if (selectedProjectFavoritesResult.error) throw selectedProjectFavoritesResult.error;
+  for (const result of sheetFavoriteResults) {
+    if (result.error) throw result.error;
   }
+
+  const favoriteEstimateRows = sheetFavoriteResults.flatMap((result) => result.data ?? []);
+  const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
+  const estimatesResult = favoriteEstimateIds.length > 0
+    ? await supabase
+        .from("estimates")
+        .select("id, project_id, name, sheet_code")
+        .in("id", favoriteEstimateIds)
+    : { data: [], error: null };
+
+  if (estimatesResult.error) throw estimatesResult.error;
+  const estimateById = new Map((estimatesResult.data ?? []).map((estimate) => [estimate.id, estimate]));
+  const projectFavoriteCreatedAtById = new Map(
+    (selectedProjectFavoritesResult.data ?? []).map((favorite) => [favorite.project_id, favorite.created_at]),
+  );
 
   const sheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
     const estimate = estimateById.get(favorite.estimate_id);
     if (!estimate) return byProject;
-    const sheets = byProject.get(favorite.project_id) ?? [];
+    const sheets = byProject.get(estimate.project_id) ?? [];
     if (sheets.length >= MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT) return byProject;
     sheets.push({
       href: `/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`,
@@ -2109,27 +2273,38 @@ export const listMainSidebarFavoriteProjects = cache(async function listMainSide
       sheetCode: estimate.sheet_code,
       favoriteCreatedAt: favorite.created_at,
     });
-    byProject.set(favorite.project_id, sheets);
+    byProject.set(estimate.project_id, sheets);
     return byProject;
   }, new Map<string, MainSidebarFavoriteProject["favoriteEstimateSheets"]>());
 
   const projectById = new Map((projectsResult.data ?? []).map((project) => [project.id, project]));
 
-  return favoriteProjectRows.flatMap((favorite): MainSidebarFavoriteProject[] => {
-    const project = projectById.get(favorite.project_id);
-    if (!project) return [];
-    return [
-      {
-        favoriteEstimateSheets: sheetsByProjectId.get(project.id) ?? [],
-        href: `/workshop/projects/${project.id}`,
-        id: project.id,
-        name: project.name,
-        projectCode: project.project_code,
-        favoriteCreatedAt: favorite.created_at,
-      },
-    ];
-  });
-});
+  return sidebarProjectIds
+    .flatMap((projectId): MainSidebarFavoriteProject[] => {
+      const project = projectById.get(projectId);
+      if (!project) return [];
+      const favoriteEstimateSheets = sheetsByProjectId.get(project.id) ?? [];
+      const projectFavoriteCreatedAt = projectFavoriteCreatedAtById.get(project.id) ?? null;
+      const favoriteCreatedAtCandidates = [projectFavoriteCreatedAt, favoriteEstimateSheets[0]?.favoriteCreatedAt]
+        .filter((timestamp): timestamp is string => Boolean(timestamp))
+        .sort();
+      const favoriteCreatedAt = favoriteCreatedAtCandidates[favoriteCreatedAtCandidates.length - 1];
+      if (!favoriteCreatedAt) return [];
+      return [
+        {
+          favoriteEstimateSheets,
+          href: `/workshop/projects/${project.id}`,
+          id: project.id,
+          name: project.name,
+          projectCode: project.project_code,
+          favoriteCreatedAt,
+          projectFavoriteCreatedAt,
+        },
+      ];
+    })
+    .sort((left, right) => (left.favoriteCreatedAt < right.favoriteCreatedAt ? 1 : -1))
+    .slice(0, MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT);
+}
 
 export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspaceProject(projectId: string) {
   if (!isUuid(projectId)) {
@@ -2696,7 +2871,9 @@ function splitProjectWorkspaceJoin(projectWithWorkspace: ProjectWithWorkspace | 
 }
 
 function stripEstimateProjectJoin(estimate: EstimateRecordWithProject): EstimateRecordWithLegacy {
-  const { projects: _project, estimate_tabs: _tabs, ...estimateRow } = estimate;
+  const estimateRow = { ...estimate };
+  delete estimateRow.projects;
+  delete estimateRow.estimate_tabs;
   return estimateRow;
 }
 

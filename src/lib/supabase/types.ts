@@ -3956,6 +3956,14 @@ export type Database = {
         }
         Returns: Json
       }
+      main_sidebar_favorite_projects: {
+        Args: {
+          project_limit?: number
+          sheet_limit?: number
+          target_workspace_id: string
+        }
+        Returns: Json
+      }
       can_manage_collaboration_invitation: {
         Args: {
           target_estimate_id: string
