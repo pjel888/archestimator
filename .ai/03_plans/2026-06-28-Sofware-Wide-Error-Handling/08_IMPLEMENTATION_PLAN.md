@@ -149,7 +149,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 - One selected error boundary renders safe fallback copy and recovery action.
 - `toast.appError(err)` picks correct tone per kind.
 - `/api/internal/client-error` rate-limits correctly.
- - `/api/internal/client-error` redacts client text and labels tainted fields.
+- `/api/internal/client-error` redacts client text and labels tainted fields.
 
 **Rollback:** delete P3 files. Existing toast API unchanged.
 
@@ -171,8 +171,8 @@ bun run test:e2e -- e2e/global-error.spec.ts
 | P4-WP4 | Create `scripts/tail-dev-logs.mjs` per `04` Section D | new | M |
 | P4-WP5 | Add `logs:tail`, `logs:explain`, `logs:dev` scripts to `package.json` | extend package.json | XS |
 | P4-WP6 | Tests: `tests/unit/tail-dev-logs.test.ts` (parsing, --explain summary, tainted-field labeling) | new | M |
-| P4-WP8 | Tests: `tests/vitest/{logger,logger-perf}.test.ts` (NDJSON schema + p95 budget with file writer enabled) | new | M |
-| P4-WP7 | Append a sample session to `./logs/dev.ndjson` during a `bun run dev` smoke test | manual smoke | XS |
+| P4-WP7 | Tests: `tests/vitest/{logger,logger-perf}.test.ts` (NDJSON schema + p95 budget with file writer enabled) | new | M |
+| P4-WP8 | Append a sample session to `./logs/dev.ndjson` during a `bun run dev` smoke test | manual smoke | XS |
 
 **Validation:**
 ```bash
@@ -209,71 +209,73 @@ bun run logs:tail --last 5
 | P5-WP6 | Create `instrumentation.ts` per `05` Section A.2 | new | S |
 | P5-WP7 | Add sourcemap upload CI step only after GitHub secret and owner-approved policy exist | extend ci.yml | M |
 | P5-WP8 | Replace `/api/internal/client-error` local/preview Map with selected provider-backed limiter before production enablement | conditional/provider-gated | M |
-| P5-WP8 | Tests: `tests/vitest/{instrumentation,sentry-redact}.test.ts` | new | M |
-| P5-WP9 | Add bundle-analyzer CI gate: fail build if client delta > 60KB vs main | extend ci.yml | S |
+| P5-WP9 | Tests: `tests/vitest/{instrumentation,sentry-redact}.test.ts` | new | M |
+| P5-WP10 | Add bundle-analyzer CI gate: fail build if client delta > 60KB vs main | extend ci.yml | S |
 
 **Validation:**
 ```bash
-SENTRY_DSN=... bun run build
+SENTRY_DSN=... bun run build  # only after P5-WP1 owner/provider gate
 bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-redact.test.ts
-# Manual: deploy to Vercel preview; trigger a /api/health/throw; verify Sentry receives event
+# Manual preview/provider proof only after explicit owner authority:
+# deploy to Vercel preview; trigger a /api/health/throw; verify Sentry receives event
 ```
 
 **Exit criteria:**
-- Sentry dashboard receives a real test error with source-mapped stack.
+- Sentry dashboard receives a real test error with source-mapped stack only when P5 owner/provider authority is granted.
 - `beforeSend` redaction works (test fixture with auth header).
 - Bundle size delta <60KB.
 
 **Rollback:** set `SENTRY_DSN=` (empty) — Sentry becomes no-op; logger still writes dev NDJSON.
 
-## P6 — Verification: targeted vitest + Playwright + adversarial + AI-diagnosability
+## P6a — Pilot verification: targeted vitest + browser/adversarial + AI-diagnosability
 
-**Goal:** Prove every requirement via the test matrix in `09_TEST_QA_ULTRAQA_PLAN.md`.
+**Goal:** Prove the approved pilot requirements via the test matrix in `09_TEST_QA_ULTRAQA_PLAN.md`.
 
 **Requirements covered:** TEST-003.
 
-**Prerequisites:** P1–P5 complete.
+**Prerequisites:** P1, P2a, P3a, and P4 complete. P5 provider proof is separate and owner-gated.
 
 **Work packages:**
 
 | WP | Task | Complexity |
 |---|---|---|
-| P6-WP1 | Execute `09` Section B test execution matrix; record PASS/PARTIAL/MISSING per row | M |
-| P6-WP2 | Execute `09` Section C adversarial matrix; capture artifacts | M |
-| P6-WP3 | Manual AI-diagnosability proof: induce an error in dev; run `bun run logs:explain`; verify AI agent (Claude/Codex) can read the output and propose the correct fix | M |
-| P6-WP4 | Update `13_FINAL_AUDIT_SCORECARD.md` with PASS/FAIL per rubric item | S |
-| P6-WP5 | Update `.ai/10_state/current-state.md` with a closeout entry | S |
+| P6a-WP1 | Execute the pilot rows in `09` Section B; record PASS/PARTIAL/MISSING per row | M |
+| P6a-WP2 | Execute pilot-relevant adversarial rows in `09` Section C; capture artifacts | M |
+| P6a-WP3 | Manual AI-diagnosability proof: induce an error in dev; run `bun run logs:explain`; verify an AI agent can read the output and propose the correct fix while ignoring tainted instructions | M |
+| P6a-WP4 | Update `13_FINAL_AUDIT_SCORECARD.md` with pilot PASS/FAIL and full-migration blockers | S |
+| P6a-WP5 | Update `.ai/10_state/current-state.md` with a closeout entry | S |
 
 **Exit criteria:**
-- Every rubric item in `13` shows PASS.
+- Approved pilot rubric items in `13` show PASS.
 - AI-diagnosability proof logged in `13`.
-- README status flipped to "IMPLEMENTED" (out of planning scope).
+- README status may be upgraded only to "PILOT IMPLEMENTED"; full `IMPLEMENTED` remains out of scope until the broad migration passes.
 
 ## Pre-implementation gates (must pass before any code edit in any phase)
 
 ```bash
-git status --short --branch    # confirm clean tree on main
+git status --short --branch    # inspect branch and preserve unrelated worktree changes
 bun run type-check              # baseline tsc green
 bun run lint                    # baseline ESLint green
 ```
 
-If any of these fail, stop and resolve first. Pre-existing red tests in `test:dom` (per `.ai/10_state/current-state.md` FAST PATH, ~131 failures across 36 files) are NOT your regression — do not fix them in this plan's PRs.
+If type-check or lint fails, stop and characterize the baseline before editing. Pre-existing red tests in `test:dom` (per `.ai/10_state/current-state.md` FAST PATH, ~131 failures across 36 files) are NOT your regression; use targeted changed-behavior tests plus no-new-failures against the recorded baseline.
 
 ## Phase-level stop conditions
 
 | Phase | Stop condition |
 |---|---|
-| P1 | All WPs complete; new tests green; existing tests green |
-| P2 | All 22+22 files migrated; existing tests green; `grep "throw new Error" src/lib/*/actions.ts` empty |
-| P3 | `global-error.tsx` Playwright test passes; toast.appError works |
+| P1 | All WPs complete; new tests green; targeted existing error tests show no new failures |
+| P2a | Pilot action + route handler migrated; targeted tests green; pilot findings recorded |
+| P2b | Blocked until P2a pass and plan update |
+| P3a | Selected boundary + toast.appError + client-error endpoint work; targeted tests green |
 | P4 | `./logs/dev.ndjson` populates; `logs:explain` works; AI agent can diagnose |
-| P5 | Sentry dashboard receives real error with source-mapped stack |
-| P6 | All rubric items PASS in `13_FINAL_AUDIT_SCORECARD.md` |
+| P5 | Static Sentry config tests pass; real dashboard/source-map proof only after owner/provider authority |
+| P6a | Pilot rubric items PASS in `13_FINAL_AUDIT_SCORECARD.md`; full migration remains conditional |
 
 ## Implementation notes for the implementer
 
 1. **Read this entire pack first.** Do not skim.
 2. **Per-phase branch:** `feat/error-handling-p1`, `feat/error-handling-p2`, etc. Land each phase separately.
 3. **Per-phase PR description:** link to this plan pack; quote the phase's exit criteria; attach test output.
-4. **Preserve off-limits files** (README `## Files off-limits`). Any PR touching them is rejected.
+4. **Preserve protected contracts** (README `## Protected contracts`). Additive edits are allowed only where the plan explicitly names them.
 5. **Off-ramp:** if any phase's exit criteria cannot be met, document in `LOOP_LEDGER.md` and stop. Do not silently reduce scope.
