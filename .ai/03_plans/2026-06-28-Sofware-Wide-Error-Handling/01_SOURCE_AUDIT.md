@@ -184,7 +184,7 @@ Next.js middleware as `src/proxy.ts` (Next 16 supports this name). 5472 bytes. H
 - Closed-beta access checks
 - Dev-auth-bypass detection
 
-**Gap:** Errors in middleware (e.g. Supabase session fetch failure) currently redirect silently. Plan wires middleware errors to the new logger via `onRequestError`.
+**Gap (DEFERRED — out of scope per README:11):** Errors in middleware (e.g. Supabase session fetch failure) currently redirect silently. Proxy/middleware runs on edge runtime, which cannot import the Node-only Sentry config or `node:crypto`-backed `redact.ts` — so this plan does NOT wire middleware errors. A follow-on plan would need an edge-safe observability path before middleware failures can flow through the same taxonomy.
 
 ### B.4 Supabase / database calls
 

@@ -351,9 +351,12 @@ src/app/api/**/route.ts (22 files) ─▶ src/lib/observability/route-error.ts
 
 Similar to server action, but uses `errorResponse(err, traceId)` to produce a `NextResponse.json({...}, {status})`.
 
-### D.3 Page render throws (RSC or client)
+### D.3 Page render throws — server-render/RSC vs client-boundary (two distinct paths)
 
-Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a fallback UI + calls `toast.appError`. It does NOT auto-notify the server: `error.tsx` is a Client Component boundary, and the Next.js 16 `instrumentation.ts` `onRequestError` hook is server-scope only (it fires for errors captured in route handlers, server actions, and server-side render — not for client-side boundary catches). If a segment-level client boundary failure needs server-side diagnosis, the post-pilot segment `error.tsx` (per A.6, NOT in P3a) may explicitly POST to `/api/internal/client-error`. The approved P3a pilot boundary is `global-error.tsx` only (D.4); segment `error.tsx` reporting is post-pilot.
+Next.js 16 catches via the nearest `error.tsx` boundary. The two sub-cases have DIFFERENT server-notify behavior:
+
+- **Server-render/RSC throw:** `error.tsx` shows fallback UI + calls `toast.appError`. The Next.js 16 `instrumentation.ts` `onRequestError(err, request, context)` hook **DOES fire** (server-scope captures RSC/render errors per local Next 16 docs) → Sentry receives the event via the uncaught-server path in `04` Section E.1. No explicit POST from `error.tsx` is needed for this case.
+- **Client-side boundary catch** (e.g., an event handler throws after hydration, or a client component fails during interaction): `error.tsx` shows fallback UI + `toast.appError`. `onRequestError` does **NOT** fire (server-scope only; client-side boundary catches are invisible to it). For server-side diagnosis of client-boundary failures, the boundary must explicitly POST to `/api/internal/client-error`. The approved P3a pilot boundary (`global-error.tsx` per D.4) opts in to this POST; segment `error.tsx` POST is post-pilot per A.6.
 
 ### D.4 Root layout / providers throw
 

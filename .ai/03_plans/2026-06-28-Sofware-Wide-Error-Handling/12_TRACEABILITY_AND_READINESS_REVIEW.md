@@ -50,7 +50,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | 6. No prod error forwarder | OBS-001, OBS-002 |
 | 7. No instrumentation.ts onRequestError | OBS-001 |
 | 8. Toast lacks appError | FR-006 |
-| 9. Middleware errors silent | covered via OBS-001 (Next.js server captures middleware errors) |
+| 9. Middleware errors silent | DEFERRED — out of scope per `README:11`; proxy/middleware runs on edge runtime which cannot import the Node-only observability stack; follow-on plan required |
 | 10. Supabase raw errors leak | FR-001 (unwrapSupabase), SEC-001 |
 | 11. Auth error pattern siloed | FR-007 |
 | 12. No formal validation lib | OUT OF SCOPE (`DEC-ERR-008`) |
