@@ -34,7 +34,9 @@ interface DevLogRecord {
   severity_number: number;    // OTel SeverityNumber 1-24 (TRACE=1, DEBUG=5, INFO=9, WARN=13, ERROR=17, FATAL=21)
   message: string;            // human-readable summary
 
-  // ── Error-specific (present when level=ERROR or WARN-with-error) ──
+  // ── Error-specific (present on every AppError-derived record, regardless of
+  //    level — see `03` toLogRecord + per-class toLogLevel overrides; auth/
+  //    validation/not_found records carry this field at INFO/WARN level) ──
   error?: {
     kind: 'auth'|'validation'|'not_found'|'conflict'|'database'|'upstream'|'rate_limit'|'network'|'internal';
     code: string;             // e.g. 'AUTH_REQUIRED', 'AUTH_PERMISSION_DENIED'
