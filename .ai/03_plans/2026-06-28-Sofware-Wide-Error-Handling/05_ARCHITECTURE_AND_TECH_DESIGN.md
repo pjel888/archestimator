@@ -51,6 +51,8 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
 import * as Sentry from '@sentry/nextjs';
 
 export async function register() {
+  // Kill switch per `10_ROLLOUT_ROLLBACK_OPS.md` A: SENTRY_ENABLED=false makes this a no-op.
+  if (process.env.SENTRY_ENABLED === 'false') return;
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV,
@@ -66,6 +68,8 @@ export async function register() {
 }
 
 export async function captureRequestError(error, request, context) {
+  // Honor the same kill switch on the capture path.
+  if (process.env.SENTRY_ENABLED === 'false') return;
   Sentry.captureException(error, {
     extra: {
       method: request.method,
@@ -79,7 +83,7 @@ export async function captureRequestError(error, request, context) {
 
 ### A.4 `sentry.client.config.ts` (new in P5)
 
-Mirrors server config; loaded by the Next.js Sentry wizard. Same redaction rules.
+Mirrors server config; loaded by the Next.js Sentry wizard. Same `SENTRY_ENABLED` kill switch and redaction rules.
 
 ### A.5 `src/app/global-error.tsx` (new in P3)
 
@@ -293,9 +297,9 @@ src/app/api/**/route.ts (22 files) ─▶ src/lib/observability/route-error.ts
 
 Similar to server action, but uses `errorResponse(err, traceId)` to produce a `NextResponse.json({...}, {status})`.
 
-### D.3 Page render throws (RSC)
+### D.3 Page render throws (RSC or client)
 
-Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a fallback UI + calls `toast.appError` + does NOT auto-notify the server (the boundary already implies Next.js's onRequestError hook fired — see D.5).
+Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a fallback UI + calls `toast.appError`. It does NOT auto-notify the server: `error.tsx` is a Client Component boundary, and the Next.js 16 `instrumentation.ts` `onRequestError` hook is server-scope only (it fires for errors captured in route handlers, server actions, and server-side render — not for client-side boundary catches). If a segment-level client boundary failure needs server-side diagnosis, the `error.tsx` must explicitly POST to `/api/internal/client-error` (the same endpoint used by `global-error.tsx` in D.4). The plan's P3a pilot boundary opts in to this reporting explicitly; boundaries that do not opt in simply render fallback UI without server-side diagnosis.
 
 ### D.4 Root layout / providers throw
 

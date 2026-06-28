@@ -163,10 +163,10 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-002.1:** Playwright test verifies `document.activeElement` is inside the error boundary after navigation.
 
 ### TEST-001 — New test files for P1
-- **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,logger,redact}.test.ts` exist and pass.
+- **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,logger,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`.)
 
 ### TEST-002 — New test files for P3–P5
-- **Statement:** `tests/vitest/{toast-apperror,toast-a11y,client-error,instrumentation,sentry-redact}.test.ts` + `tests/unit/tail-dev-logs.test.ts` exist and pass.
+- **Statement:** `tests/vitest/{toast-apperror,toast-a11y,client-error,instrumentation,sentry-redact}.test.ts` + `tests/unit/tail-dev-logs.test.ts` are created across P3a–P5 and pass. (These files are planned deliverables of their respective phases, not pre-existing on `main`.)
 
 ### TEST-003 — Adversarial QA matrix
 - **Statement:** `09_TEST_QA_ULTRAQA_PLAN.md` matrix executed; zero P0/P1 findings unresolved at P6a.
