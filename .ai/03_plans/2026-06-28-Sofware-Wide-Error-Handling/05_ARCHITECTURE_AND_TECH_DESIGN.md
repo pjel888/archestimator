@@ -219,11 +219,12 @@ Existing `throwActionError` becomes a thin shim that throws a typed `AppError.In
 ```ts
 // after
 import { InternalError } from '@/lib/observability/app-error';
-import { logger } from '@/lib/observability/logger';
 
 export function throwActionError(userMessage: string, cause?: unknown): never {
   const err = new InternalError({ userMessage, code: 'LIBRARY_ACTION', cause });
-  logger.error(err.toLogRecord());
+  // Do NOT logger.error here — the outer withActionErrors wrapper owns the
+  // single log+Sentry capture for caught failures (per D.1 step 4). Pre-
+  // logging here would double-log + double-capture the same failure.
   throw err;
 }
 ```
@@ -334,9 +335,10 @@ src/app/api/**/route.ts (22 files) ─▶ src/lib/observability/route-error.ts
    } catch never — wrapper catches everything
 4. Inside wrapper:
    - try { data = await _createProject(input) } catch (err) {
-       if (err instanceof AppError) { logger.error(err.toLogRecord()); return { ok:false, error: err.toClientJSON() } }
-       const wrapped = new InternalError({ cause: err }); logger.error(wrapped.toLogRecord()); return { ok:false, error: wrapped.toClientJSON() }
+       if (err instanceof AppError) { logger.error(err.toLogRecord(), err); return { ok:false, error: err.toClientJSON() } }
+       const wrapped = new InternalError({ cause: err }); logger.error(wrapped.toLogRecord(), err); return { ok:false, error: wrapped.toClientJSON() }
      }
+   (Note: `logger.error(record, originalError)` passes the original Error/AppError so Sentry.captureException preserves the real stack/cause; the wrapper is the SOLE log owner for caught failures — inner throw sites must NOT pre-log.)
 5. logger.error writes:
    - DEV: append to ./logs/dev.ndjson
    - PROD (P5): forward to Sentry via captureException
