@@ -25,9 +25,9 @@ describe("estimate sheet column model", () => {
       "totalItemCosts",
       "actions",
     ]);
-    expect(DEFAULT_ESTIMATE_COLUMN_TEMPLATE).toBe("36px 32px minmax(160px,1fr) 58px 92px 92px 92px 92px 108px 30px");
+    expect(DEFAULT_ESTIMATE_COLUMN_TEMPLATE).toBe("36px 32px minmax(148px,1fr) 70px 104px 108px 104px 108px 124px 30px");
     expect(ESTIMATE_COLUMN_TEMPLATE).toBe(
-      "36px 32px minmax(var(--est-col-material, 160px), 1fr) var(--est-col-quantity, 58px) var(--est-col-contingency, 92px) var(--est-col-subTotal, 92px) var(--est-col-adjustment, 92px) var(--est-col-miscCost, 92px) var(--est-col-totalItemCosts, 108px) 30px",
+      "36px 32px minmax(var(--est-col-material, 148px), 1fr) var(--est-col-quantity, 70px) var(--est-col-contingency, 104px) var(--est-col-subTotal, 108px) var(--est-col-adjustment, 104px) var(--est-col-miscCost, 108px) var(--est-col-totalItemCosts, 124px) 30px",
     );
   });
 
@@ -41,7 +41,7 @@ describe("estimate sheet column model", () => {
       "miscCost",
       "totalItemCosts",
     ]);
-    expect(DEFAULT_ESTIMATE_COLUMN_WIDTHS.material).toBe(160);
+    expect(DEFAULT_ESTIMATE_COLUMN_WIDTHS.material).toBe(148);
     expect(ESTIMATE_COLUMN_DEFINITIONS.filter((column) => column.resizable).map((column) => column.cssVar)).toEqual([
       "--est-col-material",
       "--est-col-quantity",
@@ -54,9 +54,9 @@ describe("estimate sheet column model", () => {
   });
 
   it("clamps and normalizes persisted widths without storing defaults", () => {
-    expect(clampEstimateColumnWidth("material", 40)).toBe(160);
+    expect(clampEstimateColumnWidth("material", 40)).toBe(148);
     expect(clampEstimateColumnWidth("quantity", 999)).toBe(140);
-    expect(normalizeEstimateColumnWidths({ material: 160, quantity: 74, totalItemCosts: 108 })).toEqual({ quantity: 74 });
+    expect(normalizeEstimateColumnWidths({ material: 148, quantity: 74, totalItemCosts: 124 })).toEqual({ quantity: 74 });
     expect(normalizeEstimateColumnWidths({})).toEqual({});
   });
 
@@ -64,11 +64,11 @@ describe("estimate sheet column model", () => {
     expect(buildEstimateColumnVars({ material: 240, quantity: 74 })).toEqual({
       "--est-col-material": "240px",
       "--est-col-quantity": "74px",
-      "--est-col-contingency": "92px",
-      "--est-col-subTotal": "92px",
-      "--est-col-adjustment": "92px",
-      "--est-col-miscCost": "92px",
-      "--est-col-totalItemCosts": "108px",
+      "--est-col-contingency": "104px",
+      "--est-col-subTotal": "108px",
+      "--est-col-adjustment": "104px",
+      "--est-col-miscCost": "108px",
+      "--est-col-totalItemCosts": "124px",
     });
   });
 });

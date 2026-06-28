@@ -150,13 +150,13 @@ describe("estimate row table virtualization", () => {
     const handles = screen.getAllByRole("separator", { name: /Resize .* column/ });
     expect(handles).toHaveLength(RESIZABLE_ESTIMATE_COLUMN_IDS.length);
     fireEvent.keyDown(handles[0], { key: "ArrowRight" });
-    expect(onCommitWidths).toHaveBeenCalledWith({ material: 176 });
+    expect(onCommitWidths).toHaveBeenCalledWith({ material: 164 });
 
     const quantityHandle = screen.getByRole("separator", { name: "Resize Qty column" });
     fireEvent.pointerDown(quantityHandle, { button: 0, clientX: 100 });
     fireEvent.pointerMove(window, { clientX: 84 });
     fireEvent.pointerUp(window);
-    expect(onCommitWidths).toHaveBeenLastCalledWith({ material: 176, quantity: 74 });
+    expect(onCommitWidths).toHaveBeenLastCalledWith({ material: 164, quantity: 86 });
     expect(screen.queryByRole("button", { name: "Reset column widths" })).not.toBeInTheDocument();
     expect(onResetWidths).not.toHaveBeenCalled();
   });

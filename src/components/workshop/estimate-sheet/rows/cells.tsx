@@ -1029,7 +1029,7 @@ export function MoneyInput({
       onChange={(event) => onChange(event.target.value)}
       aria-label={ariaLabel}
       align={align}
-      className="text-[9px] tabular-nums"
+      className="!text-[10px] font-medium leading-3 tabular-nums text-ink"
       {...cellProps}
     />
   );

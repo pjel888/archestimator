@@ -5,7 +5,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { ControlInput } from "@/components/ui/control-input";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
@@ -53,6 +52,12 @@ import {
   updateEditableRowValue,
   type EditableRowValue,
 } from "./editable-row-model";
+
+const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";
+const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
+  "h-5 border-0 bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3 max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums";
+const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2 max-w-[calc(100%-8px)] truncate text-[8px] font-medium leading-[10px] tabular-nums text-tertiary";
 
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
@@ -360,6 +365,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const editableAdjustmentColumnPercentage = formatSignedPercentageInput(resolvedEditableRow.adjustmentPercentage);
   const rowContingencyQuantity = computedItem.quantityContingencyAmount ?? 0;
   const rowAdjustmentValue = computedItem.adjustmentValue;
+  const quantityCellFocused = activeCellIndex === 0;
+  const quantityHasContingency = computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0;
+  const quantityDisplayValue = quantityCellFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity);
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
   const rowMutationPending = rowMutationStatus?.phase === "pending";
 
@@ -630,7 +638,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         <ControlInput
           type="text"
           inputMode="decimal"
-          value={computedItem.editableQuantityInput}
+          value={quantityDisplayValue}
           disabled={!canEditEstimate}
           onChange={(event) => {
             updateQuantityDraft(event.target.value);
@@ -660,20 +668,34 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           data-estimate-cell-index={0}
           aria-label={`${computedItemLabel} quantity`}
           align="center"
-          className="text-[10px] tabular-nums"
+          className={ESTIMATE_PRIMARY_NUMERIC_CLASS}
         />
-        {computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0 ? (
-          <Chip
-            tone="accent"
-            active={canEditEstimate && quantityBreakdownOpen}
+        {quantityHasContingency ? (
+          <dl
+            className="absolute left-1 top-2 grid max-w-[calc(100%-32px)] grid-cols-[auto_auto] gap-x-1 gap-y-0.5 text-[8px] font-medium leading-[10px] text-tertiary"
+            aria-label={`${computedItemLabel} quantity breakdown`}
+          >
+            <dt>Value</dt>
+            <dd className="min-w-4 text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityBase ?? 0)}</dd>
+            <dt>Contingency</dt>
+            <dd className="min-w-4 text-right tabular-nums text-ink">{formatCompactNumber(computedItem.quantityContingencyAmount ?? 0)}</dd>
+          </dl>
+        ) : null}
+        {quantityHasContingency ? (
+          <button
+            type="button"
             disabled={!canEditEstimate}
-            className="absolute bottom-4 max-w-[calc(100%-8px)] px-1"
+            className={cn(
+              ESTIMATE_CORNER_NUMERIC_CLASS,
+              "right-1 rounded-none border-0 bg-transparent p-0 text-right hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 disabled:cursor-default disabled:opacity-70",
+              quantityBreakdownOpen && "text-ink",
+            )}
             aria-label={`${computedItemLabel} quantity adjustment breakdown`}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => setQuantityBreakdownOpen((current) => !current)}
           >
-            {formatSignedCompactNumber(computedItem.quantityContingencyAmount)} ({formatSignedEditablePercentage(computedItem.contingencyPercentage)}%)
-          </Chip>
+            {formatSignedCompactNumber(computedItem.quantityContingencyAmount ?? 0)} ({formatSignedEditablePercentage(computedItem.contingencyPercentage)}%)
+          </button>
         ) : null}
         {quantityBreakdownOpen ? (
           <div className="absolute left-1 top-8 z-20 grid w-40 grid-cols-2 gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
@@ -712,7 +734,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         )}
         data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
       >
-        <div className="flex min-w-0 flex-col items-center justify-center gap-0.5">
+        <div className="relative grid h-full w-full min-w-0 place-items-center">
           <div className="flex h-5 items-baseline justify-center leading-none">
             <ControlInput
               type="text"
@@ -732,16 +754,18 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               data-estimate-cell-index={1}
               aria-label={`${computedItemLabel} contingency percentage`}
               align="center"
-              className="h-5 w-10 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className={cn(ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS, "w-10 text-right")}
             />
-            <span className="text-[10px] font-medium leading-none tabular-nums text-ink" aria-hidden="true">%</span>
+            <span className={ESTIMATE_PRIMARY_NUMERIC_CLASS} aria-hidden="true">%</span>
           </div>
-          <p className={cn("max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums", rowContingencyQuantity < 0 ? "text-danger" : "text-tertiary")}>
+          <p className={cn(ESTIMATE_CORNER_NUMERIC_CLASS, "right-1 text-right", rowContingencyQuantity < 0 ? "text-danger" : "text-tertiary")}>
             {formatSignedCompactNumber(rowContingencyQuantity)} {computedItem.unit}
           </p>
         </div>
       </td>
-      <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.subTotal).replace("₱", "₱ ")}</td>
+      <td className="flex items-center justify-center border-r border-hairline px-1 text-center">
+        <p className={ESTIMATE_PRIMARY_NUMERIC_CLASS}>{pesoFormatter.format(computedItem.subTotal).replace("₱", "₱ ")}</p>
+      </td>
       <td
         className={cn(
           "relative flex items-center justify-center border-r border-hairline px-1 py-1 text-center",
@@ -749,7 +773,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         )}
         data-estimate-cell-active={activeCellIndex === 2 ? "true" : undefined}
       >
-        <div className="flex min-w-0 flex-col items-center justify-center gap-0.5">
+        <div className="relative grid h-full w-full min-w-0 place-items-center">
           <div className="flex h-5 items-baseline justify-center leading-none">
             <ControlInput
               type="text"
@@ -769,11 +793,11 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               data-estimate-cell-index={2}
               aria-label={`${computedItemLabel} adjustment percentage`}
               align="center"
-              className="h-5 w-10 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className={cn(ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS, "w-10 text-right")}
             />
-            <span className="text-[10px] font-medium leading-none tabular-nums text-ink" aria-hidden="true">%</span>
+            <span className={ESTIMATE_PRIMARY_NUMERIC_CLASS} aria-hidden="true">%</span>
           </div>
-          <p className={cn("max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums", rowAdjustmentValue < 0 ? "text-danger" : "text-tertiary")}>
+          <p className={cn(ESTIMATE_SECONDARY_NUMERIC_CLASS, rowAdjustmentValue < 0 ? "text-danger" : "text-tertiary")}>
             {formatPeso(rowAdjustmentValue)}
           </p>
         </div>
@@ -806,7 +830,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         />
       </td>
       <td className="flex items-center justify-end border-r border-hairline px-1 text-right">
-        <p className="text-[10px] font-medium tabular-nums text-ink">{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
+        <p className={ESTIMATE_PRIMARY_NUMERIC_CLASS}>{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
       </td>
       <td className="grid grid-cols-1 place-content-center gap-1 py-2 text-tertiary">
         <Tooltip label="Row details" side="left" contentClassName="z-[1200]">

@@ -7,6 +7,7 @@ const estimateRowHandlers = readFileSync(join(process.cwd(), "src/components/wor
 const estimateRowMutations = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8");
 const proposalPreviewHook = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/use-estimate-proposal-preview.ts"), "utf8");
 const rowTable = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/row-table.tsx"), "utf8");
+const rowCells = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/cells.tsx"), "utf8");
 const rowDropZones = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/drop-zones.tsx"), "utf8");
 const rowConstants = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/constants.ts"), "utf8");
 const workshopDragStore = readFileSync(join(process.cwd(), "src/components/workshop/estimate-workshop-drag.ts"), "utf8");
@@ -107,5 +108,25 @@ describe("estimate sheet center atomic mutation contracts", () => {
     );
 
     expect(proposalDownloadSource).toContain('fetch(proposalDownloadHref, { credentials: "same-origin" })');
+  });
+
+  it("keeps estimate row primary numeric values on one font size and centerline", () => {
+    expect(rowTable).toContain('const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";');
+    expect(rowTable).toContain('const ESTIMATE_SECONDARY_NUMERIC_CLASS = "absolute top-1/2 mt-3');
+    expect(rowTable).toContain('const ESTIMATE_CORNER_NUMERIC_CLASS = "absolute top-2');
+    expect(rowTable).toContain('className="relative grid h-full w-full min-w-0 place-items-center"');
+    expect(rowTable).not.toContain("flex min-w-0 flex-col items-center justify-center gap-0.5");
+    expect(rowCells).toContain('className="!text-[10px] font-medium leading-3 tabular-nums text-ink"');
+  });
+
+  it("keeps quantity contingency breakdown as corner metadata with a centered total", () => {
+    expect(rowTable).toContain("const quantityDisplayValue = quantityCellFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity);");
+    expect(rowTable).toContain('value={quantityDisplayValue}');
+    expect(rowTable).toContain("<dt>Value</dt>");
+    expect(rowTable).toContain("<dt>Contingency</dt>");
+    expect(rowTable).toContain('className="min-w-4 text-right tabular-nums text-ink"');
+    expect(rowTable).toContain("ESTIMATE_CORNER_NUMERIC_CLASS");
+    expect(rowTable).not.toContain('import { Chip } from "@/components/ui/chip";');
+    expect(rowTable).not.toContain("<Chip");
   });
 });
