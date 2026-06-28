@@ -127,7 +127,31 @@ export class AuthRequiredError extends AppError {
 }
 ```
 
-### B.3 Helper: `unwrapSupabase`
+### B.3 `InternalError` constructor (object form)
+
+`InternalError` accepts an optional options object so both `new InternalError({ cause: err })` (defaults apply) and the `throwActionError` shim form `new InternalError({ userMessage, code: 'LIBRARY_ACTION', cause })` (see `05` B.1) compose cleanly. The other typed subclasses follow the positional `(cause?, context?)` form shown in B.2.
+
+```ts
+export class InternalError extends AppError {
+  readonly kind = 'internal' as const;
+  constructor(opts?: {
+    cause?: unknown;
+    userMessage?: string;
+    code?: string;
+    context?: AppErrorOptions['context'];
+  }) {
+    super({
+      userMessage: opts?.userMessage ?? "Something went wrong. We're looking into it.",
+      code: opts?.code ?? 'INTERNAL',
+      httpStatus: 500,
+      cause: opts?.cause,
+      context: opts?.context,
+    });
+  }
+}
+```
+
+### B.4 Helper: `unwrapSupabase`
 
 ```ts
 // src/lib/observability/unwrap-supabase.ts (new in P1)
@@ -259,19 +283,25 @@ Route handlers use `try/catch` and call `errorResponse(err)` from the catch.
 
 ## F. Auth error bridge (preserve existing pattern)
 
-`src/lib/auth/error-mapping.ts` already maps Supabase auth errors to codes (`callback_missing_code`, etc.). Plan adds a bridge:
+`src/lib/auth/error-mapping.ts` already defines six auth codes: `email_required`, `auth_request_failed`, `google_request_failed`, `callback_missing_code`, `callback_exchange_failed`, `invalid_redirect`. Plan adds a bridge that maps each of these existing codes to an `AuthError` subclass. Codes outside the existing set (e.g. Supabase-native `otp_expired`, future `beta_access_required`) are NOT introduced by this plan; if they are added to the source later, the bridge switch is extended at that time.
 
 ```ts
 // src/lib/auth/error-mapping.ts (EXTEND only)
-import { AuthError } from '@/lib/observability/app-error';
+import { AuthError, AuthRequiredError } from '@/lib/observability/app-error';
 
 export function mapAuthCodeToAppError(code: string, cause?: unknown): AuthError {
   switch (code) {
-    case 'callback_missing_code': return new AuthRequiredError(cause, { auth_code: code });
-    case 'otp_expired':           return new AuthSessionExpiredError(cause, { auth_code: code });
-    case 'beta_access_required':  return new AuthPermissionDeniedError(cause, { auth_code: code });
-    // ... existing codes
-    default:                      return new AuthRequiredError(cause, { auth_code: code });
+    case 'email_required':
+    case 'auth_request_failed':
+    case 'google_request_failed':
+    case 'callback_missing_code':
+    case 'callback_exchange_failed':
+    case 'invalid_redirect':
+      return new AuthRequiredError(cause, { auth_code: code });
+    default:
+      // Unknown code → safest default; do not invent semantics for codes the
+      // source does not yet emit (e.g. otp_expired, beta_access_required).
+      return new AuthRequiredError(cause, { auth_code: code });
   }
 }
 ```

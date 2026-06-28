@@ -81,7 +81,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | Section 11 (validation rules) | `09_TEST_QA_ULTRAQA_PLAN.md` |
 | Section 12 (adversarial QA) | `09` Section C |
 | Section 14 (completion audit) | `13_FINAL_AUDIT_SCORECARD.md` |
-| Section 15 (final report) | `13` Section F + README "Stop condition" |
+| Section 15 (final report) | `13` Section E + README "Stop condition" |
 
 ## D. Readiness review
 
@@ -90,7 +90,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 **Scope of readiness:**
 - P1 foundation plus pilot vertical are traceable to source + WP + test.
 - Full all-actions/all-routes migration remains conditional on pilot evidence and plan update.
-- 11 ADRs documented with rejected alternatives.
+- 15 ADRs documented with rejected alternatives.
 - 17 risks logged with mitigations.
 - All user-pointed framework sections addressed.
 - Council-raised P0/P1 blockers resolved by narrowing readiness and adding owner/provider gates.
@@ -119,10 +119,10 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 **Residual risks:**
 - `RISK-ERR-013` — plan drift between writing and implementation. Implementer must re-read.
 - `RISK-ERR-014` — agent runtime may still be broken at implementation time. All implementation is direct (no agent delegation required).
-- Runtime/browser/provider behavior remains unproven until P5/P6 evidence is captured; this is why the package is conditional rather than fully implementation-ready.
+- Runtime/browser/provider behavior remains unproven until P5/P6a evidence is captured; this is why the package is conditional rather than fully implementation-ready.
 
 **Stop conditions for implementation:**
-- P6 exit criteria all met.
+- P6a exit criteria all met.
 - `13_FINAL_AUDIT_SCORECARD.md` shows every rubric item PASS with both RED→GREEN proof and real-surface artifact captured.
 - README status flipped to "IMPLEMENTED".
 

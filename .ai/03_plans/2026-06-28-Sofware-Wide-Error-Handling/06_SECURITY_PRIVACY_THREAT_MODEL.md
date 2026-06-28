@@ -217,7 +217,7 @@ Production must not rely on the in-memory `rateLimiter` Map because serverless i
 | `/api/internal/client-error` rejects cross-site reports, malformed JSON, oversized payloads, secret/token/email/URL strings, control characters, and prompt-injection strings | `tests/vitest/client-error.test.ts` (new P3 pilot) |
 | `/api/internal/client-error` rate-limits at 10/min | `tests/vitest/client-error.test.ts` (new P3 pilot) |
 | Sentry `beforeSend` strips auth headers | `tests/vitest/sentry-redact.test.ts` (new P5) |
-| Source maps absent from public CDN | Playwright probe in P6 |
+| Source maps absent from public CDN | Playwright probe in P6a |
 
 ## H. Ponytail counterweight
 

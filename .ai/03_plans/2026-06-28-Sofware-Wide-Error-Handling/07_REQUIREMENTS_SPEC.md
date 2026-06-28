@@ -78,7 +78,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Priority:** P2b after pilot.
 - **AC-007.1:** Existing `mapAuthErrorToCode` function preserved unchanged.
 - **AC-007.2:** `recordAccountSecurityEvent` calls preserved unchanged.
-- **AC-007.3:** New bridge maps every existing code (callback_missing_code, otp_expired, beta_access_required, etc.).
+- **AC-007.3:** New bridge maps every existing code in `src/lib/auth/error-mapping.ts` (`email_required`, `auth_request_failed`, `google_request_failed`, `callback_missing_code`, `callback_exchange_failed`, `invalid_redirect`). Codes not present in the source today (e.g. Supabase-native `otp_expired`, future `beta_access_required`) are added to the bridge only when the source emits them.
 - **Affected:** `src/lib/auth/error-mapping.ts` (extend only).
 
 ### ARCH-001 — Observability module location
@@ -137,7 +137,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### SEC-002 — Source maps private
 - **Statement:** Source maps never published to public CDN.
-- **AC-002.1:** Playwright probe in P6 verifies `/.next/static/chunks/*.map` returns 404 on production deploy.
+- **AC-002.1:** Playwright probe in P6a verifies `/.next/static/chunks/*.map` returns 404 on production deploy.
 
 ### SEC-003 — Client error endpoint hardened
 - **Statement:** `/api/internal/client-error` is same-origin checked, strictly parsed, size-capped, redacted, tainted-field labeled, and rate-limited to 10 requests/min/IP for local/preview. Production enablement requires provider-backed rate limiting.
@@ -169,7 +169,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** `tests/vitest/{toast-apperror,toast-a11y,client-error,instrumentation,sentry-redact}.test.ts` + `tests/unit/tail-dev-logs.test.ts` exist and pass.
 
 ### TEST-003 — Adversarial QA matrix
-- **Statement:** `09_TEST_QA_ULTRAQA_PLAN.md` matrix executed; zero P0/P1 findings unresolved at P6.
+- **Statement:** `09_TEST_QA_ULTRAQA_PLAN.md` matrix executed; zero P0/P1 findings unresolved at P6a.
 
 ### PERF-001 — Logger overhead budget
 - **Statement:** `logger.error` adds <1ms p95 per call once the P4 file writer is enabled.

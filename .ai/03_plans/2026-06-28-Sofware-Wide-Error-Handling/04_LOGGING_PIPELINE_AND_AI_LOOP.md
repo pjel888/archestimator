@@ -178,11 +178,11 @@ This loop is the explicit payoff of the user's "AI agent driven development" req
 
 ```ts
 // src/lib/observability/logger.ts (new in P1)
-import { perfTraceStorage } from '@/lib/perf/server-timing';
+import { getCurrentPerfTraceSnapshot } from '@/lib/perf/server-timing';
 
 export const logger = {
   error(record: DevLogRecord) {
-    const trace = perfTraceStorage.getStore();
+    const trace = getCurrentPerfTraceSnapshot();
     const enriched = trace
       ? { ...record, context: { ...record.context, request_id: trace.requestId, route: trace.scope } }
       : record;
@@ -193,7 +193,7 @@ export const logger = {
 };
 ```
 
-`src/lib/perf/server-timing.ts` itself is a protected contract per README — only consumed.
+`src/lib/perf/server-timing.ts` itself is a protected contract per README — only consumed via its existing exports (`getCurrentPerfTraceSnapshot`, `withPerfTraceRequest`, `traced`). The internal `perfTraceStorage` is intentionally not imported by the logger.
 
 ## F. Production forwarder
 

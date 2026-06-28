@@ -97,6 +97,6 @@ Planning stops when:
 - Final verifier pass recorded in this pack.
 
 Implementation (separate task, future) stops when:
-- P1–P6 landed and committed.
+- P1–P6a landed and committed.
 - AI-tail-diagnose loop proven end-to-end on a real failure.
 - Sentry dashboard shows first real production error with source-mapped stack.

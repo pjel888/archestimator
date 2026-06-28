@@ -56,10 +56,10 @@ P4 — Dev logging pipeline: NDJSON file writer + PERF_TRACE integration + AI ta
    ↓
 P5 — Prod observability decision: Sentry integration design; provider credentials/prod enablement owner-gated
    ↓
-P6 — Pilot verification: targeted vitest + browser smoke where needed + adversarial + AI-diagnosability test
+P6a — Pilot verification: targeted vitest + browser smoke where needed + adversarial + AI-diagnosability test
 ```
 
-Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are independent after P1. P4 depends on P1 only. P5 depends on P1 + P4 (logger interface) but cannot enable production provider state without execution-time owner authority. P6 depends on all approved pilot phases. Full P2/P3 migration is a follow-on plan update after pilot pass.
+Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are independent after P1. P4 depends on P1 only. P5 depends on P1 + P4 (logger interface) but cannot enable production provider state without execution-time owner authority. P6a depends on all approved pilot phases. Full P2/P3 migration is a follow-on plan update after pilot pass.
 
 ## Stop condition
 
@@ -101,7 +101,7 @@ The all-actions/all-routes migration becomes implementation-ready only after the
 ## Archive policy
 
 Archive `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` to `.ai/09_archive/` once:
-- P1–P6 are implemented and committed, AND
+- P1–P6a are implemented and committed, AND
 - The dev JSONL → AI diagnose loop is proven end-to-end on a real failure, AND
 - The prod Sentry integration is live and the first real production error appears in the dashboard with a useful stack trace.
 

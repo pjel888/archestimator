@@ -29,7 +29,12 @@ import { type Instrumentation } from 'next';
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./sentry.server.config');
+    const sentry = await import('./sentry.server.config');
+    // sentry.server.config.ts exports its own register() that calls Sentry.init().
+    // The import alone does not run it — call it explicitly.
+    if (typeof sentry.register === 'function') {
+      await sentry.register();
+    }
   }
 }
 

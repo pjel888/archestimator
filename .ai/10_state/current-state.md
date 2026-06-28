@@ -45,6 +45,13 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Activity Page implemented locally with focused evidence (2026-06-28):**
+
+- `/workshop/projects/{projectId}/activity` now has a real authenticated Activity page: editor-gated Server Component prefetch, URL-backed scope/action/actor/client filters, compact timeline UI, transient Load more cursor via `/api/projects/{projectId}/activity`, and a route skeleton.
+- Added server-only `readProjectActivityFeed` with six-source fan-out, scoped collaboration audit access through new RPC migration `20260628223000_project_activity_collaboration_audit_rpc.sql`, generated RPC typing, non-PII recipient labels, per-source opaque cursor markers, dropdown helpers, and static contract tests forbidding direct `collaboration_audit_events` reads / recipient email DTO paths.
+- Fresh local evidence passed: `bun run type-check`; `bun run lint` (0 errors, existing warnings only); `bun run lint:design`; `bun run test`; `bun run test:dom -- tests/vitest/project-activity-page` (5 files / 26 tests); shared activity/dashboard regression matrix (8 files / 109 tests); `bun run build`; `git diff --check`.
+- Validation gap: full `bun run validate` is still red because repo-wide `lint:design-system` fails on pre-existing unrelated `src/components/workshop/estimate-sheet/rows/cells.tsx:478 uses rounded-full`. No project-activity design-system findings remain. Browser/provider RPC proof and authenticated perf timing were not run in this local implementation pass.
+
 **Project Activity Page plan package is implementation-ready (2026-06-28):**
 
 - Plan package `.ai/03_plans/2026-06-28-Project-Activity-Page/` is now `IMPLEMENTATION-READY` for `/workshop/projects/{projectId}/activity` as the project Activity History home with project/estimate scope selectors, action/user/client filters, authenticated transient Load more pagination, and existing dashboard chrome.
